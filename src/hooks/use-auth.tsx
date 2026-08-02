@@ -38,21 +38,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     seedLocalData();
 
-    // The /auth/callback route handler does the heavy lifting (server-side
-    // code exchange). On the client, we just need to (a) check if there's
-    // an existing session from the cookie that was set, and (b) subscribe
-    // to auth state changes so we update the UI when the session lands.
     let unsub: (() => void) | null = null;
 
     async function init() {
-      // If we landed back with ?code=... in URL (shouldn't happen now since
-      // /auth/callback handles it, but as a safety net), try to exchange it.
+      // Safety net: exchange code if present in URL (from OAuth callback).
       if (supabase && typeof window !== "undefined") {
         const url = new URL(window.location.href);
         if (url.searchParams.has("code")) {
           try {
             await supabase.auth.exchangeCodeForSession(window.location.href);
-            // Clean the URL
             window.history.replaceState({}, document.title, url.pathname);
           } catch (e) {
             console.error("[auth] Fallback code exchange failed:", e);
@@ -60,9 +54,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       }
 
-      // Subscribe to auth state changes. This fires immediately with the
-      // current session (from cookie), and again whenever it changes.
+      // Subscribe to auth state changes first (so we don't miss any events).
       unsub = onAuthChange((p) => {
+        console.log("[auth] onAuthChange fired, profile:", p?.email || "null");
         setProfile(p);
         setLoading(false);
       });

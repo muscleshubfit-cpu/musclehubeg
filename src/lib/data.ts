@@ -212,18 +212,31 @@ export function onAuthChange(cb: (profile: Profile | null) => void): () => void 
     // onAuthStateChange may NOT fire on page load with an INITIAL_SESSION event
     // when the session is cookie-based. So we explicitly call getSession() on
     // mount to read the cookie-based session and emit the profile immediately.
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
+    console.log("[auth] onAuthChange: calling getSession() to check cookie-based session...");
+    supabase.auth.getSession().then(async ({ data: { session }, error }) => {
+      console.log("[auth] getSession() result:", {
+        hasSession: !!session,
+        hasUser: !!session?.user,
+        userEmail: session?.user?.email,
+        error: error?.message,
+      });
       if (session?.user) {
+        console.log("[auth] Session found, fetching profile for:", session.user.id);
         const profile = await fetchProfile(session.user.id);
+        console.log("[auth] Profile fetched:", profile?.email, "role:", profile?.role);
         cb(profile);
       } else {
-        // No session in cookies — emit null so the UI can proceed.
+        console.log("[auth] No session in cookies");
         cb(null);
       }
-    }).catch(() => cb(null));
+    }).catch((e) => {
+      console.error("[auth] getSession() threw:", e);
+      cb(null);
+    });
 
     // Also subscribe to future auth state changes (sign in/out, token refresh).
     const { data } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      console.log("[auth] onAuthStateChange event:", _event, "hasSession:", !!session);
       if (session?.user) {
         const profile = await fetchProfile(session.user.id);
         cb(profile);
