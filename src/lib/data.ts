@@ -582,6 +582,258 @@ export async function listAllClients() {
   return Object.values(profiles).filter((p) => p.role === "client");
 }
 
+// ---------------------------------------------------------------------------
+//  Progress Photos
+// ---------------------------------------------------------------------------
+
+export async function listPhotos(userId: string) {
+  if (isSupabaseConfigured && supabase) {
+    const { data } = await supabase
+      .from("progress_photos")
+      .select("*")
+      .eq("user_id", userId)
+      .order("taken_on", { ascending: false });
+    if (!data) return [];
+    // Generate signed URLs for each photo
+    const withUrls = await Promise.all(
+      data.map(async (p: any) => {
+        const { data: signed } = await supabase.storage
+          .from("progress-photos")
+          .createSignedUrl(p.file_path, 3600);
+        return { ...p, url: signed?.signedUrl ?? "" };
+      }),
+    );
+    return withUrls;
+  }
+  return read<any[]>(LS_PREFIX + "photos", []).filter((p) => p.user_id === userId);
+}
+
+export async function uploadPhoto(userId: string, file: File, date: string, note: string) {
+  if (isSupabaseConfigured && supabase) {
+    const ext = file.name.split(".").pop();
+    const path = `${userId}/${Date.now()}.${ext}`;
+    const { error: upErr } = await supabase.storage.from("progress-photos").upload(path, file);
+    if (upErr) throw new Error(upErr.message);
+    const { data, error } = await supabase
+      .from("progress_photos")
+      .insert({ user_id: userId, file_path: path, taken_on: date, note: note || null })
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    return data;
+  }
+  // Local fallback
+  const all = read<any[]>(LS_PREFIX + "photos", []);
+  const row = { id: uid(), user_id: userId, file_path: "", taken_on: date, note, created_at: new Date().toISOString(), url: URL.createObjectURL(file) };
+  all.push(row);
+  write(LS_PREFIX + "photos", all);
+  return row;
+}
+
+export async function deletePhoto(id: string, filePath?: string) {
+  if (isSupabaseConfigured && supabase) {
+    if (filePath) await supabase.storage.from("progress-photos").remove([filePath]);
+    await supabase.from("progress_photos").delete().eq("id", id);
+    return;
+  }
+  const all = read<any[]>(LS_PREFIX + "photos", []);
+  write(LS_PREFIX + "photos", all.filter((p) => p.id !== id));
+}
+
+// ---------------------------------------------------------------------------
+//  Notifications
+// ---------------------------------------------------------------------------
+
+export async function listNotifications(userId: string) {
+  if (isSupabaseConfigured && supabase) {
+    const { data } = await supabase
+      .from("notifications")
+      .select("*")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(20);
+    return data ?? [];
+  }
+  return read<any[]>(LS_PREFIX + "notifs", []).filter((n) => n.user_id === userId);
+}
+
+export async function markNotificationsRead(userId: string) {
+  if (isSupabaseConfigured && supabase) {
+    await supabase.from("notifications").update({ read: true }).eq("user_id", userId).eq("read", false);
+    return;
+  }
+  const all = read<any[]>(LS_PREFIX + "notifs", []);
+  all.forEach((n) => { if (n.user_id === userId) n.read = true; });
+  write(LS_PREFIX + "notifs", all);
+}
+
+export async function createNotification(userId: string, type: string, title: string, body: string, link?: string) {
+  if (isSupabaseConfigured && supabase) {
+    const { data, error } = await supabase
+      .from("notifications")
+      .insert({ user_id: userId, type, title, body, link })
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    return data;
+  }
+  const all = read<any[]>(LS_PREFIX + "notifs", []);
+  const row = { id: uid(), user_id: userId, type, title, body, link, read: false, created_at: new Date().toISOString() };
+  all.push(row);
+  write(LS_PREFIX + "notifs", all);
+  return row;
+}
+
+// ---------------------------------------------------------------------------
+//  Subscription Requests (for coach payments page)
+// ---------------------------------------------------------------------------
+
+export async function listSubscriptionRequests(status?: string) {
+  if (isSupabaseConfigured && supabase) {
+    let q = supabase.from("subscription_requests").select("*").order("created_at", { ascending: false });
+    if (status && status !== "all") q = q.eq("status", status);
+    const { data } = await q;
+    return data ?? [];
+  }
+  return read<any[]>(LS_PREFIX + "subreqs", []);
+}
+
+export async function submitSubscriptionRequest(req: any) {
+  if (isSupabaseConfigured && supabase) {
+    const { data, error } = await supabase.from("subscription_requests").insert(req).select().single();
+    if (error) throw new Error(error.message);
+    return data;
+  }
+  const all = read<any[]>(LS_PREFIX + "subreqs", []);
+  const row = { id: uid(), ...req, status: "pending", created_at: new Date().toISOString() };
+  all.push(row);
+  write(LS_PREFIX + "subreqs", all);
+  return row;
+}
+
+export async function reviewSubscriptionRequest(id: string, action: "approve" | "reject") {
+  if (isSupabaseConfigured && supabase) {
+    const { data, error } = await supabase
+      .from("subscription_requests")
+      .update({ status: action === "approve" ? "approved" : "rejected", reviewed_at: new Date().toISOString() })
+      .eq("id", id)
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+
+    // If approved, create a subscription for the user
+    if (action === "approve") {
+      const req = data;
+      const start = new Date();
+      const end = new Date();
+      end.setMonth(end.getMonth() + req.duration_months);
+      await upsertSubscription(req.user_id, req.plan_tier, req.duration_months, start.toISOString(), end.toISOString());
+      // Notify the user
+      await createNotification(req.user_id, "subscription_approved", "تم تفعيل اشتراكك!", `تم الموافقة على طلب اشتراكك (${req.plan_tier}) لمدة ${req.duration_months} أشهر.`, "/dashboard");
+    } else {
+      await createNotification(data.user_id, "subscription_rejected", "تم رفض طلب الاشتراك", "تم رفض طلب اشتراكك. يرجى التواصل مع الدعم.", "/pricing");
+    }
+    return data;
+  }
+  const all = read<any[]>(LS_PREFIX + "subreqs", []);
+  const idx = all.findIndex((r) => r.id === id);
+  if (idx >= 0) all[idx].status = action === "approve" ? "approved" : "rejected";
+  write(LS_PREFIX + "subreqs", all);
+  return all[idx];
+}
+
+export async function getReceiptSignedUrl(filePath: string): Promise<string> {
+  if (isSupabaseConfigured && supabase) {
+    const { data } = await supabase.storage.from("receipts").createSignedUrl(filePath, 3600);
+    return data?.signedUrl ?? "";
+  }
+  return "";
+}
+
+export async function uploadReceipt(file: File): Promise<string> {
+  if (isSupabaseConfigured && supabase) {
+    const ext = file.name.split(".").pop();
+    const path = `receipts/${Date.now()}.${ext}`;
+    const { error } = await supabase.storage.from("receipts").upload(path, file);
+    if (error) throw new Error(error.message);
+    return path;
+  }
+  return "";
+}
+
+// ---------------------------------------------------------------------------
+//  All Tickets (for coach support inbox)
+// ---------------------------------------------------------------------------
+
+export async function listAllTickets() {
+  if (isSupabaseConfigured && supabase) {
+    const { data } = await supabase
+      .from("support_tickets")
+      .select("*, profiles!support_tickets_client_id_fkey(full_name, email)")
+      .order("created_at", { ascending: false });
+    return data ?? [];
+  }
+  return read<any[]>(LS_TICKETS, []);
+}
+
+// ---------------------------------------------------------------------------
+//  Plan file upload (coach uploads PDF files)
+// ---------------------------------------------------------------------------
+
+export async function uploadPlanFile(bucket: string, clientId: string, file: File): Promise<string> {
+  if (isSupabaseConfigured && supabase) {
+    const ext = file.name.split(".").pop();
+    const path = `${clientId}/${Date.now()}.${ext}`;
+    const { error } = await supabase.storage.from(bucket).upload(path, file);
+    if (error) throw new Error(error.message);
+    return path;
+  }
+  return "";
+}
+
+export async function getPlanFileUrl(bucket: string, filePath: string): Promise<string> {
+  if (isSupabaseConfigured && supabase) {
+    const { data } = await supabase.storage.from(bucket).createSignedUrl(filePath, 3600);
+    return data?.signedUrl ?? "";
+  }
+  return "";
+}
+
+// ---------------------------------------------------------------------------
+//  Questionnaire status management (coach)
+// ---------------------------------------------------------------------------
+
+export async function setQuestionnaireStatus(
+  clientId: string,
+  type: "nutrition" | "fitness",
+  status: "draft" | "submitted" | "approved" | "needs_info",
+) {
+  if (isSupabaseConfigured && supabase) {
+    const table = type === "nutrition" ? "nutrition_questionnaires" : "fitness_questionnaires";
+    const { data, error } = await supabase
+      .from(table)
+      .update({ status, updated_at: new Date().toISOString() })
+      .eq("client_id", clientId)
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    // Notify the user
+    const statusMsg = status === "approved" ? "تمت الموافقة على استبيانك" : "يحتاج استبيانك لمزيد من المعلومات";
+    await createNotification(clientId, "questionnaire_status", statusMsg, `استبيان ${type === "nutrition" ? "التغذية" : "اللياقة"}: ${statusMsg}`, "/questionnaires");
+    return data;
+  }
+  const key = type === "nutrition" ? LS_NUTRI_Q : LS_FIT_Q;
+  const store = read<Record<string, any>>(key, {});
+  if (store[clientId]) {
+    store[clientId].status = status;
+    store[clientId].updated_at = new Date().toISOString();
+    write(key, store);
+  }
+  return store[clientId];
+}
+
+const LS_PREFIX = "mhe:";
+
 export async function listAllSubscriptions() {
   if (isSupabaseConfigured && supabase) {
     const { data } = await supabase.from("subscriptions").select("*");

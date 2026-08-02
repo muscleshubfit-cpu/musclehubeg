@@ -16,6 +16,8 @@ import { ChatView } from "@/components/views/ChatView";
 import { SupportView } from "@/components/views/SupportView";
 import { CoachView } from "@/components/views/CoachView";
 import { CoachClientView } from "@/components/views/CoachClientView";
+import { CoachSupportView } from "@/components/views/CoachSupportView";
+import { CoachPaymentsView } from "@/components/views/CoachPaymentsView";
 import { AppLayout } from "@/components/AppLayout";
 import { getTier } from "@/lib/plans";
 import type { TierId, Duration } from "@/lib/plans";
@@ -83,6 +85,28 @@ function Router() {
     return isCoach ? (
       <AppLayout>
         <CoachView />
+      </AppLayout>
+    ) : (
+      <AppLayout>
+        <DashboardView />
+      </AppLayout>
+    );
+  }
+  if (view === "coach-support") {
+    return isCoach ? (
+      <AppLayout>
+        <CoachSupportView />
+      </AppLayout>
+    ) : (
+      <AppLayout>
+        <DashboardView />
+      </AppLayout>
+    );
+  }
+  if (view === "coach-payments") {
+    return isCoach ? (
+      <AppLayout>
+        <CoachPaymentsView />
       </AppLayout>
     ) : (
       <AppLayout>

@@ -15,6 +15,7 @@ import {
 import { useAuth } from "@/hooks/use-auth";
 import { useI18n } from "@/lib/i18n";
 import { LanguageToggle } from "@/components/LanguageToggle";
+import { NotificationBell } from "@/components/NotificationBell";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useNav, type View } from "@/hooks/use-nav";
@@ -34,7 +35,9 @@ export function AppLayout({ children }: { children: ReactNode }) {
     { to: "pricing", label: t("nav.pricing"), icon: Crown },
   ];
   const coachNav: { to: View; label: string; icon: any }[] = [
-    { to: "coach", label: t("nav.clients"), icon: LayoutDashboard },
+    { to: "coach", label: t("nav.clients"), icon: Users },
+    { to: "coach-support", label: t("nav.support.coach"), icon: LifeBuoy },
+    { to: "coach-payments", label: t("nav.admin"), icon: CreditCard },
   ];
   const nav = isCoach ? coachNav : clientNav;
 
@@ -57,6 +60,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
             <span className="truncate font-display text-lg font-bold">{t("brand.name")}</span>
           </button>
           <div className="flex items-center gap-1">
+            <NotificationBell />
             <LanguageToggle />
             <Button variant="ghost" size="sm" onClick={handleSignOut} className="gap-2">
               <LogOut className="h-4 w-4" />

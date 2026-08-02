@@ -1,20 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Salad, Dumbbell, FileText, Download } from "lucide-react";
+import { Salad, Dumbbell, FileText, Download, Printer, RefreshCw, Loader2 } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/hooks/use-auth";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { listPlans } from "@/lib/data";
-import { cn } from "@/lib/utils";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { listPlans, getPlanFileUrl } from "@/lib/data";
+import { toast } from "sonner";
 
 export function PlansView() {
   const { t } = useI18n();
@@ -22,6 +17,7 @@ export function PlansView() {
   const [plans, setPlans] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [active, setActive] = useState<any | null>(null);
+  const [swapLoading, setSwapLoading] = useState<string | null>(null);
 
   useEffect(() => {
     if (!profile) return;
@@ -37,6 +33,119 @@ export function PlansView() {
   const meal = plans.filter((p) => p.type === "meal");
   const workout = plans.filter((p) => p.type === "workout");
 
+  const openFile = async (bucket: string, filePath: string) => {
+    const url = await getPlanFileUrl(bucket, filePath);
+    if (url) window.open(url, "_blank");
+  };
+
+  const swapMeal = async (planId: string, mealIndex: number) => {
+    setSwapLoading(`meal-${planId}-${mealIndex}`);
+    try {
+      const plan = plans.find((p) => p.id === planId);
+      if (!plan?.content?.meals?.[mealIndex]) throw new Error("Meal not found");
+      const meal = plan.content.meals[mealIndex];
+      const res = await fetch("/api/ai/swap", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: "meal", item: meal, clientContext: { name: profile?.full_name } }),
+      });
+      if (!res.ok) throw new Error("Swap failed");
+      const { replacement } = await res.json();
+      // Update the plan content locally
+      const updatedPlans = plans.map((p) => {
+        if (p.id !== planId) return p;
+        const newContent = { ...p.content };
+        newContent.meals[mealIndex] = replacement;
+        return { ...p, content: newContent };
+      });
+      setPlans(updatedPlans);
+      if (active?.id === planId) {
+        const newActive = updatedPlans.find((p) => p.id === planId);
+        if (newActive) setActive(newActive);
+      }
+      toast.success("تم استبدال الوجبة بنجاح!");
+    } catch (e: any) {
+      toast.error(e.message || t("common.error"));
+    } finally {
+      setSwapLoading(null);
+    }
+  };
+
+  const swapExercise = async (planId: string, dayIndex: number, exIndex: number) => {
+    setSwapLoading(`ex-${planId}-${dayIndex}-${exIndex}`);
+    try {
+      const plan = plans.find((p) => p.id === planId);
+      if (!plan?.content?.days?.[dayIndex]?.exercises?.[exIndex]) throw new Error("Exercise not found");
+      const exercise = plan.content.days[dayIndex].exercises[exIndex];
+      const focus = plan.content.days[dayIndex].focus;
+      const res = await fetch("/api/ai/swap", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: "exercise", item: { ...exercise, focus }, clientContext: { name: profile?.full_name } }),
+      });
+      if (!res.ok) throw new Error("Swap failed");
+      const { replacement } = await res.json();
+      const updatedPlans = plans.map((p) => {
+        if (p.id !== planId) return p;
+        const newContent = { ...p.content };
+        newContent.days[dayIndex].exercises[exIndex] = replacement;
+        return { ...p, content: newContent };
+      });
+      setPlans(updatedPlans);
+      if (active?.id === planId) {
+        const newActive = updatedPlans.find((p) => p.id === planId);
+        if (newActive) setActive(newActive);
+      }
+      toast.success("تم استبدال التمرين بنجاح!");
+    } catch (e: any) {
+      toast.error(e.message || t("common.error"));
+    } finally {
+      setSwapLoading(null);
+    }
+  };
+
+  const printPlan = (plan: any) => {
+    const w = window.open("", "_blank", "width=820,height=1040");
+    if (!w) return;
+    const content = plan.content;
+    let html = `<!doctype html><html dir="rtl" lang="ar"><head><meta charset="utf-8"><title>${plan.title}</title>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box} body{font-family:'Cairo',sans-serif;padding:28px;color:#141414;margin:0}
+  h1{font-size:22px;margin:0 0 4px} h2{font-size:17px;margin:18px 0 8px}
+  p{line-height:1.7;color:#333} table{width:100%;border-collapse:collapse;margin:6px 0 14px;font-size:13px}
+  th,td{border:1px solid #e2e2e2;padding:7px 9px;text-align:right} th{background:#f4f4f5}
+  .brand{color:#1F8FFF;font-weight:700;margin-bottom:10px}
+  .stat{display:inline-block;background:#f0f7ff;padding:8px 16px;border-radius:8px;margin:4px;font-weight:600}
+</style></head><body>
+<div class="brand">أحمد زكي — Ahmed Zake</div>
+<h1>${plan.title}</h1>`;
+    if (plan.type === "meal" && content) {
+      if (content.overview) html += `<p>${content.overview}</p>`;
+      if (content.daily_calories) html += `<div class="stat">السعرات: ${content.daily_calories}</div>`;
+      if (content.macros) html += `<div class="stat">بروتين: ${content.macros.protein_g}g</div><div class="stat">كارب: ${content.macros.carbs_g}g</div><div class="stat">دهون: ${content.macros.fat_g}g</div>`;
+      if (content.meals) {
+        for (const m of content.meals) {
+          html += `<h2>${m.name}</h2><table><tr><th>الطعام</th><th>الكمية</th><th>السعرات</th></tr>`;
+          for (const it of m.items || []) html += `<tr><td>${it.food}</td><td>${it.amount}</td><td>${it.calories}</td></tr>`;
+          html += `</table>${m.notes ? `<p style="font-size:12px;color:#666">${m.notes}</p>` : ""}`;
+        }
+      }
+    } else if (plan.type === "workout" && content?.days) {
+      if (content.overview) html += `<p>${content.overview}</p>`;
+      for (const d of content.days) {
+        html += `<h2>${d.day}${d.focus ? ` — ${d.focus}` : ""}</h2><table><tr><th>التمرين</th><th>المجموعات</th><th>التكرارات</th><th>الراحة</th></tr>`;
+        for (const ex of d.exercises || []) html += `<tr><td>${ex.name}</td><td>${ex.sets}</td><td>${ex.reps}</td><td>${ex.rest}</td></tr>`;
+        html += `</table>`;
+      }
+    }
+    html += `</body></html>`;
+    w.document.write(html);
+    w.document.close();
+    w.focus();
+    setTimeout(() => w.print(), 500);
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -44,51 +153,55 @@ export function PlansView() {
         <p className="mt-1 text-sm text-muted-foreground">{t("plans.subtitle")}</p>
       </div>
 
-      <section>
-        <div className="mb-3 flex items-center gap-2">
-          <Salad className="h-5 w-5 text-primary" />
-          <h2 className="text-lg font-semibold">{t("plans.meal")}</h2>
-          <Badge variant="secondary">{meal.length}</Badge>
-        </div>
-        {meal.length === 0 ? (
-          <EmptyCard text={t("plans.empty")} />
-        ) : (
-          <div className="grid gap-4 sm:grid-cols-2">
-            {meal.map((p) => (
-              <PlanCard key={p.id} plan={p} onClick={() => setActive(p)} />
-            ))}
-          </div>
-        )}
-      </section>
+      <Tabs defaultValue="workout">
+        <TabsList className="flex-wrap">
+          <TabsTrigger value="workout" className="gap-2">
+            <Dumbbell className="h-4 w-4" />
+            {t("plans.workout")} ({workout.length})
+          </TabsTrigger>
+          <TabsTrigger value="meal" className="gap-2">
+            <Salad className="h-4 w-4" />
+            {t("plans.meal")} ({meal.length})
+          </TabsTrigger>
+        </TabsList>
 
-      <section>
-        <div className="mb-3 flex items-center gap-2">
-          <Dumbbell className="h-5 w-5 text-primary" />
-          <h2 className="text-lg font-semibold">{t("plans.workout")}</h2>
-          <Badge variant="secondary">{workout.length}</Badge>
-        </div>
-        {workout.length === 0 ? (
-          <EmptyCard text={t("plans.empty")} />
-        ) : (
-          <div className="grid gap-4 sm:grid-cols-2">
-            {workout.map((p) => (
-              <PlanCard key={p.id} plan={p} onClick={() => setActive(p)} />
-            ))}
-          </div>
-        )}
-      </section>
+        <TabsContent value="workout" className="mt-4">
+          {workout.length === 0 ? (
+            <EmptyCard text={t("plans.empty")} />
+          ) : (
+            <div className="grid gap-4 sm:grid-cols-2">
+              {workout.map((p) => (
+                <PlanCard key={p.id} plan={p} onClick={() => setActive(p)} />
+              ))}
+            </div>
+          )}
+        </TabsContent>
 
-      <Dialog open={!!active} onOpenChange={(o) => !o && setActive(null)}>
-        <DialogContent className="max-h-[85vh] max-w-2xl overflow-y-auto scrollbar-thin">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              {active?.type === "meal" ? <Salad className="h-5 w-5 text-primary" /> : <Dumbbell className="h-5 w-5 text-primary" />}
-              {active?.title}
-            </DialogTitle>
-          </DialogHeader>
-          {active && <PlanContent plan={active} />}
-        </DialogContent>
-      </Dialog>
+        <TabsContent value="meal" className="mt-4">
+          {meal.length === 0 ? (
+            <EmptyCard text={t("plans.empty")} />
+          ) : (
+            <div className="grid gap-4 sm:grid-cols-2">
+              {meal.map((p) => (
+                <PlanCard key={p.id} plan={p} onClick={() => setActive(p)} />
+              ))}
+            </div>
+          )}
+        </TabsContent>
+      </Tabs>
+
+      {/* Plan Detail Modal */}
+      {active && (
+        <PlanDetailModal
+          plan={active}
+          onClose={() => setActive(null)}
+          onSwapMeal={(i) => swapMeal(active.id, i)}
+          onSwapExercise={(d, e) => swapExercise(active.id, d, e)}
+          swapLoading={swapLoading}
+          onPrint={() => printPlan(active)}
+          onOpenFile={(path) => openFile(active.type === "meal" ? "meal-plans" : "workout-plans", path)}
+        />
+      )}
     </div>
   );
 }
@@ -107,120 +220,207 @@ function PlanCard({ plan, onClick }: { plan: any; onClick: () => void }) {
     <Card className="group cursor-pointer p-5 shadow-card transition-all hover:shadow-glow" onClick={onClick}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <h3 className="truncate font-semibold">{plan.title}</h3>
+          <div className="flex items-center gap-2">
+            {plan.type === "meal" ? <Salad className="h-5 w-5 text-primary" /> : <Dumbbell className="h-5 w-5 text-primary" />}
+            <h3 className="truncate font-semibold">{plan.title}</h3>
+          </div>
           <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{plan.notes || "—"}</p>
         </div>
         <Button size="sm" variant="ghost" className="shrink-0 opacity-0 transition-opacity group-hover:opacity-100">
           {t("plans.view")}
         </Button>
       </div>
-      {plan.file_url && (
-        <div className="mt-3 flex items-center gap-1 text-xs text-primary">
-          <FileText className="h-3 w-3" />
-          <a href={plan.file_url} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} className="hover:underline">
-            {t("common.download")}
-          </a>
+      {plan.content?.daily_calories && (
+        <div className="mt-3 flex gap-2 text-xs">
+          <Badge variant="secondary">{plan.content.daily_calories} cal</Badge>
+          {plan.content.macros && (
+            <Badge variant="outline">P:{plan.content.macros.protein_g}g</Badge>
+          )}
+        </div>
+      )}
+      {plan.content?.days && (
+        <div className="mt-3 text-xs text-muted-foreground">
+          {plan.content.days.length} {t("pricing.months").includes("أ") ? "أيام" : "days"}
         </div>
       )}
     </Card>
   );
 }
 
-function PlanContent({ plan }: { plan: any }) {
+function PlanDetailModal({
+  plan,
+  onClose,
+  onSwapMeal,
+  onSwapExercise,
+  swapLoading,
+  onPrint,
+  onOpenFile,
+}: {
+  plan: any;
+  onClose: () => void;
+  onSwapMeal: (i: number) => void;
+  onSwapExercise: (d: number, e: number) => void;
+  swapLoading: string | null;
+  onPrint: () => void;
+  onOpenFile: (path: string) => void;
+}) {
   const { t } = useI18n();
   const content = plan.content;
 
-  if (plan.type === "meal" && content) {
-    return (
-      <div className="space-y-4">
-        {content.calories && (
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            <Stat label={t("plan.calories")} value={content.calories} />
-            <Stat label={t("plan.protein")} value={`${content.macros?.protein}g`} />
-            <Stat label={t("plan.carbs")} value={`${content.macros?.carbs}g`} />
-            <Stat label={t("plan.fat")} value={`${content.macros?.fat}g`} />
-          </div>
-        )}
-        {content.meals && (
-          <div>
-            <h4 className="mb-2 text-sm font-semibold text-muted-foreground">{t("plan.meal")}</h4>
-            <div className="overflow-hidden rounded-xl border border-border">
-              <table className="w-full text-sm">
-                <thead className="bg-muted/50">
-                  <tr>
-                    <th className="p-3 text-start font-medium">{t("plan.meal")}</th>
-                    <th className="p-3 text-start font-medium">{t("plan.food")}</th>
-                    <th className="p-3 text-start font-medium">{t("plan.amount")}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {content.meals.map((m: any, i: number) => (
-                    <tr key={i} className="border-t border-border/60">
-                      <td className="p-3 font-medium">{m.name}</td>
-                      <td className="p-3">{m.food}</td>
-                      <td className="p-3 text-muted-foreground">{m.amount}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-        {plan.notes && (
-          <div className="rounded-xl bg-muted/40 p-3 text-sm text-muted-foreground">{plan.notes}</div>
-        )}
-      </div>
-    );
-  }
-
-  if (plan.type === "workout" && content?.days) {
-    return (
-      <div className="space-y-4">
-        {content.days.map((d: any, i: number) => (
-          <div key={i} className="rounded-xl border border-border">
-            <div className="flex items-center justify-between border-b border-border bg-muted/40 px-4 py-2">
-              <span className="font-semibold">{d.day}</span>
-              <Badge variant="secondary">{d.focus}</Badge>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="text-start">
-                    <th className="p-3 text-start font-medium text-muted-foreground">{t("plan.exercise")}</th>
-                    <th className="p-3 text-start font-medium text-muted-foreground">{t("plan.sets")}</th>
-                    <th className="p-3 text-start font-medium text-muted-foreground">{t("plan.reps")}</th>
-                    <th className="p-3 text-start font-medium text-muted-foreground">{t("plan.rest")}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {d.exercises.map((ex: any, j: number) => (
-                    <tr key={j} className="border-t border-border/60">
-                      <td className="p-3 font-medium">{ex.exercise}</td>
-                      <td className="p-3">{ex.sets}</td>
-                      <td className="p-3">{ex.reps}</td>
-                      <td className="p-3 text-muted-foreground">{ex.rest}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        ))}
-        {plan.notes && (
-          <div className="rounded-xl bg-muted/40 p-3 text-sm text-muted-foreground">{plan.notes}</div>
-        )}
-      </div>
-    );
-  }
-
   return (
-    <div className="text-sm text-muted-foreground">
-      {plan.notes || "—"}
-      {plan.file_url && (
-        <a href={plan.file_url} target="_blank" rel="noreferrer" className="mt-3 flex items-center gap-1 text-primary hover:underline">
-          <Download className="h-4 w-4" /> {t("common.download")}
-        </a>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
+      <div
+        className="max-h-[85vh] w-full max-w-2xl overflow-y-auto scrollbar-thin rounded-3xl bg-card p-6 shadow-card"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            {plan.type === "meal" ? <Salad className="h-5 w-5 text-primary" /> : <Dumbbell className="h-5 w-5 text-primary" />}
+            <h2 className="text-lg font-bold">{plan.title}</h2>
+          </div>
+          <div className="flex gap-2">
+            <Button size="sm" variant="outline" className="gap-2" onClick={onPrint}>
+              <Printer className="h-4 w-4" />
+              <span className="hidden sm:inline">{t("plan.print")}</span>
+            </Button>
+            {plan.file_url && (
+              <Button size="sm" variant="outline" className="gap-2" onClick={() => onOpenFile(plan.file_url)}>
+                <Download className="h-4 w-4" />
+                <span className="hidden sm:inline">{t("common.download")}</span>
+              </Button>
+            )}
+            <Button size="sm" variant="ghost" onClick={onClose}>✕</Button>
+          </div>
+        </div>
+
+        {plan.type === "meal" && content ? (
+          <MealContent content={content} onSwap={onSwapMeal} swapLoading={swapLoading} planId={plan.id} />
+        ) : plan.type === "workout" && content?.days ? (
+          <WorkoutContent content={content} onSwap={onSwapExercise} swapLoading={swapLoading} planId={plan.id} />
+        ) : (
+          <div className="text-sm text-muted-foreground">
+            {plan.notes || "—"}
+            {plan.file_url && (
+              <a href="#" onClick={(e) => { e.preventDefault(); onOpenFile(plan.file_url); }} className="mt-3 flex items-center gap-1 text-primary hover:underline">
+                <Download className="h-4 w-4" /> {t("common.download")}
+              </a>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function MealContent({ content, onSwap, swapLoading, planId }: any) {
+  const { t } = useI18n();
+  return (
+    <div className="space-y-4">
+      {content.overview && <p className="text-sm text-muted-foreground">{content.overview}</p>}
+      {content.daily_calories && (
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <Stat label={t("plan.calories")} value={content.daily_calories} />
+          <Stat label={t("plan.protein")} value={`${content.macros?.protein_g || 0}g`} />
+          <Stat label={t("plan.carbs")} value={`${content.macros?.carbs_g || 0}g`} />
+          <Stat label={t("plan.fat")} value={`${content.macros?.fat_g || 0}g`} />
+        </div>
       )}
+      {content.meals?.map((m: any, i: number) => (
+        <div key={i} className="rounded-xl border border-border p-4">
+          <div className="mb-2 flex items-center justify-between">
+            <h4 className="font-semibold">{m.name}</h4>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-7 gap-1 px-2 text-xs text-primary hover:bg-primary/10"
+              onClick={() => onSwap(i)}
+              disabled={swapLoading === `meal-${planId}-${i}`}
+            >
+              {swapLoading === `meal-${planId}-${i}` ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <RefreshCw className="h-3.5 w-3.5" />
+              )}
+              {t("plan.swap")}
+            </Button>
+          </div>
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-start">
+                <th className="p-2 text-start font-medium text-muted-foreground">{t("plan.food")}</th>
+                <th className="p-2 text-start font-medium text-muted-foreground">{t("plan.amount")}</th>
+                <th className="p-2 text-start font-medium text-muted-foreground">{t("plan.calories")}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {m.items?.map((it: any, j: number) => (
+                <tr key={j} className="border-t border-border/60">
+                  <td className="p-2 font-medium">{it.food}</td>
+                  <td className="p-2">{it.amount}</td>
+                  <td className="p-2">{it.calories}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {m.notes && <p className="mt-1 text-xs text-muted-foreground">{m.notes}</p>}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function WorkoutContent({ content, onSwap, swapLoading, planId }: any) {
+  const { t } = useI18n();
+  return (
+    <div className="space-y-4">
+      {content.overview && <p className="text-sm text-muted-foreground">{content.overview}</p>}
+      {content.days?.map((d: any, i: number) => (
+        <div key={i} className="rounded-xl border border-border">
+          <div className="flex items-center justify-between border-b border-border bg-muted/40 px-4 py-2">
+            <span className="font-semibold">{d.day}</span>
+            <Badge variant="secondary">{d.focus}</Badge>
+          </div>
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-start">
+                <th className="p-2 text-start font-medium text-muted-foreground">{t("plan.exercise")}</th>
+                <th className="p-2 text-start font-medium text-muted-foreground">{t("plan.sets")}</th>
+                <th className="p-2 text-start font-medium text-muted-foreground">{t("plan.reps")}</th>
+                <th className="p-2 text-start font-medium text-muted-foreground">{t("plan.rest")}</th>
+                <th className="p-2"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {d.exercises?.map((ex: any, j: number) => (
+                <tr key={j} className="border-t border-border/60">
+                  <td className="p-2">
+                    <p className="font-medium">{ex.name}</p>
+                    {ex.notes && <p className="text-xs text-muted-foreground">{ex.notes}</p>}
+                  </td>
+                  <td className="p-2">{ex.sets}</td>
+                  <td className="p-2">{ex.reps}</td>
+                  <td className="p-2">{ex.rest}</td>
+                  <td className="p-2">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 gap-1 px-2 text-xs text-primary hover:bg-primary/10"
+                      onClick={() => onSwap(i, j)}
+                      disabled={swapLoading === `ex-${planId}-${i}-${j}`}
+                    >
+                      {swapLoading === `ex-${planId}-${i}-${j}` ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <RefreshCw className="h-3.5 w-3.5" />
+                      )}
+                    </Button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ))}
     </div>
   );
 }

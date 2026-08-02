@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Plus, TrendingDown, TrendingUp } from "lucide-react";
+import { useEffect, useState, useRef } from "react";
+import { Plus, TrendingDown, TrendingUp, Camera, Trash2, Loader2 } from "lucide-react";
 import {
   ResponsiveContainer,
   AreaChart,
@@ -26,23 +26,35 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { listProgress, addProgress } from "@/lib/data";
+import { listProgress, addProgress, listPhotos, uploadPhoto, deletePhoto } from "@/lib/data";
 import { toast } from "sonner";
 
 export function ProgressView() {
   const { t, lang } = useI18n();
   const { profile } = useAuth();
   const [entries, setEntries] = useState<any[]>([]);
+  const [photos, setPhotos] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState<Record<string, string>>({});
 
+  // Photo upload
+  const [photoOpen, setPhotoOpen] = useState(false);
+  const [photoDate, setPhotoDate] = useState(new Date().toISOString().slice(0, 10));
+  const [photoNote, setPhotoNote] = useState("");
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+
   const load = async () => {
     if (!profile) return;
     setLoading(true);
-    const data = await listProgress(profile.id);
-    setEntries(data);
+    const [p, ph] = await Promise.all([
+      listProgress(profile.id),
+      listPhotos(profile.id),
+    ]);
+    setEntries(p);
+    setPhotos(ph);
     setLoading(false);
   };
 
@@ -68,6 +80,34 @@ export function ProgressView() {
       toast.error(e.message || t("common.error"));
     } finally {
       setSaving(false);
+    }
+  };
+
+  const uploadNewPhoto = async () => {
+    if (!profile || !photoFile) return;
+    setUploadingPhoto(true);
+    try {
+      await uploadPhoto(profile.id, photoFile, photoDate, photoNote);
+      await load();
+      setPhotoFile(null);
+      setPhotoNote("");
+      setPhotoOpen(false);
+      toast.success(t("prog.photoUploaded"));
+    } catch (e: any) {
+      toast.error(e.message || t("common.error"));
+    } finally {
+      setUploadingPhoto(false);
+    }
+  };
+
+  const removePhoto = async (id: string, filePath?: string) => {
+    if (!confirm(t("common.delete") + "?")) return;
+    try {
+      await deletePhoto(id, filePath);
+      await load();
+      toast.success(t("common.delete"));
+    } catch (e: any) {
+      toast.error(e.message || t("common.error"));
     }
   };
 
@@ -102,10 +142,16 @@ export function ProgressView() {
           <h1 className="text-2xl font-bold md:text-3xl">{t("prog.title")}</h1>
           <p className="mt-1 text-sm text-muted-foreground">{t("prog.subtitle")}</p>
         </div>
-        <Button className="gap-2" onClick={() => setOpen(true)}>
-          <Plus className="h-4 w-4" />
-          {t("prog.addEntry")}
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" className="gap-2" onClick={() => setPhotoOpen(true)}>
+            <Camera className="h-4 w-4" />
+            <span className="hidden sm:inline">{t("prog.uploadPhoto")}</span>
+          </Button>
+          <Button className="gap-2" onClick={() => setOpen(true)}>
+            <Plus className="h-4 w-4" />
+            {t("prog.addEntry")}
+          </Button>
+        </div>
       </div>
 
       {/* Chart */}
@@ -183,6 +229,43 @@ export function ProgressView() {
         )}
       </Card>
 
+      {/* Photos Gallery */}
+      <Card className="p-6 shadow-card">
+        <h2 className="text-lg font-semibold">{t("prog.photos")}</h2>
+        {photos.length === 0 ? (
+          <div className="mt-3 flex flex-col items-center gap-3 rounded-xl border border-dashed border-border py-10 text-center">
+            <Camera className="h-10 w-10 text-muted-foreground/50" />
+            <p className="text-sm text-muted-foreground">{t("prog.noPhotos")}</p>
+            <Button size="sm" variant="outline" className="gap-2" onClick={() => setPhotoOpen(true)}>
+              <Camera className="h-4 w-4" />
+              {t("prog.uploadPhoto")}
+            </Button>
+          </div>
+        ) : (
+          <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
+            {photos.map((p) => (
+              <div key={p.id} className="group relative overflow-hidden rounded-xl border border-border">
+                <img src={p.url} alt={p.note ?? "progress"} className="aspect-square w-full object-cover" />
+                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-2">
+                  <span className="text-xs text-white">
+                    {p.taken_on ? new Date(p.taken_on).toLocaleDateString() : ""}
+                  </span>
+                  {p.note && <p className="line-clamp-1 text-[10px] text-white/80">{p.note}</p>}
+                </div>
+                <button
+                  onClick={() => removePhoto(p.id, p.file_path)}
+                  className="absolute end-1 top-1 rounded-full bg-black/50 p-1.5 text-white opacity-0 transition-opacity group-hover:opacity-100"
+                  aria-label={t("common.delete")}
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </Card>
+
+      {/* Add Entry Dialog */}
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
@@ -215,6 +298,42 @@ export function ProgressView() {
             <Button variant="secondary" onClick={() => setOpen(false)}>{t("common.cancel")}</Button>
             <Button onClick={submit} disabled={saving}>
               {saving ? t("common.saving") : t("common.save")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Upload Photo Dialog */}
+      <Dialog open={photoOpen} onOpenChange={setPhotoOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t("prog.uploadPhoto")}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="pdate">{t("common.date")}</Label>
+              <Input id="pdate" type="date" value={photoDate} onChange={(e) => setPhotoDate(e.target.value)} className="mt-1.5" />
+            </div>
+            <div>
+              <Label htmlFor="pfile">{t("common.file")}</Label>
+              <Input
+                id="pfile"
+                type="file"
+                accept="image/*"
+                onChange={(e) => setPhotoFile(e.target.files?.[0] ?? null)}
+                className="mt-1.5"
+              />
+            </div>
+            <div>
+              <Label htmlFor="pnote">{t("prog.photoNote")}</Label>
+              <Input id="pnote" value={photoNote} onChange={(e) => setPhotoNote(e.target.value)} className="mt-1.5" />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="secondary" onClick={() => setPhotoOpen(false)}>{t("common.cancel")}</Button>
+            <Button onClick={uploadNewPhoto} disabled={uploadingPhoto || !photoFile} className="gap-2">
+              {uploadingPhoto ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
+              {uploadingPhoto ? t("common.uploading") : t("common.upload")}
             </Button>
           </DialogFooter>
         </DialogContent>
