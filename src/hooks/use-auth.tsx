@@ -56,7 +56,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       // Subscribe to auth state changes first (so we don't miss any events).
       unsub = onAuthChange((p) => {
-        console.log("[auth] onAuthChange fired, profile:", p?.email || "null");
         setProfile(p);
         setLoading(false);
       });
