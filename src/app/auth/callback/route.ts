@@ -3,18 +3,22 @@ import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 
 /**
- * OAuth callback handler.
+ * OAuth callback handler (server-side).
  *
- * After Google (or any OAuth provider) redirects back to Supabase, Supabase
- * exchanges the provider code for a session and redirects the user to this
- * route with a `?code=...` query param (the PKCE auth code).
+ * Flow:
+ *   1. User clicks "Continue with Google" on the client.
+ *   2. Client calls supabase.auth.signInWithOAuth({ redirectTo: '/auth/callback' }).
+ *      This stores a PKCE code verifier in cookies (via @supabase/ssr + middleware).
+ *   3. Browser redirects to Google → user consents → Google redirects to Supabase.
+ *   4. Supabase exchanges Google's code for its own auth code, then redirects to
+ *      /auth/callback?code=XXX (our server route).
+ *   5. THIS handler reads the code, exchanges it for a session (using the PKCE
+ *      verifier from the cookie), sets the session cookie, and redirects to /.
+ *   6. The client's onAuthStateChange listener fires with the new session,
+ *      updating the UI (user lands on their dashboard).
  *
- * This server-side route exchanges that code for a session cookie, then
- * redirects the user to the home page where the client will pick up the
- * authenticated session via the cookie.
- *
- * This is the standard Supabase + Next.js App Router OAuth flow. Without it,
- * the code param is never exchanged and the user appears logged-out.
+ * If anything goes wrong, the user is redirected to /?auth_error=... so the
+ * client can display a friendly error message.
  */
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url);
@@ -23,53 +27,61 @@ export async function GET(request: Request) {
   const error = requestUrl.searchParams.get("error");
   const errorDescription = requestUrl.searchParams.get("error_description");
 
-  // If Supabase/Google returned an error, send the user home with a flag.
   if (error) {
-    console.error("[auth/callback] OAuth error:", error, errorDescription);
-    return NextResponse.redirect(`${requestUrl.origin}/?auth_error=${encodeURIComponent(error)}`);
+    console.error("[auth/callback] OAuth provider error:", error, errorDescription);
+    return NextResponse.redirect(
+      `${requestUrl.origin}/?auth_error=${encodeURIComponent(error)}`,
+    );
   }
 
-  if (code) {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-    const cookieStore = await cookies();
+  if (!code) {
+    return NextResponse.redirect(`${requestUrl.origin}/`);
+  }
 
-    const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll();
-        },
-        setAll(cookiesToSet) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options),
-            );
-          } catch {
-            // The `setAll` method was called from a Server Component.
-            // This can be ignored if you have middleware refreshing sessions.
-          }
-        },
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!supabaseUrl || !supabaseAnonKey) {
+    console.error("[auth/callback] Missing Supabase env vars");
+    return NextResponse.redirect(
+      `${requestUrl.origin}/?auth_error=${encodeURIComponent("server-config")}`,
+    );
+  }
+
+  const cookieStore = await cookies();
+
+  const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
+    cookies: {
+      getAll() {
+        return cookieStore.getAll();
       },
-    });
+      setAll(cookiesToSet) {
+        try {
+          cookiesToSet.forEach(({ name, value, options }) =>
+            cookieStore.set(name, value, options),
+          );
+        } catch {
+          // Called from a Server Component — middleware will refresh the session.
+        }
+      },
+    },
+  });
 
-    try {
-      const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
-      if (exchangeError) {
-        console.error("[auth/callback] Code exchange failed:", exchangeError.message);
-        return NextResponse.redirect(
-          `${requestUrl.origin}/?auth_error=${encodeURIComponent(exchangeError.message)}`,
-        );
-      }
-      // Success — session cookie is now set. Redirect to home (or `next`).
-      return NextResponse.redirect(`${requestUrl.origin}${next}`);
-    } catch (e: any) {
-      console.error("[auth/callback] Exception:", e?.message || e);
+  try {
+    const { data, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+    if (exchangeError) {
+      console.error("[auth/callback] Code exchange failed:", exchangeError.message);
       return NextResponse.redirect(
-        `${requestUrl.origin}/?auth_error=${encodeURIComponent(e?.message || "unknown")}`,
+        `${requestUrl.origin}/?auth_error=${encodeURIComponent(exchangeError.message)}`,
       );
     }
+    // Session is now set in cookies. Send the user home.
+    console.log("[auth/callback] Success! User:", data?.user?.email);
+    return NextResponse.redirect(`${requestUrl.origin}${next}`);
+  } catch (e: any) {
+    console.error("[auth/callback] Exception:", e?.message || e);
+    return NextResponse.redirect(
+      `${requestUrl.origin}/?auth_error=${encodeURIComponent(e?.message || "unknown")}`,
+    );
   }
-
-  // No code present — just redirect home.
-  return NextResponse.redirect(`${requestUrl.origin}/`);
 }

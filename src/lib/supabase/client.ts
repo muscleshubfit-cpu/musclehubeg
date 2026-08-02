@@ -15,16 +15,23 @@ export const isSupabaseConfigured = Boolean(
   supabaseUrl && supabaseAnonKey && supabaseUrl.startsWith("http"),
 );
 
+/**
+ * Browser Supabase client.
+ *
+ * IMPORTANT: this is @supabase/ssr's createBrowserClient (not the regular
+ * createClient). It syncs the auth session + PKCE verifier to COOKIES
+ * (not localStorage), which is required for the server-side /auth/callback
+ * route handler to be able to exchange the OAuth code.
+ *
+ * The matching middleware.ts uses createServerClient with the same cookie
+ * strategy, so client and server share the same storage.
+ */
 export const supabase = isSupabaseConfigured
   ? createBrowserClient<Database>(supabaseUrl, supabaseAnonKey, {
       auth: {
-        // Auto-detect OAuth code in URL (backup safety net for /auth/callback).
-        detectSessionInUrl: true,
-        // Use PKCE flow (matches Supabase dashboard default for OAuth).
+        detectSessionInUrl: false, // /auth/callback handles this server-side
         flowType: "pkce",
-        // Persist session across reloads.
         persistSession: true,
-        // Refresh tokens automatically in the background.
         autoRefreshToken: true,
       },
     })
