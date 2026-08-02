@@ -20,6 +20,7 @@ import { NotificationBell } from "@/components/NotificationBell";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useNav, type View } from "@/hooks/use-nav";
+import { isSupabaseConfigured } from "@/lib/supabase/client";
 
 export function AppLayout({ children }: { children: ReactNode }) {
   const { t } = useI18n();
@@ -50,6 +51,13 @@ export function AppLayout({ children }: { children: ReactNode }) {
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
+      {!isSupabaseConfigured && (
+        <div className="bg-warning text-warning-foreground text-center text-xs font-medium py-1.5 px-3">
+          ⚠️ Demo mode — no Supabase credentials found. Data is stored locally only and will not
+          be saved. Set NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY in your
+          environment before going live.
+        </div>
+      )}
       <header className="sticky top-0 z-30 border-b border-border bg-background/80 backdrop-blur">
         <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between gap-3 px-4">
           <button

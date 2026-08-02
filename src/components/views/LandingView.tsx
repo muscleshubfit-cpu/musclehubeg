@@ -20,6 +20,7 @@ import {
   Quote,
   Sparkles,
 } from "lucide-react";
+import Link from "next/link";
 import { useI18n } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 import { LanguageToggle } from "@/components/LanguageToggle";
@@ -623,8 +624,8 @@ export function LandingView() {
             <div>
               <h4 className="font-semibold">{isAr ? "روابط سريعة" : "Quick links"}</h4>
               <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
-                <li><button onClick={() => navigate("pricing")} className="hover:text-primary">{isAr ? "الأسعار" : "Pricing"}</button></li>
-                <li><button onClick={() => navigate("blog")} className="hover:text-primary">{isAr ? "المدونة" : "Blog"}</button></li>
+                <li><Link href="/pricing" className="hover:text-primary">{isAr ? "الأسعار" : "Pricing"}</Link></li>
+                <li><Link href="/blog" className="hover:text-primary">{isAr ? "المدونة" : "Blog"}</Link></li>
                 <li><button onClick={() => navigate("auth", { mode: "signup" })} className="hover:text-primary">{isAr ? "تسجيل" : "Sign up"}</button></li>
                 <li><button onClick={() => navigate("auth", { mode: "login" })} className="hover:text-primary">{isAr ? "تسجيل دخول" : "Log in"}</button></li>
               </ul>

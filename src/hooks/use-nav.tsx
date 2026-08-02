@@ -28,8 +28,14 @@ type NavCtx = {
 
 const Ctx = createContext<NavCtx | null>(null);
 
-export function NavProvider({ children }: { children: ReactNode }) {
-  const [view, setView] = useState<View>("landing");
+export function NavProvider({
+  children,
+  initialView = "landing",
+}: {
+  children: ReactNode;
+  initialView?: View;
+}) {
+  const [view, setView] = useState<View>(initialView);
   const [params, setParams] = useState<Record<string, any>>({});
 
   const navigate = useCallback((v: View, p: Record<string, any> = {}) => {
