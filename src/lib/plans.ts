@@ -1,12 +1,13 @@
-// Subscription tiers, pricing, and feature matrix for the premium membership.
-// Pure data — safe to import on both client and server.
+// Subscription tiers, pricing, and feature matrix.
+// 3 tiers with new names + durations (1 month / 12 months with 2 months free).
+// Swap limits per day are tier-dependent.
 
-export type TierId = "essential" | "advanced" | "professional" | "elite";
-export type Duration = 3 | 6 | 12;
+export type TierId = "starter" | "pro" | "elite";
+export type Duration = 1 | 12;
 export type PaymentMethod = "instapay" | "vodafone_cash";
 
-export const DURATIONS: Duration[] = [3, 6, 12];
-export const TIER_IDS: TierId[] = ["essential", "advanced", "professional", "elite"];
+export const DURATIONS: Duration[] = [1, 12];
+export const TIER_IDS: TierId[] = ["starter", "pro", "elite"];
 
 export type Tier = {
   id: TierId;
@@ -19,46 +20,44 @@ export type Tier = {
   prices: Record<Duration, number>;
   popular?: boolean;
   best?: boolean;
+  /** Daily swap limit per type (meal/exercise). null = unlimited. */
+  swapLimit: number | null;
 };
 
+// Prices in USD:
+// - 1 month: $20 (starter) / $35 (pro) / $60 (elite)
+// - 12 months: $200 / $350 / $600 (≈ 2 months free vs monthly × 12)
 export const TIERS: Tier[] = [
   {
-    id: "essential",
-    nameKey: "tier.essential",
-    subKey: "tier.essential.sub",
-    ctaKey: "tier.essential.cta",
-    prices: { 3: 1500, 6: 2700, 12: 4800 },
+    id: "starter",
+    nameKey: "tier.starter",
+    subKey: "tier.starter.sub",
+    ctaKey: "tier.starter.cta",
+    prices: { 1: 20, 12: 200 },
+    swapLimit: 2,
     featureKeys: [
       "feat.nutritionPlan",
       "feat.workoutProgram",
       "feat.weeklyReview",
-      "feat.qWeekly",
       "feat.progressTracking",
       "feat.coachSupport",
+      "feat.swaps2",
     ],
   },
   {
-    id: "advanced",
-    nameKey: "tier.advanced",
-    subKey: "tier.advanced.sub",
-    ctaKey: "tier.advanced.cta",
-    inheritsFrom: "essential",
+    id: "pro",
+    nameKey: "tier.pro",
+    subKey: "tier.pro.sub",
+    ctaKey: "tier.pro.cta",
+    inheritsFrom: "starter",
     popular: true,
-    prices: { 3: 2400, 6: 4200, 12: 7200 },
-    featureKeys: ["feat.q48", "feat.fasterAdjust", "feat.higherPriority"],
-  },
-  {
-    id: "professional",
-    nameKey: "tier.professional",
-    subKey: "tier.professional.sub",
-    ctaKey: "tier.professional.cta",
-    inheritsFrom: "advanced",
-    prices: { 3: 3600, 6: 6300, 12: 10800 },
+    prices: { 1: 35, 12: 350 },
+    swapLimit: 5,
     featureKeys: [
-      "feat.q24",
-      "feat.higherCoachPriority",
-      "feat.fasterFollowup",
-      "feat.detailedAdjust",
+      "feat.swaps5",
+      "feat.fasterAdjust",
+      "feat.prioritySupport",
+      "feat.aiCoach",
     ],
   },
   {
@@ -66,14 +65,14 @@ export const TIERS: Tier[] = [
     nameKey: "tier.elite",
     subKey: "tier.elite.sub",
     ctaKey: "tier.elite.cta",
-    inheritsFrom: "professional",
+    inheritsFrom: "pro",
     best: true,
-    prices: { 3: 6000, 6: 10500, 12: 18000 },
+    prices: { 1: 60, 12: 600 },
+    swapLimit: null, // unlimited
     featureKeys: [
-      "feat.fastestResponse",
-      "feat.highestPriority",
+      "feat.swapsUnlimited",
       "feat.vipCoaching",
-      "feat.premiumFollowup",
+      "feat.fastestResponse",
       "feat.maxAccountability",
     ],
   },
@@ -97,13 +96,34 @@ export function allFeatureKeys(id: TierId): string[] {
   return [...inherited, ...tier.featureKeys];
 }
 
+/** Get swap limit for a tier (null = unlimited). */
+export function swapLimitFor(id: TierId): number | null {
+  const tier = getTier(id);
+  return tier?.swapLimit ?? null;
+}
+
+// Response time shown per tier in the comparison table.
 export const RESPONSE_TIME_KEY: Record<TierId, string> = {
-  essential: "rt.weekly",
-  advanced: "rt.48",
-  professional: "rt.24",
+  starter: "rt.weekly",
+  pro: "rt.48",
   elite: "rt.instant",
 };
 
 export function formatEgp(amount: number): string {
   return new Intl.NumberFormat("en-US").format(amount);
+}
+
+/** Calculate savings for 12-month plan vs 12× monthly. */
+export function savingsFor(id: TierId): { months: number; amount: number; percent: number } | null {
+  const tier = getTier(id);
+  if (!tier) return null;
+  const monthly = tier.prices[1] * 12;
+  const yearly = tier.prices[12];
+  const amount = monthly - yearly;
+  if (amount <= 0) return null;
+  return {
+    months: Math.round(amount / tier.prices[1]), // free months equivalent
+    amount,
+    percent: Math.round((amount / monthly) * 100),
+  };
 }

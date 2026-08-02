@@ -1,28 +1,36 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Bot, Send, User } from "lucide-react";
+import { Bot, Send, User, LifeBuoy } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/hooks/use-auth";
+import { useNav } from "@/hooks/use-nav";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { listChat, addChat } from "@/lib/data";
+import { listChat, addChat, getSwapUsage, createSwapRequest } from "@/lib/data";
+import { toast } from "sonner";
 
 export function ChatView() {
   const { t } = useI18n();
   const { profile } = useAuth();
+  const { navigate } = useNav();
   const [messages, setMessages] = useState<any[]>([]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [swapUsage, setSwapUsage] = useState<any>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!profile) return;
     (async () => {
-      const data = await listChat(profile.id);
+      const [data, usage] = await Promise.all([
+        listChat(profile.id),
+        getSwapUsage(profile.id),
+      ]);
       setMessages(data);
+      setSwapUsage(usage);
       setLoading(false);
     })();
   }, [profile]);
@@ -57,14 +65,15 @@ export function ChatView() {
         content: m.body,
       }));
 
-      // Call AI API
+      // Call AI API with full client context
       const res = await fetch("/api/ai/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           message: text,
           history,
-          clientContext: { name: profile.full_name },
+          userId: profile.id,
+          userName: profile.full_name,
         }),
       });
 
@@ -167,6 +176,34 @@ export function ChatView() {
               <Send className="h-4 w-4" />
             </Button>
           </div>
+
+          {/* Swap quota indicator + request coach button */}
+          {swapUsage && (
+            <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
+              <span className="text-muted-foreground">
+                تبديل الوجبات: <strong className={swapUsage.meal.remaining <= 0 && !swapUsage.meal.unlimited ? "text-destructive" : "text-foreground"}>
+                  {swapUsage.meal.unlimited ? "∞" : `${swapUsage.meal.remaining}/${swapUsage.meal.limit}`}
+                </strong>
+              </span>
+              <span className="text-border">|</span>
+              <span className="text-muted-foreground">
+                تبديل التمارين: <strong className={swapUsage.exercise.remaining <= 0 && !swapUsage.exercise.unlimited ? "text-destructive" : "text-foreground"}>
+                  {swapUsage.exercise.unlimited ? "∞" : `${swapUsage.exercise.remaining}/${swapUsage.exercise.limit}`}
+                </strong>
+              </span>
+              {((swapUsage.meal.remaining <= 0 && !swapUsage.meal.unlimited) || (swapUsage.exercise.remaining <= 0 && !swapUsage.exercise.unlimited)) && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="ms-auto gap-1.5 border-primary/40 text-primary hover:bg-primary/10"
+                  onClick={() => navigate("support")}
+                >
+                  <LifeBuoy className="h-3.5 w-3.5" />
+                  اطلب تبديل من المدرب
+                </Button>
+              )}
+            </div>
+          )}
         </div>
       </Card>
     </div>

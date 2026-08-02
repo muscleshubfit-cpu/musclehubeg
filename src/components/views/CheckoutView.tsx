@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { LanguageToggle } from "@/components/LanguageToggle";
 import { useNav } from "@/hooks/use-nav";
 import { useAuth } from "@/hooks/use-auth";
-import { getTier, formatEgp, type TierId, type Duration, type PaymentMethod } from "@/lib/plans";
+import { getTier, type TierId, type Duration, type PaymentMethod } from "@/lib/plans";
 import { submitSubscriptionRequest, uploadReceipt } from "@/lib/data";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -49,7 +49,7 @@ export function CheckoutView({ tier, months }: { tier: TierId; months: Duration 
         whatsapp: whatsapp.trim(),
         plan_tier: tier,
         duration_months: months,
-        price_egp: price,
+        price_egp: price, // field name kept for DB compatibility, but value is in USD
         payment_method: method,
         receipt_path: receiptPath || null,
       });
@@ -108,7 +108,7 @@ export function CheckoutView({ tier, months }: { tier: TierId; months: Duration 
                 <div className="flex items-center justify-between border-t border-border pt-2">
                   <span className="text-muted-foreground">{t("checkout.total")}</span>
                   <span className="font-display text-xl font-bold text-gradient">
-                    {formatEgp(price)} {t("pricing.egp")}
+                    ${price} {duration === 1 ? "/شهر" : "/سنة"}
                   </span>
                 </div>
               </div>

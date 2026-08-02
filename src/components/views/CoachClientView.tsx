@@ -45,7 +45,7 @@ import {
   getQuestionnaire,
   fetchProfile,
 } from "@/lib/data";
-import { TIERS, getTier, formatEgp, type Duration } from "@/lib/plans";
+import { TIERS, getTier, type Duration } from "@/lib/plans";
 import { toast } from "sonner";
 
 export function CoachClientView({ clientId }: { clientId: string }) {
@@ -61,8 +61,8 @@ export function CoachClientView({ clientId }: { clientId: string }) {
   const [tab, setTab] = useState<"overview" | "subscription" | "plans" | "ai-plans" | "questionnaires" | "progress">("overview");
 
   // Subscription form
-  const [tier, setTier] = useState<string>("essential");
-  const [months, setMonths] = useState<Duration>(6);
+  const [tier, setTier] = useState<string>("starter");
+  const [months, setMonths] = useState<Duration>(12);
   const [startDate, setStartDate] = useState<string>("");
   const [endDate, setEndDate] = useState<string>("");
   const [savingSub, setSavingSub] = useState(false);
@@ -323,7 +323,7 @@ export function CoachClientView({ clientId }: { clientId: string }) {
             <div>
               <Label>{t("checkout.duration")}</Label>
               <div className="mt-1.5 grid grid-cols-3 gap-2">
-                {([3, 6, 12] as Duration[]).map((d) => (
+                {([1, 12] as Duration[]).map((d) => (
                   <button
                     key={d}
                     onClick={() => setMonths(d)}

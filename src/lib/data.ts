@@ -2,6 +2,7 @@
 
 import { supabase, isSupabaseConfigured } from "@/lib/supabase/client";
 import type { Profile } from "@/lib/supabase/types";
+import { swapLimitFor } from "@/lib/plans";
 
 /* -------------------------------------------------------------------------- */
 /*  Local fallback store — used when Supabase env vars are missing.           */
@@ -474,11 +475,15 @@ export async function activatePlan(planId: string, clientId: string) {
   return all[idx];
 }
 
-/** Record a swap and check daily limit. Returns { allowed, used, limit }. */
+/** Record a swap and check daily limit (tier-dependent). Returns { allowed, used, limit }. */
 export async function recordSwap(userId: string, planId: string, swapType: "meal" | "exercise") {
-  const DAILY_LIMIT = 2;
+  // Determine limit from user's subscription tier
+  const subs = await listAllSubscriptions();
+  const userSub = subs.find((s: any) => s.client_id === userId);
+  const tierId = (userSub?.tier as any) || "starter";
+  const DAILY_LIMIT = swapLimitFor(tierId) ?? 2; // null = unlimited → use large number
+
   if (isSupabaseConfigured && supabase) {
-    // Count today's swaps for this user + type
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
     const { count, error } = await supabase
@@ -489,15 +494,24 @@ export async function recordSwap(userId: string, planId: string, swapType: "meal
       .gte("created_at", todayStart.toISOString());
     if (error) throw new Error(error.message);
     const used = count ?? 0;
-    if (used >= DAILY_LIMIT) {
-      return { allowed: false, used, limit: DAILY_LIMIT };
+
+    // Unlimited tier
+    if (DAILY_LIMIT === null || swapLimitFor(tierId) === null) {
+      const { error: insErr } = await supabase
+        .from("plan_swaps")
+        .insert({ user_id: userId, plan_id: planId, swap_type: swapType });
+      if (insErr) throw new Error(insErr.message);
+      return { allowed: true, used: used + 1, limit: null as number | null, unlimited: true };
     }
-    // Record the swap
+
+    if (used >= DAILY_LIMIT) {
+      return { allowed: false, used, limit: DAILY_LIMIT, unlimited: false };
+    }
     const { error: insErr } = await supabase
       .from("plan_swaps")
       .insert({ user_id: userId, plan_id: planId, swap_type: swapType });
     if (insErr) throw new Error(insErr.message);
-    return { allowed: true, used: used + 1, limit: DAILY_LIMIT };
+    return { allowed: true, used: used + 1, limit: DAILY_LIMIT, unlimited: false };
   }
   // Local fallback
   const all = read<any[]>(LS_PREFIX + "swaps", []);
@@ -505,17 +519,21 @@ export async function recordSwap(userId: string, planId: string, swapType: "meal
   const todaySwaps = all.filter(
     (s) => s.user_id === userId && s.swap_type === swapType && new Date(s.created_at).toDateString() === today,
   );
-  if (todaySwaps.length >= DAILY_LIMIT) {
-    return { allowed: false, used: todaySwaps.length, limit: DAILY_LIMIT };
+  if (DAILY_LIMIT !== null && todaySwaps.length >= DAILY_LIMIT) {
+    return { allowed: false, used: todaySwaps.length, limit: DAILY_LIMIT, unlimited: false };
   }
   all.push({ id: uid(), user_id: userId, plan_id: planId, swap_type: swapType, created_at: new Date().toISOString() });
   write(LS_PREFIX + "swaps", all);
-  return { allowed: true, used: todaySwaps.length + 1, limit: DAILY_LIMIT };
+  return { allowed: true, used: todaySwaps.length + 1, limit: DAILY_LIMIT, unlimited: DAILY_LIMIT === null };
 }
 
 /** Get current swap usage for today (for displaying remaining quota). */
 export async function getSwapUsage(userId: string) {
-  const DAILY_LIMIT = 2;
+  // Determine limit from user's subscription tier
+  const subs = await listAllSubscriptions();
+  const userSub = subs.find((s: any) => s.client_id === userId);
+  const tierId = (userSub?.tier as any) || "starter";
+  const LIMIT = swapLimitFor(tierId); // null = unlimited
   if (isSupabaseConfigured && supabase) {
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
@@ -534,13 +552,23 @@ export async function getSwapUsage(userId: string) {
         .gte("created_at", todayStart.toISOString()),
     ]);
     return {
-      meal: { used: meals.count ?? 0, limit: DAILY_LIMIT, remaining: DAILY_LIMIT - (meals.count ?? 0) },
-      exercise: { used: exercises.count ?? 0, limit: DAILY_LIMIT, remaining: DAILY_LIMIT - (exercises.count ?? 0) },
+      meal: {
+        used: meals.count ?? 0,
+        limit: LIMIT,
+        remaining: LIMIT === null ? Infinity : Math.max(0, LIMIT - (meals.count ?? 0)),
+        unlimited: LIMIT === null,
+      },
+      exercise: {
+        used: exercises.count ?? 0,
+        limit: LIMIT,
+        remaining: LIMIT === null ? Infinity : Math.max(0, LIMIT - (exercises.count ?? 0)),
+        unlimited: LIMIT === null,
+      },
     };
   }
   return {
-    meal: { used: 0, limit: DAILY_LIMIT, remaining: DAILY_LIMIT },
-    exercise: { used: 0, limit: DAILY_LIMIT, remaining: DAILY_LIMIT },
+    meal: { used: 0, limit: LIMIT, remaining: LIMIT === null ? Infinity : LIMIT, unlimited: LIMIT === null },
+    exercise: { used: 0, limit: LIMIT, remaining: LIMIT === null ? Infinity : LIMIT, unlimited: LIMIT === null },
   };
 }
 
@@ -951,6 +979,53 @@ export async function getPlanFileUrl(bucket: string, filePath: string): Promise<
     return data?.signedUrl ?? "";
   }
   return "";
+}
+
+// ---------------------------------------------------------------------------
+//  Swap Requests (client → coach, when daily limit is reached)
+// ---------------------------------------------------------------------------
+
+export async function createSwapRequest(req: {
+  userId: string;
+  planId?: string;
+  swapType: "meal" | "exercise";
+  reason: string;
+}) {
+  if (isSupabaseConfigured && supabase) {
+    // Use support_tickets table with a special type prefix
+    const { data, error } = await supabase
+      .from("support_tickets")
+      .insert({
+        client_id: req.userId,
+        subject: `[تبديل ${req.swapType === "meal" ? "وجبة" : "تمرين"}] ${req.reason.slice(0, 50)}`,
+        status: "open",
+        priority: "normal",
+      })
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    // Add the detailed reason as first message
+    await supabase.from("ticket_messages").insert({
+      ticket_id: data.id,
+      sender_id: req.userId,
+      body: `طلب تبديل ${req.swapType === "meal" ? "وجبة" : "تمرين"}:\n\n${req.reason}`,
+    });
+    return data;
+  }
+  // Local fallback
+  const all = read<any[]>(LS_TICKETS, []);
+  const ticket = {
+    id: uid(),
+    client_id: req.userId,
+    subject: `[تبديل ${req.swapType === "meal" ? "وجبة" : "تمرين"}] ${req.reason.slice(0, 50)}`,
+    status: "open",
+    priority: "normal",
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  };
+  all.push(ticket);
+  write(LS_TICKETS, all);
+  return ticket;
 }
 
 // ---------------------------------------------------------------------------

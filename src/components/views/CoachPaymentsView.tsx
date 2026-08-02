@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { listSubscriptionRequests, reviewSubscriptionRequest, getReceiptSignedUrl } from "@/lib/data";
-import { getTier, formatEgp, type TierId } from "@/lib/plans";
+import { getTier, type TierId } from "@/lib/plans";
 import { toast } from "sonner";
 
 export function CoachPaymentsView() {
@@ -101,7 +101,7 @@ export function CoachPaymentsView() {
                 </div>
                 <div className="text-end">
                   <div className="font-display text-lg font-bold text-gradient">
-                    {formatEgp(r.price_egp)} {t("pricing.egp")}
+                    ${r.price_egp}
                   </div>
                   <p className="text-xs text-muted-foreground">
                     {t(getTier(r.plan_tier as TierId)?.nameKey ?? r.plan_tier)} · {r.duration_months} {t("admin.duration")}
