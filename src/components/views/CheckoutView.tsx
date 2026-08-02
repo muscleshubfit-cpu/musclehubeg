@@ -108,7 +108,7 @@ export function CheckoutView({ tier, months }: { tier: TierId; months: Duration 
                 <div className="flex items-center justify-between border-t border-border pt-2">
                   <span className="text-muted-foreground">{t("checkout.total")}</span>
                   <span className="font-display text-xl font-bold text-gradient">
-                    ${price} {duration === 1 ? "/شهر" : "/سنة"}
+                    ${price} {months === 1 ? "/شهر" : "/سنة"}
                   </span>
                 </div>
               </div>

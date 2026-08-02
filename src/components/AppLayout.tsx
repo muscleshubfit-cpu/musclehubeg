@@ -12,6 +12,8 @@ import {
   Bot,
   LifeBuoy,
   Gift,
+  Users,
+  CreditCard,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useI18n } from "@/lib/i18n";
