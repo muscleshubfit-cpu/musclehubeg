@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import ZAI from "z-ai-web-dev-sdk";
+import { chatCompletion } from "@/lib/ai";
 
 /**
  * Swap a meal or exercise for an alternative.
@@ -22,8 +22,6 @@ export async function POST(request: NextRequest) {
     if (!type || !item) {
       return NextResponse.json({ error: "Missing type or item" }, { status: 400 });
     }
-
-    const zai = await ZAI.create();
 
     if (type === "meal") {
       const targetCalories = (item.items || []).reduce(
@@ -50,12 +48,10 @@ ${note ? `طلب العميل: ${note}` : ""}
   "notes": "ملاحظة قصيرة"
 }`;
 
-      const result = await zai.chat.completions.create({
-        messages: [{ role: "user", content: prompt }],
-        temperature: 0.7,
-      });
-
-      const content = result.choices[0]?.message?.content || "";
+      const content = await chatCompletion(
+        [{ role: "user", content: prompt }],
+        { temperature: 0.7 },
+      );
       const replacement = parseJsonFromText(content);
       if (!replacement) {
         return NextResponse.json(
@@ -84,12 +80,10 @@ ${note ? `طلب العميل: ${note}` : ""}
   "notes": "نصيحة قصيرة"
 }`;
 
-      const result = await zai.chat.completions.create({
-        messages: [{ role: "user", content: prompt }],
-        temperature: 0.7,
-      });
-
-      const content = result.choices[0]?.message?.content || "";
+      const content = await chatCompletion(
+        [{ role: "user", content: prompt }],
+        { temperature: 0.7 },
+      );
       const replacement = parseJsonFromText(content);
       if (!replacement) {
         return NextResponse.json(

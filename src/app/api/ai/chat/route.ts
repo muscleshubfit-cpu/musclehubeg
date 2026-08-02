@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import ZAI from "z-ai-web-dev-sdk";
+import { chatCompletion } from "@/lib/ai";
 
 /**
  * AI Coach chat endpoint.
@@ -21,8 +21,6 @@ export async function POST(request: NextRequest) {
     if (!message) {
       return NextResponse.json({ error: "Missing message" }, { status: 400 });
     }
-
-    const zai = await ZAI.create();
 
     const systemPrompt = `أنت المساعد الذكي للمدرب أحمد زكي في منصة تدريب لياقة وتغذية.
 دورك أن تتصرف كمدرب شخصي حقيقي للعميل وليس مجرد مولّد نصوص.
@@ -47,12 +45,7 @@ ${JSON.stringify(clientContext, null, 2)}` : "لا تتوفر بيانات ال�
       { role: "user", content: message },
     ];
 
-    const result = await zai.chat.completions.create({
-      messages,
-      temperature: 0.6,
-    });
-
-    const reply = result.choices[0]?.message?.content?.trim() || "";
+    const reply = await chatCompletion(messages, { temperature: 0.6 });
     return NextResponse.json({ reply });
   } catch (e: any) {
     console.error("[api/ai/chat] Error:", e?.message || e);
