@@ -16,5 +16,16 @@ export const isSupabaseConfigured = Boolean(
 );
 
 export const supabase = isSupabaseConfigured
-  ? createBrowserClient<Database>(supabaseUrl, supabaseAnonKey)
+  ? createBrowserClient<Database>(supabaseUrl, supabaseAnonKey, {
+      auth: {
+        // Auto-detect OAuth code in URL (backup safety net for /auth/callback).
+        detectSessionInUrl: true,
+        // Use PKCE flow (matches Supabase dashboard default for OAuth).
+        flowType: "pkce",
+        // Persist session across reloads.
+        persistSession: true,
+        // Refresh tokens automatically in the background.
+        autoRefreshToken: true,
+      },
+    })
   : null;

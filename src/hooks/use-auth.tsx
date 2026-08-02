@@ -38,47 +38,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     seedLocalData();
 
-    // Critical: @supabase/ssr's createBrowserClient does NOT auto-detect the
-    // `?code=...` param returned from OAuth redirects. We must explicitly
-    // exchange it for a session. Without this, the user lands back on the
-    // site after Google login but no session is created.
-    async function handleOAuthCallback() {
-      if (!supabase) return;
-      const url = typeof window !== "undefined" ? window.location.href : "";
-      const hasCode = typeof window !== "undefined" && new URL(window.location.href).searchParams.has("code");
-      if (hasCode) {
-        try {
-          const { data, error } = await supabase.auth.exchangeCodeForSession(url);
-          if (error) {
-            console.error("[auth] OAuth code exchange failed:", error.message);
-          } else if (data?.session?.user) {
-            // After successful exchange, clean the URL so the code param doesn't linger
-            const cleanUrl = window.location.pathname + window.location.hash;
-            window.history.replaceState({}, document.title, cleanUrl);
+    // The /auth/callback route handler does the heavy lifting (server-side
+    // code exchange). On the client, we just need to (a) check if there's
+    // an existing session from the cookie that was set, and (b) subscribe
+    // to auth state changes so we update the UI when the session lands.
+    let unsub: (() => void) | null = null;
+
+    async function init() {
+      // If we landed back with ?code=... in URL (shouldn't happen now since
+      // /auth/callback handles it, but as a safety net), try to exchange it.
+      if (supabase && typeof window !== "undefined") {
+        const url = new URL(window.location.href);
+        if (url.searchParams.has("code")) {
+          try {
+            await supabase.auth.exchangeCodeForSession(window.location.href);
+            // Clean the URL
+            window.history.replaceState({}, document.title, url.pathname);
+          } catch (e) {
+            console.error("[auth] Fallback code exchange failed:", e);
           }
-        } catch (e) {
-          console.error("[auth] OAuth callback exception:", e);
         }
       }
-    }
 
-    handleOAuthCallback().then(() => {
-      const unsub = onAuthChange((p) => {
+      // Subscribe to auth state changes. This fires immediately with the
+      // current session (from cookie), and again whenever it changes.
+      unsub = onAuthChange((p) => {
         setProfile(p);
         setLoading(false);
       });
-      // Note: we don't return unsub here because the effect cleanup runs on unmount;
-      // we keep the subscription alive for the component's lifetime.
-      // We rely on the closure to call unsub when the effect re-runs or component unmounts.
-      // However, React's StrictMode in dev may double-invoke; in production it's fine.
-      // To be safe, store cleanup on the effect's return.
-      // (We restructure slightly below.)
-      cleanupRef.current = unsub;
-    });
+    }
 
-    const cleanupRef: { current: (() => void) | null } = { current: null };
+    init();
+
     return () => {
-      if (cleanupRef.current) cleanupRef.current();
+      if (unsub) unsub();
     };
   }, []);
 

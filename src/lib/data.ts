@@ -127,17 +127,23 @@ export async function signOut() {
 
 /**
  * Sign in with Google OAuth.
- * Opens Google's consent screen, then redirects back to the current page
- * where onAuthChange() will pick up the new session.
+ *
+ * Flow: client → Google consent → Supabase /auth/v1/callback →
+ * our /auth/callback route (server-side) → exchanges code for session
+ * cookie → redirects to / where the client picks up the session.
  */
 export async function signInWithGoogle(): Promise<{ error: string | null }> {
   if (!isSupabaseConfigured || !supabase) {
     return { error: "Google login requires Supabase to be configured" };
   }
+  const redirectTo =
+    typeof window !== "undefined"
+      ? `${window.location.origin}/auth/callback`
+      : undefined;
   const { error } = await supabase.auth.signInWithOAuth({
     provider: "google",
     options: {
-      redirectTo: typeof window !== "undefined" ? window.location.origin : undefined,
+      redirectTo,
       queryParams: {
         access_type: "offline",
         prompt: "consent",
