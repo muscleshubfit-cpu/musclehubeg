@@ -8,15 +8,19 @@ import {
   Activity,
   MessageCircle,
   ArrowRight,
+  LayoutDashboard,
 } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 import { LanguageToggle } from "@/components/LanguageToggle";
 import { useNav } from "@/hooks/use-nav";
+import { useAuth } from "@/hooks/use-auth";
 
 export function LandingView() {
   const { t } = useI18n();
   const { navigate } = useNav();
+  const { profile, isCoach } = useAuth();
+  const isLoggedIn = !!profile;
 
   const features = [
     { icon: Salad, title: t("landing.f1.title"), desc: t("landing.f1.desc") },
@@ -45,9 +49,16 @@ export function LandingView() {
         </div>
         <div className="flex items-center gap-2">
           <LanguageToggle />
-          <Button variant="ghost" size="sm" onClick={() => navigate("auth", { mode: "login" })}>
-            {t("landing.hero.login")}
-          </Button>
+          {isLoggedIn ? (
+            <Button size="sm" className="gap-2" onClick={() => navigate(isCoach ? "coach" : "dashboard")}>
+              <LayoutDashboard className="h-4 w-4" />
+              {isCoach ? t("nav.clients") : t("nav.dashboard")}
+            </Button>
+          ) : (
+            <Button variant="ghost" size="sm" onClick={() => navigate("auth", { mode: "login" })}>
+              {t("landing.hero.login")}
+            </Button>
+          )}
         </div>
       </header>
 
@@ -55,7 +66,7 @@ export function LandingView() {
       <section className="bg-hero-glow">
         <div className="mx-auto max-w-6xl px-4 py-20 text-center md:py-28">
           <span className="inline-block rounded-full border border-border bg-secondary px-4 py-1.5 text-xs font-medium text-muted-foreground">
-            {t("landing.hero.badge")}
+            {isLoggedIn ? `${t("common.welcome")}, ${profile?.full_name || ""}` : t("landing.hero.badge")}
           </span>
           <h1 className="mx-auto mt-6 max-w-3xl text-4xl font-extrabold leading-tight md:text-6xl">
             {t("landing.hero.title")}
@@ -64,13 +75,23 @@ export function LandingView() {
             {t("landing.hero.subtitle")}
           </p>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-            <Button size="lg" className="gap-2 shadow-glow" onClick={() => navigate("auth", { mode: "signup" })}>
-              {t("landing.hero.cta")}
-              <ArrowRight className="h-4 w-4 rtl:rotate-180" />
-            </Button>
-            <Button size="lg" variant="secondary" onClick={() => navigate("pricing")}>
-              {t("landing.pricing.cta")}
-            </Button>
+            {isLoggedIn ? (
+              <Button size="lg" className="gap-2 shadow-glow" onClick={() => navigate(isCoach ? "coach" : "dashboard")}>
+                <LayoutDashboard className="h-4 w-4" />
+                {isCoach ? t("coach.title") : t("nav.dashboard")}
+                <ArrowRight className="h-4 w-4 rtl:rotate-180" />
+              </Button>
+            ) : (
+              <>
+                <Button size="lg" className="gap-2 shadow-glow" onClick={() => navigate("auth", { mode: "signup" })}>
+                  {t("landing.hero.cta")}
+                  <ArrowRight className="h-4 w-4 rtl:rotate-180" />
+                </Button>
+                <Button size="lg" variant="secondary" onClick={() => navigate("pricing")}>
+                  {t("landing.pricing.cta")}
+                </Button>
+              </>
+            )}
           </div>
 
           <div className="mx-auto mt-14 grid max-w-2xl grid-cols-3 gap-4">

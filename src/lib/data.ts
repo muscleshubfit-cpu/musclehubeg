@@ -208,6 +208,21 @@ export async function fetchProfile(userId: string): Promise<Profile | null> {
 
 export function onAuthChange(cb: (profile: Profile | null) => void): () => void {
   if (isSupabaseConfigured && supabase) {
+    // CRITICAL: @supabase/ssr stores the session in cookies (not localStorage).
+    // onAuthStateChange may NOT fire on page load with an INITIAL_SESSION event
+    // when the session is cookie-based. So we explicitly call getSession() on
+    // mount to read the cookie-based session and emit the profile immediately.
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (session?.user) {
+        const profile = await fetchProfile(session.user.id);
+        cb(profile);
+      } else {
+        // No session in cookies — emit null so the UI can proceed.
+        cb(null);
+      }
+    }).catch(() => cb(null));
+
+    // Also subscribe to future auth state changes (sign in/out, token refresh).
     const { data } = supabase.auth.onAuthStateChange(async (_event, session) => {
       if (session?.user) {
         const profile = await fetchProfile(session.user.id);

@@ -26,14 +26,33 @@ function Router() {
   const { view, params, navigate } = useNav();
   const { profile, loading, isCoach } = useAuth();
 
-  // After Google OAuth redirect, the user lands back on the origin with a session.
-  // If they're authenticated but still on a public view (landing/auth), send them to their dashboard.
+  // Auto-redirect logged-in users away from /auth (but NOT /landing —
+  // the landing page now shows a "Go to Dashboard" button for logged-in
+  // users, which is better UX than forcing a redirect).
   useEffect(() => {
     if (loading || !profile) return;
-    if (view === "auth" || view === "landing") {
+    if (view === "auth") {
       navigate(isCoach ? "coach" : "dashboard");
     }
   }, [loading, profile, isCoach, view, navigate]);
+
+  // Handle OAuth error from /auth/callback (e.g., PKCE verifier mismatch).
+  // Show a toast so the user knows what happened.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const url = new URL(window.location.href);
+    const authError = url.searchParams.get("auth_error");
+    if (authError) {
+      // Clean the URL
+      window.history.replaceState({}, document.title, url.pathname);
+      // Show error via toast (import dynamically to avoid SSR issues)
+      import("sonner").then(({ toast }) => {
+        toast.error(authError === "server-config" 
+          ? "Server configuration error. Please contact support."
+          : `Login failed: ${authError}`);
+      });
+    }
+  }, []);
 
   if (loading) {
     return (
