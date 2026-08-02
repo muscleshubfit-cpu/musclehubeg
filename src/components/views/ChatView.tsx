@@ -37,15 +37,65 @@ export function ChatView() {
     setInput("");
     setSending(true);
 
-    // Optimistic
-    const userMsg = { id: "tmp-" + Date.now(), client_id: profile.id, role: "user", body: text, created_at: new Date().toISOString() };
+    // Optimistic: show user message immediately
+    const userMsg = {
+      id: "tmp-" + Date.now(),
+      client_id: profile.id,
+      role: "user" as const,
+      body: text,
+      created_at: new Date().toISOString(),
+    };
     setMessages((prev) => [...prev, userMsg]);
 
     try {
+      // Persist user message
       await addChat(profile.id, "user", text);
-      // Simple canned AI reply — can be swapped for a real LLM call later.
-      const reply = generateReply(text);
-      const aiMsg = { id: "tmp-ai-" + Date.now(), client_id: profile.id, role: "assistant", body: reply, created_at: new Date().toISOString() };
+
+      // Build history for AI (last 10 messages)
+      const history = [...messages, userMsg].slice(-10).map((m) => ({
+        role: m.role,
+        content: m.body,
+      }));
+
+      // Call AI API
+      const res = await fetch("/api/ai/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          message: text,
+          history,
+          clientContext: { name: profile.full_name },
+        }),
+      });
+
+      let reply: string;
+      if (res.ok) {
+        const data = await res.json();
+        reply = data.reply || "عذراً، لم أتمكن من الرد الآن.";
+      } else {
+        // Fallback to canned response if AI fails
+        reply = generateFallbackReply(text);
+      }
+
+      const aiMsg = {
+        id: "tmp-ai-" + Date.now(),
+        client_id: profile.id,
+        role: "assistant" as const,
+        body: reply,
+        created_at: new Date().toISOString(),
+      };
+      setMessages((prev) => [...prev, aiMsg]);
+      await addChat(profile.id, "assistant", reply);
+    } catch {
+      // If anything fails, show a fallback reply
+      const reply = generateFallbackReply(text);
+      const aiMsg = {
+        id: "tmp-ai-" + Date.now(),
+        client_id: profile.id,
+        role: "assistant" as const,
+        body: reply,
+        created_at: new Date().toISOString(),
+      };
       setMessages((prev) => [...prev, aiMsg]);
       await addChat(profile.id, "assistant", reply);
     } finally {
@@ -123,7 +173,7 @@ export function ChatView() {
   );
 }
 
-function generateReply(input: string): string {
+function generateFallbackReply(input: string): string {
   const text = input.toLowerCase();
   if (text.includes("protein") || text.includes("بروتين")) {
     return "Aim for 1.6–2.2 g of protein per kg of bodyweight. For an 80 kg person, that's 128–176 g/day. Spread across 4 meals for best absorption.";
@@ -140,5 +190,5 @@ function generateReply(input: string): string {
   if (text.includes("workout") || text.includes("تمرين") || text.includes("training")) {
     return "Stick to progressive overload on compound lifts (squat, bench, deadlift, row). Add 2.5 kg or 1 rep when you hit the top of the rep range with good form.";
   }
-  return "Great question! For a tailored answer, log your weekly check-in and your coach Ahmed will adjust your plan. In the meantime, focus on hitting your daily protein target and staying consistent with training.";
+  return "شكراً لسؤالك! الكوتش الذكي غير متاح حالياً مؤقتاً. يمكنك أيضاً فتح تذكرة دعم من صفحة الدعم وسيرد عليك الكوتش أحمد مباشرة.";
 }
