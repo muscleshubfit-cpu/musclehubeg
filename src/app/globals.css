@@ -1,6 +1,4 @@
 @import "tailwindcss";
-@source "../../src";
-@source "../../components";
 @import "tw-animate-css";
 @import "@fontsource/inter/400.css";
 @import "@fontsource/inter/500.css";
