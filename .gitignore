@@ -53,3 +53,4 @@ yarn-error.log*
 # Database artifacts
 /db/
 *.db
+.env*
