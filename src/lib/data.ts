@@ -125,6 +125,28 @@ export async function signOut() {
   write<Session>(LS_SESSION, null);
 }
 
+/**
+ * Sign in with Google OAuth.
+ * Opens Google's consent screen, then redirects back to the current page
+ * where onAuthChange() will pick up the new session.
+ */
+export async function signInWithGoogle(): Promise<{ error: string | null }> {
+  if (!isSupabaseConfigured || !supabase) {
+    return { error: "Google login requires Supabase to be configured" };
+  }
+  const { error } = await supabase.auth.signInWithOAuth({
+    provider: "google",
+    options: {
+      redirectTo: typeof window !== "undefined" ? window.location.origin : undefined,
+      queryParams: {
+        access_type: "offline",
+        prompt: "consent",
+      },
+    },
+  });
+  return { error: error?.message ?? null };
+}
+
 export async function fetchProfile(userId: string): Promise<Profile | null> {
   if (isSupabaseConfigured && supabase) {
     const { data } = await supabase.from("profiles").select("*").eq("id", userId).maybeSingle();

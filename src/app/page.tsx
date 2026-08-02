@@ -23,16 +23,17 @@ import type { TierId, Duration } from "@/lib/plans";
 const PUBLIC_VIEWS = ["landing", "pricing", "auth", "checkout"];
 
 function Router() {
-  const { view, params } = useNav();
+  const { view, params, navigate } = useNav();
   const { profile, loading, isCoach } = useAuth();
 
-  // Route guard: if not authenticated and trying to access a protected view, send to auth.
+  // After Google OAuth redirect, the user lands back on the origin with a session.
+  // If they're authenticated but still on a public view (landing/auth), send them to their dashboard.
   useEffect(() => {
-    if (loading) return;
-    if (!profile && !PUBLIC_VIEWS.includes(view)) {
-      // Will be handled in render below; no need to navigate here to avoid loops.
+    if (loading || !profile) return;
+    if (view === "auth" || view === "landing") {
+      navigate(isCoach ? "coach" : "dashboard");
     }
-  }, [loading, profile, view]);
+  }, [loading, profile, isCoach, view, navigate]);
 
   if (loading) {
     return (

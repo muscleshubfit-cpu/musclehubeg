@@ -14,6 +14,7 @@ import {
   signOut,
   onAuthChange,
   seedLocalData,
+  signInWithGoogle,
 } from "@/lib/data";
 import type { Profile } from "@/lib/supabase/types";
 
@@ -22,7 +23,8 @@ type AuthCtx = {
   loading: boolean;
   isCoach: boolean;
   signUp: (email: string, password: string, fullName: string, phone: string) => Promise<{ error: string | null }>;
-  signIn: (email: string, password: string) => Promise<{ error: string | null }>;
+  signIn: (email: string, password: string) => Promise<{ error: string | null; profile: Profile | null }>;
+  signInGoogle: () => Promise<{ error: string | null }>;
   signOutAsync: () => Promise<void>;
 };
 
@@ -56,6 +58,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error, profile: p };
   }, []);
 
+  const signInGoogle = useCallback(async () => {
+    return await signInWithGoogle();
+  }, []);
+
   const signOutAsync = useCallback(async () => {
     await signOut();
     setProfile(null);
@@ -69,6 +75,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isCoach: profile?.role === "coach",
         signUp,
         signIn,
+        signInGoogle,
         signOutAsync,
       }}
     >

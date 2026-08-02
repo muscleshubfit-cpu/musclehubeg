@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { LanguageToggle } from "@/components/LanguageToggle";
+import { GoogleIcon } from "@/components/GoogleIcon";
 import { useNav } from "@/hooks/use-nav";
 import { useAuth } from "@/hooks/use-auth";
 import { isSupabaseConfigured } from "@/lib/supabase/client";
@@ -15,7 +16,7 @@ import { toast } from "sonner";
 export function AuthView({ mode }: { mode: "login" | "signup" }) {
   const { t } = useI18n();
   const { navigate } = useNav();
-  const { signIn, signUp } = useAuth();
+  const { signIn, signUp, signInGoogle } = useAuth();
   const isSignup = mode === "signup";
 
   const [email, setEmail] = useState("");
@@ -23,6 +24,7 @@ export function AuthView({ mode }: { mode: "login" | "signup" }) {
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
 
   const goHome = (isCoach: boolean) => navigate(isCoach ? "coach" : "dashboard");
 
@@ -49,6 +51,22 @@ export function AuthView({ mode }: { mode: "login" | "signup" }) {
       }
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleGoogle = async () => {
+    setGoogleLoading(true);
+    try {
+      const { error } = await signInGoogle();
+      if (error) {
+        toast.error(t("auth.googleError"));
+        setGoogleLoading(false);
+      }
+      // If successful, Supabase will redirect to Google → back to origin.
+      // The auth state change will be picked up by onAuthChange on return.
+    } catch {
+      setGoogleLoading(false);
+      toast.error(t("auth.googleError"));
     }
   };
 
@@ -79,7 +97,36 @@ export function AuthView({ mode }: { mode: "login" | "signup" }) {
               </div>
             )}
 
-            <form onSubmit={submit} className="mt-6 space-y-4">
+            {/* Google OAuth button */}
+            {isSupabaseConfigured && (
+              <>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="mt-6 w-full gap-3"
+                  onClick={handleGoogle}
+                  disabled={googleLoading || loading}
+                >
+                  {googleLoading ? (
+                    <span className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                  ) : (
+                    <GoogleIcon className="h-5 w-5" />
+                  )}
+                  <span className="font-medium">{t("auth.google")}</span>
+                </Button>
+
+                {/* Divider */}
+                <div className="my-5 flex items-center gap-3">
+                  <div className="h-px flex-1 bg-border" />
+                  <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    {t("auth.or")}
+                  </span>
+                  <div className="h-px flex-1 bg-border" />
+                </div>
+              </>
+            )}
+
+            <form onSubmit={submit} className="space-y-4">
               {isSignup && (
                 <>
                   <div className="space-y-1.5">
@@ -128,7 +175,7 @@ export function AuthView({ mode }: { mode: "login" | "signup" }) {
                 />
               </div>
 
-              <Button type="submit" className="w-full gap-2" disabled={loading}>
+              <Button type="submit" className="w-full gap-2" disabled={loading || googleLoading}>
                 {loading ? t("common.loading") : isSignup ? t("auth.signUp") : t("auth.signIn")}
                 <ArrowRight className="h-4 w-4 rtl:rotate-180" />
               </Button>
@@ -144,14 +191,6 @@ export function AuthView({ mode }: { mode: "login" | "signup" }) {
                 {isSignup ? t("auth.toLogin") : t("auth.toSignup")}
               </button>
             </p>
-
-            {!isSupabaseConfigured && (
-              <div className="mt-6 rounded-xl border border-border bg-muted/40 p-3 text-xs text-muted-foreground">
-                <p className="font-semibold text-foreground">{isSignup ? t("auth.toSignup") : t("auth.toLogin")} — Demo</p>
-                <p className="mt-1">coach@coach.app / coach123</p>
-                <p>client@demo.app / client123</p>
-              </div>
-            )}
           </div>
         </div>
       </main>
