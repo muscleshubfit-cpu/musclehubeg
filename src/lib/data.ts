@@ -149,7 +149,7 @@ export async function signInWithGoogle(): Promise<{ error: string | null }> {
 
 export async function fetchProfile(userId: string): Promise<Profile | null> {
   if (isSupabaseConfigured && supabase) {
-    const { data } = await supabase.from("profiles").select("*").eq("id", userId).maybeSingle();
+    const { data, error } = await supabase.from("profiles").select("*").eq("id", userId).maybeSingle();
     if (data) {
       // Auto-bootstrap a coach account for the demo email
       if (data.role === "client" && data.email?.endsWith("@coach.app")) {
@@ -162,6 +162,37 @@ export async function fetchProfile(userId: string): Promise<Profile | null> {
         return updated as Profile;
       }
       return data as Profile;
+    }
+    // Profile row not found — can happen if the auth trigger didn't fire
+    // (e.g. user existed before trigger was created). Try to create it from
+    // the current session's user metadata.
+    if (error?.code === "PGRST116" || !data) {
+      try {
+        const { data: userData } = await supabase.auth.getUser();
+        if (userData?.user) {
+          const u = userData.user;
+          const newProfile = {
+            id: u.id,
+            email: u.email ?? null,
+            full_name:
+              (u.user_metadata?.full_name as string) ||
+              (u.user_metadata?.name as string) ||
+              u.email ||
+              null,
+            phone: (u.user_metadata?.phone as string) || null,
+            role: "client" as const,
+            avatar_url: (u.user_metadata?.avatar_url as string) || null,
+          };
+          const { data: inserted, error: insErr } = await supabase
+            .from("profiles")
+            .upsert(newProfile, { onConflict: "id" })
+            .select()
+            .single();
+          if (!insErr && inserted) return inserted as Profile;
+        }
+      } catch {
+        // swallow — fall through to null
+      }
     }
     return null;
   }

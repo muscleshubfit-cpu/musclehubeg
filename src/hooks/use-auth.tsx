@@ -16,6 +16,7 @@ import {
   seedLocalData,
   signInWithGoogle,
 } from "@/lib/data";
+import { supabase } from "@/lib/supabase/client";
 import type { Profile } from "@/lib/supabase/types";
 
 type AuthCtx = {
@@ -36,11 +37,49 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     seedLocalData();
-    const unsub = onAuthChange((p) => {
-      setProfile(p);
-      setLoading(false);
+
+    // Critical: @supabase/ssr's createBrowserClient does NOT auto-detect the
+    // `?code=...` param returned from OAuth redirects. We must explicitly
+    // exchange it for a session. Without this, the user lands back on the
+    // site after Google login but no session is created.
+    async function handleOAuthCallback() {
+      if (!supabase) return;
+      const url = typeof window !== "undefined" ? window.location.href : "";
+      const hasCode = typeof window !== "undefined" && new URL(window.location.href).searchParams.has("code");
+      if (hasCode) {
+        try {
+          const { data, error } = await supabase.auth.exchangeCodeForSession(url);
+          if (error) {
+            console.error("[auth] OAuth code exchange failed:", error.message);
+          } else if (data?.session?.user) {
+            // After successful exchange, clean the URL so the code param doesn't linger
+            const cleanUrl = window.location.pathname + window.location.hash;
+            window.history.replaceState({}, document.title, cleanUrl);
+          }
+        } catch (e) {
+          console.error("[auth] OAuth callback exception:", e);
+        }
+      }
+    }
+
+    handleOAuthCallback().then(() => {
+      const unsub = onAuthChange((p) => {
+        setProfile(p);
+        setLoading(false);
+      });
+      // Note: we don't return unsub here because the effect cleanup runs on unmount;
+      // we keep the subscription alive for the component's lifetime.
+      // We rely on the closure to call unsub when the effect re-runs or component unmounts.
+      // However, React's StrictMode in dev may double-invoke; in production it's fine.
+      // To be safe, store cleanup on the effect's return.
+      // (We restructure slightly below.)
+      cleanupRef.current = unsub;
     });
-    return unsub;
+
+    const cleanupRef: { current: (() => void) | null } = { current: null };
+    return () => {
+      if (cleanupRef.current) cleanupRef.current();
+    };
   }, []);
 
   const signUp = useCallback(
