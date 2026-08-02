@@ -41,7 +41,7 @@ export const viewport: Viewport = {
   themeColor: "#1F8FFF",
   width: "device-width",
   initialScale: 1,
-  maximumScale: 5,
+  viewportFit: "cover",
 };
 
 // Google Analytics

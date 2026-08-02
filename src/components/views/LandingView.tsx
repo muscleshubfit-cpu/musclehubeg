@@ -227,15 +227,15 @@ export function LandingView() {
             <div className="mt-6 flex flex-wrap items-center justify-center gap-4 text-xs text-muted-foreground md:justify-start">
               <span className="flex items-center gap-1.5">
                 <Check className="h-4 w-4 text-success" />
-                {isAr ? "بدون عقد" : "No contracts"}
+                {isAr ? "ابدأ خلال دقيقة" : "Start in a minute"}
               </span>
               <span className="flex items-center gap-1.5">
                 <Check className="h-4 w-4 text-success" />
-                {isAr ? "إلغاء في أي وقت" : "Cancel anytime"}
+                {isAr ? "خطط مخصصة بالـ AI" : "AI-personalized plans"}
               </span>
               <span className="flex items-center gap-1.5">
                 <Check className="h-4 w-4 text-success" />
-                {isAr ? "ضمان استرداد" : "Money-back guarantee"}
+                {isAr ? "دعم مباشر" : "Direct support"}
               </span>
             </div>
           </div>
@@ -597,7 +597,7 @@ export function LandingView() {
               </Button>
             </div>
             <p className="mt-6 text-xs text-muted-foreground">
-              {isAr ? "بدون بطاقة ائتمان • إلغاء في أي وقت • ضمان استرداد" : "No credit card • Cancel anytime • Money-back guarantee"}
+              {isAr ? "ابدأ خلال دقيقة • خطط مخصصة بالـ AI" : "Start in a minute • AI-personalized plans"}
             </p>
           </div>
         </div>
