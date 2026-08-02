@@ -396,6 +396,22 @@ export async function addProgress(entry: any) {
 
 export async function listPlans(clientId: string) {
   if (isSupabaseConfigured && supabase) {
+    // Client sees ONLY approved + current plans (drafts are hidden until coach approves)
+    const { data } = await supabase
+      .from("plans")
+      .select("*")
+      .eq("client_id", clientId)
+      .eq("status", "approved")
+      .eq("is_current", true)
+      .order("created_at", { ascending: false });
+    return data ?? [];
+  }
+  return read<any[]>(LS_PLANS, []).filter((p) => p.client_id === clientId);
+}
+
+/** Coach sees ALL plans including drafts (for review/approval). */
+export async function listAllClientPlans(clientId: string) {
+  if (isSupabaseConfigured && supabase) {
     const { data } = await supabase
       .from("plans")
       .select("*")
@@ -406,14 +422,152 @@ export async function listPlans(clientId: string) {
   return read<any[]>(LS_PLANS, []).filter((p) => p.client_id === clientId);
 }
 
+/** Approve a draft plan and send it to the client. Archives previous current plans. */
+export async function activatePlan(planId: string, clientId: string) {
+  if (isSupabaseConfigured && supabase) {
+    // Archive existing current plans of the same client+type
+    const { data: plan } = await supabase
+      .from("plans")
+      .select("type")
+      .eq("id", planId)
+      .maybeSingle();
+    if (plan) {
+      await supabase
+        .from("plans")
+        .update({ is_current: false, status: "archived" })
+        .eq("client_id", clientId)
+        .eq("type", plan.type)
+        .eq("is_current", true)
+        .neq("id", planId);
+    }
+    // Approve + activate
+    const { data, error } = await supabase
+      .from("plans")
+      .update({
+        status: "approved",
+        is_current: true,
+        approved_at: new Date().toISOString(),
+      })
+      .eq("id", planId)
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    // Notify the client
+    await createNotification(
+      clientId,
+      "plan_activated",
+      "تم تفعيل خطة جديدة لك! 🎉",
+      "خطتك الجديدة جاهزة الآن. اطّلع عليها من صفحة خططي.",
+      "/plans",
+    );
+    return data;
+  }
+  // Local fallback
+  const all = read<any[]>(LS_PLANS, []);
+  const idx = all.findIndex((p) => p.id === planId);
+  if (idx >= 0) {
+    all[idx].status = "approved";
+    all[idx].is_current = true;
+    all[idx].approved_at = new Date().toISOString();
+    write(LS_PLANS, all);
+  }
+  return all[idx];
+}
+
+/** Record a swap and check daily limit. Returns { allowed, used, limit }. */
+export async function recordSwap(userId: string, planId: string, swapType: "meal" | "exercise") {
+  const DAILY_LIMIT = 2;
+  if (isSupabaseConfigured && supabase) {
+    // Count today's swaps for this user + type
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    const { count, error } = await supabase
+      .from("plan_swaps")
+      .select("*", { count: "exact", head: true })
+      .eq("user_id", userId)
+      .eq("swap_type", swapType)
+      .gte("created_at", todayStart.toISOString());
+    if (error) throw new Error(error.message);
+    const used = count ?? 0;
+    if (used >= DAILY_LIMIT) {
+      return { allowed: false, used, limit: DAILY_LIMIT };
+    }
+    // Record the swap
+    const { error: insErr } = await supabase
+      .from("plan_swaps")
+      .insert({ user_id: userId, plan_id: planId, swap_type: swapType });
+    if (insErr) throw new Error(insErr.message);
+    return { allowed: true, used: used + 1, limit: DAILY_LIMIT };
+  }
+  // Local fallback
+  const all = read<any[]>(LS_PREFIX + "swaps", []);
+  const today = new Date().toDateString();
+  const todaySwaps = all.filter(
+    (s) => s.user_id === userId && s.swap_type === swapType && new Date(s.created_at).toDateString() === today,
+  );
+  if (todaySwaps.length >= DAILY_LIMIT) {
+    return { allowed: false, used: todaySwaps.length, limit: DAILY_LIMIT };
+  }
+  all.push({ id: uid(), user_id: userId, plan_id: planId, swap_type: swapType, created_at: new Date().toISOString() });
+  write(LS_PREFIX + "swaps", all);
+  return { allowed: true, used: todaySwaps.length + 1, limit: DAILY_LIMIT };
+}
+
+/** Get current swap usage for today (for displaying remaining quota). */
+export async function getSwapUsage(userId: string) {
+  const DAILY_LIMIT = 2;
+  if (isSupabaseConfigured && supabase) {
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    const [meals, exercises] = await Promise.all([
+      supabase
+        .from("plan_swaps")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", userId)
+        .eq("swap_type", "meal")
+        .gte("created_at", todayStart.toISOString()),
+      supabase
+        .from("plan_swaps")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", userId)
+        .eq("swap_type", "exercise")
+        .gte("created_at", todayStart.toISOString()),
+    ]);
+    return {
+      meal: { used: meals.count ?? 0, limit: DAILY_LIMIT, remaining: DAILY_LIMIT - (meals.count ?? 0) },
+      exercise: { used: exercises.count ?? 0, limit: DAILY_LIMIT, remaining: DAILY_LIMIT - (exercises.count ?? 0) },
+    };
+  }
+  return {
+    meal: { used: 0, limit: DAILY_LIMIT, remaining: DAILY_LIMIT },
+    exercise: { used: 0, limit: DAILY_LIMIT, remaining: DAILY_LIMIT },
+  };
+}
+
 export async function addPlan(plan: any) {
   if (isSupabaseConfigured && supabase) {
-    const { data, error } = await supabase.from("plans").insert(plan).select().single();
+    // New plans from coach upload are "approved" directly (manual upload).
+    // New plans from AI generation are "draft" (need approval).
+    const status = plan.status || "approved";
+    const is_current = plan.is_current ?? (status === "approved");
+    const { data, error } = await supabase
+      .from("plans")
+      .insert({ ...plan, status, is_current })
+      .select()
+      .single();
     if (error) throw new Error(error.message);
     return data;
   }
   const all = read<any[]>(LS_PLANS, []);
-  const newRow = { ...plan, id: uid(), created_at: new Date().toISOString() };
+  const status = plan.status || "approved";
+  const newRow = {
+    ...plan,
+    id: uid(),
+    status,
+    is_current: plan.is_current ?? (status === "approved"),
+    approved_at: status === "approved" ? new Date().toISOString() : null,
+    created_at: new Date().toISOString(),
+  };
   all.push(newRow);
   write(LS_PLANS, all);
   return newRow;

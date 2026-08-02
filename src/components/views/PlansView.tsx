@@ -1,14 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Salad, Dumbbell, FileText, Download, Printer, RefreshCw, Loader2 } from "lucide-react";
+import { Salad, Dumbbell, FileText, Download, Printer, RefreshCw, Loader2, Info } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/hooks/use-auth";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { listPlans, getPlanFileUrl } from "@/lib/data";
+import { listPlans, getPlanFileUrl, recordSwap, getSwapUsage } from "@/lib/data";
 import { toast } from "sonner";
 
 export function PlansView() {
@@ -18,12 +18,17 @@ export function PlansView() {
   const [loading, setLoading] = useState(true);
   const [active, setActive] = useState<any | null>(null);
   const [swapLoading, setSwapLoading] = useState<string | null>(null);
+  const [swapUsage, setSwapUsage] = useState({ meal: { used: 0, limit: 2, remaining: 2 }, exercise: { used: 0, limit: 2, remaining: 2 } });
 
   useEffect(() => {
     if (!profile) return;
     (async () => {
-      const data = await listPlans(profile.id);
+      const [data, usage] = await Promise.all([
+        listPlans(profile.id),
+        getSwapUsage(profile.id),
+      ]);
       setPlans(data);
+      setSwapUsage(usage);
       setLoading(false);
     })();
   }, [profile]);
@@ -39,15 +44,31 @@ export function PlansView() {
   };
 
   const swapMeal = async (planId: string, mealIndex: number) => {
+    if (!profile) return;
+    // Check daily limit first
+    if (swapUsage.meal.remaining <= 0) {
+      toast.error(`لقد استخدمت كل تبديلات الوجبات لهذا اليوم (${swapUsage.meal.limit}/${swapUsage.meal.limit}). تتجدد غداً.`);
+      return;
+    }
     setSwapLoading(`meal-${planId}-${mealIndex}`);
     try {
+      // Record the swap (checks limit server-side too)
+      const swapResult = await recordSwap(profile.id, planId, "meal");
+      if (!swapResult.allowed) {
+        toast.error(`لقد وصلت للحد الأقصى من تبديلات الوجبات اليوم (${swapResult.limit}).`);
+        setSwapUsage((prev) => ({ ...prev, meal: { used: swapResult.used, limit: swapResult.limit, remaining: 0 } }));
+        return;
+      }
+      // Update usage display
+      setSwapUsage((prev) => ({ ...prev, meal: { used: swapResult.used, limit: swapResult.limit, remaining: swapResult.limit - swapResult.used } }));
+
       const plan = plans.find((p) => p.id === planId);
       if (!plan?.content?.meals?.[mealIndex]) throw new Error("Meal not found");
-      const meal = plan.content.meals[mealIndex];
+      const mealItem = plan.content.meals[mealIndex];
       const res = await fetch("/api/ai/swap", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type: "meal", item: meal, clientContext: { name: profile?.full_name } }),
+        body: JSON.stringify({ type: "meal", item: mealItem, clientContext: { name: profile?.full_name } }),
       });
       if (!res.ok) throw new Error("Swap failed");
       const { replacement } = await res.json();
@@ -63,7 +84,7 @@ export function PlansView() {
         const newActive = updatedPlans.find((p) => p.id === planId);
         if (newActive) setActive(newActive);
       }
-      toast.success("تم استبدال الوجبة بنجاح!");
+      toast.success(`تم استبدال الوجبة! متبقي ${swapResult.limit - swapResult.used} تبديل اليوم.`);
     } catch (e: any) {
       toast.error(e.message || t("common.error"));
     } finally {
@@ -72,8 +93,22 @@ export function PlansView() {
   };
 
   const swapExercise = async (planId: string, dayIndex: number, exIndex: number) => {
+    if (!profile) return;
+    // Check daily limit first
+    if (swapUsage.exercise.remaining <= 0) {
+      toast.error(`لقد استخدمت كل تبديلات التمارين لهذا اليوم (${swapUsage.exercise.limit}/${swapUsage.exercise.limit}). تتجدد غداً.`);
+      return;
+    }
     setSwapLoading(`ex-${planId}-${dayIndex}-${exIndex}`);
     try {
+      const swapResult = await recordSwap(profile.id, planId, "exercise");
+      if (!swapResult.allowed) {
+        toast.error(`لقد وصلت للحد الأقصى من تبديلات التمارين اليوم (${swapResult.limit}).`);
+        setSwapUsage((prev) => ({ ...prev, exercise: { used: swapResult.used, limit: swapResult.limit, remaining: 0 } }));
+        return;
+      }
+      setSwapUsage((prev) => ({ ...prev, exercise: { used: swapResult.used, limit: swapResult.limit, remaining: swapResult.limit - swapResult.used } }));
+
       const plan = plans.find((p) => p.id === planId);
       if (!plan?.content?.days?.[dayIndex]?.exercises?.[exIndex]) throw new Error("Exercise not found");
       const exercise = plan.content.days[dayIndex].exercises[exIndex];
@@ -96,7 +131,7 @@ export function PlansView() {
         const newActive = updatedPlans.find((p) => p.id === planId);
         if (newActive) setActive(newActive);
       }
-      toast.success("تم استبدال التمرين بنجاح!");
+      toast.success(`تم استبدال التمرين! متبقي ${swapResult.limit - swapResult.used} تبديل اليوم.`);
     } catch (e: any) {
       toast.error(e.message || t("common.error"));
     } finally {
@@ -164,6 +199,14 @@ export function PlansView() {
             {t("plans.meal")} ({meal.length})
           </TabsTrigger>
         </TabsList>
+
+        {/* Daily swap quota indicator */}
+        <div className="mt-4 flex flex-wrap items-center gap-3 rounded-xl border border-border bg-secondary/30 px-4 py-2.5 text-xs text-muted-foreground">
+          <Info className="h-4 w-4 shrink-0 text-primary" />
+          <span>تبديل الوجبات اليوم: <strong className={swapUsage.meal.remaining > 0 ? "text-foreground" : "text-destructive"}>{swapUsage.meal.remaining}</strong>/{swapUsage.meal.limit} متبقي</span>
+          <span className="text-border">|</span>
+          <span>تبديل التمارين اليوم: <strong className={swapUsage.exercise.remaining > 0 ? "text-foreground" : "text-destructive"}>{swapUsage.exercise.remaining}</strong>/{swapUsage.exercise.limit} متبقي</span>
+        </div>
 
         <TabsContent value="workout" className="mt-4">
           {workout.length === 0 ? (
