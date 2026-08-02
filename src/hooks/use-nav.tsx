@@ -16,7 +16,9 @@ export type View =
   | "coach"
   | "coach-client"
   | "coach-support"
-  | "coach-payments";
+  | "coach-payments"
+  | "referral"
+  | "blog";
 
 type NavCtx = {
   view: View;

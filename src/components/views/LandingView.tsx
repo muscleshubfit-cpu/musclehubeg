@@ -624,6 +624,7 @@ export function LandingView() {
               <h4 className="font-semibold">{isAr ? "روابط سريعة" : "Quick links"}</h4>
               <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
                 <li><button onClick={() => navigate("pricing")} className="hover:text-primary">{isAr ? "الأسعار" : "Pricing"}</button></li>
+                <li><button onClick={() => navigate("blog")} className="hover:text-primary">{isAr ? "المدونة" : "Blog"}</button></li>
                 <li><button onClick={() => navigate("auth", { mode: "signup" })} className="hover:text-primary">{isAr ? "تسجيل" : "Sign up"}</button></li>
                 <li><button onClick={() => navigate("auth", { mode: "login" })} className="hover:text-primary">{isAr ? "تسجيل دخول" : "Log in"}</button></li>
               </ul>

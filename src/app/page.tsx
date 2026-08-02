@@ -18,6 +18,8 @@ import { CoachView } from "@/components/views/CoachView";
 import { CoachClientView } from "@/components/views/CoachClientView";
 import { CoachSupportView } from "@/components/views/CoachSupportView";
 import { CoachPaymentsView } from "@/components/views/CoachPaymentsView";
+import { ReferralView } from "@/components/views/ReferralView";
+import { BlogView } from "@/components/views/BlogView";
 import { AppLayout } from "@/components/AppLayout";
 import { getTier } from "@/lib/plans";
 import type { TierId, Duration } from "@/lib/plans";
@@ -68,6 +70,7 @@ function Router() {
   if (view === "landing") return <LandingView />;
   if (view === "pricing") return <PricingView />;
   if (view === "auth") return <AuthView mode={(params.mode as "login" | "signup") || "login"} />;
+  if (view === "blog") return <BlogView />;
   if (view === "checkout") {
     const tier = (params.tier as TierId) || "essential";
     const months = (params.months as Duration) || 6;
@@ -146,6 +149,7 @@ function Router() {
       {view === "plans" && <PlansView />}
       {view === "chat" && <ChatView />}
       {view === "support" && <SupportView />}
+      {view === "referral" && <ReferralView />}
       {view === "pricing" && <PricingView />}
     </AppLayout>
   );

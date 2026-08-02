@@ -11,6 +11,7 @@ import {
   Crown,
   Bot,
   LifeBuoy,
+  Gift,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useI18n } from "@/lib/i18n";
@@ -32,6 +33,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
     { to: "progress", label: t("nav.progress"), icon: LineChart },
     { to: "plans", label: t("nav.plans"), icon: FileText },
     { to: "support", label: t("nav.support"), icon: LifeBuoy },
+    { to: "referral", label: t("nav.referral"), icon: Gift },
     { to: "pricing", label: t("nav.pricing"), icon: Crown },
   ];
   const coachNav: { to: View; label: string; icon: any }[] = [

@@ -1029,6 +1029,109 @@ export async function createSwapRequest(req: {
 }
 
 // ---------------------------------------------------------------------------
+//  Referrals (invite friends, get 10% discount)
+// ---------------------------------------------------------------------------
+
+export async function getReferralStats(userId: string) {
+  if (isSupabaseConfigured && supabase) {
+    const { data, error } = await supabase
+      .from("referrals")
+      .select("*")
+      .eq("referrer_id", userId)
+      .order("created_at", { ascending: false });
+    if (error) throw new Error(error.message);
+    const total = data.length;
+    const completed = data.filter((r: any) => r.status === "completed").length;
+    const pending = data.filter((r: any) => r.status === "pending").length;
+    return { total, completed, pending, referrals: data };
+  }
+  return { total: 0, completed: 0, pending: 0, referrals: [] };
+}
+
+export async function createReferral(referrerId: string, referredEmail: string) {
+  if (isSupabaseConfigured && supabase) {
+    const { data, error } = await supabase
+      .from("referrals")
+      .insert({ referrer_id: referrerId, referred_email: referredEmail })
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    return data;
+  }
+  return null;
+}
+
+// ---------------------------------------------------------------------------
+//  Blog posts (SEO articles)
+// ---------------------------------------------------------------------------
+
+export async function listBlogPosts() {
+  if (isSupabaseConfigured && supabase) {
+    const { data } = await supabase
+      .from("blog_posts")
+      .select("*")
+      .eq("published", true)
+      .order("published_at", { ascending: false });
+    return data ?? [];
+  }
+  return [];
+}
+
+export async function getBlogPost(slug: string) {
+  if (isSupabaseConfigured && supabase) {
+    const { data } = await supabase
+      .from("blog_posts")
+      .select("*")
+      .eq("slug", slug)
+      .eq("published", true)
+      .maybeSingle();
+    return data;
+  }
+  return null;
+}
+
+// ---------------------------------------------------------------------------
+//  Coach presence (online status)
+// ---------------------------------------------------------------------------
+
+export async function getCoachPresence() {
+  if (isSupabaseConfigured && supabase) {
+    const { data } = await supabase
+      .from("coach_presence")
+      .select("*")
+      .limit(1)
+      .maybeSingle();
+    if (!data) return { status: "offline", lastSeen: null };
+    // Consider online if last seen < 2 minutes ago
+    const lastSeen = new Date(data.last_seen);
+    const isOnline = Date.now() - lastSeen.getTime() < 2 * 60 * 1000;
+    return { status: isOnline ? "online" : "offline", lastSeen: data.last_seen };
+  }
+  return { status: "offline", lastSeen: null };
+}
+
+export async function updateCoachPresence(userId: string, status: "online" | "offline") {
+  if (isSupabaseConfigured && supabase) {
+    // Upsert presence
+    const { data: existing } = await supabase
+      .from("coach_presence")
+      .select("id")
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (existing) {
+      await supabase
+        .from("coach_presence")
+        .update({ status, last_seen: new Date().toISOString() })
+        .eq("id", existing.id);
+    } else {
+      await supabase
+        .from("coach_presence")
+        .insert({ user_id: userId, status, last_seen: new Date().toISOString() });
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
 //  Questionnaire status management (coach)
 // ---------------------------------------------------------------------------
 

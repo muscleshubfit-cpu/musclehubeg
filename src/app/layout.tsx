@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
 
@@ -18,6 +18,12 @@ export const metadata: Metadata = {
     "كوتش",
   ],
   authors: [{ name: "Ahmed Zake" }],
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "MuscleHubEG",
+  },
   openGraph: {
     title: "Ahmed Zake — Online Nutrition & Fitness Coaching",
     description:
@@ -31,14 +37,60 @@ export const metadata: Metadata = {
   },
 };
 
+export const viewport: Viewport = {
+  themeColor: "#1F8FFF",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+};
+
+// Google Analytics
+const GA_ID = process.env.NEXT_PUBLIC_GA_ID || "";
+
 export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="ar" dir="rtl" suppressHydrationWarning>
+      <head>
+        {GA_ID && (
+          <>
+            <script
+              async
+              src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`}
+            />
+            <script
+              dangerouslySetInnerHTML={{
+                __html: `
+                  window.dataLayer = window.dataLayer || [];
+                  function gtag(){dataLayer.push(arguments);}
+                  gtag('js', new Date());
+                  gtag('config', '${GA_ID}');
+                `,
+              }}
+            />
+          </>
+        )}
+      </head>
       <body className="antialiased bg-background text-foreground">
         {children}
         <Toaster position="top-center" richColors />
+        {/* PWA Service Worker Registration */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              if ('serviceWorker' in navigator) {
+                window.addEventListener('load', function() {
+                  navigator.serviceWorker.register('/sw.js').then(function(reg) {
+                    console.log('[PWA] Service Worker registered');
+                  }).catch(function(e) {
+                    console.warn('[PWA] SW registration failed:', e);
+                  });
+                });
+              }
+            `,
+          }}
+        />
       </body>
     </html>
   );
