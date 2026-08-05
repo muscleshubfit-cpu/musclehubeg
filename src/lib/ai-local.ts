@@ -453,53 +453,37 @@ export function generateNutritionPlan(ctx: ClientContext): NutritionContent {
     fruitFood = fruits[idx % fruits.length];
 
     // Calculate grams for each food to hit calorie targets
-    // Protein food: target ~70% of meal protein from this source
+    // Each food category gets a % of the meal's total calories
+    // Protein: 40%, Carb: 35%, Fat: 10%, Dairy: 10%, Veg: 3%, Fruit: 2%
+
     if (proteinFood) {
-      // Calculate grams based on protein content, not just calories
-      const targetProteinFromFood = Math.round(mealProtein * 0.75);
-      const grams = Math.max(30, Math.round(targetProteinFromFood / proteinFood.proteinPer100g * 100));
+      const targetCals = Math.round(mealCals * 0.40);
+      const grams = Math.max(30, Math.round(targetCals / proteinFood.calsPer100g * 100));
       const macros = calcMacros(proteinFood, grams);
-      items.push({
-        food: proteinFood.name,
-        amount: `${grams} جم`,
-        calories: macros.calories,
-      });
+      items.push({ food: proteinFood.name, amount: `${grams} جم`, calories: macros.calories });
     }
 
-    // Carb food: target ~70% of meal carbs from this source
     if (carbFood) {
-      const targetCarbsFromFood = Math.round(mealCarbs * 0.75);
-      const grams = Math.max(50, Math.round(targetCarbsFromFood / carbFood.carbsPer100g * 100));
+      const targetCals = Math.round(mealCals * 0.30);
+      const grams = Math.max(30, Math.round(targetCals / carbFood.calsPer100g * 100));
       const macros = calcMacros(carbFood, grams);
-      items.push({
-        food: carbFood.name,
-        amount: `${grams} جم`,
-        calories: macros.calories,
-      });
+      items.push({ food: carbFood.name, amount: `${grams} جم`, calories: macros.calories });
     }
 
-    // Fat source: target ~50% of meal fat from this source
     if (fatFood) {
-      const targetFatFromFood = Math.round(mealFat * 0.4);
-      const grams = Math.max(5, Math.round(targetFatFromFood / fatFood.fatPer100g * 100));
+      const targetCals = Math.round(mealCals * 0.12);
+      const grams = Math.max(5, Math.round(targetCals / fatFood.calsPer100g * 100));
       const macros = calcMacros(fatFood, grams);
-      items.push({
-        food: fatFood.name,
-        amount: `${grams} جم`,
-        calories: macros.calories,
-      });
+      items.push({ food: fatFood.name, amount: `${grams} جم`, calories: macros.calories });
     }
 
-    // Dairy (for breakfast/snacks) — adds protein + calories
+    // Dairy (adds protein + creaminess)
     if ((idx === 0 || idx === 2 || idx === 3) && dairy.length > 0) {
       const dairyFood = dairy[idx % dairy.length];
-      const grams = 150;
+      const targetCals = Math.round(mealCals * 0.08);
+      const grams = Math.max(50, Math.round(targetCals / dairyFood.calsPer100g * 100));
       const macros = calcMacros(dairyFood, grams);
-      items.push({
-        food: dairyFood.name,
-        amount: `${grams} جم`,
-        calories: macros.calories,
-      });
+      items.push({ food: dairyFood.name, amount: `${grams} جم`, calories: macros.calories });
     }
 
     // Vegetables (low cal, high volume)
