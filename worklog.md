@@ -247,3 +247,32 @@ Stage Summary:
 - Blog still PUBLIC (no login required) — accessible from the menu for everyone.
 - Articles will start showing AFTER the user runs the migration 0002_blog_posts_and_is_coach_grant.sql in the Supabase SQL Editor. I cannot run it from here without a Supabase service_role JWT (Vercel stores it encrypted, can't be decrypted by the Vercel REST API with the token I have).
 - USER ACTION REQUIRED: Open Supabase Dashboard → SQL Editor → New query → paste the contents of supabase/migrations/0002_blog_posts_and_is_coach_grant.sql → Run. This will grant EXECUTE on is_coach() to anon, create the blog_posts table if missing, set up RLS policies that don't trip the is_coach permission error for anon visitors, and seed 2 sample articles so the user can see the blog working immediately.
+
+---
+Task ID: try-run-migration-with-supabase-access
+Agent: main (super-z)
+Task: User provided a Supabase token (sb_publishable_...) to run the migration.
+
+Work Log:
+- Tested the provided token against the Supabase Management API.
+- Result: "JWT could not be decoded" — the token format `sb_publishable_...` is a PUBLISHABLE token (client-side API key), not a SECRET access token.
+- Supabase has two token types:
+  * Publishable (sb_publishable_...): safe for client-side code, used by client SDKs
+  * Secret (sbp_...): used for Management API access, server-side only — required to run DDL
+- Also tested:
+  * Supabase CLI login: rejected ("Invalid access token format. Must be like sbp_0102...1920")
+  * Direct Management API call with the publishable token: 401 Unauthorized
+  * Various endpoint/format combinations: all failed
+- Cannot run the migration with the publishable token. The user needs to either:
+  (a) Provide a SECRET access token from https://supabase.com/dashboard/account/tokens
+      (it will start with "sbp_"), OR
+  (b) Run the SQL migration manually in the Supabase SQL Editor (30 seconds).
+- Removed the unused migration runner endpoint (src/app/api/admin/run-migration/) since /pg/query is not enabled on this Supabase project, so the endpoint couldn't execute DDL.
+- Printed the full SQL migration in chat for the user to copy-paste into the Supabase SQL Editor.
+
+Stage Summary:
+- Migration NOT YET executed on production Supabase.
+- Articles still don't show for anonymous visitors (the error: "permission denied for function is_coach").
+- USER ACTION REQUIRED — pick ONE of:
+  1. Generate a SECRET access token at https://supabase.com/dashboard/account/tokens (will start with "sbp_") and paste it here. I'll run the migration immediately.
+  2. Open https://supabase.com/dashboard/project/wyopqryzfjifyeyvyxfy/sql/new and paste the SQL I provided in the chat. Click Run. Takes 30 seconds.
