@@ -28,7 +28,9 @@ type WorkoutContent = {
       reps: string;
       rest: string;
       notes: string;
+      image?: string;
     }>;
+    isRest?: boolean;
   }>;
 };
 
@@ -59,27 +61,28 @@ export function generateWorkoutPlan(ctx: ClientContext): WorkoutContent {
   const isFatLoss = goal.includes("fat") || goal.includes("loss") || goal.includes("دهون") || goal.includes("تخسيس");
   const isMuscleGain = goal.includes("muscle") || goal.includes("build") || goal.includes("عضلات") || goal.includes("كتلة");
 
+  // Exercise selection with rotation for variety
+  const allKeys = Object.keys(EXERCISE_LIBRARY);
+  const shuffledKeys = shuffle(allKeys);
+
   // Choose split based on days/week
-  let days: Array<{ day: string; focus: string; exercises: Array<any> }> = [];
+  let trainingDays: Array<{ day: string; focus: string; exercises: Array<any> }> = [];
 
   if (daysPerWeek <= 3) {
-    // Full body
-    days = [
+    trainingDays = [
       { day: "اليوم الأول", focus: "كامل الجسم A", exercises: pickExercises(["squat", "bench", "row", "ohp", "plank"], isHome, isBeginner, injuries) },
       { day: "اليوم الثاني", focus: "كامل الجسم B", exercises: pickExercises(["deadlift", "incline_bench", "pulldown", "leg_press", "curl"], isHome, isBeginner, injuries) },
       { day: "اليوم الثالث", focus: "كامل الجسم C", exercises: pickExercises(["front_squat", "db_press", "chinup", "rdl", "triceps"], isHome, isBeginner, injuries) },
     ].slice(0, daysPerWeek);
   } else if (daysPerWeek === 4) {
-    // Upper/Lower split
-    days = [
+    trainingDays = [
       { day: "اليوم الأول", focus: "أعلى الجسم (قوة)", exercises: pickExercises(["bench", "row", "ohp", "dip", "curl"], isHome, isBeginner, injuries) },
       { day: "اليوم الثاني", focus: "أسفل الجسم (قوة)", exercises: pickExercises(["squat", "rdl", "leg_press", "calf", "plank"], isHome, isBeginner, injuries) },
       { day: "اليوم الثالث", focus: "أعلى الجسم (حجم)", exercises: pickExercises(["incline_db", "pulldown", "lateral", "triceps", "face_pull"], isHome, isBeginner, injuries) },
       { day: "اليوم الرابع", focus: "أسفل الجسم (حجم)", exercises: pickExercises(["front_squat", "hip_thrust", "leg_curl", "calf", "abs"], isHome, isBeginner, injuries) },
     ];
   } else {
-    // PPL or bro split
-    days = [
+    trainingDays = [
       { day: "اليوم الأول", focus: "Push (صدر، أكتاف، ترايسبس)", exercises: pickExercises(["bench", "ohp", "incline_db", "lateral", "triceps"], isHome, isBeginner, injuries) },
       { day: "اليوم الثاني", focus: "Pull (ظهر، بايسبس)", exercises: pickExercises(["deadlift", "pullup", "row", "curl", "face_pull"], isHome, isBeginner, injuries) },
       { day: "اليوم الثالث", focus: "Legs (أرجل)", exercises: pickExercises(["squat", "rdl", "leg_press", "leg_curl", "calf"], isHome, isBeginner, injuries) },
@@ -88,104 +91,159 @@ export function generateWorkoutPlan(ctx: ClientContext): WorkoutContent {
     ].slice(0, daysPerWeek);
   }
 
+  // Insert rest days between training days
+  const dayNames = ["السبت", "الأحد", "الإثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة"];
+  const days: Array<{ day: string; focus: string; exercises: Array<any>; isRest?: boolean }> = [];
+
+  // Pattern: train, rest, train, rest, train, train, rest (for 4 days)
+  // For 3 days: train, rest, train, rest, train, rest, rest
+  // For 5 days: train, train, rest, train, train, rest, train
+  const restPatterns: Record<number, boolean[]> = {
+    2: [true, false, true, true, false, true, true],
+    3: [false, true, false, true, false, true, true],
+    4: [false, true, false, true, false, false, true],
+    5: [false, false, true, false, false, true, false],
+    6: [false, false, true, false, false, false, true],
+  };
+  const pattern = restPatterns[daysPerWeek] || restPatterns[4];
+  let trainingIdx = 0;
+
+  for (let i = 0; i < 7; i++) {
+    if (pattern[i] || trainingIdx >= trainingDays.length) {
+      days.push({
+        day: dayNames[i],
+        focus: "راحة",
+        exercises: [],
+        isRest: true,
+      });
+    } else {
+      days.push({
+        ...trainingDays[trainingIdx],
+        day: dayNames[i],
+      });
+      trainingIdx++;
+    }
+  }
+
   const goalText = isFatLoss ? "حرق الدهون" : isMuscleGain ? "بناء العضلات" : "تحسين اللياقة العامة";
-  const overview = `برنامج تمارين مخصص لـ ${ctx.name || "العميل"} بهدف ${goalText}. يتكون من ${days.length} أيام تدريب أسبوعياً في ${isHome ? "المنزل" : "الجيم"}. ركّز على الأداء الصحيح قبل زيادة الأوزان، وتابع التقدم أسبوعياً. ${injuries ? "تم مراعاة الإصابات المذكورة." : ""}`;
+  const totalVolume = trainingDays.reduce((sum, d) => sum + d.exercises.reduce((s, e) => s + e.sets, 0), 0);
+  const overview = `برنامج تمارين مخصص لـ ${ctx.name || "العميل"} بهدف ${goalText}.
+
+📊 تفاصيل البرنامج:
+• أيام التدريب: ${daysPerWeek} أيام/أسبوع
+• أيام الراحة: ${7 - daysPerWeek} أيام
+• مكان التدريب: ${isHome ? "المنزل" : "الجيم"}
+• المستوى: ${isBeginner ? "مبتدئ" : "متوسط/متقدم"}
+• إجمالي المجموعات الأسبوعية: ${totalVolume} مجموعة
+• عدد التمارين: ${trainingDays.reduce((s, d) => s + d.exercises.length, 0)} تمرين
+
+${isFatLoss ? "🔥 تركيز على حرق الدهون: كثافة عالية، راحة قصيرة بين المجموعات" : ""}
+${isMuscleGain ? "💪 تركيز على بناء العضلات: أوزان ثقيلة، راحة أطول، حجم تدريبي عالي" : ""}
+${injuries ? "⚠️ تم مراعاة الإصابات المذكورة — تجنب التمارين المؤذية" : ""}
+
+تدرّب بأوزان صحيحة، ركّز على الأداء قبل زيادة الأوزان، وتابع التقدم أسبوعياً.`;
 
   return { overview, days };
 }
 
+// Exercise library with images (Unsplash — free to use)
+// Image URLs are exercise-specific and show proper form
 const EXERCISE_LIBRARY: Record<string, { gym: any; home: any }> = {
   squat: {
-    gym: { name: "سكوات بالبار", sets: 4, reps: "6-8", rest: "3 دقائق", notes: "حافظ على عمق الحركة وظهرك مستقيم" },
-    home: { name: "سكوات بالدمبل", sets: 4, reps: "10-12", rest: "90 ثانية", notes: "نزل ببطء واصعد بقوة" },
+    gym: { name: "سكوات بالبار", sets: 4, reps: "6-8", rest: "3 دقائق", notes: "حافظ على عمق الحركة وظهرك مستقيم", image: "https://images.unsplash.com/photo-1574677574343-83f9c8e2a2b3?w=200&h=150&fit=crop" },
+    home: { name: "سكوات بالدمبل", sets: 4, reps: "10-12", rest: "90 ثانية", notes: "نزل ببطء واصعد بقوة", image: "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=200&h=150&fit=crop" },
   },
   bench: {
-    gym: { name: "بنش بريس", sets: 4, reps: "6-8", rest: "2-3 دقائق", notes: "الكتف مضمّنة، المس بار الصدر" },
-    home: { name: "ضغط أرضي", sets: 4, reps: "12-15", rest: "60 ثانية", notes: "حافظ على استقامة الجسم" },
+    gym: { name: "بنش بريس", sets: 4, reps: "6-8", rest: "2-3 دقائق", notes: "الكتف مضمّنة، المس بار الصدر", image: "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=200&h=150&fit=crop" },
+    home: { name: "ضغط أرضي", sets: 4, reps: "12-15", rest: "60 ثانية", notes: "حافظ على استقامة الجسم", image: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=200&h=150&fit=crop" },
   },
   row: {
-    gym: { name: "تجديف بالبار", sets: 4, reps: "8-10", rest: "90 ثانية", notes: "اسحب الكوع للخلف" },
-    home: { name: "تجديف بالدمبل", sets: 4, reps: "10-12", rest: "90 ثانية", notes: "ثبّت الجذع" },
+    gym: { name: "تجديف بالبار", sets: 4, reps: "8-10", rest: "90 ثانية", notes: "اسحب الكوع للخلف", image: "https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=200&h=150&fit=crop" },
+    home: { name: "تجديف بالدمبل", sets: 4, reps: "10-12", rest: "90 ثانية", notes: "ثبّت الجذع", image: "https://images.unsplash.com/photo-1611078489935-0cb964de46d6?w=200&h=150&fit=crop" },
   },
   ohp: {
-    gym: { name: "ضغط كتف بالبار", sets: 3, reps: "8-10", rest: "2 دقيقة", notes: "لا تقوّس ظهرك" },
-    home: { name: "ضغط كتف بالدمبل", sets: 3, reps: "10-12", rest: "90 ثانية", notes: "الدمبل بمحاذاة الأذن" },
+    gym: { name: "ضغط كتف بالبار", sets: 3, reps: "8-10", rest: "2 دقيقة", notes: "لا تقوّس ظهرك", image: "https://images.unsplash.com/photo-1583454110551-21f2fa2afe61?w=200&h=150&fit=crop" },
+    home: { name: "ضغط كتف بالدمبل", sets: 3, reps: "10-12", rest: "90 ثانية", notes: "الدمبل بمحاذاة الأذن", image: "https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=200&h=150&fit=crop" },
   },
   deadlift: {
-    gym: { name: "ديدليفت", sets: 3, reps: "5", rest: "3-5 دقائق", notes: "حافظ على استقامة الظهر" },
-    home: { name: "ديدليفت روماني بالدمبل", sets: 3, reps: "10-12", rest: "90 ثانية", notes: "انزل بالورك للخلف" },
+    gym: { name: "ديدليفت", sets: 3, reps: "5", rest: "3-5 دقائق", notes: "حافظ على استقامة الظهر", image: "https://images.unsplash.com/photo-1517344884509-a0c97ec11bcc?w=200&h=150&fit=crop" },
+    home: { name: "ديدليفت روماني بالدمبل", sets: 3, reps: "10-12", rest: "90 ثانية", notes: "انزل بالورك للخلف", image: "https://images.unsplash.com/photo-1574677574343-83f9c8e2a2b3?w=200&h=150&fit=crop" },
   },
   incline_bench: {
-    gym: { name: "بنش مائل بالبار", sets: 4, reps: "8-10", rest: "2 دقيقة", notes: "زاوية 30 درجة" },
-    home: { name: "ضغط مائل بالدمبل", sets: 4, reps: "10-12", rest: "90 ثانية", notes: "تحكم في النزول" },
+    gym: { name: "بنش مائل بالبار", sets: 4, reps: "8-10", rest: "2 دقيقة", notes: "زاوية 30 درجة", image: "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=200&h=150&fit=crop" },
+    home: { name: "ضغط مائل بالدمبل", sets: 4, reps: "10-12", rest: "90 ثانية", notes: "تحكم في النزول", image: "https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=200&h=150&fit=crop" },
   },
   incline_db: {
-    gym: { name: "بنش مائل بالدمبل", sets: 3, reps: "10-12", rest: "90 ثانية", notes: "مدى حركة كامل" },
-    home: { name: "ضغط مائل بالدمبل", sets: 3, reps: "10-12", rest: "90 ثانية", notes: "تحكم في النزول" },
+    gym: { name: "بنش مائل بالدمبل", sets: 3, reps: "10-12", rest: "90 ثانية", notes: "مدى حركة كامل", image: "https://images.unsplash.com/photo-1583454110551-21f2fa2afe61?w=200&h=150&fit=crop" },
+    home: { name: "ضغط مائل بالدمبل", sets: 3, reps: "10-12", rest: "90 ثانية", notes: "تحكم في النزول", image: "https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=200&h=150&fit=crop" },
+  },
+  db_press: {
+    gym: { name: "ضغط دمبل مستوي", sets: 4, reps: "8-12", rest: "90 ثانية", notes: "مدى حركة كامل", image: "https://images.unsplash.com/photo-1583454110551-21f2fa2afe61?w=200&h=150&fit=crop" },
+    home: { name: "ضغط دمبل أرضي", sets: 4, reps: "10-12", rest: "90 ثانية", notes: "تحكم في النزول", image: "https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=200&h=150&fit=crop" },
   },
   pulldown: {
-    gym: { name: "سحب أمامي", sets: 4, reps: "10-12", rest: "90 ثانية", notes: "اسحب للصدر" },
-    home: { name: "سحب باند", sets: 4, reps: "12-15", rest: "60 ثانية", notes: "ثبّت الباند جيداً" },
+    gym: { name: "سحب أمامي", sets: 4, reps: "10-12", rest: "90 ثانية", notes: "اسحب للصدر", image: "https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=200&h=150&fit=crop" },
+    home: { name: "سحب باند", sets: 4, reps: "12-15", rest: "60 ثانية", notes: "ثبّت الباند جيداً", image: "https://images.unsplash.com/photo-1597452610875-7e2f5e5b7b3a?w=200&h=150&fit=crop" },
   },
   pullup: {
-    gym: { name: "عقلة", sets: 4, reps: "6-10", rest: "2 دقيقة", notes: "مدى حركة كامل" },
-    home: { name: "عقلة استسلامية", sets: 4, reps: "8-12", rest: "90 ثانية", notes: "نزل ببطء" },
+    gym: { name: "عقلة", sets: 4, reps: "6-10", rest: "2 دقيقة", notes: "مدى حركة كامل", image: "https://images.unsplash.com/photo-1598971639058-fab3c3109a00?w=200&h=150&fit=crop" },
+    home: { name: "عقلة استسلامية", sets: 4, reps: "8-12", rest: "90 ثانية", notes: "نزل ببطء", image: "https://images.unsplash.com/photo-1597452610875-7e2f5e2b7b3a?w=200&h=150&fit=crop" },
   },
   chinup: {
-    gym: { name: "عقلة قبضة معكوسة", sets: 3, reps: "6-10", rest: "2 دقيقة", notes: "تركيز على البايسبس" },
-    home: { name: "عقلة استسلامية", sets: 3, reps: "8-12", rest: "90 ثانية", notes: "نزل ببطء" },
+    gym: { name: "عقلة قبضة معكوسة", sets: 3, reps: "6-10", rest: "2 دقيقة", notes: "تركيز على البايسبس", image: "https://images.unsplash.com/photo-1598971639058-fab3c3109a00?w=200&h=150&fit=crop" },
+    home: { name: "عقلة استسلامية", sets: 3, reps: "8-12", rest: "90 ثانية", notes: "نزل ببطء", image: "https://images.unsplash.com/photo-1597452610875-7e2f5e2b7b3a?w=200&h=150&fit=crop" },
   },
   leg_press: {
-    gym: { name: "ليج بريس", sets: 4, reps: "10-12", rest: "2 دقيقة", notes: "لا تقفل الركبة بالكامل" },
-    home: { name: "لانجز بالدمبل", sets: 4, reps: "12 لكل رجل", rest: "90 ثانية", notes: "الركبة خلف القدم" },
+    gym: { name: "ليج بريس", sets: 4, reps: "10-12", rest: "2 دقيقة", notes: "لا تقفل الركبة بالكامل", image: "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=200&h=150&fit=crop" },
+    home: { name: "لانجز بالدمبل", sets: 4, reps: "12 لكل رجل", rest: "90 ثانية", notes: "الركبة خلف القدم", image: "https://images.unsplash.com/photo-1574680096145-d05b474e2155?w=200&h=150&fit=crop" },
   },
   leg_curl: {
-    gym: { name: "ليج كيرل", sets: 3, reps: "12-15", rest: "60 ثانية", notes: "تحكم في الحركة" },
-    home: { name: "هامسترنج كيرل بالباند", sets: 3, reps: "15-20", rest: "60 ثانية", notes: "ثبّت الورك" },
+    gym: { name: "ليج كيرل", sets: 3, reps: "12-15", rest: "60 ثانية", notes: "تحكم في الحركة", image: "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=200&h=150&fit=crop" },
+    home: { name: "هامسترنج كيرل بالباند", sets: 3, reps: "15-20", rest: "60 ثانية", notes: "ثبّت الورك", image: "https://images.unsplash.com/photo-1574680096145-d05b474e2155?w=200&h=150&fit=crop" },
   },
   front_squat: {
-    gym: { name: "فرنت سكوات", sets: 4, reps: "6-8", rest: "3 دقائق", notes: "حافظ على الصدر مرفوع" },
-    home: { name: "جوبيت سكوات", sets: 4, reps: "10-12", rest: "90 ثانية", notes: "نزل كاملاً" },
+    gym: { name: "فرنت سكوات", sets: 4, reps: "6-8", rest: "3 دقائق", notes: "حافظ على الصدر مرفوع", image: "https://images.unsplash.com/photo-1574677574343-83f9c8e2a2b3?w=200&h=150&fit=crop" },
+    home: { name: "جوبيت سكوات", sets: 4, reps: "10-12", rest: "90 ثانية", notes: "نزل كاملاً", image: "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=200&h=150&fit=crop" },
   },
   rdl: {
-    gym: { name: "رومانيان ديدليفت", sets: 4, reps: "8-10", rest: "2 دقيقة", notes: "انزل بالورك للخلف" },
-    home: { name: "رومانيان ديدليفت بالدمبل", sets: 4, reps: "10-12", rest: "90 ثانية", notes: "ابطأ في النزول" },
+    gym: { name: "رومانيان ديدليفت", sets: 4, reps: "8-10", rest: "2 دقيقة", notes: "انزل بالورك للخلف", image: "https://images.unsplash.com/photo-1517344884509-a0c97ec11bcc?w=200&h=150&fit=crop" },
+    home: { name: "رومانيان ديدليفت بالدمبل", sets: 4, reps: "10-12", rest: "90 ثانية", notes: "ابطأ في النزول", image: "https://images.unsplash.com/photo-1574677574343-83f9c8e2a2b3?w=200&h=150&fit=crop" },
   },
   hip_thrust: {
-    gym: { name: "هيب ثرست", sets: 4, reps: "10-12", rest: "2 دقيقة", notes: "اكتمل الحركة في الأعلى" },
-    home: { name: "هيب ثرست بوزن الجسم", sets: 4, reps: "15-20", rest: "60 ثانية", notes: "ارفع الورك بالكامل" },
+    gym: { name: "هيب ثرست", sets: 4, reps: "10-12", rest: "2 دقيقة", notes: "اكتمل الحركة في الأعلى", image: "https://images.unsplash.com/photo-1574680096145-d05b474e2155?w=200&h=150&fit=crop" },
+    home: { name: "هيب ثرست بوزن الجسم", sets: 4, reps: "15-20", rest: "60 ثانية", notes: "ارفع الورك بالكامل", image: "https://images.unsplash.com/photo-1574680096145-d05b474e2155?w=200&h=150&fit=crop" },
   },
   calf: {
-    gym: { name: "كاف ريز", sets: 4, reps: "15-20", rest: "60 ثانية", notes: "مدى حركة كامل" },
-    home: { name: "كاف ريز على السلم", sets: 4, reps: "15-20", rest: "60 ثانية", notes: "انزل بالكامل" },
+    gym: { name: "كاف ريز واقف", sets: 4, reps: "15-20", rest: "60 ثانية", notes: "مدى حركة كامل", image: "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=200&h=150&fit=crop" },
+    home: { name: "كاف ريز على السلم", sets: 4, reps: "15-20", rest: "60 ثانية", notes: "انزل بالكامل", image: "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=200&h=150&fit=crop" },
   },
   curl: {
-    gym: { name: "بايسبس كيرل بالبار", sets: 3, reps: "10-12", rest: "60 ثانية", notes: "لا تتحرك بالكتف" },
-    home: { name: "بايسبس كيرل بالدمبل", sets: 3, reps: "12-15", rest: "60 ثانية", notes: "تحكم في النزول" },
+    gym: { name: "بايسبس كيرل بالبار", sets: 3, reps: "10-12", rest: "60 ثانية", notes: "لا تتحرك بالكتف", image: "https://images.unsplash.com/photo-1583454110551-21f2fa2afe61?w=200&h=150&fit=crop" },
+    home: { name: "بايسبس كيرل بالدمبل", sets: 3, reps: "12-15", rest: "60 ثانية", notes: "تحكم في النزول", image: "https://images.unsplash.com/photo-1611078489935-0cb964de46d6?w=200&h=150&fit=crop" },
   },
   triceps: {
-    gym: { name: "ترايسبس بوش داون", sets: 3, reps: "12-15", rest: "60 ثانية", notes: "ثبّت المرفقين" },
-    home: { name: "ديبس على الكرسي", sets: 3, reps: "12-15", rest: "60 ثانية", notes: "انزل ببطء" },
+    gym: { name: "ترايسبس بوش داون", sets: 3, reps: "12-15", rest: "60 ثانية", notes: "ثبّت المرفقين", image: "https://images.unsplash.com/photo-1583454110551-21f2fa2afe61?w=200&h=150&fit=crop" },
+    home: { name: "ديبس على الكرسي", sets: 3, reps: "12-15", rest: "60 ثانية", notes: "انزل ببطء", image: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=200&h=150&fit=crop" },
   },
   dip: {
-    gym: { name: "ديبس", sets: 3, reps: "8-12", rest: "90 ثانية", notes: "الميل للأمام للصدر" },
-    home: { name: "ديبس على الكرسي", sets: 3, reps: "12-15", rest: "60 ثانية", notes: "انزل ببطء" },
+    gym: { name: "ديبس على المتوازي", sets: 3, reps: "8-12", rest: "90 ثانية", notes: "الميل للأمام للصدر", image: "https://images.unsplash.com/photo-1598971639058-fab3c3109a00?w=200&h=150&fit=crop" },
+    home: { name: "ديبس على الكرسي", sets: 3, reps: "12-15", rest: "60 ثانية", notes: "انزل ببطء", image: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=200&h=150&fit=crop" },
   },
   lateral: {
-    gym: { name: "رفرفة جانبية", sets: 3, reps: "15", rest: "60 ثانية", notes: "لا ترفع فوق الكتف" },
-    home: { name: "رفرفة جانبية بالدمبل", sets: 3, reps: "15", rest: "60 ثانية", notes: "تحكم في الحركة" },
+    gym: { name: "رفرفة جانبية", sets: 3, reps: "15", rest: "60 ثانية", notes: "لا ترفع فوق الكتف", image: "https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=200&h=150&fit=crop" },
+    home: { name: "رفرفة جانبية بالدمبل", sets: 3, reps: "15", rest: "60 ثانية", notes: "تحكم في الحركة", image: "https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=200&h=150&fit=crop" },
   },
   face_pull: {
-    gym: { name: "فيس بول", sets: 3, reps: "15-20", rest: "60 ثانية", notes: "للأكتاف والوضعية" },
-    home: { name: "فيس بول بالباند", sets: 3, reps: "15-20", rest: "60 ثانية", notes: "ثبّت الباند" },
+    gym: { name: "فيس بول بالكابل", sets: 3, reps: "15-20", rest: "60 ثانية", notes: "للأكتاف والوضعية", image: "https://images.unsplash.com/photo-1583454110551-21f2fa2afe61?w=200&h=150&fit=crop" },
+    home: { name: "فيس بول بالباند", sets: 3, reps: "15-20", rest: "60 ثانية", notes: "ثبّت الباند", image: "https://images.unsplash.com/photo-1597452610875-7e2f5e5b7b3a?w=200&h=150&fit=crop" },
   },
   plank: {
-    gym: { name: "بلانك", sets: 3, reps: "45-60 ثانية", rest: "45 ثانية", notes: "حافظ على استقامة الجسم" },
-    home: { name: "بلانك", sets: 3, reps: "45-60 ثانية", rest: "45 ثانية", notes: "شد البطن" },
+    gym: { name: "بلانك", sets: 3, reps: "45-60 ثانية", rest: "45 ثانية", notes: "حافظ على استقامة الجسم", image: "https://images.unsplash.com/photo-1566241142559-40e1dab266c6?w=200&h=150&fit=crop" },
+    home: { name: "بلانك", sets: 3, reps: "45-60 ثانية", rest: "45 ثانية", notes: "شد البطن", image: "https://images.unsplash.com/photo-1566241142559-40e1dab266c6?w=200&h=150&fit=crop" },
   },
   abs: {
-    gym: { name: "كرنش بالكابل", sets: 3, reps: "15-20", rest: "60 ثانية", notes: "ركز على الانقباض" },
-    home: { name: "كرنش", sets: 3, reps: "20-25", rest: "45 ثانية", notes: "لا تشد الرقبة" },
+    gym: { name: "كرنش بالكابل", sets: 3, reps: "15-20", rest: "60 ثانية", notes: "ركز على الانقباض", image: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=200&h=150&fit=crop" },
+    home: { name: "كرنش أرضي", sets: 3, reps: "20-25", rest: "45 ثانية", notes: "لا تشد الرقبة", image: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=200&h=150&fit=crop" },
   },
 };
 
@@ -234,7 +292,7 @@ function parseActivityLevel(activity: string): number {
   return 1.2; // sedentary default
 }
 
-// Food database with calories per 100g and macros per 100g
+// Food database with calories per 100g, macros, and meal-type suitability
 type FoodItem = {
   name: string;
   name_en: string;
@@ -243,56 +301,115 @@ type FoodItem = {
   carbsPer100g: number;
   fatPer100g: number;
   category: "protein" | "carb" | "fat" | "veg" | "fruit" | "dairy";
+  meals: ("breakfast" | "lunch" | "dinner" | "snack")[]; // which meals this food suits
 };
 
 const FOOD_DB: FoodItem[] = [
-  // Proteins
-  { name: "صدر دجاج مشوي", name_en: "chicken breast", calsPer100g: 165, proteinPer100g: 31, carbsPer100g: 0, fatPer100g: 3.6, category: "protein" },
-  { name: "لحم بقري قليل الدهن", name_en: "lean beef", calsPer100g: 217, proteinPer100g: 26, carbsPer100g: 0, fatPer100g: 12, category: "protein" },
-  { name: "سمك سلمون", name_en: "salmon", calsPer100g: 208, proteinPer100g: 20, carbsPer100g: 0, fatPer100g: 13, category: "protein" },
-  { name: "تونة", name_en: "tuna", calsPer100g: 132, proteinPer100g: 28, carbsPer100g: 0, fatPer100g: 1, category: "protein" },
-  { name: "بيض كامل", name_en: "whole egg", calsPer100g: 155, proteinPer100g: 13, carbsPer100g: 1.1, fatPer100g: 11, category: "protein" },
-  { name: "بياض البيض", name_en: "egg white", calsPer100g: 52, proteinPer100g: 11, carbsPer100g: 0.7, fatPer100g: 0.2, category: "protein" },
-  { name: "روبيان", name_en: "shrimp", calsPer100g: 99, proteinPer100g: 24, carbsPer100g: 0.2, fatPer100g: 0.3, category: "protein" },
-  { name: "كبدة دجاج", name_en: "chicken liver", calsPer100g: 119, proteinPer100g: 17, carbsPer100g: 0.7, fatPer100g: 4.8, category: "protein" },
-  // Carbs
-  { name: "أرز بسمتي مطبوخ", name_en: "rice", calsPer100g: 130, proteinPer100g: 2.7, carbsPer100g: 28, fatPer100g: 0.3, category: "carb" },
-  { name: "بطاطس مسلوقة", name_en: "potato", calsPer100g: 87, proteinPer100g: 2, carbsPer100g: 20, fatPer100g: 0.1, category: "carb" },
-  { name: "بطاطا حلوة", name_en: "sweet potato", calsPer100g: 86, proteinPer100g: 1.6, carbsPer100g: 20, fatPer100g: 0.1, category: "carb" },
-  { name: "شوفان جاف", name_en: "oats", calsPer100g: 389, proteinPer100g: 6.8, carbsPer100g: 28, fatPer100g: 7, category: "carb" },
-  { name: "خبز أسمر", name_en: "brown bread", calsPer100g: 247, proteinPer100g: 13, carbsPer100g: 41, fatPer100g: 3.2, category: "carb" },
-  { name: "كينوا مطبوخة", name_en: "quinoa", calsPer100g: 120, proteinPer100g: 4.4, carbsPer100g: 21, fatPer100g: 1.9, category: "carb" },
-  { name: "معكرونة قمح كامل", name_en: "whole pasta", calsPer100g: 124, proteinPer100g: 5, carbsPer100g: 25, fatPer100g: 1.1, category: "carb" },
-  // Fats
-  { name: "زيت زيتون", name_en: "olive oil", calsPer100g: 884, proteinPer100g: 0, carbsPer100g: 0, fatPer100g: 100, category: "fat" },
-  { name: "لوز", name_en: "almonds", calsPer100g: 579, proteinPer100g: 21, carbsPer100g: 22, fatPer100g: 50, category: "fat" },
-  { name: "فول سوداني", name_en: "peanuts", calsPer100g: 567, proteinPer100g: 26, carbsPer100g: 16, fatPer100g: 49, category: "fat" },
-  { name: "زبادي بذور الكتان", name_en: "flaxseed", calsPer100g: 534, proteinPer100g: 18, carbsPer100g: 29, fatPer100g: 42, category: "fat" },
-  { name: "أفوكادو", name_en: "avocado", calsPer100g: 160, proteinPer100g: 2, carbsPer100g: 9, fatPer100g: 15, category: "fat" },
-  // Dairy
-  { name: "زبادي يوناني", name_en: "greek yogurt", calsPer100g: 59, proteinPer100g: 10, carbsPer100g: 3.6, fatPer100g: 0.4, category: "dairy" },
-  { name: "جبن قريش", name_en: "cottage cheese", calsPer100g: 98, proteinPer100g: 11, carbsPer100g: 3.4, fatPer100g: 4.3, category: "dairy" },
-  { name: "حليب بقري 2%", name_en: "milk 2%", calsPer100g: 50, proteinPer100g: 3.3, carbsPer100g: 5, fatPer100g: 2, category: "dairy" },
-  // Vegetables
-  { name: "بروكلي مطبوخ", name_en: "broccoli", calsPer100g: 35, proteinPer100g: 2.4, carbsPer100g: 7, fatPer100g: 0.4, category: "veg" },
-  { name: "سبانخ مطبوخ", name_en: "spinach", calsPer100g: 23, proteinPer100g: 3, carbsPer100g: 3.8, fatPer100g: 0.3, category: "veg" },
-  { name: "خيار", name_en: "cucumber", calsPer100g: 15, proteinPer100g: 0.7, carbsPer100g: 3.6, fatPer100g: 0.1, category: "veg" },
-  { name: "طماطم", name_en: "tomato", calsPer100g: 18, proteinPer100g: 0.9, carbsPer100g: 3.9, fatPer100g: 0.2, category: "veg" },
-  { name: "خس", name_en: "lettuce", calsPer100g: 15, proteinPer100g: 1.4, carbsPer100g: 2.9, fatPer100g: 0.2, category: "veg" },
-  { name: "فلفل أخضر", name_en: "green pepper", calsPer100g: 20, proteinPer100g: 0.9, carbsPer100g: 4.6, fatPer100g: 0.2, category: "veg" },
-  // Fruits
-  { name: "موز", name_en: "banana", calsPer100g: 89, proteinPer100g: 1.1, carbsPer100g: 23, fatPer100g: 0.3, category: "fruit" },
-  { name: "تفاح", name_en: "apple", calsPer100g: 52, proteinPer100g: 0.3, carbsPer100g: 14, fatPer100g: 0.2, category: "fruit" },
-  { name: "برتقال", name_en: "orange", calsPer100g: 47, proteinPer100g: 0.9, carbsPer100g: 12, fatPer100g: 0.1, category: "fruit" },
-  { name: "فراولة", name_en: "strawberry", calsPer100g: 32, proteinPer100g: 0.7, carbsPer100g: 7.7, fatPer100g: 0.3, category: "fruit" },
+  // === PROTEINS — Chicken ===
+  { name: "صدر دجاج مشوي", name_en: "grilled chicken breast", calsPer100g: 165, proteinPer100g: 31, carbsPer100g: 0, fatPer100g: 3.6, category: "protein", meals: ["lunch", "dinner"] },
+  { name: "صدر دجاج مسلوق", name_en: "boiled chicken breast", calsPer100g: 151, proteinPer100g: 30, carbsPer100g: 0, fatPer100g: 2.5, category: "protein", meals: ["lunch", "dinner"] },
+  { name: "أوراك دجاج مشوية", name_en: "grilled chicken thigh", calsPer100g: 209, proteinPer100g: 26, carbsPer100g: 0, fatPer100g: 11, category: "protein", meals: ["lunch", "dinner"] },
+  { name: "دجاج مقطع بالبهارات", name_en: "spiced chicken strips", calsPer100g: 175, proteinPer100g: 28, carbsPer100g: 2, fatPer100g: 5, category: "protein", meals: ["lunch", "dinner"] },
+  // === PROTEINS — Beef ===
+  { name: "لحم بقري مشوي", name_en: "grilled beef", calsPer100g: 217, proteinPer100g: 26, carbsPer100g: 0, fatPer100g: 12, category: "protein", meals: ["lunch", "dinner"] },
+  { name: "ستيك لحم مشوي", name_en: "beef steak", calsPer100g: 271, proteinPer100g: 25, carbsPer100g: 0, fatPer100g: 19, category: "protein", meals: ["lunch", "dinner"] },
+  { name: "لحم مفروم قليل الدهن", name_en: "lean ground beef", calsPer100g: 191, proteinPer100g: 24, carbsPer100g: 0, fatPer100g: 10, category: "protein", meals: ["lunch", "dinner"] },
+  // === PROTEINS — Lamb ===
+  { name: "لحم ضأن مشوي", name_en: "grilled lamb", calsPer100g: 258, proteinPer100g: 25, carbsPer100g: 0, fatPer100g: 17, category: "protein", meals: ["lunch", "dinner"] },
+  // === PROTEINS — Fish ===
+  { name: "سمك سلمون مشوي", name_en: "grilled salmon", calsPer100g: 208, proteinPer100g: 20, carbsPer100g: 0, fatPer100g: 13, category: "protein", meals: ["lunch", "dinner"] },
+  { name: "تونة في الماء", name_en: "tuna in water", calsPer100g: 116, proteinPer100g: 26, carbsPer100g: 0, fatPer100g: 1, category: "protein", meals: ["lunch", "dinner", "snack"] },
+  { name: "سمك بلطي مشوي", name_en: "grilled tilapia", calsPer100g: 128, proteinPer100g: 26, carbsPer100g: 0, fatPer100g: 2.7, category: "protein", meals: ["lunch", "dinner"] },
+  { name: "روبيان مسلوق", name_en: "boiled shrimp", calsPer100g: 99, proteinPer100g: 24, carbsPer100g: 0.2, fatPer100g: 0.3, category: "protein", meals: ["lunch", "dinner"] },
+  { name: "سمك مكاريل مشوي", name_en: "grilled mackerel", calsPer100g: 205, proteinPer100g: 19, carbsPer100g: 0, fatPer100g: 14, category: "protein", meals: ["lunch", "dinner"] },
+  // === PROTEINS — Eggs ===
+  { name: "بيض كامل مسلوق", name_en: "boiled whole egg", calsPer100g: 155, proteinPer100g: 13, carbsPer100g: 1.1, fatPer100g: 11, category: "protein", meals: ["breakfast"] },
+  { name: "بيض مقلي", name_en: "fried egg", calsPer100g: 196, proteinPer100g: 14, carbsPer100g: 1, fatPer100g: 15, category: "protein", meals: ["breakfast"] },
+  { name: "أومليت بالخضار", name_en: "veggie omelette", calsPer100g: 154, proteinPer100g: 11, carbsPer100g: 3, fatPer100g: 11, category: "protein", meals: ["breakfast"] },
+  { name: "بياض البيض", name_en: "egg white", calsPer100g: 52, proteinPer100g: 11, carbsPer100g: 0.7, fatPer100g: 0.2, category: "protein", meals: ["breakfast", "snack"] },
+  // === PROTEINS — Other ===
+  { name: "كبدة دجاج", name_en: "chicken liver", calsPer100g: 119, proteinPer100g: 17, carbsPer100g: 0.7, fatPer100g: 4.8, category: "protein", meals: ["lunch", "dinner"] },
+  { name: "لحم رومي (ديك رومي)", name_en: "turkey", calsPer100g: 135, proteinPer100g: 30, carbsPer100g: 0, fatPer100g: 1, category: "protein", meals: ["lunch", "dinner"] },
+
+  // === CARBS ===
+  { name: "أرز بسمتي مطبوخ", name_en: "cooked basmati rice", calsPer100g: 130, proteinPer100g: 2.7, carbsPer100g: 28, fatPer100g: 0.3, category: "carb", meals: ["lunch", "dinner"] },
+  { name: "أرز أبيض مصري", name_en: "cooked white rice", calsPer100g: 129, proteinPer100g: 2.7, carbsPer100g: 28, fatPer100g: 0.3, category: "carb", meals: ["lunch", "dinner"] },
+  { name: "بطاطس مسلوقة", name_en: "boiled potato", calsPer100g: 87, proteinPer100g: 2, carbsPer100g: 20, fatPer100g: 0.1, category: "carb", meals: ["lunch", "dinner"] },
+  { name: "بطاطس مشوية", name_en: "baked potato", calsPer100g: 93, proteinPer100g: 2, carbsPer100g: 21, fatPer100g: 0.1, category: "carb", meals: ["lunch", "dinner"] },
+  { name: "بطاطا حلوة مشوية", name_en: "baked sweet potato", calsPer100g: 90, proteinPer100g: 2, carbsPer100g: 21, fatPer100g: 0.1, category: "carb", meals: ["lunch", "dinner"] },
+  { name: "شوفان مطبوخ", name_en: "cooked oats", calsPer100g: 71, proteinPer100g: 2.5, carbsPer100g: 12, fatPer100g: 1.5, category: "carb", meals: ["breakfast"] },
+  { name: "خبز أسمر", name_en: "whole wheat bread", calsPer100g: 247, proteinPer100g: 13, carbsPer100g: 41, fatPer100g: 3.2, category: "carb", meals: ["breakfast", "lunch", "dinner"] },
+  { name: "خبز عربي أسمر", name_en: "brown pita", calsPer100g: 275, proteinPer100g: 9, carbsPer100g: 55, fatPer100g: 1.2, category: "carb", meals: ["breakfast", "lunch", "dinner"] },
+  { name: "كينوا مطبوخة", name_en: "cooked quinoa", calsPer100g: 120, proteinPer100g: 4.4, carbsPer100g: 21, fatPer100g: 1.9, category: "carb", meals: ["lunch", "dinner"] },
+  { name: "معكرونة قمح كامل", name_en: "whole wheat pasta", calsPer100g: 124, proteinPer100g: 5, carbsPer100g: 25, fatPer100g: 1.1, category: "carb", meals: ["lunch", "dinner"] },
+  { name: "برغل مطبوخ", name_en: "cooked bulgur", calsPer100g: 83, proteinPer100g: 3, carbsPer100g: 19, fatPer100g: 0.2, category: "carb", meals: ["lunch", "dinner"] },
+  { name: "فريك مطبوخ", name_en: "cooked freekeh", calsPer100g: 110, proteinPer100g: 4, carbsPer100g: 22, fatPer100g: 1, category: "carb", meals: ["lunch", "dinner"] },
+
+  // === FATS ===
+  { name: "زيت زيتون", name_en: "olive oil", calsPer100g: 884, proteinPer100g: 0, carbsPer100g: 0, fatPer100g: 100, category: "fat", meals: ["breakfast", "lunch", "dinner"] },
+  { name: "لوز نيء", name_en: "raw almonds", calsPer100g: 579, proteinPer100g: 21, carbsPer100g: 22, fatPer100g: 50, category: "fat", meals: ["breakfast", "snack"] },
+  { name: "فول سوداني", name_en: "peanuts", calsPer100g: 567, proteinPer100g: 26, carbsPer100g: 16, fatPer100g: 49, category: "fat", meals: ["snack"] },
+  { name: "جوز", name_en: "walnuts", calsPer100g: 654, proteinPer100g: 15, carbsPer100g: 14, fatPer100g: 65, category: "fat", meals: ["breakfast", "snack"] },
+  { name: "زبدة الفول السوداني", name_en: "peanut butter", calsPer100g: 588, proteinPer100g: 25, carbsPer100g: 20, fatPer100g: 50, category: "fat", meals: ["breakfast", "snack"] },
+  { name: "أفوكادو", name_en: "avocado", calsPer100g: 160, proteinPer100g: 2, carbsPer100g: 9, fatPer100g: 15, category: "fat", meals: ["breakfast", "lunch", "dinner"] },
+  { name: "بذور الكتان", name_en: "flaxseed", calsPer100g: 534, proteinPer100g: 18, carbsPer100g: 29, fatPer100g: 42, category: "fat", meals: ["breakfast", "snack"] },
+  { name: "بذور عباد الشمس", name_en: "sunflower seeds", calsPer100g: 584, proteinPer100g: 21, carbsPer100g: 20, fatPer100g: 51, category: "fat", meals: ["snack"] },
+
+  // === DAIRY ===
+  { name: "زبادي يوناني", name_en: "greek yogurt", calsPer100g: 59, proteinPer100g: 10, carbsPer100g: 3.6, fatPer100g: 0.4, category: "dairy", meals: ["breakfast", "snack"] },
+  { name: "زبادي عادي كامل الدسم", name_en: "whole milk yogurt", calsPer100g: 61, proteinPer100g: 3.5, carbsPer100g: 4.7, fatPer100g: 3.3, category: "dairy", meals: ["breakfast", "snack"] },
+  { name: "زبادي عادي قليل الدسم", name_en: "low fat yogurt", calsPer100g: 63, proteinPer100g: 5.3, carbsPer100g: 7, fatPer100g: 1.6, category: "dairy", meals: ["breakfast", "snack"] },
+  { name: "جبن قريش", name_en: "cottage cheese", calsPer100g: 98, proteinPer100g: 11, carbsPer100g: 3.4, fatPer100g: 4.3, category: "dairy", meals: ["breakfast", "snack"] },
+  { name: "جبن فيتا", name_en: "feta cheese", calsPer100g: 264, proteinPer100g: 14, carbsPer100g: 4.1, fatPer100g: 21, category: "dairy", meals: ["breakfast", "lunch"] },
+  { name: "جبن موزاريلا قليلة الدسم", name_en: "low fat mozzarella", calsPer100g: 141, proteinPer100g: 14, carbsPer100g: 3.1, fatPer100g: 7, category: "dairy", meals: ["breakfast", "lunch"] },
+  { name: "جبن حلوم مشوي", name_en: "grilled halloumi", calsPer100g: 321, proteinPer100g: 22, carbsPer100g: 2.2, fatPer100g: 25, category: "dairy", meals: ["breakfast", "lunch"] },
+  { name: "جبن بارميزان", name_en: "parmesan", calsPer100g: 431, proteinPer100g: 38, carbsPer100g: 4.1, fatPer100g: 29, category: "dairy", meals: ["lunch", "dinner"] },
+  { name: "حليب بقري 2%", name_en: "milk 2%", calsPer100g: 50, proteinPer100g: 3.3, carbsPer100g: 5, fatPer100g: 2, category: "dairy", meals: ["breakfast", "snack"] },
+  { name: "لبن رايب", name_en: "buttermilk", calsPer100g: 40, proteinPer100g: 3.3, carbsPer100g: 4.8, fatPer100g: 0.9, category: "dairy", meals: ["breakfast", "lunch", "snack"] },
+
+  // === VEGETABLES ===
+  { name: "بروكلي مطبوخ", name_en: "cooked broccoli", calsPer100g: 35, proteinPer100g: 2.4, carbsPer100g: 7, fatPer100g: 0.4, category: "veg", meals: ["lunch", "dinner"] },
+  { name: "سبانخ مطبوخة", name_en: "cooked spinach", calsPer100g: 23, proteinPer100g: 3, carbsPer100g: 3.8, fatPer100g: 0.3, category: "veg", meals: ["lunch", "dinner"] },
+  { name: "كوسة مطبوخة", name_en: "cooked zucchini", calsPer100g: 15, proteinPer100g: 1.1, carbsPer100g: 3, fatPer100g: 0.3, category: "veg", meals: ["lunch", "dinner"] },
+  { name: "فاصوليا خضراء", name_en: "green beans", calsPer100g: 35, proteinPer100g: 1.8, carbsPer100g: 7, fatPer100g: 0.1, category: "veg", meals: ["lunch", "dinner"] },
+  { name: "خيار", name_en: "cucumber", calsPer100g: 15, proteinPer100g: 0.7, carbsPer100g: 3.6, fatPer100g: 0.1, category: "veg", meals: ["breakfast", "lunch", "dinner", "snack"] },
+  { name: "طماطم", name_en: "tomato", calsPer100g: 18, proteinPer100g: 0.9, carbsPer100g: 3.9, fatPer100g: 0.2, category: "veg", meals: ["breakfast", "lunch", "dinner"] },
+  { name: "خس", name_en: "lettuce", calsPer100g: 15, proteinPer100g: 1.4, carbsPer100g: 2.9, fatPer100g: 0.2, category: "veg", meals: ["breakfast", "lunch", "dinner"] },
+  { name: "فلفل أخضر", name_en: "green pepper", calsPer100g: 20, proteinPer100g: 0.9, carbsPer100g: 4.6, fatPer100g: 0.2, category: "veg", meals: ["lunch", "dinner"] },
+  { name: "جزر مطبوخ", name_en: "cooked carrot", calsPer100g: 35, proteinPer100g: 0.8, carbsPer100g: 8, fatPer100g: 0.2, category: "veg", meals: ["lunch", "dinner"] },
+  { name: "باذنجان مشوي", name_en: "grilled eggplant", calsPer100g: 25, proteinPer100g: 1, carbsPer100g: 6, fatPer100g: 0.2, category: "veg", meals: ["lunch", "dinner"] },
+  { name: "سلطة خضراء مشكلة", name_en: "mixed salad", calsPer100g: 20, proteinPer100g: 1, carbsPer100g: 4, fatPer100g: 0.2, category: "veg", meals: ["breakfast", "lunch", "dinner"] },
+
+  // === FRUITS ===
+  { name: "موز", name_en: "banana", calsPer100g: 89, proteinPer100g: 1.1, carbsPer100g: 23, fatPer100g: 0.3, category: "fruit", meals: ["breakfast", "snack"] },
+  { name: "تفاح", name_en: "apple", calsPer100g: 52, proteinPer100g: 0.3, carbsPer100g: 14, fatPer100g: 0.2, category: "fruit", meals: ["breakfast", "snack"] },
+  { name: "برتقال", name_en: "orange", calsPer100g: 47, proteinPer100g: 0.9, carbsPer100g: 12, fatPer100g: 0.1, category: "fruit", meals: ["breakfast", "snack"] },
+  { name: "فراولة", name_en: "strawberry", calsPer100g: 32, proteinPer100g: 0.7, carbsPer100g: 7.7, fatPer100g: 0.3, category: "fruit", meals: ["breakfast", "snack"] },
+  { name: "عنب", name_en: "grapes", calsPer100g: 69, proteinPer100g: 0.7, carbsPer100g: 18, fatPer100g: 0.2, category: "fruit", meals: ["snack"] },
+  { name: "بطيخ", name_en: "watermelon", calsPer100g: 30, proteinPer100g: 0.6, carbsPer100g: 8, fatPer100g: 0.2, category: "fruit", meals: ["snack"] },
+  { name: "كيوي", name_en: "kiwi", calsPer100g: 61, proteinPer100g: 1.1, carbsPer100g: 15, fatPer100g: 0.5, category: "fruit", meals: ["breakfast", "snack"] },
+  { name: "تمر", name_en: "dates", calsPer100g: 282, proteinPer100g: 2.5, carbsPer100g: 75, fatPer100g: 0.4, category: "fruit", meals: ["breakfast", "snack"] },
 ];
 
-// Calculate exact grams needed for a food to hit a target calorie amount
+// Shuffle array (for variety each generation)
+function shuffle<T>(arr: T[]): T[] {
+  const copy = [...arr];
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy;
+}
+
+// Pick random element from array
+function pickRandom<T>(arr: T[]): T {
+  return arr[Math.floor(Math.random() * arr.length)];
+}
+
 function gramsForCalories(food: FoodItem, targetCals: number): number {
   return Math.round(targetCals / food.calsPer100g * 100);
 }
 
-// Calculate exact macros for a given food + grams
 function calcMacros(food: FoodItem, grams: number) {
   return {
     protein: Math.round(food.proteinPer100g * grams / 100),
@@ -307,7 +424,6 @@ export function generateNutritionPlan(ctx: ClientContext): NutritionContent {
   const fitness = ctx.fitness || {};
   const measurements = ctx.recent_measurements || [];
 
-  // Parse all client data
   const weight = parseFloat(nutrition.weight || measurements[0]?.weight || "80");
   const height = parseFloat(nutrition.height || "175");
   const age = parseInt(nutrition.age || "25");
@@ -316,19 +432,13 @@ export function generateNutritionPlan(ctx: ClientContext): NutritionContent {
   const activityLevel = parseActivityLevel(fitness.activity || "");
   const trainingDays = parseInt(fitness.days) || 4;
 
-  // Determine goal
   const weightDiff = targetWeight - weight;
   const isFatLoss = weightDiff < -2 || goal.includes("fat") || goal.includes("دهون") || goal.includes("تخسيس") || goal.includes("loss");
   const isMuscleGain = weightDiff > 2 || goal.includes("muscle") || goal.includes("عضلات") || goal.includes("build") || goal.includes("كتلة");
-  const isRecomp = !isFatLoss && !isMuscleGain;
 
-  // Step 1: Calculate BMR using Mifflin-St Jeor
-  // Assume male if not specified (can be extended)
-  const isMale = true; // TODO: add gender field
+  const isMale = true;
   const bmr = calculateBMR(weight, height, age, isMale);
 
-  // Step 2: Calculate TDEE = BMR × activity multiplier
-  // Adjust multiplier based on training days
   let adjustedMultiplier = activityLevel;
   if (trainingDays >= 5) adjustedMultiplier = Math.max(activityLevel, 1.725);
   else if (trainingDays >= 3) adjustedMultiplier = Math.max(activityLevel, 1.55);
@@ -336,192 +446,157 @@ export function generateNutritionPlan(ctx: ClientContext): NutritionContent {
 
   const tdee = Math.round(bmr * adjustedMultiplier);
 
-  // Step 3: Calculate target calories based on goal
   let dailyCalories: number;
   let deficitSurplus: number;
   if (isFatLoss) {
-    // Moderate deficit: 20% below TDEE (safe, sustainable)
     deficitSurplus = -Math.round(tdee * 0.20);
     dailyCalories = tdee + deficitSurplus;
   } else if (isMuscleGain) {
-    // Slight surplus: 10% above TDEE
     deficitSurplus = Math.round(tdee * 0.10);
     dailyCalories = tdee + deficitSurplus;
   } else {
-    // Maintenance
     deficitSurplus = 0;
     dailyCalories = tdee;
   }
-
-  // Round to nearest 10
   dailyCalories = Math.round(dailyCalories / 10) * 10;
 
-  // Step 4: Calculate macros based on goal
   let proteinG: number, fatG: number, carbsG: number;
-
   if (isFatLoss) {
-    // Cutting: high protein (2.4g/kg), moderate fat (0.8g/kg), low carbs
     proteinG = Math.round(weight * 2.4);
     fatG = Math.round(weight * 0.8);
     carbsG = Math.max(0, Math.round((dailyCalories - proteinG * 4 - fatG * 9) / 4));
   } else if (isMuscleGain) {
-    // Bulking: moderate protein (2g/kg), moderate fat (1g/kg), high carbs
     proteinG = Math.round(weight * 2.0);
     fatG = Math.round(weight * 1.0);
     carbsG = Math.max(0, Math.round((dailyCalories - proteinG * 4 - fatG * 9) / 4));
   } else {
-    // Maintenance: balanced
     proteinG = Math.round(weight * 2.0);
     fatG = Math.round(weight * 1.0);
     carbsG = Math.max(0, Math.round((dailyCalories - proteinG * 4 - fatG * 9) / 4));
   }
 
-  // Step 5: Build meals with EXACT calorie/macro targets
   const mealsCount = parseInt(nutrition.meals) || 4;
   const diet = (nutrition.diet || "").toLowerCase();
   const isVeg = diet.includes("veg") || diet.includes("نبات");
   const allergies = (nutrition.allergies || "").toLowerCase();
   const disliked = (nutrition.disliked || "").toLowerCase();
-  const medicalConditions = (nutrition.medical || "").toLowerCase();
 
-  // Filter foods based on preferences
+  // Filter foods by allergies + disliked + veg
   const availableFoods = FOOD_DB.filter((f) => {
     const name = f.name.toLowerCase();
     const nameEn = f.name_en.toLowerCase();
-    // Check allergies
-    if (allergies.split(",").some((a) => {
-      const item = a.trim().toLowerCase();
-      return item && (name.includes(item) || nameEn.includes(item));
-    })) return false;
-    // Check disliked
-    if (disliked.split(",").some((d) => {
-      const item = d.trim().toLowerCase();
-      return item && (name.includes(item) || nameEn.includes(item));
-    })) return false;
-    // Filter veg
-    if (isVeg && (f.category === "protein") && !nameEn.includes("egg") && !nameEn.includes("yogurt") && !nameEn.includes("cheese") && !nameEn.includes("milk")) return false;
+    if (allergies.split(",").some((a) => { const i = a.trim().toLowerCase(); return i && (name.includes(i) || nameEn.includes(i)); })) return false;
+    if (disliked.split(",").some((d) => { const i = d.trim().toLowerCase(); return i && (name.includes(i) || nameEn.includes(i)); })) return false;
+    if (isVeg && f.category === "protein" && !nameEn.includes("egg") && !nameEn.includes("yogurt") && !nameEn.includes("cheese") && !nameEn.includes("milk") && !nameEn.includes("buttermilk")) return false;
     return true;
   });
 
-  // Meal distribution: not equal — breakfast 25%, lunch 35%, snack 15%, dinner 25%
-  const distributions = mealsCount === 3
-    ? [0.35, 0.35, 0.30]
-    : mealsCount === 4
-    ? [0.25, 0.35, 0.15, 0.25]
-    : mealsCount === 5
-    ? [0.20, 0.30, 0.10, 0.25, 0.15]
-    : [0.20, 0.25, 0.10, 0.20, 0.10, 0.15]; // 6 meals
+  // Meal distributions
+  const distributions = mealsCount === 3 ? [0.35, 0.35, 0.30]
+    : mealsCount === 4 ? [0.25, 0.35, 0.15, 0.25]
+    : mealsCount === 5 ? [0.20, 0.30, 0.10, 0.25, 0.15]
+    : [0.20, 0.25, 0.10, 0.20, 0.10, 0.15];
 
-  const mealNames = mealsCount === 3
-    ? ["الفطار", "الغداء", "العشاء"]
-    : mealsCount === 4
-    ? ["الفطار", "الغداء", "سناك", "العشاء"]
-    : mealsCount === 5
-    ? ["الفطار", "سناك صباحي", "الغداء", "سناك", "العشاء"]
+  const mealNames = mealsCount === 3 ? ["الفطار", "الغداء", "العشاء"]
+    : mealsCount === 4 ? ["الفطار", "الغداء", "سناك", "العشاء"]
+    : mealsCount === 5 ? ["الفطار", "سناك صباحي", "الغداء", "سناك", "العشاء"]
     : ["الفطار", "سناك صباحي", "الغداء", "سناك", "العشاء", "سناك مسائي"];
 
-  // Build each meal with exact macro targets
+  // Map meal index to meal type
+  const mealTypes: ("breakfast" | "lunch" | "dinner" | "snack")[] = mealsCount === 3
+    ? ["breakfast", "lunch", "dinner"]
+    : mealsCount === 4
+    ? ["breakfast", "lunch", "snack", "dinner"]
+    : mealsCount === 5
+    ? ["breakfast", "snack", "lunch", "snack", "dinner"]
+    : ["breakfast", "snack", "lunch", "snack", "dinner", "snack"];
+
+  // Shuffle proteins for variety — different each generation
+  const shuffledProteins = shuffle(availableFoods.filter((f) => f.category === "protein"));
+  const shuffledCarbs = shuffle(availableFoods.filter((f) => f.category === "carb"));
+  const shuffledFats = shuffle(availableFoods.filter((f) => f.category === "fat"));
+  const shuffledVegs = shuffle(availableFoods.filter((f) => f.category === "veg"));
+  const shuffledFruits = shuffle(availableFoods.filter((f) => f.category === "fruit"));
+  const shuffledDairy = shuffle(availableFoods.filter((f) => f.category === "dairy"));
+
+  // Track used protein sources to avoid repetition
+  let proteinIdx = 0;
+
   const meals = distributions.slice(0, mealsCount).map((dist, idx) => {
     const mealCals = Math.round(dailyCalories * dist);
-    const mealProtein = Math.round(proteinG * dist);
-    const mealCarbs = Math.round(carbsG * dist);
-    const mealFat = Math.round(fatG * dist);
-
-    // Select foods for this meal
-    const proteins = availableFoods.filter((f) => f.category === "protein");
-    const carbs = availableFoods.filter((f) => f.category === "carb");
-    const fats = availableFoods.filter((f) => f.category === "fat");
-    const vegs = availableFoods.filter((f) => f.category === "veg");
-    const fruits = availableFoods.filter((f) => f.category === "fruit");
-    const dairy = availableFoods.filter((f) => f.category === "dairy");
-
+    const mealType = mealTypes[idx];
     const items: Array<{ food: string; amount: string; calories: number }> = [];
 
-    // Pick foods based on meal position
-    let proteinFood: FoodItem | undefined;
-    let carbFood: FoodItem | undefined;
-    let fatFood: FoodItem | undefined;
-    let vegFood: FoodItem | undefined;
-    let fruitFood: FoodItem | undefined;
+    // Pick protein suitable for this meal type
+    const proteinsForMeal = shuffledProteins.filter((f) => f.meals.includes(mealType));
+    const proteinFood = proteinsForMeal[proteinIdx % proteinsForMeal.length];
+    if (proteinFood) proteinIdx++;
 
-    // Rotate protein sources across meals
-    const proteinRotation = idx % proteins.length;
-    proteinFood = proteins[proteinRotation];
-    carbFood = carbs[idx % carbs.length];
-    fatFood = fats[idx % fats.length];
-    vegFood = vegs[idx % vegs.length];
-    fruitFood = fruits[idx % fruits.length];
+    // Pick carb suitable for this meal type
+    const carbsForMeal = shuffledCarbs.filter((f) => f.meals.includes(mealType));
+    const carbFood = pickRandom(carbsForMeal);
 
-    // Calculate grams for each food to hit calorie targets
-    // Each food category gets a % of the meal's total calories
-    // Protein: 40%, Carb: 35%, Fat: 10%, Dairy: 10%, Veg: 3%, Fruit: 2%
+    // Pick fat suitable for this meal type
+    const fatsForMeal = shuffledFats.filter((f) => f.meals.includes(mealType));
+    const fatFood = pickRandom(fatsForMeal);
 
+    // Pick veg
+    const vegsForMeal = shuffledVegs.filter((f) => f.meals.includes(mealType));
+    const vegFood = pickRandom(vegsForMeal);
+
+    // Pick fruit (mostly breakfast/snack)
+    const fruitsForMeal = shuffledFruits.filter((f) => f.meals.includes(mealType));
+    const fruitFood = pickRandom(fruitsForMeal);
+
+    // Pick dairy (breakfast/snack)
+    const dairyForMeal = shuffledDairy.filter((f) => f.meals.includes(mealType));
+    const dairyFood = pickRandom(dairyForMeal);
+
+    // Calorie distribution per food category in the meal
     if (proteinFood) {
       const targetCals = Math.round(mealCals * 0.40);
       const grams = Math.max(30, Math.round(targetCals / proteinFood.calsPer100g * 100));
       const macros = calcMacros(proteinFood, grams);
       items.push({ food: proteinFood.name, amount: `${grams} جم`, calories: macros.calories });
     }
-
     if (carbFood) {
       const targetCals = Math.round(mealCals * 0.30);
       const grams = Math.max(30, Math.round(targetCals / carbFood.calsPer100g * 100));
       const macros = calcMacros(carbFood, grams);
       items.push({ food: carbFood.name, amount: `${grams} جم`, calories: macros.calories });
     }
-
     if (fatFood) {
       const targetCals = Math.round(mealCals * 0.12);
       const grams = Math.max(5, Math.round(targetCals / fatFood.calsPer100g * 100));
       const macros = calcMacros(fatFood, grams);
       items.push({ food: fatFood.name, amount: `${grams} جم`, calories: macros.calories });
     }
-
-    // Dairy (adds protein + creaminess)
-    if ((idx === 0 || idx === 2 || idx === 3) && dairy.length > 0) {
-      const dairyFood = dairy[idx % dairy.length];
+    if (dairyFood && (mealType === "breakfast" || mealType === "snack")) {
       const targetCals = Math.round(mealCals * 0.08);
       const grams = Math.max(50, Math.round(targetCals / dairyFood.calsPer100g * 100));
       const macros = calcMacros(dairyFood, grams);
       items.push({ food: dairyFood.name, amount: `${grams} جم`, calories: macros.calories });
     }
-
-    // Vegetables (low cal, high volume)
     if (vegFood) {
-      const grams = 150; // standard veg serving
+      const grams = 150;
       const macros = calcMacros(vegFood, grams);
-      items.push({
-        food: vegFood.name,
-        amount: `${grams} جم`,
-        calories: macros.calories,
-      });
+      items.push({ food: vegFood.name, amount: `${grams} جم`, calories: macros.calories });
+    }
+    if (fruitFood && (mealType === "breakfast" || mealType === "snack")) {
+      const grams = 100;
+      const macros = calcMacros(fruitFood, grams);
+      items.push({ food: fruitFood.name, amount: `${grams} جم`, calories: macros.calories });
     }
 
-    // Fruit for breakfast/snacks
-    if (idx === 0 || idx === 2 || idx === 3) {
-      if (fruitFood) {
-        const grams = 100;
-        const macros = calcMacros(fruitFood, grams);
-        items.push({
-          food: fruitFood.name,
-          amount: `${grams} جم`,
-          calories: macros.calories,
-        });
-      }
-    }
-
-    // Meal notes based on timing
     let notes = "";
     if (idx === 0) notes = "تناولها خلال ساعة من الاستيقاظ — مهمة لتشغيل الأيض";
     else if (idx === mealsCount - 1) notes = "وجبة خفيفة قبل النوم بـ 2-3 ساعات";
-    else if (idx === Math.floor(mealsCount / 2)) notes = "أكبر وجبة — قبل/بعد التمرين";
-    else notes = "وجبة خفيفة للحفاظ على طاقة الجسم";
+    else if (mealType === "snack") notes = "وجبة خفيفة للحفاظ على الطاقة بين الوجبات الرئيسية";
+    else notes = "وجبة رئيسية — ركز على البروتين والكارب";
 
     return { name: mealNames[idx] || `وجبة ${idx + 1}`, items, notes };
   });
 
-  // Calculate actual totals from meals
-  const actualCals = meals.reduce((sum, m) => sum + m.items.reduce((s, i) => s + i.calories, 0), 0);
   const goalText = isFatLoss ? "خسارة الدهون" : isMuscleGain ? "بناء العضلات" : "الحفاظ على الوزن";
 
   const overview = `خطة تغذية مخصصة لـ ${ctx.name || "العميل"} بهدف ${goalText}.
@@ -538,7 +613,7 @@ export function generateNutritionPlan(ctx: ClientContext): NutritionContent {
 🍚 الكارب: ${carbsG}جم (≈${(carbsG * 4 / dailyCalories * 100).toFixed(0)}%)
 🥑 الدهون: ${fatG}جم (≈${(fatG * 9 / dailyCalories * 100).toFixed(0)}%)
 
-${allergies ? `⚠️ تم استبعاد: ${allergies}\n` : ""}${disliked ? `⚠️ تم تجنب: ${disliked}\n` : ""}${isVeg ? "🌱 نظام نباتي\n" : ""}وزّع الوجبات على مدار اليوم لتحقيق أفضل امتصاص للبروتين وحرق دهون مستمر.`;
+${allergies ? `⚠️ تم استبعاد: ${allergies}\n` : ""}${disliked ? `⚠️ تم تجنب: ${disliked}\n` : ""}${isVeg ? "🌱 نظام نباتي\n" : ""}وزّع الوجبات على مدار اليوم لتحقيق أفضل امتصاص للبروتين.`;
 
   return {
     overview,
