@@ -1,16 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
+import { geminiChat, isGeminiConfigured } from "@/lib/ai-gemini";
 import { generateChatReply } from "@/lib/ai-local";
 import { listPlans, listProgress, getQuestionnaire, listAllSubscriptions } from "@/lib/data";
 import { getTier } from "@/lib/plans";
 
 /**
  * AI Coach chat endpoint.
- * Reads the client's full context (profile, plans, questionnaires, progress, subscription)
- * and answers questions based on it. Can suggest swaps but does NOT generate new plans.
+ * Tries Gemini AI first, falls back to local rule-based chat.
  *
  * POST /api/ai/chat
- * Body: { message, history, userId }
- * Returns: { reply }
+ * Body: { message, history, userId, userName }
+ * Returns: { reply, source }
  */
 export async function POST(request: NextRequest) {
   try {
@@ -58,12 +58,31 @@ export async function POST(request: NextRequest) {
         };
       } catch (e) {
         console.error("[api/ai/chat] Failed to load context:", e);
-        // Continue with minimal context
       }
     }
 
+    // Try Gemini AI first
+    if (isGeminiConfigured) {
+      try {
+        const systemInstruction = buildSystemPrompt(clientContext);
+        const messages = [
+          ...history.slice(-10).map((m: any) => ({
+            role: m.role,
+            content: m.content,
+          })),
+          { role: "user", content: message },
+        ];
+
+        const reply = await geminiChat(messages, systemInstruction);
+        return NextResponse.json({ reply, source: "gemini" });
+      } catch (geminiErr) {
+        console.error("[api/ai/chat] Gemini failed, falling back to local:", geminiErr);
+      }
+    }
+
+    // Fallback to local rule-based chat
     const reply = generateChatReply(message, clientContext);
-    return NextResponse.json({ reply });
+    return NextResponse.json({ reply, source: "local" });
   } catch (e: any) {
     console.error("[api/ai/chat] Error:", e?.message || e);
     return NextResponse.json(
@@ -71,4 +90,64 @@ export async function POST(request: NextRequest) {
       { status: 500 },
     );
   }
+}
+
+function buildSystemPrompt(ctx: any): string {
+  const plans = ctx.current_plans || [];
+  const nutrition = ctx.nutrition || {};
+  const fitness = ctx.fitness || {};
+  const subscription = ctx.subscription;
+
+  let planInfo = "لا توجد خطط مفعّلة بعد.";
+  if (plans.length > 0) {
+    planInfo = plans.map((p: any) => {
+      const c = p.content;
+      if (p.type === "meal" || p.type === "nutrition") {
+        return `خطة تغذية "${p.title}": ${c?.daily_calories || "?"} كالوري/يوم، بروتين ${c?.macros?.protein_g || "?"}جم، كارب ${c?.macros?.carbs_g || "?"}جم، دهون ${c?.macros?.fat_g || "?"}جم، ${c?.meals?.length || 0} وجبات`;
+      }
+      if (p.type === "workout") {
+        const trainingDays = c?.days?.filter((d: any) => !d.isRest) || [];
+        return `برنامج تمارين "${p.title}": ${trainingDays.length} أيام تدريب، الأيام: ${c?.days?.map((d: any) => `${d.day}(${d.isRest ? "راحة" : d.focus})`).join("، ")}`;
+      }
+      return p.title;
+    }).join("\n");
+  }
+
+  return `أنت EVO، المساعد الذكي لمنصة MuscleHub للكوتشينج الرياضي والتغذية. اسم الكوتش أحمد زكي.
+دورك أن تتصرف كمدرب شخصي ذكي للعميل.
+
+بيانات العميل الحالية:
+${JSON.stringify({
+  name: ctx.name,
+  weight: nutrition.weight,
+  height: nutrition.height,
+  age: nutrition.age,
+  target: nutrition.target || nutrition.target_weight,
+  goal: fitness.goal,
+  activity: fitness.activity,
+  training_days: fitness.days,
+  location: fitness.location,
+  experience: fitness.experience,
+  injuries: fitness.injuries,
+  allergies: nutrition.allergies,
+  disliked_foods: nutrition.disliked,
+  diet: nutrition.diet,
+  subscription_tier: subscription?.tier,
+  swap_limit: subscription?.swapLimit,
+  recent_weight: ctx.recent_measurements?.[0]?.weight,
+}, null, 2)}
+
+الخطط المفعّلة:
+${planInfo}
+
+القواعد:
+- أجب بالعربية دائماً.
+- أجب بناءً على بيانات العميل الفعلية أعلاه.
+- لا تخترع أرقاماً غير موجودة في بياناته.
+- عند طلب تبديل طعام، احسب الجرامات المكافئة بالسعرات والماكروز.
+- عند طلب تبديل تمرين، اقترح تمريناً يستهدف نفس العضلة.
+- كن مختصراً وعملياً وودوداً.
+- لا تقدّم نصائح طبية. لو السؤال طبي، انصح بالتواصل مع الكوتش.
+- ذكّر العميل بحد التبديلات اليومي لو سأل عن التبديلات.
+- لو خلص العميل حد التبديلات، اقترح طلب تبديل من المدرب.`;
 }
