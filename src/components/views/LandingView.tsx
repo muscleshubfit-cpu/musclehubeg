@@ -38,6 +38,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { LanguageToggle } from "@/components/LanguageToggle";
+import { SiteHeader } from "@/components/SiteHeader";
 import { useNav } from "@/hooks/use-nav";
 import { useAuth } from "@/hooks/use-auth";
 import {
@@ -97,47 +98,8 @@ export function LandingView() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      {/* ===================== HEADER ===================== */}
-      <header className="fixed top-0 z-50 w-full border-b border-border/50 bg-background/80 backdrop-blur-xl">
-        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
-          <button onClick={() => navigate("landing")} className="flex items-center gap-2">
-            <span className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-primary shadow-glow">
-              <Dumbbell className="h-5 w-5 text-primary-foreground" />
-            </span>
-            <span className="font-display text-lg font-bold tracking-tight">
-              Muscle<span className="text-primary">Hub</span>
-            </span>
-          </button>
-          <div className="flex items-center gap-2">
-            <LanguageToggle />
-            {/* Blog button — visible to everyone (visitors, clients, coach) */}
-            <a
-              href={blogHref}
-              className="hidden items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground sm:flex"
-              title={isAr ? "المدونة" : "Blog"}
-            >
-              <FileText className="h-4 w-4" />
-              {isAr ? "المدونة" : "Blog"}
-            </a>
-            {isLoggedIn ? (
-              <Button size="sm" className="gap-2" onClick={() => navigate(isCoach ? "coach" : "dashboard")}>
-                <LayoutDashboard className="h-4 w-4" />
-                {isCoach ? t("nav.clients") : t("nav.dashboard")}
-              </Button>
-            ) : (
-              <>
-                <Button variant="ghost" size="sm" onClick={() => navigate("auth", { mode: "login" })}>
-                  {isAr ? "تسجيل الدخول" : "Log in"}
-                </Button>
-                <Button size="sm" className="gap-2 shadow-glow" onClick={() => navigate("auth", { mode: "signup" })}>
-                  {isAr ? "ابدأ مجاناً" : "Start Free"}
-                  <ArrowRight className="h-4 w-4 rtl:rotate-180" />
-                </Button>
-              </>
-            )}
-          </div>
-        </div>
-      </header>
+      {/* ===================== HEADER (hamburger menu) ===================== */}
+      <SiteHeader variant="landing" />
 
       {/* ===================== 1. HERO ===================== */}
       <section className="relative overflow-hidden pt-16">

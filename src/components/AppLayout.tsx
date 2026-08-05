@@ -17,17 +17,14 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useI18n } from "@/lib/i18n";
-import { LanguageToggle } from "@/components/LanguageToggle";
-import { NotificationBell } from "@/components/NotificationBell";
-import { AdminNotificationBell } from "@/components/AdminNotificationBell";
-import { Button } from "@/components/ui/button";
+import { SiteHeader } from "@/components/SiteHeader";
 import { cn } from "@/lib/utils";
 import { useNav, type View } from "@/hooks/use-nav";
 import { isSupabaseConfigured } from "@/lib/supabase/client";
 
 export function AppLayout({ children }: { children: ReactNode }) {
   const { t, lang } = useI18n();
-  const { isCoach, signOutAsync, profile } = useAuth();
+  const { isCoach } = useAuth();
   const { view, navigate } = useNav();
   const isAr = lang === "ar";
 
@@ -49,11 +46,6 @@ export function AppLayout({ children }: { children: ReactNode }) {
   ];
   const nav = isCoach ? coachNav : clientNav;
 
-  const handleSignOut = async () => {
-    await signOutAsync();
-    navigate("landing");
-  };
-
   return (
     <div className="min-h-screen flex flex-col bg-background">
       {!isSupabaseConfigured && (
@@ -63,36 +55,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
           environment before going live.
         </div>
       )}
-      <header className="sticky top-0 z-30 border-b border-border bg-background/80 backdrop-blur">
-        <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between gap-3 px-4">
-          <button
-            onClick={() => navigate(isCoach ? "coach" : "dashboard")}
-            className="flex min-w-0 items-center gap-2"
-          >
-            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-gradient-primary">
-              <Dumbbell className="h-5 w-5 text-primary-foreground" />
-            </span>
-            <span className="truncate font-display text-lg font-bold">{t("brand.name")}</span>
-          </button>
-          <div className="flex items-center gap-1">
-            {/* Blog button — coach goes to admin CMS, client goes to public blog */}
-            <a
-              href={isCoach ? "/admin/blog" : isAr ? "/ar/blog" : "/blog"}
-              className="hidden items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground sm:flex"
-              title={isAr ? "المدونة" : "Blog"}
-            >
-              <FileText className="h-4 w-4" />
-              {isAr ? "المدونة" : "Blog"}
-            </a>
-            {isCoach ? <AdminNotificationBell /> : <NotificationBell />}
-            <LanguageToggle />
-            <Button variant="ghost" size="sm" onClick={handleSignOut} className="gap-2">
-              <LogOut className="h-4 w-4" />
-              <span className="hidden sm:inline">{t("nav.logout")}</span>
-            </Button>
-          </div>
-        </div>
-      </header>
+      <SiteHeader variant="app" />
 
       <div className="mx-auto flex w-full max-w-6xl flex-1 gap-6 px-4 py-6">
         <aside className="hidden w-56 shrink-0 md:block">
