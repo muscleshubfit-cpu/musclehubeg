@@ -150,100 +150,100 @@ ${injuries ? "⚠️ تم مراعاة الإصابات المذكورة — ت�
 // Image URLs are exercise-specific and show proper form
 const EXERCISE_LIBRARY: Record<string, { gym: any; home: any }> = {
   squat: {
-    gym: { name: "سكوات بالبار", sets: 4, reps: "6-8", rest: "3 دقائق", notes: "حافظ على عمق الحركة وظهرك مستقيم", image: "https://images.unsplash.com/photo-1574677574343-83f9c8e2a2b3?w=200&h=150&fit=crop" },
-    home: { name: "سكوات بالدمبل", sets: 4, reps: "10-12", rest: "90 ثانية", notes: "نزل ببطء واصعد بقوة", image: "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=200&h=150&fit=crop" },
+    gym: { name: "سكوات بالبار", sets: 4, reps: "6-8", rest: "3 دقائق", notes: "حافظ على عمق الحركة وظهرك مستقيم", image: "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a7/Barbell_squat.jpg/200px-Barbell_squat.jpg" },
+    home: { name: "سكوات بالدمبل", sets: 4, reps: "10-12", rest: "90 ثانية", notes: "نزل ببطء واصعد بقوة", image: "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6f/Dumbbell_squat.jpg/200px-Dumbbell_squat.jpg" },
   },
   bench: {
-    gym: { name: "بنش بريس", sets: 4, reps: "6-8", rest: "2-3 دقائق", notes: "الكتف مضمّنة، المس بار الصدر", image: "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=200&h=150&fit=crop" },
-    home: { name: "ضغط أرضي", sets: 4, reps: "12-15", rest: "60 ثانية", notes: "حافظ على استقامة الجسم", image: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=200&h=150&fit=crop" },
+    gym: { name: "بنش بريس", sets: 4, reps: "6-8", rest: "2-3 دقائق", notes: "الكتف مضمّنة، المس بار الصدر", image: "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8e/Bench_press.jpg/200px-Bench_press.jpg" },
+    home: { name: "ضغط أرضي", sets: 4, reps: "12-15", rest: "60 ثانية", notes: "حافظ على استقامة الجسم", image: "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e5/Pushup_Position.png/200px-Pushup_Position.png" },
   },
   row: {
-    gym: { name: "تجديف بالبار", sets: 4, reps: "8-10", rest: "90 ثانية", notes: "اسحب الكوع للخلف", image: "https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=200&h=150&fit=crop" },
-    home: { name: "تجديف بالدمبل", sets: 4, reps: "10-12", rest: "90 ثانية", notes: "ثبّت الجذع", image: "https://images.unsplash.com/photo-1611078489935-0cb964de46d6?w=200&h=150&fit=crop" },
+    gym: { name: "تجديف بالبار", sets: 4, reps: "8-10", rest: "90 ثانية", notes: "اسحب الكوع للخلف", image: "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5d/Bent-over_row.jpg/200px-Bent-over_row.jpg" },
+    home: { name: "تجديف بالدمبل", sets: 4, reps: "10-12", rest: "90 ثانية", notes: "ثبّت الجذع", image: "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d3/One_arm_dumbbell_row.jpg/200px-One_arm_dumbbell_row.jpg" },
   },
   ohp: {
-    gym: { name: "ضغط كتف بالبار", sets: 3, reps: "8-10", rest: "2 دقيقة", notes: "لا تقوّس ظهرك", image: "https://images.unsplash.com/photo-1583454110551-21f2fa2afe61?w=200&h=150&fit=crop" },
-    home: { name: "ضغط كتف بالدمبل", sets: 3, reps: "10-12", rest: "90 ثانية", notes: "الدمبل بمحاذاة الأذن", image: "https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=200&h=150&fit=crop" },
+    gym: { name: "ضغط كتف بالبار", sets: 3, reps: "8-10", rest: "2 دقيقة", notes: "لا تقوّس ظهرك", image: "https://upload.wikimedia.org/wikipedia/commons/thumb/0/07/Military_press.jpg/200px-Military_press.jpg" },
+    home: { name: "ضغط كتف بالدمبل", sets: 3, reps: "10-12", rest: "90 ثانية", notes: "الدمبل بمحاذاة الأذن", image: "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5d/Bent-over_row.jpg/200px-Bent-over_row.jpg" },
   },
   deadlift: {
-    gym: { name: "ديدليفت", sets: 3, reps: "5", rest: "3-5 دقائق", notes: "حافظ على استقامة الظهر", image: "https://images.unsplash.com/photo-1517344884509-a0c97ec11bcc?w=200&h=150&fit=crop" },
-    home: { name: "ديدليفت روماني بالدمبل", sets: 3, reps: "10-12", rest: "90 ثانية", notes: "انزل بالورك للخلف", image: "https://images.unsplash.com/photo-1574677574343-83f9c8e2a2b3?w=200&h=150&fit=crop" },
+    gym: { name: "ديدليفت", sets: 3, reps: "5", rest: "3-5 دقائق", notes: "حافظ على استقامة الظهر", image: "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2b/Deadlift.jpg/200px-Deadlift.jpg" },
+    home: { name: "ديدليفت روماني بالدمبل", sets: 3, reps: "10-12", rest: "90 ثانية", notes: "انزل بالورك للخلف", image: "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a7/Barbell_squat.jpg/200px-Barbell_squat.jpg" },
   },
   incline_bench: {
-    gym: { name: "بنش مائل بالبار", sets: 4, reps: "8-10", rest: "2 دقيقة", notes: "زاوية 30 درجة", image: "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=200&h=150&fit=crop" },
-    home: { name: "ضغط مائل بالدمبل", sets: 4, reps: "10-12", rest: "90 ثانية", notes: "تحكم في النزول", image: "https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=200&h=150&fit=crop" },
+    gym: { name: "بنش مائل بالبار", sets: 4, reps: "8-10", rest: "2 دقيقة", notes: "زاوية 30 درجة", image: "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8e/Bench_press.jpg/200px-Bench_press.jpg" },
+    home: { name: "ضغط مائل بالدمبل", sets: 4, reps: "10-12", rest: "90 ثانية", notes: "تحكم في النزول", image: "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5d/Bent-over_row.jpg/200px-Bent-over_row.jpg" },
   },
   incline_db: {
-    gym: { name: "بنش مائل بالدمبل", sets: 3, reps: "10-12", rest: "90 ثانية", notes: "مدى حركة كامل", image: "https://images.unsplash.com/photo-1583454110551-21f2fa2afe61?w=200&h=150&fit=crop" },
-    home: { name: "ضغط مائل بالدمبل", sets: 3, reps: "10-12", rest: "90 ثانية", notes: "تحكم في النزول", image: "https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=200&h=150&fit=crop" },
+    gym: { name: "بنش مائل بالدمبل", sets: 3, reps: "10-12", rest: "90 ثانية", notes: "مدى حركة كامل", image: "https://upload.wikimedia.org/wikipedia/commons/thumb/0/07/Military_press.jpg/200px-Military_press.jpg" },
+    home: { name: "ضغط مائل بالدمبل", sets: 3, reps: "10-12", rest: "90 ثانية", notes: "تحكم في النزول", image: "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5d/Bent-over_row.jpg/200px-Bent-over_row.jpg" },
   },
   db_press: {
-    gym: { name: "ضغط دمبل مستوي", sets: 4, reps: "8-12", rest: "90 ثانية", notes: "مدى حركة كامل", image: "https://images.unsplash.com/photo-1583454110551-21f2fa2afe61?w=200&h=150&fit=crop" },
-    home: { name: "ضغط دمبل أرضي", sets: 4, reps: "10-12", rest: "90 ثانية", notes: "تحكم في النزول", image: "https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=200&h=150&fit=crop" },
+    gym: { name: "ضغط دمبل مستوي", sets: 4, reps: "8-12", rest: "90 ثانية", notes: "مدى حركة كامل", image: "https://upload.wikimedia.org/wikipedia/commons/thumb/0/07/Military_press.jpg/200px-Military_press.jpg" },
+    home: { name: "ضغط دمبل أرضي", sets: 4, reps: "10-12", rest: "90 ثانية", notes: "تحكم في النزول", image: "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5d/Bent-over_row.jpg/200px-Bent-over_row.jpg" },
   },
   pulldown: {
-    gym: { name: "سحب أمامي", sets: 4, reps: "10-12", rest: "90 ثانية", notes: "اسحب للصدر", image: "https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=200&h=150&fit=crop" },
+    gym: { name: "سحب أمامي", sets: 4, reps: "10-12", rest: "90 ثانية", notes: "اسحب للصدر", image: "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5d/Bent-over_row.jpg/200px-Bent-over_row.jpg" },
     home: { name: "سحب باند", sets: 4, reps: "12-15", rest: "60 ثانية", notes: "ثبّت الباند جيداً", image: "https://images.unsplash.com/photo-1597452610875-7e2f5e5b7b3a?w=200&h=150&fit=crop" },
   },
   pullup: {
-    gym: { name: "عقلة", sets: 4, reps: "6-10", rest: "2 دقيقة", notes: "مدى حركة كامل", image: "https://images.unsplash.com/photo-1598971639058-fab3c3109a00?w=200&h=150&fit=crop" },
-    home: { name: "عقلة استسلامية", sets: 4, reps: "8-12", rest: "90 ثانية", notes: "نزل ببطء", image: "https://images.unsplash.com/photo-1597452610875-7e2f5e2b7b3a?w=200&h=150&fit=crop" },
+    gym: { name: "عقلة", sets: 4, reps: "6-10", rest: "2 دقيقة", notes: "مدى حركة كامل", image: "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8a/Pullup.jpg/200px-Pullup.jpg" },
+    home: { name: "عقلة استسلامية", sets: 4, reps: "8-12", rest: "90 ثانية", notes: "نزل ببطء", image: "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d3/One_arm_dumbbell_row.jpg/200px-One_arm_dumbbell_row.jpg" },
   },
   chinup: {
-    gym: { name: "عقلة قبضة معكوسة", sets: 3, reps: "6-10", rest: "2 دقيقة", notes: "تركيز على البايسبس", image: "https://images.unsplash.com/photo-1598971639058-fab3c3109a00?w=200&h=150&fit=crop" },
-    home: { name: "عقلة استسلامية", sets: 3, reps: "8-12", rest: "90 ثانية", notes: "نزل ببطء", image: "https://images.unsplash.com/photo-1597452610875-7e2f5e2b7b3a?w=200&h=150&fit=crop" },
+    gym: { name: "عقلة قبضة معكوسة", sets: 3, reps: "6-10", rest: "2 دقيقة", notes: "تركيز على البايسبس", image: "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8a/Pullup.jpg/200px-Pullup.jpg" },
+    home: { name: "عقلة استسلامية", sets: 3, reps: "8-12", rest: "90 ثانية", notes: "نزل ببطء", image: "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d3/One_arm_dumbbell_row.jpg/200px-One_arm_dumbbell_row.jpg" },
   },
   leg_press: {
-    gym: { name: "ليج بريس", sets: 4, reps: "10-12", rest: "2 دقيقة", notes: "لا تقفل الركبة بالكامل", image: "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=200&h=150&fit=crop" },
-    home: { name: "لانجز بالدمبل", sets: 4, reps: "12 لكل رجل", rest: "90 ثانية", notes: "الركبة خلف القدم", image: "https://images.unsplash.com/photo-1574680096145-d05b474e2155?w=200&h=150&fit=crop" },
+    gym: { name: "ليج بريس", sets: 4, reps: "10-12", rest: "2 دقيقة", notes: "لا تقفل الركبة بالكامل", image: "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6f/Dumbbell_squat.jpg/200px-Dumbbell_squat.jpg" },
+    home: { name: "لانجز بالدمبل", sets: 4, reps: "12 لكل رجل", rest: "90 ثانية", notes: "الركبة خلف القدم", image: "https://upload.wikimedia.org/wikipedia/commons/thumb/9/9a/Lunge_(exercise).jpg/200px-Lunge_(exercise).jpg" },
   },
   leg_curl: {
-    gym: { name: "ليج كيرل", sets: 3, reps: "12-15", rest: "60 ثانية", notes: "تحكم في الحركة", image: "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=200&h=150&fit=crop" },
-    home: { name: "هامسترنج كيرل بالباند", sets: 3, reps: "15-20", rest: "60 ثانية", notes: "ثبّت الورك", image: "https://images.unsplash.com/photo-1574680096145-d05b474e2155?w=200&h=150&fit=crop" },
+    gym: { name: "ليج كيرل", sets: 3, reps: "12-15", rest: "60 ثانية", notes: "تحكم في الحركة", image: "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6f/Dumbbell_squat.jpg/200px-Dumbbell_squat.jpg" },
+    home: { name: "هامسترنج كيرل بالباند", sets: 3, reps: "15-20", rest: "60 ثانية", notes: "ثبّت الورك", image: "https://upload.wikimedia.org/wikipedia/commons/thumb/9/9a/Lunge_(exercise).jpg/200px-Lunge_(exercise).jpg" },
   },
   front_squat: {
-    gym: { name: "فرنت سكوات", sets: 4, reps: "6-8", rest: "3 دقائق", notes: "حافظ على الصدر مرفوع", image: "https://images.unsplash.com/photo-1574677574343-83f9c8e2a2b3?w=200&h=150&fit=crop" },
-    home: { name: "جوبيت سكوات", sets: 4, reps: "10-12", rest: "90 ثانية", notes: "نزل كاملاً", image: "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=200&h=150&fit=crop" },
+    gym: { name: "فرنت سكوات", sets: 4, reps: "6-8", rest: "3 دقائق", notes: "حافظ على الصدر مرفوع", image: "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a7/Barbell_squat.jpg/200px-Barbell_squat.jpg" },
+    home: { name: "جوبيت سكوات", sets: 4, reps: "10-12", rest: "90 ثانية", notes: "نزل كاملاً", image: "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6f/Dumbbell_squat.jpg/200px-Dumbbell_squat.jpg" },
   },
   rdl: {
-    gym: { name: "رومانيان ديدليفت", sets: 4, reps: "8-10", rest: "2 دقيقة", notes: "انزل بالورك للخلف", image: "https://images.unsplash.com/photo-1517344884509-a0c97ec11bcc?w=200&h=150&fit=crop" },
-    home: { name: "رومانيان ديدليفت بالدمبل", sets: 4, reps: "10-12", rest: "90 ثانية", notes: "ابطأ في النزول", image: "https://images.unsplash.com/photo-1574677574343-83f9c8e2a2b3?w=200&h=150&fit=crop" },
+    gym: { name: "رومانيان ديدليفت", sets: 4, reps: "8-10", rest: "2 دقيقة", notes: "انزل بالورك للخلف", image: "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2b/Deadlift.jpg/200px-Deadlift.jpg" },
+    home: { name: "رومانيان ديدليفت بالدمبل", sets: 4, reps: "10-12", rest: "90 ثانية", notes: "ابطأ في النزول", image: "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a7/Barbell_squat.jpg/200px-Barbell_squat.jpg" },
   },
   hip_thrust: {
-    gym: { name: "هيب ثرست", sets: 4, reps: "10-12", rest: "2 دقيقة", notes: "اكتمل الحركة في الأعلى", image: "https://images.unsplash.com/photo-1574680096145-d05b474e2155?w=200&h=150&fit=crop" },
-    home: { name: "هيب ثرست بوزن الجسم", sets: 4, reps: "15-20", rest: "60 ثانية", notes: "ارفع الورك بالكامل", image: "https://images.unsplash.com/photo-1574680096145-d05b474e2155?w=200&h=150&fit=crop" },
+    gym: { name: "هيب ثرست", sets: 4, reps: "10-12", rest: "2 دقيقة", notes: "اكتمل الحركة في الأعلى", image: "https://upload.wikimedia.org/wikipedia/commons/thumb/9/9a/Lunge_(exercise).jpg/200px-Lunge_(exercise).jpg" },
+    home: { name: "هيب ثرست بوزن الجسم", sets: 4, reps: "15-20", rest: "60 ثانية", notes: "ارفع الورك بالكامل", image: "https://upload.wikimedia.org/wikipedia/commons/thumb/9/9a/Lunge_(exercise).jpg/200px-Lunge_(exercise).jpg" },
   },
   calf: {
-    gym: { name: "كاف ريز واقف", sets: 4, reps: "15-20", rest: "60 ثانية", notes: "مدى حركة كامل", image: "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=200&h=150&fit=crop" },
-    home: { name: "كاف ريز على السلم", sets: 4, reps: "15-20", rest: "60 ثانية", notes: "انزل بالكامل", image: "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=200&h=150&fit=crop" },
+    gym: { name: "كاف ريز واقف", sets: 4, reps: "15-20", rest: "60 ثانية", notes: "مدى حركة كامل", image: "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6f/Dumbbell_squat.jpg/200px-Dumbbell_squat.jpg" },
+    home: { name: "كاف ريز على السلم", sets: 4, reps: "15-20", rest: "60 ثانية", notes: "انزل بالكامل", image: "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6f/Dumbbell_squat.jpg/200px-Dumbbell_squat.jpg" },
   },
   curl: {
-    gym: { name: "بايسبس كيرل بالبار", sets: 3, reps: "10-12", rest: "60 ثانية", notes: "لا تتحرك بالكتف", image: "https://images.unsplash.com/photo-1583454110551-21f2fa2afe61?w=200&h=150&fit=crop" },
-    home: { name: "بايسبس كيرل بالدمبل", sets: 3, reps: "12-15", rest: "60 ثانية", notes: "تحكم في النزول", image: "https://images.unsplash.com/photo-1611078489935-0cb964de46d6?w=200&h=150&fit=crop" },
+    gym: { name: "بايسبس كيرل بالبار", sets: 3, reps: "10-12", rest: "60 ثانية", notes: "لا تتحرك بالكتف", image: "https://upload.wikimedia.org/wikipedia/commons/thumb/0/07/Military_press.jpg/200px-Military_press.jpg" },
+    home: { name: "بايسبس كيرل بالدمبل", sets: 3, reps: "12-15", rest: "60 ثانية", notes: "تحكم في النزول", image: "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d3/One_arm_dumbbell_row.jpg/200px-One_arm_dumbbell_row.jpg" },
   },
   triceps: {
-    gym: { name: "ترايسبس بوش داون", sets: 3, reps: "12-15", rest: "60 ثانية", notes: "ثبّت المرفقين", image: "https://images.unsplash.com/photo-1583454110551-21f2fa2afe61?w=200&h=150&fit=crop" },
-    home: { name: "ديبس على الكرسي", sets: 3, reps: "12-15", rest: "60 ثانية", notes: "انزل ببطء", image: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=200&h=150&fit=crop" },
+    gym: { name: "ترايسبس بوش داون", sets: 3, reps: "12-15", rest: "60 ثانية", notes: "ثبّت المرفقين", image: "https://upload.wikimedia.org/wikipedia/commons/thumb/0/07/Military_press.jpg/200px-Military_press.jpg" },
+    home: { name: "ديبس على الكرسي", sets: 3, reps: "12-15", rest: "60 ثانية", notes: "انزل ببطء", image: "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e5/Pushup_Position.png/200px-Pushup_Position.png" },
   },
   dip: {
-    gym: { name: "ديبس على المتوازي", sets: 3, reps: "8-12", rest: "90 ثانية", notes: "الميل للأمام للصدر", image: "https://images.unsplash.com/photo-1598971639058-fab3c3109a00?w=200&h=150&fit=crop" },
-    home: { name: "ديبس على الكرسي", sets: 3, reps: "12-15", rest: "60 ثانية", notes: "انزل ببطء", image: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=200&h=150&fit=crop" },
+    gym: { name: "ديبس على المتوازي", sets: 3, reps: "8-12", rest: "90 ثانية", notes: "الميل للأمام للصدر", image: "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8a/Pullup.jpg/200px-Pullup.jpg" },
+    home: { name: "ديبس على الكرسي", sets: 3, reps: "12-15", rest: "60 ثانية", notes: "انزل ببطء", image: "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e5/Pushup_Position.png/200px-Pushup_Position.png" },
   },
   lateral: {
-    gym: { name: "رفرفة جانبية", sets: 3, reps: "15", rest: "60 ثانية", notes: "لا ترفع فوق الكتف", image: "https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=200&h=150&fit=crop" },
-    home: { name: "رفرفة جانبية بالدمبل", sets: 3, reps: "15", rest: "60 ثانية", notes: "تحكم في الحركة", image: "https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=200&h=150&fit=crop" },
+    gym: { name: "رفرفة جانبية", sets: 3, reps: "15", rest: "60 ثانية", notes: "لا ترفع فوق الكتف", image: "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5d/Bent-over_row.jpg/200px-Bent-over_row.jpg" },
+    home: { name: "رفرفة جانبية بالدمبل", sets: 3, reps: "15", rest: "60 ثانية", notes: "تحكم في الحركة", image: "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5d/Bent-over_row.jpg/200px-Bent-over_row.jpg" },
   },
   face_pull: {
-    gym: { name: "فيس بول بالكابل", sets: 3, reps: "15-20", rest: "60 ثانية", notes: "للأكتاف والوضعية", image: "https://images.unsplash.com/photo-1583454110551-21f2fa2afe61?w=200&h=150&fit=crop" },
+    gym: { name: "فيس بول بالكابل", sets: 3, reps: "15-20", rest: "60 ثانية", notes: "للأكتاف والوضعية", image: "https://upload.wikimedia.org/wikipedia/commons/thumb/0/07/Military_press.jpg/200px-Military_press.jpg" },
     home: { name: "فيس بول بالباند", sets: 3, reps: "15-20", rest: "60 ثانية", notes: "ثبّت الباند", image: "https://images.unsplash.com/photo-1597452610875-7e2f5e5b7b3a?w=200&h=150&fit=crop" },
   },
   plank: {
-    gym: { name: "بلانك", sets: 3, reps: "45-60 ثانية", rest: "45 ثانية", notes: "حافظ على استقامة الجسم", image: "https://images.unsplash.com/photo-1566241142559-40e1dab266c6?w=200&h=150&fit=crop" },
-    home: { name: "بلانك", sets: 3, reps: "45-60 ثانية", rest: "45 ثانية", notes: "شد البطن", image: "https://images.unsplash.com/photo-1566241142559-40e1dab266c6?w=200&h=150&fit=crop" },
+    gym: { name: "بلانك", sets: 3, reps: "45-60 ثانية", rest: "45 ثانية", notes: "حافظ على استقامة الجسم", image: "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8a/Plank_(exercise).jpg/200px-Plank_(exercise).jpg" },
+    home: { name: "بلانك", sets: 3, reps: "45-60 ثانية", rest: "45 ثانية", notes: "شد البطن", image: "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8a/Plank_(exercise).jpg/200px-Plank_(exercise).jpg" },
   },
   abs: {
-    gym: { name: "كرنش بالكابل", sets: 3, reps: "15-20", rest: "60 ثانية", notes: "ركز على الانقباض", image: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=200&h=150&fit=crop" },
-    home: { name: "كرنش أرضي", sets: 3, reps: "20-25", rest: "45 ثانية", notes: "لا تشد الرقبة", image: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=200&h=150&fit=crop" },
+    gym: { name: "كرنش بالكابل", sets: 3, reps: "15-20", rest: "60 ثانية", notes: "ركز على الانقباض", image: "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e5/Pushup_Position.png/200px-Pushup_Position.png" },
+    home: { name: "كرنش أرضي", sets: 3, reps: "20-25", rest: "45 ثانية", notes: "لا تشد الرقبة", image: "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e5/Pushup_Position.png/200px-Pushup_Position.png" },
   },
 };
 
