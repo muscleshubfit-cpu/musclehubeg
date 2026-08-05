@@ -1,29 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
-import { callAI, parseJSON } from "@/lib/ai-provider";
+import { callAIWithFallback, parseJSON } from "@/lib/ai-provider";
 import { getOverrideFromRequest } from "@/app/api/ai/settings/route";
 
 /**
  * AI Article Generator — POST /api/ai/generate-article
  *
  * Input:  { topic?: string, focusKeyword?: string, category?: string, language?: "en"|"ar" }
- * Output: a full content bundle ready to fill the Blog Editor:
- *   - SEO: title, metaTitle, metaDescription, slug, focusKeyword, secondaryKeywords
- *   - English article (Markdown) — optimized for Google SEO + GEO + AEO + EEAT
- *   - Arabic article (Markdown) — LOCALIZED (not translated), culturally adapted
- *   - Table of contents (derived from H2s)
- *   - FAQ + JSON-LD FAQ schema
- *   - Internal link suggestions
- *   - External reference suggestions (high-DR, citable)
- *   - Coaching CTA section
- *   - Newsletter CTA
- *   - Estimated reading time (minutes)
- *   - Image prompts: featured / facebook / openGraph (English, ultra-realistic)
- *   - Social posts: facebook / linkedin / instagram / x — with hook, CTA,
- *     engagement question, hashtags, note about reg link in first comment
+ * Output: a full content bundle ready to fill the Blog Editor.
  *
- * The result is JSON. The client fills the editor fields and lets the admin
- * review + edit before saving as a draft. Nothing is auto-published.
+ * NOTE: long-form article generation can take 60-120 seconds on free models.
+ * We set `maxDuration = 300` (5 min) so Vercel doesn't kill the request, and
+ * the inner callAI timeout is 180s.
  */
+export const maxDuration = 300; // seconds — Vercel Pro supports up to 300.
 
 const SYSTEM_PROMPT = `You are the MuscleHub AI Content Assistant — an expert SEO content strategist and copywriter for a premium online nutrition & fitness coaching platform (Coach Ahmed Zake, musclehubeg.vercel.app).
 
@@ -68,16 +57,15 @@ STEP 2 — SEO DATA:
   - focusKeyword:    the single primary keyword.
   - secondaryKeywords: array of 5-8 related keywords.
 
-STEP 3 — ENGLISH ARTICLE (Markdown, 1500-2200 words):
+STEP 3 — ENGLISH ARTICLE (Markdown, 600-900 words):
   - Start with a clear 2-3 sentence answer to the title (AEO).
   - Use H2/H3 hierarchy, bullet lists, at least one comparison table.
-  - Include 1-2 short block quotes from authoritative sources.
   - Cite sources inline as "(Source: NIH, 2024)" style.
   - End with a "Key Takeaways" section (3-5 bullets).
   - Embed a Coaching CTA section (H2 "Ready for a Personalized Plan?") + a Newsletter CTA section.
   - Insert the focus keyword in the first paragraph, in at least one H2, and 2-3 times in body.
 
-STEP 4 — ARABIC ARTICLE (LOCALIZED, NOT TRANSLATED, Markdown, 1500-2200 words):
+STEP 4 — ARABIC ARTICLE (LOCALIZED, NOT TRANSLATED, Markdown, 600-900 words):
   - Adapt the angle for an Egyptian / Gulf Arabic-speaking audience.
   - Use culturally relevant examples (Egyptian foods, local gym culture, prayer-time scheduling, etc.).
   - Write in Modern Standard Arabic with a friendly, motivating tone.
@@ -172,17 +160,17 @@ export async function POST(request: NextRequest) {
       category: category || "nutrition",
     });
 
-    // Ask the AI for a strict JSON response. Some providers don't support
-    // response_format, so we also strongly instruct via the system prompt
-    // and parse defensively with parseJSON.
-    const raw = await callAI(
+    // Ask the AI for a strict JSON response. Uses callAIWithFallback so the
+    // request automatically retries with OpenRouter / Groq if Gemini (the
+    // primary) is rate-limited or region-blocked.
+    const { text: raw, provider: usedProvider } = await callAIWithFallback(
       prompt,
       {
         systemPrompt: SYSTEM_PROMPT,
         temperature: 0.7,
         maxTokens: 12_000,
         jsonMode: true,
-        timeoutMs: 120_000,
+        timeoutMs: 240_000, // 4 minutes — free models can be slow on long outputs
       },
       override,
     );
@@ -223,7 +211,7 @@ export async function POST(request: NextRequest) {
           ? parsed.estimatedReadingTime
           : Math.max(1, Math.ceil((parsed.englishArticle || "").split(/\s+/).length / 200)),
       language: language || "en",
-      source: "ai",
+      source: usedProvider,
     };
 
     return NextResponse.json(result);

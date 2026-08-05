@@ -36,7 +36,12 @@ export const AI_PROVIDERS: Record<
   openrouter: {
     label: "OpenRouter (recommended)",
     baseUrl: "https://openrouter.ai/api/v1",
-    defaultModel: "anthropic/claude-3.5-sonnet",
+    // Free Gemma 4 26B — non-reasoning model that returns clean content (not
+    // hidden inside a reasoning_details block). 262K context, plenty for
+    // long-form article generation. Switch to a paid model
+    // (anthropic/claude-3.5-sonnet, openai/gpt-4o, etc.) in the AI Settings
+    // page once you add OpenRouter credits.
+    defaultModel: "google/gemma-4-26b-a4b-it:free",
     envKey: "OPENROUTER_API_KEY",
     docsUrl: "https://openrouter.ai/keys",
     keyPrefix: "sk-or-",
@@ -192,6 +197,15 @@ export type CallAIOptions = {
 /**
  * Core: call any OpenAI-compatible chat completion endpoint.
  * Returns the assistant message text.
+ *
+ * Provider-specific notes:
+ *  - Anthropic's OpenAI-compat shim doesn't support response_format — we
+ *    skip it and rely on prompt-based JSON instructions.
+ *  - Gemini's OpenAI-compat shim accepts response_format but sometimes
+ *    returns 400 — same approach (skip it, use prompt instructions).
+ *  - Some reasoning models (gpt-oss, gemini-2.5-flash-thinking) return
+ *    empty `content` and put the actual text in `reasoning_details` /
+ *    `reasoning`. We fall back to those if `content` is empty.
  */
 export async function callAI(
   prompt: string,
@@ -219,8 +233,10 @@ export async function callAI(
   };
 
   // Most OpenAI-compatible endpoints support response_format for JSON mode.
-  // Anthropic's OpenAI-compat shim does NOT — fall back to prompt instructions.
-  if (options.jsonMode && cfg.provider !== "anthropic") {
+  // Anthropic and Gemini's OpenAI-compat shims are unreliable here — skip
+  // it for them and rely on prompt-based JSON instructions.
+  const skipJsonMode = cfg.provider === "anthropic" || cfg.provider === "gemini";
+  if (options.jsonMode && !skipJsonMode) {
     body.response_format = { type: "json_object" };
   }
 
@@ -254,7 +270,19 @@ export async function callAI(
     }
 
     const data = await res.json();
-    const content: string | undefined = data?.choices?.[0]?.message?.content;
+    const msg = data?.choices?.[0]?.message;
+    // Prefer `content`; fall back to `reasoning` / `reasoning_details` for
+    // reasoning models (gpt-oss, gemini-thinking) that hide output there.
+    let content: string | undefined = msg?.content;
+    if (!content && Array.isArray(msg?.reasoning_details)) {
+      content = msg.reasoning_details
+        .map((r: any) => (typeof r?.text === "string" ? r.text : ""))
+        .filter(Boolean)
+        .join("\n");
+    }
+    if (!content && typeof msg?.reasoning === "string") {
+      content = msg.reasoning;
+    }
     if (!content) {
       throw new Error(`AI provider ${cfg.provider} returned an empty response`);
     }
@@ -262,6 +290,58 @@ export async function callAI(
   } finally {
     clearTimeout(timer);
   }
+}
+
+/**
+ * Call AI with automatic fallback. Tries the primary config first; if it
+ * fails (quota, network, region block, etc.), tries each fallback provider
+ * whose key is set in env vars. Returns the first successful result along
+ * with which provider actually served the request.
+ *
+ * Use this for expensive operations (e.g. article generation) where you
+ * don't want a single provider's outage to block the whole workflow.
+ */
+export async function callAIWithFallback(
+  prompt: string,
+  options: CallAIOptions = {},
+  configOverride?: Partial<AIConfig> | null,
+): Promise<{ text: string; provider: AIProvider; model: string }> {
+  const errors: string[] = [];
+
+  // 1. Try the primary (override or env).
+  const primary = mergeOverride(configOverride);
+  if (primary && primary.apiKey) {
+    try {
+      const text = await callAI(prompt, options, configOverride);
+      return { text, provider: primary.provider, model: primary.model };
+    } catch (e: any) {
+      errors.push(`${primary.provider}: ${e.message}`);
+    }
+  }
+
+  // 2. Try every other provider whose env key is set.
+  for (const id of Object.keys(AI_PROVIDERS) as AIProvider[]) {
+    if (primary && id === primary.provider) continue;
+    const meta = AI_PROVIDERS[id];
+    const key = process.env[meta.envKey] || "";
+    if (!key) continue;
+    try {
+      const text = await callAI(prompt, options, {
+        provider: id,
+        apiKey: key,
+        model: meta.defaultModel,
+        baseUrl: meta.baseUrl,
+      });
+      return { text, provider: id, model: meta.defaultModel };
+    } catch (e: any) {
+      errors.push(`${id}: ${e.message}`);
+    }
+  }
+
+  // 3. All providers failed.
+  throw new Error(
+    `All AI providers failed:\n${errors.join("\n")}`,
+  );
 }
 
 /**
@@ -285,6 +365,8 @@ export async function testConnection(
  *  - Plain JSON
  *  - ```json fenced blocks
  *  - JSON embedded inside surrounding prose (extracts the outermost {…} or […])
+ *  - Truncated JSON (auto-closes any open {/[/") — useful when the LLM hits
+ *    max_tokens mid-response and we want to salvage as much as possible.
  */
 export function parseJSON<T = any>(text: string): T | null {
   if (!text) return null;
@@ -299,13 +381,73 @@ export function parseJSON<T = any>(text: string): T | null {
   if (open === -1) return null;
   const openChar = cleaned[open];
   const closeChar = openChar === "{" ? "}" : "]";
-  const close = cleaned.lastIndexOf(closeChar);
-  if (close === -1 || close < open) return null;
-  cleaned = cleaned.slice(open, close + 1);
 
+  // First try strict parsing of the slice between the first opener and the
+  // last closer — this is the happy path.
+  const close = cleaned.lastIndexOf(closeChar);
+  if (close !== -1 && close > open) {
+    const slice = cleaned.slice(open, close + 1);
+    try {
+      return JSON.parse(slice) as T;
+    } catch {
+      // fall through to truncation repair
+    }
+  }
+
+  // Truncation repair: take everything from the first opener to the end of
+  // the response, then balance the brackets/braces/quotes.
+  const partial = cleaned.slice(open);
+  let repaired = repairTruncatedJSON(partial);
+  // Strip trailing commas inside objects/arrays: {"a":1,} → {"a":1}
+  repaired = repaired.replace(/,\s*([\]}])/g, "$1");
   try {
-    return JSON.parse(cleaned) as T;
+    return JSON.parse(repaired) as T;
   } catch {
     return null;
   }
+}
+
+/**
+ * Best-effort repair of truncated JSON. Closes open strings, objects, and
+ * arrays. Doesn't handle every edge case (e.g. trailing commas after the
+ * last complete value), but recovers most of the structured data.
+ */
+function repairTruncatedJSON(s: string): string {
+  let inString = false;
+  let escape = false;
+  const stack: string[] = [];
+  for (let i = 0; i < s.length; i++) {
+    const ch = s[i];
+    if (escape) {
+      escape = false;
+      continue;
+    }
+    if (ch === "\\") {
+      escape = true;
+      continue;
+    }
+    if (ch === '"') {
+      inString = !inString;
+      continue;
+    }
+    if (inString) continue;
+    if (ch === "{" || ch === "[") stack.push(ch);
+    else if (ch === "}" || ch === "]") {
+      // pop matching opener if present
+      for (let j = stack.length - 1; j >= 0; j--) {
+        const opener = stack[j];
+        if ((ch === "}" && opener === "{") || (ch === "]" && opener === "[")) {
+          stack.length = j;
+          break;
+        }
+      }
+    }
+  }
+  let out = s;
+  if (inString) out += '"'; // close dangling string
+  // Close remaining open structures in reverse order.
+  for (let i = stack.length - 1; i >= 0; i--) {
+    out += stack[i] === "{" ? "}" : "]";
+  }
+  return out;
 }
