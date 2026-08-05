@@ -68,7 +68,13 @@ export async function signUpEmail(
         avatar_url: null,
         created_at: new Date().toISOString(),
       };
-      // The profiles table is populated by a trigger (see supabase/migrations).
+      // Notify coach about new client
+      await createAdminNotification(
+        "new_client",
+        "عميل جديد سجّل! 🎉",
+        `${fullName} (${email}) انضم للمنصة. اطمئن على استبياناته وجهّز خططه.`,
+        "coach",
+      ).catch(() => {});
       return { error: null, profile };
     }
     return { error: null, profile: null };
@@ -93,6 +99,8 @@ export async function signUpEmail(
   };
   write(LS_PROFILES, profiles);
   write<Session>(LS_SESSION, { userId: id, email });
+  // Notify coach
+  await createAdminNotification("new_client", "عميل جديد", `${fullName} سجّل`, "coach").catch(() => {});
   return { error: null, profile: profiles[id] };
 }
 
@@ -461,6 +469,13 @@ export async function activatePlan(planId: string, clientId: string) {
       "خطتك الجديدة جاهزة الآن. اطّلع عليها من صفحة خططي.",
       "/plans",
     );
+    // Notify coach (confirmation)
+    await createAdminNotification(
+      "plan_approved",
+      "تم تفعيل خطة للعميل ✅",
+      `خطة ${plan?.type === "meal" ? "تغذية" : "تمارين"} تم تفعيلها وإرسالها للعميل.`,
+      "coach",
+    ).catch(() => {});
     return data;
   }
   // Local fallback
@@ -610,6 +625,27 @@ export async function deletePlan(id: string) {
   write(LS_PLANS, all.filter((p) => p.id !== id));
 }
 
+/** Update a plan's content (title, notes, content JSON, status). */
+export async function updatePlan(id: string, updates: { title?: string; notes?: string; content?: any; status?: string; is_current?: boolean }) {
+  if (isSupabaseConfigured && supabase) {
+    const { data, error } = await supabase
+      .from("plans")
+      .update(updates)
+      .eq("id", id)
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    return data;
+  }
+  const all = read<any[]>(LS_PLANS, []);
+  const idx = all.findIndex((p) => p.id === id);
+  if (idx >= 0) {
+    all[idx] = { ...all[idx], ...updates };
+    write(LS_PLANS, all);
+  }
+  return all[idx];
+}
+
 export async function listTickets(clientId: string) {
   if (isSupabaseConfigured && supabase) {
     const { data } = await supabase
@@ -631,6 +667,8 @@ export async function createTicket(clientId: string, subject: string, body: stri
       .single();
     if (error) throw new Error(error.message);
     await supabase.from("ticket_messages").insert({ ticket_id: ticket.id, sender_id: clientId, body });
+    // Notify coach
+    await createAdminNotification("new_ticket", "تذكرة دعم جديدة 🎫", `موضوع: ${subject}`, "coach-support").catch(() => {});
     return ticket;
   }
   const all = read<any[]>(LS_TICKETS, []);
@@ -725,7 +763,6 @@ export async function upsertQuestionnaire(
 ) {
   if (isSupabaseConfigured && supabase) {
     const table = type === "nutrition" ? "nutrition_questionnaires" : "fitness_questionnaires";
-    // Try upsert; if RLS blocks, fall back to insert
     const { data: row, error } = await supabase
       .from(table)
       .upsert(
@@ -735,6 +772,15 @@ export async function upsertQuestionnaire(
       .select()
       .single();
     if (error) throw new Error(error.message);
+    // If submitted, notify coach
+    if (status === "submitted") {
+      await createAdminNotification(
+        "questionnaire_submitted",
+        "استبيان جديد للمراجعة 📋",
+        `استبيان ${type === "nutrition" ? "التغذية" : "اللياقة"} — بانتظار مراجعتك`,
+        "coach",
+      ).catch(() => {});
+    }
     return row;
   }
   const key = type === "nutrition" ? LS_NUTRI_Q : LS_FIT_Q;
@@ -867,6 +913,49 @@ export async function createNotification(userId: string, type: string, title: st
 }
 
 // ---------------------------------------------------------------------------
+//  Admin Notifications (for coach)
+// ---------------------------------------------------------------------------
+
+export async function listAdminNotifications() {
+  if (isSupabaseConfigured && supabase) {
+    const { data } = await supabase
+      .from("admin_notifications")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(30);
+    return data ?? [];
+  }
+  return read<any[]>(LS_PREFIX + "admin_notifs", []);
+}
+
+export async function markAdminNotificationsRead() {
+  if (isSupabaseConfigured && supabase) {
+    await supabase.from("admin_notifications").update({ read: true }).eq("read", false);
+    return;
+  }
+  const all = read<any[]>(LS_PREFIX + "admin_notifs", []);
+  all.forEach((n) => { n.read = true; });
+  write(LS_PREFIX + "admin_notifs", all);
+}
+
+export async function createAdminNotification(type: string, title: string, body: string, link?: string) {
+  if (isSupabaseConfigured && supabase) {
+    const { data, error } = await supabase
+      .from("admin_notifications")
+      .insert({ type, title, body, link })
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    return data;
+  }
+  const all = read<any[]>(LS_PREFIX + "admin_notifs", []);
+  const row = { id: uid(), type, title, body, link, read: false, created_at: new Date().toISOString() };
+  all.push(row);
+  write(LS_PREFIX + "admin_notifs", all);
+  return row;
+}
+
+// ---------------------------------------------------------------------------
 //  Subscription Requests (for coach payments page)
 // ---------------------------------------------------------------------------
 
@@ -884,6 +973,13 @@ export async function submitSubscriptionRequest(req: any) {
   if (isSupabaseConfigured && supabase) {
     const { data, error } = await supabase.from("subscription_requests").insert(req).select().single();
     if (error) throw new Error(error.message);
+    // Notify coach about new payment request
+    await createAdminNotification(
+      "payment_request",
+      "طلب دفع جديد 💰",
+      `${req.full_name} طلب اشتراك ${req.plan_tier} لمدة ${req.duration_months} شهر — $${req.price_egp}`,
+      "coach-payments",
+    ).catch(() => {});
     return data;
   }
   const all = read<any[]>(LS_PREFIX + "subreqs", []);

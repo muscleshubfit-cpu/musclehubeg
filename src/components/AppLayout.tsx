@@ -19,6 +19,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useI18n } from "@/lib/i18n";
 import { LanguageToggle } from "@/components/LanguageToggle";
 import { NotificationBell } from "@/components/NotificationBell";
+import { AdminNotificationBell } from "@/components/AdminNotificationBell";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useNav, type View } from "@/hooks/use-nav";
@@ -72,7 +73,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
             <span className="truncate font-display text-lg font-bold">{t("brand.name")}</span>
           </button>
           <div className="flex items-center gap-1">
-            <NotificationBell />
+            {isCoach ? <AdminNotificationBell /> : <NotificationBell />}
             <LanguageToggle />
             <Button variant="ghost" size="sm" onClick={handleSignOut} className="gap-2">
               <LogOut className="h-4 w-4" />
