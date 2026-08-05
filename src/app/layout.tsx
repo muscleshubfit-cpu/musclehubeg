@@ -7,37 +7,58 @@ import { I18nProvider } from "@/lib/i18n";
 import { AuthProvider } from "@/hooks/use-auth";
 
 export const metadata: Metadata = {
-  title: "Ahmed Zake — Online Nutrition & Fitness Coaching",
+  title: "MuscleHub — AI-Powered Human Optimization Platform | Ahmed Zake",
   description:
-    "Custom meal plans, workout programs, weekly progress tracking and 1-on-1 coaching with Ahmed Zake.",
+    "MuscleHub combines real human coaching with AI intelligence (EVO) to optimize your nutrition, fitness, and performance. Personalized meal plans, adaptive workout programs, smart progress tracking, and 24/7 AI coaching. Start your transformation today.",
   keywords: [
+    "MuscleHub",
     "Ahmed Zake",
-    "nutrition coaching",
-    "fitness coaching",
-    "meal plans",
-    "workout plans",
+    "AI fitness coach",
+    "AI nutrition coach",
+    "personalized meal plans",
+    "custom workout programs",
     "online coaching Egypt",
-    "تغذية",
-    "تمارين",
-    "كوتش",
+    "AI human optimization",
+    "EVO AI coach",
+    "fitness transformation",
+    "nutrition coaching platform",
+    "progress tracking",
+    "smart food swaps",
+    "adaptive fitness plans",
+    "كوتش أونلاين",
+    "تغذية رياضية",
+    "تمارين مخصصة",
+    "ذكاء اصطناعي لياقة",
   ],
   authors: [{ name: "Ahmed Zake" }],
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
-    statusBarStyle: "default",
-    title: "MuscleHubEG",
+    statusBarStyle: "black-translucent",
+    title: "MuscleHub",
   },
   openGraph: {
-    title: "Ahmed Zake — Online Nutrition & Fitness Coaching",
+    title: "MuscleHub — Build a Stronger You with AI + Human Coaching",
     description:
-      "Build the body you deserve with personalized coaching by Ahmed Zake.",
+      "Not just a fitness app. MuscleHub combines Coach Ahmed Zake's expertise with the EVO AI engine for personalized nutrition, adaptive workouts, and 24/7 intelligent monitoring.",
     type: "website",
+    siteName: "MuscleHub",
+    locale: "ar_EG",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Ahmed Zake — Online Coaching",
-    description: "Build the body you deserve with personalized coaching.",
+    title: "MuscleHub — AI-Powered Human Optimization",
+    description: "Build a stronger you with AI + human coaching. Personalized plans, smart tracking, 24/7 monitoring.",
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
   },
 };
 
