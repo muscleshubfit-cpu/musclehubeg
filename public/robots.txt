@@ -1,14 +1,20 @@
-User-agent: Googlebot
-Allow: /
-
-User-agent: Bingbot
-Allow: /
-
-User-agent: Twitterbot
-Allow: /
-
-User-agent: facebookexternalhit
-Allow: /
-
 User-agent: *
 Allow: /
+Disallow: /dashboard
+Disallow: /questionnaires
+Disallow: /progress
+Disallow: /plans
+Disallow: /chat
+Disallow: /support
+Disallow: /referral
+Disallow: /coach
+Disallow: /checkout
+Disallow: /auth
+Disallow: /api/
+
+# Allow public pages
+Allow: /$
+Allow: /pricing
+Allow: /blog
+
+Sitemap: https://musclehubeg.vercel.app/sitemap.xml
