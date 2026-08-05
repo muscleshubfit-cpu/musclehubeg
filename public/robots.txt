@@ -3,6 +3,9 @@ Allow: /$
 Allow: /pricing
 Allow: /about
 Allow: /blog
+Allow: /blog/*
+Allow: /ar/blog
+Allow: /ar/blog/*
 Allow: /faq
 Allow: /contact
 Allow: /privacy
