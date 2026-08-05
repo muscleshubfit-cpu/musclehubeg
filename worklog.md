@@ -305,3 +305,43 @@ Stage Summary:
 - The coach admin at /admin/blog still works (coach can see all posts including drafts via is_coach()).
 - No code changes needed — the RLS policies on Supabase were the only blocker.
 - User should hard-refresh musclehubeg.vercel.app to see the articles.
+
+---
+Task ID: add-brand-logo
+Agent: main (super-z)
+Task: User provided the official MuscleHubEG brand logo (file_00000000dc748243b026e6da92e24002.png — 1536×1024 PNG with MH monogram, dumbbell graphics, "MUSCLEHUBEG" wordmark, and "TRAIN. FUEL. TRANSFORM." tagline).
+
+Work Log:
+- Analyzed the logo with VLM: it's a horizontal/landscape fitness brand logo with metallic silver "M" + electric blue "H" monogram, dumbbell graphics on both sides, "MUSCLEHUBEG" wordmark, and tagline below.
+- Copied the source to /public/logo.png.
+- Generated all required icon sizes from the source using Python PIL:
+  * /public/logo.png              — original 1536×1024 (header, footer, drawer)
+  * /public/icon-192.png          — 192×192 square (mobile header + PWA manifest)
+  * /public/icon-512.png          — 512×512 (PWA install icon)
+  * /public/icon-32.png           — 32×32 (small favicon)
+  * /public/favicon.png           — 64×64 (favicon)
+  * /public/favicon.ico           — multi-size ICO (16/32/48/64)
+  * /public/apple-touch-icon.png  — 180×180 (iOS home screen)
+- Replaced the placeholder Dumbbell icon with the actual logo in 5 files:
+  1. src/components/SiteHeader.tsx
+     - Desktop header: full landscape logo.png (h-10)
+     - Mobile header: square icon-192.png (h-10 w-10 rounded-lg)
+     - Drawer header: full logo.png (h-9)
+  2. src/components/blog/BlogListPage.tsx (header on /blog and /ar/blog)
+  3. src/components/blog/BlogArticlePage.tsx (header on article pages)
+  4. src/components/views/LandingView.tsx (footer brand mark)
+  5. src/app/layout.tsx — added `icons` metadata with favicon.ico + icon-32.png + favicon.png + apple-touch-icon.png
+- All logo usages use `object-contain` so the aspect ratio is preserved.
+- Build passes locally (npx next build → all 35 routes generated). TypeScript: zero new errors.
+- Committed (a7df868) and pushed to GitHub.
+- Triggered production deployment via Vercel API. Build completed in 45s: dpl_5PnFBVwSVTWts4mBBx77k6o5dmu1, state=READY, aliased to musclehubeg.vercel.app.
+- Verified all logo assets are served on production:
+  * /logo.png → HTTP 200
+  * /icon-192.png → HTTP 200
+  * /favicon.ico → HTTP 200
+
+Stage Summary:
+- The site now uses the official brand logo everywhere instead of the generic Dumbbell icon.
+- The favicon and PWA manifest icons are also updated, so the browser tab and "Add to Home Screen" will show the real logo.
+- Mobile header uses the square MH monogram (icon-192.png) for tight spaces; desktop uses the full landscape logo.
+- User should hard-refresh to see the new logo + favicon.
