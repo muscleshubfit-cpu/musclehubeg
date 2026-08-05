@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Dumbbell,
   ArrowRight,
@@ -29,9 +29,14 @@ import {
   ChevronDown,
   Bot,
   Wifi,
+  FileText,
+  Flame,
+  Calendar,
 } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
 import { LanguageToggle } from "@/components/LanguageToggle";
 import { useNav } from "@/hooks/use-nav";
 import { useAuth } from "@/hooks/use-auth";
@@ -41,6 +46,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { listBlogPosts, getCategoryLabel, type BlogPost } from "@/lib/blog";
 
 // Premium images
 const HERO_IMG = "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/6f2587b25688.jpeg";
@@ -54,6 +60,40 @@ export function LandingView() {
   const { profile, isCoach } = useAuth();
   const isLoggedIn = !!profile;
   const isAr = lang === "ar";
+
+  // Fetch latest articles in the user's selected language for the homepage
+  // "Latest Articles" + "Popular Articles" sections. Visitors and clients see
+  // only their language; admin (coach) sees all languages via the admin
+  // dashboard, but the homepage still shows their selected language only.
+  const [latestPosts, setLatestPosts] = useState<BlogPost[]>([]);
+  const [popularPosts, setPopularPosts] = useState<BlogPost[]>([]);
+  useEffect(() => {
+    (async () => {
+      const posts = await listBlogPosts(lang);
+      // Latest = newest published_at first (already sorted by listBlogPosts).
+      setLatestPosts(posts.slice(0, 3));
+      // Popular = posts with the longest content + most keywords/tags as a
+      // simple proxy until we have real view-count analytics. Stable order
+      // so the section doesn't reshuffle on every render.
+      const popular = [...posts]
+        .sort(
+          (a, b) =>
+            (b.keywords?.length || 0) +
+            (b.tags?.length || 0) +
+            Math.min((b.content?.length || 0) / 500, 10) -
+            ((a.keywords?.length || 0) +
+              (a.tags?.length || 0) +
+              Math.min((a.content?.length || 0) / 500, 10)),
+        )
+        .slice(0, 3);
+      setPopularPosts(popular);
+    })();
+  }, [lang]);
+
+  // Where the "Blog" header button should go depends on who's logged in:
+  //   - Coach (admin)   → /admin/blog   (sees everything)
+  //   - Client / visitor → /blog or /ar/blog (their selected language only)
+  const blogHref = isCoach ? "/admin/blog" : isAr ? "/ar/blog" : "/blog";
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -70,6 +110,15 @@ export function LandingView() {
           </button>
           <div className="flex items-center gap-2">
             <LanguageToggle />
+            {/* Blog button — visible to everyone (visitors, clients, coach) */}
+            <a
+              href={blogHref}
+              className="hidden items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground sm:flex"
+              title={isAr ? "المدونة" : "Blog"}
+            >
+              <FileText className="h-4 w-4" />
+              {isAr ? "المدونة" : "Blog"}
+            </a>
             {isLoggedIn ? (
               <Button size="sm" className="gap-2" onClick={() => navigate(isCoach ? "coach" : "dashboard")}>
                 <LayoutDashboard className="h-4 w-4" />
@@ -664,7 +713,80 @@ export function LandingView() {
         </div>
       </section>
 
-      {/* ===================== 14. FINAL CTA ===================== */}
+      {/* ===================== 14. LATEST ARTICLES ===================== */}
+      <section className="border-y border-border/50 bg-card/30 py-24">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6">
+          <div className="mb-12 flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <span className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/5 px-3 py-1 text-xs font-semibold text-primary">
+                <Sparkles className="h-3 w-3" />
+                {isAr ? "من المدونة" : "From the Blog"}
+              </span>
+              <h2 className="mt-4 text-4xl font-extrabold tracking-tight md:text-5xl">
+                {isAr ? "أحدث المقالات" : "Latest Articles"}
+              </h2>
+              <p className="mt-3 max-w-xl text-muted-foreground">
+                {isAr
+                  ? "نصائح علمية وإرشادات عملية من الكوتش أحمد زكي — محدّثة أسبوعياً."
+                  : "Science-backed tips and practical guidance from Coach Ahmed Zake — updated weekly."}
+              </p>
+            </div>
+            <a
+              href={blogHref}
+              className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:gap-2.5 transition-all"
+            >
+              {isAr ? "كل المقالات" : "View all articles"}
+              <ArrowRight className="h-4 w-4 rtl:rotate-180" />
+            </a>
+          </div>
+
+          {latestPosts.length === 0 ? (
+            <Card className="p-10 text-center text-muted-foreground">
+              <FileText className="mx-auto h-8 w-8 opacity-50" />
+              <p className="mt-3">
+                {isAr
+                  ? "لا توجد مقالات منشورة بعد بهذه اللغة. اختر اللغة الأخرى من الأعلى لرؤية المقالات."
+                  : "No articles published in this language yet. Switch the language toggle above to see articles in the other language."}
+              </p>
+            </Card>
+          ) : (
+            <div className="grid gap-6 md:grid-cols-3">
+              {latestPosts.map((post) => (
+                <BlogCard key={post.id} post={post} lang={lang} />
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* ===================== 15. POPULAR ARTICLES ===================== */}
+      {popularPosts.length > 0 && (
+        <section className="py-24">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6">
+            <div className="mb-12 text-center">
+              <span className="inline-flex items-center gap-2 rounded-full border border-gold/30 bg-gold/5 px-3 py-1 text-xs font-semibold text-gold">
+                <Flame className="h-3 w-3" />
+                {isAr ? "الأكثر رواجاً" : "Trending"}
+              </span>
+              <h2 className="mt-4 text-4xl font-extrabold tracking-tight md:text-5xl">
+                {isAr ? "أشهر المقالات" : "Popular Articles"}
+              </h2>
+              <p className="mx-auto mt-3 max-w-xl text-muted-foreground">
+                {isAr
+                  ? "المقالات اللي بيتفاعل معاها القراء أكتر — ابدأ بيهم رحلتك."
+                  : "The articles readers are engaging with most — start your journey here."}
+              </p>
+            </div>
+            <div className="grid gap-6 md:grid-cols-3">
+              {popularPosts.map((post, i) => (
+                <BlogCard key={post.id} post={post} lang={lang} rank={i + 1} />
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* ===================== 16. FINAL CTA ===================== */}
       <section className="relative overflow-hidden py-32">
         <div className="absolute inset-0 bg-hero-glow" />
         <div className="absolute inset-0 grid-bg opacity-20" />
@@ -746,5 +868,65 @@ export function LandingView() {
         </div>
       </footer>
     </div>
+  );
+}
+
+// ---- Blog card used in the homepage Latest/Popular articles sections ----
+function BlogCard({ post, lang, rank }: { post: BlogPost; lang: "en" | "ar"; rank?: number }) {
+  const isAr = lang === "ar";
+  const href = `${isAr ? "/ar" : ""}/blog/${encodeURIComponent(post.slug)}`;
+  const fallbackImg = isAr
+    ? "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/d107f788f4a2.jpg"
+    : "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/6f2587b25688.jpeg";
+  const img = post.featured_image || fallbackImg;
+  const date = post.published_at || post.created_at;
+
+  return (
+    <a
+      href={href}
+      className="group block overflow-hidden rounded-2xl border border-border bg-card shadow-card transition-all hover:-translate-y-1 hover:border-primary/40 hover:shadow-glow"
+    >
+      <div className="relative aspect-[16/9] overflow-hidden bg-muted">
+        <img
+          src={img}
+          alt={post.cover_alt || post.title}
+          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+          loading="lazy"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-transparent to-transparent" />
+        {rank && (
+          <span className="absolute start-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-gold/90 text-sm font-bold text-gold-foreground shadow-glow">
+            #{rank}
+          </span>
+        )}
+        <Badge className="absolute end-3 top-3" variant="secondary">
+          {getCategoryLabel(post.category, lang)}
+        </Badge>
+      </div>
+      <div className="p-5">
+        <h3 className="line-clamp-2 font-display text-lg font-bold leading-snug transition-colors group-hover:text-primary">
+          {post.title}
+        </h3>
+        {post.excerpt && (
+          <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">
+            {post.excerpt}
+          </p>
+        )}
+        <div className="mt-4 flex items-center justify-between text-xs text-muted-foreground">
+          <span className="flex items-center gap-1.5">
+            <Clock className="h-3.5 w-3.5" />
+            {post.reading_time} {isAr ? "د قراءة" : "min read"}
+          </span>
+          <span className="flex items-center gap-1.5">
+            <Calendar className="h-3.5 w-3.5" />
+            {new Date(date).toLocaleDateString(isAr ? "ar-EG" : "en-US", {
+              day: "numeric",
+              month: "short",
+              year: "numeric",
+            })}
+          </span>
+        </div>
+      </div>
+    </a>
   );
 }

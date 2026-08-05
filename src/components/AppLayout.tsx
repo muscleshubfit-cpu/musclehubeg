@@ -75,6 +75,15 @@ export function AppLayout({ children }: { children: ReactNode }) {
             <span className="truncate font-display text-lg font-bold">{t("brand.name")}</span>
           </button>
           <div className="flex items-center gap-1">
+            {/* Blog button — coach goes to admin CMS, client goes to public blog */}
+            <a
+              href={isCoach ? "/admin/blog" : isAr ? "/ar/blog" : "/blog"}
+              className="hidden items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground sm:flex"
+              title={isAr ? "المدونة" : "Blog"}
+            >
+              <FileText className="h-4 w-4" />
+              {isAr ? "المدونة" : "Blog"}
+            </a>
             {isCoach ? <AdminNotificationBell /> : <NotificationBell />}
             <LanguageToggle />
             <Button variant="ghost" size="sm" onClick={handleSignOut} className="gap-2">
