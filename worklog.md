@@ -171,3 +171,34 @@ Stage Summary:
 - Root cause: missing explicit route mapping for the blog-admin/blog-editor view ids in use-nav.tsx — they fell through to the default case which built incorrect URLs.
 - Fix: 2-case addition to pathForView() + viewForPath() update for active-tab highlighting.
 - Production is live with the fix. User should hard-refresh and the Blog button will navigate to /admin/blog correctly.
+
+---
+Task ID: blog-language-follows-site + blog-button-header + homepage-articles
+Agent: main (super-z)
+Task: User asked for three things:
+  1. Blog language should follow the site language — visitors/clients see only articles in their selected language. Admin sees everything.
+  2. Add a Blog button in the top header of the site.
+  3. Show articles on the homepage — "Latest Articles" + "Popular Articles" sections.
+
+Work Log:
+- Verified listBlogPosts(lang) in src/lib/blog.ts already filters server-side by language — visitors going to /blog see only English articles, /ar/blog sees only Arabic. The admin /admin/blog page uses a separate query (adminListPosts) that returns all languages unchanged.
+- src/components/views/LandingView.tsx:
+  * Added useEffect to fetch posts via listBlogPosts(lang) — refetches automatically when the user toggles language.
+  * Computed blogHref = isCoach ? "/admin/blog" : isAr ? "/ar/blog" : "/blog" — coaches go to the admin CMS, everyone else goes to the public blog in their selected language.
+  * Added a Blog button in the homepage header (visible to visitors, clients, and coaches) that links to blogHref.
+  * Added "Latest Articles" section (section 14) before Final CTA: shows 3 newest published articles in the user's language, with a "View all" link to the blog.
+  * Added "Popular Articles" section (section 15): shows 3 posts ranked by content depth + keyword/tag count (a simple popularity proxy until view-count analytics exist). Numbered #1/#2/#3 with gold badges.
+  * Added a BlogCard sub-component with featured image, category badge, 2-line-clamped title, excerpt, reading time, and publish date. Empty state shows a helpful message telling users to switch language.
+- src/components/AppLayout.tsx:
+  * Added the same Blog button in the app header (next to NotificationBell + LanguageToggle). Same routing logic: coach → /admin/blog, others → /blog or /ar/blog by language.
+- Build passes locally (npx next build → all 35 routes generated). TypeScript: zero new errors in modified files.
+- Committed (b92b862) and pushed to GitHub.
+- Triggered production deployment via Vercel API. Build completed in 45s: dpl_J9Akz4EoHqAse35pBi1kE9mokbgu, state=READY, aliased to musclehubeg.vercel.app.
+- Verified the new strings ("Latest Articles", "أحدث المقالات", "Popular Articles", "أشهر المقالات") are present in the production JS bundle (chunk de32e7f8ff645e6f.js).
+- All blog routes return HTTP 200: /blog, /ar/blog, /admin/blog.
+
+Stage Summary:
+- Blog language filtering: visitors/clients see only their selected language; admin sees all (unchanged). listBlogPosts already did the server-side filter, this just adds the matching UI navigation + homepage sections that respect the same language.
+- Blog button: now in BOTH the landing header (visitors + clients + coach) and the app header (logged-in users). Smart routing — coach → admin CMS, others → public blog in their language.
+- Homepage sections: 2 new sections (Latest + Popular Articles) with premium blog cards. Auto-updates when the user toggles language.
+- Production is live. User should hard-refresh to see the new sections.
