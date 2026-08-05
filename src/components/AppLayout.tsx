@@ -26,9 +26,10 @@ import { useNav, type View } from "@/hooks/use-nav";
 import { isSupabaseConfigured } from "@/lib/supabase/client";
 
 export function AppLayout({ children }: { children: ReactNode }) {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const { isCoach, signOutAsync, profile } = useAuth();
   const { view, navigate } = useNav();
+  const isAr = lang === "ar";
 
   const clientNav: { to: View; label: string; icon: any }[] = [
     { to: "dashboard", label: t("nav.dashboard"), icon: LayoutDashboard },
