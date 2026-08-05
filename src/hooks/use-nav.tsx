@@ -19,7 +19,12 @@ export type View =
   | "coach-support"
   | "coach-payments"
   | "referral"
-  | "blog";
+  | "blog"
+  | "about"
+  | "contact"
+  | "privacy"
+  | "terms"
+  | "faq";
 
 /**
  * Real, crawlable, back-button-friendly routing.

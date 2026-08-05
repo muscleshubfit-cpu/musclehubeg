@@ -1,5 +1,12 @@
 User-agent: *
-Allow: /
+Allow: /$
+Allow: /pricing
+Allow: /about
+Allow: /blog
+Allow: /faq
+Allow: /contact
+Allow: /privacy
+Allow: /terms
 Disallow: /dashboard
 Disallow: /questionnaires
 Disallow: /progress
@@ -11,10 +18,5 @@ Disallow: /coach
 Disallow: /checkout
 Disallow: /auth
 Disallow: /api/
-
-# Allow public pages
-Allow: /$
-Allow: /pricing
-Allow: /blog
 
 Sitemap: https://musclehubeg.vercel.app/sitemap.xml
