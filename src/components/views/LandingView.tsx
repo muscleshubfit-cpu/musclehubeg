@@ -69,34 +69,6 @@ export function LandingView() {
             </span>
           </button>
           <div className="flex items-center gap-2">
-            {/* Pages dropdown */}
-            <div className="relative group">
-              <button className="flex items-center gap-1 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">
-                {isAr ? "المزيد" : "More"}
-                <ChevronDown className="h-4 w-4" />
-              </button>
-              <div className="invisible absolute end-0 top-full z-50 mt-1 w-48 rounded-xl border border-border bg-card p-1 opacity-0 shadow-card transition-all group-hover:visible group-hover:opacity-100">
-                <button onClick={() => navigate("about")} className="block w-full rounded-lg px-3 py-2 text-start text-sm hover:bg-secondary">
-                  {isAr ? "من نحن" : "About Us"}
-                </button>
-                <button onClick={() => navigate("faq")} className="block w-full rounded-lg px-3 py-2 text-start text-sm hover:bg-secondary">
-                  {isAr ? "الأسئلة الشائعة" : "FAQ"}
-                </button>
-                <button onClick={() => navigate("blog")} className="block w-full rounded-lg px-3 py-2 text-start text-sm hover:bg-secondary">
-                  {isAr ? "المدونة" : "Blog"}
-                </button>
-                <button onClick={() => navigate("contact")} className="block w-full rounded-lg px-3 py-2 text-start text-sm hover:bg-secondary">
-                  {isAr ? "اتصل بنا" : "Contact Us"}
-                </button>
-                <div className="my-1 border-t border-border" />
-                <button onClick={() => navigate("privacy")} className="block w-full rounded-lg px-3 py-2 text-start text-sm hover:bg-secondary">
-                  {isAr ? "سياسة الخصوصية" : "Privacy Policy"}
-                </button>
-                <button onClick={() => navigate("terms")} className="block w-full rounded-lg px-3 py-2 text-start text-sm hover:bg-secondary">
-                  {isAr ? "الشروط والأحكام" : "Terms & Conditions"}
-                </button>
-              </div>
-            </div>
             <LanguageToggle />
             {isLoggedIn ? (
               <Button size="sm" className="gap-2" onClick={() => navigate(isCoach ? "coach" : "dashboard")}>
