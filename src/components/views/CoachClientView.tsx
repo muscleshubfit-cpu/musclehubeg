@@ -16,6 +16,7 @@ import {
   Check,
   Eye,
   Pencil,
+  Plus,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -669,37 +670,22 @@ function QuestionnaireCard({ title, data, t }: { title: string; data: any; t: (k
 function PlanViewerModal({ plan, onClose }: { plan: any; onClose: () => void }) {
   const { t } = useI18n();
   const [editMode, setEditMode] = useState(false);
-  const [editTitle, setEditTitle] = useState(plan.title);
-  const [editNotes, setEditNotes] = useState(plan.notes || "");
-  const [editContent, setEditContent] = useState(plan.content ? JSON.stringify(plan.content, null, 2) : "");
+  const [title, setTitle] = useState(plan.title);
+  const [notes, setNotes] = useState(plan.notes || "");
+  const [content, setContent] = useState<any>(plan.content ? JSON.parse(JSON.stringify(plan.content)) : null);
   const [saving, setSaving] = useState(false);
   const isWorkout = plan.type === "workout";
-  const content = plan.content;
 
   const handleSave = async () => {
     setSaving(true);
     try {
-      let parsedContent;
-      try {
-        parsedContent = editContent.trim() ? JSON.parse(editContent) : null;
-      } catch {
-        toast.error("صيغة JSON غير صحيحة في المحتوى");
-        setSaving(false);
-        return;
-      }
-      // updatePlan is imported at top of file
       const { updatePlan } = await import("@/lib/data");
-      await updatePlan(plan.id, {
-        title: editTitle,
-        notes: editNotes,
-        content: parsedContent,
-      });
+      await updatePlan(plan.id, { title, notes, content });
+      plan.title = title;
+      plan.notes = notes;
+      plan.content = content;
       toast.success("تم حفظ التعديلات بنجاح!");
       setEditMode(false);
-      // Update the plan object in place so parent re-renders
-      plan.title = editTitle;
-      plan.notes = editNotes;
-      plan.content = parsedContent;
     } catch (e: any) {
       toast.error(e.message || "فشل الحفظ");
     } finally {
@@ -707,23 +693,107 @@ function PlanViewerModal({ plan, onClose }: { plan: any; onClose: () => void }) 
     }
   };
 
+  // Helper to update nested content fields
+  const updateField = (path: string, value: any) => {
+    const newContent = { ...content };
+    const keys = path.split(".");
+    let obj = newContent;
+    for (let i = 0; i < keys.length - 1; i++) {
+      obj[keys[i]] = { ...obj[keys[i]] };
+      obj = obj[keys[i]];
+    }
+    obj[keys[keys.length - 1]] = value;
+    setContent(newContent);
+  };
+
+  // Update meal item
+  const updateMealItem = (mealIdx: number, itemIdx: number, field: string, value: string) => {
+    const newContent = { ...content };
+    newContent.meals = [...newContent.meals];
+    newContent.meals[mealIdx] = { ...newContent.meals[mealIdx] };
+    newContent.meals[mealIdx].items = [...newContent.meals[mealIdx].items];
+    newContent.meals[mealIdx].items[itemIdx] = { ...newContent.meals[mealIdx].items[itemIdx] };
+    if (field === "calories") {
+      newContent.meals[mealIdx].items[itemIdx][field] = parseInt(value) || 0;
+    } else {
+      newContent.meals[mealIdx].items[itemIdx][field] = value;
+    }
+    setContent(newContent);
+  };
+
+  // Update exercise
+  const updateExercise = (dayIdx: number, exIdx: number, field: string, value: string) => {
+    const newContent = { ...content };
+    newContent.days = [...newContent.days];
+    newContent.days[dayIdx] = { ...newContent.days[dayIdx] };
+    newContent.days[dayIdx].exercises = [...newContent.days[dayIdx].exercises];
+    newContent.days[dayIdx].exercises[exIdx] = { ...newContent.days[dayIdx].exercises[exIdx] };
+    if (field === "sets") {
+      newContent.days[dayIdx].exercises[exIdx][field] = parseInt(value) || 0;
+    } else {
+      newContent.days[dayIdx].exercises[exIdx][field] = value;
+    }
+    setContent(newContent);
+  };
+
+  // Add meal item
+  const addMealItem = (mealIdx: number) => {
+    const newContent = { ...content };
+    newContent.meals = [...newContent.meals];
+    newContent.meals[mealIdx] = { ...newContent.meals[mealIdx] };
+    newContent.meals[mealIdx].items = [...newContent.meals[mealIdx].items, { food: "", amount: "", calories: 0 }];
+    setContent(newContent);
+  };
+
+  // Remove meal item
+  const removeMealItem = (mealIdx: number, itemIdx: number) => {
+    const newContent = { ...content };
+    newContent.meals[mealIdx].items = newContent.meals[mealIdx].items.filter((_: any, i: number) => i !== itemIdx);
+    setContent(newContent);
+  };
+
+  // Add exercise
+  const addExercise = (dayIdx: number) => {
+    const newContent = { ...content };
+    newContent.days[dayIdx].exercises = [...newContent.days[dayIdx].exercises, { name: "", sets: 3, reps: "10-12", rest: "90 ثانية", notes: "" }];
+    setContent(newContent);
+  };
+
+  // Remove exercise
+  const removeExercise = (dayIdx: number, exIdx: number) => {
+    const newContent = { ...content };
+    newContent.days[dayIdx].exercises = newContent.days[dayIdx].exercises.filter((_: any, i: number) => i !== exIdx);
+    setContent(newContent);
+  };
+
+  // Editable cell component
+  const EditCell = ({ value, onChange, type = "text", className = "" }: { value: any; onChange: (v: string) => void; type?: string; className?: string }) => (
+    editMode ? (
+      <Input
+        type={type}
+        value={value ?? ""}
+        onChange={(e) => onChange(e.target.value)}
+        className={`h-8 text-sm ${className}`}
+      />
+    ) : (
+      <span>{value ?? "—"}</span>
+    )
+  );
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" onClick={onClose}>
       <div
         className="max-h-[85vh] w-full max-w-2xl overflow-y-auto scrollbar-thin rounded-3xl border border-border bg-card p-6 shadow-card"
         onClick={(e) => e.stopPropagation()}
       >
+        {/* Header */}
         <div className="mb-4 flex items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             {isWorkout ? <Dumbbell className="h-5 w-5 text-primary" /> : <Salad className="h-5 w-5 text-primary" />}
             {editMode ? (
-              <Input
-                value={editTitle}
-                onChange={(e) => setEditTitle(e.target.value)}
-                className="text-lg font-bold"
-              />
+              <Input value={title} onChange={(e) => setTitle(e.target.value)} className="text-lg font-bold h-9" />
             ) : (
-              <h2 className="text-lg font-bold">{plan.title}</h2>
+              <h2 className="text-lg font-bold">{title}</h2>
             )}
           </div>
           <div className="flex items-center gap-2">
@@ -736,140 +806,233 @@ function PlanViewerModal({ plan, onClose }: { plan: any; onClose: () => void }) 
                 تعديل
               </Button>
             ) : (
-              <Button size="sm" className="gap-1.5" onClick={handleSave} disabled={saving}>
-                {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
-                حفظ
-              </Button>
+              <>
+                <Button size="sm" className="gap-1.5" onClick={handleSave} disabled={saving}>
+                  {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
+                  حفظ
+                </Button>
+                <Button size="sm" variant="ghost" onClick={() => { setEditMode(false); setTitle(plan.title); setNotes(plan.notes || ""); setContent(plan.content ? JSON.parse(JSON.stringify(plan.content)) : null); }}>
+                  إلغاء
+                </Button>
+              </>
             )}
             <Button size="sm" variant="ghost" onClick={onClose}>✕</Button>
           </div>
         </div>
 
-        {editMode ? (
-          /* EDIT MODE */
+        {/* Content */}
+        {content ? (
           <div className="space-y-4">
+            {/* Overview */}
             <div>
-              <Label>العنوان</Label>
-              <Input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} className="mt-1.5" />
+              <Label className="text-xs text-muted-foreground">نظرة عامة</Label>
+              {editMode ? (
+                <Textarea
+                  value={content.overview || ""}
+                  onChange={(e) => updateField("overview", e.target.value)}
+                  className="mt-1 min-h-[60px] text-sm"
+                />
+              ) : (
+                content.overview && <p className="mt-1 text-sm text-muted-foreground">{content.overview}</p>
+              )}
             </div>
+
+            {/* Nutrition: Macros */}
+            {!isWorkout && (
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                {[
+                  { key: "daily_calories", label: "السعرات", color: "text-primary", suffix: "" },
+                  { key: "macros.protein_g", label: "بروتين", color: "text-success", suffix: "g" },
+                  { key: "macros.carbs_g", label: "كارب", color: "text-warning", suffix: "g" },
+                  { key: "macros.fat_g", label: "دهون", color: "text-primary", suffix: "g" },
+                ].map((stat) => {
+                  const val = stat.key.includes(".") ? content[stat.key.split(".")[0]]?.[stat.key.split(".")[1]] : content[stat.key];
+                  return (
+                    <div key={stat.key} className="rounded-xl border border-border bg-background p-3 text-center">
+                      {editMode ? (
+                        <Input
+                          type="number"
+                          value={val ?? 0}
+                          onChange={(e) => {
+                            if (stat.key.includes(".")) {
+                              const [parent, child] = stat.key.split(".");
+                              updateField(stat.key, parseInt(e.target.value) || 0);
+                            } else {
+                              updateField(stat.key, parseInt(e.target.value) || 0);
+                            }
+                          }}
+                          className={`h-8 text-center text-lg font-bold ${stat.color}`}
+                        />
+                      ) : (
+                        <div className={`font-display text-lg font-bold ${stat.color}`}>{val || 0}{stat.suffix}</div>
+                      )}
+                      <div className="text-xs text-muted-foreground">{stat.label}</div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Meals table */}
+            {!isWorkout && content.meals?.map((m: any, mealIdx: number) => (
+              <div key={mealIdx} className="rounded-xl border border-border p-4">
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  {editMode ? (
+                    <Input
+                      value={m.name || ""}
+                      onChange={(e) => {
+                        const newContent = { ...content };
+                        newContent.meals[mealIdx] = { ...newContent.meals[mealIdx], name: e.target.value };
+                        setContent(newContent);
+                      }}
+                      className="h-8 font-semibold"
+                    />
+                  ) : (
+                    <h4 className="font-semibold">{m.name}</h4>
+                  )}
+                </div>
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-border text-start">
+                      <th className="p-2 text-start font-medium text-muted-foreground">الطعام</th>
+                      <th className="p-2 text-start font-medium text-muted-foreground">الكمية</th>
+                      <th className="p-2 text-start font-medium text-muted-foreground">السعرات</th>
+                      {editMode && <th className="p-2 w-8"></th>}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {m.items?.map((it: any, itemIdx: number) => (
+                      <tr key={itemIdx} className="border-b border-border/60">
+                        <td className="p-2"><EditCell value={it.food} onChange={(v) => updateMealItem(mealIdx, itemIdx, "food", v)} /></td>
+                        <td className="p-2"><EditCell value={it.amount} onChange={(v) => updateMealItem(mealIdx, itemIdx, "amount", v)} /></td>
+                        <td className="p-2"><EditCell value={it.calories} onChange={(v) => updateMealItem(mealIdx, itemIdx, "calories", v)} type="number" /></td>
+                        {editMode && (
+                          <td className="p-2">
+                            <button onClick={() => removeMealItem(mealIdx, itemIdx)} className="text-destructive hover:text-destructive/80">
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          </td>
+                        )}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {editMode && (
+                  <button onClick={() => addMealItem(mealIdx)} className="mt-2 flex items-center gap-1 text-xs text-primary hover:underline">
+                    <Plus className="h-3 w-3" /> إضافة صنف
+                  </button>
+                )}
+                {m.notes && !editMode && <p className="mt-1 text-xs text-muted-foreground">{m.notes}</p>}
+                {editMode && (
+                  <Input
+                    value={m.notes || ""}
+                    onChange={(e) => {
+                      const newContent = { ...content };
+                      newContent.meals[mealIdx] = { ...newContent.meals[mealIdx], notes: e.target.value };
+                      setContent(newContent);
+                    }}
+                    placeholder="ملاحظات الوجبة..."
+                    className="mt-2 h-8 text-xs"
+                  />
+                )}
+              </div>
+            ))}
+
+            {/* Workout days */}
+            {isWorkout && content.days?.map((d: any, dayIdx: number) => (
+              <div key={dayIdx} className="rounded-xl border border-border">
+                <div className="flex items-center justify-between border-b border-border bg-muted/40 px-4 py-2 gap-2">
+                  {editMode ? (
+                    <>
+                      <Input
+                        value={d.day || ""}
+                        onChange={(e) => {
+                          const newContent = { ...content };
+                          newContent.days[dayIdx] = { ...newContent.days[dayIdx], day: e.target.value };
+                          setContent(newContent);
+                        }}
+                        className="h-8 font-semibold"
+                      />
+                      <Input
+                        value={d.focus || ""}
+                        onChange={(e) => {
+                          const newContent = { ...content };
+                          newContent.days[dayIdx] = { ...newContent.days[dayIdx], focus: e.target.value };
+                          setContent(newContent);
+                        }}
+                        className="h-8 w-32 text-center text-xs"
+                        placeholder="العضلة"
+                      />
+                    </>
+                  ) : (
+                    <>
+                      <span className="font-semibold">{d.day}</span>
+                      {d.focus && <Badge variant="secondary">{d.focus}</Badge>}
+                    </>
+                  )}
+                </div>
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="text-start">
+                      <th className="p-2 text-start font-medium text-muted-foreground">التمرين</th>
+                      <th className="p-2 text-start font-medium text-muted-foreground">مجموعات</th>
+                      <th className="p-2 text-start font-medium text-muted-foreground">تكرارات</th>
+                      <th className="p-2 text-start font-medium text-muted-foreground">راحة</th>
+                      {editMode && <th className="p-2 w-8"></th>}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {d.exercises?.map((ex: any, exIdx: number) => (
+                      <tr key={exIdx} className="border-t border-border/60">
+                        <td className="p-2">
+                          <EditCell value={ex.name} onChange={(v) => updateExercise(dayIdx, exIdx, "name", v)} className="font-medium" />
+                          {editMode ? (
+                            <Input
+                              value={ex.notes || ""}
+                              onChange={(e) => updateExercise(dayIdx, exIdx, "notes", e.target.value)}
+                              placeholder="ملاحظات..."
+                              className="mt-1 h-7 text-xs"
+                            />
+                          ) : (
+                            ex.notes && <p className="text-xs text-muted-foreground">{ex.notes}</p>
+                          )}
+                        </td>
+                        <td className="p-2"><EditCell value={ex.sets} onChange={(v) => updateExercise(dayIdx, exIdx, "sets", v)} type="number" /></td>
+                        <td className="p-2"><EditCell value={ex.reps} onChange={(v) => updateExercise(dayIdx, exIdx, "reps", v)} /></td>
+                        <td className="p-2"><EditCell value={ex.rest} onChange={(v) => updateExercise(dayIdx, exIdx, "rest", v)} /></td>
+                        {editMode && (
+                          <td className="p-2">
+                            <button onClick={() => removeExercise(dayIdx, exIdx)} className="text-destructive hover:text-destructive/80">
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          </td>
+                        )}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {editMode && (
+                  <button onClick={() => addExercise(dayIdx)} className="m-2 flex items-center gap-1 text-xs text-primary hover:underline">
+                    <Plus className="h-3 w-3" /> إضافة تمرين
+                  </button>
+                )}
+              </div>
+            ))}
+
+            {/* Notes field */}
             <div>
-              <Label>ملاحظات</Label>
-              <Textarea value={editNotes} onChange={(e) => setEditNotes(e.target.value)} className="mt-1.5" />
-            </div>
-            <div>
-              <Label>المحتوى (JSON)</Label>
-              <Textarea
-                value={editContent}
-                onChange={(e) => setEditContent(e.target.value)}
-                className="mt-1.5 min-h-[300px] font-mono text-xs"
-                dir="ltr"
-                placeholder='{"overview":"...","days":[...],"meals":[...]}'
-              />
-              <p className="mt-1 text-xs text-muted-foreground">
-                عدّل المحتوى بصيغة JSON. يمكنك تغيير الوجبات، التمارين، الماكروز، إلخ.
-              </p>
-            </div>
-            <div className="flex gap-2">
-              <Button onClick={handleSave} disabled={saving} className="gap-2">
-                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
-                حفظ التعديلات
-              </Button>
-              <Button variant="outline" onClick={() => setEditMode(false)}>إلغاء</Button>
+              <Label className="text-xs text-muted-foreground">ملاحظات عامة</Label>
+              {editMode ? (
+                <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} className="mt-1 min-h-[40px] text-sm" />
+              ) : (
+                notes && notes !== "Generated by AI" && <p className="mt-1 text-sm text-muted-foreground">{notes}</p>
+              )}
             </div>
           </div>
         ) : (
-          /* VIEW MODE */
-          content ? (
-            <div className="space-y-4">
-              {content.overview && <p className="text-sm text-muted-foreground">{content.overview}</p>}
-
-              {/* Nutrition plan */}
-              {!isWorkout && content.daily_calories && (
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                  <div className="rounded-xl border border-border bg-background p-3 text-center">
-                    <div className="font-display text-lg font-bold text-primary">{content.daily_calories}</div>
-                    <div className="text-xs text-muted-foreground">السعرات</div>
-                  </div>
-                  <div className="rounded-xl border border-border bg-background p-3 text-center">
-                    <div className="font-display text-lg font-bold text-success">{content.macros?.protein_g || 0}g</div>
-                    <div className="text-xs text-muted-foreground">بروتين</div>
-                  </div>
-                  <div className="rounded-xl border border-border bg-background p-3 text-center">
-                    <div className="font-display text-lg font-bold text-warning">{content.macros?.carbs_g || 0}g</div>
-                    <div className="text-xs text-muted-foreground">كارب</div>
-                  </div>
-                  <div className="rounded-xl border border-border bg-background p-3 text-center">
-                    <div className="font-display text-lg font-bold text-primary">{content.macros?.fat_g || 0}g</div>
-                    <div className="text-xs text-muted-foreground">دهون</div>
-                  </div>
-                </div>
-              )}
-
-              {/* Meals */}
-              {!isWorkout && content.meals?.map((m: any, i: number) => (
-                <div key={i} className="rounded-xl border border-border p-4">
-                  <h4 className="mb-2 font-semibold">{m.name}</h4>
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b border-border text-start">
-                        <th className="p-2 text-start font-medium text-muted-foreground">الطعام</th>
-                        <th className="p-2 text-start font-medium text-muted-foreground">الكمية</th>
-                        <th className="p-2 text-start font-medium text-muted-foreground">السعرات</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {m.items?.map((it: any, j: number) => (
-                        <tr key={j} className="border-b border-border/60">
-                          <td className="p-2 font-medium">{it.food}</td>
-                          <td className="p-2">{it.amount}</td>
-                          <td className="p-2">{it.calories}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                  {m.notes && <p className="mt-1 text-xs text-muted-foreground">{m.notes}</p>}
-                </div>
-              ))}
-
-              {/* Workout plan */}
-              {isWorkout && content.days?.map((d: any, i: number) => (
-                <div key={i} className="rounded-xl border border-border">
-                  <div className="flex items-center justify-between border-b border-border bg-muted/40 px-4 py-2">
-                    <span className="font-semibold">{d.day}</span>
-                    {d.focus && <Badge variant="secondary">{d.focus}</Badge>}
-                  </div>
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="text-start">
-                        <th className="p-2 text-start font-medium text-muted-foreground">التمرين</th>
-                        <th className="p-2 text-start font-medium text-muted-foreground">مجموعات</th>
-                        <th className="p-2 text-start font-medium text-muted-foreground">تكرارات</th>
-                        <th className="p-2 text-start font-medium text-muted-foreground">راحة</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {d.exercises?.map((ex: any, j: number) => (
-                        <tr key={j} className="border-t border-border/60">
-                          <td className="p-2">
-                            <p className="font-medium">{ex.name}</p>
-                            {ex.notes && <p className="text-xs text-muted-foreground">{ex.notes}</p>}
-                          </td>
-                          <td className="p-2">{ex.sets}</td>
-                          <td className="p-2">{ex.reps}</td>
-                          <td className="p-2">{ex.rest}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="py-8 text-center text-sm text-muted-foreground">
-              لا يوجد محتوى لهذه الخطة
-              {plan.notes && <p className="mt-2">{plan.notes}</p>}
-            </div>
-          )
+          <div className="py-8 text-center text-sm text-muted-foreground">
+            لا يوجد محتوى لهذه الخطة
+          </div>
         )}
       </div>
     </div>
