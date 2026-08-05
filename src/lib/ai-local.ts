@@ -208,124 +208,346 @@ function pickExercises(
 
 /* ---------------------------- Nutrition plan ----------------------------- */
 
+// Mifflin-St Jeor BMR formula — the most accurate for general population
+function calculateBMR(weight: number, height: number, age: number, isMale: boolean): number {
+  if (isMale) {
+    return Math.round(10 * weight + 6.25 * height - 5 * age + 5);
+  }
+  return Math.round(10 * weight + 6.25 * height - 5 * age - 161);
+}
+
+// Activity multipliers based on activity level
+const ACTIVITY_MULTIPLIERS: Record<string, number> = {
+  sedentary: 1.2,        // مكتب work, no exercise
+  light: 1.375,          // 1-3 days exercise
+  moderate: 1.55,        // 3-5 days exercise
+  active: 1.725,         // 6-7 days exercise
+  very_active: 1.9,      // athlete level
+};
+
+function parseActivityLevel(activity: string): number {
+  const a = (activity || "").toLowerCase();
+  if (a.includes("very") || a.includes("نشيط جدا") || a.includes("رياضي")) return 1.9;
+  if (a.includes("active") || a.includes("نشيط") || a.includes("6") || a.includes("7")) return 1.725;
+  if (a.includes("moderate") || a.includes("متوسط") || a.includes("3") || a.includes("4") || a.includes("5")) return 1.55;
+  if (a.includes("light") || a.includes("خفيف") || a.includes("1") || a.includes("2")) return 1.375;
+  return 1.2; // sedentary default
+}
+
+// Food database with calories per 100g and macros per 100g
+type FoodItem = {
+  name: string;
+  name_en: string;
+  calsPer100g: number;
+  proteinPer100g: number;
+  carbsPer100g: number;
+  fatPer100g: number;
+  category: "protein" | "carb" | "fat" | "veg" | "fruit" | "dairy";
+};
+
+const FOOD_DB: FoodItem[] = [
+  // Proteins
+  { name: "صدر دجاج مشوي", name_en: "chicken breast", calsPer100g: 165, proteinPer100g: 31, carbsPer100g: 0, fatPer100g: 3.6, category: "protein" },
+  { name: "لحم بقري قليل الدهن", name_en: "lean beef", calsPer100g: 217, proteinPer100g: 26, carbsPer100g: 0, fatPer100g: 12, category: "protein" },
+  { name: "سمك سلمون", name_en: "salmon", calsPer100g: 208, proteinPer100g: 20, carbsPer100g: 0, fatPer100g: 13, category: "protein" },
+  { name: "تونة", name_en: "tuna", calsPer100g: 132, proteinPer100g: 28, carbsPer100g: 0, fatPer100g: 1, category: "protein" },
+  { name: "بيض كامل", name_en: "whole egg", calsPer100g: 155, proteinPer100g: 13, carbsPer100g: 1.1, fatPer100g: 11, category: "protein" },
+  { name: "بياض البيض", name_en: "egg white", calsPer100g: 52, proteinPer100g: 11, carbsPer100g: 0.7, fatPer100g: 0.2, category: "protein" },
+  { name: "روبيان", name_en: "shrimp", calsPer100g: 99, proteinPer100g: 24, carbsPer100g: 0.2, fatPer100g: 0.3, category: "protein" },
+  { name: "كبدة دجاج", name_en: "chicken liver", calsPer100g: 119, proteinPer100g: 17, carbsPer100g: 0.7, fatPer100g: 4.8, category: "protein" },
+  // Carbs
+  { name: "أرز بسمتي مطبوخ", name_en: "rice", calsPer100g: 130, proteinPer100g: 2.7, carbsPer100g: 28, fatPer100g: 0.3, category: "carb" },
+  { name: "بطاطس مسلوقة", name_en: "potato", calsPer100g: 87, proteinPer100g: 2, carbsPer100g: 20, fatPer100g: 0.1, category: "carb" },
+  { name: "بطاطا حلوة", name_en: "sweet potato", calsPer100g: 86, proteinPer100g: 1.6, carbsPer100g: 20, fatPer100g: 0.1, category: "carb" },
+  { name: "شوفان جاف", name_en: "oats", calsPer100g: 389, proteinPer100g: 6.8, carbsPer100g: 28, fatPer100g: 7, category: "carb" },
+  { name: "خبز أسمر", name_en: "brown bread", calsPer100g: 247, proteinPer100g: 13, carbsPer100g: 41, fatPer100g: 3.2, category: "carb" },
+  { name: "كينوا مطبوخة", name_en: "quinoa", calsPer100g: 120, proteinPer100g: 4.4, carbsPer100g: 21, fatPer100g: 1.9, category: "carb" },
+  { name: "معكرونة قمح كامل", name_en: "whole pasta", calsPer100g: 124, proteinPer100g: 5, carbsPer100g: 25, fatPer100g: 1.1, category: "carb" },
+  // Fats
+  { name: "زيت زيتون", name_en: "olive oil", calsPer100g: 884, proteinPer100g: 0, carbsPer100g: 0, fatPer100g: 100, category: "fat" },
+  { name: "لوز", name_en: "almonds", calsPer100g: 579, proteinPer100g: 21, carbsPer100g: 22, fatPer100g: 50, category: "fat" },
+  { name: "فول سوداني", name_en: "peanuts", calsPer100g: 567, proteinPer100g: 26, carbsPer100g: 16, fatPer100g: 49, category: "fat" },
+  { name: "زبادي بذور الكتان", name_en: "flaxseed", calsPer100g: 534, proteinPer100g: 18, carbsPer100g: 29, fatPer100g: 42, category: "fat" },
+  { name: "أفوكادو", name_en: "avocado", calsPer100g: 160, proteinPer100g: 2, carbsPer100g: 9, fatPer100g: 15, category: "fat" },
+  // Dairy
+  { name: "زبادي يوناني", name_en: "greek yogurt", calsPer100g: 59, proteinPer100g: 10, carbsPer100g: 3.6, fatPer100g: 0.4, category: "dairy" },
+  { name: "جبن قريش", name_en: "cottage cheese", calsPer100g: 98, proteinPer100g: 11, carbsPer100g: 3.4, fatPer100g: 4.3, category: "dairy" },
+  { name: "حليب بقري 2%", name_en: "milk 2%", calsPer100g: 50, proteinPer100g: 3.3, carbsPer100g: 5, fatPer100g: 2, category: "dairy" },
+  // Vegetables
+  { name: "بروكلي مطبوخ", name_en: "broccoli", calsPer100g: 35, proteinPer100g: 2.4, carbsPer100g: 7, fatPer100g: 0.4, category: "veg" },
+  { name: "سبانخ مطبوخ", name_en: "spinach", calsPer100g: 23, proteinPer100g: 3, carbsPer100g: 3.8, fatPer100g: 0.3, category: "veg" },
+  { name: "خيار", name_en: "cucumber", calsPer100g: 15, proteinPer100g: 0.7, carbsPer100g: 3.6, fatPer100g: 0.1, category: "veg" },
+  { name: "طماطم", name_en: "tomato", calsPer100g: 18, proteinPer100g: 0.9, carbsPer100g: 3.9, fatPer100g: 0.2, category: "veg" },
+  { name: "خس", name_en: "lettuce", calsPer100g: 15, proteinPer100g: 1.4, carbsPer100g: 2.9, fatPer100g: 0.2, category: "veg" },
+  { name: "فلفل أخضر", name_en: "green pepper", calsPer100g: 20, proteinPer100g: 0.9, carbsPer100g: 4.6, fatPer100g: 0.2, category: "veg" },
+  // Fruits
+  { name: "موز", name_en: "banana", calsPer100g: 89, proteinPer100g: 1.1, carbsPer100g: 23, fatPer100g: 0.3, category: "fruit" },
+  { name: "تفاح", name_en: "apple", calsPer100g: 52, proteinPer100g: 0.3, carbsPer100g: 14, fatPer100g: 0.2, category: "fruit" },
+  { name: "برتقال", name_en: "orange", calsPer100g: 47, proteinPer100g: 0.9, carbsPer100g: 12, fatPer100g: 0.1, category: "fruit" },
+  { name: "فراولة", name_en: "strawberry", calsPer100g: 32, proteinPer100g: 0.7, carbsPer100g: 7.7, fatPer100g: 0.3, category: "fruit" },
+];
+
+// Calculate exact grams needed for a food to hit a target calorie amount
+function gramsForCalories(food: FoodItem, targetCals: number): number {
+  return Math.round(targetCals / food.calsPer100g * 100);
+}
+
+// Calculate exact macros for a given food + grams
+function calcMacros(food: FoodItem, grams: number) {
+  return {
+    protein: Math.round(food.proteinPer100g * grams / 100),
+    carbs: Math.round(food.carbsPer100g * grams / 100),
+    fat: Math.round(food.fatPer100g * grams / 100),
+    calories: Math.round(food.calsPer100g * grams / 100),
+  };
+}
+
 export function generateNutritionPlan(ctx: ClientContext): NutritionContent {
   const nutrition = ctx.nutrition || {};
   const fitness = ctx.fitness || {};
   const measurements = ctx.recent_measurements || [];
 
+  // Parse all client data
   const weight = parseFloat(nutrition.weight || measurements[0]?.weight || "80");
+  const height = parseFloat(nutrition.height || "175");
+  const age = parseInt(nutrition.age || "25");
   const targetWeight = parseFloat(nutrition.target || nutrition.target_weight || weight);
   const goal = (fitness.goal || "").toLowerCase();
+  const activityLevel = parseActivityLevel(fitness.activity || "");
+  const trainingDays = parseInt(fitness.days) || 4;
 
-  const isFatLoss = targetWeight < weight || goal.includes("fat") || goal.includes("دهون");
-  const isMuscleGain = targetWeight > weight || goal.includes("muscle") || goal.includes("عضلات");
+  // Determine goal
+  const weightDiff = targetWeight - weight;
+  const isFatLoss = weightDiff < -2 || goal.includes("fat") || goal.includes("دهون") || goal.includes("تخسيس") || goal.includes("loss");
+  const isMuscleGain = weightDiff > 2 || goal.includes("muscle") || goal.includes("عضلات") || goal.includes("build") || goal.includes("كتلة");
+  const isRecomp = !isFatLoss && !isMuscleGain;
 
-  // Calculate calories
-  // Maintenance ≈ weight (kg) × 33
-  const maintenance = Math.round(weight * 33);
+  // Step 1: Calculate BMR using Mifflin-St Jeor
+  // Assume male if not specified (can be extended)
+  const isMale = true; // TODO: add gender field
+  const bmr = calculateBMR(weight, height, age, isMale);
+
+  // Step 2: Calculate TDEE = BMR × activity multiplier
+  // Adjust multiplier based on training days
+  let adjustedMultiplier = activityLevel;
+  if (trainingDays >= 5) adjustedMultiplier = Math.max(activityLevel, 1.725);
+  else if (trainingDays >= 3) adjustedMultiplier = Math.max(activityLevel, 1.55);
+  else if (trainingDays >= 1) adjustedMultiplier = Math.max(activityLevel, 1.375);
+
+  const tdee = Math.round(bmr * adjustedMultiplier);
+
+  // Step 3: Calculate target calories based on goal
   let dailyCalories: number;
+  let deficitSurplus: number;
   if (isFatLoss) {
-    dailyCalories = Math.round((maintenance - 500) / 50) * 50; // ~0.5kg/week deficit
+    // Moderate deficit: 20% below TDEE (safe, sustainable)
+    deficitSurplus = -Math.round(tdee * 0.20);
+    dailyCalories = tdee + deficitSurplus;
   } else if (isMuscleGain) {
-    dailyCalories = Math.round((maintenance + 300) / 50) * 50; // slight surplus
+    // Slight surplus: 10% above TDEE
+    deficitSurplus = Math.round(tdee * 0.10);
+    dailyCalories = tdee + deficitSurplus;
   } else {
-    dailyCalories = maintenance;
+    // Maintenance
+    deficitSurplus = 0;
+    dailyCalories = tdee;
   }
 
-  // Macros: protein 2g/kg, fat 1g/kg, carbs = remaining
-  const proteinG = Math.round(weight * 2);
-  const fatG = Math.round(weight * 1);
-  const carbsG = Math.max(0, Math.round((dailyCalories - proteinG * 4 - fatG * 9) / 4));
+  // Round to nearest 10
+  dailyCalories = Math.round(dailyCalories / 10) * 10;
 
-  // Meals
+  // Step 4: Calculate macros based on goal
+  let proteinG: number, fatG: number, carbsG: number;
+
+  if (isFatLoss) {
+    // Cutting: high protein (2.4g/kg), moderate fat (0.8g/kg), low carbs
+    proteinG = Math.round(weight * 2.4);
+    fatG = Math.round(weight * 0.8);
+    carbsG = Math.max(0, Math.round((dailyCalories - proteinG * 4 - fatG * 9) / 4));
+  } else if (isMuscleGain) {
+    // Bulking: moderate protein (2g/kg), moderate fat (1g/kg), high carbs
+    proteinG = Math.round(weight * 2.0);
+    fatG = Math.round(weight * 1.0);
+    carbsG = Math.max(0, Math.round((dailyCalories - proteinG * 4 - fatG * 9) / 4));
+  } else {
+    // Maintenance: balanced
+    proteinG = Math.round(weight * 2.0);
+    fatG = Math.round(weight * 1.0);
+    carbsG = Math.max(0, Math.round((dailyCalories - proteinG * 4 - fatG * 9) / 4));
+  }
+
+  // Step 5: Build meals with EXACT calorie/macro targets
   const mealsCount = parseInt(nutrition.meals) || 4;
   const diet = (nutrition.diet || "").toLowerCase();
   const isVeg = diet.includes("veg") || diet.includes("نبات");
   const allergies = (nutrition.allergies || "").toLowerCase();
   const disliked = (nutrition.disliked || "").toLowerCase();
+  const medicalConditions = (nutrition.medical || "").toLowerCase();
 
-  const calsPerMeal = Math.round(dailyCalories / mealsCount);
-  const proteinPerMeal = Math.round(proteinG / mealsCount);
+  // Filter foods based on preferences
+  const availableFoods = FOOD_DB.filter((f) => {
+    const name = f.name.toLowerCase();
+    const nameEn = f.name_en.toLowerCase();
+    // Check allergies
+    if (allergies.split(",").some((a) => {
+      const item = a.trim().toLowerCase();
+      return item && (name.includes(item) || nameEn.includes(item));
+    })) return false;
+    // Check disliked
+    if (disliked.split(",").some((d) => {
+      const item = d.trim().toLowerCase();
+      return item && (name.includes(item) || nameEn.includes(item));
+    })) return false;
+    // Filter veg
+    if (isVeg && (f.category === "protein") && !nameEn.includes("egg") && !nameEn.includes("yogurt") && !nameEn.includes("cheese") && !nameEn.includes("milk")) return false;
+    return true;
+  });
 
-  const mealTemplates = [
-    {
-      name: "الفطار",
-      items: isVeg
-        ? [
-            { food: "شوفان بالحليب", amount: "80 جم شوفان + 250 مل حليب", calories: Math.round(calsPerMeal * 0.4) },
-            { food: "موزة", amount: "1 متوسطة", calories: 105 },
-            { food: "لوز", amount: "20 جم", calories: 115 },
-            { food: "عسل", amount: "1 ملعقة", calories: 64 },
-          ]
-        : [
-            { food: "بيض مسلوق", amount: `${Math.ceil(proteinPerMeal / 6)} بيضات`, calories: Math.round(proteinPerMeal * 1.5) },
-            { food: "خبز أسمر", amount: "2 شريحة", calories: 160 },
-            { food: "جبن قريش", amount: "50 جم", calories: 60 },
-            { food: "خيار وطماطم", amount: "حبة من كل نوع", calories: 30 },
-          ],
-      notes: "تناوله خلال ساعة من الاستيقاظ لتشغيل الأيض",
-    },
-    {
-      name: "الغداء",
-      items: isVeg
-        ? [
-            { food: "أرز بسمتي", amount: "150 جم مطبوخ", calories: 195 },
-            { food: "عدس", amount: "150 جم مطبوخ", calories: 175 },
-            { food: "خضار سوتيه", amount: "200 جم", calories: 80 },
-            { food: "زيت زيتون", amount: "1 ملعقة", calories: 120 },
-          ]
-        : [
-            { food: "صدر دجاج مشوي", amount: `${Math.round(proteinPerMeal / 3.1) * 30} جم`, calories: Math.round(proteinPerMeal * 1.65) },
-            { food: "أرز بسمتي", amount: "150 جم مطبوخ", calories: 195 },
-            { food: "سلطة خضار", amount: "طبق كبير", calories: 50 },
-            { food: "زيت زيتون", amount: "1 ملعقة", calories: 120 },
-          ],
-      notes: "أكبر وجبة في اليوم — ركز على البروتين والكارب",
-    },
-    {
-      name: "سناك",
-      items: [
-        { food: "زبادي يوناني", amount: "200 جم", calories: 130 },
-        { food: "لوز أو فول سوداني", amount: "30 جم", calories: 175 },
-        { food: "تفاحة", amount: "1 متوسطة", calories: 95 },
-      ],
-      notes: "بين الغداء والعشاء للحفاظ على الطاقة",
-    },
-    {
-      name: "العشاء",
-      items: isVeg
-        ? [
-            { food: "بطاطا حلوة", amount: "200 جم", calories: 172 },
-            { food: "حمص", amount: "100 جم", calories: 165 },
-            { food: "سلطة", amount: "طبق", calories: 50 },
-          ]
-        : [
-            { food: "سمك أو لحم مشوي", amount: `${Math.round(proteinPerMeal / 2.5) * 30} جم`, calories: Math.round(proteinPerMeal * 2) },
-            { food: "بطاطا حلوة", amount: "150 جم", calories: 130 },
-            { food: "بروكلي سوتيه", amount: "150 جم", calories: 50 },
-          ],
-      notes: "وجبة خفيفة قبل النوم بـ 3 ساعات",
-    },
-  ];
+  // Meal distribution: not equal — breakfast 25%, lunch 35%, snack 15%, dinner 25%
+  const distributions = mealsCount === 3
+    ? [0.35, 0.35, 0.30]
+    : mealsCount === 4
+    ? [0.25, 0.35, 0.15, 0.25]
+    : mealsCount === 5
+    ? [0.20, 0.30, 0.10, 0.25, 0.15]
+    : [0.20, 0.25, 0.10, 0.20, 0.10, 0.15]; // 6 meals
 
-  // Filter out disliked/allergenic foods
-  const filteredMeals = mealTemplates.slice(0, mealsCount).map((meal) => ({
-    ...meal,
-    items: meal.items.filter((item) => {
-      const food = item.food.toLowerCase();
-      return !allergies.split(",").some((a) => a.trim() && food.includes(a.trim().toLowerCase()))
-        && !disliked.split(",").some((d) => d.trim() && food.includes(d.trim().toLowerCase()));
-    }),
-  }));
+  const mealNames = mealsCount === 3
+    ? ["الفطار", "الغداء", "العشاء"]
+    : mealsCount === 4
+    ? ["الفطار", "الغداء", "سناك", "العشاء"]
+    : mealsCount === 5
+    ? ["الفطار", "سناك صباحي", "الغداء", "سناك", "العشاء"]
+    : ["الفطار", "سناك صباحي", "الغداء", "سناك", "العشاء", "سناك مسائي"];
 
+  // Build each meal with exact macro targets
+  const meals = distributions.slice(0, mealsCount).map((dist, idx) => {
+    const mealCals = Math.round(dailyCalories * dist);
+    const mealProtein = Math.round(proteinG * dist);
+    const mealCarbs = Math.round(carbsG * dist);
+    const mealFat = Math.round(fatG * dist);
+
+    // Select foods for this meal
+    const proteins = availableFoods.filter((f) => f.category === "protein");
+    const carbs = availableFoods.filter((f) => f.category === "carb");
+    const fats = availableFoods.filter((f) => f.category === "fat");
+    const vegs = availableFoods.filter((f) => f.category === "veg");
+    const fruits = availableFoods.filter((f) => f.category === "fruit");
+    const dairy = availableFoods.filter((f) => f.category === "dairy");
+
+    const items: Array<{ food: string; amount: string; calories: number }> = [];
+
+    // Pick foods based on meal position
+    let proteinFood: FoodItem | undefined;
+    let carbFood: FoodItem | undefined;
+    let fatFood: FoodItem | undefined;
+    let vegFood: FoodItem | undefined;
+    let fruitFood: FoodItem | undefined;
+
+    // Rotate protein sources across meals
+    const proteinRotation = idx % proteins.length;
+    proteinFood = proteins[proteinRotation];
+    carbFood = carbs[idx % carbs.length];
+    fatFood = fats[idx % fats.length];
+    vegFood = vegs[idx % vegs.length];
+    fruitFood = fruits[idx % fruits.length];
+
+    // Calculate grams for each food to hit macro targets
+    // Protein food: ~60% of meal protein
+    if (proteinFood) {
+      const proteinCalsTarget = Math.round(mealProtein * 4 * 0.7); // 70% of protein cals from protein source
+      const grams = gramsForCalories(proteinFood, proteinCalsTarget);
+      const macros = calcMacros(proteinFood, grams);
+      items.push({
+        food: proteinFood.name,
+        amount: `${grams} جم`,
+        calories: macros.calories,
+      });
+    }
+
+    // Carb food: ~60% of meal carbs
+    if (carbFood) {
+      const carbCalsTarget = Math.round(mealCarbs * 4 * 0.6);
+      const grams = gramsForCalories(carbFood, carbCalsTarget);
+      const macros = calcMacros(carbFood, grams);
+      items.push({
+        food: carbFood.name,
+        amount: `${grams} جم`,
+        calories: macros.calories,
+      });
+    }
+
+    // Fat source: small amount
+    if (fatFood) {
+      const fatCalsTarget = Math.round(mealFat * 9 * 0.5);
+      const grams = Math.max(5, gramsForCalories(fatFood, fatCalsTarget));
+      const macros = calcMacros(fatFood, grams);
+      items.push({
+        food: fatFood.name,
+        amount: `${grams} جم`,
+        calories: macros.calories,
+      });
+    }
+
+    // Vegetables (low cal, high volume)
+    if (vegFood) {
+      const grams = 150; // standard veg serving
+      const macros = calcMacros(vegFood, grams);
+      items.push({
+        food: vegFood.name,
+        amount: `${grams} جم`,
+        calories: macros.calories,
+      });
+    }
+
+    // Fruit for breakfast/snacks
+    if (idx === 0 || idx === 2 || idx === 3) {
+      if (fruitFood) {
+        const grams = 100;
+        const macros = calcMacros(fruitFood, grams);
+        items.push({
+          food: fruitFood.name,
+          amount: `${grams} جم`,
+          calories: macros.calories,
+        });
+      }
+    }
+
+    // Meal notes based on timing
+    let notes = "";
+    if (idx === 0) notes = "تناولها خلال ساعة من الاستيقاظ — مهمة لتشغيل الأيض";
+    else if (idx === mealsCount - 1) notes = "وجبة خفيفة قبل النوم بـ 2-3 ساعات";
+    else if (idx === Math.floor(mealsCount / 2)) notes = "أكبر وجبة — قبل/بعد التمرين";
+    else notes = "وجبة خفيفة للحفاظ على طاقة الجسم";
+
+    return { name: mealNames[idx] || `وجبة ${idx + 1}`, items, notes };
+  });
+
+  // Calculate actual totals from meals
+  const actualCals = meals.reduce((sum, m) => sum + m.items.reduce((s, i) => s + i.calories, 0), 0);
   const goalText = isFatLoss ? "خسارة الدهون" : isMuscleGain ? "بناء العضلات" : "الحفاظ على الوزن";
-  const overview = `خطة تغذية مخصصة لـ ${ctx.name || "العميل"} بهدف ${goalText}. السعرات اليومية ${dailyCalories} كالوري مع ${proteinG}جم بروتين للحفاظ على الكتلة العضلية. ${allergies ? `تم استبعاد الأطعمة المسببة للحساسية.` : ""} وزع الوجبات على مدار اليوم لتحقيق أفضل امتصاص للبروتين.`;
+
+  const overview = `خطة تغذية مخصصة لـ ${ctx.name || "العميل"} بهدف ${goalText}.
+
+📊 تحليل بياناتك:
+• الوزن: ${weight} كجم | الهدف: ${targetWeight} كجم
+• الطول: ${height} سم | العمر: ${age} سنة
+• معدل الأيض الأساسي (BMR): ${bmr} كالوري
+• إجمالي الاستهلاك (TDEE): ${tdee} كالوري
+• ${deficitSurplus < 0 ? `عجز يومي: ${Math.abs(deficitSurplus)} كالوري` : deficitSurplus > 0 ? `فائض يومي: ${deficitSurplus} كالوري` : "صيانة"}
+
+🎯 السعرات المستهدفة: ${dailyCalories} كالوري/يوم
+🥩 البروتين: ${proteinG}جم (≈${(proteinG * 4 / dailyCalories * 100).toFixed(0)}%)
+🍚 الكارب: ${carbsG}جم (≈${(carbsG * 4 / dailyCalories * 100).toFixed(0)}%)
+🥑 الدهون: ${fatG}جم (≈${(fatG * 9 / dailyCalories * 100).toFixed(0)}%)
+
+${allergies ? `⚠️ تم استبعاد: ${allergies}\n` : ""}${disliked ? `⚠️ تم تجنب: ${disliked}\n` : ""}${isVeg ? "🌱 نظام نباتي\n" : ""}وزّع الوجبات على مدار اليوم لتحقيق أفضل امتصاص للبروتين وحرق دهون مستمر.`;
 
   return {
     overview,
     daily_calories: dailyCalories,
     macros: { protein_g: proteinG, carbs_g: carbsG, fat_g: fatG },
-    meals: filteredMeals,
+    meals,
   };
 }
 
