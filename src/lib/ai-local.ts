@@ -636,100 +636,165 @@ ${allergies ? `⚠️ تم استبعاد: ${allergies}\n` : ""}${disliked ? `�
  * - If daily limit reached, suggests sending a request to the coach
  */
 export function generateChatReply(message: string, ctx?: ClientContext): string {
-  const text = message.toLowerCase();
+  const text = message.toLowerCase().trim();
   const name = ctx?.name || "";
-  const plans = ctx?.current_plans || [];
+  const plans = (ctx as any)?.current_plans || [];
   const nutrition = ctx?.nutrition || {};
   const fitness = ctx?.fitness || {};
   const measurements = ctx?.recent_measurements || [];
   const subscription = (ctx as any)?.subscription;
 
+  // Helper: check if ANY keyword matches
+  const has = (...words: string[]) => words.some((w) => text.includes(w));
+
   // Greeting
-  if (text.match(/^(hello|hi|hey|مرحبا|اهلا|أهلا|السلام|سلام)/)) {
-    return `أهلاً${name ? ` ${name}` : ""}! 👋 أنا مساعدك الذكي. عندي خلفية كاملة عن:
+  if (has("hello", "hi", "hey", "مرحبا", "اهلا", "أهلا", "السلام", "سلام", "صباح", "مساء", "هاي", "هلا")) {
+    return `أهلاً${name ? ` ${name}` : ""}! 👋 أنا EVO، مساعدك الذكي. عندي خلفية كاملة عن:
 ${plans.length > 0 ? `✅ خططك الحالية (${plans.length} خطة)` : "⏳ لا توجد خطط مفعّلة بعد"}
-${nutrition.weight ? `✅ وزنك الحالي: ${nutrition.weight} كجم` : ""}
+${nutrition.weight ? `✅ وزنك: ${nutrition.weight} كجم` : ""}
 ${fitness.goal ? `✅ هدفك: ${fitness.goal}` : ""}
 
-تقدر تسألني عن:
-• تبديل صنف معين (مثال: "اكل بطاطس بدل الرز؟")
-• كم بروتين/سعرات في وجبة معينة
-• استبدال تمرين بآخر
-• أي سؤال عن خطتك الحالية
-
-إذا خلصت حد التبديلات اليومي، هقدر أساعدك تطلب تبديل من المدرب مباشرة. كيف أقدر أساعدك؟`;
+تقدر تسألني عن أي حاجة:
+• "كم بروتين في خطتي؟" — أقولك بالأرقام
+• "عايز أخفف وزني" — أشرحلك خطتك
+• "بدل الرز ببطاطس" — أحسبلك الجرامات
+• "إيه تمارين اليوم الأول؟" — أعرضها لك
+• "كم تبديل باقي لي؟" — أقولك حدك
+كيف أقدر أساعدك؟`;
   }
 
-  // Swap request — food
-  if ((text.includes("بدل") || text.includes("استبدل") || text.includes("swap")) && (text.includes("بطاطس") || text.includes("رز") || text.includes("ارز") || text.includes("دجاج") || text.includes("سمك") || text.includes("لحم") || text.includes("اكل") || text.includes("وجبة") || text.includes("meal"))) {
+  // Food swap — broader matching
+  if (has("بدل", "استبدل", "swap", "تغيير", "غيّر", "غير") && has("بطاطس", "رز", "ارز", "أرز", "دجاج", "سمك", "لحم", "اكل", "أكل", "وجبة", "وجبه", "meal", "food", "صنف", "طعام", "شوفان", "بطاطا", "خبز", "معكرونة", "مكرونة")) {
+    return handleFoodSwapQuestion(text, ctx);
+  }
+  // Also catch "ينفع اكل" / "ممكن اكل" / "أكل إيه"
+  if (has("ينفع", "ممكن", "أكل", "اكل") && has("بدل", "بدلا", "عوض", "تغيير", "بطاطس", "رز", "ارز", "أرز", "شوفان", "بطاطا", "خبز")) {
     return handleFoodSwapQuestion(text, ctx);
   }
 
-  // Swap request — exercise
-  if ((text.includes("بدل") || text.includes("استبدل") || text.includes("swap")) && (text.includes("تمرين") || text.includes("سكوات") || text.includes("بنش") || text.includes("ديدليفت") || text.includes("exercise") || text.includes("workout"))) {
+  // Exercise swap — broader matching
+  if (has("بدل", "استبدل", "swap", "تغيير", "غيّر", "غير") && has("تمرين", "سكوات", "بنش", "ديدليفت", "exercise", "workout", "ضغط", "عقلة", "سحب", "كيرل", "رفرفة", "بلانك", "ليج")) {
     return handleExerciseSwapQuestion(text, ctx);
   }
 
-  // Protein question
-  if (text.includes("protein") || text.includes("بروتين")) {
+  // Protein — broader
+  if (has("protein", "بروتين", "بروتينة", "واي", "whey")) {
     const weight = parseFloat(nutrition.weight || measurements[0]?.weight || "80");
     const proteinTarget = Math.round(weight * 2);
-    // Check if they have a nutrition plan
     const nutritionPlan = plans.find((p: any) => p.type === "meal" || p.type === "nutrition");
     if (nutritionPlan?.content?.macros?.protein_g) {
-      return `خطة التغذية الحالية بتاعتك فيها ${nutritionPlan.content.macros.protein_g}جم بروتين يومياً.
-وزنك ${weight} كجم، يعني احتياجك التقريبي ${proteinTarget}جم (2جم/كجم) — خطتك بتغطي احتياجك تماماً! ✅
+      return `خطة التغذية بتاعتك فيها ${nutritionPlan.content.macros.protein_g}جم بروتين يومياً.
+وزنك ${weight} كجم، احتياجك ${proteinTarget}جم (2جم/كجم) — خطتك بتغطي احتياجك! ✅
 
-مصادر ممتازة للبروتين: صدور دجاج، بيض، سمك، لحم قليل الدهن، زبادي يوناني، جبن قريش.
+مصادر ممتازة: صدور دجاج، بيض، سمك، لحم قليل الدهن، زبادي يوناني، جبن قريش، تونة.
 
-لو عايز تبديل صنف بروتيني، اضغط زر "استبدال" على الوجبة في صفحة خطتي، أو اسألني عن تبديل معين وأحسبه لك.`;
+لو عايز تبديل صنف بروتيني، اضغط زر "استبدال" 🔄 على الوجبة في صفحة خطتي، أو اسألني عن تبديل معين.`;
     }
     return `احتياجك اليومي من البروتين حوالي ${proteinTarget}جم (2جم/كجم وزنك ${weight}كجم).
-وزّعها على 4 وجبات (${Math.round(proteinTarget / 4)}جم لكل وجبة) لأفضل امتصاص.
+وزّعها على وجباتك (${Math.round(proteinTarget / 4)}جم لكل وجبة) لأفضل امتصاص.
 
-بعد ما الكوتش يفعّل خطة تغذيتك، هقدر أقولك بالضبط كم بروتين في كل وجبة وأي تبديلات تناسبك.`;
+بعد ما الكوتش يفعّل خطة تغذيتك، هقدر أقولك كم بروتين في كل وجبة بالضبط.`;
   }
 
-  // Water question
-  if (text.includes("water") || text.includes("ماء") || text.includes("مياه") || text.includes("شرب")) {
+  // Water — broader
+  if (has("water", "ماء", "مياه", "شرب", "ميه", "ترطيب", "hydration")) {
     const weight = parseFloat(nutrition.weight || measurements[0]?.weight || "80");
     const waterTarget = Math.round(weight * 35 / 1000 * 10) / 10;
     return `احتياجك اليومي من الماء حوالي ${waterTarget} لتر (${Math.round(weight * 35)} مل).
-اضف 500 مل حول التمرين وزد في الجو الحار. ابدأ يومك بكوبين ماء على الريق.`;
+• اضف 500 مل حول التمرين
+• زد في الجو الحار أو لو بتعرق كتير
+• ابدأ يومك بكوبين ماء على الريق
+• خلي زجاجة ماء معاك طول اليوم`;
   }
 
-  // Weight/fat loss
-  if (text.includes("weight") || text.includes("وزن") || text.includes("fat") || text.includes("دهون") || text.includes("تخسيس") || text.includes("تنحيف")) {
+  // Weight loss / fat loss — broader
+  if (has("weight", "وزن", "fat", "دهون", "تخسيس", "تنحيف", "خسارة", "خفف", "أخفف", "نزل", "أنزل", "نزول", "diet", "دايت", "رجيم", "حرق")) {
     const weight = parseFloat(nutrition.weight || measurements[0]?.weight || "80");
     const target = parseFloat(nutrition.target || nutrition.target_weight || "0");
     const nutritionPlan = plans.find((p: any) => p.type === "meal" || p.type === "nutrition");
     if (nutritionPlan?.content?.daily_calories) {
-      return `خطتك الحالية فيها ${nutritionPlan.content.daily_calories} كالوري يومياً.
-صيانة وزنك تقريباً ${Math.round(weight * 33)} كالوري، يعني خطتك بتعمل عجز ${Math.round(weight * 33 - nutritionPlan.content.daily_calories)} كالوري/يوم ≈ ${Math.round((weight * 33 - nutritionPlan.content.daily_calories) * 7 / 7700 * 10) / 10} كجم أسبوعياً.
+      const maintenance = Math.round(weight * 33);
+      const deficit = maintenance - nutritionPlan.content.daily_calories;
+      return `خطتك الحالية فيها ${nutritionPlan.content.daily_calories} كالوري/يوم.
+صيانة وزنك ≈ ${maintenance} كالوري، يعني خطتك بتعمل عجز ${deficit} كالوري/يوم ≈ ${(deficit * 7 / 7700).toFixed(1)} كجم أسبوعياً.
 
-${target ? `هدفك: ${target} كجم (متبقي ${Math.round((weight - target) * 10) / 10} كجم).` : ""}
-استمر في خطتك + سجل وزنك كل أسبوع في صفحة التقدم.`;
+${target ? `🎯 هدفك: ${target} كجم (متبقي ${(weight - target).toFixed(1)} كجم)` : ""}
+
+💡 نصائح لخسارة دهون بشكل أسرع:
+• التزم بخطتك 100% — كل سعرة محسوبة
+• سجل وزنك كل أسبوع في صفحة التقدم
+• زد 20-30 دقيقة مشي يومياً
+• نام 7-9 ساعات (قلة النوم ترفع الكورتيزول)
+• اشرب 3 لتر ماء يومياً`;
     }
-    return `لخسارة الدهون بشكل مستدام، استهدف عجز 300-500 كالوري يومياً (≈0.4-0.5 كجم أسبوعياً). حافظ على البروتين عالياً (2جم/كجم)، درّب الأوزان 4 مرات أسبوعياً، وأضف 20-30 دقيقة كارديو 2-3 مرات.`;
+    return `لخسارة الدهون بشكل مستدام:
+• عجز 300-500 كالوري يومياً (≈0.5 كجم/أسبوع)
+• بروتين عالي: 2-2.4جم/كجم وزن
+• تمارين مقاومة 4 مرات أسبوعياً
+• 20-30 دقيقة كارديو 2-3 مرات
+• نوم 7-9 ساعات
+
+بعد ما الكوتش يفعّل خطتك، هقدر أقولك بالضبط كم عجز في خطتك.`;
+  }
+
+  // Muscle building — broader
+  if (has("muscle", "عضلات", "عضلة", "build", "تضخيم", "كتلة", "بناء", "ضخامة", "bulk", "تضخم")) {
+    const weight = parseFloat(nutrition.weight || measurements[0]?.weight || "80");
+    const nutritionPlan = plans.find((p: any) => p.type === "meal" || p.type === "nutrition");
+    if (nutritionPlan?.content?.daily_calories) {
+      return `خطتك الحالية فيها ${nutritionPlan.content.daily_calories} كالوري/يوم — مصممة لبناء العضلات.
+
+💡 لبناء عضلات بشكل فعال:
+• التزم ببروتين ${nutritionPlan.content.macros?.protein_g || Math.round(weight * 2)}جم يومياً
+• تدرّب بأوزان ثقيلة (6-12 تكرار)
+• زد 2.5 كجم كل أسبوعين (progressive overload)
+• نام 7-9 ساعات للتعافي العضلي
+• كل كارب قبل وبعد التمرين للطاقة`;
+    }
+    return `لبناء العضلات:
+• فائض 200-300 كالوري فوق الصيانة
+• بروتين 2جم/كجم وزن
+• تمارين مركبة (سكوات، بنش، ديدليفت)
+• 4-5 أيام تدريب أسبوعياً
+• نوم 7-9 ساعات أساسي للتعافي`;
   }
 
   // Cardio
-  if (text.includes("cardio") || text.includes("كارديو") || text.includes("مشي") || text.includes("جري")) {
-    return `الكارديو اختياري لخسارة الدهون لكن ممتاز لصحة القلب. 2-3 جلسات أسبوعياً مدة 20-30 دقيقة كافية فوق التمارين المقاومة. اختر ما تحب: مشي سريع، دراجة، أو HIIT.`;
+  if (has("cardio", "كارديو", "مشي", "جري", "ركض", "دراجة", "hiit", "هيت")) {
+    return `الكارديو اختياري لخسارة الدهون لكن ممتاز لصحة القلب:
+• 2-3 جلسات أسبوعياً، 20-30 دقيقة
+• اختر اللي تحبه: مشي سريع، جري، دراجة، سباحة
+• HIIT (تدريب متقطع) يحرق سعرات أكثر في وقت أقل
+• لا تفرط في الكارديو لو بتبني عضلات — يأكل من العضل`;
   }
 
   // Sleep
-  if (text.includes("sleep") || text.includes("نوم")) {
-    return `النوم 7-9 ساعات أساسي للتعافي وهرمونات التغذية. قلل الشاشات قبل النوم بساعة، تجنب الكافيين بعد العصر، وحافظ على مواعيد ثابتة.`;
+  if (has("sleep", "نوم", "أنام", "نام", "تعافي", "recovery", "راحة")) {
+    return `النوم 7-9 ساعات أساسي لـ:
+• إصلاح العضلات وإفراز هرمون النمو
+• تنظيم هرمونات الجوع والشبع
+• تحسين الأداء الرياضي والتركيز
+
+💡 نصائح لنوم أفضل:
+• قلل الشاشات قبل النوم بساعة
+• تجنب الكافيين بعد العصر
+• حافظ على مواعيد نوم ثابتة
+• درجة حرارة الغرفة 18-20°م`;
   }
 
   // Supplements
-  if (text.includes("supplement") || text.includes("مكمل") || text.includes("واي") || text.includes("كرياتين") || text.includes("فيتامين")) {
-    return `المكملات الأساسية: واي بروتين (1-2 سكوب يومياً)، كرياتين (5جم يومياً)، فيتامين D (2000-4000 IU). الباقي اختياري. استشر طبيباً قبل أي مكمل إذا لديك حالة طبية.`;
+  if (has("supplement", "مكمل", "واي", "كرياتين", "فيتامين", "bcaa", "أوميغا", "omega", "زنك", "حديد")) {
+    return `المكملات الأساسية فقط:
+• واي بروتين: 1-2 سكوب يومياً (25-50جم بروتين)
+• كرياتين: 5جم يومياً (يحسن القوة والقدرة)
+• فيتامين D: 2000-4000 IU (لو ما تتعرضش للشمس)
+• أوميغا 3: 1-2جم يومياً (لصحة القلب)
+
+الباقي اختياري. استشر طبيب قبل أي مكمل لو عندك حالة طبية.`;
   }
 
-  // Ask about current plan
-  if (text.includes("خطتي") || text.includes("plan") || text.includes("الخطة") || text.includes("برنامجي") || text.includes("نظامي")) {
+  // Current plan — broader
+  if (has("خطتي", "plan", "الخطة", "برنامجي", "نظامي", "تماريني", "وجباتي", "نظامي", "my plan", "خطتي", "خطة")) {
     if (plans.length === 0) {
       return `لا يوجد خطة مفعّلة لديك حالياً. بمجرد ما الكوتش يفعّل خطتك، هقدر أقولك تفاصيلها بالكامل: السعرات، الماكروز، الوجبات، التمارين، وأي تبديلات تناسبك.`;
     }
@@ -741,40 +806,92 @@ ${target ? `هدفك: ${target} كجم (متبقي ${Math.round((weight - target
       reply += `🍽️ ${mealPlan.title}:\n`;
       if (c.daily_calories) reply += `   • السعرات: ${c.daily_calories} كالوري/يوم\n`;
       if (c.macros) reply += `   • الماكروز: بروتين ${c.macros.protein_g}جم | كارب ${c.macros.carbs_g}جم | دهون ${c.macros.fat_g}جم\n`;
-      if (c.meals) reply += `   • ${c.meals.length} وجبات\n`;
+      if (c.meals) reply += `   • ${c.meals.length} وجبات: ${c.meals.map((m: any) => m.name).join("، ")}\n`;
       reply += "\n";
     }
     if (workoutPlan?.content?.days) {
-      reply += `💪 ${workoutPlan.title}:\n   • ${workoutPlan.content.days.length} أيام تدريب/أسبوع\n`;
-      reply += `   • الأيام: ${workoutPlan.content.days.map((d: any) => d.focus || d.day).join("، ")}\n\n`;
+      reply += `💪 ${workoutPlan.title}:\n`;
+      reply += `   • ${workoutPlan.content.days.filter((d: any) => !d.isRest).length} أيام تدريب + ${workoutPlan.content.days.filter((d: any) => d.isRest).length} أيام راحة\n`;
+      reply += `   • الأيام: ${workoutPlan.content.days.map((d: any) => `${d.day} (${d.isRest ? "راحة" : d.focus})`).join("، ")}\n\n`;
     }
     reply += `تقدر تسألني عن أي وجبة أو تمرين محدد، أو تطلب تبديل وأحسبه لك.`;
     return reply;
   }
 
-  // Swap limit question
-  if (text.includes("حد") || text.includes("limit") || text.includes("كام تبديل") || text.includes("عدد التبديلات") || text.includes("كم تبديل")) {
-    if (subscription?.swapLimit === null) {
-      return `اشتراكك ${subscription.tierName || "المميز"} يتيح لك تبديلات غير محدودة يومياً! 🎉
+  // Swap limit — broader
+  if (has("حد", "limit", "كام تبديل", "عدد التبديلات", "كم تبديل", "تبديلات", "كام تغيير", "كم تغيير")) {
+    if (subscription?.swapLimit === null || subscription?.swapLimit === undefined) {
+      return `اشتراكك يتيح لك تبديلات غير محدودة يومياً! 🎉
 تقدر تبديل وجبات وتمارين قد ما تحب بدون أي قيود.`;
     }
-    return `اشتراكك ${subscription.tierName || "الحالي"} يتيح لك ${subscription?.swapLimit || 2} تبديل يومياً لكل نوع:
+    return `اشتراكك يتيح لك ${subscription?.swapLimit || 2} تبديل يومياً لكل نوع:
 • ${subscription?.swapLimit || 2} تبديل وجبات/يوم
 • ${subscription?.swapLimit || 2} تبديل تمارين/يوم
 
 تتجدد التبديلات كل يوم. إذا خلصت الحد، تقدر تطلب تبديل من المدرب مباشرة وأنا هساعدك تقدم الطلب.`;
   }
 
-  // Default — suggest options
+  // Calories question — broader
+  if (has("سعرات", "calories", "كالوري", "سعرة", "حرارية", "كم سعرة", "كام سعرة")) {
+    const nutritionPlan = plans.find((p: any) => p.type === "meal" || p.type === "nutrition");
+    if (nutritionPlan?.content?.daily_calories) {
+      const c = nutritionPlan.content;
+      return `خطتك فيها ${c.daily_calories} كالوري/يوم.
+• بروتين: ${c.macros?.protein_g || 0}جم = ${((c.macros?.protein_g || 0) * 4)} كالوري (${Math.round((c.macros?.protein_g || 0) * 4 / c.daily_calories * 100)}%)
+• كارب: ${c.macros?.carbs_g || 0}جم = ${((c.macros?.carbs_g || 0) * 4)} كالوري (${Math.round((c.macros?.carbs_g || 0) * 4 / c.daily_calories * 100)}%)
+• دهون: ${c.macros?.fat_g || 0}جم = ${((c.macros?.fat_g || 0) * 9)} كالوري (${Math.round((c.macros?.fat_g || 0) * 9 / c.daily_calories * 100)}%)`;
+    }
+    return `بعد ما الكوتش يفعّل خطة تغذيتك، هقدر أقولك بالضبط كم سعرة وماكروز في كل وجبة.`;
+  }
+
+  // Macros question
+  if (has("ماكرو", "macro", "بروتين", "كارب", "دهون", "macros", "نسبة")) {
+    const nutritionPlan = plans.find((p: any) => p.type === "meal" || p.type === "nutrition");
+    if (nutritionPlan?.content?.macros) {
+      return `الماكروز في خطتك:
+• 🥩 بروتين: ${nutritionPlan.content.macros.protein_g}جم
+• 🍚 كارب: ${nutritionPlan.content.macros.carbs_g}جم
+• 🥑 دهون: ${nutritionPlan.content.macros.fat_g}جم`;
+    }
+    return `بعد ما الكوتش يفعّل خطة تغذيتك، هقدر أقولك الماكروز بالتفصيل.`;
+  }
+
+  // What exercises today?
+  if (has("تمارين", "تمرين", "تدريب", "workout", "exercise", "أد إيه", "اد ايه", "اليوم")) {
+    const workoutPlan = plans.find((p: any) => p.type === "workout");
+    if (workoutPlan?.content?.days) {
+      const trainingDays = workoutPlan.content.days.filter((d: any) => !d.isRest);
+      let reply = `برنامجك فيه ${trainingDays.length} أيام تدريب:\n\n`;
+      trainingDays.forEach((d: any) => {
+        reply += `${d.day} — ${d.focus}:\n`;
+        d.exercises?.forEach((ex: any) => {
+          reply += `  • ${ex.name}: ${ex.sets}×${ex.reps} (راحة: ${ex.rest})\n`;
+        });
+        reply += "\n";
+      });
+      return reply + `تقدر تسألني عن تبديل أي تمرين وأقترح بديل مناسب.`;
+    }
+    return `بعد ما الكوتش يفعّل برنامج تمارينك، هقدر أعرضلك تفاصيل كل يوم وتمارينه.`;
+  }
+
+  // Thanks
+  if (has("شكرا", "شكراً", "thanks", "thank", "تسلم", "ممتاز", "تمام")) {
+    return `العفو${name ? ` ${name}` : ""}! 😊 أنا دايماً هنا لو احتجت أي حاجة. تقدر تسألني في أي وقت.`;
+  }
+
+  // Default — smarter fallback
   return `سؤال حلو${name ? ` ${name}` : ""}! 😊
 
-تقدر تسألني عن:
-• "اكل بطاطس بدل الرز؟" — أحسبلك التبديل بالجرامات والسعرات
-• "كم بروتين في خطتي؟" — أقولك تفاصيل خطتك
-• "استبدل تمرين السكوات" — أقترح بديل بنفس العضلة
-• "كم تبديل باقي لي؟" — أقولك حدك اليومي
+ممكن أساعدك في:
+• "كم بروتين في خطتي؟" — أقولك بالأرقام
+• "عايز أخفف وزني" — أشرحلك خطتك
+• "بدل الرز ببطاطس" — أحسبلك الجرامات
+• "إيه تمارين اليوم الأول؟" — أعرضها لك
+• "كم تبديل باقي لي؟" — أقولك حدك
+• "كم سعرات في خطتي؟" — أقولك التفاصيل
+• "إيه الماكروز بتاعتي؟" — أعرضها لك
 
-لو سؤالك عن حاجة تانية، وضّح لي أكتر وأنا أساعدك. لو محتاج تبديل خارج الحد اليومي، أقدر أساعدك تطلب من المدرب مباشرة.`;
+اكتب سؤالك بطريقة تانية أو اختار من اللي فوق وأنا أساعدك.`;
 }
 
 function handleFoodSwapQuestion(text: string, ctx?: ClientContext): string {

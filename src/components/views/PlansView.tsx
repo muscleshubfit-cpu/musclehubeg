@@ -437,8 +437,15 @@ function WorkoutContent({ content, onSwap, swapLoading, planId }: any) {
               {d.exercises?.map((ex: any, j: number) => (
                 <tr key={j} className="border-t border-border/60">
                   <td className="p-2">
-                    <p className="font-medium">{ex.name}</p>
-                    {ex.notes && <p className="text-xs text-muted-foreground">{ex.notes}</p>}
+                    <div className="flex items-center gap-3">
+                      {ex.image && (
+                        <img src={ex.image} alt={ex.name} className="h-14 w-20 shrink-0 rounded-lg object-cover border border-border" loading="lazy" />
+                      )}
+                      <div>
+                        <p className="font-medium">{ex.name}</p>
+                        {ex.notes && <p className="text-xs text-muted-foreground">{ex.notes}</p>}
+                      </div>
+                    </div>
                   </td>
                   <td className="p-2">{ex.sets}</td>
                   <td className="p-2">{ex.reps}</td>
