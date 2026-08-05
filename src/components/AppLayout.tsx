@@ -44,6 +44,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
     { to: "coach", label: t("nav.clients"), icon: Users },
     { to: "coach-support", label: t("nav.support.coach"), icon: LifeBuoy },
     { to: "coach-payments", label: t("nav.admin"), icon: CreditCard },
+    { to: "blog-admin", label: isAr ? "المدونة" : "Blog", icon: FileText },
   ];
   const nav = isCoach ? coachNav : clientNav;
 

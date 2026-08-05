@@ -24,7 +24,9 @@ export type View =
   | "contact"
   | "privacy"
   | "terms"
-  | "faq";
+  | "faq"
+  | "blog-admin"
+  | "blog-editor";
 
 /**
  * Real, crawlable, back-button-friendly routing.
