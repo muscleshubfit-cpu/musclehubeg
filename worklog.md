@@ -143,3 +143,31 @@ Stage Summary:
 - Vercel-GitHub integration is properly configured (link.productionBranch=main), so future pushes to main should auto-deploy.
 - Gemini's free-tier quota is currently exhausted (429). The article generator uses callAIWithFallback() so it will automatically retry with OpenRouter's free Gemma 4 26B model — the user can verify by clicking "Generate with AI" in the editor.
 - User action: Hard-refresh musclehubeg.vercel.app/coach (Ctrl+Shift+R or clear browser cache). The new service worker (v3) will wipe the old cache on next load.
+
+---
+Task ID: fix-blog-nav-404
+Agent: main (super-z)
+Task: User reported "زرار المدونة بيدى خطأ ٤٠٤" (Blog button gives 404 error).
+
+Work Log:
+- Inspected src/hooks/use-nav.tsx — found the root cause in pathForView():
+  The view id "blog-admin" was hitting the `default` case which builds the path as `/${view}` → "/blog-admin". But the actual Next.js route is at /admin/blog (defined in src/app/admin/blog/page.tsx). Same problem for "blog-editor" → was building "/blog-editor" instead of "/admin/blog/new".
+- Fix: added explicit cases for "blog-admin" and "blog-editor" in pathForView():
+  * "blog-admin" → "/admin/blog"
+  * "blog-editor" → params.postId ? "/admin/blog/{postId}" : "/admin/blog/new"
+- Also updated viewForPath() to recognise /admin/blog/* paths so the Blog nav tab stays highlighted when the admin is browsing the blog CMS.
+- Added about/contact/privacy/terms/faq to the known views list (they were silently falling through to "landing").
+- Committed (f6730f6) and pushed to GitHub.
+- Triggered production deployment via Vercel API. Build completed in 45 seconds: dpl_F94V2KG1TbYmfmCKK49nCWRzqfss, state=READY.
+- Verified the fix is live:
+  * Production JS bundle now contains `case"blog-admin":return"/admin/blog"` and `case"blog-editor":return t.postId?...`
+  * /admin/blog → HTTP 200
+  * /admin/blog/new → HTTP 200
+  * /admin/ai-settings → HTTP 200
+  * /coach → HTTP 200
+  * /dashboard → HTTP 200
+
+Stage Summary:
+- Root cause: missing explicit route mapping for the blog-admin/blog-editor view ids in use-nav.tsx — they fell through to the default case which built incorrect URLs.
+- Fix: 2-case addition to pathForView() + viewForPath() update for active-tab highlighting.
+- Production is live with the fix. User should hard-refresh and the Blog button will navigate to /admin/blog correctly.
