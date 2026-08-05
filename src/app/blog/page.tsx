@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import AppRoot from "@/components/AppRoot";
+import { BlogView } from "@/components/views/BlogView";
 
 export const metadata: Metadata = {
   title: "المدونة | Ahmed Zake Coaching",
@@ -12,6 +12,6 @@ export const metadata: Metadata = {
   },
 };
 
-export default function BlogPage() {
-  return <AppRoot initialView="blog" />;
+export default function Page() {
+  return <BlogView />;
 }

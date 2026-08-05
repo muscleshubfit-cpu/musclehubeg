@@ -1,6 +1,7 @@
 "use client";
 
-import { createContext, useContext, useState, useCallback, type ReactNode } from "react";
+import { useCallback, useMemo } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 export type View =
   | "landing"
@@ -20,35 +21,79 @@ export type View =
   | "referral"
   | "blog";
 
-type NavCtx = {
-  view: View;
-  params: Record<string, any>;
-  navigate: (view: View, params?: Record<string, any>) => void;
-};
+/**
+ * Real, crawlable, back-button-friendly routing.
+ *
+ * This used to be a pure in-memory SPA router (view/params kept in React
+ * state, URL always stayed at "/"). That broke the browser back button and
+ * made every internal screen invisible to search engines. `useNav()` is now
+ * a thin adapter over Next.js's router so every existing `navigate("x", {...})`
+ * call site in the app keeps working unchanged, but each call now produces a
+ * real URL + a real browser history entry.
+ */
+function pathForView(view: View, params: Record<string, any> = {}): string {
+  switch (view) {
+    case "landing":
+      return "/";
+    case "auth":
+      return params.mode ? `/auth?mode=${encodeURIComponent(params.mode)}` : "/auth";
+    case "checkout": {
+      const q = new URLSearchParams();
+      if (params.tier) q.set("tier", String(params.tier));
+      if (params.months) q.set("months", String(params.months));
+      const qs = q.toString();
+      return qs ? `/checkout?${qs}` : "/checkout";
+    }
+    case "coach-client":
+      return params.clientId ? `/coach/${encodeURIComponent(params.clientId)}` : "/coach";
+    case "coach-payments":
+      return "/coach/payments";
+    case "coach-support":
+      return "/coach/support";
+    case "coach":
+      return "/coach";
+    default:
+      return `/${view}`;
+  }
+}
 
-const Ctx = createContext<NavCtx | null>(null);
-
-export function NavProvider({
-  children,
-  initialView = "landing",
-}: {
-  children: ReactNode;
-  initialView?: View;
-}) {
-  const [view, setView] = useState<View>(initialView);
-  const [params, setParams] = useState<Record<string, any>>({});
-
-  const navigate = useCallback((v: View, p: Record<string, any> = {}) => {
-    setView(v);
-    setParams(p);
-    if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
-  }, []);
-
-  return <Ctx.Provider value={{ view, params, navigate }}>{children}</Ctx.Provider>;
+/** Reverse mapping: current pathname -> View, used for active-tab highlighting. */
+function viewForPath(pathname: string): View {
+  if (pathname === "/" || pathname === "") return "landing";
+  if (pathname.startsWith("/coach/payments")) return "coach-payments";
+  if (pathname.startsWith("/coach/support")) return "coach-support";
+  if (pathname.startsWith("/coach/")) return "coach-client";
+  if (pathname === "/coach") return "coach";
+  const clean = pathname.replace(/^\//, "").split("/")[0];
+  const known: View[] = [
+    "pricing", "auth", "checkout", "dashboard", "questionnaires",
+    "progress", "plans", "chat", "support", "referral", "blog",
+  ];
+  return (known as string[]).includes(clean) ? (clean as View) : "landing";
 }
 
 export function useNav() {
-  const ctx = useContext(Ctx);
-  if (!ctx) throw new Error("useNav must be used within NavProvider");
-  return ctx;
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  const view = useMemo(() => viewForPath(pathname || "/"), [pathname]);
+  const params = useMemo(() => {
+    const obj: Record<string, any> = {};
+    searchParams?.forEach((value, key) => { obj[key] = value; });
+    if (view === "coach-client") {
+      obj.clientId = (pathname || "").split("/").filter(Boolean)[1];
+    }
+    return obj;
+  }, [searchParams, pathname, view]);
+
+  const navigate = useCallback(
+    (v: View, p: Record<string, any> = {}) => {
+      router.push(pathForView(v, p));
+      if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
+    },
+    [router],
+  );
+
+  return { view, params, navigate };
 }

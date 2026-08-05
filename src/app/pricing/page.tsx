@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import AppRoot from "@/components/AppRoot";
+import { PricingView } from "@/components/views/PricingView";
 
 export const metadata: Metadata = {
   title: "الأسعار والباقات | Ahmed Zake Coaching",
@@ -12,6 +12,6 @@ export const metadata: Metadata = {
   },
 };
 
-export default function PricingPage() {
-  return <AppRoot initialView="pricing" />;
+export default function Page() {
+  return <PricingView />;
 }

@@ -1,7 +1,10 @@
 import type { Metadata, Viewport } from "next";
+import { Suspense } from "react";
 import Script from "next/script";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
+import { I18nProvider } from "@/lib/i18n";
+import { AuthProvider } from "@/hooks/use-auth";
 
 export const metadata: Metadata = {
   title: "Ahmed Zake — Online Nutrition & Fitness Coaching",
@@ -54,7 +57,11 @@ export default function RootLayout({
   return (
     <html lang="ar" dir="rtl" suppressHydrationWarning>
       <body className="antialiased bg-background text-foreground">
-        {children}
+        <I18nProvider>
+          <AuthProvider>
+            <Suspense fallback={null}>{children}</Suspense>
+          </AuthProvider>
+        </I18nProvider>
         <Toaster position="top-center" richColors />
         {/* PWA Service Worker Registration */}
         <Script id="pwa-sw" strategy="afterInteractive">
