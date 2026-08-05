@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { Dumbbell, Save, Eye, Code, Sparkles, Loader2, ArrowLeft, Plus, X, CheckCircle, AlertCircle, Clock } from "lucide-react";
+import { Dumbbell, Save, Eye, Code, Sparkles, Loader2, ArrowLeft, Plus, X, CheckCircle, AlertCircle, Clock, Wand2, Settings2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,6 +12,7 @@ import { useI18n } from "@/lib/i18n";
 import { useRouter } from "next/navigation";
 import { BLOG_CATEGORIES, getCategoryLabel, parseTableOfContents, renderMarkdown } from "@/lib/blog";
 import { adminGetPost, adminCreatePost, adminUpdatePost, aiTool, calculateSEOScore, calculateWordCount, calculateReadingTime, type AdminBlogPost } from "@/lib/blog-admin";
+import { AIGenerateModal, type GeneratedBundle } from "@/components/blog/AIGenerateModal";
 import { toast } from "sonner";
 
 export function BlogEditorView({ mode, postId }: { mode: "new" | "edit"; postId?: string }) {
@@ -45,6 +46,17 @@ export function BlogEditorView({ mode, postId }: { mode: "new" | "edit"; postId?
   const [tagInput, setTagInput] = useState("");
   const [aiLoading, setAiLoading] = useState<string | null>(null);
   const [aiResults, setAiResults] = useState<Record<string, string>>({});
+  const [showAIModal, setShowAIModal] = useState(false);
+  const [aiStatus, setAiStatus] = useState<{ isConfigured: boolean; provider: string } | null>(null);
+
+  // Fetch AI provider status once on mount — used to show a hint linking to
+  // the AI Settings page when no key is configured.
+  useEffect(() => {
+    fetch("/api/ai/settings")
+      .then((r) => r.json())
+      .then((d) => setAiStatus(d.status || null))
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (mode === "edit" && postId) {
@@ -121,11 +133,70 @@ export function BlogEditorView({ mode, postId }: { mode: "new" | "edit"; postId?
   const runAITool = async (tool: string) => {
     setAiLoading(tool);
     try {
-      const result = await aiTool(tool, { content: post.content, title: post.title, keyword: post.focus_keyword, lang: post.language as "en" | "ar" });
+      const result = await aiTool(tool, { content: post.content, title: post.title, keyword: post.focus_keyword || "", lang: post.language as "en" | "ar" });
       setAiResults((prev) => ({ ...prev, [tool]: result.text }));
       toast.success(isAr ? "تم التوليد!" : "Generated!");
     } catch (e: any) { toast.error(e.message); }
     finally { setAiLoading(null); }
+  };
+
+  /**
+   * Apply a generated bundle to the editor. Loads the chosen language's
+   * article into the title/content/excerpt/SEO fields, and stashes the
+   * "extras" (FAQ, image prompts, social posts, link suggestions) inside
+   * the post's `schema_json` so they're saved with the draft and visible
+   * in the AI results panel.
+   */
+  const applyAIBundle = (bundle: GeneratedBundle, language: "en" | "ar") => {
+    const article = language === "en" ? bundle.englishArticle : bundle.arabicArticle;
+    const seo = bundle.seo;
+
+    setPost((p) => ({
+      ...p,
+      language,
+      title: seo.seoTitle || p.title,
+      slug: seo.slug || p.slug,
+      excerpt: bundle.research?.angle || p.excerpt,
+      content: article,
+      meta_title: seo.metaTitle || seo.seoTitle,
+      meta_description: seo.metaDescription,
+      focus_keyword: seo.focusKeyword,
+      keywords: seo.secondaryKeywords,
+      tags: seo.secondaryKeywords.slice(0, 5),
+      reading_time: bundle.estimatedReadingTime,
+      faq_json: bundle.faq,
+      schema_json: {
+        ...(p.schema_json || {}),
+        ai_bundle: {
+          research: bundle.research,
+          imagePrompts: bundle.imagePrompts,
+          socialPosts: bundle.socialPosts,
+          internalLinks: bundle.internalLinks,
+          externalLinks: bundle.externalLinks,
+          otherArticle: language === "en" ? bundle.arabicArticle : bundle.englishArticle,
+          otherArticleLang: language === "en" ? "ar" : "en",
+          generatedAt: new Date().toISOString(),
+        },
+      },
+    }));
+
+    // Also surface the social posts + image prompts in the AI results panel
+    // so the admin can copy them without opening the saved JSON.
+    setAiResults({
+      image_prompt_featured: bundle.imagePrompts.featuredImage,
+      image_prompt_facebook: bundle.imagePrompts.facebookImage,
+      image_prompt_og: bundle.imagePrompts.openGraphImage,
+      social_facebook: bundle.socialPosts.facebook,
+      social_linkedin: bundle.socialPosts.linkedin,
+      social_instagram: bundle.socialPosts.instagram,
+      social_x: bundle.socialPosts.x,
+    });
+
+    toast.success(
+      isAr
+        ? `تم تحميل المقال ${language === "ar" ? "العربي" : "الإنجليزي"} — راجعه واحفظه كمسودة`
+        : `Loaded ${language === "ar" ? "Arabic" : "English"} article — review & save as draft`,
+    );
   };
 
   const seo = calculateSEOScore(post);
@@ -148,8 +219,30 @@ export function BlogEditorView({ mode, postId }: { mode: "new" | "edit"; postId?
     { id: "image_prompt", label: isAr ? "Prompt صورة" : "Image Prompt" },
   ];
 
+  // Build a friendly label for AI results that came from the bundle.
+  const aiResultLabel = (key: string): string => {
+    const map: Record<string, string> = {
+      image_prompt_featured: isAr ? "برومبت الصورة المميزة" : "Featured Image Prompt",
+      image_prompt_facebook: isAr ? "برومبت صورة فيسبوك" : "Facebook Image Prompt",
+      image_prompt_og: isAr ? "برومبت Open Graph" : "Open Graph Image Prompt",
+      social_facebook: isAr ? "منشور فيسبوك" : "Facebook Post",
+      social_linkedin: isAr ? "منشور لينكدإن" : "LinkedIn Post",
+      social_instagram: isAr ? "كابشن إنستجرام" : "Instagram Caption",
+      social_x: isAr ? "تغريدة" : "X Post",
+    };
+    return map[key] || aiTools.find((t) => t.id === key)?.label || key;
+  };
+
   return (
     <div className="space-y-4">
+      {/* AI Generate Modal */}
+      <AIGenerateModal
+        open={showAIModal}
+        onClose={() => setShowAIModal(false)}
+        onApply={applyAIBundle}
+        defaultLanguage={post.language as "en" | "ar"}
+      />
+
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
@@ -159,7 +252,46 @@ export function BlogEditorView({ mode, postId }: { mode: "new" | "edit"; postId?
           </Button>
           <h1 className="text-xl font-bold">{mode === "new" ? (isAr ? "مقال جديد" : "New Article") : (isAr ? "تعديل المقال" : "Edit Article")}</h1>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Generate with AI — primary action */}
+          <Button
+            size="sm"
+            className="gap-2 bg-gradient-to-r from-primary to-primary/80 shadow-glow"
+            onClick={() => {
+              if (aiStatus && !aiStatus.isConfigured) {
+                toast.info(
+                  isAr
+                    ? "Configure your AI provider first — opening AI Settings"
+                    : "Configure your AI provider first — opening AI Settings",
+                );
+                router.push("/admin/ai-settings");
+                return;
+              }
+              setShowAIModal(true);
+            }}
+          >
+            <Wand2 className="h-4 w-4" />
+            {isAr ? "توليد بالذكاء الاصطناعي" : "Generate with AI"}
+          </Button>
+          {/* AI Settings shortcut */}
+          <Button
+            variant="ghost"
+            size="sm"
+            className="gap-1.5"
+            onClick={() => router.push("/admin/ai-settings")}
+            title={isAr ? "إعدادات الذكاء الاصطناعي" : "AI Settings"}
+          >
+            <Settings2 className="h-4 w-4" />
+            {aiStatus?.isConfigured ? (
+              <Badge variant="outline" className="border-success/40 text-[10px] text-success">
+                {aiStatus.provider}
+              </Badge>
+            ) : aiStatus ? (
+              <Badge variant="outline" className="border-warning/40 text-[10px] text-warning">
+                {isAr ? "غير مهيأ" : "Setup"}
+              </Badge>
+            ) : null}
+          </Button>
           <Button variant="ghost" size="sm" className="gap-2" onClick={() => setShowPreview(!showPreview)}>
             {showPreview ? <Code className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             {showPreview ? (isAr ? "تحرير" : "Edit") : (isAr ? "معاينة" : "Preview")}
@@ -378,7 +510,7 @@ export function BlogEditorView({ mode, postId }: { mode: "new" | "edit"; postId?
             {Object.entries(aiResults).length > 0 && (
               <div className="mt-4 space-y-3">
                 {Object.entries(aiResults).map(([tool, result]) => {
-                  const toolLabel = aiTools.find((t) => t.id === tool)?.label || tool;
+                  const toolLabel = aiResultLabel(tool);
                   return (
                     <div key={tool} className="rounded-lg border border-border bg-muted/30 p-3">
                       <div className="mb-1 flex items-center justify-between">
@@ -388,7 +520,7 @@ export function BlogEditorView({ mode, postId }: { mode: "new" | "edit"; postId?
                           <button onClick={() => { setAiResults((prev) => { const n = { ...prev }; delete n[tool]; return n; }); }} className="text-xs text-destructive hover:underline">{isAr ? "إغلاق" : "Close"}</button>
                         </div>
                       </div>
-                      <pre className="whitespace-pre-wrap text-xs text-muted-foreground max-h-32 overflow-y-auto scrollbar-thin">{result}</pre>
+                      <pre className="whitespace-pre-wrap text-xs text-muted-foreground max-h-32 overflow-y-auto scrollbar-thin" dir="auto">{result}</pre>
                     </div>
                   );
                 })}

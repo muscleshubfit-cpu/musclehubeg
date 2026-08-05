@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Dumbbell, FileText, CheckCircle, Clock, Globe, ArrowRight, Plus, Edit3, Trash2, Copy, Eye, TrendingUp } from "lucide-react";
+import { Dumbbell, FileText, CheckCircle, Clock, Globe, ArrowRight, Plus, Edit3, Trash2, Copy, Eye, TrendingUp, Settings2, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -74,11 +74,40 @@ export function BlogAdminView() {
           <h1 className="text-2xl font-bold md:text-3xl">{isAr ? "إدارة المدونة" : "Blog Admin"}</h1>
           <p className="mt-1 text-sm text-muted-foreground">{isAr ? "أنشئ وحرّر وانشر المقالات" : "Create, edit and publish articles"}</p>
         </div>
-        <Button className="gap-2" onClick={() => router.push("/admin/blog/new")}>
-          <Plus className="h-4 w-4" />
-          {isAr ? "مقال جديد" : "New Article"}
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button variant="outline" className="gap-2" onClick={() => router.push("/admin/ai-settings")}>
+            <Settings2 className="h-4 w-4" />
+            {isAr ? "إعدادات AI" : "AI Settings"}
+          </Button>
+          <Button className="gap-2" onClick={() => router.push("/admin/blog/new")}>
+            <Plus className="h-4 w-4" />
+            {isAr ? "مقال جديد" : "New Article"}
+          </Button>
+        </div>
       </div>
+
+      {/* AI Assistant hint banner */}
+      <Card className="flex flex-wrap items-center justify-between gap-3 border-primary/30 bg-primary/5 p-4">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/15 text-primary">
+            <Sparkles className="h-5 w-5" />
+          </div>
+          <div>
+            <p className="text-sm font-semibold">
+              {isAr ? "مساعد الذكاء الاصطناعي جاهز" : "AI Content Assistant is ready"}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {isAr
+                ? "افتح مقالاً جديداً واضغط «توليد بالذكاء الاصطناعي» — يكتب المقال كاملاً من موضوع أو كلمة مفتاحية واحدة."
+                : "Open a new article and click \"Generate with AI\" — it builds the entire article from a single topic or keyword."}
+            </p>
+          </div>
+        </div>
+        <Button size="sm" className="gap-2" onClick={() => router.push("/admin/blog/new")}>
+          <Sparkles className="h-4 w-4" />
+          {isAr ? "ابدأ التوليد" : "Start Generating"}
+        </Button>
+      </Card>
 
       {/* Stats */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
