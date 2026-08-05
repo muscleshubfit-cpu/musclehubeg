@@ -452,11 +452,12 @@ export function generateNutritionPlan(ctx: ClientContext): NutritionContent {
     vegFood = vegs[idx % vegs.length];
     fruitFood = fruits[idx % fruits.length];
 
-    // Calculate grams for each food to hit macro targets
-    // Protein food: ~60% of meal protein
+    // Calculate grams for each food to hit calorie targets
+    // Protein food: target ~70% of meal protein from this source
     if (proteinFood) {
-      const proteinCalsTarget = Math.round(mealProtein * 4 * 0.7); // 70% of protein cals from protein source
-      const grams = gramsForCalories(proteinFood, proteinCalsTarget);
+      // Calculate grams based on protein content, not just calories
+      const targetProteinFromFood = Math.round(mealProtein * 0.75);
+      const grams = Math.max(30, Math.round(targetProteinFromFood / proteinFood.proteinPer100g * 100));
       const macros = calcMacros(proteinFood, grams);
       items.push({
         food: proteinFood.name,
@@ -465,10 +466,10 @@ export function generateNutritionPlan(ctx: ClientContext): NutritionContent {
       });
     }
 
-    // Carb food: ~60% of meal carbs
+    // Carb food: target ~70% of meal carbs from this source
     if (carbFood) {
-      const carbCalsTarget = Math.round(mealCarbs * 4 * 0.6);
-      const grams = gramsForCalories(carbFood, carbCalsTarget);
+      const targetCarbsFromFood = Math.round(mealCarbs * 0.75);
+      const grams = Math.max(50, Math.round(targetCarbsFromFood / carbFood.carbsPer100g * 100));
       const macros = calcMacros(carbFood, grams);
       items.push({
         food: carbFood.name,
@@ -477,13 +478,25 @@ export function generateNutritionPlan(ctx: ClientContext): NutritionContent {
       });
     }
 
-    // Fat source: small amount
+    // Fat source: target ~50% of meal fat from this source
     if (fatFood) {
-      const fatCalsTarget = Math.round(mealFat * 9 * 0.5);
-      const grams = Math.max(5, gramsForCalories(fatFood, fatCalsTarget));
+      const targetFatFromFood = Math.round(mealFat * 0.4);
+      const grams = Math.max(5, Math.round(targetFatFromFood / fatFood.fatPer100g * 100));
       const macros = calcMacros(fatFood, grams);
       items.push({
         food: fatFood.name,
+        amount: `${grams} جم`,
+        calories: macros.calories,
+      });
+    }
+
+    // Dairy (for breakfast/snacks) — adds protein + calories
+    if ((idx === 0 || idx === 2 || idx === 3) && dairy.length > 0) {
+      const dairyFood = dairy[idx % dairy.length];
+      const grams = 150;
+      const macros = calcMacros(dairyFood, grams);
+      items.push({
+        food: dairyFood.name,
         amount: `${grams} جم`,
         calories: macros.calories,
       });
