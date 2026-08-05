@@ -147,9 +147,15 @@ export function CheckoutView({ tier, months }: { tier: TierId; months: Duration 
               </div>
 
               <div className="mt-5 flex flex-col items-center rounded-2xl border border-dashed border-border bg-muted/40 p-5">
-                <QrCode className="h-32 w-32 text-foreground/70" />
+                {/* Real QR code image — switches based on payment method */}
+                <img
+                  src={method === "instapay" ? "/qr-instapay.png" : "/qr-vodafone.png"}
+                  alt={method === "instapay" ? "InstaPay QR Code" : "Vodafone Cash QR Code"}
+                  className="h-48 w-48 rounded-xl object-contain"
+                  loading="eager"
+                />
                 <p className="mt-3 text-center text-xs text-muted-foreground">{t("checkout.scanQr")}</p>
-                <p className="mt-2 font-mono text-sm font-semibold">
+                <p className="mt-2 font-mono text-sm font-semibold" dir="ltr">
                   {method === "instapay" ? "ahmedzake@instapay" : "01000000000"}
                 </p>
               </div>
