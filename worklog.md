@@ -82,3 +82,28 @@ Stage Summary:
 - Pushed to GitHub. Vercel redeploy should be live within 1-2 minutes.
 - Security cleanup: .env removed from git tracking (was accidentally committed earlier).
 - User action: Wait ~2 minutes for Vercel to rebuild, then hard-refresh musclehubeg.vercel.app/coach (or /dashboard). The admin dashboard should now load normally.
+
+---
+Task ID: fix-admin-dashboard-still-error
+Agent: main (super-z)
+Task: User reported the admin dashboard error is STILL showing on musclehubeg.vercel.app even after the AppLayout fix was pushed.
+
+Work Log:
+- Checked production: https://musclehubeg.vercel.app/coach returns HTTP 200 but the HTML is the OLD broken version (still references musclehubeg-v1 service worker).
+- Inspected the production /sw.js — confirmed it's still the OLD v1 version, not my new v3.
+- Verified my commits are pushed to GitHub: origin/main is at 9179ab0 (includes AppLayout fix + SW v3).
+- Inspected GitHub repo webhooks via API: ZERO webhooks. Vercel is NOT auto-deploying from GitHub pushes.
+- Read /home/z/my-project/upload/zai_command.md — confirmed this is a KNOWN pre-existing issue: "المشروع الحالي على Vercel مش متصل بأي Git repo خالص".
+- Tried Vercel CLI: not authed, no token available in env.
+- Also bumped public/sw.js to v3 with network-only navigation requests so future deploys won't be cached. Pushed to GitHub (commit 9179ab0).
+- Production build passes locally (npx next build → success, all 35 routes generated).
+
+Root cause: Vercel project (prj_y4pHM9B7NGBu50sfEmL9uxxeUP5O, team muscleshubfit-2941s-projects) is NOT connected to the GitHub repo. Every push to main goes to GitHub but production stays on the old manual CLI deploy from days ago.
+
+Stage Summary:
+- Code fixes are correct and pushed to GitHub (origin/main: 9179ab0).
+- Production on Vercel is STALE because the Vercel project is not linked to GitHub.
+- User MUST do ONE of the following to get the fix live:
+  (a) Open Vercel dashboard → musclehubeg project → Settings → Git → Connect Git Repository → select github.com/muscleshubfit-cpu/musclehubeg → Production Branch: main. This will trigger an auto-deploy from the latest main commit.
+  (b) OR provide a Vercel personal access token so I can run `vercel --prod --token=...` from here.
+- Until one of the above happens, the dashboard error will keep showing because users see the old deployment.
