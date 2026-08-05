@@ -789,10 +789,11 @@ export function LandingView() {
           <div className="grid gap-8 md:grid-cols-4">
             <div className="md:col-span-2">
               <div className="flex items-center gap-2">
-                <span className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-primary">
-                  <Dumbbell className="h-5 w-5 text-primary-foreground" />
-                </span>
-                <span className="font-display text-lg font-bold">Muscle<span className="text-primary">Hub</span></span>
+                <img
+                  src="/logo.png"
+                  alt="MuscleHub"
+                  className="h-10 w-auto object-contain"
+                />
               </div>
               <p className="mt-3 max-w-sm text-sm text-muted-foreground">
                 {isAr ? "منصة تحسين أداء بشري بالذكاء الاصطناعي. نجمع بين خبرة الكوتش أحمد زكي ومحرك EVO الذكي." : "AI-powered human optimization platform. Combining Coach Ahmed Zake's expertise with the EVO AI engine."}

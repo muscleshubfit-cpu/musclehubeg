@@ -78,10 +78,16 @@ export function BlogArticlePage({ lang, slug }: { lang: "en" | "ar"; slug: strin
       <header className="sticky top-0 z-40 border-b border-border bg-background/80 backdrop-blur-xl">
         <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between px-4 sm:px-6">
           <a href={isAr ? "/ar" : "/"} className="flex items-center gap-2">
-            <span className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-primary">
-              <Dumbbell className="h-5 w-5 text-primary-foreground" />
-            </span>
-            <span className="font-display text-lg font-bold">Muscle<span className="text-primary">Hub</span></span>
+            <img
+              src="/logo.png"
+              alt="MuscleHub"
+              className="hidden h-9 w-auto object-contain sm:block"
+            />
+            <img
+              src="/icon-192.png"
+              alt="MuscleHub"
+              className="h-9 w-9 rounded-lg object-contain sm:hidden"
+            />
           </a>
           <div className="flex items-center gap-2">
             <LanguageToggle />

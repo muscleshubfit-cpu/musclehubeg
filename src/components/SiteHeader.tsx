@@ -217,7 +217,7 @@ export function SiteHeader({ variant = "landing" }: { variant?: "landing" | "app
             <Menu className="h-5 w-5" />
           </button>
 
-          {/* Logo — no site name, just the icon */}
+          {/* Logo — actual brand logo image (no site name text) */}
           <button
             onClick={() => navigate("landing")}
             className={cn(
@@ -227,9 +227,20 @@ export function SiteHeader({ variant = "landing" }: { variant?: "landing" | "app
             )}
             aria-label="MuscleHub"
           >
-            <span className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-primary shadow-glow">
-              <Dumbbell className="h-5 w-5 text-primary-foreground" />
-            </span>
+            {/* Desktop: full landscape logo (1536×1024 → constrained to h-10) */}
+            <img
+              src="/logo.png"
+              alt="MuscleHub"
+              className="hidden h-10 w-auto object-contain md:block"
+              loading="eager"
+            />
+            {/* Mobile: square MH monogram icon (logo cropped to square via icon-192) */}
+            <img
+              src="/icon-192.png"
+              alt="MuscleHub"
+              className="h-10 w-10 rounded-lg object-contain md:hidden"
+              loading="eager"
+            />
           </button>
 
           {/* Desktop: hamburger on the right */}
@@ -272,9 +283,11 @@ export function SiteHeader({ variant = "landing" }: { variant?: "landing" | "app
         >
           {/* Drawer header — logo + close */}
           <div className="flex h-16 items-center justify-between border-b border-border px-4">
-            <span className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-primary shadow-glow">
-              <Dumbbell className="h-5 w-5 text-primary-foreground" />
-            </span>
+            <img
+              src="/logo.png"
+              alt="MuscleHub"
+              className="h-9 w-auto object-contain"
+            />
             <button
               onClick={() => setOpen(false)}
               className="flex h-10 w-10 items-center justify-center rounded-lg text-foreground hover:bg-secondary"
