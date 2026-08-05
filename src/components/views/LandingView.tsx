@@ -581,14 +581,13 @@ export function LandingView() {
               {isAr ? "استثمر في نفسك" : "Invest in yourself"}
             </h2>
             <p className="mx-auto mt-4 max-w-2xl text-muted-foreground">
-              {isAr ? "3 باقات تناسب كل هدف وميزانية. ابدأ من $20/شهر." : "3 plans for every goal and budget. Start from $20/month."}
+              {isAr ? "باقتين تناسب كل هدف وميزانية. ابدأ من $10/شهر." : "2 plans for every goal and budget. Start from $10/month."}
             </p>
           </div>
-          <div className="mt-12 grid gap-5 md:grid-cols-3">
+          <div className="mt-12 grid gap-5 md:grid-cols-2">
             {[
-              { name: "Starter", price: "$20", period: isAr ? "/شهر" : "/mo", features: [isAr ? "2 تبديل يومي" : "2 daily swaps", isAr ? "خطة تغذية + تمارين" : "Nutrition + workout plan", isAr ? "تتبع تقدم" : "Progress tracking"], highlight: false },
-              { name: "Pro", price: "$35", period: isAr ? "/شهر" : "/mo", features: [isAr ? "5 تبديلات يومية" : "5 daily swaps", isAr ? "مساعد EVO الذكي" : "EVO AI coach", isAr ? "أولوية دعم" : "Priority support", isAr ? "تعديلات أسرع" : "Faster adjustments"], highlight: true },
-              { name: "Elite", price: "$60", period: isAr ? "/شهر" : "/mo", features: [isAr ? "تبديلات غير محدودة" : "Unlimited swaps", isAr ? "كوتشينج VIP" : "VIP coaching", isAr ? "استجابة فورية" : "Instant response", isAr ? "أقصى مساءلة" : "Max accountability"], highlight: false },
+              { name: "Starter", price: "$10", period: isAr ? "/شهر" : "/mo", egp: "≈ 500 ج.م", features: [isAr ? "2 تبديل يومي" : "2 daily swaps", isAr ? "خطة تغذية + تمارين" : "Nutrition + workout plan", isAr ? "مساعد EVO الذكي" : "EVO AI coach", isAr ? "تتبع تقدم" : "Progress tracking"], highlight: false },
+              { name: "Elite", price: "$20", period: isAr ? "/شهر" : "/mo", egp: "≈ 1000 ج.م", features: [isAr ? "تبديلات غير محدودة" : "Unlimited swaps", isAr ? "كوتشينج VIP" : "VIP coaching", isAr ? "استجابة فورية" : "Instant response", isAr ? "أقصى مساءلة" : "Max accountability"], highlight: true },
             ].map((p, i) => (
               <div key={i} className={`relative rounded-[1.5rem] border p-6 ${p.highlight ? "border-primary/50 glass-gold animate-gold-pulse" : "border-border bg-card"}`}>
                 {p.highlight && (
@@ -601,6 +600,7 @@ export function LandingView() {
                   <span className="font-display text-4xl font-extrabold text-gradient">{p.price}</span>
                   <span className="mb-1 text-sm text-muted-foreground">{p.period}</span>
                 </div>
+                <p className="mt-1 text-xs text-muted-foreground">{p.egp}{p.period}</p>
                 <ul className="mt-6 space-y-2.5 text-sm">
                   {p.features.map((f, j) => (
                     <li key={j} className="flex items-start gap-2">

@@ -93,7 +93,7 @@ export function PricingView() {
 
       {/* Cards */}
       <section className="mx-auto max-w-6xl px-4 py-12">
-        <div className="grid gap-5 lg:grid-cols-3">
+        <div className="grid gap-5 lg:grid-cols-2">
           {TIERS.map((tier) => (
             <PlanCard key={tier.id} tierId={tier.id} duration={duration} onChoose={(tierId, months) => navigate("checkout", { tier: tierId, months })} />
           ))}
@@ -165,6 +165,9 @@ function PlanCard({ tierId, duration, onChoose }: { tierId: TierId; duration: Du
           <span className="font-display text-4xl font-extrabold text-gradient">${price}</span>
           <span className="mb-1.5 text-sm text-muted-foreground">{duration === 1 ? "/شهر" : "/سنة"}</span>
         </div>
+        <p className="mt-1 text-xs text-muted-foreground">
+          ≈ {duration === 1 ? price * 50 : price * 50} ج.م{duration === 1 ? "/شهر" : "/سنة"}
+        </p>
         {duration === 12 && savings && (
           <p className="mt-1 text-xs text-success">
             وفّر ${savings.amount} ({savings.percent}%) — شهرين مجاناً!
@@ -223,9 +226,10 @@ function ComparisonTable({ duration }: { duration: Duration }) {
       const limit = getTier(tier)?.swapLimit;
       return <span className="text-xs font-medium">{limit === null ? "∞ غير محدود" : `${limit}/${limit}`}</span>;
     }},
-    { label: "دعم الكوتش", render: (tier) => bool(tier !== "starter") },
-    { label: "مساعد ذكي", render: (tier) => bool(tier === "pro" || tier === "elite") },
+    { label: "مساعد ذكي (EVO)", render: () => <Check className="mx-auto h-4 w-4 text-primary" /> },
+    { label: "دعم الكوتش", render: () => <Check className="mx-auto h-4 w-4 text-primary" /> },
     { label: "أولوية VIP", render: (tier) => bool(tier === "elite") },
+    { label: "تبديلات غير محدودة", render: (tier) => bool(tier === "elite") },
   ];
 
   function bool(v: boolean) {

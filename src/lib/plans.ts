@@ -1,13 +1,13 @@
 // Subscription tiers, pricing, and feature matrix.
-// 3 tiers with new names + durations (1 month / 12 months with 2 months free).
+// 2 tiers only: Starter ($10/mo, $100/yr) + Elite ($20/mo, $200/yr)
 // Swap limits per day are tier-dependent.
 
-export type TierId = "starter" | "pro" | "elite";
+export type TierId = "starter" | "elite";
 export type Duration = 1 | 12;
 export type PaymentMethod = "instapay" | "vodafone_cash";
 
 export const DURATIONS: Duration[] = [1, 12];
-export const TIER_IDS: TierId[] = ["starter", "pro", "elite"];
+export const TIER_IDS: TierId[] = ["starter", "elite"];
 
 export type Tier = {
   id: TierId;
@@ -25,15 +25,18 @@ export type Tier = {
 };
 
 // Prices in USD:
-// - 1 month: $20 (starter) / $35 (pro) / $60 (elite)
-// - 12 months: $200 / $350 / $600 (≈ 2 months free vs monthly × 12)
+// - Starter: $10/month or $100/year (≈ 2 months free)
+// - Elite: $20/month or $200/year (≈ 2 months free)
+// EGP equivalent (≈ 50 EGP per $1):
+// - Starter: ≈ 500 ج.م/شهر or ≈ 5000 ج.م/سنة
+// - Elite: ≈ 1000 ج.م/شهر or ≈ 10000 ج.م/سنة
 export const TIERS: Tier[] = [
   {
     id: "starter",
     nameKey: "tier.starter",
     subKey: "tier.starter.sub",
     ctaKey: "tier.starter.cta",
-    prices: { 1: 20, 12: 200 },
+    prices: { 1: 10, 12: 100 },
     swapLimit: 2,
     featureKeys: [
       "feat.nutritionPlan",
@@ -42,21 +45,6 @@ export const TIERS: Tier[] = [
       "feat.progressTracking",
       "feat.coachSupport",
       "feat.swaps2",
-    ],
-  },
-  {
-    id: "pro",
-    nameKey: "tier.pro",
-    subKey: "tier.pro.sub",
-    ctaKey: "tier.pro.cta",
-    inheritsFrom: "starter",
-    popular: true,
-    prices: { 1: 35, 12: 350 },
-    swapLimit: 5,
-    featureKeys: [
-      "feat.swaps5",
-      "feat.fasterAdjust",
-      "feat.prioritySupport",
       "feat.aiCoach",
     ],
   },
@@ -65,15 +53,17 @@ export const TIERS: Tier[] = [
     nameKey: "tier.elite",
     subKey: "tier.elite.sub",
     ctaKey: "tier.elite.cta",
-    inheritsFrom: "pro",
+    inheritsFrom: "starter",
     best: true,
-    prices: { 1: 60, 12: 600 },
+    prices: { 1: 20, 12: 200 },
     swapLimit: null, // unlimited
     featureKeys: [
       "feat.swapsUnlimited",
       "feat.vipCoaching",
       "feat.fastestResponse",
       "feat.maxAccountability",
+      "feat.prioritySupport",
+      "feat.fasterAdjust",
     ],
   },
 ];
@@ -104,8 +94,7 @@ export function swapLimitFor(id: TierId): number | null {
 
 // Response time shown per tier in the comparison table.
 export const RESPONSE_TIME_KEY: Record<TierId, string> = {
-  starter: "rt.weekly",
-  pro: "rt.48",
+  starter: "rt.48",
   elite: "rt.instant",
 };
 
@@ -122,8 +111,13 @@ export function savingsFor(id: TierId): { months: number; amount: number; percen
   const amount = monthly - yearly;
   if (amount <= 0) return null;
   return {
-    months: Math.round(amount / tier.prices[1]), // free months equivalent
+    months: Math.round(amount / tier.prices[1]),
     amount,
     percent: Math.round((amount / monthly) * 100),
   };
+}
+
+/** Get EGP equivalent for a USD price (≈ 50 EGP per $1). */
+export function usdToEgp(usd: number): number {
+  return usd * 50;
 }
