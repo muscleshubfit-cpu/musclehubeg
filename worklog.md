@@ -276,3 +276,32 @@ Stage Summary:
 - USER ACTION REQUIRED — pick ONE of:
   1. Generate a SECRET access token at https://supabase.com/dashboard/account/tokens (will start with "sbp_") and paste it here. I'll run the migration immediately.
   2. Open https://supabase.com/dashboard/project/wyopqryzfjifyeyvyxfy/sql/new and paste the SQL I provided in the chat. Click Run. Takes 30 seconds.
+
+---
+Task ID: run-migration-success
+Agent: main (super-z)
+Task: User provided the Supabase SECRET access token (sbp_...). Run the migration to fix blog posts not showing for anonymous visitors.
+
+Work Log:
+- Verified the sbp_ token against the Supabase Management API: ✓ works, found project musclehubeg (ref: wyopqryzfjifyeyvyxfy).
+- Ran the migration SQL via POST https://api.supabase.com/v1/projects/wyopqryzfjifyeyvyxfy/database/query with the sbp_ token in the Authorization header. The endpoint returned `[]` (empty array = success for DDL statements).
+- Migration contents:
+  1. GRANT EXECUTE on public.is_coach() to anon + authenticated
+  2. Drop existing blog_posts policies (5 names tried, idempotent)
+  3. Create blog_posts_public_read policy: anon + authenticated can SELECT published posts WITHOUT calling is_coach()
+  4. Create blog_posts_coach_read_all policy: authenticated coaches can SELECT all posts (uses is_coach())
+  5. Create blog_posts_coach_write policy: authenticated coaches can INSERT/UPDATE/DELETE
+- Verified the fix end-to-end:
+  * anon key can now SELECT published blog_posts (returns 2 posts) — previously failed with "permission denied for function is_coach"
+  * anon can now call rpc/is_coach (returns `false` instead of 42501 permission denied)
+  * Production app at /blog and /ar/blog loads correctly
+  * EN article available at /blog/best-protein-powder-muscle-growth
+  * AR article available at /ar/blog/afdal-protein-bawdr-libnat-aladlat
+
+Stage Summary:
+- Migration executed successfully via Supabase Management API.
+- Articles now load for ALL visitors (anon + authenticated) on /blog and /ar/blog.
+- The homepage "Latest Articles" and "Popular Articles" sections will now populate (they use the same listBlogPosts(lang) function).
+- The coach admin at /admin/blog still works (coach can see all posts including drafts via is_coach()).
+- No code changes needed — the RLS policies on Supabase were the only blocker.
+- User should hard-refresh musclehubeg.vercel.app to see the articles.
