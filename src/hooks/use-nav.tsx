@@ -59,6 +59,11 @@ function pathForView(view: View, params: Record<string, any> = {}): string {
       return "/coach/support";
     case "coach":
       return "/coach";
+    case "blog-admin":
+      return "/admin/blog";
+    case "blog-editor":
+      // New article by default; if a postId is provided, edit that article.
+      return params.postId ? `/admin/blog/${encodeURIComponent(params.postId)}` : "/admin/blog/new";
     default:
       return `/${view}`;
   }
@@ -71,10 +76,12 @@ function viewForPath(pathname: string): View {
   if (pathname.startsWith("/coach/support")) return "coach-support";
   if (pathname.startsWith("/coach/")) return "coach-client";
   if (pathname === "/coach") return "coach";
+  if (pathname.startsWith("/admin/blog")) return "blog-admin";
   const clean = pathname.replace(/^\//, "").split("/")[0];
   const known: View[] = [
     "pricing", "auth", "checkout", "dashboard", "questionnaires",
     "progress", "plans", "chat", "support", "referral", "blog",
+    "about", "contact", "privacy", "terms", "faq",
   ];
   return (known as string[]).includes(clean) ? (clean as View) : "landing";
 }
