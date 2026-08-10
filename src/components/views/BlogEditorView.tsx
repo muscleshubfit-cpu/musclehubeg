@@ -165,6 +165,8 @@ export function BlogEditorView({ mode, postId }: { mode: "new" | "edit"; postId?
       tags: bundle.seo.secondaryKeywords.slice(0, 5),
       reading_time: bundle.estimatedReadingTime,
       faq_json: bundle.faq,
+      featured_image: bundle.image?.url || p.featured_image,
+      cover_alt: bundle.image?.alt || p.cover_alt,
       schema_json: {
         ...(p.schema_json || {}),
         ai_bundle: {

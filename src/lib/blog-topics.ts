@@ -15,14 +15,17 @@ import { supabaseAdmin, isSupabaseAdminConfigured } from "@/lib/supabase/admin";
  * to plug in a live search API before building the prompt.
  */
 
+// IMPORTANT: these MUST match BLOG_CATEGORIES ids in src/lib/blog.ts exactly,
+// or generated posts get a category the site's filter UI doesn't recognize.
 const CONTENT_PILLARS = [
   "nutrition",
-  "training",
-  "weight-loss",
-  "muscle-building",
-  "recovery",
+  "workout",
   "supplements",
-  "mindset",
+  "weight-loss",
+  "muscle-gain",
+  "health",
+  "recipes",
+  "science",
 ] as const;
 
 type Pillar = (typeof CONTENT_PILLARS)[number];

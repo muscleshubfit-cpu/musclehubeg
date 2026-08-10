@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { generateArticleBundle } from "@/lib/blog-generate";
+import { fetchFeaturedImage } from "@/lib/blog-images";
 import { getOverrideFromRequest } from "@/app/api/ai/settings/route";
 
 /**
@@ -36,8 +37,9 @@ export async function POST(request: NextRequest) {
       { topic: topic?.trim(), focusKeyword: focusKeyword?.trim(), category: category || "nutrition" },
       override,
     );
+    const image = await fetchFeaturedImage(bundle.seo.focusKeyword || focusKeyword || topic || "");
 
-    return NextResponse.json({ ...bundle, language: language || "en" });
+    return NextResponse.json({ ...bundle, image, language: language || "en" });
   } catch (e: any) {
     console.error("[generate-article] Error:", e);
     if (e.message?.includes("not valid JSON")) {

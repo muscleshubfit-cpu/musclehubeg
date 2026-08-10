@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { pickSmartTopic } from "@/lib/blog-topics";
 import { generateArticleBundle } from "@/lib/blog-generate";
+import { fetchFeaturedImage } from "@/lib/blog-images";
 import { supabaseAdmin, isSupabaseAdminConfigured } from "@/lib/supabase/admin";
 
 /**
@@ -79,6 +80,9 @@ export async function GET(request: NextRequest) {
     const enSlug = await uniqueSlug(slugify(bundle.seo.en.slug || pick.focusKeyword), "en");
     const arSlug = await uniqueSlug(slugify(bundle.seo.ar.slug || bundle.seo.en.slug || pick.focusKeyword), "ar");
 
+    // One real photo, reused for both language versions (same visual topic).
+    const image = await fetchFeaturedImage(pick.focusKeyword);
+
     const commonPost = {
       focus_keyword: bundle.seo.focusKeyword,
       keywords: bundle.seo.secondaryKeywords,
@@ -89,6 +93,8 @@ export async function GET(request: NextRequest) {
       published_at: now,
       is_published: true,
       faq_json: bundle.faq,
+      featured_image: image?.url || null,
+      cover_alt: image?.alt || null,
     };
 
     // 3. Insert EN, then AR linked back to EN, then link EN -> AR too.

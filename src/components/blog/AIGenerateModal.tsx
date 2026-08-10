@@ -58,6 +58,7 @@ export type GeneratedBundle = {
     x: string;
   };
   estimatedReadingTime: number;
+  image?: { url: string; alt: string; credit: string } | null;
   language: "en" | "ar";
   source: string;
 };
