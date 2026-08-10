@@ -149,7 +149,7 @@ export function BlogEditorView({ mode, postId }: { mode: "new" | "edit"; postId?
    */
   const applyAIBundle = (bundle: GeneratedBundle, language: "en" | "ar") => {
     const article = language === "en" ? bundle.englishArticle : bundle.arabicArticle;
-    const seo = bundle.seo;
+    const seo = language === "en" ? bundle.seo.en : bundle.seo.ar;
 
     setPost((p) => ({
       ...p,
@@ -160,9 +160,9 @@ export function BlogEditorView({ mode, postId }: { mode: "new" | "edit"; postId?
       content: article,
       meta_title: seo.metaTitle || seo.seoTitle,
       meta_description: seo.metaDescription,
-      focus_keyword: seo.focusKeyword,
-      keywords: seo.secondaryKeywords,
-      tags: seo.secondaryKeywords.slice(0, 5),
+      focus_keyword: bundle.seo.focusKeyword,
+      keywords: bundle.seo.secondaryKeywords,
+      tags: bundle.seo.secondaryKeywords.slice(0, 5),
       reading_time: bundle.estimatedReadingTime,
       faq_json: bundle.faq,
       schema_json: {

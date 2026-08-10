@@ -45,13 +45,17 @@ STEP 1 — RESEARCH (do silently):
   - Pick the best article angle that wins on Google AND AI search.
   - Choose 1 primary focus keyword + 5-8 secondary keywords.
 
-STEP 2 — SEO DATA:
-  - seoTitle:        ≤ 60 chars, includes focus keyword near the front.
-  - metaTitle:       ≤ 60 chars, may equal seoTitle.
-  - metaDescription: 120-160 chars, includes focus keyword + a CTA verb.
-  - slug:            kebab-case, 3-6 words, includes focus keyword.
-  - focusKeyword:    the single primary keyword.
-  - secondaryKeywords: array of 5-8 related keywords.
+STEP 2 — SEO DATA (SEPARATE for English and Arabic — never reuse one language's title/description for the other):
+  - focusKeyword:      the single primary keyword (English, canonical — used for internal tracking only).
+  - secondaryKeywords: array of 5-8 related keywords (English).
+  - en.seoTitle:        ≤ 60 chars, English, includes focus keyword near the front.
+  - en.metaTitle:       ≤ 60 chars, English, may equal en.seoTitle.
+  - en.metaDescription: 120-160 chars, English, includes focus keyword + a CTA verb.
+  - en.slug:            kebab-case, English, 3-6 words, includes focus keyword.
+  - ar.seoTitle:        ≤ 60 chars, WRITTEN IN ARABIC, a natural Arabic headline (not a translation of en.seoTitle — write it fresh for Arabic readers/search behavior).
+  - ar.metaTitle:       ≤ 60 chars, Arabic, may equal ar.seoTitle.
+  - ar.metaDescription: 120-160 chars, WRITTEN IN ARABIC, natural Arabic phrasing + a CTA verb in Arabic.
+  - ar.slug:            kebab-case, LATIN CHARACTERS ONLY (transliterate or use the English focus keyword) — Arabic URLs break sharing/encoding, so even the Arabic post's slug must be Latin.
 
 STEP 3 — ENGLISH ARTICLE (Markdown, 600-900 words):
   - Start with a clear 2-3 sentence answer to the title (AEO).
@@ -98,12 +102,10 @@ RETURN STRICT JSON with this exact shape:
     "rationale": "string — 1-2 sentences why this angle wins on Google + AI search"
   },
   "seo": {
-    "seoTitle": "string",
-    "metaTitle": "string",
-    "metaDescription": "string",
-    "slug": "string",
     "focusKeyword": "string",
-    "secondaryKeywords": ["string", "..."]
+    "secondaryKeywords": ["string", "..."],
+    "en": { "seoTitle": "string", "metaTitle": "string", "metaDescription": "string", "slug": "string" },
+    "ar": { "seoTitle": "string (Arabic)", "metaTitle": "string (Arabic)", "metaDescription": "string (Arabic)", "slug": "string (Latin)" }
   },
   "englishArticle": "markdown string",
   "arabicArticle": "markdown string",
@@ -132,15 +134,15 @@ RETURN STRICT JSON with this exact shape:
 
 Return ONLY the JSON. No commentary, no markdown fences.`;
 
+export type SeoBlock = { seoTitle: string; metaTitle: string; metaDescription: string; slug: string };
+
 export type ArticleBundle = {
   research: { angle: string; searchIntent: string; rationale: string } | null;
   seo: {
-    seoTitle: string;
-    metaTitle: string;
-    metaDescription: string;
-    slug: string;
     focusKeyword: string;
     secondaryKeywords: string[];
+    en: SeoBlock;
+    ar: SeoBlock;
   };
   englishArticle: string;
   arabicArticle: string;
@@ -176,15 +178,21 @@ export async function generateArticleBundle(
     throw new Error("AI returned a response but it was not valid JSON.");
   }
 
+  const emptySeo: SeoBlock = { seoTitle: "", metaTitle: "", metaDescription: "", slug: "" };
+  const buildSeo = (block: any): SeoBlock => ({
+    seoTitle: block?.seoTitle || "",
+    metaTitle: block?.metaTitle || block?.seoTitle || "",
+    metaDescription: block?.metaDescription || "",
+    slug: block?.slug || "",
+  });
+
   return {
     research: parsed.research || null,
     seo: {
-      seoTitle: parsed.seo?.seoTitle || "",
-      metaTitle: parsed.seo?.metaTitle || parsed.seo?.seoTitle || "",
-      metaDescription: parsed.seo?.metaDescription || "",
-      slug: parsed.seo?.slug || "",
       focusKeyword: parsed.seo?.focusKeyword || input.focusKeyword || "",
       secondaryKeywords: Array.isArray(parsed.seo?.secondaryKeywords) ? parsed.seo.secondaryKeywords : [],
+      en: parsed.seo?.en ? buildSeo(parsed.seo.en) : emptySeo,
+      ar: parsed.seo?.ar ? buildSeo(parsed.seo.ar) : emptySeo,
     },
     englishArticle: parsed.englishArticle || "",
     arabicArticle: parsed.arabicArticle || "",

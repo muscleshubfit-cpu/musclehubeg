@@ -27,6 +27,8 @@ import { BLOG_CATEGORIES } from "@/lib/blog";
 import { toast } from "sonner";
 import { renderMarkdown } from "@/lib/blog";
 
+type SeoBlock = { seoTitle: string; metaTitle: string; metaDescription: string; slug: string };
+
 export type GeneratedBundle = {
   research: {
     angle: string;
@@ -34,12 +36,10 @@ export type GeneratedBundle = {
     rationale: string;
   } | null;
   seo: {
-    seoTitle: string;
-    metaTitle: string;
-    metaDescription: string;
-    slug: string;
     focusKeyword: string;
     secondaryKeywords: string[];
+    en: SeoBlock;
+    ar: SeoBlock;
   };
   englishArticle: string;
   arabicArticle: string;
@@ -348,29 +348,7 @@ export function AIGenerateModal({
                   <Globe className="h-4 w-4 text-primary" />
                   {isAr ? "بيانات SEO" : "SEO Data"}
                 </h3>
-                <div className="space-y-2 text-xs">
-                  <div className="grid gap-2 sm:grid-cols-2">
-                    <div>
-                      <span className="font-semibold text-muted-foreground">
-                        {isAr ? "عنوان SEO:" : "SEO Title:"}
-                      </span>
-                      <p className="mt-0.5">{bundle.seo.seoTitle}</p>
-                    </div>
-                    <div>
-                      <span className="font-semibold text-muted-foreground">
-                        {isAr ? "Slug:" : "Slug:"}
-                      </span>
-                      <code className="mt-0.5 block font-mono text-[11px]" dir="ltr">
-                        {bundle.seo.slug}
-                      </code>
-                    </div>
-                  </div>
-                  <div>
-                    <span className="font-semibold text-muted-foreground">
-                      {isAr ? "وصف ميتا:" : "Meta Description:"}
-                    </span>
-                    <p className="mt-0.5">{bundle.seo.metaDescription}</p>
-                  </div>
+                <div className="space-y-3 text-xs">
                   <div>
                     <span className="font-semibold text-muted-foreground">
                       {isAr ? "الكلمة المفتاحية الرئيسية:" : "Focus Keyword:"}
@@ -389,6 +367,34 @@ export function AIGenerateModal({
                       ))}
                     </div>
                   </div>
+                  {(["en", "ar"] as const).map((lang) => {
+                    const s = bundle.seo[lang];
+                    return (
+                      <div key={lang} className="rounded-lg border border-border p-2.5">
+                        <span className="mb-1 block text-[10px] font-bold uppercase tracking-wide text-primary">
+                          {lang === "en" ? "English" : "العربية"}
+                        </span>
+                        <div className="grid gap-2 sm:grid-cols-2">
+                          <div>
+                            <span className="font-semibold text-muted-foreground">
+                              {isAr ? "عنوان SEO:" : "SEO Title:"}
+                            </span>
+                            <p className="mt-0.5" dir={lang === "ar" ? "rtl" : "ltr"}>{s.seoTitle}</p>
+                          </div>
+                          <div>
+                            <span className="font-semibold text-muted-foreground">Slug:</span>
+                            <code className="mt-0.5 block font-mono text-[11px]" dir="ltr">{s.slug}</code>
+                          </div>
+                        </div>
+                        <div className="mt-2">
+                          <span className="font-semibold text-muted-foreground">
+                            {isAr ? "وصف ميتا:" : "Meta Description:"}
+                          </span>
+                          <p className="mt-0.5" dir={lang === "ar" ? "rtl" : "ltr"}>{s.metaDescription}</p>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </Card>
 

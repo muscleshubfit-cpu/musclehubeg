@@ -76,22 +76,10 @@ export async function GET(request: NextRequest) {
     });
 
     const now = new Date().toISOString();
-    const enSlug = await uniqueSlug(slugify(bundle.seo.slug || pick.focusKeyword), "en");
-    const arSlug = await uniqueSlug(slugify(bundle.seo.slug || pick.focusKeyword), "ar");
+    const enSlug = await uniqueSlug(slugify(bundle.seo.en.slug || pick.focusKeyword), "en");
+    const arSlug = await uniqueSlug(slugify(bundle.seo.ar.slug || bundle.seo.en.slug || pick.focusKeyword), "ar");
 
-    const schemaJson = {
-      "@context": "https://schema.org",
-      "@type": "Article",
-      headline: bundle.seo.seoTitle,
-      description: bundle.seo.metaDescription,
-      author: { "@type": "Person", name: "Ahmed Zake" },
-      datePublished: now,
-    };
-
-    const basePost = {
-      excerpt: bundle.seo.metaDescription,
-      meta_title: bundle.seo.metaTitle,
-      meta_description: bundle.seo.metaDescription,
+    const commonPost = {
       focus_keyword: bundle.seo.focusKeyword,
       keywords: bundle.seo.secondaryKeywords,
       category: pick.category,
@@ -101,18 +89,29 @@ export async function GET(request: NextRequest) {
       published_at: now,
       is_published: true,
       faq_json: bundle.faq,
-      schema_json: schemaJson,
     };
 
     // 3. Insert EN, then AR linked back to EN, then link EN -> AR too.
     const { data: enPost, error: enErr } = await supabaseAdmin
       .from("blog_posts" as any)
       .insert({
-        ...basePost,
+        ...commonPost,
         language: "en",
-        title: bundle.seo.seoTitle,
+        title: bundle.seo.en.seoTitle,
         slug: enSlug,
         content: bundle.englishArticle,
+        excerpt: bundle.seo.en.metaDescription,
+        meta_title: bundle.seo.en.metaTitle,
+        meta_description: bundle.seo.en.metaDescription,
+        schema_json: {
+          "@context": "https://schema.org",
+          "@type": "Article",
+          headline: bundle.seo.en.seoTitle,
+          description: bundle.seo.en.metaDescription,
+          author: { "@type": "Person", name: "Ahmed Zake" },
+          datePublished: now,
+          inLanguage: "en",
+        },
       })
       .select()
       .single() as any;
@@ -121,11 +120,23 @@ export async function GET(request: NextRequest) {
     const { data: arPost, error: arErr } = await supabaseAdmin
       .from("blog_posts" as any)
       .insert({
-        ...basePost,
+        ...commonPost,
         language: "ar",
-        title: bundle.seo.seoTitle,
+        title: bundle.seo.ar.seoTitle,
         slug: arSlug,
         content: bundle.arabicArticle,
+        excerpt: bundle.seo.ar.metaDescription,
+        meta_title: bundle.seo.ar.metaTitle,
+        meta_description: bundle.seo.ar.metaDescription,
+        schema_json: {
+          "@context": "https://schema.org",
+          "@type": "Article",
+          headline: bundle.seo.ar.seoTitle,
+          description: bundle.seo.ar.metaDescription,
+          author: { "@type": "Person", name: "Ahmed Zake" },
+          datePublished: now,
+          inLanguage: "ar",
+        },
         linked_post_id: enPost.id,
       })
       .select()
