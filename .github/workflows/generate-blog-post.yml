@@ -2,11 +2,8 @@ name: Auto-generate blog post
 
 on:
   schedule:
-    # Every 2 hours, UTC. Free — runs on GitHub's own infrastructure,
-    # not Vercel, so it works with a Hobby (free) Vercel plan too
-    # (Vercel's built-in cron only allows once/day on Hobby).
     - cron: "0 */2 * * *"
-  workflow_dispatch: {} # lets you trigger a run manually from the Actions tab
+  workflow_dispatch: {}
 
 jobs:
   trigger:
@@ -14,6 +11,13 @@ jobs:
     steps:
       - name: Call the blog-generation endpoint
         run: |
-          curl --fail --silent --show-error \
+          HTTP_CODE=$(curl --silent --show-error -o /tmp/response.json -w "%{http_code}" \
             -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
-            "${{ vars.SITE_URL }}/api/cron/generate-blog-post"
+            "${{ vars.SITE_URL }}/api/cron/generate-blog-post")
+          echo "HTTP status: $HTTP_CODE"
+          echo "Response body:"
+          cat /tmp/response.json
+          echo ""
+          if [ "$HTTP_CODE" -ge 400 ]; then
+            exit 1
+          fi
