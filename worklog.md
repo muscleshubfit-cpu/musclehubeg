@@ -791,3 +791,64 @@ Stage Summary:
 - Fallback icons are clean minimalist line drawings (21st.dev style) instead
   of emoji-based icons.
 - No functionality changes — all features work exactly the same.
+
+---
+Task ID: article-images-multi-source + fix-social-share-og-tags
+Agent: main (super-z)
+Task: User requested: (1) article featured images should match the article content, search from multiple sources or AI-generate, (2) social share buttons should share the actual article URL with the article image showing on the platform + article summary, (3) share text should match the article language.
+
+Work Log:
+1. Multiple image sources for articles (src/lib/blog-images.ts):
+   - Upgraded from Unsplash-only to 4 sources tried in order:
+     a. Unsplash API (real photos, 50 req/hour)
+     b. Pexels API (real photos, 200 req/hour)
+     c. Pixabay API (real photos + illustrations, 100 req/min)
+     d. AI image generation via /api/ai/generate-image (z-ai-web-dev-sdk)
+   - fetchFeaturedImageMultiQuery() tries broader queries as fallback.
+   - Created /api/ai/generate-image endpoint (uses z-ai-web-dev-sdk to
+     generate images from text prompts — free, no external API key).
+   - NOTE: stock photo API keys (UNSPLASH_ACCESS_KEY, PEXELS_API_KEY,
+     PIXABAY_API_KEY) are not yet set in Vercel env. When the user adds
+     them, the blog image system will automatically source real photos.
+     The AI image generation also needs a z-ai config file on the server.
+
+2. Open Graph + Twitter Card meta tags (BlogArticlePage.tsx):
+   - Added 15 OG + Twitter meta tags to every article page:
+     * og:type=article, og:url, og:title, og:description, og:image
+     * og:image:width=1200, og:image:height=630 (standard OG image size)
+     * og:site_name=MuscleHub
+     * og:locale (ar_EG for Arabic, en_US for English)
+     * og:locale:alternate (links to the other language version)
+     * twitter:card=summary_large_image, twitter:url, twitter:title,
+       twitter:description, twitter:image
+   - These tags tell Facebook, LinkedIn, X, WhatsApp to display:
+     * The article's featured image as a preview thumbnail
+     * The article's title
+     * The article's meta description as a summary
+   - Verified: production article pages have all OG tags present.
+
+3. Social share buttons fixed (BlogComponents.tsx SocialShare):
+   - Now accepts description + image params (passed from BlogArticlePage).
+   - Facebook/LinkedIn share URLs use just the article URL — they scrape
+     OG tags for the preview (image + title + description).
+   - X (Twitter) share text includes title + description + URL.
+   - WhatsApp share text includes title + description + URL.
+   - Added native share API (navigator.share) for mobile — shows the OS's
+     native share sheet with title + text + URL.
+   - Added Share2 icon button (only visible on mobile devices).
+
+4. Language-aware share text:
+   - Arabic articles share with: "اقرأ المقال كاملاً على MuscleHub:"
+   - English articles share with: "Read the full article on MuscleHub:"
+   - The share message matches the article's language.
+
+Build: passes locally. TypeScript: zero new errors.
+Deploy: production READY in 45s (dpl_J9EbmPXdyHY7Ld9uRMJZr4LDP7jp).
+Verified: OG tags present on both EN + AR article pages.
+
+Stage Summary:
+- Article images: system supports 4 sources (Unsplash, Pexels, Pixabay, AI gen).
+  User needs to add API keys to Vercel env for stock photos to work.
+- Social share: now shares the actual article URL with image + title + summary
+  via OG tags. Works on Facebook, LinkedIn, X, WhatsApp.
+- Language: share text matches the article language (AR for Arabic, EN for English).
