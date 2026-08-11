@@ -16,7 +16,7 @@ const OPENROUTER_BASE = "https://openrouter.ai/api/v1";
 
 // Try multiple free OpenRouter models in order
 const FREE_MODELS = [
- "nvidia/nemotron-3-ultra-550b-a55b:free",
+ "google/gemma-4-26b-a4b-it:free",
  "google/gemma-4-31b-it:free",
  "google/gemma-4-26b-a4b-it:free",
  "openai/gpt-oss-20b:free",

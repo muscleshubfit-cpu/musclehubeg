@@ -12,7 +12,7 @@ import { callAIWithFallback, parseJSON, type AIProvider } from "@/lib/ai-provide
  * POST /api/ai/research-topic
  * Body: { topic: string, focusKeyword?: string }
  */
-export const maxDuration = 120;
+export const maxDuration = 60;
 
 export async function POST(request: NextRequest) {
   try {
@@ -55,7 +55,7 @@ Return STRICT JSON only:
 }`;
 
     const models = [
-      "nvidia/nemotron-3-ultra-550b-a55b:free",
+      "google/gemma-4-26b-a4b-it:free",
       "google/gemma-4-31b-it:free",
       "google/gemma-4-26b-a4b-it:free",
     ];

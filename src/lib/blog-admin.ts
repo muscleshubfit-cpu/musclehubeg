@@ -157,7 +157,7 @@ export async function aiTool(tool: string, params: { content?: string; title?: s
    const OPENROUTER_KEY = process.env.OPENROUTER_API_KEY || process.env.AI_API_KEY || "";
    const OPENROUTER_BASE = "https://openrouter.ai/api/v1";
    if (OPENROUTER_KEY) {
-     const models = ["nvidia/nemotron-3-ultra-550b-a55b:free", "google/gemma-4-31b-it:free", "google/gemma-4-26b-a4b-it:free"];
+     const models = ["google/gemma-4-26b-a4b-it:free", "google/gemma-4-31b-it:free", "nvidia/nemotron-3-ultra-550b-a55b:free"];
      for (const model of models) {
        try {
          const { text } = await callAIWithFallback(prompt, {

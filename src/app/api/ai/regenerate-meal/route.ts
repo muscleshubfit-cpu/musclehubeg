@@ -17,7 +17,7 @@ import { regenerateMeal } from "@/lib/plan-generator";
  *
  * Tries OpenRouter's best free models in order, throws if all fail.
  */
-export const maxDuration = 180; // 3 min
+export const maxDuration = 60; // 3 min
 
 export async function POST(request: NextRequest) {
  try {

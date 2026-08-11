@@ -77,7 +77,7 @@ STEP 2 — SEO DATA (SEPARATE for English and Arabic — never reuse one languag
  - ar.slug: kebab-case, LATIN CHARACTERS ONLY (transliterate or use the English focus keyword) — Arabic URLs break sharing/encoding, so even the Arabic post's slug must be Latin.
  - CRITICAL: The Arabic SEO fields (seoTitle, metaTitle, metaDescription) MUST be 100% in Arabic. Do NOT use the English versions for the Arabic article. Each language gets its own complete SEO set optimized for its own search market (Google Egypt/Gulf for Arabic, Google Global for English).
 
-STEP 3 — ENGLISH ARTICLE (Markdown, 400-600 words):
+STEP 3 — ENGLISH ARTICLE (Markdown, 300-500 words):
  - Start with a clear 2-3 sentence answer to the title (AEO).
  - Use H2/H3 hierarchy, bullet lists, at least one comparison table.
  - Cite sources inline as "(Source: NIH, 2024)" style.
@@ -85,7 +85,7 @@ STEP 3 — ENGLISH ARTICLE (Markdown, 400-600 words):
  - Embed a Coaching CTA section (H2 "Ready for a Personalized Plan?") + a Newsletter CTA section.
  - Insert the focus keyword in the first paragraph, in at least one H2, and 2-3 times in body.
 
-STEP 4 — ARABIC ARTICLE (LOCALIZED, NOT TRANSLATED, Markdown, 400-600 words):
+STEP 4 — ARABIC ARTICLE (LOCALIZED, NOT TRANSLATED, Markdown, 300-500 words):
  - Adapt the angle for an Egyptian / Gulf Arabic-speaking audience.
  - Use culturally relevant examples (Egyptian foods, local gym culture, prayer-time scheduling, etc.).
  - Write in Modern Standard Arabic with a friendly, motivating tone.
@@ -214,9 +214,9 @@ export async function generateArticleBundle(
  {
  systemPrompt: ARTICLE_SYSTEM_PROMPT,
  temperature: 0.7,
- maxTokens: 12_000,
+ maxTokens: 6_000,
  jsonMode: true,
- timeoutMs: 240_000,
+ timeoutMs: 120_000,
  },
  override,
  );

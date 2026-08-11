@@ -9,7 +9,7 @@ import { pickSmartTopic } from "@/lib/blog-topics";
  * Body: { category?: string }
  * Returns: { topic, focusKeyword, category, rationale }
  */
-export const maxDuration = 120;
+export const maxDuration = 60;
 
 export async function POST(request: NextRequest) {
   try {

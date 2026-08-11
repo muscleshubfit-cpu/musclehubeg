@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
 
  const chatPrompt = messages.map(m => `${m.role === "user" ? "User" : "Assistant"}: ${m.content}`).join("\n\n");
  const fullPrompt = `${systemInstruction}\n\n${chatPrompt}\n\nAssistant:`;
- const models = ["nvidia/nemotron-3-ultra-550b-a55b:free", "google/gemma-4-31b-it:free", "google/gemma-4-26b-a4b-it:free"];
+ const models = ["google/gemma-4-26b-a4b-it:free", "google/gemma-4-31b-it:free", "nvidia/nemotron-3-ultra-550b-a55b:free"];
  for (const model of models) {
  try {
  const { text } = await callAIWithFallback(fullPrompt, { temperature: 0.6, maxTokens: 1000, timeoutMs: 30_000 }, { provider: "openrouter" as AIProvider, apiKey: OPENROUTER_KEY, model, baseUrl: OPENROUTER_BASE });

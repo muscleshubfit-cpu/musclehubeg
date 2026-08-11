@@ -4,7 +4,7 @@ import { generateArticleBundle } from "@/lib/blog-generate";
 import { fetchFeaturedImage } from "@/lib/blog-images";
 import { supabaseAdmin, isSupabaseAdminConfigured } from "@/lib/supabase/admin";
 
-export const maxDuration = 300;
+export const maxDuration = 60;
 
 function slugify(input: string): string {
  return input.toLowerCase().trim().replace(/[^\w\s-]/g, "").replace(/\s+/g, "-").replace(/-+/g, "-").slice(0, 80);

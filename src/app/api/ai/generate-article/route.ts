@@ -13,7 +13,7 @@ import { getOverrideFromRequest } from "@/app/api/ai/settings/route";
  * NOTE: long-form article generation can take 60-120 seconds on free models.
  * We set `maxDuration = 300` (5 min) so Vercel doesn't kill the request.
  */
-export const maxDuration = 300;
+export const maxDuration = 60;
 
 export async function POST(request: NextRequest) {
  try {

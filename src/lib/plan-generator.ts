@@ -35,10 +35,10 @@ import {
 // explicit OpenRouter override so plans always go through OpenRouter
 // regardless of what's set in AI Settings.)
 const OPENROUTER_FREE_MODELS = [
- "nvidia/nemotron-3-ultra-550b-a55b:free", // 1M context, biggest
- "google/gemma-4-31b-it:free", // 262K, non-reasoning, returns clean content
- "google/gemma-4-26b-a4b-it:free", // 262K, non-reasoning
+ "google/gemma-4-26b-a4b-it:free", // 262K, FASTEST, non-reasoning
+ "google/gemma-4-31b-it:free", // 262K, non-reasoning
  "nvidia/nemotron-3-super-120b-a12b:free", // 262K
+ "nvidia/nemotron-3-ultra-550b-a55b:free", // 1M context, SLOWEST
  "openai/gpt-oss-20b:free", // 131K, reasoning
  "poolside/laguna-s-2.1:free", // 262K
 ];
