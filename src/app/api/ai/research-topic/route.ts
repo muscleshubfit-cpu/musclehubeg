@@ -39,6 +39,8 @@ export async function POST(request: NextRequest) {
 
     async function webSearch(query: string, num: number = 5): Promise<any[]> {
       try {
+        // Use a short timeout — if the z-ai API is unreachable from Vercel,
+        // return empty results instead of hanging.
         const res = await fetch(`${zaiBaseUrl}/functions/invoke`, {
           method: "POST",
           headers: {
@@ -53,17 +55,18 @@ export async function POST(request: NextRequest) {
             function_name: "web_search",
             arguments: { query, num },
           }),
-          signal: AbortSignal.timeout(15_000),
+          signal: AbortSignal.timeout(8_000), // 8s max per search
         });
         if (!res.ok) {
           const errText = await res.text().catch(() => "");
-          console.error(`[research-topic] web_search "${query}" failed: ${res.status} ${errText.slice(0, 200)}`);
+          console.error(`[research-topic] web_search "${query}" HTTP ${res.status}: ${errText.slice(0, 200)}`);
           return [];
         }
         const data = await res.json();
-        return data?.result || data || [];
+        const result = data?.result || data || [];
+        return Array.isArray(result) ? result : [];
       } catch (e: any) {
-        console.error(`[research-topic] web_search "${query}" error:`, e?.message);
+        console.error(`[research-topic] web_search "${query}" error: ${e?.name}: ${e?.message}`);
         return [];
       }
     }
