@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { listPlans, getPlanFileUrl, recordSwap, getSwapUsage } from "@/lib/data";
+import { resolveExerciseImage, getExerciseImage } from "@/lib/exercise-images";
 import { toast } from "sonner";
 
 export function PlansView() {
@@ -526,9 +527,15 @@ function WorkoutContent({ content, onSwap, swapLoading, planId }: any) {
                 <tr key={j} className="border-t border-border/60">
                   <td className="p-2">
                     <div className="flex items-center gap-3">
-                      {ex.image && (
-                        <img src={ex.image} alt={ex.name} className="h-14 w-20 shrink-0 rounded-lg object-cover border border-border" loading="lazy" />
-                      )}
+                      <img
+                        src={resolveExerciseImage(ex.image, ex.name)}
+                        alt={ex.name}
+                        className="h-14 w-20 shrink-0 rounded-lg object-cover border border-border bg-card"
+                        loading="lazy"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = getExerciseImage(ex.name);
+                        }}
+                      />
                       <div>
                         <p className="font-medium">{ex.name}</p>
                         {ex.notes && <p className="text-xs text-muted-foreground">{ex.notes}</p>}

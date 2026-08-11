@@ -51,6 +51,8 @@ import {
   fetchProfile,
 } from "@/lib/data";
 import { TIERS, getTier, type Duration } from "@/lib/plans";
+import { resolveExerciseImage, getExerciseImage } from "@/lib/exercise-images";
+import { HealthMetricsDashboard } from "@/components/HealthMetricsDashboard";
 import { toast } from "sonner";
 
 export function CoachClientView({ clientId }: { clientId: string }) {
@@ -362,39 +364,48 @@ export function CoachClientView({ clientId }: { clientId: string }) {
       </div>
 
       {tab === "overview" && (
-        <div className="grid gap-4 sm:grid-cols-3">
-          <Card className="p-5 shadow-card">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{t("coach.subscription")}</span>
-              <CreditCard className="h-4 w-4 text-primary" />
-            </div>
-            {sub ? (
-              <>
-                <p className="mt-3 font-display text-lg font-bold">{t(getTier(sub.tier as any)?.nameKey || "")}</p>
-                <p className="text-xs text-muted-foreground">
-                  {sub.end_date ? `${t("dash.expiresOn")} ${new Date(sub.end_date).toLocaleDateString()}` : "—"}
-                </p>
-              </>
-            ) : (
-              <p className="mt-3 text-sm text-muted-foreground">—</p>
-            )}
-          </Card>
-          <Card className="p-5 shadow-card">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{t("dash.latestWeight")}</span>
-              <LineChartIcon className="h-4 w-4 text-primary" />
-            </div>
-            <p className="mt-3 font-display text-lg font-bold">
-              {progress[progress.length - 1]?.weight ? `${progress[progress.length - 1].weight} ${t("common.kg")}` : "—"}
-            </p>
-          </Card>
-          <Card className="p-5 shadow-card">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{t("dash.checkins")}</span>
-              <UserIcon className="h-4 w-4 text-primary" />
-            </div>
-            <p className="mt-3 font-display text-lg font-bold">{progress.length}</p>
-          </Card>
+        <div className="space-y-4">
+          {/* Quick stats row */}
+          <div className="grid gap-4 sm:grid-cols-3">
+            <Card className="p-5 shadow-card">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{t("coach.subscription")}</span>
+                <CreditCard className="h-4 w-4 text-primary" />
+              </div>
+              {sub ? (
+                <>
+                  <p className="mt-3 font-display text-lg font-bold">{t(getTier(sub.tier as any)?.nameKey || "")}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {sub.end_date ? `${t("dash.expiresOn")} ${new Date(sub.end_date).toLocaleDateString()}` : "—"}
+                  </p>
+                </>
+              ) : (
+                <p className="mt-3 text-sm text-muted-foreground">—</p>
+              )}
+            </Card>
+            <Card className="p-5 shadow-card">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{t("dash.latestWeight")}</span>
+                <LineChartIcon className="h-4 w-4 text-primary" />
+              </div>
+              <p className="mt-3 font-display text-lg font-bold">
+                {progress[progress.length - 1]?.weight ? `${progress[progress.length - 1].weight} ${t("common.kg")}` : "—"}
+              </p>
+            </Card>
+            <Card className="p-5 shadow-card">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{t("dash.checkins")}</span>
+                <UserIcon className="h-4 w-4 text-primary" />
+              </div>
+              <p className="mt-3 font-display text-lg font-bold">{progress.length}</p>
+            </Card>
+          </div>
+
+          {/* Apple Health-style metrics dashboard */}
+          <HealthMetricsDashboard
+            progress={progress}
+            questionnaire={nutriQ?.data}
+          />
         </div>
       )}
 
@@ -1259,39 +1270,171 @@ function PlanViewerModal({ plan, onClose, onRegenerate }: { plan: any; onClose: 
 
                 {content.supplements && content.supplements.length > 0 && (
                   <div>
-                    <h4 className="mb-2 text-sm font-bold">💊 المكملات والتوصيات الصحية</h4>
+                    <h4 className="mb-2 text-sm font-bold">💊 المكملات والتوصيات الصحية {editMode && <span className="text-xs font-normal text-muted-foreground">(قابل للتعديل)</span>}</h4>
                     <div className="space-y-2">
                       {content.supplements.map((s: any, i: number) => (
                         <div key={i} className="rounded-lg border border-border bg-background p-2 text-xs">
-                          <div className="font-semibold">{s.name}</div>
-                          <div className="text-muted-foreground">
-                            {s.dose && <span>الجرعة: {s.dose}</span>}
-                            {s.timing && <span> | الموعد: {s.timing}</span>}
-                          </div>
-                          {s.purpose && <div className="mt-0.5 text-muted-foreground">الهدف: {s.purpose}</div>}
+                          {editMode ? (
+                            <div className="space-y-1">
+                              <div className="grid grid-cols-2 gap-1.5">
+                                <Input
+                                  value={s.name || ""}
+                                  onChange={(e) => {
+                                    const newContent = { ...content };
+                                    newContent.supplements = [...newContent.supplements];
+                                    newContent.supplements[i] = { ...newContent.supplements[i], name: e.target.value };
+                                    setContent(newContent);
+                                  }}
+                                  placeholder="اسم المكمل"
+                                  className="h-7 text-xs font-semibold"
+                                />
+                                <Input
+                                  value={s.dose || ""}
+                                  onChange={(e) => {
+                                    const newContent = { ...content };
+                                    newContent.supplements = [...newContent.supplements];
+                                    newContent.supplements[i] = { ...newContent.supplements[i], dose: e.target.value };
+                                    setContent(newContent);
+                                  }}
+                                  placeholder="الجرعة (مثلاً: 200-400 مج)"
+                                  className="h-7 text-xs"
+                                />
+                              </div>
+                              <div className="grid grid-cols-2 gap-1.5">
+                                <Input
+                                  value={s.timing || ""}
+                                  onChange={(e) => {
+                                    const newContent = { ...content };
+                                    newContent.supplements = [...newContent.supplements];
+                                    newContent.supplements[i] = { ...newContent.supplements[i], timing: e.target.value };
+                                    setContent(newContent);
+                                  }}
+                                  placeholder="الموعد (مثلاً: قبل النوم)"
+                                  className="h-7 text-xs"
+                                />
+                                <Input
+                                  value={s.purpose || ""}
+                                  onChange={(e) => {
+                                    const newContent = { ...content };
+                                    newContent.supplements = [...newContent.supplements];
+                                    newContent.supplements[i] = { ...newContent.supplements[i], purpose: e.target.value };
+                                    setContent(newContent);
+                                  }}
+                                  placeholder="الهدف"
+                                  className="h-7 text-xs"
+                                />
+                              </div>
+                              <button
+                                onClick={() => {
+                                  const newContent = { ...content };
+                                  newContent.supplements = newContent.supplements.filter((_: any, j: number) => j !== i);
+                                  setContent(newContent);
+                                }}
+                                className="text-destructive hover:text-destructive/80 text-[11px] flex items-center gap-1"
+                              >
+                                <Trash2 className="h-3 w-3" /> حذف المكمل
+                              </button>
+                            </div>
+                          ) : (
+                            <>
+                              <div className="font-semibold">{s.name}</div>
+                              <div className="text-muted-foreground">
+                                {s.dose && <span>الجرعة: {s.dose}</span>}
+                                {s.timing && <span> | الموعد: {s.timing}</span>}
+                              </div>
+                              {s.purpose && <div className="mt-0.5 text-muted-foreground">الهدف: {s.purpose}</div>}
+                            </>
+                          )}
                         </div>
                       ))}
                     </div>
+                    {editMode && (
+                      <button
+                        onClick={() => {
+                          const newContent = { ...content };
+                          newContent.supplements = [...(newContent.supplements || []), { name: "", dose: "", timing: "", purpose: "" }];
+                          setContent(newContent);
+                        }}
+                        className="mt-2 flex items-center gap-1 text-xs text-primary hover:underline"
+                      >
+                        <Plus className="h-3 w-3" /> إضافة مكمل
+                      </button>
+                    )}
                   </div>
                 )}
 
                 {content.health_notes && content.health_notes.length > 0 && (
                   <div>
-                    <h4 className="mb-2 text-sm font-bold">🩸 توصيات صحية خاصة</h4>
-                    <ul className="space-y-1 text-xs text-muted-foreground">
-                      {content.health_notes.map((n: string, i: number) => (
-                        <li key={i} className="flex items-start gap-1.5">
-                          <span className="text-primary">✦</span>
-                          <span>{n}</span>
-                        </li>
-                      ))}
-                    </ul>
+                    <h4 className="mb-2 text-sm font-bold">🩸 توصيات صحية خاصة {editMode && <span className="text-xs font-normal text-muted-foreground">(قابل للتعديل)</span>}</h4>
+                    {editMode ? (
+                      <div className="space-y-1.5">
+                        {content.health_notes.map((n: string, i: number) => (
+                          <div key={i} className="flex gap-1.5">
+                            <span className="text-primary mt-1.5">✦</span>
+                            <Input
+                              value={n}
+                              onChange={(e) => {
+                                const newContent = { ...content };
+                                newContent.health_notes = [...newContent.health_notes];
+                                newContent.health_notes[i] = e.target.value;
+                                setContent(newContent);
+                              }}
+                              className="h-7 text-xs flex-1"
+                            />
+                            <button
+                              onClick={() => {
+                                const newContent = { ...content };
+                                newContent.health_notes = newContent.health_notes.filter((_: string, j: number) => j !== i);
+                                setContent(newContent);
+                              }}
+                              className="text-destructive hover:text-destructive/80 p-1"
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </button>
+                          </div>
+                        ))}
+                        <button
+                          onClick={() => {
+                            const newContent = { ...content };
+                            newContent.health_notes = [...(newContent.health_notes || []), ""];
+                            setContent(newContent);
+                          }}
+                          className="flex items-center gap-1 text-xs text-primary hover:underline"
+                        >
+                          <Plus className="h-3 w-3" /> إضافة توصية
+                        </button>
+                      </div>
+                    ) : (
+                      <ul className="space-y-1 text-xs text-muted-foreground">
+                        {content.health_notes.map((n: string, i: number) => (
+                          <li key={i} className="flex items-start gap-1.5">
+                            <span className="text-primary">✦</span>
+                            <span>{n}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
                   </div>
                 )}
 
-                {content.water_target && (
+                {/* Water target — always show in edit mode so coach can add it */}
+                {(content.water_target || editMode) && (
                   <div className="text-xs">
-                    <span className="font-bold">💧 استهلاك الماء:</span> {content.water_target}
+                    {editMode ? (
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold">💧 استهلاك الماء:</span>
+                        <Input
+                          value={content.water_target || ""}
+                          onChange={(e) => updateField("water_target", e.target.value)}
+                          placeholder="مثلاً: 2.5 إلى 3 لتر يومياً"
+                          className="h-7 text-xs flex-1"
+                        />
+                      </div>
+                    ) : content.water_target ? (
+                      <div>
+                        <span className="font-bold">💧 استهلاك الماء:</span> {content.water_target}
+                      </div>
+                    ) : null}
                   </div>
                 )}
               </div>
@@ -1419,6 +1562,42 @@ function PlanViewerModal({ plan, onClose, onRegenerate }: { plan: any; onClose: 
               </div>
             ))}
 
+            {/* Workout volume + progression — editable */}
+            {isWorkout && (content.weekly_volume || content.progression || editMode) && (
+              <div className="grid gap-3 sm:grid-cols-2">
+                {(content.weekly_volume || editMode) && (
+                  <div>
+                    <Label className="text-xs text-muted-foreground">📊 الحجم الأسبوعي</Label>
+                    {editMode ? (
+                      <Input
+                        value={content.weekly_volume || ""}
+                        onChange={(e) => updateField("weekly_volume", e.target.value)}
+                        placeholder="مثلاً: 20 مجموعة أسبوعياً"
+                        className="mt-1 h-8 text-sm"
+                      />
+                    ) : (
+                      <p className="mt-1 text-sm">{content.weekly_volume}</p>
+                    )}
+                  </div>
+                )}
+                {(content.progression || editMode) && (
+                  <div>
+                    <Label className="text-xs text-muted-foreground">📈 طريقة التقدم</Label>
+                    {editMode ? (
+                      <Input
+                        value={content.progression || ""}
+                        onChange={(e) => updateField("progression", e.target.value)}
+                        placeholder="مثلاً: زوّد الوزن 2.5 كجم أسبوعياً"
+                        className="mt-1 h-8 text-sm"
+                      />
+                    ) : (
+                      <p className="mt-1 text-sm">{content.progression}</p>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Workout days */}
             {isWorkout && content.days?.map((d: any, dayIdx: number) => (
               <div key={dayIdx} className={cn("rounded-xl border", d.isRest ? "border-muted/40 bg-muted/10" : "border-border")}>
@@ -1477,18 +1656,35 @@ function PlanViewerModal({ plan, onClose, onRegenerate }: { plan: any; onClose: 
                         <tr key={exIdx} className="border-t border-border/60">
                           <td className="p-2">
                             <div className="flex items-center gap-2">
-                              {ex.image && !editMode && (
-                                <img src={ex.image} alt={ex.name} className="h-12 w-16 rounded-lg object-cover" loading="lazy" />
+                              {!editMode && (
+                                <img
+                                  src={resolveExerciseImage(ex.image, ex.name)}
+                                  alt={ex.name}
+                                  className="h-12 w-16 shrink-0 rounded-lg object-cover border border-border bg-card"
+                                  loading="lazy"
+                                  onError={(e) => {
+                                    (e.target as HTMLImageElement).src = getExerciseImage(ex.name);
+                                  }}
+                                />
                               )}
                               <div>
                                 <EditCell value={ex.name} onChange={(v) => updateExercise(dayIdx, exIdx, "name", v)} className="font-medium" />
                                 {editMode ? (
-                                  <Input
-                                    value={ex.notes || ""}
-                                    onChange={(e) => updateExercise(dayIdx, exIdx, "notes", e.target.value)}
-                                    placeholder="ملاحظات..."
-                                    className="mt-1 h-7 text-xs"
-                                  />
+                                  <>
+                                    <Input
+                                      value={ex.notes || ""}
+                                      onChange={(e) => updateExercise(dayIdx, exIdx, "notes", e.target.value)}
+                                      placeholder="ملاحظات..."
+                                      className="mt-1 h-7 text-xs"
+                                    />
+                                    <Input
+                                      value={ex.image || ""}
+                                      onChange={(e) => updateExercise(dayIdx, exIdx, "image", e.target.value)}
+                                      placeholder="رابط صورة (اختياري — هتتولّد تلقائياً من اسم التمرين)"
+                                      className="mt-1 h-7 text-xs font-mono"
+                                      dir="ltr"
+                                    />
+                                  </>
                                 ) : (
                                   ex.notes && <p className="text-xs text-muted-foreground">{ex.notes}</p>
                                 )}
