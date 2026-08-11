@@ -144,7 +144,12 @@ export async function generateNutritionPlanAI(
  overrides?: PlanOverrides,
 ): Promise<GeneratePlanResult> {
  const name = ctx.name || "العميل";
- const prompt = buildNutritionPrompt(ctx, name, overrides);
+ // Add a randomization seed to the prompt so each generation produces
+ // different meal/exercise choices even for the same client.
+ const seed = Math.floor(Math.random() * 1000000);
+ const prompt = `${buildNutritionPrompt(ctx, name, overrides)}
+
+ملاحظة: كل توليد يجب أن ينتج خطة مختلفة. استخدم تنويع ${seed} لاختيار أصناف جديدة.`;
 
  try {
  // Try each free OpenRouter model in order until one returns valid JSON.
@@ -201,7 +206,11 @@ export async function generateWorkoutPlanAI(
  overrides?: PlanOverrides,
 ): Promise<GeneratePlanResult> {
  const name = ctx.name || "العميل";
- const prompt = buildWorkoutPrompt(ctx, name, overrides);
+ // Randomization seed for variety
+ const seed = Math.floor(Math.random() * 1000000);
+ const prompt = `${buildWorkoutPrompt(ctx, name, overrides)}
+
+ملاحظة: كل توليد يجب أن ينتج برنامج مختلف. استخدم تنويع ${seed} لاختيار تمارين جديدة.`;
 
  try {
  for (const model of OPENROUTER_FREE_MODELS) {

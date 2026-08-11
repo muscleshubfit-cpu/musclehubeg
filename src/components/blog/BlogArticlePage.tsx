@@ -71,32 +71,18 @@ export function BlogArticlePage({ lang, slug }: { lang: "en" | "ar"; slug: strin
  const articleUrl = `${baseUrl}${isAr ? "/ar/blog" : "/blog"}/${post.slug}`;
  const linkedUrl = linked ? `${baseUrl}${linked.language === "ar" ? "/ar/blog" : "/blog"}/${linked.slug}` : null;
 
- // Social share metadata — used by Open Graph tags + SocialShare component
+ // Social share metadata — used by SocialShare component
  const shareTitle = post.meta_title || post.title;
  const shareDescription = post.meta_description || post.excerpt || "";
  const shareImage = post.featured_image || "https://musclehubeg.vercel.app/logo.png";
- const shareLang = isAr ? "ar" : "en";
 
  return (
  <div className="min-h-screen flex flex-col bg-background" dir={isAr ? "rtl" : "ltr"}>
  <ReadingProgress />
 
- {/* Open Graph + Twitter Card meta tags — so social platforms show the article image + title + summary */}
- <meta property="og:type" content="article" />
- <meta property="og:url" content={articleUrl} />
- <meta property="og:title" content={shareTitle} />
- <meta property="og:description" content={shareDescription} />
- <meta property="og:image" content={shareImage} />
- <meta property="og:image:width" content="1200" />
- <meta property="og:image:height" content="630" />
- <meta property="og:site_name" content="MuscleHub" />
- <meta property="og:locale" content={isAr ? "ar_EG" : "en_US"} />
- {linkedUrl && <meta property="og:locale:alternate" content={isAr ? "en_US" : "ar_EG"} />}
- <meta name="twitter:card" content="summary_large_image" />
- <meta name="twitter:url" content={articleUrl} />
- <meta name="twitter:title" content={shareTitle} />
- <meta name="twitter:description" content={shareDescription} />
- <meta name="twitter:image" content={shareImage} />
+ {/* Note: OG + Twitter meta tags are now generated server-side via
+     generateMetadata() in the page.tsx route file, so they appear in <head>
+     where Facebook/LinkedIn/X can find them. */}
 
  <header className="sticky top-0 z-40 border-b border-border bg-background/80 backdrop-blur-xl">
  <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between px-4 sm:px-6">
