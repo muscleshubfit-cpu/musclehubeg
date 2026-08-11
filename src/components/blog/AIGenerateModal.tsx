@@ -274,13 +274,8 @@ export function AIGenerateModal({
  {/* Optimizations reminder */}
  <Card className="p-3">
  <p className="mb-2 text-xs font-semibold text-muted-foreground">
- {isAr ? "كل مقال محسّن لـ:" : "Every article is optimized for:"}
+ {isAr ? "كل مقال محسّن لـ:" : "السطور التالية"}
  </p>
- <div className="flex flex-wrap gap-1.5">
- {["Google SEO", "GEO", "AEO", "AI Search", "E-E-A-T"].map((tag) => (
- <Badge key={tag} variant="secondary" className="text-[10px]">{tag}</Badge>
- ))}
- </div>
  </Card>
 
  {error && (
