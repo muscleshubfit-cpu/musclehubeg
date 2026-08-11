@@ -81,10 +81,9 @@ export async function POST(request: NextRequest) {
           num: 5,
         });
 
-        if (Array.isArray(result)) {
+        if (Array.isArray(result) && result.length > 0) {
           for (const item of result) {
             allSnippets.push(item.snippet || "");
-            // Collect top articles (exclude reddit/forum/social for the article list)
             const host = item.host_name || "";
             if (!host.includes("reddit") && !host.includes("quora") && !host.includes("pinterest") && !host.includes("facebook")) {
               topArticles.push({
@@ -94,7 +93,6 @@ export async function POST(request: NextRequest) {
                 snippet: (item.snippet || "").slice(0, 200),
               });
             }
-            // Extract questions from snippets
             const snippet = item.snippet || "";
             const questionMatches = snippet.match(/\b(what|how|why|when|where|can|should|does|is|are|do)\s+[^.?!]+\?/gi);
             if (questionMatches) {
@@ -105,6 +103,8 @@ export async function POST(request: NextRequest) {
               }
             }
           }
+        } else {
+          console.log(`[research-topic] Search "${query}" returned: ${typeof result} ${JSON.stringify(result).slice(0, 200)}`);
         }
       } catch (e: any) {
         console.error(`[research-topic] Search "${query}" failed:`, e?.message);
