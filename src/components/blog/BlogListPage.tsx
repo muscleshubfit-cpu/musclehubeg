@@ -29,7 +29,7 @@ export function BlogListPage({ lang }: { lang: "en" | "ar" }) {
  <ReadingProgressInline />
  <header className="sticky top-0 z-40 border-b border-border bg-background/80 backdrop-blur-xl">
  <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between px-4 sm:px-6">
- <a href={isAr ? "/ar" : "/"} className="flex items-center gap-2">
+ <a href="/" className="flex items-center gap-2">
  <img
  src="/logo.png"
  alt="MuscleHub"
@@ -43,7 +43,7 @@ export function BlogListPage({ lang }: { lang: "en" | "ar" }) {
  </a>
  <div className="flex items-center gap-2">
  <LanguageToggle />
- <a href={isAr ? "/ar" : "/"}>
+ <a href="/">
  <Button variant="ghost" size="sm">{isAr ? "الرئيسية" : "Home"}</Button>
  </a>
  </div>

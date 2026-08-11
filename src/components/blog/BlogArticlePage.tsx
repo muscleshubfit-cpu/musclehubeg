@@ -86,7 +86,7 @@ export function BlogArticlePage({ lang, slug }: { lang: "en" | "ar"; slug: strin
 
  <header className="sticky top-0 z-40 border-b border-border bg-background/80 backdrop-blur-xl">
  <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between px-4 sm:px-6">
- <a href={isAr ? "/ar" : "/"} className="flex items-center gap-2">
+ <a href="/" className="flex items-center gap-2">
  <img
  src="/logo.png"
  alt="MuscleHub"
@@ -172,7 +172,7 @@ export function BlogArticlePage({ lang, slug }: { lang: "en" | "ar"; slug: strin
  <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-6">
  {/* Breadcrumb */}
  <nav className="mb-6 flex items-center gap-2 text-sm text-muted-foreground">
- <a href={isAr ? "/ar" : "/"} className="hover:text-primary">{isAr ? "الرئيسية" : "Home"}</a>
+ <a href="/" className="hover:text-primary">{isAr ? "الرئيسية" : "Home"}</a>
  <span>/</span>
  <a href={isAr ? "/ar/blog" : "/blog"} className="hover:text-primary">{isAr ? "المدونة" : "Blog"}</a>
  <span>/</span>

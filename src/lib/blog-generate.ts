@@ -33,7 +33,26 @@ export const articleUserPrompt = (input: {
  topic?: string;
  focusKeyword?: string;
  category?: string;
-}) => `Generate a complete blog article bundle for MuscleHub.
+}, research?: any) => {
+ const researchBlock = research ? `
+
+STEP 0 — RESEARCH DATA (from live web search — use this to inform your article):
+Top-ranking articles on this topic:
+${(research.topArticles || []).slice(0, 5).map((a: any, i: number) => `  ${i + 1}. "${a.title}" (${a.host})\n     ${a.snippet}`).join("\n")}
+
+Related questions people are asking (address these in your article + FAQ):
+${(research.relatedQuestions || []).slice(0, 8).map((q: string, i: number) => `  ${i + 1}. ${q}`).join("\n")}
+
+Trending keywords related to this topic:
+${(research.trendingAngles || []).slice(0, 8).join(", ")}
+
+Use this research data to:
+- Match the search intent revealed by the top-ranking articles
+- Answer the related questions in your article body and FAQ section
+- Include the trending keywords naturally in your content
+- Find a unique angle that differentiates from competitors` : "";
+
+ return `Generate a complete blog article bundle for MuscleHub.
 
 INPUT:
  - Topic: ${input.topic || "(none — derive from focus keyword)"}
@@ -143,7 +162,8 @@ RETURN STRICT JSON with this exact shape:
  "estimatedReadingTime": 7
 }
 
-Return ONLY the JSON. No commentary, no markdown fences.`;
+Return ONLY the JSON. No commentary, no markdown fences.${researchBlock}`;
+};
 
 export type SeoBlock = { seoTitle: string; metaTitle: string; metaDescription: string; slug: string };
 
@@ -167,10 +187,10 @@ export type ArticleBundle = {
 };
 
 export async function generateArticleBundle(
- input: { topic?: string; focusKeyword?: string; category?: string },
+ input: { topic?: string; focusKeyword?: string; category?: string; research?: any },
  override?: Partial<AIConfig>,
 ): Promise<ArticleBundle> {
- const prompt = articleUserPrompt(input);
+ const prompt = articleUserPrompt(input, input.research);
 
  const { text: raw, provider: usedProvider } = await callAIWithFallback(
  prompt,

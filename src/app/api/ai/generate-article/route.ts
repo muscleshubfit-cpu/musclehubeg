@@ -18,11 +18,12 @@ export const maxDuration = 300;
 export async function POST(request: NextRequest) {
  try {
  const body = await request.json();
- const { topic, focusKeyword, category, language } = body as {
+ const { topic, focusKeyword, category, language, research } = body as {
  topic?: string;
  focusKeyword?: string;
  category?: string;
  language?: "en" | "ar";
+ research?: any;
  };
 
  if (!topic && !focusKeyword) {
@@ -34,7 +35,7 @@ export async function POST(request: NextRequest) {
 
  const override = getOverrideFromRequest(request);
  const bundle = await generateArticleBundle(
- { topic: topic?.trim(), focusKeyword: focusKeyword?.trim(), category: category || "nutrition" },
+ { topic: topic?.trim(), focusKeyword: focusKeyword?.trim(), category: category || "nutrition", research },
  override,
  );
  const image = await fetchFeaturedImage(bundle.seo.focusKeyword || focusKeyword || topic || "");

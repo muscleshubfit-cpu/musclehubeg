@@ -83,6 +83,8 @@ export function AIGenerateModal({
  const [language, setLanguage] = useState<"en" | "ar">(defaultLanguage);
 
  const [generating, setGenerating] = useState(false);
+ const [researching, setResearching] = useState(false);
+ const [researchData, setResearchData] = useState<any>(null);
  const [error, setError] = useState<string | null>(null);
  const [bundle, setBundle] = useState<GeneratedBundle | null>(null);
 
@@ -98,7 +100,31 @@ export function AIGenerateModal({
  setGenerating(true);
  setError(null);
  setBundle(null);
+ setResearchData(null);
+
  try {
+ // Step 1: Research the topic via web search
+ setResearching(true);
+ let research = null;
+ try {
+ const researchRes = await fetch("/api/ai/research-topic", {
+ method: "POST",
+ headers: { "Content-Type": "application/json" },
+ body: JSON.stringify({
+ topic: topic.trim() || undefined,
+ focusKeyword: focusKeyword.trim() || undefined,
+ }),
+ });
+ if (researchRes.ok) {
+ research = await researchRes.json();
+ setResearchData(research);
+ }
+ } catch (researchErr: any) {
+ console.error("[AIGenerateModal] Research failed:", researchErr?.message);
+ }
+ setResearching(false);
+
+ // Step 2: Generate the article using the research data
  const res = await fetch("/api/ai/generate-article", {
  method: "POST",
  headers: { "Content-Type": "application/json" },
@@ -107,6 +133,7 @@ export function AIGenerateModal({
  focusKeyword: focusKeyword.trim() || undefined,
  category,
  language,
+ research,
  }),
  });
  const data = await res.json();
@@ -120,6 +147,7 @@ export function AIGenerateModal({
  toast.error(e.message);
  } finally {
  setGenerating(false);
+ setResearching(false);
  }
  };
 
@@ -292,17 +320,32 @@ export function AIGenerateModal({
  <Loader2 className="h-4 w-4 animate-spin text-primary" />
  <div>
  <p className="font-medium text-foreground">
- {isAr ? "الذكاء الاصطناعي يعمل على:" : "AI is working on:"}
+ {researching
+   ? isAr ? "جارٍ البحث عن الموضوع…" : "Researching topic…"
+   : isAr ? "كتابة المقال بالذكاء الاصطناعي…" : "Writing article with AI…"}
  </p>
  <ul className="mt-1 space-y-0.5 text-xs">
- <li>• {isAr ? "البحث واختيار الزاوية" : "Researching topic & picking angle"}</li>
+ <li>• {isAr ? "البحث في جوجل والمواقع المنافسة" : "Searching Google + competitor sites"}</li>
+ <li>• {isAr ? "تحليل الأسئلة الشائعة" : "Analyzing related questions"}</li>
  <li>• {isAr ? "توليد بيانات SEO" : "Generating SEO data"}</li>
  <li>• {isAr ? "كتابة المقال الإنجليزي" : "Writing English article"}</li>
  <li>• {isAr ? "كتابة المقال العربي المحلي" : "Writing localized Arabic article"}</li>
- <li>• {isAr ? "توليد FAQ وروابط ومحتوى تسويقي" : "Building FAQ, links, social posts"}</li>
+ <li>• {isAr ? "توليد FAQ ومحتوى تسويقي" : "Building FAQ, links, social posts"}</li>
  </ul>
  </div>
  </div>
+ {researchData && (
+ <div className="mt-3 rounded-lg border border-border bg-muted/30 p-2 text-xs">
+ <p className="font-semibold text-primary">
+ {isAr ? `تم العثور على ${researchData.totalResults || 0} نتيجة بحث` : `Found ${researchData.totalResults || 0} search results`}
+ </p>
+ {researchData.relatedQuestions?.length > 0 && (
+ <p className="mt-1 text-muted-foreground">
+ {isAr ? `${researchData.relatedQuestions.length} سؤال شائع` : `${researchData.relatedQuestions.length} related questions`}
+ </p>
+ )}
+ </div>
+ )}
  </Card>
  )}
  </>
