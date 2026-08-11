@@ -2,6 +2,9 @@ import { BlogArticlePage } from "@/components/blog/BlogArticlePage";
 import { getBlogPost } from "@/lib/blog";
 import type { Metadata } from "next";
 
+// Force dynamic rendering so generateMetadata runs on every request
+export const dynamic = "force-dynamic";
+
 /**
  * Server-side metadata for Arabic articles — puts OG tags in <head>.
  */

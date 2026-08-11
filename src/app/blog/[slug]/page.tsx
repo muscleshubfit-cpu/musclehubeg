@@ -2,13 +2,12 @@ import { BlogArticlePage } from "@/components/blog/BlogArticlePage";
 import { getBlogPost } from "@/lib/blog";
 import type { Metadata } from "next";
 
+// Force dynamic rendering so generateMetadata runs on every request
+export const dynamic = "force-dynamic";
+
 /**
  * Server-side metadata generation — puts OG tags in <head> where Facebook,
  * LinkedIn, X, and WhatsApp can find them.
- *
- * This is the CORRECT way to set social share metadata in Next.js App Router:
- * the `generateMetadata` function runs on the server, fetches the article,
- * and injects the OG + Twitter meta tags into the <head> element.
  */
 export async function generateMetadata({
   params,
