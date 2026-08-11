@@ -102,18 +102,17 @@ export function SocialShare({ url, title, description, image, lang }: { url: str
  const encodedTitle = encodeURIComponent(title);
  const encodedDesc = description ? encodeURIComponent(description) : "";
 
- // Language-aware share text — the share message matches the article language
- // Include a SHORT summary (first 120 chars of description) for social platforms
- const shortDesc = description ? description.slice(0, 120) + (description.length > 120 ? "..." : "") : "";
+ // Language-aware share text — always include a summary
+ const shortDesc = description ? description.slice(0, 150) + (description.length > 150 ? "..." : "") : (title ? title : "");
  const shareText = isAr
-   ? `${title}${shortDesc ? `\n\n${shortDesc}` : ""}\n\nاقرأ المقال كاملاً على MuscleHub:`
-   : `${title}${shortDesc ? `\n\n${shortDesc}` : ""}\n\nRead the full article on MuscleHub:`;
+   ? `${title}\n\n${shortDesc}\n\nاقرأ المقال كاملاً على MuscleHub:`
+   : `${title}\n\n${shortDesc}\n\nRead the full article on MuscleHub:`;
  const encodedShareText = encodeURIComponent(shareText);
 
  const share = (platform: string) => {
    const links: Record<string, string> = {
      // Facebook: just needs the URL — it scrapes OG tags for title/image/description
-     facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`,
+     facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}&quote=${encodedShareText}`,
      // LinkedIn: uses OG tags from the URL
      linkedin: `https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}`,
      // X (Twitter): include title + description + URL in the tweet text

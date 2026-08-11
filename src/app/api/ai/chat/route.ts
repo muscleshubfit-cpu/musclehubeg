@@ -1,5 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
-import { geminiChat, isGeminiConfigured } from "@/lib/ai-gemini";
+import { callAIWithFallback, type AIProvider } from "@/lib/ai-provider";
 import { generateChatReply } from "@/lib/ai-local";
 import { listPlans, listProgress, getQuestionnaire, listAllSubscriptions } from "@/lib/data";
 import { getTier } from "@/lib/plans";
@@ -62,7 +61,9 @@ export async function POST(request: NextRequest) {
  }
 
  // Try Gemini AI first
- if (isGeminiConfigured) {
+ const OPENROUTER_KEY = process.env.OPENROUTER_API_KEY || process.env.AI_API_KEY || "";
+ const OPENROUTER_BASE = "https://openrouter.ai/api/v1";
+ if (OPENROUTER_KEY) {
  try {
  const systemInstruction = buildSystemPrompt(clientContext);
  const messages = [
@@ -73,10 +74,18 @@ export async function POST(request: NextRequest) {
  { role: "user", content: message },
  ];
 
- const reply = await geminiChat(messages, systemInstruction);
- return NextResponse.json({ reply, source: "gemini" });
- } catch (geminiErr) {
- console.error("[api/ai/chat] Gemini failed, falling back to local:", geminiErr);
+ const chatPrompt = messages.map(m => `${m.role === "user" ? "User" : "Assistant"}: ${m.content}`).join("\n\n");
+ const fullPrompt = `${systemInstruction}\n\n${chatPrompt}\n\nAssistant:`;
+ const models = ["nvidia/nemotron-3-ultra-550b-a55b:free", "google/gemma-4-31b-it:free", "google/gemma-4-26b-a4b-it:free"];
+ for (const model of models) {
+ try {
+ const { text } = await callAIWithFallback(fullPrompt, { temperature: 0.6, maxTokens: 1000, timeoutMs: 30_000 }, { provider: "openrouter" as AIProvider, apiKey: OPENROUTER_KEY, model, baseUrl: OPENROUTER_BASE });
+ if (text && text.length > 10) return NextResponse.json({ reply: text, source: `openrouter:${model}` });
+ } catch (e) { console.error(`[chat] OpenRouter ${model} failed:`, e); }
+ }
+ 
+ } catch (aiErr) {
+ console.error("[api/ai/chat] Gemini failed, falling back to local:", aiErr);
  }
  }
 

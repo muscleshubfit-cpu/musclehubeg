@@ -92,24 +92,41 @@ STEP 4 — ARABIC ARTICLE (LOCALIZED, NOT TRANSLATED, Markdown, 600-900 words):
  - Do NOT translate English idioms literally — rewrite for Arabic readers.
  - Same SEO structure as English (H2/H3, table, key takeaways, CTA sections).
  - Include the focus keyword (transliterated or Arabic equivalent) naturally.
- - CRITICAL: The ENTIRE Arabic article must be in Arabic. NO English headings,
-   NO English paragraphs, NO English subtitles. If you need to mention an
-   English term (like "BMR" or "TDEE"), write it in Arabic letters or add a
-   brief Arabic explanation — do NOT leave English sentences in the Arabic article.
- - All headings (H2, H3) must be in Arabic.
- - All table headers and cell content must be in Arabic.
- - The CTA section must be in Arabic.
- - The "Key Takeaways" section must be in Arabic.
+ - CRITICAL: The ENTIRE Arabic article MUST be 100% in Arabic. This includes:
+   * All headings (H2, H3) — Arabic only, no English words
+   * All paragraphs — Arabic only
+   * All table headers and cell content — Arabic only
+   * The FAQ questions and answers — Arabic only
+   * The CTA section — Arabic only
+   * The "Key Takeaways" section — Arabic only
+   * Source citations — write the source name in Arabic (e.g. "وفقاً لدراسة في المجلة الدولية للتغذية الرياضية")
+   * Scientific terms — transliterate to Arabic or explain in Arabic (e.g. "معدل الأيض الأساسي (BMR)")
+   * Do NOT write any English sentence, phrase, or heading in the Arabic article
+ - The Arabic FAQ must have Arabic questions AND Arabic answers — no English at all.
 
-STEP 5 — FAQ (3-5 Q&As, in BOTH languages):
+STEP 5 — FAQ (3-5 Q&As, SEPARATE for each language):
  - Questions people ask on Google + AI assistants about this topic.
  - Answers 40-80 words each, concise and quotable.
- - Provide FAQ in BOTH English and Arabic — the Arabic FAQ must be fully in Arabic, not translations of the English FAQ.
- - Each FAQ entry: { "question_en": "...", "answer_en": "...", "question_ar": "...", "answer_ar": "..." }
+ - English FAQ: questions and answers in English.
+ - Arabic FAQ: questions and answers in Arabic ONLY — no English words.
+ - Return FAQ as: [{ "question": "English Q", "answer": "English A" }, ...]
+   The system will use these for the English article. For the Arabic article,
+   include a separate "faq_ar" field with Arabic-only Q&A.
 
-STEP 6 — LINK SUGGESTIONS:
- - internalLinks: 3-5 suggested internal links to other MuscleHub blog posts (use plausible slugs; the admin will confirm). Each: { slug, anchorText, reason }.
- - externalLinks: 3-5 authoritative external references (NIH, WHO, Examine.com, ACE, ISSN, Mayo Clinic). Each: { url, anchorText, reason }.
+STEP 6 — LINK SUGGESTIONS (MUST be included in both articles):
+ - internalLinks: 3-5 suggested internal links to other MuscleHub blog posts.
+   Each: { slug, anchorText, reason, anchorTextAr }
+   The anchorText is English; anchorTextAr is the Arabic version of the anchor text.
+   These links MUST be inserted into both articles as markdown links:
+   English: [anchorText](/blog/slug)
+   Arabic: [anchorTextAr](/ar/blog/slug)
+ - externalLinks: 3-5 authoritative external references (NIH, WHO, Examine.com, ACE, ISSN, Mayo Clinic).
+   Each: { url, anchorText, reason, anchorTextAr }
+   These links MUST be inserted into both articles as markdown links:
+   English: [anchorText](url)
+   Arabic: [anchorTextAr](url)
+ - CRITICAL: You MUST actually INSERT these links into the article markdown content,
+   not just list them. Embed them naturally in relevant paragraphs.
 
 STEP 7 — IMAGE PROMPTS (English, for AI image generators):
  - featuredImage, facebookImage, openGraphImage

@@ -151,17 +151,23 @@ export async function aiTool(tool: string, params: { content?: string; title?: s
 
  const prompt = prompts[tool] || prompts.improve;
 
- // Try Gemini first
+ // Use OpenRouter (Gemini removed — doesn't work)
  try {
- const { geminiGenerate } = await import("@/lib/ai-gemini");
- const { isGeminiConfigured } = await import("@/lib/ai-gemini");
- if (isGeminiConfigured) {
- const result = await geminiGenerate(prompt);
- return { text: result };
- }
- } catch (e) {
- console.error("[aiTool] Gemini failed:", e);
- }
+   const { callAIWithFallback } = await import("@/lib/ai-provider");
+   const OPENROUTER_KEY = process.env.OPENROUTER_API_KEY || process.env.AI_API_KEY || "";
+   const OPENROUTER_BASE = "https://openrouter.ai/api/v1";
+   if (OPENROUTER_KEY) {
+     const models = ["nvidia/nemotron-3-ultra-550b-a55b:free", "google/gemma-4-31b-it:free", "google/gemma-4-26b-a4b-it:free"];
+     for (const model of models) {
+       try {
+         const { text } = await callAIWithFallback(prompt, {
+           temperature: 0.7, maxTokens: 1000, jsonMode: tool === "faq", timeoutMs: 30_000,
+         }, { provider: "openrouter" as any, apiKey: OPENROUTER_KEY, model, baseUrl: OPENROUTER_BASE });
+         return { text };
+       } catch (e: any) { console.error(`[aiTool] OpenRouter ${model} failed:`, e?.message); }
+     }
+   }
+ } catch (e: any) { console.error("[aiTool] AI failed:", e); }
 
  // Fallback: local generation
  return { text: localAITool(tool, params) };
