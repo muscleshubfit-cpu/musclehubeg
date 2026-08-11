@@ -8,10 +8,11 @@ on:
 jobs:
   trigger:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Call the blog-generation endpoint
         run: |
-          HTTP_CODE=$(curl --silent --show-error -o /tmp/response.json -w "%{http_code}" \
+          HTTP_CODE=$(curl --silent --show-error --max-time 540 -o /tmp/response.json -w "%{http_code}" \
             -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
             "${{ vars.SITE_URL }}/api/cron/generate-blog-post")
           echo "HTTP status: $HTTP_CODE"
@@ -19,5 +20,7 @@ jobs:
           cat /tmp/response.json
           echo ""
           if [ "$HTTP_CODE" -ge 400 ]; then
+            echo "❌ Blog generation failed"
             exit 1
           fi
+          echo "✓ Blog post generated successfully"

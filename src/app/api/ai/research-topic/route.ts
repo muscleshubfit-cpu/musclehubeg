@@ -1,18 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
+import { callAIWithFallback, parseJSON, type AIProvider } from "@/lib/ai-provider";
 
 /**
- * Topic Research endpoint — searches the web for trending content, related
- * questions, and search intent data about a fitness/nutrition topic before
- * generating a blog article.
- *
- * Uses the z-ai-web-dev-sdk's web_search function to find:
- *   1. Top-ranking articles on the topic (competitor analysis)
- *   2. Related questions people are asking (like Answer The Public)
- *   3. Trending angles and subtopics
+ * Topic Research endpoint — uses OpenRouter AI to research a topic before
+ * generating a blog article. Asks the AI to act as an SEO strategist and
+ * provide:
+ *   1. Top-ranking article angles (competitor analysis based on training data)
+ *   2. Related questions people ask (like Answer The Public)
+ *   3. Trending keywords and subtopics
  *
  * POST /api/ai/research-topic
  * Body: { topic: string, focusKeyword?: string }
- * Returns: { queries: [...], topArticles: [...], relatedQuestions: [...], trendingAngles: [...] }
  */
 export const maxDuration = 120;
 
@@ -22,140 +20,102 @@ export async function POST(request: NextRequest) {
     const { topic, focusKeyword } = body as { topic?: string; focusKeyword?: string };
 
     if (!topic && !focusKeyword) {
-      return NextResponse.json(
-        { error: "Either 'topic' or 'focusKeyword' is required." },
-        { status: 400 },
-      );
+      return NextResponse.json({ error: "Either 'topic' or 'focusKeyword' is required." }, { status: 400 });
     }
 
     const searchTerm = focusKeyword || topic || "";
 
-    // Call the z-ai functions API directly (bypassing the SDK which needs a config file)
-    const zaiBaseUrl = process.env.ZAI_BASE_URL || "https://internal-api.z.ai/v1";
-    const zaiApiKey = process.env.ZAI_API_KEY || "Z.ai";
-    const zaiChatId = process.env.ZAI_CHAT_ID || "";
-    const zaiUserId = process.env.ZAI_USER_ID || "";
-    const zaiToken = process.env.ZAI_TOKEN || "";
+    const OPENROUTER_KEY = process.env.OPENROUTER_API_KEY || process.env.AI_API_KEY || "";
+    const OPENROUTER_BASE = "https://openrouter.ai/api/v1";
 
-    async function webSearch(query: string, num: number = 5): Promise<any[]> {
-      try {
-        // Use a short timeout — if the z-ai API is unreachable from Vercel,
-        // return empty results instead of hanging.
-        const res = await fetch(`${zaiBaseUrl}/functions/invoke`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${zaiApiKey}`,
-            "X-Z-AI-From": "Z",
-            ...(zaiChatId ? { "X-Chat-Id": zaiChatId } : {}),
-            ...(zaiUserId ? { "X-User-Id": zaiUserId } : {}),
-            ...(zaiToken ? { "X-Token": zaiToken } : {}),
-          },
-          body: JSON.stringify({
-            function_name: "web_search",
-            arguments: { query, num },
-          }),
-          signal: AbortSignal.timeout(8_000), // 8s max per search
-        });
-        if (!res.ok) {
-          const errText = await res.text().catch(() => "");
-          console.error(`[research-topic] web_search "${query}" HTTP ${res.status}: ${errText.slice(0, 200)}`);
-          return [];
-        }
-        const data = await res.json();
-        const result = data?.result || data || [];
-        return Array.isArray(result) ? result : [];
-      } catch (e: any) {
-        console.error(`[research-topic] web_search "${query}" error: ${e?.name}: ${e?.message}`);
-        return [];
-      }
+    if (!OPENROUTER_KEY) {
+      return NextResponse.json({ error: "OpenRouter API key not configured" }, { status: 500 });
     }
 
-    // Run 3 key searches (reduced from 8 to avoid timeout)
-    const searchQueries = [
-      searchTerm,                              // main topic
-      `${searchTerm} vs`,                      // comparison angles
-      `how to ${searchTerm}`,                 // how-to angle
+    const prompt = `You are an expert SEO/GEO content strategist. Research the topic "${searchTerm}" for a fitness & nutrition coaching blog (MuscleHub, Egypt-focused, Arabic + English audience).
+
+Based on your knowledge of search trends, Google search behavior, and AI answer engine patterns, provide:
+
+1. TOP_ARTICLES: The top 5 article angles currently ranking for this topic (title + brief description of what they cover).
+2. RELATED_QUESTIONS: 8-10 questions people actually search for related to this topic (like Answer The Public would show).
+3. TRENDING_KEYWORDS: 10-15 related keywords and subtopics that are trending or have high search volume.
+4. CONTENT_GAPS: 3-5 angles that competitors are NOT covering well — opportunities for our article to win.
+5. SEARCH_INTENT: Is the primary search intent informational, commercial, or transactional? What does the searcher really want?
+
+Return STRICT JSON only:
+{
+  "topArticles": [
+    {"title": "...", "description": "...", "coversWhat": "..."}
+  ],
+  "relatedQuestions": ["question 1", "question 2", "..."],
+  "trendingKeywords": ["keyword 1", "keyword 2", "..."],
+  "contentGaps": ["gap 1", "gap 2", "..."],
+  "searchIntent": "informational|commercial|transactional",
+  "searcherGoal": "what the searcher really wants to achieve"
+}`;
+
+    const models = [
+      "nvidia/nemotron-3-ultra-550b-a55b:free",
+      "google/gemma-4-31b-it:free",
+      "google/gemma-4-26b-a4b-it:free",
     ];
 
-    const allResults: any[] = [];
-    const allSnippets: string[] = [];
-    const relatedQuestions: string[] = [];
-    const topArticles: any[] = [];
+    for (const model of models) {
+      try {
+        const { text } = await callAIWithFallback(
+          prompt,
+          {
+            systemPrompt: "You are an expert SEO strategist with deep knowledge of Google search trends, Answer The Public data, and fitness/nutrition content. Return JSON only.",
+            temperature: 0.5,
+            maxTokens: 2000,
+            jsonMode: true,
+            timeoutMs: 60_000,
+          },
+          {
+            provider: "openrouter" as AIProvider,
+            apiKey: OPENROUTER_KEY,
+            model,
+            baseUrl: OPENROUTER_BASE,
+          },
+        );
 
-    for (const query of searchQueries) {
-      const results = await webSearch(query, 5);
-      if (results.length > 0) {
-        for (const item of results) {
-          allSnippets.push(item.snippet || "");
-          const host = item.host_name || "";
-          if (!host.includes("reddit") && !host.includes("quora") && !host.includes("pinterest") && !host.includes("facebook")) {
-            topArticles.push({
-              title: item.name || "",
-              url: item.url || "",
-              host: host,
-              snippet: (item.snippet || "").slice(0, 200),
-            });
-          }
-          const snippet = item.snippet || "";
-          const questionMatches = snippet.match(/\b(what|how|why|when|where|can|should|does|is|are|do)\s+[^.?!]+\?/gi);
-          if (questionMatches) {
-            for (const q of questionMatches) {
-              if (q.length > 15 && q.length < 120 && !relatedQuestions.includes(q)) {
-                relatedQuestions.push(q.trim());
-              }
-            }
-          }
+        const parsed = parseJSON<any>(text);
+        if (parsed && (parsed.relatedQuestions || parsed.topArticles)) {
+          return NextResponse.json({
+            searchTerm,
+            topArticles: (parsed.topArticles || []).map((a: any) => ({
+              title: a.title || a.name || "",
+              snippet: a.description || a.coversWhat || "",
+              host: "",
+            })),
+            relatedQuestions: parsed.relatedQuestions || [],
+            trendingAngles: parsed.trendingKeywords || [],
+            contentGaps: parsed.contentGaps || [],
+            searchIntent: parsed.searchIntent || "informational",
+            searcherGoal: parsed.searcherGoal || "",
+            totalResults: (parsed.relatedQuestions?.length || 0) + (parsed.topArticles?.length || 0),
+            source: `openrouter:${model}`,
+          });
         }
+      } catch (e: any) {
+        console.error(`[research-topic] OpenRouter ${model} failed:`, e?.message);
       }
     }
 
-    // Deduplicate top articles by URL
-    const seenUrls = new Set<string>();
-    const uniqueArticles = topArticles.filter((a) => {
-      if (seenUrls.has(a.url)) return false;
-      seenUrls.add(a.url);
-      return true;
-    }).slice(0, 10);
-
-    // Deduplicate questions
-    const uniqueQuestions = [...new Set(relatedQuestions)].slice(0, 15);
-
-    // Analyze snippets for trending angles
-    const wordFreq: Record<string, number> = {};
-    for (const snippet of allSnippets) {
-      const words = snippet.toLowerCase().split(/\s+/);
-      for (const word of words) {
-        if (word.length > 4 && !["about", "which", "their", "would", "could", "should", "other", "these", "those", "there", "where", "when", "what", "while"].includes(word)) {
-          wordFreq[word] = (wordFreq[word] || 0) + 1;
-        }
-      }
-    }
-    const trendingAngles = Object.entries(wordFreq)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 10)
-      .map(([word, count]) => word);
-
+    // All models failed — return empty research (article generation will still work)
     return NextResponse.json({
       searchTerm,
-      queries: searchQueries,
-      topArticles: uniqueArticles,
-      relatedQuestions: uniqueQuestions,
-      trendingAngles,
-      totalResults: allSnippets.length,
-      debug: {
-        baseUrl: zaiBaseUrl ? zaiBaseUrl.slice(0, 30) : "(empty)",
-        apiKey: zaiApiKey ? "set" : "(empty)",
-        chatId: zaiChatId ? "set" : "(empty)",
-        userId: zaiUserId ? "set" : "(empty)",
-        token: zaiToken ? "set" : "(empty)",
-      },
+      topArticles: [],
+      relatedQuestions: [],
+      trendingAngles: [],
+      contentGaps: [],
+      searchIntent: "informational",
+      searcherGoal: "",
+      totalResults: 0,
+      source: "none",
     });
   } catch (e: any) {
     console.error("[research-topic] Error:", e?.message || e);
-    return NextResponse.json(
-      { error: e?.message || "Failed to research topic" },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: e?.message || "Failed" }, { status: 500 });
   }
 }
