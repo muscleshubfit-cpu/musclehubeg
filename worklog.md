@@ -667,3 +667,62 @@ Stage Summary:
 - Exercise images are now REAL photos from wger.de (open-source database) for 30+ common exercises. The "weird" instructional SVGs are gone — replaced with clean category icons as fallback only.
 - Workout programs now cover the FULL BODY across training days (explicit split instructions in the AI prompt).
 - Beginners and heavy clients (>100kg) no longer get dangerous exercises (no dips, pull-ups, conventional deadlifts, front squats). They get safer alternatives + machine exercises + higher reps.
+
+---
+Task ID: liquid-glass-redesign
+Agent: main (super-z)
+Task: User requested a complete visual redesign of the website (colors, icons, visual style) without changing any functionality. Provided a design reference image showing a "Liquid Glass" light-mode glassmorphism aesthetic.
+
+Work Log:
+- Analyzed the design reference image via VLM → identified the "Liquid Glass" design system: light cool background (#F5F8FC), semi-transparent white cards with backdrop-blur, soft indigo/blue accent (#6366F1), large border-radius (16px), soft diffused shadows, clean Inter typography.
+
+Changes made (NO functionality changes — only visual):
+
+1. src/app/globals.css — complete theme rewrite:
+   COLOR PALETTE:
+   - Background: #08080c → #f5f8fc (cool off-white)
+   - Card: #0f0f17 → rgba(255,255,255,0.72) (glass white)
+   - Primary: #00d4ff (neon) → #6366f1 (indigo)
+   - Secondary: #1a1a2e → #eef2ff (indigo-50)
+   - Muted: #13131f → #f1f5f9 (slate-100)
+   - Gold: #ffd700 → #d97706 (amber-600, more premium)
+   - Border: #1e1e2e → #e2e8f0 (slate-200)
+   - Success: #00ff88 → #22c55e
+   - Ring: #00d4ff → #818cf8 (indigo-400)
+   
+   VISUAL STYLE:
+   - Glass cards: backdrop-filter blur(20px) saturate(180%) on semi-transparent white
+   - Soft shadows: 0 4px 6px -1px rgba(0,0,0,0.05) — no neon glow
+   - Border radius: 0.875rem → 1rem (16px) — softer
+   - Subtle gradients: indigo→blue (not neon)
+   - Grid background: 3% opacity (was brighter)
+   - Focus rings: soft indigo
+
+   TYPOGRAPHY:
+   - Removed Sora (was display font) → Inter is now both display + body
+   - Cairo remains for Arabic
+   - Letter-spacing: -0.02em for headings
+
+2. tailwind.config.ts:
+   - Removed hsl() wrapper (now uses CSS vars directly)
+   - Added success/warning/gold color tokens
+   - Added Inter/Cairo to fontFamily config
+   - Added glow/gold/card box-shadow tokens
+   - Added xl/2xl/3xl border radius tokens
+
+3. src/app/layout.tsx:
+   - themeColor: #1F8FFF → #6366f1
+
+4. public/manifest.json:
+   - background_color: #FAFDFF → #f5f8fc
+   - theme_color: #1F8FFF → #6366f1
+
+Build: passes locally. TypeScript: zero new errors.
+Deploy: production READY in 45s (dpl_BgcsY75wkxcs9bwdFQxBU8jacEb1).
+Verified: production CSS contains #6366f1 + #f5f8fc; old colors gone; all pages HTTP 200.
+
+Stage Summary:
+- The site is now light-mode "Liquid Glass" instead of dark-mode neon.
+- Premium wellness aesthetic (Apple Health meets Equinox).
+- All functionality (auth, plans, blog, AI, coach dashboard, payments, etc.) is 100% unchanged.
+- The PWA theme color and manifest are updated to match.
