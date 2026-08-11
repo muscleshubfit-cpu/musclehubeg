@@ -602,3 +602,68 @@ Stage Summary:
 - Coach can now download any plan as a PDF (via browser print dialog) — premium branded output with all sections.
 - Client PDF download upgraded to the same premium format.
 - Exercise images are now INSTRUCTIONAL — they show body position, movement direction (arrows), equipment, and a short instruction text — not just a generic muscle icon.
+
+---
+Task ID: real-exercise-images + full-body-coverage + beginner-safety
+Agent: main (super-z)
+Task: User reported: (1) exercise images are "weird" — use open exercise databases, (2) workout program should cover full body across training days, (3) should not include difficult exercises for heavy/beginner clients (like triceps dips).
+
+Work Log:
+1. Real exercise images from wger.de (open-source database):
+   - Discovered wger.de — an open-source workout manager with 363+ CC-licensed exercise images showing real people performing exercises correctly.
+   - Tested the wger.de API: exercise translations, exercise images, direct image URLs — all work (HTTP 200).
+   - Fetched exercise IDs for 30+ common exercises by scanning the wger.de exercise-translation API.
+   - Fetched direct image URLs for each (400x400 thumbnails, all tested HTTP 200):
+     * Chest: bench press, push-up, dips
+     * Back: chin-up, seated cable row, hyperextensions
+     * Shoulders: arnold press
+     * Legs: leg curl, leg extension, leg press, lunges
+     * Arms: dumbbell curl, triceps pushdown
+     * Core: crunches, plank, side plank, russian twist, hollow hold, superman, flutter kicks, bird dog
+     * Hips: hip thrust, glute bridge
+     * Cardio: burpees, jumping jacks, high knees, mountain climbers
+   - Rewrote src/lib/exercise-images.ts:
+     * WGER_IMAGES map: 30+ direct image URLs (tested, all HTTP 200).
+     * ARABIC_KEYWORDS map: Arabic → English fuzzy matching.
+     * getWgerImageUrl(name) — looks up the direct URL by name.
+     * getExerciseImageUrl(name, existingUrl) — tries existing → wger direct → /api proxy.
+     * getFallbackSVG(name) — simple clean category icon (not the "weird" complex instructional SVGs).
+   - Created /api/exercise-image server-side proxy:
+     * Translates Arabic → English.
+     * Searches wger.de's exercise database.
+     * Fetches the main image.
+     * 24-hour in-memory cache.
+     * Returns 302 redirect (browser caches directly).
+     * Falls back to 404 → client onError swaps in SVG.
+   - Updated CoachClientView + PlansView to use the new resolveExerciseImage() + getExerciseImage() fallback.
+
+2. Full-body workout coverage in AI prompt:
+   - Rewrote buildWorkoutPrompt() in plan-generator.ts.
+   - Now specifies the exact split based on days/week:
+     * 2 days → Full Body (each day: legs + push + pull + core)
+     * 3 days → Full Body A/B/C (varied exercises)
+     * 4 days → Upper/Lower Split (covers entire body in 2 cycles)
+     * 5+ days → Push/Pull/Legs/Upper/Lower
+   - The prompt explicitly lists which muscle groups each day must include, ensuring full-body coverage.
+
+3. Beginner + heavy-weight safety rules:
+   - The AI prompt now includes explicit safety rules when the client is a beginner OR weighs >100kg:
+     * ❌ Forbidden: Pull-ups, Dips, Conventional Deadlift, Front Squat.
+     * ✅ Use instead: Lat Pulldown, Dumbbell Press, Romanian Deadlift, regular Squat.
+     * ✅ Machine exercises (leg press, cable row) — safer.
+     * ✅ Lighter weights + higher reps (12-15 instead of 6-8).
+     * ✅ Core exercises crucial for back protection.
+   - Updated local EXERCISE_LIBRARY's pickExercises():
+     * Added ADVANCED_EXERCISES set (dip, pullup, chinup, deadlift, front_squat).
+     * Skips these for beginners/heavy clients.
+     * Uses higher reps: 12-15 for beginners, 10-15 for heavy clients.
+   - Added isHeavy flag (weight > 100kg) to the local workout generator.
+   - Updated all 12 pickExercises() call sites to pass the isHeavy flag.
+
+Build: passes locally. TypeScript: zero new errors.
+Deploy: production READY in 60s (dpl_2QRPa3At6t1h734iTaQGGJh4QSG8).
+
+Stage Summary:
+- Exercise images are now REAL photos from wger.de (open-source database) for 30+ common exercises. The "weird" instructional SVGs are gone — replaced with clean category icons as fallback only.
+- Workout programs now cover the FULL BODY across training days (explicit split instructions in the AI prompt).
+- Beginners and heavy clients (>100kg) no longer get dangerous exercises (no dips, pull-ups, conventional deadlifts, front squats). They get safer alternatives + machine exercises + higher reps.
