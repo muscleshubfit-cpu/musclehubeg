@@ -29,6 +29,27 @@ export async function POST(request: NextRequest) {
     }
 
     const searchTerm = focusKeyword || topic || "";
+
+    // Ensure the .z-ai-config file exists — on Vercel, it may not be in
+    // the filesystem. Create it from env vars if missing.
+    const fs = await import("fs");
+    const path = await import("path");
+    const configPath = path.join(process.cwd(), ".z-ai-config");
+    if (!fs.existsSync(configPath)) {
+      const config = {
+        baseUrl: process.env.ZAI_BASE_URL || "https://internal-api.z.ai/v1",
+        apiKey: process.env.ZAI_API_KEY || "Z.ai",
+        chatId: process.env.ZAI_CHAT_ID || "",
+        token: process.env.ZAI_TOKEN || "",
+        userId: process.env.ZAI_USER_ID || "",
+      };
+      try {
+        fs.writeFileSync(configPath, JSON.stringify(config));
+      } catch (e: any) {
+        console.error("[research-topic] Failed to write .z-ai-config:", e?.message);
+      }
+    }
+
     const ZAI = (await import("z-ai-web-dev-sdk")).default;
     const zai = await ZAI.create();
 
