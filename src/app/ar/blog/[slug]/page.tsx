@@ -10,7 +10,6 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
@@ -61,13 +60,50 @@ export async function generateMetadata({
   };
 }
 
-export default function Page({ params }: { params: Promise<{ slug: string }> }) {
-  return <BlogArticlePageAsync params={params} />;
-}
-
-import { BlogArticlePage as ArticleComponent } from "@/components/blog/BlogArticlePage";
-
-async function BlogArticlePageAsync({ params }: { params: Promise<{ slug: string }> }) {
+export default async function Page({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  return <ArticleComponent lang="ar" slug={slug} />;
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  let post: any = null;
+  if (supabaseUrl && supabaseAnonKey) {
+    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+    const { data } = await supabase
+      .from("blog_posts")
+      .select("*")
+      .eq("language", "ar")
+      .eq("slug", slug)
+      .eq("is_published", true)
+      .maybeSingle();
+    post = data;
+  }
+
+  const baseUrl = "https://musclehubeg.vercel.app";
+  const articleUrl = `${baseUrl}/ar/blog/${slug}`;
+  const title = post?.meta_title || post?.title || "MuscleHub";
+  const description = post?.meta_description || post?.excerpt || "";
+  const image = post?.featured_image || `${baseUrl}/logo.png`;
+
+  return (
+    <>
+      <head>
+        <meta property="og:type" content="article" />
+        <meta property="og:url" content={articleUrl} />
+        <meta property="og:title" content={title} />
+        <meta property="og:description" content={description} />
+        <meta property="og:image" content={image} />
+        <meta property="og:image:width" content="1200" />
+        <meta property="og:image:height" content="630" />
+        <meta property="og:site_name" content="MuscleHub" />
+        <meta property="og:locale" content="ar_EG" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content={title} />
+        <meta name="twitter:description" content={description} />
+        <meta name="twitter:image" content={image} />
+      </head>
+      <BlogArticlePage lang="ar" slug={slug} />
+    </>
+  );
 }
