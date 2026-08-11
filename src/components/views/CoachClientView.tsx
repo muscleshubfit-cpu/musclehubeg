@@ -647,8 +647,22 @@ export function CoachClientView({ clientId }: { clientId: string }) {
 
       {tab === "questionnaires" && (
         <div className="grid gap-4 md:grid-cols-2">
-          <QuestionnaireCard title={t("coach.nutritionQ")} data={nutriQ} t={t} />
-          <QuestionnaireCard title={t("coach.fitnessQ")} data={fitQ} t={t} />
+          <QuestionnaireCard
+            title={t("coach.nutritionQ")}
+            type="nutrition"
+            data={nutriQ}
+            clientId={clientId}
+            t={t}
+            onChanged={(row) => setNutriQ(row)}
+          />
+          <QuestionnaireCard
+            title={t("coach.fitnessQ")}
+            type="fitness"
+            data={fitQ}
+            clientId={clientId}
+            t={t}
+            onChanged={(row) => setFitQ(row)}
+          />
         </div>
       )}
 
@@ -693,28 +707,220 @@ export function CoachClientView({ clientId }: { clientId: string }) {
   );
 }
 
-function QuestionnaireCard({ title, data, t }: { title: string; data: any; t: (k: string) => string }) {
+function QuestionnaireCard({
+  title,
+  type,
+  data,
+  clientId,
+  t,
+  onChanged,
+}: {
+  title: string;
+  type: "nutrition" | "fitness";
+  data: any;
+  clientId: string;
+  t: (k: string) => string;
+  onChanged: (row: any) => void;
+}) {
   const status = data?.status as string | undefined;
+  const [editMode, setEditMode] = useState(false);
+  const [form, setForm] = useState<Record<string, any>>(data?.data || {});
+  const [saving, setSaving] = useState(false);
+
+  // Sync form when data changes externally
+  useEffect(() => {
+    setForm(data?.data || {});
+  }, [data]);
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const { upsertQuestionnaire } = await import("@/lib/data");
+      // Coach edits keep the current status (don't downgrade "approved" to "draft")
+      const row = await upsertQuestionnaire(clientId, type, form, data?.status || "draft");
+      onChanged(row);
+      setEditMode(false);
+      toast.success("تم حفظ التعديلات!");
+    } catch (e: any) {
+      toast.error(e.message || "فشل الحفظ");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Field definitions — matches the client QuestionnairesView
+  const isNutrition = type === "nutrition";
+  const nutritionFields = [
+    { key: "gender", label: "الجنس", type: "gender" as const },
+    { key: "age", label: "العمر", type: "number" as const },
+    { key: "height", label: "الطول (سم)", type: "number" as const },
+    { key: "weight", label: "الوزن (كجم)", type: "number" as const },
+    { key: "target_weight", label: "الوزن المستهدف", type: "number" as const },
+    { key: "waist", label: "محيط الخصر", type: "number" as const },
+    { key: "neck", label: "محيط الرقبة", type: "number" as const },
+    { key: "hip", label: "محيط الورك", type: "number" as const },
+    { key: "diet", label: "النظام الغذائي", type: "text" as const },
+    { key: "allergies", label: "حساسية", type: "text" as const },
+    { key: "disliked", label: "أطعمة غير مرغوبة", type: "text" as const },
+    { key: "meals", label: "وجبات/يوم", type: "number" as const },
+    { key: "water", label: "ماء (لتر/يوم)", type: "number" as const },
+    { key: "medical", label: "حالات طبية", type: "text" as const },
+    { key: "supplements", label: "مكملات", type: "text" as const },
+  ];
+  const fitnessFields = [
+    { key: "goal", label: "الهدف", type: "text" as const },
+    { key: "activity", label: "مستوى النشاط", type: "select" as const, options: ["sedentary","light","moderate","active","very_active","extra_active"] as const },
+    { key: "days", label: "أيام التدريب", type: "number" as const },
+    { key: "location", label: "مكان التدريب", type: "text" as const },
+    { key: "experience", label: "الخبرة", type: "text" as const },
+    { key: "injuries", label: "إصابات", type: "text" as const },
+    { key: "preferred", label: "نوع التدريب المفضل", type: "text" as const },
+    { key: "equipment", label: "المعدات", type: "text" as const },
+    { key: "sleep", label: "النوم (ساعات)", type: "number" as const },
+  ];
+  const fields = isNutrition ? nutritionFields : fitnessFields;
+  const activityLabels: Record<string, string> = {
+    sedentary: "خامل", light: "خفيف", moderate: "متوسط",
+    active: "نشط", very_active: "نشط جداً", extra_active: "فوق العادي",
+  };
+
   return (
     <Card className="p-5 shadow-card">
-      <div className="mb-3 flex items-center justify-between">
+      <div className="mb-3 flex items-center justify-between gap-2">
         <h3 className="font-semibold">{title}</h3>
-        {status && (
-          <Badge variant="outline">
-            {t(`q.status.${status}`)}
-          </Badge>
-        )}
+        <div className="flex items-center gap-2">
+          {status && (
+            <Badge variant="outline">
+              {t(`q.status.${status}`)}
+            </Badge>
+          )}
+          {!editMode ? (
+            <Button size="sm" variant="outline" className="gap-1.5 h-7" onClick={() => setEditMode(true)}>
+              <Pencil className="h-3 w-3" /> تعديل
+            </Button>
+          ) : (
+            <>
+              <Button size="sm" className="gap-1.5 h-7" onClick={handleSave} disabled={saving}>
+                {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />} حفظ
+              </Button>
+              <Button size="sm" variant="ghost" className="h-7" onClick={() => { setEditMode(false); setForm(data?.data || {}); }}>
+                إلغاء
+              </Button>
+            </>
+          )}
+        </div>
       </div>
-      {!data ? (
+      {!data && !editMode ? (
         <p className="text-sm text-muted-foreground">{t("coach.noQ")}</p>
+      ) : editMode ? (
+        <div className="grid gap-3 sm:grid-cols-2">
+          {fields.map((f) => {
+            if (f.type === "gender") {
+              return (
+                <div key={f.key}>
+                  <Label className="text-xs text-muted-foreground">{f.label}</Label>
+                  <div className="mt-1 grid grid-cols-2 gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setForm((p) => ({ ...p, [f.key]: "male" }))}
+                      className={`rounded-lg border p-2 text-xs font-medium ${form[f.key] === "male" ? "border-primary bg-secondary text-primary" : "border-border"}`}
+                    >♂ ذكر</button>
+                    <button
+                      type="button"
+                      onClick={() => setForm((p) => ({ ...p, [f.key]: "female" }))}
+                      className={`rounded-lg border p-2 text-xs font-medium ${form[f.key] === "female" ? "border-primary bg-secondary text-primary" : "border-border"}`}
+                    >♀ أنثى</button>
+                  </div>
+                </div>
+              );
+            }
+            if (f.type === "select") {
+              return (
+                <div key={f.key} className="sm:col-span-2">
+                  <Label className="text-xs text-muted-foreground">{f.label}</Label>
+                  <select
+                    value={form[f.key] ?? ""}
+                    onChange={(e) => setForm((p) => ({ ...p, [f.key]: e.target.value }))}
+                    className="mt-1 w-full rounded-lg border border-border bg-card px-2 py-1.5 text-sm h-8"
+                  >
+                    <option value="">— اختر —</option>
+                    {f.options.map((opt) => (
+                      <option key={opt} value={opt}>{activityLabels[opt] || opt}</option>
+                    ))}
+                  </select>
+                </div>
+              );
+            }
+            return (
+              <div key={f.key}>
+                <Label className="text-xs text-muted-foreground">{f.label}</Label>
+                <Input
+                  type={f.type === "number" ? "number" : "text"}
+                  value={form[f.key] ?? ""}
+                  onChange={(e) => setForm((p) => ({ ...p, [f.key]: e.target.value }))}
+                  className="mt-1 h-8 text-sm"
+                />
+              </div>
+            );
+          })}
+          <div className="sm:col-span-2">
+            <Label className="text-xs text-muted-foreground">ملاحظات</Label>
+            <Textarea
+              value={form.notes ?? ""}
+              onChange={(e) => setForm((p) => ({ ...p, notes: e.target.value }))}
+              className="mt-1 min-h-[60px] text-sm"
+            />
+          </div>
+          {/* Show photos (read-only — coach can view but not upload from here) */}
+          {isNutrition && form.photos?.length > 0 && (
+            <div className="sm:col-span-2">
+              <Label className="text-xs text-muted-foreground">صور العميل</Label>
+              <div className="mt-1 grid grid-cols-3 gap-2">
+                {form.photos.map((url: string, i: number) => (
+                  <a key={i} href={url} target="_blank" rel="noreferrer" className="aspect-square overflow-hidden rounded-lg border border-border">
+                    <img src={url} alt={`صورة ${i + 1}`} className="h-full w-full object-cover" />
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
       ) : (
         <div className="space-y-2 text-sm">
-          {Object.entries(data.data || {}).map(([k, v]: [string, any]) => (
-            <div key={k} className="flex justify-between gap-3 border-b border-border/60 pb-1.5">
-              <span className="text-muted-foreground">{k}</span>
-              <span className="font-medium text-end">{String(v) || "—"}</span>
+          {Object.entries(data?.data || {}).filter(([k]) => k !== "photos").map(([k, v]: [string, any]) => {
+            // Friendlier labels for known keys
+            const labelMap: Record<string, string> = {
+              gender: "الجنس", age: "العمر", height: "الطول", weight: "الوزن",
+              target_weight: "الوزن المستهدف", waist: "الخصر", neck: "الرقبة", hip: "الورك",
+              diet: "النظام الغذائي", allergies: "حساسية", disliked: "غير مرغوب",
+              meals: "وجبات/يوم", water: "ماء", medical: "حالات طبية", supplements: "مكملات",
+              notes: "ملاحظات", goal: "الهدف", activity: "النشاط", days: "أيام التدريب",
+              location: "المكان", experience: "الخبرة", injuries: "إصابات",
+              preferred: "التدريب المفضل", equipment: "المعدات", sleep: "النوم",
+            };
+            const displayValue = k === "gender" ? (v === "male" ? "ذكر" : v === "female" ? "أنثى" : v)
+              : k === "activity" ? (activityLabels[v] || v)
+              : String(v) || "—";
+            return (
+              <div key={k} className="flex justify-between gap-3 border-b border-border/60 pb-1.5">
+                <span className="text-muted-foreground">{labelMap[k] || k}</span>
+                <span className="font-medium text-end">{displayValue}</span>
+              </div>
+            );
+          })}
+          {/* Show photos */}
+          {isNutrition && data?.data?.photos?.length > 0 && (
+            <div className="pt-2">
+              <span className="text-muted-foreground">صور العميل:</span>
+              <div className="mt-2 grid grid-cols-3 gap-2">
+                {data.data.photos.map((url: string, i: number) => (
+                  <a key={i} href={url} target="_blank" rel="noreferrer" className="aspect-square overflow-hidden rounded-lg border border-border">
+                    <img src={url} alt={`صورة ${i + 1}`} className="h-full w-full object-cover" />
+                  </a>
+                ))}
+              </div>
             </div>
-          ))}
+          )}
         </div>
       )}
     </Card>
@@ -999,20 +1205,55 @@ function PlanViewerModal({ plan, onClose, onRegenerate }: { plan: any; onClose: 
               <div className="space-y-3 rounded-xl border border-border bg-muted/30 p-4">
                 {content.data_analysis && (
                   <div>
-                    <h4 className="mb-2 text-sm font-bold">📐 تحليل البيانات</h4>
-                    <div className="grid grid-cols-2 gap-2 text-xs sm:grid-cols-3">
-                      {content.data_analysis.gender && <div><span className="text-muted-foreground">الجنس:</span> {content.data_analysis.gender}</div>}
-                      {content.data_analysis.weight && <div><span className="text-muted-foreground">الوزن:</span> {content.data_analysis.weight}</div>}
-                      {content.data_analysis.height && <div><span className="text-muted-foreground">الطول:</span> {content.data_analysis.height}</div>}
-                      {content.data_analysis.age && <div><span className="text-muted-foreground">العمر:</span> {content.data_analysis.age}</div>}
-                      {content.data_analysis.neck && <div><span className="text-muted-foreground">الرقبة:</span> {content.data_analysis.neck}</div>}
-                      {content.data_analysis.waist && <div><span className="text-muted-foreground">الخصر:</span> {content.data_analysis.waist}</div>}
-                      {content.data_analysis.activity && <div><span className="text-muted-foreground">النشاط:</span> {content.data_analysis.activity}</div>}
-                      {content.data_analysis.health && <div><span className="text-muted-foreground">الصحة:</span> {content.data_analysis.health}</div>}
-                      {content.data_analysis.body_fat_pct && <div><span className="text-muted-foreground">نسبة الدهون:</span> {content.data_analysis.body_fat_pct}</div>}
-                      {content.data_analysis.bmr && <div><span className="text-muted-foreground">BMR:</span> ~{content.data_analysis.bmr} سعرة</div>}
-                      {content.data_analysis.tdee && <div><span className="text-muted-foreground">TDEE:</span> ~{content.data_analysis.tdee} سعرة</div>}
-                    </div>
+                    <h4 className="mb-2 text-sm font-bold">📐 تحليل البيانات {editMode && <span className="text-xs font-normal text-muted-foreground">(قابل للتعديل)</span>}</h4>
+                    {editMode ? (
+                      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                        {[
+                          { key: "gender", label: "الجنس", placeholder: "ذكر/أنثى" },
+                          { key: "weight", label: "الوزن", placeholder: "80 كجم" },
+                          { key: "height", label: "الطول", placeholder: "175 سم" },
+                          { key: "age", label: "العمر", placeholder: "25 سنة" },
+                          { key: "neck", label: "الرقبة", placeholder: "37 سم" },
+                          { key: "waist", label: "الخصر", placeholder: "85 سم" },
+                          { key: "hip", label: "الورك", placeholder: "95 سم" },
+                          { key: "activity", label: "النشاط", placeholder: "متوسط" },
+                          { key: "health", label: "الصحة", placeholder: "لا يوجد" },
+                          { key: "body_fat_pct", label: "نسبة الدهون", placeholder: "~20%" },
+                          { key: "bmr", label: "BMR", placeholder: "1700", type: "number" },
+                          { key: "tdee", label: "TDEE", placeholder: "2300", type: "number" },
+                        ].map((f) => (
+                          <div key={f.key}>
+                            <Label className="text-[10px] text-muted-foreground">{f.label}</Label>
+                            <Input
+                              type={f.type === "number" ? "number" : "text"}
+                              value={content.data_analysis[f.key] ?? ""}
+                              placeholder={f.placeholder}
+                              onChange={(e) => {
+                                const newContent = { ...content };
+                                newContent.data_analysis = { ...newContent.data_analysis, [f.key]: e.target.value };
+                                setContent(newContent);
+                              }}
+                              className="mt-0.5 h-8 text-xs"
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-2 gap-2 text-xs sm:grid-cols-3">
+                        {content.data_analysis.gender && <div><span className="text-muted-foreground">الجنس:</span> {content.data_analysis.gender}</div>}
+                        {content.data_analysis.weight && <div><span className="text-muted-foreground">الوزن:</span> {content.data_analysis.weight}</div>}
+                        {content.data_analysis.height && <div><span className="text-muted-foreground">الطول:</span> {content.data_analysis.height}</div>}
+                        {content.data_analysis.age && <div><span className="text-muted-foreground">العمر:</span> {content.data_analysis.age}</div>}
+                        {content.data_analysis.neck && <div><span className="text-muted-foreground">الرقبة:</span> {content.data_analysis.neck}</div>}
+                        {content.data_analysis.waist && <div><span className="text-muted-foreground">الخصر:</span> {content.data_analysis.waist}</div>}
+                        {content.data_analysis.hip && <div><span className="text-muted-foreground">الورك:</span> {content.data_analysis.hip}</div>}
+                        {content.data_analysis.activity && <div><span className="text-muted-foreground">النشاط:</span> {content.data_analysis.activity}</div>}
+                        {content.data_analysis.health && <div><span className="text-muted-foreground">الصحة:</span> {content.data_analysis.health}</div>}
+                        {content.data_analysis.body_fat_pct && <div><span className="text-muted-foreground">نسبة الدهون:</span> {content.data_analysis.body_fat_pct}</div>}
+                        {content.data_analysis.bmr && <div><span className="text-muted-foreground">BMR:</span> ~{content.data_analysis.bmr} سعرة</div>}
+                        {content.data_analysis.tdee && <div><span className="text-muted-foreground">TDEE:</span> ~{content.data_analysis.tdee} سعرة</div>}
+                      </div>
+                    )}
                   </div>
                 )}
 

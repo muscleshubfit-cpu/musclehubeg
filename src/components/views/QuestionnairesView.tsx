@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Salad, Dumbbell, Lock, AlertCircle, Send } from "lucide-react";
+import { useEffect, useState, useRef } from "react";
+import { Salad, Dumbbell, Lock, AlertCircle, Send, ImagePlus, X, Loader2 } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/hooks/use-auth";
 import { Card } from "@/components/ui/card";
@@ -16,15 +16,26 @@ import { toast } from "sonner";
 
 type QType = "nutrition" | "fitness";
 
+const ACTIVITY_OPTIONS = [
+  "sedentary",
+  "light",
+  "moderate",
+  "active",
+  "very_active",
+  "extra_active",
+] as const;
+
 export function QuestionnairesView() {
   const { t } = useI18n();
   const { profile } = useAuth();
   const [tab, setTab] = useState<QType>("nutrition");
   const [nutrition, setNutrition] = useState<any>(null);
   const [fitness, setFitness] = useState<any>(null);
-  const [form, setForm] = useState<Record<string, string>>({});
+  const [form, setForm] = useState<Record<string, any>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!profile) return;
@@ -37,7 +48,7 @@ export function QuestionnairesView() {
         setNutrition(n);
         setFitness(f);
         const current = tab === "nutrition" ? n : f;
-        setForm((current?.data as Record<string, string>) ?? {});
+        setForm((current?.data as Record<string, any>) ?? {});
       } finally {
         setLoading(false);
       }
@@ -47,7 +58,7 @@ export function QuestionnairesView() {
   const switchTab = async (newTab: QType) => {
     setTab(newTab);
     const current = newTab === "nutrition" ? nutrition : fitness;
-    setForm((current?.data as Record<string, string>) ?? {});
+    setForm((current?.data as Record<string, any>) ?? {});
   };
 
   const current = tab === "nutrition" ? nutrition : fitness;
@@ -69,32 +80,102 @@ export function QuestionnairesView() {
     }
   };
 
+  // Photo upload — uploads to Supabase Storage (or data-URL fallback in demo
+  // mode) and stores the URL in form.photos[].
+  const handlePhotoUpload = async (file: File) => {
+    if (!profile) return;
+    if ((form.photos?.length || 0) >= 3) {
+      toast.error("بحد أقصى 3 صور.");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("الصورة كبيرة جداً (الحد 5 ميجا).");
+      return;
+    }
+    setUploadingPhoto(true);
+    try {
+      // Try uploading to /api/upload (Supabase Storage). If that fails (e.g.
+      // demo mode without Supabase), fall back to a base64 data URL.
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("bucket", "questionnaire-photos");
+      formData.append("path", `${profile.id}/${Date.now()}-${file.name}`);
+
+      let url: string | null = null;
+      try {
+        const res = await fetch("/api/upload", {
+          method: "POST",
+          body: formData,
+        });
+        if (res.ok) {
+          const data = await res.json();
+          url = data.url;
+        }
+      } catch {
+        // fall through to data URL
+      }
+
+      if (!url) {
+        // Fallback: base64 data URL (works in demo mode, but large photos
+        // will bloat the questionnaire JSON)
+        url = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+      }
+
+      setForm((prev) => ({
+        ...prev,
+        photos: [...(prev.photos || []), url],
+      }));
+      toast.success("تم رفع الصورة!");
+    } catch (e: any) {
+      toast.error(e.message || "فشل رفع الصورة");
+    } finally {
+      setUploadingPhoto(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
+  const removePhoto = (idx: number) => {
+    setForm((prev) => ({
+      ...prev,
+      photos: (prev.photos || []).filter((_: any, i: number) => i !== idx),
+    }));
+  };
+
+  // ---- Field definitions ----
+  // Field types: "text" | "number" | "select" | "gender" | "photos"
   const nutritionFields = [
-    { key: "age", label: t("q.n.age"), type: "number" },
-    { key: "height", label: t("q.n.height"), type: "number" },
-    { key: "weight", label: t("q.n.weight"), type: "number" },
-    { key: "target_weight", label: t("q.n.target"), type: "number" },
-    { key: "waist", label: t("q.n.waist"), type: "number" },
-    { key: "neck", label: t("q.n.neck"), type: "number" },
-    { key: "diet", label: t("q.n.diet"), placeholder: t("q.n.diet.ph") },
-    { key: "allergies", label: t("q.n.allergies") },
-    { key: "disliked", label: t("q.n.disliked") },
-    { key: "meals", label: t("q.n.meals"), type: "number" },
-    { key: "water", label: t("q.n.water"), type: "number" },
-    { key: "medical", label: t("q.n.medical") },
-    { key: "supplements", label: t("q.n.supplements") },
+    { key: "gender", label: t("q.n.gender"), type: "gender" as const },
+    { key: "age", label: t("q.n.age"), type: "number" as const },
+    { key: "height", label: t("q.n.height"), type: "number" as const },
+    { key: "weight", label: t("q.n.weight"), type: "number" as const },
+    { key: "target_weight", label: t("q.n.target"), type: "number" as const },
+    { key: "waist", label: t("q.n.waist"), type: "number" as const },
+    { key: "neck", label: t("q.n.neck"), type: "number" as const },
+    { key: "hip", label: t("q.n.hip"), type: "number" as const },
+    { key: "diet", label: t("q.n.diet"), placeholder: t("q.n.diet.ph"), type: "text" as const },
+    { key: "allergies", label: t("q.n.allergies"), type: "text" as const },
+    { key: "disliked", label: t("q.n.disliked"), type: "text" as const },
+    { key: "meals", label: t("q.n.meals"), type: "number" as const },
+    { key: "water", label: t("q.n.water"), type: "number" as const },
+    { key: "medical", label: t("q.n.medical"), type: "text" as const },
+    { key: "supplements", label: t("q.n.supplements"), type: "text" as const },
   ];
 
   const fitnessFields = [
-    { key: "goal", label: t("q.f.goal"), placeholder: t("q.f.goal.ph") },
-    { key: "activity", label: t("q.f.activity") },
-    { key: "days", label: t("q.f.days"), type: "number" },
-    { key: "location", label: t("q.f.location"), placeholder: t("q.f.location.ph") },
-    { key: "experience", label: t("q.f.experience") },
-    { key: "injuries", label: t("q.f.injuries") },
-    { key: "preferred", label: t("q.f.preferred") },
-    { key: "equipment", label: t("q.f.equipment") },
-    { key: "sleep", label: t("q.f.sleep"), type: "number" },
+    { key: "goal", label: t("q.f.goal"), placeholder: t("q.f.goal.ph"), type: "text" as const },
+    { key: "activity", label: t("q.f.activity"), type: "select" as const, options: ACTIVITY_OPTIONS, optionPrefix: "q.f.activity." as const },
+    { key: "days", label: t("q.f.days"), type: "number" as const },
+    { key: "location", label: t("q.f.location"), placeholder: t("q.f.location.ph"), type: "text" as const },
+    { key: "experience", label: t("q.f.experience"), type: "text" as const },
+    { key: "injuries", label: t("q.f.injuries"), type: "text" as const },
+    { key: "preferred", label: t("q.f.preferred"), type: "text" as const },
+    { key: "equipment", label: t("q.f.equipment"), type: "text" as const },
+    { key: "sleep", label: t("q.f.sleep"), type: "number" as const },
   ];
 
   const fields = tab === "nutrition" ? nutritionFields : fitnessFields;
@@ -155,20 +236,80 @@ export function QuestionnairesView() {
 
       <Card className="p-6 shadow-card">
         <div className="grid gap-4 sm:grid-cols-2">
-          {fields.map((f) => (
-            <div key={f.key} className={f.key === "notes" ? "sm:col-span-2" : ""}>
-              <Label htmlFor={f.key}>{f.label}</Label>
-              <Input
-                id={f.key}
-                type={f.type || "text"}
-                disabled={locked}
-                value={form[f.key] ?? ""}
-                placeholder={f.placeholder}
-                onChange={(e) => setForm((prev) => ({ ...prev, [f.key]: e.target.value }))}
-                className="mt-1.5"
-              />
-            </div>
-          ))}
+          {fields.map((f) => {
+            if (f.type === "gender") {
+              return (
+                <div key={f.key}>
+                  <Label htmlFor={f.key}>{f.label}</Label>
+                  <div className="mt-1.5 grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      disabled={locked}
+                      onClick={() => setForm((prev) => ({ ...prev, [f.key]: "male" }))}
+                      className={cn(
+                        "rounded-xl border p-3 text-sm font-medium transition-colors",
+                        form[f.key] === "male"
+                          ? "border-primary bg-secondary text-primary"
+                          : "border-border hover:border-primary/40",
+                        locked && "opacity-60 cursor-not-allowed",
+                      )}
+                    >
+                      ♂ {t("q.n.gender.male")}
+                    </button>
+                    <button
+                      type="button"
+                      disabled={locked}
+                      onClick={() => setForm((prev) => ({ ...prev, [f.key]: "female" }))}
+                      className={cn(
+                        "rounded-xl border p-3 text-sm font-medium transition-colors",
+                        form[f.key] === "female"
+                          ? "border-primary bg-secondary text-primary"
+                          : "border-border hover:border-primary/40",
+                        locked && "opacity-60 cursor-not-allowed",
+                      )}
+                    >
+                      ♀ {t("q.n.gender.female")}
+                    </button>
+                  </div>
+                </div>
+              );
+            }
+            if (f.type === "select" && f.options) {
+              return (
+                <div key={f.key} className="sm:col-span-2">
+                  <Label htmlFor={f.key}>{f.label}</Label>
+                  <select
+                    id={f.key}
+                    disabled={locked}
+                    value={form[f.key] ?? ""}
+                    onChange={(e) => setForm((prev) => ({ ...prev, [f.key]: e.target.value }))}
+                    className="mt-1.5 w-full rounded-lg border border-border bg-card px-3 py-2 text-sm"
+                  >
+                    <option value="">{f.placeholder || t("q.f.activity.ph")}</option>
+                    {f.options.map((opt) => (
+                      <option key={opt} value={opt}>
+                        {t(`${f.optionPrefix}${opt}`)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              );
+            }
+            return (
+              <div key={f.key}>
+                <Label htmlFor={f.key}>{f.label}</Label>
+                <Input
+                  id={f.key}
+                  type={f.type === "number" ? "number" : "text"}
+                  disabled={locked}
+                  value={form[f.key] ?? ""}
+                  placeholder={f.placeholder}
+                  onChange={(e) => setForm((prev) => ({ ...prev, [f.key]: e.target.value }))}
+                  className="mt-1.5"
+                />
+              </div>
+            );
+          })}
           <div className="sm:col-span-2">
             <Label htmlFor="notes">{t("q.n.notes")}</Label>
             <Textarea
@@ -180,6 +321,57 @@ export function QuestionnairesView() {
             />
           </div>
         </div>
+
+        {/* Photo upload — only in nutrition questionnaire */}
+        {tab === "nutrition" && (
+          <div className="mt-6 rounded-xl border border-border bg-muted/30 p-4">
+            <div className="flex items-center justify-between gap-2">
+              <div>
+                <Label className="text-sm font-semibold">📸 {t("q.n.photos")}</Label>
+                <p className="mt-0.5 text-xs text-muted-foreground">{t("q.n.photos.hint")}</p>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="gap-1.5"
+                disabled={locked || uploadingPhoto || (form.photos?.length || 0) >= 3}
+                onClick={() => fileInputRef.current?.click()}
+              >
+                {uploadingPhoto ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImagePlus className="h-4 w-4" />}
+                {t("q.n.photos.upload")}
+              </Button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) handlePhotoUpload(f);
+                }}
+              />
+            </div>
+            {form.photos?.length > 0 && (
+              <div className="mt-3 grid grid-cols-3 gap-2">
+                {form.photos.map((url: string, i: number) => (
+                  <div key={i} className="group relative aspect-square overflow-hidden rounded-lg border border-border">
+                    <img src={url} alt={`Progress ${i + 1}`} className="h-full w-full object-cover" />
+                    {!locked && (
+                      <button
+                        type="button"
+                        onClick={() => removePhoto(i)}
+                        className="absolute end-1 top-1 grid h-6 w-6 place-items-center rounded-full bg-background/80 text-destructive opacity-0 transition-opacity group-hover:opacity-100"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         {!locked && (
           <div className="mt-6 flex flex-wrap gap-3">
