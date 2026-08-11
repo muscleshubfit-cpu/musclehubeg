@@ -345,3 +345,52 @@ Stage Summary:
 - The favicon and PWA manifest icons are also updated, so the browser tab and "Add to Home Screen" will show the real logo.
 - Mobile header uses the square MH monogram (icon-192.png) for tight spaces; desktop uses the full landscape logo.
 - User should hard-refresh to see the new logo + favicon.
+
+---
+Task ID: openrouter-plan-generator + pdf-format + coach-overrides + per-meal-regen + auto-format
+Agent: main (super-z)
+Task: Replace the AI plan/swap endpoints with OpenRouter using the best free models. Add coach overrides (calories/macros/foods), per-meal regenerate, auto-calc on manual edit, and auto-format coach-pasted plans. Render plans in the PDF reference style.
+
+Work Log:
+- Read the reference PDF (التقرير الشامل والبرنامج الغذائي والرياضي.pdf) — extracted the desired format: data analysis section (BMR/TDEE/body fat), macros table with grams+calories, supplement recommendations, health notes, water target, meals with numbered items + alternatives + per-meal totals (calories + protein).
+- Listed OpenRouter free models: nvidia/nemotron-3-ultra-550b-a55b:free (1M context — best), google/gemma-4-31b-it:free (262K), google/gemma-4-26b-a4b-it:free (262K), openai/gpt-oss-20b:free (131K), poolside/laguna-s-2.1:free (262K).
+- Created src/lib/plan-generator.ts:
+  * generateNutritionPlanAI() and generateWorkoutPlanAI() — try each OpenRouter free model in order, fall back to local rule-based generator if all fail.
+  * regenerateMeal() — generates a single replacement meal with the same target calories.
+  * normalizeCoachPlanText() — takes free-text/JSON from the coach and converts it to the standard structured format using AI.
+  * Detailed prompts that match the PDF reference format (data_analysis, supplements, health_notes, water_target, meals with alternatives + totals).
+  * Accepts optional PlanOverrides (targetCalories, macros, foods, mealsCount, notes).
+- Updated src/lib/ai-local.ts:
+  * Exported FOOD_DB, FoodItem, ClientContext, calcMacros (were private).
+  * Added lookupFood() — fuzzy name match (Arabic or English).
+  * Added parseGrams() — parses Arabic food units (رغيف, بيضة, ملعقة, كوب, شريحة) into grams.
+  * Added calcCaloriesForItem(foodName, amount) — used by the coach's manual-edit auto-calculator.
+- Updated src/app/api/ai/plan/route.ts — uses the new plan-generator with overrides.
+- Updated src/app/api/ai/swap/route.ts — uses OpenRouter instead of Gemini.
+- Created src/app/api/ai/regenerate-meal/route.ts — per-meal regeneration endpoint.
+- Created src/app/api/plans/normalize/route.ts — coach plan auto-formatting endpoint.
+- Updated src/components/views/CoachClientView.tsx:
+  * PlanViewerModal now renders the PDF-style format (data_analysis, supplements, health_notes, water_target, meals with numbered items + alternatives + per-meal totals).
+  * Added per-meal regenerate button (works for ALL plans — AI-generated AND manually-added).
+  * Auto-calc: when coach edits a food name or amount, the system looks up the food in FOOD_DB and auto-calculates the calories, then recomputes the per-meal total.
+  * Coach overrides UI: expandable "خيارات متقدمة" panel in the AI Plans tab where the coach can specify targetCalories, macros (protein/carbs/fat), preferred foods, mealsCount, and free-text notes.
+  * "تنسيق وترتيب تلقائي" button in the manual plan upload section — takes the coach's pasted text (from a PDF or notes) and converts it to structured JSON via the normalize endpoint.
+- Updated src/components/views/PlansView.tsx (client view) — same PDF-style rendering, keeps the swap button.
+- Build passes locally (npx next build → all 35 routes generated). TypeScript: zero new errors in modified files.
+- Committed (8f9ff05) and pushed to GitHub.
+- Triggered production deployment via Vercel API. Build completed in 45s: dpl_FbhrVitM7MCu1Pzg7fzkXfnXDp4W, state=READY, aliased to musclehubeg.vercel.app.
+- Verified all 4 endpoints are live (HTTP 400 on empty body = correct validation).
+- Tested /api/ai/regenerate-meal end-to-end:
+  * Input: 3-item breakfast meal, 494 calories target.
+  * Output: 5-item replacement meal, 493 total calories (within 1 calorie of target!).
+  * Source: openrouter:nvidia/nemotron-3-ultra-550b-a55b:free (the best free model with 1M context).
+  * All foods in Arabic with proper gram amounts (صدر فرخة مشوي 150 جم, جبنة قريش 100 جم, بطاطا حلوة 120 جم).
+
+Stage Summary:
+- Plan generation now uses OpenRouter's best free models (nemotron-3-ultra-550b with 1M context first, then gemma-4-31b, gemma-4-26b, gpt-oss-20b, laguna-s).
+- Plans render in the PDF reference style with data analysis, macros table, supplements, health notes, water target, and meals with numbered items + alternatives + per-meal totals.
+- Coach can optionally specify target calories, macros, preferred foods, and free-text notes before generating.
+- Coach can regenerate a single meal (not just the whole plan) — works for AI AND manually-added plans.
+- Manual editing auto-calculates calories from the food database (lookupFood + parseGrams + calcCaloriesForItem) and recomputes per-meal totals.
+- Coach can paste a plan from a PDF/Word doc and click "تنسيق وترتيب تلقائي" to convert it to structured JSON — gets the same editable table UI + per-meal regenerate button as AI plans.
+- Production is live and verified working.
