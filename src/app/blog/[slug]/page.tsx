@@ -70,51 +70,5 @@ export async function generateMetadata({
 
 export default async function Page({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-
-  // Also fetch the post on the server side so we can inject OG tags
-  // directly into <head> (workaround for Next.js 16 Turbopack not
-  // injecting generateMetadata results into <head> during SSR).
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  let post: any = null;
-  if (supabaseUrl && supabaseAnonKey) {
-    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-      auth: { persistSession: false, autoRefreshToken: false },
-    });
-    const { data } = await supabase
-      .from("blog_posts")
-      .select("*")
-      .eq("language", "en")
-      .eq("slug", slug)
-      .eq("is_published", true)
-      .maybeSingle();
-    post = data;
-  }
-
-  const baseUrl = "https://musclehubeg.vercel.app";
-  const articleUrl = `${baseUrl}/blog/${slug}`;
-  const title = post?.meta_title || post?.title || "MuscleHub Blog";
-  const description = post?.meta_description || post?.excerpt || "";
-  const image = post?.featured_image || `${baseUrl}/logo.png`;
-
-  return (
-    <>
-      <head>
-        <meta property="og:type" content="article" />
-        <meta property="og:url" content={articleUrl} />
-        <meta property="og:title" content={title} />
-        <meta property="og:description" content={description} />
-        <meta property="og:image" content={image} />
-        <meta property="og:image:width" content="1200" />
-        <meta property="og:image:height" content="630" />
-        <meta property="og:site_name" content="MuscleHub" />
-        <meta property="og:locale" content="en_US" />
-        <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content={title} />
-        <meta name="twitter:description" content={description} />
-        <meta name="twitter:image" content={image} />
-      </head>
-      <BlogArticlePage lang="en" slug={slug} />
-    </>
-  );
+  return <BlogArticlePage lang="en" slug={slug} />;
 }
