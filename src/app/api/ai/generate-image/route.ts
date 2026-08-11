@@ -25,17 +25,23 @@ export async function GET(request: NextRequest) {
     // Ensure the .z-ai-config file exists on Vercel
     const fs = await import("fs");
     const path = await import("path");
-    const configPath = path.join(process.cwd(), ".z-ai-config");
-    if (!fs.existsSync(configPath)) {
-      const config = {
-        baseUrl: process.env.ZAI_BASE_URL || "https://internal-api.z.ai/v1",
-        apiKey: process.env.ZAI_API_KEY || "Z.ai",
-        chatId: process.env.ZAI_CHAT_ID || "",
-        token: process.env.ZAI_TOKEN || "",
-        userId: process.env.ZAI_USER_ID || "",
-      };
-      try { fs.writeFileSync(configPath, JSON.stringify(config)); } catch {}
-    }
+
+    const configContent = JSON.stringify({
+      baseUrl: process.env.ZAI_BASE_URL || "https://internal-api.z.ai/v1",
+      apiKey: process.env.ZAI_API_KEY || "Z.ai",
+      chatId: process.env.ZAI_CHAT_ID || "",
+      token: process.env.ZAI_TOKEN || "",
+      userId: process.env.ZAI_USER_ID || "",
+    });
+
+    const cwdConfig = path.join(process.cwd(), ".z-ai-config");
+    try { if (!fs.existsSync(cwdConfig)) fs.writeFileSync(cwdConfig, configContent); } catch {}
+
+    const tmpConfig = path.join("/tmp", ".z-ai-config");
+    try {
+      fs.writeFileSync(tmpConfig, configContent);
+      if (!process.env.HOME || process.env.HOME === "/") process.env.HOME = "/tmp";
+    } catch {}
 
     const ZAI = (await import("z-ai-web-dev-sdk")).default;
     const zai = await ZAI.create();

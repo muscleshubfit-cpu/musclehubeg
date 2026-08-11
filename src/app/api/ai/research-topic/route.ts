@@ -30,25 +30,34 @@ export async function POST(request: NextRequest) {
 
     const searchTerm = focusKeyword || topic || "";
 
-    // Ensure the .z-ai-config file exists — on Vercel, it may not be in
-    // the filesystem. Create it from env vars if missing.
+    // Ensure the .z-ai-config file exists — on Vercel, the filesystem may
+    // be read-only. Try process.cwd() first, then /tmp as fallback.
     const fs = await import("fs");
     const path = await import("path");
-    const configPath = path.join(process.cwd(), ".z-ai-config");
-    if (!fs.existsSync(configPath)) {
-      const config = {
-        baseUrl: process.env.ZAI_BASE_URL || "https://internal-api.z.ai/v1",
-        apiKey: process.env.ZAI_API_KEY || "Z.ai",
-        chatId: process.env.ZAI_CHAT_ID || "",
-        token: process.env.ZAI_TOKEN || "",
-        userId: process.env.ZAI_USER_ID || "",
-      };
-      try {
-        fs.writeFileSync(configPath, JSON.stringify(config));
-      } catch (e: any) {
-        console.error("[research-topic] Failed to write .z-ai-config:", e?.message);
+
+    const configContent = JSON.stringify({
+      baseUrl: process.env.ZAI_BASE_URL || "https://internal-api.z.ai/v1",
+      apiKey: process.env.ZAI_API_KEY || "Z.ai",
+      chatId: process.env.ZAI_CHAT_ID || "",
+      token: process.env.ZAI_TOKEN || "",
+      userId: process.env.ZAI_USER_ID || "",
+    });
+
+    // Try writing to cwd first
+    const cwdConfig = path.join(process.cwd(), ".z-ai-config");
+    try {
+      if (!fs.existsSync(cwdConfig)) fs.writeFileSync(cwdConfig, configContent);
+    } catch {}
+
+    // Also try /tmp (always writable on Vercel)
+    const tmpConfig = path.join("/tmp", ".z-ai-config");
+    try {
+      fs.writeFileSync(tmpConfig, configContent);
+      // Set HOME to /tmp so the SDK finds the config there
+      if (!process.env.HOME || process.env.HOME === "/") {
+        process.env.HOME = "/tmp";
       }
-    }
+    } catch {}
 
     const ZAI = (await import("z-ai-web-dev-sdk")).default;
     const zai = await ZAI.create();
