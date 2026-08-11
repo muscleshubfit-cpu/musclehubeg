@@ -1,25 +1,36 @@
 import { BlogArticlePage } from "@/components/blog/BlogArticlePage";
-import { getBlogPost } from "@/lib/blog";
+import { createClient } from "@supabase/supabase-js";
 import type { Metadata } from "next";
 
-// Force dynamic rendering so generateMetadata runs on every request
 export const dynamic = "force-dynamic";
 
-/**
- * Server-side metadata for Arabic articles — puts OG tags in <head>.
- */
 export async function generateMetadata({
   params,
 }: {
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const post = await getBlogPost("ar", slug);
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  let post: any = null;
+  if (supabaseUrl && supabaseAnonKey) {
+    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+    const { data } = await supabase
+      .from("blog_posts")
+      .select("*")
+      .eq("language", "ar")
+      .eq("slug", slug)
+      .eq("is_published", true)
+      .maybeSingle();
+    post = data;
+  }
 
   if (!post) {
-    return {
-      title: "المقال غير موجود — MuscleHub",
-    };
+    return { title: "المقال غير موجود — MuscleHub" };
   }
 
   const baseUrl = "https://musclehubeg.vercel.app";
@@ -31,22 +42,13 @@ export async function generateMetadata({
   return {
     title,
     description,
-    alternates: {
-      canonical: articleUrl,
-    },
+    alternates: { canonical: articleUrl },
     openGraph: {
       type: "article",
       url: articleUrl,
       title,
       description,
-      images: [
-        {
-          url: image,
-          width: 1200,
-          height: 630,
-          alt: post.cover_alt || post.title,
-        },
-      ],
+      images: [{ url: image, width: 1200, height: 630, alt: post.cover_alt || post.title }],
       siteName: "MuscleHub",
       locale: "ar_EG",
     },
