@@ -103,9 +103,11 @@ export function SocialShare({ url, title, description, image, lang }: { url: str
  const encodedDesc = description ? encodeURIComponent(description) : "";
 
  // Language-aware share text — the share message matches the article language
+ // Include a SHORT summary (first 120 chars of description) for social platforms
+ const shortDesc = description ? description.slice(0, 120) + (description.length > 120 ? "..." : "") : "";
  const shareText = isAr
-   ? `${title}${description ? `\n\n${description}` : ""}\n\nاقرأ المقال كاملاً على MuscleHub:`
-   : `${title}${description ? `\n\n${description}` : ""}\n\nRead the full article on MuscleHub:`;
+   ? `${title}${shortDesc ? `\n\n${shortDesc}` : ""}\n\nاقرأ المقال كاملاً على MuscleHub:`
+   : `${title}${shortDesc ? `\n\n${shortDesc}` : ""}\n\nRead the full article on MuscleHub:`;
  const encodedShareText = encodeURIComponent(shareText);
 
  const share = (platform: string) => {

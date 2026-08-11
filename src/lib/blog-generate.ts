@@ -56,6 +56,7 @@ STEP 2 — SEO DATA (SEPARATE for English and Arabic — never reuse one languag
  - ar.metaTitle: ≤ 60 chars, Arabic, may equal ar.seoTitle.
  - ar.metaDescription: 120-160 chars, WRITTEN IN ARABIC, natural Arabic phrasing + a CTA verb in Arabic.
  - ar.slug: kebab-case, LATIN CHARACTERS ONLY (transliterate or use the English focus keyword) — Arabic URLs break sharing/encoding, so even the Arabic post's slug must be Latin.
+ - CRITICAL: The Arabic SEO fields (seoTitle, metaTitle, metaDescription) MUST be 100% in Arabic. Do NOT use the English versions for the Arabic article. Each language gets its own complete SEO set optimized for its own search market (Google Egypt/Gulf for Arabic, Google Global for English).
 
 STEP 3 — ENGLISH ARTICLE (Markdown, 600-900 words):
  - Start with a clear 2-3 sentence answer to the title (AEO).
@@ -72,10 +73,20 @@ STEP 4 — ARABIC ARTICLE (LOCALIZED, NOT TRANSLATED, Markdown, 600-900 words):
  - Do NOT translate English idioms literally — rewrite for Arabic readers.
  - Same SEO structure as English (H2/H3, table, key takeaways, CTA sections).
  - Include the focus keyword (transliterated or Arabic equivalent) naturally.
+ - CRITICAL: The ENTIRE Arabic article must be in Arabic. NO English headings,
+   NO English paragraphs, NO English subtitles. If you need to mention an
+   English term (like "BMR" or "TDEE"), write it in Arabic letters or add a
+   brief Arabic explanation — do NOT leave English sentences in the Arabic article.
+ - All headings (H2, H3) must be in Arabic.
+ - All table headers and cell content must be in Arabic.
+ - The CTA section must be in Arabic.
+ - The "Key Takeaways" section must be in Arabic.
 
-STEP 5 — FAQ (3-5 Q&As):
+STEP 5 — FAQ (3-5 Q&As, in BOTH languages):
  - Questions people ask on Google + AI assistants about this topic.
  - Answers 40-80 words each, concise and quotable.
+ - Provide FAQ in BOTH English and Arabic — the Arabic FAQ must be fully in Arabic, not translations of the English FAQ.
+ - Each FAQ entry: { "question_en": "...", "answer_en": "...", "question_ar": "...", "answer_ar": "..." }
 
 STEP 6 — LINK SUGGESTIONS:
  - internalLinks: 3-5 suggested internal links to other MuscleHub blog posts (use plausible slugs; the admin will confirm). Each: { slug, anchorText, reason }.
