@@ -92,6 +92,66 @@ export function AIGenerateModal({
 
  const canGenerate = topic.trim() || focusKeyword.trim();
 
+ const handleAutoGenerate = async () => {
+   setGenerating(true);
+   setError(null);
+   setBundle(null);
+   setResearchData(null);
+
+   try {
+     // Step 1: Auto-pick a topic (same as the cron job)
+     setResearching(true);
+     const topicRes = await fetch("/api/ai/pick-topic", {
+       method: "POST",
+       headers: { "Content-Type": "application/json" },
+       body: JSON.stringify({ category }),
+     });
+     if (!topicRes.ok) throw new Error("Failed to pick topic");
+     const topicData = await topicRes.json();
+     setTopic(topicData.topic || "");
+     setFocusKeyword(topicData.focusKeyword || "");
+     if (topicData.category) setCategory(topicData.category);
+     setResearching(false);
+
+     // Step 2: Research the topic via OpenRouter
+     let research = null;
+     try {
+       const researchRes = await fetch("/api/ai/research-topic", {
+         method: "POST",
+         headers: { "Content-Type": "application/json" },
+         body: JSON.stringify({ topic: topicData.topic, focusKeyword: topicData.focusKeyword }),
+       });
+       if (researchRes.ok) {
+         research = await researchRes.json();
+         setResearchData(research);
+       }
+     } catch {}
+
+     // Step 3: Generate the article
+     const res = await fetch("/api/ai/generate-article", {
+       method: "POST",
+       headers: { "Content-Type": "application/json" },
+       body: JSON.stringify({
+         topic: topicData.topic,
+         focusKeyword: topicData.focusKeyword,
+         category: topicData.category || category,
+         language,
+         research,
+       }),
+     });
+     const data = await res.json();
+     if (!res.ok || data.error) throw new Error(data.error || `Failed (${res.status})`);
+     setBundle(data as GeneratedBundle);
+     toast.success(isAr ? "تم توليد المحتوى!" : "Content generated!");
+   } catch (e: any) {
+     setError(e.message);
+     toast.error(e.message);
+   } finally {
+     setGenerating(false);
+     setResearching(false);
+   }
+ };
+
  const handleGenerate = async () => {
  if (!canGenerate) {
  setError(isAr ? "أدخل الموضوع أو الكلمة المفتاحية" : "Enter a topic or focus keyword");
@@ -285,27 +345,38 @@ export function AIGenerateModal({
  </div>
  )}
 
- <div className="flex justify-end gap-2">
+ <div className="flex flex-wrap justify-end gap-2">
  <Button variant="ghost" onClick={onClose}>
  {isAr ? "إلغاء" : "Cancel"}
  </Button>
+ {/* Auto-generate — picks a topic automatically, no user input needed */}
+ <Button
+ variant="secondary"
+ className="gap-2"
+ onClick={handleAutoGenerate}
+ disabled={generating}
+ >
+ {generating && researching ? (
+ <Loader2 className="h-4 w-4 animate-spin" />
+ ) : (
+ <Wand2 className="h-4 w-4" />
+ )}
+ {isAr ? "توليد تلقائي (بحث + كتابة)" : "Auto-Generate (Research + Write)"}
+ </Button>
+ {/* Manual generate — user provides topic/keyword */}
  <Button
  className="gap-2"
  onClick={handleGenerate}
  disabled={generating || !canGenerate}
  >
- {generating ? (
+ {generating && !researching ? (
  <Loader2 className="h-4 w-4 animate-spin" />
  ) : (
  <Sparkles className="h-4 w-4" />
  )}
- {generating
- ? isAr
- ? "جارٍ التوليد… (قد يستغرق 30-60 ثانية)"
- : "Generating… (may take 30-60s)"
- : isAr
- ? "توليد بالذكاء الاصطناعي"
- : "Generate with AI"}
+ {generating && !researching
+ ? isAr ? "جارٍ التوليد…" : "Generating…"
+ : isAr ? "توليد بالكلمة المفتاحية" : "Generate with Keyword"}
  </Button>
  </div>
 
@@ -316,16 +387,20 @@ export function AIGenerateModal({
  <div>
  <p className="font-medium text-foreground">
  {researching
-   ? isAr ? "جارٍ البحث عن الموضوع…" : "Researching topic…"
+   ? isAr ? "جارٍ البحث واختيار الموضوع…" : "Researching & picking topic…"
    : isAr ? "كتابة المقال بالذكاء الاصطناعي…" : "Writing article with AI…"}
  </p>
+ {topic && (
+   <p className="mt-1 text-xs text-primary">
+     {isAr ? "الموضوع: " : "Topic: "}{topic}
+   </p>
+ )}
  <ul className="mt-1 space-y-0.5 text-xs">
  <li>• {isAr ? "البحث في جوجل والمواقع المنافسة" : "Searching Google + competitor sites"}</li>
  <li>• {isAr ? "تحليل الأسئلة الشائعة" : "Analyzing related questions"}</li>
  <li>• {isAr ? "توليد بيانات SEO" : "Generating SEO data"}</li>
- <li>• {isAr ? "كتابة المقال الإنجليزي" : "Writing English article"}</li>
- <li>• {isAr ? "كتابة المقال العربي المحلي" : "Writing localized Arabic article"}</li>
- <li>• {isAr ? "توليد FAQ ومحتوى تسويقي" : "Building FAQ, links, social posts"}</li>
+ <li>• {isAr ? "كتابة المقال الإنجليزي والعربي" : "Writing EN + AR articles"}</li>
+ <li>• {isAr ? "توليد FAQ وروابط ومحتوى تسويقي" : "Building FAQ, links, social posts"}</li>
  </ul>
  </div>
  </div>
