@@ -16,38 +16,38 @@ import { getOverrideFromRequest } from "@/app/api/ai/settings/route";
 export const maxDuration = 300;
 
 export async function POST(request: NextRequest) {
-  try {
-    const body = await request.json();
-    const { topic, focusKeyword, category, language } = body as {
-      topic?: string;
-      focusKeyword?: string;
-      category?: string;
-      language?: "en" | "ar";
-    };
+ try {
+ const body = await request.json();
+ const { topic, focusKeyword, category, language } = body as {
+ topic?: string;
+ focusKeyword?: string;
+ category?: string;
+ language?: "en" | "ar";
+ };
 
-    if (!topic && !focusKeyword) {
-      return NextResponse.json(
-        { error: "Either 'topic' or 'focusKeyword' is required." },
-        { status: 400 },
-      );
-    }
+ if (!topic && !focusKeyword) {
+ return NextResponse.json(
+ { error: "Either 'topic' or 'focusKeyword' is required." },
+ { status: 400 },
+ );
+ }
 
-    const override = getOverrideFromRequest(request);
-    const bundle = await generateArticleBundle(
-      { topic: topic?.trim(), focusKeyword: focusKeyword?.trim(), category: category || "nutrition" },
-      override,
-    );
-    const image = await fetchFeaturedImage(bundle.seo.focusKeyword || focusKeyword || topic || "");
+ const override = getOverrideFromRequest(request);
+ const bundle = await generateArticleBundle(
+ { topic: topic?.trim(), focusKeyword: focusKeyword?.trim(), category: category || "nutrition" },
+ override,
+ );
+ const image = await fetchFeaturedImage(bundle.seo.focusKeyword || focusKeyword || topic || "");
 
-    return NextResponse.json({ ...bundle, image, language: language || "en" });
-  } catch (e: any) {
-    console.error("[generate-article] Error:", e);
-    if (e.message?.includes("not valid JSON")) {
-      return NextResponse.json(
-        { error: "AI returned a response but it was not valid JSON. Please try again." },
-        { status: 502 },
-      );
-    }
-    return NextResponse.json({ error: e.message || "Failed to generate article" }, { status: 500 });
-  }
+ return NextResponse.json({ ...bundle, image, language: language || "en" });
+ } catch (e: any) {
+ console.error("[generate-article] Error:", e);
+ if (e.message?.includes("not valid JSON")) {
+ return NextResponse.json(
+ { error: "AI returned a response but it was not valid JSON. Please try again." },
+ { status: 502 },
+ );
+ }
+ return NextResponse.json({ error: e.message || "Failed to generate article" }, { status: 500 });
+ }
 }

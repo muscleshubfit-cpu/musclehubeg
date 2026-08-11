@@ -11,22 +11,22 @@ import { AppLayout } from "@/components/AppLayout";
  * to render its own view.
  */
 export default function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
-  const { profile, loading } = useAuth();
-  const router = useRouter();
+ const { profile, loading } = useAuth();
+ const router = useRouter();
 
-  useEffect(() => {
-    if (!loading && !profile) {
-      router.replace("/auth");
-    }
-  }, [loading, profile, router]);
+ useEffect(() => {
+ if (!loading && !profile) {
+ router.replace("/auth");
+ }
+ }, [loading, profile, router]);
 
-  if (loading || !profile) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-      </div>
-    );
-  }
+ if (loading || !profile) {
+ return (
+ <div className="flex min-h-screen items-center justify-center">
+ <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+ </div>
+ );
+ }
 
-  return <AppLayout>{children}</AppLayout>;
+ return <AppLayout>{children}</AppLayout>;
 }

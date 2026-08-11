@@ -13,7 +13,7 @@ const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
 export const isSupabaseAdminConfigured = Boolean(supabaseUrl && serviceRoleKey);
 
 export const supabaseAdmin = isSupabaseAdminConfigured
-  ? createClient<Database>(supabaseUrl, serviceRoleKey, {
-      auth: { autoRefreshToken: false, persistSession: false },
-    })
-  : null;
+ ? createClient<Database>(supabaseUrl, serviceRoleKey, {
+ auth: { autoRefreshToken: false, persistSession: false },
+ })
+ : null;

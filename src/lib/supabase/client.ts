@@ -12,7 +12,7 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
  * localStorage so the UI is fully usable without a backend.
  */
 export const isSupabaseConfigured = Boolean(
-  supabaseUrl && supabaseAnonKey && supabaseUrl.startsWith("http"),
+ supabaseUrl && supabaseAnonKey && supabaseUrl.startsWith("http"),
 );
 
 /**
@@ -27,12 +27,12 @@ export const isSupabaseConfigured = Boolean(
  * strategy, so client and server share the same storage.
  */
 export const supabase = isSupabaseConfigured
-  ? createBrowserClient<Database>(supabaseUrl, supabaseAnonKey, {
-      auth: {
-        detectSessionInUrl: false, // /auth/callback handles this server-side
-        flowType: "pkce",
-        persistSession: true,
-        autoRefreshToken: true,
-      },
-    })
-  : null;
+ ? createBrowserClient<Database>(supabaseUrl, supabaseAnonKey, {
+ auth: {
+ detectSessionInUrl: false, // /auth/callback handles this server-side
+ flowType: "pkce",
+ persistSession: true,
+ autoRefreshToken: true,
+ },
+ })
+ : null;
