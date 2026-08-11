@@ -394,3 +394,56 @@ Stage Summary:
 - Manual editing auto-calculates calories from the food database (lookupFood + parseGrams + calcCaloriesForItem) and recomputes per-meal totals.
 - Coach can paste a plan from a PDF/Word doc and click "تنسيق وترتيب تلقائي" to convert it to structured JSON — gets the same editable table UI + per-meal regenerate button as AI plans.
 - Production is live and verified working.
+
+---
+Task ID: questionnaire-gender-activity-photos + coach-edit + plan-data-analysis-editor
+Agent: main (super-z)
+Task: Add gender selection, daily activity level, and photo upload to client questionnaire. Make coach able to edit the questionnaire. Make coach able to edit the data analysis section in plans.
+
+Work Log:
+Client QuestionnairesView (src/components/views/QuestionnairesView.tsx):
+- Added gender field (male/female) with icon buttons (♂ ذكر / ♀ أنثى).
+- Added activity level dropdown with 6 options: sedentary, light, moderate, active, very_active, extra_active (each with EN+AR translations).
+- Added photo upload (max 3 photos, 5MB each):
+  * Uploads to Supabase Storage via the new /api/upload endpoint.
+  * Falls back to base64 data URL if Supabase is not configured.
+  * Photos stored in form.photos[] and displayed as thumbnails with remove buttons.
+- Added hip circumference field (needed for US Navy body fat formula for females).
+
+Coach QuestionnaireCard (in CoachClientView.tsx):
+- Replaced the read-only card with a fully editable one:
+  * Coach clicks 'تعديل' to enter edit mode.
+  * All fields editable: gender (icon buttons), activity (dropdown), text/number fields, notes textarea.
+  * Saves via upsertQuestionnaire — keeps current status (doesn't downgrade 'approved' to 'draft').
+  * Coach can view client's uploaded photos (click to open full-size).
+- Read mode now shows friendlier Arabic labels (gender: ذكر/أنثى, activity: خامل/خفيف/متوسط/etc).
+
+PlanViewerModal data_analysis editor:
+- Coach can now edit the data analysis section directly on the plan (when in edit mode).
+- All 12 fields editable: gender, weight, height, age, neck, waist, hip, activity, health, body_fat_pct, bmr, tdee.
+- No need to regenerate the plan to fix a wrong value.
+
+New /api/upload endpoint (src/app/api/upload/route.ts):
+- Accepts multipart/form-data with file + bucket + path.
+- Uses service_role key (server-only) to upload to Supabase Storage.
+- Auto-creates the bucket if it doesn't exist (best-effort).
+- Returns the public URL.
+- Tested end-to-end on production: uploaded a 70-byte PNG, got back a public URL, verified the image is accessible (HTTP 200, content-type: image/png).
+
+Supabase Storage setup (via Management API SQL):
+- Made progress-photos bucket public.
+- Created questionnaire-photos bucket (public).
+- Created storage.objects policies: authenticated can upload, anon+authenticated can read, for all photo/document buckets.
+
+i18n (src/lib/i18n.tsx):
+- Added EN + AR keys for: gender (male/female), 6 activity levels (sedentary/light/moderate/active/very_active/extra_active), photo upload UI (label + hint + upload button).
+
+Build: passes locally (npx next build → all 35 routes generated). TypeScript: zero new errors.
+Deploy: production READY in 45s (dpl_4LGgzfuBCHdjJrsnBy5298iMmWsU).
+
+Stage Summary:
+- Clients can now specify their gender, activity level, and upload up to 3 progress photos.
+- Coach can edit any client's questionnaire inline (gender, activity, all fields, photos viewable).
+- Coach can edit the data_analysis section of any plan directly (gender, weight, height, age, BMR, TDEE, body fat, etc.) — no need to regenerate.
+- Photos are stored in Supabase Storage (public buckets) and accessible via public URLs.
+- The AI plan generator will now correctly use the client's gender (was defaulting to male before) and activity level (was using free-text) — this means BMR/TDEE calculations will be more accurate.
