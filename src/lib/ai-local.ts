@@ -58,6 +58,8 @@ export function generateWorkoutPlan(ctx: ClientContext): WorkoutContent {
 
   const isHome = location.includes("home") || location.includes("منزل");
   const isBeginner = experience.includes("beginner") || experience.includes("مبتدئ");
+  const weight = parseFloat(nutrition.weight || "80");
+  const isHeavy = weight > 100; // heavy clients need joint-friendly exercises
   const isFatLoss = goal.includes("fat") || goal.includes("loss") || goal.includes("دهون") || goal.includes("تخسيس");
   const isMuscleGain = goal.includes("muscle") || goal.includes("build") || goal.includes("عضلات") || goal.includes("كتلة");
 
@@ -70,24 +72,24 @@ export function generateWorkoutPlan(ctx: ClientContext): WorkoutContent {
 
   if (daysPerWeek <= 3) {
     trainingDays = [
-      { day: "اليوم الأول", focus: "كامل الجسم A", exercises: pickExercises(["squat", "bench", "row", "ohp", "plank"], isHome, isBeginner, injuries) },
-      { day: "اليوم الثاني", focus: "كامل الجسم B", exercises: pickExercises(["deadlift", "incline_bench", "pulldown", "leg_press", "curl"], isHome, isBeginner, injuries) },
-      { day: "اليوم الثالث", focus: "كامل الجسم C", exercises: pickExercises(["front_squat", "db_press", "chinup", "rdl", "triceps"], isHome, isBeginner, injuries) },
+      { day: "اليوم الأول", focus: "كامل الجسم A", exercises: pickExercises(["squat", "bench", "row", "ohp", "plank"], isHome, isBeginner, injuries, isHeavy) },
+      { day: "اليوم الثاني", focus: "كامل الجسم B", exercises: pickExercises(["deadlift", "incline_bench", "pulldown", "leg_press", "curl"], isHome, isBeginner, injuries, isHeavy) },
+      { day: "اليوم الثالث", focus: "كامل الجسم C", exercises: pickExercises(["front_squat", "db_press", "chinup", "rdl", "triceps"], isHome, isBeginner, injuries, isHeavy) },
     ].slice(0, daysPerWeek);
   } else if (daysPerWeek === 4) {
     trainingDays = [
-      { day: "اليوم الأول", focus: "أعلى الجسم (قوة)", exercises: pickExercises(["bench", "row", "ohp", "dip", "curl"], isHome, isBeginner, injuries) },
-      { day: "اليوم الثاني", focus: "أسفل الجسم (قوة)", exercises: pickExercises(["squat", "rdl", "leg_press", "calf", "plank"], isHome, isBeginner, injuries) },
-      { day: "اليوم الثالث", focus: "أعلى الجسم (حجم)", exercises: pickExercises(["incline_db", "pulldown", "lateral", "triceps", "face_pull"], isHome, isBeginner, injuries) },
-      { day: "اليوم الرابع", focus: "أسفل الجسم (حجم)", exercises: pickExercises(["front_squat", "hip_thrust", "leg_curl", "calf", "abs"], isHome, isBeginner, injuries) },
+      { day: "اليوم الأول", focus: "أعلى الجسم (قوة)", exercises: pickExercises(["bench", "row", "ohp", "dip", "curl"], isHome, isBeginner, injuries, isHeavy) },
+      { day: "اليوم الثاني", focus: "أسفل الجسم (قوة)", exercises: pickExercises(["squat", "rdl", "leg_press", "calf", "plank"], isHome, isBeginner, injuries, isHeavy) },
+      { day: "اليوم الثالث", focus: "أعلى الجسم (حجم)", exercises: pickExercises(["incline_db", "pulldown", "lateral", "triceps", "face_pull"], isHome, isBeginner, injuries, isHeavy) },
+      { day: "اليوم الرابع", focus: "أسفل الجسم (حجم)", exercises: pickExercises(["front_squat", "hip_thrust", "leg_curl", "calf", "abs"], isHome, isBeginner, injuries, isHeavy) },
     ];
   } else {
     trainingDays = [
-      { day: "اليوم الأول", focus: "Push (صدر، أكتاف، ترايسبس)", exercises: pickExercises(["bench", "ohp", "incline_db", "lateral", "triceps"], isHome, isBeginner, injuries) },
-      { day: "اليوم الثاني", focus: "Pull (ظهر، بايسبس)", exercises: pickExercises(["deadlift", "pullup", "row", "curl", "face_pull"], isHome, isBeginner, injuries) },
-      { day: "اليوم الثالث", focus: "Legs (أرجل)", exercises: pickExercises(["squat", "rdl", "leg_press", "leg_curl", "calf"], isHome, isBeginner, injuries) },
-      { day: "اليوم الرابع", focus: "Upper (أعلى الجسم)", exercises: pickExercises(["incline_bench", "pulldown", "ohp", "curl", "triceps"], isHome, isBeginner, injuries) },
-      { day: "اليوم الخامس", focus: "Lower (أسفل الجسم)", exercises: pickExercises(["front_squat", "hip_thrust", "leg_curl", "calf", "abs"], isHome, isBeginner, injuries) },
+      { day: "اليوم الأول", focus: "Push (صدر، أكتاف، ترايسبس)", exercises: pickExercises(["bench", "ohp", "incline_db", "lateral", "triceps"], isHome, isBeginner, injuries, isHeavy) },
+      { day: "اليوم الثاني", focus: "Pull (ظهر، بايسبس)", exercises: pickExercises(["deadlift", "pullup", "row", "curl", "face_pull"], isHome, isBeginner, injuries, isHeavy) },
+      { day: "اليوم الثالث", focus: "Legs (أرجل)", exercises: pickExercises(["squat", "rdl", "leg_press", "leg_curl", "calf"], isHome, isBeginner, injuries, isHeavy) },
+      { day: "اليوم الرابع", focus: "Upper (أعلى الجسم)", exercises: pickExercises(["incline_bench", "pulldown", "ohp", "curl", "triceps"], isHome, isBeginner, injuries, isHeavy) },
+      { day: "اليوم الخامس", focus: "Lower (أسفل الجسم)", exercises: pickExercises(["front_squat", "hip_thrust", "leg_curl", "calf", "abs"], isHome, isBeginner, injuries, isHeavy) },
     ].slice(0, daysPerWeek);
   }
 
@@ -247,18 +249,37 @@ const EXERCISE_LIBRARY: Record<string, { gym: any; home: any }> = {
   },
 };
 
+// Exercises that are too advanced/dangerous for beginners or heavy clients.
+// These are skipped and replaced with safer alternatives.
+const ADVANCED_EXERCISES = new Set([
+  "dip",          // dips — shoulder stress for beginners
+  "pullup",       // pull-ups — too hard for beginners/heavy
+  "chinup",       // chin-ups — same
+  "deadlift",     // conventional deadlift — RDL is safer
+  "front_squat",  // front squat — wrist mobility required
+]);
+
 function pickExercises(
   keys: string[],
   isHome: boolean,
   isBeginner: boolean,
   _injuries: string,
+  isHeavy: boolean = false,
 ): Array<any> {
+  const skipAdvanced = isBeginner || isHeavy;
   return keys.map((k) => {
     const ex = EXERCISE_LIBRARY[k];
     if (!ex) return null;
+    // Skip advanced exercises for beginners/heavy clients
+    if (skipAdvanced && ADVANCED_EXERCISES.has(k)) return null;
     const variant = isHome ? ex.home : ex.gym;
     if (isBeginner) {
-      return { ...variant, sets: Math.max(3, variant.sets - 1), reps: "10-12" };
+      // For beginners: lower sets, higher reps, lighter intensity
+      return { ...variant, sets: Math.max(3, variant.sets - 1), reps: "12-15" };
+    }
+    if (isHeavy) {
+      // For heavy clients: slightly higher reps, same sets
+      return { ...variant, reps: "10-15" };
     }
     return variant;
   }).filter(Boolean);

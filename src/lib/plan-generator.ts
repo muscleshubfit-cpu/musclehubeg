@@ -509,6 +509,58 @@ function buildWorkoutPrompt(ctx: ClientContext, name: string, overrides?: PlanOv
   const injuries = fitness.injuries || "";
   const weight = nutrition.weight || "80";
   const gender = nutrition.gender || "male";
+  const weightNum = parseFloat(weight) || 80;
+  const isHeavy = weightNum > 100; // heavy clients need joint-friendly exercises
+  const isBeginner = experience.toLowerCase().includes("beginner") || experience.toLowerCase().includes("مبتدئ");
+  const isHome = (location || "").toLowerCase().includes("home") || (location || "").includes("منزل");
+
+  // Determine the split based on days/week — ensures full-body coverage
+  const daysNum = parseInt(days) || 4;
+  let splitDescription = "";
+  if (daysNum <= 2) {
+    splitDescription = `تقسيم: ${daysNum} يوم = كامل الجسم في كل يوم تدريب. كل يوم يجب أن يشمل:
+- تمرين كبير للجزء السفلي (سكوات أو ديدليفت روماني)
+- تمرين دفع للصدر/الأكتاف (بنش بريس أو ضغط كتف)
+- تمرين سحب للظهر (تجديف أو سحب أمامي)
+- تمرين للكور (بلانك أو كرنش)`;
+  } else if (daysNum === 3) {
+    splitDescription = `تقسيم: 3 أيام = كامل الجسم (Full Body A/B/C). كل يوم تدريب يجب أن يشمل:
+- تمرين كبير سفلي (سكوات / ديدليفت / فرنت سكوات)
+- تمرين دفع علوي (بنش بريس / ضغط كتف / بنش مائل)
+- تمرين سحب (تجديف / سحب أمامي / هايبراكستينشن)
+- تمرين مساعد للذراعين أو الكور
+نوّع التمارين بين الأيام الثلاثة لتغطية كل عضلات الجسم.`;
+  } else if (daysNum === 4) {
+    splitDescription = `تقسيم: 4 أيام = Upper/Lower Split (أعلى/أسفل الجسم):
+- اليوم 1: أعلى الجسم (صدر + ظهر + أكتاف + ذراعين)
+- اليوم 2: أسفل الجسم (أرجل + كور)
+- اليوم 3: أعلى الجسم (تمارين مختلفة عن اليوم 1)
+- اليوم 4: أسفل الجسم (تمارين مختلفة عن اليوم 2)
+هذا التقسيم يضمن تغطية كاملة لكل الجسم خلال الأسبوع.`;
+  } else {
+    splitDescription = `تقسيم: ${daysNum} أيام = Push/Pull/Legs/Upper/Lower:
+- يوم Push (صدر + أكتاف + ترايسبس)
+- يوم Pull (ظهر + بايسبس)
+- يوم Legs (أرجل + كور)
+- يوم Upper (أعلى الجسم كاملاً)
+- يوم Lower (أسفل الجسم كاملاً)
+نوّع التمارين بين الأيام لتغطية كل عضلات الجسم.`;
+  }
+
+  // Safety rules for beginners + heavy clients
+  const safetyRules = isBeginner || isHeavy
+    ? `
+
+⚠️ قواعد أمان مهمة (العميل ${isBeginner ? "مبتدئ" : ""} ${isHeavy ? "وزنه كبير" : ""}):
+- ❌ ممنوع: عقلة (Pull-ups) — صعبة جداً للمبتدئين وأصحاب الوزن الكبير. استخدم سحب أمامي (Lat Pulldown) بدلاً منها.
+- ❌ ممنوع: ديبس (Dips) — تضع ضغط كبير على الكتف. استخدم ضغط بالدمبل أو بنش بريس بدلاً منها.
+- ❌ ممنوع: ديدليفت تقليدي (Conventional Deadlift) من الأرض — استخدم رومانيان ديدليفت (RDL) بدلاً منها (أأمن للظهر).
+- ❌ ممنوع: فرنت سكوات (Front Squat) — استخدم سكوات عادي أو جوب سكوات.
+- ✅ استخدم: تمارين بالماكينات (ليج بريس، سحب أمامي، تجديف بالكابل) — أكثر أماناً للمبتدئين.
+- ✅ استخدم: أوزان أخف + تكرارات أعلى (12-15 بدلاً من 6-8).
+- ✅ ركّز على التقنية الصحيحة قبل زيادة الوزن.
+- ✅ تمارين الكور مهمة جداً لحماية الظهر (بلانك، كرنش، bird dog).`
+    : "";
 
   const overridesText = overrides?.notes
     ? `\n🎯 تعليمات خاصة من الكوتش: ${overrides.notes}\n`
@@ -518,18 +570,38 @@ function buildWorkoutPrompt(ctx: ClientContext, name: string, overrides?: PlanOv
 
 📋 بيانات العميل:
 - الجنس: ${gender}
+- الوزن: ${weight} كجم ${isHeavy ? "(وزن كبير — استخدم تمارين لطيفة بالمفاصل)" : ""}
 - الهدف: ${goal}
 - أيام التدريب/أسبوع: ${days}
-- مكان التدريب: ${location}
-- مستوى الخبرة: ${experience}
+- مكان التدريب: ${location} ${isHome ? "(منزل — استخدم تمارين بوزن الجسم أو دمبل)" : ""}
+- مستوى الخبرة: ${experience} ${isBeginner ? "(مبتدئ — تجنب التمارين المتقدمة)" : ""}
 - إصابات: ${injuries || "لا يوجد"}
-- الوزن: ${weight} كجم
 ${overridesText}
-صمّم برنامج لـ ${days} أيام تدريب مع إدراج أيام راحة بينها.
-لكل يوم تدريبي: 4-6 تمارين مناسبة للعضلة المستهدفة.
-اجعل البرنامج متنوعاً — لا تستخدم نفس التمارين في كل مرة.
+${splitDescription}${safetyRules}
 
-أعد النتيجة بصيغة JSON صالحة فقط (بدون نص إضافي، بدون أسوار markdown).`;
+قواعد إضافية:
+- صمّم برنامج لـ ${days} أيام تدريب مع إدراج أيام راحة بينها.
+- لكل يوم تدريبي: 4-6 تمارين مناسبة.
+- اجعل البرنامج متنوعاً — لا تكرر نفس التمارين في كل يوم.
+- لكل تمرين: اذكر المجموعات والتكرارات والراحة وملاحظة قصيرة عن التقنية.
+- استخدم أسماء أيام الأسبوع (السبت، الأحد، الإثنين، الثلاثاء، الأربعاء، الخميس، الجمعة).
+
+أعد النتيجة بصيغة JSON صالحة فقط (بدون نص إضافي، بدون أسوار markdown) بالتنسيق:
+{
+  "overview": "نظرة عامة",
+  "weekly_volume": "الحجم الأسبوعي",
+  "progression": "طريقة التقدم",
+  "days": [
+    {
+      "day": "السبت",
+      "focus": "صدر وترايسبس",
+      "isRest": false,
+      "exercises": [
+        { "name": "بنش بريس", "sets": 4, "reps": "8-12", "rest": "90 ثانية", "notes": "نصيحة بالعربية" }
+      ]
+    }
+  ]
+}`;
 }
 
 /* --------------------------- Normalizers --------------------------- */
