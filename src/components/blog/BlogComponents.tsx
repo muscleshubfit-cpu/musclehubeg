@@ -1,6 +1,6 @@
 "use client";
 
-import { Dumbbell, ArrowRight, Check, Mail, Send, Facebook, Linkedin, Twitter, MessageCircle, Copy, Check as CheckIcon } from "lucide-react";
+import { Dumbbell, ArrowRight, Check, Mail, Send, Facebook, Linkedin, Twitter, MessageCircle, Copy, Check as CheckIcon, Share2 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -95,47 +95,80 @@ export function NewsletterBlock({ lang }: { lang: "en" | "ar" }) {
  );
 }
 
-export function SocialShare({ url, title, lang }: { url: string; title: string; lang: "en" | "ar" }) {
+export function SocialShare({ url, title, description, image, lang }: { url: string; title: string; description?: string; image?: string; lang: "en" | "ar" }) {
  const isAr = lang === "ar";
  const [copied, setCopied] = useState(false);
  const encodedUrl = encodeURIComponent(url);
  const encodedTitle = encodeURIComponent(title);
+ const encodedDesc = description ? encodeURIComponent(description) : "";
+
+ // Language-aware share text — the share message matches the article language
+ const shareText = isAr
+   ? `${title}${description ? `\n\n${description}` : ""}\n\nاقرأ المقال كاملاً على MuscleHub:`
+   : `${title}${description ? `\n\n${description}` : ""}\n\nRead the full article on MuscleHub:`;
+ const encodedShareText = encodeURIComponent(shareText);
 
  const share = (platform: string) => {
- const links: Record<string, string> = {
- facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`,
- linkedin: `https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}`,
- twitter: `https://twitter.com/intent/tweet?url=${encodedUrl}&text=${encodedTitle}`,
- whatsapp: `https://wa.me/?text=${encodedTitle}%20${encodedUrl}`,
- };
- window.open(links[platform], "_blank", "noopener,noreferrer,width=600,height=400");
+   const links: Record<string, string> = {
+     // Facebook: just needs the URL — it scrapes OG tags for title/image/description
+     facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`,
+     // LinkedIn: uses OG tags from the URL
+     linkedin: `https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}`,
+     // X (Twitter): include title + description + URL in the tweet text
+     twitter: `https://twitter.com/intent/tweet?text=${encodedShareText}&url=${encodedUrl}`,
+     // WhatsApp: include title + description + URL
+     whatsapp: `https://wa.me/?text=${encodedShareText}%20${encodedUrl}`,
+   };
+   window.open(links[platform], "_blank", "noopener,noreferrer,width=600,height=400");
  };
 
  const copyLink = () => {
- navigator.clipboard.writeText(url);
- setCopied(true);
- setTimeout(() => setCopied(false), 2000);
+   navigator.clipboard.writeText(url);
+   setCopied(true);
+   setTimeout(() => setCopied(false), 2000);
+ };
+
+ // Native share API (mobile) — includes title, text, image if supported
+ const nativeShare = async () => {
+   if (navigator.share) {
+     try {
+       await navigator.share({
+         title: title,
+         text: shareText,
+         url: url,
+       });
+       return;
+     } catch {
+       // user cancelled — fall through to copy
+     }
+   }
+   copyLink();
  };
 
  return (
- <div className="my-8 flex items-center gap-2">
- <span className="text-sm text-muted-foreground">{isAr ? "شارك:" : "Share:"}</span>
- <button onClick={() => share("facebook")} className="grid h-9 w-9 place-items-center rounded-lg border border-border hover:border-primary/40 hover:text-primary" aria-label="Facebook">
- <Facebook className="h-4 w-4" />
- </button>
- <button onClick={() => share("linkedin")} className="grid h-9 w-9 place-items-center rounded-lg border border-border hover:border-primary/40 hover:text-primary" aria-label="LinkedIn">
- <Linkedin className="h-4 w-4" />
- </button>
- <button onClick={() => share("twitter")} className="grid h-9 w-9 place-items-center rounded-lg border border-border hover:border-primary/40 hover:text-primary" aria-label="X">
- <Twitter className="h-4 w-4" />
- </button>
- <button onClick={() => share("whatsapp")} className="grid h-9 w-9 place-items-center rounded-lg border border-border hover:border-primary/40 hover:text-primary" aria-label="WhatsApp">
- <MessageCircle className="h-4 w-4" />
- </button>
- <button onClick={copyLink} className="grid h-9 w-9 place-items-center rounded-lg border border-border hover:border-primary/40 hover:text-primary" aria-label="Copy link">
- {copied ? <CheckIcon className="h-4 w-4 text-success" /> : <Copy className="h-4 w-4" />}
- </button>
- </div>
+   <div className="my-8 flex items-center gap-2">
+     <span className="text-sm text-muted-foreground">{isAr ? "شارك:" : "Share:"}</span>
+     <button onClick={() => share("facebook")} className="grid h-9 w-9 place-items-center rounded-lg border border-border hover:border-primary/40 hover:text-primary" aria-label="Facebook">
+       <Facebook className="h-4 w-4" />
+     </button>
+     <button onClick={() => share("linkedin")} className="grid h-9 w-9 place-items-center rounded-lg border border-border hover:border-primary/40 hover:text-primary" aria-label="LinkedIn">
+       <Linkedin className="h-4 w-4" />
+     </button>
+     <button onClick={() => share("twitter")} className="grid h-9 w-9 place-items-center rounded-lg border border-border hover:border-primary/40 hover:text-primary" aria-label="X">
+       <Twitter className="h-4 w-4" />
+     </button>
+     <button onClick={() => share("whatsapp")} className="grid h-9 w-9 place-items-center rounded-lg border border-border hover:border-primary/40 hover:text-primary" aria-label="WhatsApp">
+       <MessageCircle className="h-4 w-4" />
+     </button>
+     {typeof navigator !== "undefined" && typeof navigator.share === "function" && (
+       <button onClick={nativeShare} className="grid h-9 w-9 place-items-center rounded-lg border border-border hover:border-primary/40 hover:text-primary" aria-label={isAr ? "مشاركة" : "Share"}>
+         <Share2 className="h-4 w-4" />
+       </button>
+     )}
+     <button onClick={copyLink} className="grid h-9 w-9 place-items-center rounded-lg border border-border hover:border-primary/40 hover:text-primary" aria-label="Copy link">
+       {copied ? <CheckIcon className="h-4 w-4 text-success" /> : <Copy className="h-4 w-4" />}
+     </button>
+   </div>
  );
 }
 
