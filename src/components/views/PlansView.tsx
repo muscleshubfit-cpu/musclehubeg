@@ -144,37 +144,146 @@ export function PlansView() {
     const w = window.open("", "_blank", "width=820,height=1040");
     if (!w) return;
     const content = plan.content;
+    const isWorkout = plan.type === "workout";
     let html = `<!doctype html><html dir="rtl" lang="ar"><head><meta charset="utf-8"><title>${plan.title}</title>
-<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
 <style>
-  *{box-sizing:border-box} body{font-family:'Cairo',sans-serif;padding:28px;color:#141414;margin:0}
-  h1{font-size:22px;margin:0 0 4px} h2{font-size:17px;margin:18px 0 8px}
-  p{line-height:1.7;color:#333} table{width:100%;border-collapse:collapse;margin:6px 0 14px;font-size:13px}
-  th,td{border:1px solid #e2e2e2;padding:7px 9px;text-align:right} th{background:#f4f4f5}
-  .brand{color:#1F8FFF;font-weight:700;margin-bottom:10px}
-  .stat{display:inline-block;background:#f0f7ff;padding:8px 16px;border-radius:8px;margin:4px;font-weight:600}
+  *{box-sizing:border-box}
+  body{font-family:'Cairo',sans-serif;padding:32px;color:#141414;margin:0;line-height:1.7}
+  h1{font-size:24px;margin:0 0 6px;color:#1F8FFF}
+  h2{font-size:18px;margin:20px 0 10px;border-bottom:2px solid #1F8FFF;padding-bottom:4px}
+  h3{font-size:15px;margin:14px 0 6px}
+  p{color:#333}
+  table{width:100%;border-collapse:collapse;margin:8px 0 16px;font-size:13px}
+  th,td{border:1px solid #e2e2e2;padding:8px 10px;text-align:right}
+  th{background:#f4f9ff;color:#1F8FFF;font-weight:700}
+  tr:nth-child(even){background:#fafafa}
+  .brand{display:flex;align-items:center;gap:8px;margin-bottom:16px;border-bottom:3px solid #1F8FFF;padding-bottom:12px}
+  .brand-logo{width:36px;height:36px;background:#1F8FFF;border-radius:8px;display:flex;align-items:center;justify-content:center;color:white;font-weight:800;font-size:14px}
+  .brand-name{font-size:18px;font-weight:800;color:#1F8FFF}
+  .brand-tag{font-size:11px;color:#666;margin-top:2px}
+  .stats{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
+  .stat{background:#f0f7ff;padding:10px 18px;border-radius:10px;font-weight:700;text-align:center;min-width:80px}
+  .stat-label{font-size:10px;color:#666;display:block;font-weight:400}
+  .stat-value{font-size:18px;color:#1F8FFF}
+  .analysis{background:#f9f9f9;border-radius:10px;padding:14px;margin:12px 0;font-size:12px}
+  .analysis-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+  .analysis-item{padding:4px 0}
+  .analysis-label{color:#666}
+  .supplement{background:#fff;border:1px solid #e2e2e2;border-radius:8px;padding:10px;margin:6px 0;font-size:12px}
+  .supplement-name{font-weight:700;color:#1F8FFF}
+  .health-note{display:flex;gap:6px;margin:4px 0;font-size:12px}
+  .health-note:before{content:"✦";color:#1F8FFF}
+  .meal-total{background:#f0f7ff;font-weight:700}
+  .meal-total td{border-top:2px solid #1F8FFF}
+  .rest-day{background:#fff3cd;text-align:center;padding:20px;font-style:italic;color:#856404}
+  .footer{margin-top:30px;border-top:1px solid #e2e2e2;padding-top:12px;font-size:11px;color:#999;text-align:center}
+  @media print{body{padding:20px}}
 </style></head><body>
-<div class="brand">أحمد زكي — Ahmed Zake</div>
+<div class="brand">
+  <div class="brand-logo">MH</div>
+  <div>
+    <div class="brand-name">MuscleHub — Ahmed Zake</div>
+    <div class="brand-tag">كوتش أونلاين للتغذية واللياقة | musclehubeg.vercel.app</div>
+  </div>
+</div>
 <h1>${plan.title}</h1>`;
-    if (plan.type === "meal" && content) {
-      if (content.overview) html += `<p>${content.overview}</p>`;
-      if (content.daily_calories) html += `<div class="stat">السعرات: ${content.daily_calories}</div>`;
-      if (content.macros) html += `<div class="stat">بروتين: ${content.macros.protein_g}g</div><div class="stat">كارب: ${content.macros.carbs_g}g</div><div class="stat">دهون: ${content.macros.fat_g}g</div>`;
-      if (content.meals) {
-        for (const m of content.meals) {
-          html += `<h2>${m.name}</h2><table><tr><th>الطعام</th><th>الكمية</th><th>السعرات</th></tr>`;
-          for (const it of m.items || []) html += `<tr><td>${it.food}</td><td>${it.amount}</td><td>${it.calories}</td></tr>`;
-          html += `</table>${m.notes ? `<p style="font-size:12px;color:#666">${m.notes}</p>` : ""}`;
+    if (content) {
+      if (content.overview) html += `<p style="white-space:pre-line">${content.overview}</p>`;
+
+      if (!isWorkout) {
+        // Data analysis
+        if (content.data_analysis) {
+          const da = content.data_analysis;
+          html += `<h2>📐 تحليل البيانات</h2><div class="analysis"><div class="analysis-grid">`;
+          const fields = [
+            ["الجنس", da.gender], ["الوزن", da.weight], ["الطول", da.height],
+            ["العمر", da.age], ["الرقبة", da.neck], ["الخصر", da.waist],
+            ["الورك", da.hip], ["النشاط", da.activity], ["الصحة", da.health],
+            ["نسبة الدهون", da.body_fat_pct],
+          ];
+          for (const [label, val] of fields) {
+            if (val) html += `<div class="analysis-item"><span class="analysis-label">${label}:</span> ${val}</div>`;
+          }
+          if (da.bmr) html += `<div class="analysis-item"><span class="analysis-label">BMR:</span> ~${da.bmr} سعرة</div>`;
+          if (da.tdee) html += `<div class="analysis-item"><span class="analysis-label">TDEE:</span> ~${da.tdee} سعرة</div>`;
+          html += `</div></div>`;
+        }
+
+        // Macros
+        if (content.daily_calories || content.macros) {
+          html += `<h2>🔥 السعرات والماكروز</h2><div class="stats">`;
+          if (content.daily_calories) html += `<div class="stat"><span class="stat-label">السعرات اليومية</span><span class="stat-value">${content.daily_calories}</span></div>`;
+          if (content.macros?.protein_g) html += `<div class="stat"><span class="stat-label">بروتين</span><span class="stat-value">${content.macros.protein_g}جم</span></div>`;
+          if (content.macros?.carbs_g) html += `<div class="stat"><span class="stat-label">كارب</span><span class="stat-value">${content.macros.carbs_g}جم</span></div>`;
+          if (content.macros?.fat_g) html += `<div class="stat"><span class="stat-label">دهون</span><span class="stat-value">${content.macros.fat_g}جم</span></div>`;
+          html += `</div>`;
+        }
+
+        // Supplements
+        if (content.supplements?.length > 0) {
+          html += `<h2>💊 المكملات والتوصيات الصحية</h2>`;
+          for (const s of content.supplements) {
+            html += `<div class="supplement"><div class="supplement-name">${s.name}</div>`;
+            if (s.dose) html += `<div>الجرعة: ${s.dose}</div>`;
+            if (s.timing) html += `<div>الموعد: ${s.timing}</div>`;
+            if (s.purpose) html += `<div>الهدف: ${s.purpose}</div>`;
+            html += `</div>`;
+          }
+        }
+
+        // Health notes
+        if (content.health_notes?.length > 0) {
+          html += `<h2>🩸 توصيات صحية خاصة</h2>`;
+          for (const n of content.health_notes) {
+            html += `<div class="health-note">${n}</div>`;
+          }
+        }
+
+        // Water target
+        if (content.water_target) {
+          html += `<h2>💧 استهلاك الماء</h2><p>${content.water_target}</p>`;
+        }
+
+        // Meals
+        if (content.meals) {
+          html += `<h2>🍽️ النظام الغذائي</h2>`;
+          for (const m of content.meals) {
+            html += `<h3>${m.name}${m.time ? ` <span style="font-size:11px;color:#666;font-weight:400">⏰ ${m.time}</span>` : ""}</h3>`;
+            html += `<table><tr><th style="width:30px">#</th><th>المكون</th><th>الكمية</th><th>السعرات</th><th>البدائل</th></tr>`;
+            (m.items || []).forEach((it: any, i: number) => {
+              html += `<tr><td>${i + 1}</td><td>${it.food}</td><td>${it.amount}</td><td>${it.calories}</td><td style="font-size:11px;color:#666">${it.alternatives || "—"}</td></tr>`;
+            });
+            if (m.total_calories || m.total_protein_g) {
+              html += `<tr class="meal-total"><td colspan="3">إجمالي الوجبة: ~${m.total_calories || (m.items || []).reduce((s: number, i: any) => s + (i.calories || 0), 0)} سعرة</td><td>${m.total_protein_g || ""} ${m.total_protein_g ? "جم بروتين" : ""}</td><td></td></tr>`;
+            }
+            html += `</table>`;
+            if (m.notes) html += `<p style="font-size:12px;color:#666">📝 ${m.notes}</p>`;
+          }
+        }
+      } else if (isWorkout && content.days) {
+        // Workout volume + progression
+        if (content.weekly_volume || content.progression) {
+          html += `<h2>📊 الحجم والتقدم</h2>`;
+          if (content.weekly_volume) html += `<p><strong>الحجم الأسبوعي:</strong> ${content.weekly_volume}</p>`;
+          if (content.progression) html += `<p><strong>طريقة التقدم:</strong> ${content.progression}</p>`;
+        }
+        html += `<h2>🏋️ البرنامج الأسبوعي</h2>`;
+        for (const d of content.days) {
+          if (d.isRest) {
+            html += `<h3>${d.day} — راحة 🛌</h3><div class="rest-day">يوم راحة — استشفِ وارتاح. اشرب ماء كافي ونم 7-9 ساعات.</div>`;
+          } else {
+            html += `<h3>${d.day} — ${d.focus || ""}</h3>`;
+            html += `<table><tr><th style="width:30px">#</th><th>التمرين</th><th>مجموعات</th><th>تكرارات</th><th>راحة</th></tr>`;
+            (d.exercises || []).forEach((ex: any, i: number) => {
+              html += `<tr><td>${i + 1}</td><td><strong>${ex.name}</strong>${ex.notes ? `<br><span style="font-size:11px;color:#666">${ex.notes}</span>` : ""}</td><td>${ex.sets}</td><td>${ex.reps}</td><td>${ex.rest}</td></tr>`;
+            });
+            html += `</table>`;
+          }
         }
       }
-    } else if (plan.type === "workout" && content?.days) {
-      if (content.overview) html += `<p>${content.overview}</p>`;
-      for (const d of content.days) {
-        html += `<h2>${d.day}${d.focus ? ` — ${d.focus}` : ""}</h2><table><tr><th>التمرين</th><th>المجموعات</th><th>التكرارات</th><th>الراحة</th></tr>`;
-        for (const ex of d.exercises || []) html += `<tr><td>${ex.name}</td><td>${ex.sets}</td><td>${ex.reps}</td><td>${ex.rest}</td></tr>`;
-        html += `</table>`;
-      }
     }
+    html += `<div class="footer">© ${new Date().getFullYear()} MuscleHub — Coach Ahmed Zake | musclehubeg.vercel.app<br>هذا التقرير مُعد لأغراض إرشادية — يُرجى استشارة طبيب مختص قبل بدء أي نظام غذائي أو تناول مكملات.</div>`;
     html += `</body></html>`;
     w.document.write(html);
     w.document.close();
