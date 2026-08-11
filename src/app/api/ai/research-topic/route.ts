@@ -14,7 +14,7 @@ import { NextRequest, NextResponse } from "next/server";
  * Body: { topic: string, focusKeyword?: string }
  * Returns: { queries: [...], topArticles: [...], relatedQuestions: [...], trendingAngles: [...] }
  */
-export const maxDuration = 60;
+export const maxDuration = 120;
 
 export async function POST(request: NextRequest) {
   try {
@@ -53,16 +53,11 @@ export async function POST(request: NextRequest) {
     const ZAI = (await import("z-ai-web-dev-sdk")).default;
     const zai = await ZAI.create();
 
-    // Run multiple searches to gather comprehensive research
+    // Run 3 key searches (reduced from 8 to avoid timeout)
     const searchQueries = [
       searchTerm,                              // main topic
-      `${searchTerm} site:reddit.com`,         // what people discuss
       `${searchTerm} vs`,                      // comparison angles
-      `best ${searchTerm} 2026`,              // trending/latest
-      `${searchTerm} for beginners`,          // beginner angle
       `how to ${searchTerm}`,                 // how-to angle
-      `${searchTerm} mistakes`,               // common mistakes
-      `${searchTerm} science research`,       // scientific backing
     ];
 
     const allResults: any[] = [];
