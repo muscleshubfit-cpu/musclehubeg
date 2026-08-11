@@ -488,3 +488,59 @@ Stage Summary:
 - Both client notifications (plan activated, swap limit reached, etc.) and admin notifications (new client, new ticket, new questionnaire submitted, etc.) now work — they were silently failing before because the tables didn't exist.
 - The NotificationBell (client) and AdminNotificationBell (coach) will now show real-time notifications with unread badges.
 - No app redeploy needed — the fix is database-only. But pushed the migration file for documentation.
+
+---
+Task ID: exercise-images + full-plan-editing + health-metrics-dashboard
+Agent: main (super-z)
+Task: Fix exercise images (were broken/generic), add editing for ALL plan sections (supplements, health notes, water target, workout volume/progression, exercise images), build Apple Health-style health metrics dashboard for client overview.
+
+Work Log:
+1. Exercise images fix (src/lib/exercise-images.ts — new):
+   - Tested all 48 Wikimedia URLs in ai-local.ts → ALL return HTTP 400 (Wikimedia now requires specific User-Agent + many hash paths were wrong).
+   - Created a curated mapping: exercise name → category (chest, back, shoulders, legs, biceps, triceps, core, cardio, full body).
+   - Each category renders an inline SVG data URL (no network request, always works, matches the dark premium theme with #00d4ff blue + #ffd700 gold on #0a0a0f background).
+   - Fuzzy keyword matching (Arabic + English) — bench/بنش/ضغط صدر → chest, squat/سكوات → legs, row/تجديف → back, etc.
+   - resolveExerciseImage(existingUrl, name) — keeps valid custom URLs, replaces broken Wikimedia URLs with the SVG.
+   - onError fallback on <img> so any failed URL falls back to the category SVG.
+   - Updated CoachClientView + PlansView to use resolveExerciseImage + always show an image (even if ex.image is empty).
+   - Coach can now edit the image URL in edit mode (optional — auto-generated from name if blank).
+
+2. Full plan editing (CoachClientView PlanViewerModal):
+   - Supplements: add/edit/remove (name, dose, timing, purpose) — was read-only.
+   - Health notes: add/edit/remove (free-text recommendations) — was read-only.
+   - Water target: editable text field — was read-only.
+   - Workout weekly_volume: editable — was not shown in edit mode.
+   - Workout progression: editable — was not shown in edit mode.
+   - Exercise image URL: editable in edit mode — was not editable.
+   - Data analysis (BMR, TDEE, body fat, etc.): editable — added in previous commit.
+   - Overview, macros, meals, exercises, day names, focus, notes: already editable.
+
+3. Apple Health-style Health Metrics Dashboard (src/components/HealthMetricsDashboard.tsx — new):
+   - Shows on the coach's client overview tab (below the quick stats cards).
+   - Health Score (0-100): composite of adherence (40%), energy (20%), progress toward goal (40%). Shown as a circular SVG ring (green ≥70, yellow ≥40, red <40).
+   - Weight: baseline → current → delta (with up/down arrow, green if improved).
+   - Body fat %: calculated via US Navy formula — different for male/female:
+     * Male: 86.010 × log10(waist - neck) - 70.041 × log10(height) + 36.76
+     * Female: 163.205 × log10(waist + hip - neck) - 97.684 × log10(height) - 78.387
+     Uses neck, waist, hip, height, gender from the questionnaire.
+   - BMI: weight / (height_m²), with status badge (نحافة <18.5, طبيعي 18.5-25, زيادة وزن 25-30, سمنة >30).
+   - Lean body mass: weight × (1 - body fat%).
+   - Measurements: waist, chest, hips, arm, neck — each with baseline, current, delta.
+   - Energy level (1-10) and Adherence (1-10): baseline → current → delta.
+   - Each metric card shows: icon, label, current value (big), delta with colored arrow, progress bar toward target.
+   - Baseline summary card: start date + start weight, current date + current weight, total change (kg + % of baseline).
+   - Target direction auto-detected from questionnaire target_weight: loss / gain / maintain. Affects which deltas are 'good' (green).
+   - Falls back gracefully: if no progress entries, uses questionnaire data as baseline. If no questionnaire, shows an empty state.
+
+Build: passes locally (npx next build → all 35 routes generated). TypeScript: zero new errors.
+Deploy: production READY in 45s (dpl_HYy8iWRW6SLVmkpBNyPExuCXQckJ).
+
+Stage Summary:
+- Exercise images now work reliably (inline SVGs, no broken Wikimedia links) and match the correct exercise.
+- Coach can edit EVERY section of a plan: overview, macros, meals, supplements, health notes, water target, workout volume/progression, exercise images, data analysis (BMR/TDEE/body fat).
+- Coach's client overview now shows an Apple Health-style dashboard with:
+  * Health Score ring (0-100)
+  * Weight, body fat %, BMI, lean mass — each with baseline + current + delta + progress bar
+  * Measurements (waist, chest, hips, arm, neck) with deltas
+  * Energy + adherence trends
+  * Baseline summary (start vs current vs total change)
