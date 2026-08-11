@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 
 // Force dynamic rendering so generateMetadata runs on every request
 export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
 
 /**
  * Server-side metadata generation — puts OG tags in <head> where Facebook,

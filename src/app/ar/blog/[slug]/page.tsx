@@ -3,6 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 import type { Metadata } from "next";
 
 export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
 
 export async function generateMetadata({
   params,
