@@ -143,6 +143,13 @@ export async function POST(request: NextRequest) {
       relatedQuestions: uniqueQuestions,
       trendingAngles,
       totalResults: allSnippets.length,
+      debug: {
+        baseUrl: zaiBaseUrl ? zaiBaseUrl.slice(0, 30) : "(empty)",
+        apiKey: zaiApiKey ? "set" : "(empty)",
+        chatId: zaiChatId ? "set" : "(empty)",
+        userId: zaiUserId ? "set" : "(empty)",
+        token: zaiToken ? "set" : "(empty)",
+      },
     });
   } catch (e: any) {
     console.error("[research-topic] Error:", e?.message || e);
