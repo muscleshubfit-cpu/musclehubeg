@@ -544,3 +544,61 @@ Stage Summary:
   * Measurements (waist, chest, hips, arm, neck) with deltas
   * Energy + adherence trends
   * Baseline summary (start vs current vs total change)
+
+---
+Task ID: coach-pdf-download + instructional-exercise-svgs
+Agent: main (super-z)
+Task: Add PDF download for coaches + make exercise images instructional (showing HOW to perform the exercise, not just a muscle icon).
+
+Work Log:
+1. Coach PDF download (CoachClientView PlanViewerModal):
+   - Added a 'PDF' button in the modal header (next to 'تعديل' and 'إعادة توليد').
+   - Created downloadPlanPDF() function that opens a print-optimized window:
+     * MuscleHub brand header (MH logo + name + tagline + URL)
+     * Full plan content in the PDF reference style:
+       - Data analysis section (gender, weight, height, age, neck, waist, hip, activity, health, body fat %, BMR, TDEE)
+       - Macros stats cards (calories, protein, carbs, fat)
+       - Supplements (name, dose, timing, purpose)
+       - Health notes (bulleted list)
+       - Water target
+       - Meals with numbered items + alternatives + per-meal totals (calories + protein)
+       - Workout days with exercises (numbered, with notes)
+       - Rest days (highlighted)
+       - Workout volume + progression
+       - General notes
+     * Footer with copyright + disclaimer
+     * Browser print dialog → user can save as PDF or print
+   - Added Download icon import from lucide-react.
+
+2. Client PDF download (PlansView printPlan) — upgraded to the same premium format:
+   - Was a basic HTML output (just meals/exercises tables, no brand, no analysis).
+   - Now matches the coach's PDF output exactly: brand header, data analysis, macros, supplements, health notes, water target, numbered meal items with alternatives, per-meal totals, workout volume/progression, rest days, footer.
+
+3. Instructional exercise SVGs (src/lib/exercise-images.ts — rewritten):
+   - Replaced the simple category icons (just an emoji + label) with proper instructional diagrams.
+   - Each exercise now has a dedicated SVG showing:
+     * Body position (stick figure in the start position of the exercise)
+     * Movement arrows (curved or straight arrows showing the path of motion, with arrowheads)
+     * Equipment indicator (barbell, dumbbell, band, bodyweight, kettlebell, machine — drawn as small icons)
+     * Exercise name in Arabic
+     * Short instruction (e.g. "استلقِ على البنش، أنزل البار للصدر وادفعه لأعلى")
+     * Category badge with emoji (e.g. "🏋️ صدر")
+   - 25+ exercise-specific SVGs created:
+     * Chest: bench press, incline press, pushup, dips, chest fly
+     * Back: deadlift, barbell row, dumbbell row, pullup, pulldown, face pull
+     * Shoulders: shoulder press, lateral raise
+     * Legs: squat, leg press, lunge, leg curl, RDL, hip thrust, calf raise
+     * Arms: bicep curl, tricep pushdown
+     * Core: plank, crunch
+     * Cardio: running
+   - Each SVG is an inline data URL (no network request, always renders).
+   - Fuzzy keyword matching (Arabic + English) maps exercise names to the correct instructional SVG.
+   - buildInstructionalSVG() helper generates consistent SVGs with body + arrows + equipment + instruction.
+
+Build: passes locally (npx next build → all 35 routes generated). TypeScript: zero new errors.
+Deploy: production READY in 45s (dpl_JCnmW7LQm9EC7diJoYENJUsSkV3G).
+
+Stage Summary:
+- Coach can now download any plan as a PDF (via browser print dialog) — premium branded output with all sections.
+- Client PDF download upgraded to the same premium format.
+- Exercise images are now INSTRUCTIONAL — they show body position, movement direction (arrows), equipment, and a short instruction text — not just a generic muscle icon.
