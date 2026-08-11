@@ -95,7 +95,7 @@ export function NewsletterBlock({ lang }: { lang: "en" | "ar" }) {
  );
 }
 
-export function SocialShare({ url, title, description, image, lang }: { url: string; title: string; description?: string; image?: string; lang: "en" | "ar" }) {
+export function SocialShare({ url, ogUrl, title, description, image, lang }: { url: string; ogUrl?: string; title: string; description?: string; image?: string; lang: "en" | "ar" }) {
  const isAr = lang === "ar";
  const [copied, setCopied] = useState(false);
  const encodedUrl = encodeURIComponent(url);

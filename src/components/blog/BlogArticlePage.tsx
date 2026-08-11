@@ -235,7 +235,8 @@ export function BlogArticlePage({ lang, slug }: { lang: "en" | "ar"; slug: strin
  )}
 
  {/* Social share */}
- <SocialShare url={articleUrl} title={shareTitle} description={shareDescription} image={shareImage} lang={lang} />
+ {/* Social share — use /api/og/[slug] for Facebook/LinkedIn so OG tags are in <head> */}
+ <SocialShare url={articleUrl} ogUrl={`${baseUrl}/api/og/${post.slug}?lang=${isAr ? "ar" : "en"}`} title={shareTitle} description={shareDescription} image={shareImage} lang={lang} />
 
  {/* Language alternate link */}
  {linkedUrl && linked && (
