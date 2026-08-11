@@ -55,7 +55,7 @@ export async function GET(request: NextRequest) {
 
  // 4. Publish both languages
  const enRow = {
- language: "en" as const,
+ language: "en",
  title: bundle.seo.en.seoTitle,
  slug: enSlug,
  excerpt: bundle.seo.en.metaDescription,
@@ -73,12 +73,12 @@ export async function GET(request: NextRequest) {
  is_published: true,
  published_at: now,
  faq_json: bundle.faq,
- status: "approved" as const,
+
  };
 
  const arRow = {
  ...enRow,
- language: "ar" as const,
+ language: "ar",
  title: bundle.seo.ar.seoTitle,
  slug: arSlug,
  excerpt: bundle.seo.ar.metaDescription,
