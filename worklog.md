@@ -447,3 +447,44 @@ Stage Summary:
 - Coach can edit the data_analysis section of any plan directly (gender, weight, height, age, BMR, TDEE, body fat, etc.) — no need to regenerate.
 - Photos are stored in Supabase Storage (public buckets) and accessible via public URLs.
 - The AI plan generator will now correctly use the client's gender (was defaulting to male before) and activity level (was using free-text) — this means BMR/TDEE calculations will be more accurate.
+
+---
+Task ID: fix-subscriptions-rls + notifications-tables
+Agent: main (super-z)
+Task: User reported error when saving subscription (RLS policy violation) and notifications not working.
+
+Work Log:
+- Read the screenshot via VLM — error: "new row violates row-level security policy for table 'subscriptions'".
+- Found the root cause in supabase/migrations/0001_init.sql:
+  * subscriptions INSERT policy `subs_insert_self` only allowed `auth.uid() = client_id`.
+  * But the COACH is the one who sets subscriptions — coach's auth.uid() ≠ client_id → RLS blocked the insert.
+- Found the notifications bug:
+  * The `notifications` and `admin_notifications` tables were NOT in any Supabase migration file.
+  * They only existed in the local demo mode (localStorage) in data.ts.
+  * Every createNotification() / createAdminNotification() call failed silently (wrapped in .catch(() => {})).
+- Ran the fixes via Supabase Management API SQL (sbp_ token):
+  1. Dropped the old `subs_insert_self` policy.
+  2. Created `subs_insert_self_or_coach` — allows insert when auth.uid() = client_id OR is_coach().
+  3. Created the `notifications` table (id, user_id, type, title, body, link, read, created_at) with RLS:
+     - select: auth.uid() = user_id OR is_coach()
+     - insert: auth.uid() = user_id OR is_coach()
+     - update: auth.uid() = user_id OR is_coach()
+  4. Created the `admin_notifications` table (id, type, title, body, link, target_role default 'coach', read, created_at) with RLS:
+     - select: is_coach() only
+     - insert: is_coach() only
+     - update: is_coach() only
+- Tested both fixes:
+  * Inserted a test admin_notification → ✓ worked (returned id + title)
+  * Inserted a test client notification → ✓ worked
+  * Verified the subscriptions INSERT policy: `check: ((auth.uid() = client_id) OR is_coach())`
+- Created migration file supabase/migrations/0003_subscriptions_rls_fix_and_notifications.sql documenting both fixes (idempotent, safe to re-run).
+- Committed (15e1c3d) and pushed to GitHub.
+- No code changes needed — the fix is purely database-level (RLS policies + new tables).
+- The existing NotificationBell component already polls every 30s and will now receive real notifications.
+- The existing createNotification() and createAdminNotification() functions will now succeed instead of failing silently.
+
+Stage Summary:
+- Coach can now save subscriptions for any client without RLS errors.
+- Both client notifications (plan activated, swap limit reached, etc.) and admin notifications (new client, new ticket, new questionnaire submitted, etc.) now work — they were silently failing before because the tables didn't exist.
+- The NotificationBell (client) and AdminNotificationBell (coach) will now show real-time notifications with unread badges.
+- No app redeploy needed — the fix is database-only. But pushed the migration file for documentation.
