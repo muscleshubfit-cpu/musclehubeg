@@ -30,37 +30,43 @@ export async function POST(request: NextRequest) {
 
     const searchTerm = focusKeyword || topic || "";
 
-    // Ensure the .z-ai-config file exists — on Vercel, the filesystem may
-    // be read-only. Try process.cwd() first, then /tmp as fallback.
-    const fs = await import("fs");
-    const path = await import("path");
+    // Call the z-ai functions API directly (bypassing the SDK which needs a config file)
+    const zaiBaseUrl = process.env.ZAI_BASE_URL || "https://internal-api.z.ai/v1";
+    const zaiApiKey = process.env.ZAI_API_KEY || "Z.ai";
+    const zaiChatId = process.env.ZAI_CHAT_ID || "";
+    const zaiUserId = process.env.ZAI_USER_ID || "";
+    const zaiToken = process.env.ZAI_TOKEN || "";
 
-    const configContent = JSON.stringify({
-      baseUrl: process.env.ZAI_BASE_URL || "https://internal-api.z.ai/v1",
-      apiKey: process.env.ZAI_API_KEY || "Z.ai",
-      chatId: process.env.ZAI_CHAT_ID || "",
-      token: process.env.ZAI_TOKEN || "",
-      userId: process.env.ZAI_USER_ID || "",
-    });
-
-    // Try writing to cwd first
-    const cwdConfig = path.join(process.cwd(), ".z-ai-config");
-    try {
-      if (!fs.existsSync(cwdConfig)) fs.writeFileSync(cwdConfig, configContent);
-    } catch {}
-
-    // Also try /tmp (always writable on Vercel)
-    const tmpConfig = path.join("/tmp", ".z-ai-config");
-    try {
-      fs.writeFileSync(tmpConfig, configContent);
-      // Set HOME to /tmp so the SDK finds the config there
-      if (!process.env.HOME || process.env.HOME === "/") {
-        process.env.HOME = "/tmp";
+    async function webSearch(query: string, num: number = 5): Promise<any[]> {
+      try {
+        const res = await fetch(`${zaiBaseUrl}/functions/invoke`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${zaiApiKey}`,
+            "X-Z-AI-From": "Z",
+            ...(zaiChatId ? { "X-Chat-Id": zaiChatId } : {}),
+            ...(zaiUserId ? { "X-User-Id": zaiUserId } : {}),
+            ...(zaiToken ? { "X-Token": zaiToken } : {}),
+          },
+          body: JSON.stringify({
+            function_name: "web_search",
+            arguments: { query, num },
+          }),
+          signal: AbortSignal.timeout(15_000),
+        });
+        if (!res.ok) {
+          const errText = await res.text().catch(() => "");
+          console.error(`[research-topic] web_search "${query}" failed: ${res.status} ${errText.slice(0, 200)}`);
+          return [];
+        }
+        const data = await res.json();
+        return data?.result || data || [];
+      } catch (e: any) {
+        console.error(`[research-topic] web_search "${query}" error:`, e?.message);
+        return [];
       }
-    } catch {}
-
-    const ZAI = (await import("z-ai-web-dev-sdk")).default;
-    const zai = await ZAI.create();
+    }
 
     // Run 3 key searches (reduced from 8 to avoid timeout)
     const searchQueries = [
@@ -75,39 +81,29 @@ export async function POST(request: NextRequest) {
     const topArticles: any[] = [];
 
     for (const query of searchQueries) {
-      try {
-        const result = await zai.functions.invoke("web_search", {
-          query: query,
-          num: 5,
-        });
-
-        if (Array.isArray(result) && result.length > 0) {
-          for (const item of result) {
-            allSnippets.push(item.snippet || "");
-            const host = item.host_name || "";
-            if (!host.includes("reddit") && !host.includes("quora") && !host.includes("pinterest") && !host.includes("facebook")) {
-              topArticles.push({
-                title: item.name || "",
-                url: item.url || "",
-                host: host,
-                snippet: (item.snippet || "").slice(0, 200),
-              });
-            }
-            const snippet = item.snippet || "";
-            const questionMatches = snippet.match(/\b(what|how|why|when|where|can|should|does|is|are|do)\s+[^.?!]+\?/gi);
-            if (questionMatches) {
-              for (const q of questionMatches) {
-                if (q.length > 15 && q.length < 120 && !relatedQuestions.includes(q)) {
-                  relatedQuestions.push(q.trim());
-                }
+      const results = await webSearch(query, 5);
+      if (results.length > 0) {
+        for (const item of results) {
+          allSnippets.push(item.snippet || "");
+          const host = item.host_name || "";
+          if (!host.includes("reddit") && !host.includes("quora") && !host.includes("pinterest") && !host.includes("facebook")) {
+            topArticles.push({
+              title: item.name || "",
+              url: item.url || "",
+              host: host,
+              snippet: (item.snippet || "").slice(0, 200),
+            });
+          }
+          const snippet = item.snippet || "";
+          const questionMatches = snippet.match(/\b(what|how|why|when|where|can|should|does|is|are|do)\s+[^.?!]+\?/gi);
+          if (questionMatches) {
+            for (const q of questionMatches) {
+              if (q.length > 15 && q.length < 120 && !relatedQuestions.includes(q)) {
+                relatedQuestions.push(q.trim());
               }
             }
           }
-        } else {
-          console.log(`[research-topic] Search "${query}" returned: ${typeof result} ${JSON.stringify(result).slice(0, 200)}`);
         }
-      } catch (e: any) {
-        console.error(`[research-topic] Search "${query}" failed:`, e?.message);
       }
     }
 
