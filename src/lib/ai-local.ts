@@ -10,7 +10,7 @@
  *   Nutrition: { overview, daily_calories, macros: {protein_g, carbs_g, fat_g}, meals: [{name, items, notes}] }
  */
 
-type ClientContext = {
+export type ClientContext = {
   name?: string | null;
   nutrition?: any;
   fitness?: any;
@@ -293,7 +293,7 @@ function parseActivityLevel(activity: string): number {
 }
 
 // Food database with calories per 100g, macros, and meal-type suitability
-type FoodItem = {
+export type FoodItem = {
   name: string;
   name_en: string;
   calsPer100g: number;
@@ -304,7 +304,7 @@ type FoodItem = {
   meals: ("breakfast" | "lunch" | "dinner" | "snack")[]; // which meals this food suits
 };
 
-const FOOD_DB: FoodItem[] = [
+export const FOOD_DB: FoodItem[] = [
   // === PROTEINS — Chicken ===
   { name: "صدر دجاج مشوي", name_en: "grilled chicken breast", calsPer100g: 165, proteinPer100g: 31, carbsPer100g: 0, fatPer100g: 3.6, category: "protein", meals: ["lunch", "dinner"] },
   { name: "صدر دجاج مسلوق", name_en: "boiled chicken breast", calsPer100g: 151, proteinPer100g: 30, carbsPer100g: 0, fatPer100g: 2.5, category: "protein", meals: ["lunch", "dinner"] },
@@ -410,13 +410,104 @@ function gramsForCalories(food: FoodItem, targetCals: number): number {
   return Math.round(targetCals / food.calsPer100g * 100);
 }
 
-function calcMacros(food: FoodItem, grams: number) {
+export function calcMacros(food: FoodItem, grams: number) {
   return {
     protein: Math.round(food.proteinPer100g * grams / 100),
     carbs: Math.round(food.carbsPer100g * grams / 100),
     fat: Math.round(food.fatPer100g * grams / 100),
     calories: Math.round(food.calsPer100g * grams / 100),
   };
+}
+
+/**
+ * Look up a food in the database by name (Arabic or English, fuzzy match).
+ * Returns the closest match or null if nothing found.
+ *
+ * Used by the coach's manual-edit auto-calculator: when the coach types a
+ * food name and a gram amount, we look up the food's calsPer100g and
+ * compute the calorie value automatically so the totals stay consistent.
+ */
+export function lookupFood(query: string): FoodItem | null {
+  if (!query) return null;
+  const q = query.toLowerCase().trim();
+  // Exact match first
+  let match = FOOD_DB.find((f) => f.name.toLowerCase() === q || f.name_en.toLowerCase() === q);
+  if (match) return match;
+  // Contains match (Arabic or English)
+  match = FOOD_DB.find((f) => f.name.toLowerCase().includes(q) || f.name_en.toLowerCase().includes(q));
+  if (match) return match;
+  // Reverse: query contains the food name
+  match = FOOD_DB.find((f) => q.includes(f.name.toLowerCase()) || q.includes(f.name_en.toLowerCase()));
+  return match || null;
+}
+
+/**
+ * Parse a gram amount from a free-text string like "100 جم" or "1/2 رغيف" or
+ * "2 بيضات". Returns the numeric gram value or null if unparseable.
+ *
+ * For common Arabic food units, we apply known gram equivalents:
+ *   - رغيف بلدي = 130g (full) or 65g (half)
+ *   - بيضة = 50g
+ *   - ملعقة كبيرة = 15g (oil/sugar) or 30g (rice)
+ *   - كوب = 240g (water) or 200g (rice) or 150g (yogurt)
+ */
+export function parseGrams(amount: string): number | null {
+  if (!amount) return null;
+  const s = amount.toLowerCase().trim();
+  // Direct gram value (e.g. "100 جم", "150g", "100 grams")
+  const gramMatch = s.match(/(\d+(?:\.\d+)?)\s*(?:جم|g|gm|gram|grams|جرام)/);
+  if (gramMatch) return parseFloat(gramMatch[1]);
+  // Numeric prefix only (e.g. "100")
+  const numMatch = s.match(/^(\d+(?:\.\d+)?)$/);
+  if (numMatch) return parseFloat(numMatch[1]);
+  // Egg count (بيضات / بيضة)
+  const eggMatch = s.match(/(\d+(?:\.\d+)?)\s*(?:بيض|بيضه|بيضة|egg|eggs)/);
+  if (eggMatch) return parseFloat(eggMatch[1]) * 50;
+  // Bread loaf fractions (رغيف)
+  if (s.includes("½") || s.includes("1/2")) {
+    if (s.includes("رغيف")) return 65; // half baladi loaf
+  }
+  if (s.match(/(\d+)\s*رغيف/)) {
+    const m = s.match(/(\d+)\s*رغيف/)!;
+    return parseInt(m[1]) * 130;
+  }
+  // Tablespoon (ملعقة كبيرة)
+  if (s.includes("ملعقة كبيرة") || s.includes("ملعقه كبيره") || s.match(/\d+\s*tbsp/)) {
+    const m = s.match(/(\d+(?:\.\d+)?)\s*(?:ملعقة|ملعقه|tbsp)/);
+    if (m) {
+      // Oil → 15g, sugar → 15g, rice → 30g default
+      if (s.includes("زيت") || s.includes("oil") || s.includes("عسل") || s.includes("honey")) return parseFloat(m[1]) * 15;
+      return parseFloat(m[1]) * 20;
+    }
+  }
+  // Cup (كوب)
+  if (s.match(/(\d+(?:\.\d+)?)\s*(?:كوب|cup)/)) {
+    const m = s.match(/(\d+(?:\.\d+)?)\s*(?:كوب|cup)/)!;
+    return parseFloat(m[1]) * 200;
+  }
+  // Slice (شريحة)
+  if (s.match(/(\d+)\s*(?:شريحة|slice)/)) {
+    const m = s.match(/(\d+)\s*(?:شريحة|slice)/)!;
+    return parseInt(m[1]) * 30;
+  }
+  // Generic number → assume grams
+  const anyNum = s.match(/(\d+(?:\.\d+)?)/);
+  if (anyNum) return parseFloat(anyNum[1]);
+  return null;
+}
+
+/**
+ * Given a food name + amount string, return the calculated calories.
+ * Returns null if the food isn't in the DB or the amount can't be parsed.
+ *
+ * This is the function used by the coach's manual-edit auto-calculator.
+ */
+export function calcCaloriesForItem(foodName: string, amount: string): number | null {
+  const food = lookupFood(foodName);
+  if (!food) return null;
+  const grams = parseGrams(amount);
+  if (grams === null) return null;
+  return Math.round(food.calsPer100g * grams / 100);
 }
 
 export function generateNutritionPlan(ctx: ClientContext): NutritionContent {

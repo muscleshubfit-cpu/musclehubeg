@@ -1,14 +1,28 @@
 import { NextRequest, NextResponse } from "next/server";
-import { geminiGenerate, parseJsonResponse, isGeminiConfigured } from "@/lib/ai-gemini";
+import { callAIWithFallback, parseJSON, type AIProvider } from "@/lib/ai-provider";
 
 /**
  * Swap a meal or exercise for an alternative.
- * Tries Gemini AI first, falls back to simple replacement.
+ * Uses OpenRouter's best free models, with local fallback.
  *
  * POST /api/ai/swap
  * Body: { type, item, clientContext, note }
- * Returns: { replacement }
+ * Returns: { replacement, source }
  */
+export const maxDuration = 180;
+
+const OPENROUTER_KEY = process.env.OPENROUTER_API_KEY || process.env.AI_API_KEY || "";
+const OPENROUTER_BASE = "https://openrouter.ai/api/v1";
+
+// Try multiple free OpenRouter models in order
+const FREE_MODELS = [
+  "nvidia/nemotron-3-ultra-550b-a55b:free",
+  "google/gemma-4-31b-it:free",
+  "google/gemma-4-26b-a4b-it:free",
+  "openai/gpt-oss-20b:free",
+  "poolside/laguna-s-2.1:free",
+];
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -18,16 +32,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Missing type or item" }, { status: 400 });
     }
 
-    // Try Gemini AI first
-    if (isGeminiConfigured) {
-      try {
-        if (type === "meal") {
-          const targetCalories = (item.items || []).reduce(
-            (s: number, i: any) => s + (i.calories || 0),
-            0,
-          );
+    if (type === "meal") {
+      const targetCalories = (item.items || []).reduce(
+        (s: number, i: any) => s + (i.calories || 0),
+        0,
+      );
 
-          const prompt = `أنت أخصائي تغذية. استبدل الوجبة التالية بوجبة بديلة مكافئة بنفس السعرات تقريباً (${targetCalories} سعرة) ونفس نسب الماكروز قدر الإمكان.
+      const prompt = `أنت أخصائي تغذية. استبدل الوجبة التالية بوجبة بديلة مكافئة بنفس السعرات تقريباً (${targetCalories} سعرة) ونفس نسب الماكروز قدر الإمكان.
 
 ${clientContext ? `بيانات العميل (راعِ الحساسية والأطعمة غير المحببة):
 ${JSON.stringify(clientContext, null, 2)}` : ""}
@@ -37,22 +48,46 @@ ${JSON.stringify(item, null, 2)}
 
 ${note ? `طلب العميل: ${note}` : ""}
 
-أعد وجبة واحدة بديلة بصيغة JSON فقط:
+أعد وجبة واحدة بديلة بصيغة JSON فقط (بدون أسوار markdown):
 {
   "name": "اسم الوجبة",
   "items": [
-    { "food": "اسم الطعام", "amount": "الكمية بالجرام", "calories": 300 }
+    { "food": "اسم الطعام", "amount": "الكمية بالجرام", "calories": 300, "alternatives": "أو 180 جم سمك مشوي" }
   ],
+  "total_calories": ${targetCalories},
   "notes": "ملاحظة قصيرة"
 }`;
 
-          const raw = await geminiGenerate(prompt);
-          const replacement = parseJsonResponse(raw);
+      // Try OpenRouter free models
+      for (const model of FREE_MODELS) {
+        if (!OPENROUTER_KEY) break;
+        try {
+          const { text } = await callAIWithFallback(
+            prompt,
+            {
+              systemPrompt: "أنت أخصائي تغذية محترف. أعد JSON صالح فقط.",
+              temperature: 0.7,
+              maxTokens: 2000,
+              jsonMode: true,
+              timeoutMs: 90_000,
+            },
+            {
+              provider: "openrouter" as AIProvider,
+              apiKey: OPENROUTER_KEY,
+              model,
+              baseUrl: OPENROUTER_BASE,
+            },
+          );
+          const replacement = parseJSON<any>(text);
           if (replacement && replacement.items) {
-            return NextResponse.json({ replacement, source: "gemini" });
+            return NextResponse.json({ replacement, source: `openrouter:${model}` });
           }
-        } else if (type === "exercise") {
-          const prompt = `أنت مدرب لياقة. استبدل التمرين التالي بتمرين بديل يستهدف نفس العضلة (${item.focus || "غير محدد"}) بنفس الحجم والشدة.
+        } catch (e: any) {
+          console.error(`[api/ai/swap] OpenRouter ${model} failed:`, e?.message);
+        }
+      }
+    } else if (type === "exercise") {
+      const prompt = `أنت مدرب لياقة. استبدل التمرين التالي بتمرين بديل يستهدف نفس العضلة (${item.focus || "غير محدد"}) بنفس الحجم والشدة.
 
 ${clientContext ? `بيانات العميل (راعِ المعدات والإصابات):
 ${JSON.stringify(clientContext, null, 2)}` : ""}
@@ -62,7 +97,7 @@ ${JSON.stringify(item, null, 2)}
 
 ${note ? `طلب العميل: ${note}` : ""}
 
-أعد تمريناً واحداً بديلاً بصيغة JSON فقط:
+أعد تمريناً واحداً بديلاً بصيغة JSON فقط (بدون أسوار markdown):
 {
   "name": "اسم التمرين",
   "sets": 4,
@@ -72,18 +107,36 @@ ${note ? `طلب العميل: ${note}` : ""}
   "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/..."
 }`;
 
-          const raw = await geminiGenerate(prompt);
-          const replacement = parseJsonResponse(raw);
+      for (const model of FREE_MODELS) {
+        if (!OPENROUTER_KEY) break;
+        try {
+          const { text } = await callAIWithFallback(
+            prompt,
+            {
+              systemPrompt: "أنت مدرب لياقة محترف. أعد JSON صالح فقط.",
+              temperature: 0.7,
+              maxTokens: 1000,
+              jsonMode: true,
+              timeoutMs: 60_000,
+            },
+            {
+              provider: "openrouter" as AIProvider,
+              apiKey: OPENROUTER_KEY,
+              model,
+              baseUrl: OPENROUTER_BASE,
+            },
+          );
+          const replacement = parseJSON<any>(text);
           if (replacement && replacement.name) {
-            return NextResponse.json({ replacement, source: "gemini" });
+            return NextResponse.json({ replacement, source: `openrouter:${model}` });
           }
+        } catch (e: any) {
+          console.error(`[api/ai/swap] OpenRouter ${model} failed:`, e?.message);
         }
-      } catch (geminiErr) {
-        console.error("[api/ai/swap] Gemini failed, falling back:", geminiErr);
       }
     }
 
-    // Fallback to simple replacement
+    // Fallback: simple local replacement
     if (type === "meal") {
       return NextResponse.json({
         replacement: {
@@ -96,7 +149,7 @@ ${note ? `طلب العميل: ${note}` : ""}
           ],
           notes: "وجبة متوازنة",
         },
-        source: "local",
+        source: "local-fallback",
       });
     } else {
       return NextResponse.json({
@@ -107,7 +160,7 @@ ${note ? `طلب العميل: ${note}` : ""}
           rest: item.rest || "90 ثانية",
           notes: "تمرين يستهدف نفس العضلة",
         },
-        source: "local",
+        source: "local-fallback",
       });
     }
   } catch (e: any) {

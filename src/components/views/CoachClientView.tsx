@@ -18,6 +18,7 @@ import {
   Pencil,
   Plus,
   RefreshCw,
+  ChevronDown,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -147,6 +148,48 @@ export function CoachClientView({ clientId }: { clientId: string }) {
     }
   };
 
+  // Normalize a coach-pasted plan — converts free text (e.g. from a PDF or
+  // notes) into the structured JSON format used by AI-generated plans. The
+  // structured plan gets the same editable table UI + per-meal regenerate
+  // button as AI plans.
+  const [normalizing, setNormalizing] = useState(false);
+  const normalizeAndUpload = async () => {
+    if (!planTitle.trim() || !planNotes.trim()) {
+      toast.error("اكتب عنوان الخطة والصق محتواها في حقل الملاحظات أولاً.");
+      return;
+    }
+    setNormalizing(true);
+    try {
+      const res = await fetch("/api/plans/normalize", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: planNotes, planType }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || "Failed to normalize plan");
+      }
+      const { content, source } = await res.json();
+      await addPlan({
+        client_id: clientId,
+        type: planType,
+        title: planTitle.trim(),
+        notes: "Coach-added (structured)",
+        file_url: null,
+        content,
+      });
+      setPlanTitle("");
+      setPlanNotes("");
+      const data = await listPlans(clientId);
+      setPlans(data);
+      toast.success(`تم تنسيق الخطة وإضافتها! (${source})`);
+    } catch (e: any) {
+      toast.error(e.message || "فشل التنسيق");
+    } finally {
+      setNormalizing(false);
+    }
+  };
+
   const removePlan = async (id: string) => {
     if (!confirm(t("coach.deletePlanConfirm"))) return;
     await deletePlan(id);
@@ -172,7 +215,7 @@ export function CoachClientView({ clientId }: { clientId: string }) {
     { id: "progress", label: t("coach.clientProgress") },
   ] as const;
 
-  const generateAIPlan = async (planType: "workout" | "nutrition") => {
+  const generateAIPlan = async (planType: "workout" | "nutrition", overrides?: any) => {
     setGenerating(planType);
     try {
       // Build client context from questionnaires + profile + progress
@@ -190,7 +233,7 @@ export function CoachClientView({ clientId }: { clientId: string }) {
       const res = await fetch("/api/ai/plan", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ clientId, planType, clientContext }),
+        body: JSON.stringify({ clientId, planType, clientContext, overrides }),
       });
 
       if (!res.ok) {
@@ -458,10 +501,25 @@ export function CoachClientView({ clientId }: { clientId: string }) {
                 />
               </div>
             </div>
-            <Button className="mt-4 gap-2" onClick={uploadPlan} disabled={uploading || !planTitle.trim()}>
-              <Upload className="h-4 w-4" />
-              {uploading ? t("common.uploading") : t("common.upload")}
-            </Button>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <Button className="gap-2" onClick={uploadPlan} disabled={uploading || normalizing || !planTitle.trim()}>
+                <Upload className="h-4 w-4" />
+                {uploading ? t("common.uploading") : t("common.upload")}
+              </Button>
+              <Button
+                variant="outline"
+                className="gap-2 border-primary/30 text-primary"
+                onClick={normalizeAndUpload}
+                disabled={normalizing || uploading || !planTitle.trim() || !planNotes.trim()}
+                title="حوّل النص اللي كتبته/لصقته في حقل الملاحظات إلى خطة منظمة قابلة للتعديل وإعادة توليد الوجبات"
+              >
+                {normalizing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                {normalizing ? "جارٍ التنسيق..." : "تنسيق وترتيب تلقائي"}
+              </Button>
+            </div>
+            <p className="mt-2 text-[11px] text-muted-foreground">
+              💡 <strong>تنسيق وترتيب تلقائي:</strong> لو عندك خطة مكتوبة (من PDF أو وورد)، الصقها في حقل الملاحظات واضغط الزر — هتتحوّل لجدول منظّم قابل للتعديل، والعميل هيقدر يبدّل الوجبات.
+            </p>
           </Card>
 
           <div className="space-y-3">
@@ -499,70 +557,11 @@ export function CoachClientView({ clientId }: { clientId: string }) {
 
       {tab === "ai-plans" && (
         <div className="space-y-6">
-          <Card className="overflow-hidden border-primary/30 bg-gradient-to-br from-secondary/40 to-card p-6 shadow-card">
-            <div className="flex items-start gap-4">
-              <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-gradient-primary text-primary-foreground shadow-glow">
-                <Sparkles className="h-6 w-6" />
-              </div>
-              <div className="flex-1">
-                <h2 className="flex items-center gap-2 text-lg font-bold">
-                  {t("coach.aiPlans")}
-                </h2>
-                <p className="mt-1 text-sm text-muted-foreground">{t("coach.aiHint")}</p>
-
-                <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                  <button
-                    onClick={() => generateAIPlan("nutrition")}
-                    disabled={generating !== null}
-                    className="group flex items-center justify-between gap-3 rounded-2xl border border-border bg-background p-4 text-start transition-all hover:border-primary/40 hover:shadow-glow disabled:opacity-50"
-                  >
-                    <div className="flex items-center gap-3">
-                      <span className="grid h-10 w-10 place-items-center rounded-xl bg-secondary text-primary">
-                        {generating === "nutrition" ? (
-                          <Loader2 className="h-5 w-5 animate-spin" />
-                        ) : (
-                          <Salad className="h-5 w-5" />
-                        )}
-                      </span>
-                      <div>
-                        <div className="font-semibold">{t("coach.genNutrition")}</div>
-                        <div className="text-xs text-muted-foreground">{t("coach.aiHint")}</div>
-                      </div>
-                    </div>
-                    <Wand2 className="h-4 w-4 text-muted-foreground transition-colors group-hover:text-primary" />
-                  </button>
-
-                  <button
-                    onClick={() => generateAIPlan("workout")}
-                    disabled={generating !== null}
-                    className="group flex items-center justify-between gap-3 rounded-2xl border border-border bg-background p-4 text-start transition-all hover:border-primary/40 hover:shadow-glow disabled:opacity-50"
-                  >
-                    <div className="flex items-center gap-3">
-                      <span className="grid h-10 w-10 place-items-center rounded-xl bg-secondary text-primary">
-                        {generating === "workout" ? (
-                          <Loader2 className="h-5 w-5 animate-spin" />
-                        ) : (
-                          <Dumbbell className="h-5 w-5" />
-                        )}
-                      </span>
-                      <div>
-                        <div className="font-semibold">{t("coach.genWorkout")}</div>
-                        <div className="text-xs text-muted-foreground">{t("coach.aiHint")}</div>
-                      </div>
-                    </div>
-                    <Wand2 className="h-4 w-4 text-muted-foreground transition-colors group-hover:text-primary" />
-                  </button>
-                </div>
-
-                {generating && (
-                  <div className="mt-4 flex items-center gap-2 rounded-xl bg-primary/5 px-4 py-2 text-sm text-primary">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    {t("coach.generating")}
-                  </div>
-                )}
-              </div>
-            </div>
-          </Card>
+          <CoachAIPlanGenerator
+            generating={generating}
+            onGenerate={generateAIPlan}
+            t={t}
+          />
 
           {/* Show all plans (drafts + approved + archived) */}
           <div>
@@ -762,19 +761,77 @@ function PlanViewerModal({ plan, onClose, onRegenerate }: { plan: any; onClose: 
     setContent(newContent);
   };
 
-  // Update meal item
-  const updateMealItem = (mealIdx: number, itemIdx: number, field: string, value: string) => {
+  // Update meal item — auto-calculates calories from the food database when
+  // the coach edits the food name or amount. This keeps totals consistent
+  // with the system even for manual edits.
+  const updateMealItem = async (mealIdx: number, itemIdx: number, field: string, value: string) => {
     const newContent = { ...content };
     newContent.meals = [...newContent.meals];
     newContent.meals[mealIdx] = { ...newContent.meals[mealIdx] };
     newContent.meals[mealIdx].items = [...newContent.meals[mealIdx].items];
     newContent.meals[mealIdx].items[itemIdx] = { ...newContent.meals[mealIdx].items[itemIdx] };
+
     if (field === "calories") {
       newContent.meals[mealIdx].items[itemIdx][field] = parseInt(value) || 0;
     } else {
       newContent.meals[mealIdx].items[itemIdx][field] = value;
+      // Auto-calc calories when food or amount changes
+      if (field === "food" || field === "amount") {
+        try {
+          const { calcCaloriesForItem } = await import("@/lib/ai-local");
+          const item = newContent.meals[mealIdx].items[itemIdx];
+          const auto = calcCaloriesForItem(item.food, item.amount);
+          if (auto !== null) {
+            newContent.meals[mealIdx].items[itemIdx].calories = auto;
+          }
+        } catch {
+          // module load failed — skip auto-calc
+        }
+      }
     }
+
+    // Recompute meal totals
+    newContent.meals[mealIdx].total_calories = newContent.meals[mealIdx].items.reduce(
+      (s: number, i: any) => s + (i.calories || 0),
+      0,
+    );
+
     setContent(newContent);
+  };
+
+  // Regenerate a single meal — calls /api/ai/regenerate-meal, then updates
+  // the meal in-place. Available to the coach for ALL plans (AI-generated
+  // AND manually-added), so the coach can quickly vary a meal without
+  // regenerating the whole plan.
+  const [regeneratingMealIdx, setRegeneratingMealIdx] = useState<number | null>(null);
+  const regenerateSingleMeal = async (mealIdx: number) => {
+    if (!content?.meals?.[mealIdx]) return;
+    setRegeneratingMealIdx(mealIdx);
+    try {
+      const meal = content.meals[mealIdx];
+      const res = await fetch("/api/ai/regenerate-meal", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          meal,
+          targetCalories: meal.total_calories || meal.items.reduce((s: number, i: any) => s + (i.calories || 0), 0),
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || "Failed to regenerate meal");
+      }
+      const { meal: newMeal } = await res.json();
+      const newContent = { ...content };
+      newContent.meals = [...newContent.meals];
+      newContent.meals[mealIdx] = { ...newMeal };
+      setContent(newContent);
+      toast.success("تم إعادة توليد الوجبة!");
+    } catch (e: any) {
+      toast.error(e.message || "فشل إعادة التوليد");
+    } finally {
+      setRegeneratingMealIdx(null);
+    }
   };
 
   // Update exercise
@@ -937,39 +994,144 @@ function PlanViewerModal({ plan, onClose, onRegenerate }: { plan: any; onClose: 
               </div>
             )}
 
-            {/* Meals table */}
+            {/* PDF-style extras: data analysis + supplements + health notes + water target */}
+            {!isWorkout && (content.data_analysis || content.supplements?.length || content.health_notes?.length || content.water_target) && (
+              <div className="space-y-3 rounded-xl border border-border bg-muted/30 p-4">
+                {content.data_analysis && (
+                  <div>
+                    <h4 className="mb-2 text-sm font-bold">📐 تحليل البيانات</h4>
+                    <div className="grid grid-cols-2 gap-2 text-xs sm:grid-cols-3">
+                      {content.data_analysis.gender && <div><span className="text-muted-foreground">الجنس:</span> {content.data_analysis.gender}</div>}
+                      {content.data_analysis.weight && <div><span className="text-muted-foreground">الوزن:</span> {content.data_analysis.weight}</div>}
+                      {content.data_analysis.height && <div><span className="text-muted-foreground">الطول:</span> {content.data_analysis.height}</div>}
+                      {content.data_analysis.age && <div><span className="text-muted-foreground">العمر:</span> {content.data_analysis.age}</div>}
+                      {content.data_analysis.neck && <div><span className="text-muted-foreground">الرقبة:</span> {content.data_analysis.neck}</div>}
+                      {content.data_analysis.waist && <div><span className="text-muted-foreground">الخصر:</span> {content.data_analysis.waist}</div>}
+                      {content.data_analysis.activity && <div><span className="text-muted-foreground">النشاط:</span> {content.data_analysis.activity}</div>}
+                      {content.data_analysis.health && <div><span className="text-muted-foreground">الصحة:</span> {content.data_analysis.health}</div>}
+                      {content.data_analysis.body_fat_pct && <div><span className="text-muted-foreground">نسبة الدهون:</span> {content.data_analysis.body_fat_pct}</div>}
+                      {content.data_analysis.bmr && <div><span className="text-muted-foreground">BMR:</span> ~{content.data_analysis.bmr} سعرة</div>}
+                      {content.data_analysis.tdee && <div><span className="text-muted-foreground">TDEE:</span> ~{content.data_analysis.tdee} سعرة</div>}
+                    </div>
+                  </div>
+                )}
+
+                {content.supplements && content.supplements.length > 0 && (
+                  <div>
+                    <h4 className="mb-2 text-sm font-bold">💊 المكملات والتوصيات الصحية</h4>
+                    <div className="space-y-2">
+                      {content.supplements.map((s: any, i: number) => (
+                        <div key={i} className="rounded-lg border border-border bg-background p-2 text-xs">
+                          <div className="font-semibold">{s.name}</div>
+                          <div className="text-muted-foreground">
+                            {s.dose && <span>الجرعة: {s.dose}</span>}
+                            {s.timing && <span> | الموعد: {s.timing}</span>}
+                          </div>
+                          {s.purpose && <div className="mt-0.5 text-muted-foreground">الهدف: {s.purpose}</div>}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {content.health_notes && content.health_notes.length > 0 && (
+                  <div>
+                    <h4 className="mb-2 text-sm font-bold">🩸 توصيات صحية خاصة</h4>
+                    <ul className="space-y-1 text-xs text-muted-foreground">
+                      {content.health_notes.map((n: string, i: number) => (
+                        <li key={i} className="flex items-start gap-1.5">
+                          <span className="text-primary">✦</span>
+                          <span>{n}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {content.water_target && (
+                  <div className="text-xs">
+                    <span className="font-bold">💧 استهلاك الماء:</span> {content.water_target}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Meals table — PDF-style with numbered items, alternatives, and per-meal totals */}
             {!isWorkout && content.meals?.map((m: any, mealIdx: number) => (
               <div key={mealIdx} className="rounded-xl border border-border p-4">
                 <div className="mb-2 flex items-center justify-between gap-2">
-                  {editMode ? (
-                    <Input
-                      value={m.name || ""}
-                      onChange={(e) => {
-                        const newContent = { ...content };
-                        newContent.meals[mealIdx] = { ...newContent.meals[mealIdx], name: e.target.value };
-                        setContent(newContent);
-                      }}
-                      className="h-8 font-semibold"
-                    />
-                  ) : (
-                    <h4 className="font-semibold">{m.name}</h4>
+                  <div className="flex-1">
+                    {editMode ? (
+                      <Input
+                        value={m.name || ""}
+                        onChange={(e) => {
+                          const newContent = { ...content };
+                          newContent.meals[mealIdx] = { ...newContent.meals[mealIdx], name: e.target.value };
+                          setContent(newContent);
+                        }}
+                        className="h-8 font-semibold"
+                      />
+                    ) : (
+                      <h4 className="font-semibold">🌅 {m.name}</h4>
+                    )}
+                    {m.time && !editMode && (
+                      <p className="text-xs text-muted-foreground">⏰ {m.time}</p>
+                    )}
+                  </div>
+                  {/* Per-meal regenerate button — works for ALL plans (AI + manual) */}
+                  {!editMode && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="gap-1.5 border-primary/30 text-primary"
+                      onClick={() => regenerateSingleMeal(mealIdx)}
+                      disabled={regeneratingMealIdx !== null}
+                    >
+                      {regeneratingMealIdx === mealIdx ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <RefreshCw className="h-3.5 w-3.5" />
+                      )}
+                      <span className="hidden sm:inline">إعادة توليد الوجبة</span>
+                      <span className="sm:hidden">توليد</span>
+                    </Button>
                   )}
                 </div>
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-border text-start">
-                      <th className="p-2 text-start font-medium text-muted-foreground">الطعام</th>
+                      <th className="p-2 text-start font-medium text-muted-foreground w-8">#</th>
+                      <th className="p-2 text-start font-medium text-muted-foreground">المكون</th>
                       <th className="p-2 text-start font-medium text-muted-foreground">الكمية</th>
                       <th className="p-2 text-start font-medium text-muted-foreground">السعرات</th>
+                      <th className="p-2 text-start font-medium text-muted-foreground hidden md:table-cell">البدائل</th>
                       {editMode && <th className="p-2 w-8"></th>}
                     </tr>
                   </thead>
                   <tbody>
                     {m.items?.map((it: any, itemIdx: number) => (
                       <tr key={itemIdx} className="border-b border-border/60">
-                        <td className="p-2"><EditCell value={it.food} onChange={(v) => updateMealItem(mealIdx, itemIdx, "food", v)} /></td>
+                        <td className="p-2 text-muted-foreground">{itemIdx + 1}</td>
+                        <td className="p-2"><EditCell value={it.food} onChange={(v) => updateMealItem(mealIdx, itemIdx, "food", v)} className="font-medium" /></td>
                         <td className="p-2"><EditCell value={it.amount} onChange={(v) => updateMealItem(mealIdx, itemIdx, "amount", v)} /></td>
-                        <td className="p-2"><EditCell value={it.calories} onChange={(v) => updateMealItem(mealIdx, itemIdx, "calories", v)} type="number" /></td>
+                        <td className="p-2">
+                          <EditCell value={it.calories} onChange={(v) => updateMealItem(mealIdx, itemIdx, "calories", v)} type="number" />
+                          {it.protein_g && !editMode && (
+                            <span className="text-[10px] text-muted-foreground">🥩 {it.protein_g}جم</span>
+                          )}
+                        </td>
+                        <td className="p-2 text-xs text-muted-foreground hidden md:table-cell">
+                          {editMode ? (
+                            <Input
+                              value={it.alternatives || ""}
+                              onChange={(e) => updateMealItem(mealIdx, itemIdx, "alternatives", e.target.value)}
+                              placeholder="بدائل (اختياري)"
+                              className="h-8 text-xs"
+                            />
+                          ) : (
+                            it.alternatives && <span>{it.alternatives}</span>
+                          )}
+                        </td>
                         {editMode && (
                           <td className="p-2">
                             <button onClick={() => removeMealItem(mealIdx, itemIdx)} className="text-destructive hover:text-destructive/80">
@@ -980,13 +1142,27 @@ function PlanViewerModal({ plan, onClose, onRegenerate }: { plan: any; onClose: 
                       </tr>
                     ))}
                   </tbody>
+                  {/* Per-meal totals row — matches the PDF format */}
+                  {(m.total_calories || m.total_protein_g) && (
+                    <tfoot>
+                      <tr className="border-t-2 border-primary/30 bg-primary/5">
+                        <td colSpan={3} className="p-2 text-end font-semibold text-primary">
+                          {typeof m.total_calories === "number" ? `~${m.total_calories}` : `~${m.items?.reduce((s: number, i: any) => s + (i.calories || 0), 0) || 0}`} سعرة حرارية
+                        </td>
+                        <td className="p-2 font-semibold text-success">
+                          {typeof m.total_protein_g === "number" ? m.total_protein_g : ""} {m.total_protein_g ? "جم بروتين" : ""}
+                        </td>
+                        <td colSpan={editMode ? 2 : 1} className="p-2"></td>
+                      </tr>
+                    </tfoot>
+                  )}
                 </table>
                 {editMode && (
                   <button onClick={() => addMealItem(mealIdx)} className="mt-2 flex items-center gap-1 text-xs text-primary hover:underline">
                     <Plus className="h-3 w-3" /> إضافة صنف
                   </button>
                 )}
-                {m.notes && !editMode && <p className="mt-1 text-xs text-muted-foreground">{m.notes}</p>}
+                {m.notes && !editMode && <p className="mt-1 text-xs text-muted-foreground">📝 {m.notes}</p>}
                 {editMode && (
                   <Input
                     value={m.notes || ""}
@@ -1119,5 +1295,210 @@ function PlanViewerModal({ plan, onClose, onRegenerate }: { plan: any; onClose: 
         )}
       </div>
     </div>
+  );
+}
+
+/**
+ * Coach AI Plan Generator — wraps the two generate buttons with an
+ * expandable "advanced options" panel where the coach can optionally
+ * specify target calories, macros, preferred foods, and free-text notes.
+ *
+ * All fields are optional. If left blank, the AI calculates everything
+ * automatically from the client's questionnaire data.
+ */
+function CoachAIPlanGenerator({
+  generating,
+  onGenerate,
+  t,
+}: {
+  generating: string | null;
+  onGenerate: (planType: "workout" | "nutrition", overrides?: any) => Promise<void>;
+  t: (key: string) => string;
+}) {
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [targetCalories, setTargetCalories] = useState("");
+  const [proteinG, setProteinG] = useState("");
+  const [carbsG, setCarbsG] = useState("");
+  const [fatG, setFatG] = useState("");
+  const [foods, setFoods] = useState("");
+  const [mealsCount, setMealsCount] = useState("");
+  const [notes, setNotes] = useState("");
+
+  const buildOverrides = () => {
+    const ov: any = {};
+    if (targetCalories.trim()) ov.targetCalories = parseInt(targetCalories);
+    if (proteinG.trim() || carbsG.trim() || fatG.trim()) {
+      ov.macros = {
+        protein_g: parseInt(proteinG) || 0,
+        carbs_g: parseInt(carbsG) || 0,
+        fat_g: parseInt(fatG) || 0,
+      };
+    }
+    if (foods.trim()) {
+      ov.foods = foods.split(/[,،\n]/).map((s) => s.trim()).filter(Boolean);
+    }
+    if (mealsCount.trim()) ov.mealsCount = parseInt(mealsCount);
+    if (notes.trim()) ov.notes = notes;
+    return Object.keys(ov).length > 0 ? ov : undefined;
+  };
+
+  const handleGenerate = (planType: "workout" | "nutrition") => {
+    onGenerate(planType, buildOverrides());
+  };
+
+  return (
+    <Card className="overflow-hidden border-primary/30 bg-gradient-to-br from-secondary/40 to-card p-6 shadow-card">
+      <div className="flex items-start gap-4">
+        <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-gradient-primary text-primary-foreground shadow-glow">
+          <Sparkles className="h-6 w-6" />
+        </div>
+        <div className="flex-1">
+          <h2 className="flex items-center gap-2 text-lg font-bold">
+            {t("coach.aiPlans")}
+          </h2>
+          <p className="mt-1 text-sm text-muted-foreground">{t("coach.aiHint")}</p>
+
+          <div className="mt-5 grid gap-3 sm:grid-cols-2">
+            <button
+              onClick={() => handleGenerate("nutrition")}
+              disabled={generating !== null}
+              className="group flex items-center justify-between gap-3 rounded-2xl border border-border bg-background p-4 text-start transition-all hover:border-primary/40 hover:shadow-glow disabled:opacity-50"
+            >
+              <div className="flex items-center gap-3">
+                <span className="grid h-10 w-10 place-items-center rounded-xl bg-secondary text-primary">
+                  {generating === "nutrition" ? (
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                  ) : (
+                    <Salad className="h-5 w-5" />
+                  )}
+                </span>
+                <div>
+                  <div className="font-semibold">{t("coach.genNutrition")}</div>
+                  <div className="text-xs text-muted-foreground">{t("coach.aiHint")}</div>
+                </div>
+              </div>
+              <Wand2 className="h-4 w-4 text-muted-foreground transition-colors group-hover:text-primary" />
+            </button>
+
+            <button
+              onClick={() => handleGenerate("workout")}
+              disabled={generating !== null}
+              className="group flex items-center justify-between gap-3 rounded-2xl border border-border bg-background p-4 text-start transition-all hover:border-primary/40 hover:shadow-glow disabled:opacity-50"
+            >
+              <div className="flex items-center gap-3">
+                <span className="grid h-10 w-10 place-items-center rounded-xl bg-secondary text-primary">
+                  {generating === "workout" ? (
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                  ) : (
+                    <Dumbbell className="h-5 w-5" />
+                  )}
+                </span>
+                <div>
+                  <div className="font-semibold">{t("coach.genWorkout")}</div>
+                  <div className="text-xs text-muted-foreground">{t("coach.aiHint")}</div>
+                </div>
+              </div>
+              <Wand2 className="h-4 w-4 text-muted-foreground transition-colors group-hover:text-primary" />
+            </button>
+          </div>
+
+          {/* Advanced options toggle */}
+          <button
+            onClick={() => setShowAdvanced((s) => !s)}
+            className="mt-4 flex items-center gap-1.5 text-xs font-medium text-primary hover:underline"
+          >
+            <ChevronDown className={`h-3.5 w-3.5 transition-transform ${showAdvanced ? "rotate-180" : ""}`} />
+            {showAdvanced ? "إخفاء الخيارات المتقدمة" : "خيارات متقدمة (اختياري) — حدد السعرات والماكروز والأطعمة"}
+          </button>
+
+          {showAdvanced && (
+            <div className="mt-3 space-y-3 rounded-xl border border-border bg-background p-4">
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                <div>
+                  <Label className="text-xs text-muted-foreground">السعرات المستهدفة (يومياً)</Label>
+                  <Input
+                    type="number"
+                    value={targetCalories}
+                    onChange={(e) => setTargetCalories(e.target.value)}
+                    placeholder="مثلاً: 1800"
+                    className="mt-1 h-8 text-sm"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">البروتين (جم)</Label>
+                  <Input
+                    type="number"
+                    value={proteinG}
+                    onChange={(e) => setProteinG(e.target.value)}
+                    placeholder="مثلاً: 150"
+                    className="mt-1 h-8 text-sm"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">الكارب (جم)</Label>
+                  <Input
+                    type="number"
+                    value={carbsG}
+                    onChange={(e) => setCarbsG(e.target.value)}
+                    placeholder="مثلاً: 200"
+                    className="mt-1 h-8 text-sm"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">الدهون (جم)</Label>
+                  <Input
+                    type="number"
+                    value={fatG}
+                    onChange={(e) => setFatG(e.target.value)}
+                    placeholder="مثلاً: 60"
+                    className="mt-1 h-8 text-sm"
+                  />
+                </div>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div>
+                  <Label className="text-xs text-muted-foreground">عدد الوجبات (للتغذية) / أيام التدريب (للتمارين)</Label>
+                  <Input
+                    type="number"
+                    value={mealsCount}
+                    onChange={(e) => setMealsCount(e.target.value)}
+                    placeholder="مثلاً: 4"
+                    className="mt-1 h-8 text-sm"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">أطعمة مطلوب تضمينها (افصل بفاصلة)</Label>
+                  <Input
+                    value={foods}
+                    onChange={(e) => setFoods(e.target.value)}
+                    placeholder="مثلاً: دجاج، أرز، تونة"
+                    className="mt-1 h-8 text-sm"
+                  />
+                </div>
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground">ملاحظات إضافية للـ AI</Label>
+                <Textarea
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  placeholder="مثلاً: العميل عنده أنيميا — ركّز على مصادر الحديد. أو: تجنب منتجات الألبان."
+                  className="mt-1 min-h-[60px] text-sm"
+                />
+              </div>
+              <p className="text-[11px] text-muted-foreground">
+                💡 كل الحقول اختيارية — لو فضيتها، الـ AI بيحسب كل حاجة تلقائياً من بيانات العميل.
+              </p>
+            </div>
+          )}
+
+          {generating && (
+            <div className="mt-4 flex items-center gap-2 rounded-xl bg-primary/5 px-4 py-2 text-sm text-primary">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              {t("coach.generating")}
+            </div>
+          )}
+        </div>
+      </div>
+    </Card>
   );
 }

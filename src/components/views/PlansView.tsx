@@ -359,7 +359,27 @@ function MealContent({ content, onSwap, swapLoading, planId }: any) {
   const { t } = useI18n();
   return (
     <div className="space-y-4">
-      {content.overview && <p className="text-sm text-muted-foreground">{content.overview}</p>}
+      {content.overview && <p className="whitespace-pre-line text-sm text-muted-foreground">{content.overview}</p>}
+
+      {/* PDF-style data analysis section */}
+      {content.data_analysis && (
+        <div className="rounded-xl border border-border bg-muted/30 p-4">
+          <h4 className="mb-2 text-sm font-bold">📐 تحليل البيانات</h4>
+          <div className="grid grid-cols-2 gap-2 text-xs sm:grid-cols-3">
+            {content.data_analysis.gender && <div><span className="text-muted-foreground">الجنس:</span> {content.data_analysis.gender}</div>}
+            {content.data_analysis.weight && <div><span className="text-muted-foreground">الوزن:</span> {content.data_analysis.weight}</div>}
+            {content.data_analysis.height && <div><span className="text-muted-foreground">الطول:</span> {content.data_analysis.height}</div>}
+            {content.data_analysis.age && <div><span className="text-muted-foreground">العمر:</span> {content.data_analysis.age}</div>}
+            {content.data_analysis.activity && <div><span className="text-muted-foreground">النشاط:</span> {content.data_analysis.activity}</div>}
+            {content.data_analysis.health && <div><span className="text-muted-foreground">الصحة:</span> {content.data_analysis.health}</div>}
+            {content.data_analysis.body_fat_pct && <div><span className="text-muted-foreground">نسبة الدهون:</span> {content.data_analysis.body_fat_pct}</div>}
+            {content.data_analysis.bmr && <div><span className="text-muted-foreground">BMR:</span> ~{content.data_analysis.bmr} سعرة</div>}
+            {content.data_analysis.tdee && <div><span className="text-muted-foreground">TDEE:</span> ~{content.data_analysis.tdee} سعرة</div>}
+          </div>
+        </div>
+      )}
+
+      {/* Macros summary */}
       {content.daily_calories && (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <Stat label={t("plan.calories")} value={content.daily_calories} />
@@ -368,10 +388,56 @@ function MealContent({ content, onSwap, swapLoading, planId }: any) {
           <Stat label={t("plan.fat")} value={`${content.macros?.fat_g || 0}g`} />
         </div>
       )}
+
+      {/* Supplements & health notes */}
+      {(content.supplements?.length > 0 || content.health_notes?.length > 0 || content.water_target) && (
+        <div className="rounded-xl border border-border bg-muted/30 p-4 space-y-3">
+          {content.supplements?.length > 0 && (
+            <div>
+              <h4 className="mb-2 text-sm font-bold">💊 المكملات والتوصيات الصحية</h4>
+              <div className="space-y-2">
+                {content.supplements.map((s: any, i: number) => (
+                  <div key={i} className="rounded-lg border border-border bg-background p-2 text-xs">
+                    <div className="font-semibold">{s.name}</div>
+                    <div className="text-muted-foreground">
+                      {s.dose && <span>الجرعة: {s.dose}</span>}
+                      {s.timing && <span> | الموعد: {s.timing}</span>}
+                    </div>
+                    {s.purpose && <div className="mt-0.5 text-muted-foreground">الهدف: {s.purpose}</div>}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          {content.health_notes?.length > 0 && (
+            <div>
+              <h4 className="mb-2 text-sm font-bold">🩸 توصيات صحية خاصة</h4>
+              <ul className="space-y-1 text-xs text-muted-foreground">
+                {content.health_notes.map((n: string, i: number) => (
+                  <li key={i} className="flex items-start gap-1.5">
+                    <span className="text-primary">✦</span>
+                    <span>{n}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {content.water_target && (
+            <div className="text-xs">
+              <span className="font-bold">💧 استهلاك الماء:</span> {content.water_target}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Meals — PDF-style with numbered items, alternatives, and per-meal totals */}
       {content.meals?.map((m: any, i: number) => (
         <div key={i} className="rounded-xl border border-border p-4">
-          <div className="mb-2 flex items-center justify-between">
-            <h4 className="font-semibold">{m.name}</h4>
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <div>
+              <h4 className="font-semibold">🌅 {m.name}</h4>
+              {m.time && <p className="text-xs text-muted-foreground">⏰ {m.time}</p>}
+            </div>
             <Button
               size="sm"
               variant="ghost"
@@ -390,22 +456,44 @@ function MealContent({ content, onSwap, swapLoading, planId }: any) {
           <table className="w-full text-sm">
             <thead>
               <tr className="text-start">
+                <th className="p-2 text-start font-medium text-muted-foreground w-8">#</th>
                 <th className="p-2 text-start font-medium text-muted-foreground">{t("plan.food")}</th>
                 <th className="p-2 text-start font-medium text-muted-foreground">{t("plan.amount")}</th>
                 <th className="p-2 text-start font-medium text-muted-foreground">{t("plan.calories")}</th>
+                <th className="p-2 text-start font-medium text-muted-foreground hidden md:table-cell">البدائل</th>
               </tr>
             </thead>
             <tbody>
               {m.items?.map((it: any, j: number) => (
                 <tr key={j} className="border-t border-border/60">
+                  <td className="p-2 text-muted-foreground">{j + 1}</td>
                   <td className="p-2 font-medium">{it.food}</td>
                   <td className="p-2">{it.amount}</td>
-                  <td className="p-2">{it.calories}</td>
+                  <td className="p-2">
+                    {it.calories}
+                    {it.protein_g && <span className="block text-[10px] text-muted-foreground">🥩 {it.protein_g}جم</span>}
+                  </td>
+                  <td className="p-2 text-xs text-muted-foreground hidden md:table-cell">{it.alternatives || "—"}</td>
                 </tr>
               ))}
             </tbody>
+            {(m.total_calories || m.total_protein_g) && (
+              <tfoot>
+                <tr className="border-t-2 border-primary/30 bg-primary/5">
+                  <td colSpan={3} className="p-2 text-end font-semibold text-primary">
+                    {typeof m.total_calories === "number"
+                      ? `~${m.total_calories}`
+                      : `~${m.items?.reduce((s: number, i: any) => s + (i.calories || 0), 0) || 0}`} سعرة حرارية
+                  </td>
+                  <td className="p-2 font-semibold text-success">
+                    {m.total_protein_g ? `${m.total_protein_g} جم بروتين` : ""}
+                  </td>
+                  <td className="p-2 hidden md:table-cell"></td>
+                </tr>
+              </tfoot>
+            )}
           </table>
-          {m.notes && <p className="mt-1 text-xs text-muted-foreground">{m.notes}</p>}
+          {m.notes && <p className="mt-1 text-xs text-muted-foreground">📝 {m.notes}</p>}
         </div>
       ))}
     </div>
