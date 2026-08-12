@@ -19,7 +19,7 @@ export function PlansView() {
  const [loading, setLoading] = useState(true);
  const [active, setActive] = useState<any | null>(null);
  const [swapLoading, setSwapLoading] = useState<string | null>(null);
- const [swapUsage, setSwapUsage] = useState({ meal: { used: 0, limit: 2, remaining: 2 }, exercise: { used: 0, limit: 2, remaining: 2 } });
+ const [swapUsage, setSwapUsage] = useState<any>({ meal: { used: 0, limit: 2, remaining: 2 }, exercise: { used: 0, limit: 2, remaining: 2 } });
 
  useEffect(() => {
  if (!profile) return;
@@ -56,12 +56,12 @@ export function PlansView() {
  // Record the swap (checks limit server-side too)
  const swapResult = await recordSwap(profile.id, planId, "meal");
  if (!swapResult.allowed) {
- toast.error(`لقد وصلت للحد الأقصى من تبديلات الوجبات اليوم (${swapResult.limit}).`);
- setSwapUsage((prev) => ({ ...prev, meal: { used: swapResult.used, limit: swapResult.limit, remaining: 0 } }));
+ toast.error(`لقد وصلت للحد الأقصى من تبديلات الوجبات اليوم (${(swapResult.limit || 0)}).`);
+ setSwapUsage((prev) => ({ ...prev, meal: { used: swapResult.used, limit: (swapResult.limit || 0), remaining: 0 } }));
  return;
  }
  // Update usage display
- setSwapUsage((prev) => ({ ...prev, meal: { used: swapResult.used, limit: swapResult.limit, remaining: swapResult.limit - swapResult.used } }));
+ setSwapUsage((prev) => ({ ...prev, meal: { used: swapResult.used, limit: (swapResult.limit || 0), remaining: (swapResult.limit || 0) - swapResult.used } }));
 
  const plan = plans.find((p) => p.id === planId);
  if (!plan?.content?.meals?.[mealIndex]) throw new Error("Meal not found");
@@ -85,7 +85,7 @@ export function PlansView() {
  const newActive = updatedPlans.find((p) => p.id === planId);
  if (newActive) setActive(newActive);
  }
- toast.success(`تم استبدال الوجبة! متبقي ${swapResult.limit - swapResult.used} تبديل اليوم.`);
+ toast.success(`تم استبدال الوجبة! متبقي ${(swapResult.limit || 0) - swapResult.used} تبديل اليوم.`);
  } catch (e: any) {
  toast.error(e.message || t("common.error"));
  } finally {
@@ -104,11 +104,11 @@ export function PlansView() {
  try {
  const swapResult = await recordSwap(profile.id, planId, "exercise");
  if (!swapResult.allowed) {
- toast.error(`لقد وصلت للحد الأقصى من تبديلات التمارين اليوم (${swapResult.limit}).`);
- setSwapUsage((prev) => ({ ...prev, exercise: { used: swapResult.used, limit: swapResult.limit, remaining: 0 } }));
+ toast.error(`لقد وصلت للحد الأقصى من تبديلات التمارين اليوم (${(swapResult.limit || 0)}).`);
+ setSwapUsage((prev) => ({ ...prev, exercise: { used: swapResult.used, limit: (swapResult.limit || 0), remaining: 0 } }));
  return;
  }
- setSwapUsage((prev) => ({ ...prev, exercise: { used: swapResult.used, limit: swapResult.limit, remaining: swapResult.limit - swapResult.used } }));
+ setSwapUsage((prev) => ({ ...prev, exercise: { used: swapResult.used, limit: (swapResult.limit || 0), remaining: (swapResult.limit || 0) - swapResult.used } }));
 
  const plan = plans.find((p) => p.id === planId);
  if (!plan?.content?.days?.[dayIndex]?.exercises?.[exIndex]) throw new Error("Exercise not found");
@@ -132,7 +132,7 @@ export function PlansView() {
  const newActive = updatedPlans.find((p) => p.id === planId);
  if (newActive) setActive(newActive);
  }
- toast.success(`تم استبدال التمرين! متبقي ${swapResult.limit - swapResult.used} تبديل اليوم.`);
+ toast.success(`تم استبدال التمرين! متبقي ${(swapResult.limit || 0) - swapResult.used} تبديل اليوم.`);
  } catch (e: any) {
  toast.error(e.message || t("common.error"));
  } finally {

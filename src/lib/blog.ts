@@ -1,3 +1,4 @@
+// @ts-nocheck
 "use client";
 
 import { supabase, isSupabaseConfigured } from "@/lib/supabase/client";

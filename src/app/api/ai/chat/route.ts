@@ -1,3 +1,4 @@
+import { NextRequest, NextResponse } from "next/server";
 import { callAIWithFallback, type AIProvider } from "@/lib/ai-provider";
 import { generateChatReply } from "@/lib/ai-local";
 import { listPlans, listProgress, getQuestionnaire, listAllSubscriptions } from "@/lib/data";
@@ -5,7 +6,7 @@ import { getTier } from "@/lib/plans";
 
 /**
  * AI Coach chat endpoint.
- * Tries Gemini AI first, falls back to local rule-based chat.
+ * Uses OpenRouter AI, falls back to local rule-based chat.
  *
  * POST /api/ai/chat
  * Body: { message, history, userId, userName }

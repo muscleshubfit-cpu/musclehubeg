@@ -54,3 +54,4 @@ yarn-error.log*
 /db/
 *.db
 .env*
+.z-ai-config

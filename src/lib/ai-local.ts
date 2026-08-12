@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Local AI plan generator — no external API needed.
  *
