@@ -79,11 +79,11 @@ function ProductCard({
   );
 }
 
-// Apple-style sticky scroll section
-// The outer section is 200vh tall so the inner sticky content has room
-// to stay pinned for one extra viewport of scrolling before the next
-// section pushes it away. This matches apple.com/iphone's behavior.
-function StickySection({
+// Apple-style centered section — simple, no sticky.
+// Apple uses sticky scroll-jacking sparingly; for most sections they use
+// clean vertical rhythm with generous padding. This keeps the scroll fast
+// and predictable.
+function CenteredSection({
   children,
   bg = "bg-white",
 }: {
@@ -91,10 +91,8 @@ function StickySection({
   bg?: string;
 }) {
   return (
-    <section className={`${bg} relative h-[200vh]`}>
-      <div className="sticky top-0 flex h-screen items-center justify-center overflow-hidden">
-        {children}
-      </div>
+    <section className={`${bg} px-4 py-24 md:py-40`}>
+      <div className="mx-auto max-w-4xl text-center">{children}</div>
     </section>
   );
 }
@@ -176,7 +174,7 @@ export function LandingView() {
       </section>
 
       {/* ===================== 3. STICKY SCROLL — "Not just fitness" ===================== */}
-      <StickySection bg="bg-white">
+      <CenteredSection bg="bg-white">
         <div className="px-4 text-center">
           <p className="text-sm font-normal text-[#6e6e73] md:text-base">
             {isAr ? "ما هي MuscleHub؟" : "What is MuscleHub?"}
@@ -202,7 +200,7 @@ export function LandingView() {
               : "Combining Coach Ahmed Zake's expertise with sports science, nutrition, and AI in one ecosystem."}
           </p>
         </div>
-      </StickySection>
+      </CenteredSection>
 
       {/* ===================== 4. PRODUCT GRID — Apple-style cards ===================== */}
       <section className="bg-[#f5f5f7] px-4 py-20 md:px-6 md:py-28">
@@ -251,8 +249,8 @@ export function LandingView() {
         </div>
       </section>
 
-      {/* ===================== 5. STICKY SCROLL — EVO spotlight ===================== */}
-      <StickySection bg="bg-black">
+      {/* ===================== 5. EVO spotlight ===================== */}
+      <CenteredSection bg="bg-black">
         <div className="px-4 text-center text-white">
           <p className="text-sm font-normal text-gray-400 md:text-base">
             {isAr ? "تعرّف على" : "Meet"}
@@ -274,7 +272,7 @@ export function LandingView() {
             />
           </div>
         </div>
-      </StickySection>
+      </CenteredSection>
 
       {/* ===================== 6. STATS — Apple-style large numbers ===================== */}
       <section className="bg-white px-4 py-20 md:py-28">
