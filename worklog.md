@@ -953,3 +953,36 @@ Stage Summary:
 - Items still needing user action (cannot be done in code):
   - S5: Rotate Z.ai JWT in git history (no exp claim — valid forever unless rotated)
   - S10: Consider adding CSP `report-only` header in a future iteration
+
+---
+Task ID: 11-12
+Agent: Super Z (main)
+Task: S5 (JWT scrub) + Deploy
+
+Work Log:
+- **S5 — Z.ai JWT scrubbed from git history**:
+  - Verified JWT had NO `exp` claim (never auto-expires) — must be rotated by user via Z.ai dashboard.
+  - Used `git filter-repo --replace-text` to replace:
+    - The full JWT token → `REDACTED_ZAI_JWT`
+    - The `user_id` UUID → `REDACTED_ZAI_USER_ID`
+    - The `chat_id` → `REDACTED_ZAI_CHAT_ID`
+  - Verified with `git log --all -S "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9"` → 0 matches.
+  - All 121 commits rewritten. Local history is now clean.
+  - Created backup at /tmp/musclehub-git-backup-* before scrubbing.
+  - NOTE: `git filter-repo` removed the `origin` remote (standard behavior). Re-added it.
+
+- **Deploy — BLOCKED, cannot complete**:
+  - GitHub token in git remote URL is EXPIRED (HTTP 401 "Bad credentials" on api.github.com).
+  - Vercel token (vcp_...) works for the projects API (can list project, trigger git-source deploys) but:
+    - Cannot use `vercel` CLI directly — returns "User not found" (token is project-scoped, not user-scoped).
+    - Cannot use direct file-upload deploy — Vercel v2/files API returns "Unsupported Media Type" for all content types (token lacks the required deploy scope).
+  - Triggered a git-source deploy (dpl_9THqU8H5t7aJfcXsBEEwki5SZNsQ) which built the OLD code from GitHub (commit ba5c9b2, before my audit fixes). CANCELED it immediately to avoid shipping the vulnerable version.
+  - My audit fixes + scrubbed history are committed locally (121 commits, 204 files in HEAD) but NOT pushed.
+
+Stage Summary:
+- S5: ✅ JWT scrubbed from local git history (verified clean).
+- Deploy: ❌ BLOCKED — need one of:
+  1. A fresh GitHub personal access token (with `repo` scope) so I can `git push --force-with-lease origin main` (force-push required because history was rewritten).
+  2. OR a Vercel token with deploy scope (user-scoped, not project-scoped) so I can use the Vercel CLI.
+  3. OR the user runs `git push --force-with-lease origin main` themselves after providing a token.
+- The code is 100% ready to deploy — all builds pass, all tests clean, history scrubbed. Just needs the push.
