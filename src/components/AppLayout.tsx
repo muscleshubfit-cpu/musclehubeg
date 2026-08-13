@@ -81,7 +81,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
  </nav>
  </aside>
 
- <main className="min-w-0 flex-1 pb-24 md:pb-0">{children}</main>
+ <main id="main-content" className="min-w-0 flex-1 pb-24 md:pb-0">{children}</main>
  </div>
 
  {/* Bottom nav (mobile) */}

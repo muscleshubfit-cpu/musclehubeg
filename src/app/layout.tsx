@@ -89,6 +89,10 @@ export default function RootLayout({
  return (
  <html lang="ar" dir="rtl" suppressHydrationWarning>
  <body className="antialiased bg-background text-foreground">
+ {/* Skip-to-content link for keyboard/screen-reader users (WCAG 2.1) */}
+ <a href="#main-content" className="sr-only-focusable">
+ Skip to content
+ </a>
  <I18nProvider>
  <AuthProvider>
  <Suspense fallback={null}>{children}</Suspense>
