@@ -97,14 +97,12 @@ function CenteredSection({
   );
 }
 
-// Premium images — athletic, masculine, modest
+// Premium images — MuscleHub Studio Style (clean white, photorealistic)
 const IMAGES = {
-  hero: "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/a28280c607b4.jpeg",
-  gym: "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/6fa2e1c76f06.jpg",
-  meal: "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/b9505b73db59.jpg",
-  progress: "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/d391a754150e.png",
-  running: "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/80c7abf220de.jpg",
-  data: "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/4f572a6110df.jpeg",
+  hero: "/images/hero-ahmed.png",
+  coach: "/images/coach-portrait.png",
+  evo: "/images/evo-standalone.png",
+  together: "/images/ahmed-evo-together.png",
 };
 
 export function LandingView() {
@@ -163,14 +161,18 @@ export function LandingView() {
         </Reveal>
       </section>
 
-      {/* ===================== 2. HERO IMAGE — full-bleed ===================== */}
-      <section className="relative h-[70vh] w-full overflow-hidden bg-black md:h-[85vh]">
-        <img
-          src={IMAGES.hero}
-          alt={isAr ? "رياضي في صالة ألعاب رياضية" : "Athlete in gym"}
-          className="h-full w-full object-cover opacity-90"
-          loading="eager"
-        />
+      {/* ===================== 2. HERO IMAGE — Ahmed Zake ===================== */}
+      <section className="bg-white px-4 pb-20 md:pb-32">
+        <div className="mx-auto max-w-4xl">
+          <Reveal>
+            <img
+              src={IMAGES.hero}
+              alt={isAr ? "الكوتش أحمد زكي" : "Coach Ahmed Zake"}
+              className="mx-auto aspect-[4/5] w-full max-w-md rounded-3xl object-cover md:max-w-lg"
+              loading="eager"
+            />
+          </Reveal>
+        </div>
       </section>
 
       {/* ===================== 3. STICKY SCROLL — "Not just fitness" ===================== */}
@@ -202,45 +204,33 @@ export function LandingView() {
         </div>
       </CenteredSection>
 
-      {/* ===================== 4. PRODUCT GRID — Apple-style cards ===================== */}
+      {/* ===================== 4. MEET THE TEAM — Apple-style cards ===================== */}
       <section className="bg-[#f5f5f7] px-4 py-20 md:px-6 md:py-28">
         <div className="mx-auto max-w-6xl">
           <Reveal>
-            <h2 className="mb-12 text-center text-3xl font-semibold tracking-tight md:mb-16 md:text-5xl">
-              {isAr ? "كل ما تحتاجه في مكان واحد." : "Everything in one place."}
+            <h2 className="mb-4 text-center text-3xl font-semibold tracking-tight md:mb-6 md:text-5xl">
+              {isAr ? "إنسان + ذكاء اصطناعي." : "Human + AI."}
             </h2>
+          </Reveal>
+          <Reveal delay={100}>
+            <p className="mx-auto mb-12 max-w-xl text-center text-lg font-normal text-[#6e6e73] md:mb-16 md:text-xl">
+              {isAr ? "الكوتش أحمد زكي ومحرك EVO — معاً." : "Coach Ahmed Zake and the EVO engine — together."}
+            </p>
           </Reveal>
           <div className="grid gap-5 md:grid-cols-2 md:gap-6">
             <Reveal>
               <ProductCard
-                title={isAr ? "خطط تغذية" : "Nutrition Plans"}
-                subtitle={isAr ? "مخصصة بالجرام والسعرات" : "Personalized to the gram."}
-                image={IMAGES.meal}
-                cta={{ label: isAr ? "اعرف أكثر" : "Learn more", onClick: () => navigate("auth", { mode: "signup" }) }}
+                title={isAr ? "أحمد زكي" : "Ahmed Zake"}
+                subtitle={isAr ? "الكوتش البشري" : "The Human Coach"}
+                image={IMAGES.coach}
+                cta={{ label: isAr ? "اعرف أكثر" : "Learn more", onClick: () => navigate("about") }}
               />
             </Reveal>
             <Reveal delay={100}>
               <ProductCard
-                title={isAr ? "برامج تمارين" : "Workout Programs"}
-                subtitle={isAr ? "تتكيف مع تقدمك" : "Adapt to your progress."}
-                image={IMAGES.gym}
-                isDark
-                cta={{ label: isAr ? "اعرف أكثر" : "Learn more", onClick: () => navigate("auth", { mode: "signup" }) }}
-              />
-            </Reveal>
-            <Reveal delay={200}>
-              <ProductCard
-                title={isAr ? "تتبع التقدم" : "Progress Tracking"}
-                subtitle={isAr ? "صور، قياسات، أرقام" : "Photos, measurements, data."}
-                image={IMAGES.progress}
-                cta={{ label: isAr ? "اعرف أكثر" : "Learn more", onClick: () => navigate("auth", { mode: "signup" }) }}
-              />
-            </Reveal>
-            <Reveal delay={300}>
-              <ProductCard
-                title={isAr ? "محرك EVO" : "EVO Engine"}
-                subtitle={isAr ? "ذكاء اصطناعي يفهمك" : "AI that understands you."}
-                image={IMAGES.data}
+                title="EVO"
+                subtitle={isAr ? "محرك الأداء الذكي" : "AI Performance Engine"}
+                image={IMAGES.evo}
                 isDark
                 cta={{ label: isAr ? "اعرف أكثر" : "Learn more", onClick: () => navigate("auth", { mode: "signup" }) }}
               />
@@ -265,9 +255,9 @@ export function LandingView() {
           </p>
           <div className="mt-8 flex justify-center">
             <img
-              src={IMAGES.data}
+              src={IMAGES.evo}
               alt="EVO"
-              className="aspect-[16/9] w-full max-w-3xl rounded-2xl object-cover opacity-80"
+              className="aspect-[4/5] w-full max-w-xs rounded-2xl object-cover md:max-w-sm"
               loading="lazy"
             />
           </div>
@@ -297,19 +287,30 @@ export function LandingView() {
         </div>
       </section>
 
-      {/* ===================== 7. FULL-BLEED IMAGE — running ===================== */}
-      <section className="relative h-[60vh] w-full overflow-hidden bg-black md:h-[75vh]">
-        <img
-          src={IMAGES.running}
-          alt={isAr ? "رياضي يجري" : "Athlete running"}
-          className="h-full w-full object-cover opacity-85"
-          loading="lazy"
-        />
-        <div className="absolute inset-0 flex items-end justify-center pb-16">
+      {/* ===================== 7. HUMAN + AI TOGETHER ===================== */}
+      <section className="bg-white px-4 py-20 md:py-28">
+        <div className="mx-auto max-w-4xl text-center">
           <Reveal>
-            <p className="text-center text-2xl font-semibold tracking-tight text-white md:text-4xl">
-              {isAr ? "ابدأ رحلتك اليوم." : "Start your journey today."}
+            <h2 className="text-3xl font-semibold tracking-tight md:text-5xl">
+              {isAr ? "الذكاء البشري الاصطناعي." : "Artificial Human Intelligence."}
+            </h2>
+          </Reveal>
+          <Reveal delay={150}>
+            <p className="mx-auto mt-6 max-w-2xl text-lg font-normal leading-relaxed text-[#6e6e73] md:text-xl">
+              {isAr
+                ? "الكوتش أحمد زكي + محرك EVO. خبرة الإنسان وسرعة البيانات في نظام واحد."
+                : "Coach Ahmed Zake + the EVO engine. Human wisdom and data speed in one system."}
             </p>
+          </Reveal>
+          <Reveal delay={300}>
+            <div className="mt-12">
+              <img
+                src={IMAGES.together}
+                alt={isAr ? "أحمد زكي و EVO" : "Ahmed Zake and EVO"}
+                className="mx-auto aspect-[4/5] w-full max-w-md rounded-3xl object-cover md:max-w-lg"
+                loading="lazy"
+              />
+            </div>
           </Reveal>
         </div>
       </section>
