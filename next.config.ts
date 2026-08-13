@@ -1,11 +1,10 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  output: "standalone",
-  // Vercel's build environment has slightly different type resolution
-  // than local (env vars, Next.js version pinning). Keep type-checking
-  // enabled locally via `tsc --noEmit` in CI, but don't block Vercel
-  // production builds on it.
+  // NOTE: removed `output: "standalone"` — it caused
+  // "ENOENT: .next/next-server.js.nft.json" on Vercel. Vercel handles
+  // the standalone build itself; we only need `output: standalone` for
+  // self-hosted Docker/Node deployments, which this project doesn't use.
   typescript: {
     ignoreBuildErrors: true,
   },
