@@ -183,58 +183,53 @@ export function QuestionnairesView() {
  if (loading) return <div className="text-muted-foreground">{t("common.loading")}</div>;
 
  return (
- <div className="space-y-6">
+ <div className="space-y-8">
  <div>
- <h1 className="text-2xl font-bold md:text-3xl">{t("q.title")}</h1>
- <p className="mt-1 text-sm text-muted-foreground">{t("q.subtitle")}</p>
+ <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">{t("q.title")}</h1>
+ <p className="mt-2 text-base font-normal text-[#6e6e73] md:text-lg">{t("q.subtitle")}</p>
  </div>
 
- <div className="inline-flex rounded-full border border-border bg-card p-1">
+ <div className="inline-flex rounded-full bg-[#f5f5f7] p-1">
  <button
  onClick={() => switchTab("nutrition")}
  className={cn(
- "flex items-center gap-2 rounded-full px-5 py-2 text-sm font-semibold transition-all",
- tab === "nutrition" ? "bg-gradient-primary text-primary-foreground shadow-glow" : "text-muted-foreground",
+ "rounded-full px-5 py-2 text-sm font-normal transition-all",
+ tab === "nutrition" ? "bg-white text-[#1d1d1f] shadow-sm" : "text-[#6e6e73]",
  )}
  >
- <Salad className="h-4 w-4" />
  {t("q.nutrition")}
  </button>
  <button
  onClick={() => switchTab("fitness")}
  className={cn(
- "flex items-center gap-2 rounded-full px-5 py-2 text-sm font-semibold transition-all",
- tab === "fitness" ? "bg-gradient-primary text-primary-foreground shadow-glow" : "text-muted-foreground",
+ "rounded-full px-5 py-2 text-sm font-normal transition-all",
+ tab === "fitness" ? "bg-white text-[#1d1d1f] shadow-sm" : "text-[#6e6e73]",
  )}
  >
- <Dumbbell className="h-4 w-4" />
  {t("q.fitness")}
  </button>
  </div>
 
  {status && (
- <div className="flex items-center gap-2">
- <Badge variant="outline" className={cn(
- status === "approved" && "border-success text-success",
- status === "submitted" && "border-primary text-primary",
- status === "needs_info" && "border-warning text-warning",
+ <div className="flex items-center gap-3">
+ <span className={cn(
+ "rounded-full px-3 py-1 text-xs font-normal",
+ status === "approved" && "bg-[#0071e3]/10 text-[#0071e3]",
+ status === "submitted" && "bg-[#0071e3]/10 text-[#0071e3]",
+ status === "needs_info" && "bg-[#ff9500]/10 text-[#ff9500]",
  )}>
  {t(`q.status.${status}`)}
- </Badge>
- {locked && (
- <span className="flex items-center gap-1 text-xs text-muted-foreground">
- <Lock className="h-3 w-3" /> {t("q.lockedNotice")}
  </span>
+ {locked && (
+ <span className="text-xs font-normal text-[#6e6e73]">{t("q.lockedNotice")}</span>
  )}
  {status === "needs_info" && (
- <span className="flex items-center gap-1 text-xs text-warning">
- <AlertCircle className="h-3 w-3" /> {t("q.needsInfoNotice")}
- </span>
+ <span className="text-xs font-normal text-[#ff9500]">{t("q.needsInfoNotice")}</span>
  )}
  </div>
  )}
 
- <Card className="p-6 shadow-card">
+ <div className="rounded-3xl bg-[#f5f5f7] p-6 md:p-8">
  <div className="grid gap-4 sm:grid-cols-2">
  {fields.map((f) => {
  if (f.type === "gender") {
@@ -375,16 +370,23 @@ export function QuestionnairesView() {
 
  {!locked && (
  <div className="mt-6 flex flex-wrap gap-3">
- <Button variant="secondary" onClick={() => save("draft")} disabled={saving}>
+ <button
+ onClick={() => save("draft")}
+ disabled={saving}
+ className="rounded-full bg-white px-5 py-2.5 text-sm font-normal text-[#1d1d1f] border border-[#d2d2d7] transition-opacity hover:opacity-90"
+ >
  {saving ? t("common.saving") : t("common.save")}
- </Button>
- <Button onClick={() => save("submitted")} disabled={saving} className="gap-2">
+ </button>
+ <button
+ onClick={() => save("submitted")}
+ disabled={saving}
+ className="rounded-full bg-[#0071e3] px-5 py-2.5 text-sm font-normal text-white transition-opacity hover:opacity-90"
+ >
  {saving ? t("common.saving") : t("q.submit")}
- <Send className="h-4 w-4" />
- </Button>
+ </button>
  </div>
  )}
- </Card>
+ </div>
  </div>
  );
 }

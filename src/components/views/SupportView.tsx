@@ -69,41 +69,42 @@ export function SupportView() {
  if (loading) return <div className="text-muted-foreground">{t("common.loading")}</div>;
 
  return (
- <div className="space-y-6">
- <div className="flex flex-wrap items-center justify-between gap-3">
+ <div className="space-y-8">
+ <div className="flex flex-wrap items-center justify-between gap-4">
  <div>
- <h1 className="text-2xl font-bold md:text-3xl">{t("support.title")}</h1>
- <p className="mt-1 text-sm text-muted-foreground">{t("support.subtitle")}</p>
+ <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">{t("support.title")}</h1>
+ <p className="mt-2 text-base font-normal text-[#6e6e73] md:text-lg">{t("support.subtitle")}</p>
  </div>
- <Button className="gap-2" onClick={() => setOpen(true)}>
- <Plus className="h-4 w-4" />
+ <button
+ onClick={() => setOpen(true)}
+ className="rounded-full bg-[#0071e3] px-5 py-2.5 text-sm font-normal text-white transition-opacity hover:opacity-90"
+ >
  {t("support.newTicket")}
- </Button>
+ </button>
  </div>
 
  {tickets.length === 0 ? (
- <Card className="border-dashed p-8 text-center text-sm text-muted-foreground">
- <MessageSquare className="mx-auto mb-2 h-8 w-8 text-muted-foreground/50" />
+ <div className="rounded-2xl bg-[#f5f5f7] p-12 text-center text-base font-normal text-[#6e6e73]">
  {t("support.noTickets")}
- </Card>
+ </div>
  ) : (
  <div className="space-y-3">
  {tickets.map((tk) => (
- <Card
+ <div
  key={tk.id}
- className="cursor-pointer p-5 shadow-card transition-all hover:shadow-glow"
+ className="cursor-pointer rounded-2xl bg-[#f5f5f7] p-5 transition-colors hover:bg-[#ececf0]"
  onClick={() => setActiveTicket(tk)}
  >
  <div className="flex items-center justify-between gap-3">
  <div className="min-w-0">
- <h3 className="truncate font-semibold">{tk.subject}</h3>
- <p className="mt-1 text-xs text-muted-foreground">
+ <h3 className="truncate text-base font-medium">{tk.subject}</h3>
+ <p className="mt-1 text-xs font-normal text-[#6e6e73]">
  {new Date(tk.created_at).toLocaleString()}
  </p>
  </div>
  <StatusBadge status={tk.status} t={t} />
  </div>
- </Card>
+ </div>
  ))}
  </div>
  )}

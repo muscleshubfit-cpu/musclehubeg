@@ -292,33 +292,30 @@ export function PlansView() {
  };
 
  return (
- <div className="space-y-6">
+ <div className="space-y-8">
  <div>
- <h1 className="text-2xl font-bold md:text-3xl">{t("plans.title")}</h1>
- <p className="mt-1 text-sm text-muted-foreground">{t("plans.subtitle")}</p>
+ <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">{t("plans.title")}</h1>
+ <p className="mt-2 text-base font-normal text-[#6e6e73] md:text-lg">{t("plans.subtitle")}</p>
+ </div>
+
+ {/* Daily swap quota — Apple-style clean */}
+ <div className="rounded-2xl bg-[#f5f5f7] px-5 py-4 text-sm font-normal text-[#6e6e73]">
+ <span>تبديل الوجبات اليوم: <strong className={swapUsage.meal.remaining > 0 ? "text-[#1d1d1f]" : "text-[#ff3b30]"}>{swapUsage.meal.remaining}</strong>/{swapUsage.meal.limit} متبقي</span>
+ <span className="mx-3 text-[#d2d2d7]">|</span>
+ <span>تبديل التمارين اليوم: <strong className={swapUsage.exercise.remaining > 0 ? "text-[#1d1d1f]" : "text-[#ff3b30]"}>{swapUsage.exercise.remaining}</strong>/{swapUsage.exercise.limit} متبقي</span>
  </div>
 
  <Tabs defaultValue="workout">
- <TabsList className="flex-wrap">
- <TabsTrigger value="workout" className="gap-2">
- <Dumbbell className="h-4 w-4" />
+ <TabsList className="flex-wrap rounded-full bg-[#f5f5f7] p-1">
+ <TabsTrigger value="workout" className="gap-2 rounded-full data-[state=active]:bg-white data-[state=active]:shadow-sm">
  {t("plans.workout")} ({workout.length})
  </TabsTrigger>
- <TabsTrigger value="meal" className="gap-2">
- <Salad className="h-4 w-4" />
+ <TabsTrigger value="meal" className="gap-2 rounded-full data-[state=active]:bg-white data-[state=active]:shadow-sm">
  {t("plans.meal")} ({meal.length})
  </TabsTrigger>
  </TabsList>
 
- {/* Daily swap quota indicator */}
- <div className="mt-4 flex flex-wrap items-center gap-3 rounded-xl border border-border bg-secondary/30 px-4 py-2.5 text-xs text-muted-foreground">
- <Info className="h-4 w-4 shrink-0 text-primary" />
- <span>تبديل الوجبات اليوم: <strong className={swapUsage.meal.remaining > 0 ? "text-foreground" : "text-destructive"}>{swapUsage.meal.remaining}</strong>/{swapUsage.meal.limit} متبقي</span>
- <span className="text-border">|</span>
- <span>تبديل التمارين اليوم: <strong className={swapUsage.exercise.remaining > 0 ? "text-foreground" : "text-destructive"}>{swapUsage.exercise.remaining}</strong>/{swapUsage.exercise.limit} متبقي</span>
- </div>
-
- <TabsContent value="workout" className="mt-4">
+ <TabsContent value="workout" className="mt-6">
  {workout.length === 0 ? (
  <EmptyCard text={t("plans.empty")} />
  ) : (
@@ -330,7 +327,7 @@ export function PlansView() {
  )}
  </TabsContent>
 
- <TabsContent value="meal" className="mt-4">
+ <TabsContent value="meal" className="mt-6">
  {meal.length === 0 ? (
  <EmptyCard text={t("plans.empty")} />
  ) : (
@@ -361,9 +358,9 @@ export function PlansView() {
 
 function EmptyCard({ text }: { text: string }) {
  return (
- <Card className="border-dashed p-8 text-center text-sm text-muted-foreground">
+ <div className="rounded-2xl bg-[#f5f5f7] p-12 text-center text-base font-normal text-[#6e6e73]">
  {text}
- </Card>
+ </div>
  );
 }
 

@@ -136,110 +136,115 @@ export function ProgressView() {
  ];
 
  return (
- <div className="space-y-6">
- <div className="flex flex-wrap items-center justify-between gap-3">
+ <div className="space-y-8">
+ <div className="flex flex-wrap items-center justify-between gap-4">
  <div>
- <h1 className="text-2xl font-bold md:text-3xl">{t("prog.title")}</h1>
- <p className="mt-1 text-sm text-muted-foreground">{t("prog.subtitle")}</p>
+ <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">{t("prog.title")}</h1>
+ <p className="mt-2 text-base font-normal text-[#6e6e73] md:text-lg">{t("prog.subtitle")}</p>
  </div>
- <div className="flex gap-2">
- <Button variant="outline" className="gap-2" onClick={() => setPhotoOpen(true)}>
- <Camera className="h-4 w-4" />
+ <div className="flex gap-3">
+ <button
+ onClick={() => setPhotoOpen(true)}
+ className="rounded-full border border-[#d2d2d7] bg-white px-5 py-2.5 text-sm font-normal transition-opacity hover:opacity-90"
+ >
  <span className="hidden sm:inline">{t("prog.uploadPhoto")}</span>
- </Button>
- <Button className="gap-2" onClick={() => setOpen(true)}>
- <Plus className="h-4 w-4" />
+ <span className="sm:hidden">📷</span>
+ </button>
+ <button
+ onClick={() => setOpen(true)}
+ className="rounded-full bg-[#0071e3] px-5 py-2.5 text-sm font-normal text-white transition-opacity hover:opacity-90"
+ >
  {t("prog.addEntry")}
- </Button>
+ </button>
  </div>
  </div>
 
  {/* Chart */}
- <Card className="p-6 shadow-card">
+ <div className="rounded-3xl bg-[#f5f5f7] p-6 md:p-8">
  <div className="flex items-center justify-between">
- <h2 className="text-lg font-semibold">{t("prog.weightChart")}</h2>
+ <h2 className="text-xl font-semibold tracking-tight">{t("prog.weightChart")}</h2>
  {change !== null && change !== 0 && (
- <Badge variant="outline" className={change < 0 ? "border-success text-success" : "border-warning text-warning"}>
- {change < 0 ? <TrendingDown className="me-1 h-3 w-3" /> : <TrendingUp className="me-1 h-3 w-3" />}
- {Math.abs(change).toFixed(1)} {t("common.kg")}
- </Badge>
+ <span className={`text-sm font-normal ${change < 0 ? "text-[#0071e3]" : "text-[#6e6e73]"}`}>
+ {change < 0 ? "↓" : "↑"} {Math.abs(change).toFixed(1)} {t("common.kg")}
+ </span>
  )}
  </div>
- <div className="mt-4 h-64">
+ <div className="mt-6 h-64">
  {chartData.length > 0 ? (
  <ResponsiveContainer width="100%" height="100%">
  <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
  <defs>
  <linearGradient id="weightGradient" x1="0" y1="0" x2="0" y2="1">
- <stop offset="0%" stopColor="#1F8FFF" stopOpacity={0.5} />
- <stop offset="100%" stopColor="#1F8FFF" stopOpacity={0} />
+ <stop offset="0%" stopColor="#0071e3" stopOpacity={0.3} />
+ <stop offset="100%" stopColor="#0071e3" stopOpacity={0} />
  </linearGradient>
  </defs>
- <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
- <XAxis dataKey="date" tick={{ fontSize: 12, fill: "#475569" }} />
- <YAxis tick={{ fontSize: 12, fill: "#475569" }} domain={["auto", "auto"]} />
+ <CartesianGrid strokeDasharray="3 3" stroke="#d2d2d7" />
+ <XAxis dataKey="date" tick={{ fontSize: 12, fill: "#6e6e73" }} />
+ <YAxis tick={{ fontSize: 12, fill: "#6e6e73" }} domain={["auto", "auto"]} />
  <Tooltip
  contentStyle={{
  borderRadius: 12,
- border: "1px solid #E2E8F0",
- boxShadow: "0 10px 30px -16px rgba(15,23,42,0.2)",
+ border: "1px solid #d2d2d7",
+ boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
  }}
  />
- <Area type="monotone" dataKey="weight" stroke="#1F8FFF" strokeWidth={2.5} fill="url(#weightGradient)" />
+ <Area type="monotone" dataKey="weight" stroke="#0071e3" strokeWidth={2.5} fill="url(#weightGradient)" />
  </AreaChart>
  </ResponsiveContainer>
  ) : (
- <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+ <div className="flex h-full items-center justify-center text-sm font-normal text-[#6e6e73]">
  {t("prog.noEntries")}
  </div>
  )}
  </div>
- </Card>
+ </div>
 
  {/* History */}
- <Card className="p-6 shadow-card">
- <h2 className="text-lg font-semibold">{t("prog.history")}</h2>
+ <div className="rounded-3xl bg-[#f5f5f7] p-6 md:p-8">
+ <h2 className="text-xl font-semibold tracking-tight">{t("prog.history")}</h2>
  {entries.length === 0 ? (
- <p className="mt-3 text-sm text-muted-foreground">{t("prog.noEntries")}</p>
+ <p className="mt-4 text-sm font-normal text-[#6e6e73]">{t("prog.noEntries")}</p>
  ) : (
- <div className="mt-4 max-h-96 overflow-y-auto scrollbar-thin">
+ <div className="mt-6 max-h-96 overflow-y-auto">
  <table className="w-full text-sm">
- <thead className="sticky top-0 bg-card">
- <tr className="border-b border-border text-start">
- <th className="p-2 text-start font-medium text-muted-foreground">{t("common.date")}</th>
- <th className="p-2 text-start font-medium text-muted-foreground">{t("prog.weight")}</th>
- <th className="p-2 text-start font-medium text-muted-foreground">{t("prog.waist")}</th>
- <th className="p-2 text-start font-medium text-muted-foreground">{t("prog.energy")}</th>
- <th className="p-2 text-start font-medium text-muted-foreground">{t("common.notes")}</th>
+ <thead className="sticky top-0 bg-[#f5f5f7]">
+ <tr className="border-b border-[#d2d2d7]">
+ <th className="p-3 text-start text-xs font-normal uppercase tracking-wide text-[#6e6e73]">{t("common.date")}</th>
+ <th className="p-3 text-start text-xs font-normal uppercase tracking-wide text-[#6e6e73]">{t("prog.weight")}</th>
+ <th className="p-3 text-start text-xs font-normal uppercase tracking-wide text-[#6e6e73]">{t("prog.waist")}</th>
+ <th className="p-3 text-start text-xs font-normal uppercase tracking-wide text-[#6e6e73]">{t("prog.energy")}</th>
+ <th className="p-3 text-start text-xs font-normal uppercase tracking-wide text-[#6e6e73]">{t("common.notes")}</th>
  </tr>
  </thead>
  <tbody>
  {[...entries].reverse().map((e) => (
- <tr key={e.id} className="border-b border-border/60">
- <td className="p-2">{new Date(e.created_at).toLocaleDateString()}</td>
- <td className="p-2">{e.weight ?? "—"}</td>
- <td className="p-2">{e.waist ?? "—"}</td>
- <td className="p-2">{e.energy ?? "—"}</td>
- <td className="p-2 max-w-32 truncate text-muted-foreground">{e.notes || "—"}</td>
+ <tr key={e.id} className="border-b border-[#d2d2d7]/60">
+ <td className="p-3 font-normal">{new Date(e.created_at).toLocaleDateString()}</td>
+ <td className="p-3 font-normal">{e.weight ?? "—"}</td>
+ <td className="p-3 font-normal">{e.waist ?? "—"}</td>
+ <td className="p-3 font-normal">{e.energy ?? "—"}</td>
+ <td className="p-3 max-w-32 truncate font-normal text-[#6e6e73]">{e.notes || "—"}</td>
  </tr>
  ))}
  </tbody>
  </table>
  </div>
  )}
- </Card>
+ </div>
 
  {/* Photos Gallery */}
- <Card className="p-6 shadow-card">
- <h2 className="text-lg font-semibold">{t("prog.photos")}</h2>
+ <div className="rounded-3xl bg-[#f5f5f7] p-6 md:p-8">
+ <h2 className="text-xl font-semibold tracking-tight">{t("prog.photos")}</h2>
  {photos.length === 0 ? (
- <div className="mt-3 flex flex-col items-center gap-3 rounded-xl border border-dashed border-border py-10 text-center">
- <Camera className="h-10 w-10 text-muted-foreground/50" />
- <p className="text-sm text-muted-foreground">{t("prog.noPhotos")}</p>
- <Button size="sm" variant="outline" className="gap-2" onClick={() => setPhotoOpen(true)}>
- <Camera className="h-4 w-4" />
+ <div className="mt-6 flex flex-col items-center gap-3 rounded-2xl border border-dashed border-[#d2d2d7] py-12 text-center">
+ <p className="text-sm font-normal text-[#6e6e73]">{t("prog.noPhotos")}</p>
+ <button
+ onClick={() => setPhotoOpen(true)}
+ className="rounded-full bg-[#0071e3] px-5 py-2 text-sm font-normal text-white transition-opacity hover:opacity-90"
+ >
  {t("prog.uploadPhoto")}
- </Button>
+ </button>
  </div>
  ) : (
  <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
@@ -263,7 +268,7 @@ export function ProgressView() {
  ))}
  </div>
  )}
- </Card>
+ </div>
 
  {/* Add Entry Dialog */}
  <Dialog open={open} onOpenChange={setOpen}>
