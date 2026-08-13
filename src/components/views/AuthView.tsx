@@ -1,9 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Dumbbell, ArrowRight, Info } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { LanguageToggle } from "@/components/LanguageToggle";
@@ -14,190 +12,205 @@ import { isSupabaseConfigured } from "@/lib/supabase/client";
 import { toast } from "sonner";
 
 export function AuthView({ mode }: { mode: "login" | "signup" }) {
- const { t } = useI18n();
- const { navigate } = useNav();
- const { signIn, signUp, signInGoogle } = useAuth();
- const isSignup = mode === "signup";
+  const { t, lang } = useI18n();
+  const { navigate } = useNav();
+  const { signIn, signUp, signInGoogle } = useAuth();
+  const isSignup = mode === "signup";
+  const isAr = lang === "ar";
 
- const [email, setEmail] = useState("");
- const [password, setPassword] = useState("");
- const [fullName, setFullName] = useState("");
- const [phone, setPhone] = useState("");
- const [loading, setLoading] = useState(false);
- const [googleLoading, setGoogleLoading] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [fullName, setFullName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
 
- const goHome = (isCoach: boolean) => navigate(isCoach ? "coach" : "dashboard");
+  const goHome = (isCoach: boolean) => navigate(isCoach ? "coach" : "dashboard");
 
- const submit = async (e: React.FormEvent) => {
- e.preventDefault();
- setLoading(true);
- try {
- if (isSignup) {
- const { error } = await signUp(email, password, fullName, phone);
- if (error) {
- toast.error(error);
- } else {
- toast.success(t("auth.accountCreated"));
- goHome(false);
- }
- } else {
- const { error, profile } = await signIn(email, password);
- if (error) {
- toast.error(error);
- } else {
- toast.success(t("auth.welcomeBack"));
- goHome(profile?.role === "coach");
- }
- }
- } finally {
- setLoading(false);
- }
- };
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      if (isSignup) {
+        const { error } = await signUp(email, password, fullName, phone);
+        if (error) {
+          toast.error(error);
+        } else {
+          toast.success(t("auth.accountCreated"));
+          goHome(false);
+        }
+      } else {
+        const { error, profile } = await signIn(email, password);
+        if (error) {
+          toast.error(error);
+        } else {
+          toast.success(t("auth.welcomeBack"));
+          goHome(profile?.role === "coach");
+        }
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
 
- const handleGoogle = async () => {
- setGoogleLoading(true);
- try {
- const { error } = await signInGoogle();
- if (error) {
- toast.error(t("auth.googleError"));
- setGoogleLoading(false);
- }
- // If successful, Supabase will redirect to Google → back to origin.
- // The auth state change will be picked up by onAuthChange on return.
- } catch {
- setGoogleLoading(false);
- toast.error(t("auth.googleError"));
- }
- };
+  const handleGoogle = async () => {
+    setGoogleLoading(true);
+    try {
+      const { error } = await signInGoogle();
+      if (error) {
+        toast.error(t("auth.googleError"));
+        setGoogleLoading(false);
+      }
+    } catch {
+      setGoogleLoading(false);
+      toast.error(t("auth.googleError"));
+    }
+  };
 
- return (
- <div className="min-h-screen flex flex-col bg-background">
- <header className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between px-4">
- <button className="flex items-center gap-2" onClick={() => navigate("landing")}>
- <span className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-primary">
- <Dumbbell className="h-5 w-5 text-primary-foreground" />
- </span>
- <span className="font-display text-lg font-bold">{t("brand.name")}</span>
- </button>
- <LanguageToggle />
- </header>
+  return (
+    <div className="flex min-h-screen flex-col bg-white text-[#1d1d1f]">
+      <header className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between px-4">
+        <button
+          className="text-lg font-semibold tracking-tight"
+          onClick={() => navigate("landing")}
+        >
+          MuscleHub
+        </button>
+        <LanguageToggle />
+      </header>
 
- <main className="flex flex-1 items-center justify-center px-4 py-10">
- <div className="w-full max-w-md">
- <div className="rounded-3xl border border-border bg-card p-8 shadow-card">
- <h1 className="text-2xl font-bold">{isSignup ? t("auth.signup.title") : t("auth.login.title")}</h1>
- <p className="mt-1 text-sm text-muted-foreground">
- {isSignup ? t("auth.signup.subtitle") : t("auth.login.subtitle")}
- </p>
+      <main className="flex flex-1 items-center justify-center px-4 py-10">
+        <div className="w-full max-w-md">
+          {/* Apple-style clean card — no border, no shadow, just whitespace */}
+          <div className="px-2">
+            <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">
+              {isSignup ? t("auth.signup.title") : t("auth.login.title")}
+            </h1>
+            <p className="mt-2 text-base font-normal text-[#6e6e73] md:text-lg">
+              {isSignup ? t("auth.signup.subtitle") : t("auth.login.subtitle")}
+            </p>
 
- {!isSupabaseConfigured && (
- <div className="mt-4 flex items-start gap-2 rounded-xl border border-warning/30 bg-warning/10 p-3 text-xs text-warning-foreground">
- <Info className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
- <span>{t("auth.demoNotice")}</span>
- </div>
- )}
+            {!isSupabaseConfigured && (
+              <div className="mt-6 rounded-xl bg-[#f5f5f7] p-4 text-sm font-normal text-[#6e6e73]">
+                {t("auth.demoNotice")}
+              </div>
+            )}
 
- {/* Google OAuth button */}
- {isSupabaseConfigured && (
- <>
- <Button
- type="button"
- variant="outline"
- className="mt-6 w-full gap-3"
- onClick={handleGoogle}
- disabled={googleLoading || loading}
- >
- {googleLoading ? (
- <span className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
- ) : (
- <GoogleIcon className="h-5 w-5" />
- )}
- <span className="font-medium">{t("auth.google")}</span>
- </Button>
+            {/* Google OAuth button — Apple-style */}
+            {isSupabaseConfigured && (
+              <>
+                <button
+                  type="button"
+                  onClick={handleGoogle}
+                  disabled={googleLoading || loading}
+                  className="mt-8 flex w-full items-center justify-center gap-3 rounded-full border border-[#d2d2d7] bg-white px-6 py-3 text-base font-normal transition-opacity hover:opacity-90 disabled:opacity-50"
+                >
+                  {googleLoading ? (
+                    <span className="h-5 w-5 animate-spin rounded-full border-2 border-[#0071e3] border-t-transparent" />
+                  ) : (
+                    <GoogleIcon className="h-5 w-5" />
+                  )}
+                  <span>{t("auth.google")}</span>
+                </button>
 
- {/* Divider */}
- <div className="my-5 flex items-center gap-3">
- <div className="h-px flex-1 bg-border" />
- <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
- {t("auth.or")}
- </span>
- <div className="h-px flex-1 bg-border" />
- </div>
- </>
- )}
+                {/* Divider */}
+                <div className="my-6 flex items-center gap-4">
+                  <div className="h-px flex-1 bg-[#d2d2d7]" />
+                  <span className="text-xs font-normal uppercase tracking-wide text-[#6e6e73]">
+                    {t("auth.or")}
+                  </span>
+                  <div className="h-px flex-1 bg-[#d2d2d7]" />
+                </div>
+              </>
+            )}
 
- <form onSubmit={submit} className="space-y-4">
- {isSignup && (
- <>
- <div className="space-y-1.5">
- <Label htmlFor="fullname">{t("auth.fullName")}</Label>
- <Input
- id="fullname"
- required
- value={fullName}
- onChange={(e) => setFullName(e.target.value)}
- placeholder="Ahmed Ali"
- />
- </div>
- <div className="space-y-1.5">
- <Label htmlFor="phone">{t("auth.phone")}</Label>
- <Input
- id="phone"
- required
- value={phone}
- onChange={(e) => setPhone(e.target.value)}
- placeholder="+20 100 000 0000"
- />
- </div>
- </>
- )}
- <div className="space-y-1.5">
- <Label htmlFor="email">{t("auth.email")}</Label>
- <Input
- id="email"
- type="email"
- required
- value={email}
- onChange={(e) => setEmail(e.target.value)}
- placeholder="you@example.com"
- />
- </div>
- <div className="space-y-1.5">
- <Label htmlFor="password">{t("auth.password")}</Label>
- <Input
- id="password"
- type="password"
- required
- minLength={6}
- value={password}
- onChange={(e) => setPassword(e.target.value)}
- placeholder="••••••••"
- />
- </div>
+            <form onSubmit={submit} className="space-y-5">
+              {isSignup && (
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="fullname" className="text-sm font-medium">
+                      {t("auth.fullName")}
+                    </Label>
+                    <Input
+                      id="fullname"
+                      required
+                      value={fullName}
+                      onChange={(e) => setFullName(e.target.value)}
+                      placeholder="Ahmed Ali"
+                      className="rounded-xl border-[#d2d2d7] bg-white px-4 py-3 text-base"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="phone" className="text-sm font-medium">
+                      {t("auth.phone")}
+                    </Label>
+                    <Input
+                      id="phone"
+                      required
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      placeholder="+20 100 000 0000"
+                      className="rounded-xl border-[#d2d2d7] bg-white px-4 py-3 text-base"
+                    />
+                  </div>
+                </>
+              )}
+              <div className="space-y-2">
+                <Label htmlFor="email" className="text-sm font-medium">
+                  {t("auth.email")}
+                </Label>
+                <Input
+                  id="email"
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="you@example.com"
+                  className="rounded-xl border-[#d2d2d7] bg-white px-4 py-3 text-base"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="password" className="text-sm font-medium">
+                  {t("auth.password")}
+                </Label>
+                <Input
+                  id="password"
+                  type="password"
+                  required
+                  minLength={6}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="rounded-xl border-[#d2d2d7] bg-white px-4 py-3 text-base"
+                />
+              </div>
 
- <Button type="submit" className="w-full gap-2" disabled={loading || googleLoading}>
- {loading ? t("common.loading") : isSignup ? t("auth.signUp") : t("auth.signIn")}
- <ArrowRight className="h-4 w-4 rtl:rotate-180" />
- </Button>
- </form>
+              <button
+                type="submit"
+                disabled={loading || googleLoading}
+                className="w-full rounded-full bg-[#0071e3] px-6 py-3 text-base font-normal text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+              >
+                {loading ? t("common.loading") : isSignup ? t("auth.signUp") : t("auth.signIn")}
+              </button>
+            </form>
 
- <p className="mt-6 text-center text-sm text-muted-foreground">
- {isSignup ? t("auth.haveAccount") : t("auth.noAccount")}{" "}
- <button
- type="button"
- className="font-semibold text-primary hover:underline"
- onClick={() => navigate("auth", { mode: isSignup ? "login" : "signup" })}
- >
- {isSignup ? t("auth.toLogin") : t("auth.toSignup")}
- </button>
- </p>
- </div>
- </div>
- </main>
+            <p className="mt-8 text-center text-sm font-normal text-[#6e6e73]">
+              {isSignup ? t("auth.haveAccount") : t("auth.noAccount")}{" "}
+              <button
+                type="button"
+                className="font-normal text-[#0071e3] transition-opacity hover:opacity-70"
+                onClick={() => navigate("auth", { mode: isSignup ? "login" : "signup" })}
+              >
+                {isSignup ? t("auth.toLogin") : t("auth.toSignup")}
+              </button>
+            </p>
+          </div>
+        </div>
+      </main>
 
- <footer className="mt-auto border-t border-border py-8 text-center text-sm text-muted-foreground">
- © {new Date().getFullYear()} {t("brand.name")}. {t("landing.footer")}
- </footer>
- </div>
- );
+      <footer className="mt-auto border-t border-[#d2d2d7] py-6 text-center text-xs font-normal text-[#6e6e73]">
+        © {new Date().getFullYear()} MuscleHub. {isAr ? "كل الحقوق محفوظة." : "All rights reserved."}
+      </footer>
+    </div>
+  );
 }

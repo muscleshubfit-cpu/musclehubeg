@@ -1,74 +1,73 @@
 "use client";
 
-import { Dumbbell } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 import { LanguageToggle } from "@/components/LanguageToggle";
 import { useNav, type View } from "@/hooks/use-nav";
 
 export function StaticPageView({ page }: { page: "about" | "privacy" | "terms" | "faq" }) {
- const { t, lang } = useI18n();
- const { navigate } = useNav();
- const isAr = lang === "ar";
+  const { t, lang } = useI18n();
+  const { navigate } = useNav();
+  const isAr = lang === "ar";
 
- const content = getContent(page, isAr);
+  const content = getContent(page, isAr);
 
- return (
- <div className="min-h-screen flex flex-col bg-background">
- <header className="sticky top-0 z-40 border-b border-border bg-background/80 backdrop-blur-xl">
- <div className="mx-auto flex h-16 w-full max-w-4xl items-center justify-between px-4 sm:px-6">
- <button onClick={() => navigate("landing")} className="flex items-center gap-2">
- <span className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-primary">
- <Dumbbell className="h-5 w-5 text-primary-foreground" />
- </span>
- <span className="font-display text-lg font-bold">Muscle<span className="text-primary">Hub</span></span>
- </button>
- <LanguageToggle />
- </div>
- </header>
+  return (
+    <div className="flex min-h-screen flex-col bg-white text-[#1d1d1f]">
+      <header className="sticky top-0 z-40 border-b border-[#d2d2d7] bg-white/80 backdrop-blur-xl">
+        <div className="mx-auto flex h-16 w-full max-w-4xl items-center justify-between px-4 sm:px-6">
+          <button
+            onClick={() => navigate("landing")}
+            className="text-lg font-semibold tracking-tight"
+          >
+            MuscleHub
+          </button>
+          <LanguageToggle />
+        </div>
+      </header>
 
- <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-12 sm:px-6">
- <h1 className="text-4xl font-extrabold">{content.title}</h1>
- <p className="mt-2 text-sm text-muted-foreground">{content.updated}</p>
+      <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-20 sm:px-6 md:py-28">
+        <h1 className="text-4xl font-semibold tracking-tight md:text-6xl">{content.title}</h1>
+        <p className="mt-3 text-sm font-normal text-[#6e6e73]">{content.updated}</p>
 
- <div className="mt-8 space-y-6">
- {content.sections.map((section, i) => (
- <section key={i}>
- <h2 className="text-xl font-bold">{section.heading}</h2>
- <div className="mt-2 space-y-2 text-sm leading-relaxed text-muted-foreground">
- {section.paragraphs.map((p, j) => (
- <p key={j}>{p}</p>
- ))}
- {section.list && (
- <ul className="mt-2 space-y-1 ps-5">
- {section.list.map((item, j) => (
- <li key={j} className="list-disc">{item}</li>
- ))}
- </ul>
- )}
- </div>
- </section>
- ))}
- </div>
+        <div className="mt-16 space-y-12">
+          {content.sections.map((section, i) => (
+            <section key={i}>
+              <h2 className="text-xl font-semibold tracking-tight md:text-2xl">{section.heading}</h2>
+              <div className="mt-4 space-y-4 text-base font-normal leading-relaxed text-[#1d1d1f] md:text-lg">
+                {section.paragraphs.map((p, j) => (
+                  <p key={j}>{p}</p>
+                ))}
+                {section.list && (
+                  <ul className="mt-4 space-y-2 ps-5">
+                    {section.list.map((item, j) => (
+                      <li key={j} className="list-disc">{item}</li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </section>
+          ))}
+        </div>
 
- {/* FAQ specific */}
- {page === "faq" && (
- <div className="mt-12 rounded-2xl border border-border bg-card p-6 text-center">
- <p className="text-sm text-muted-foreground">
- {isAr ? "لديك سؤال آخر؟" : "Have another question?"}
- </p>
- <button
- onClick={() => navigate("contact")}
- className="mt-3 font-semibold text-primary hover:underline"
- >
- {isAr ? "تواصل معنا →" : "Contact us →"}
- </button>
- </div>
- )}
- </main>
+        {/* FAQ specific */}
+        {page === "faq" && (
+          <div className="mt-20 rounded-2xl bg-[#f5f5f7] p-10 text-center">
+            <p className="text-base font-normal text-[#6e6e73]">
+              {isAr ? "لديك سؤال آخر؟" : "Have another question?"}
+            </p>
+            <button
+              onClick={() => navigate("contact")}
+              className="mt-4 text-base font-normal text-[#0071e3] transition-opacity hover:opacity-70"
+            >
+              {isAr ? "تواصل معنا ›" : "Contact us ›"}
+            </button>
+          </div>
+        )}
+      </main>
 
- <footer className="mt-auto border-t border-border py-6 text-center text-sm text-muted-foreground">
- © {new Date().getFullYear()} MuscleHub. {isAr ? "كل الحقوق محفوظة." : "All rights reserved."}
- </footer>
+      <footer className="mt-auto border-t border-[#d2d2d7] py-6 text-center text-xs font-normal text-[#6e6e73]">
+        © {new Date().getFullYear()} MuscleHub. {isAr ? "كل الحقوق محفوظة." : "All rights reserved."}
+      </footer>
  </div>
  );
 }
