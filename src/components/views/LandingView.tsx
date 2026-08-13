@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useI18n } from "@/lib/i18n";
 import { useNav } from "@/hooks/use-nav";
 import { useAuth } from "@/hooks/use-auth";
@@ -80,6 +80,9 @@ function ProductCard({
 }
 
 // Apple-style sticky scroll section
+// The outer section is 200vh tall so the inner sticky content has room
+// to stay pinned for one extra viewport of scrolling before the next
+// section pushes it away. This matches apple.com/iphone's behavior.
 function StickySection({
   children,
   bg = "bg-white",
@@ -87,39 +90,10 @@ function StickySection({
   children: React.ReactNode;
   bg?: string;
 }) {
-  const ref = useRef<HTMLDivElement>(null);
-  const [progress, setProgress] = useState(0);
-
-  useEffect(() => {
-    const onScroll = () => {
-      if (!ref.current) return;
-      const rect = ref.current.getBoundingClientRect();
-      const windowHeight = window.innerHeight;
-      // Calculate scroll progress through the section
-      const total = rect.height - windowHeight;
-      const scrolled = Math.max(0, -rect.top);
-      const p = Math.min(1, Math.max(0, scrolled / total));
-      setProgress(p);
-    };
-    onScroll();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
-
-  // Scale from 1.0 → 1.1 based on scroll progress (Apple-style)
-  const scale = 1 + progress * 0.05;
-  // Fade slightly as it exits
-  const opacity = 1 - Math.max(0, (progress - 0.7) / 0.3);
-
   return (
-    <section ref={ref} className={`${bg} relative overflow-hidden`}>
-      <div className="sticky top-0 flex min-h-screen items-center justify-center">
-        <div
-          style={{ transform: `scale(${scale})`, opacity }}
-          className="transition-transform duration-100 ease-out"
-        >
-          {children}
-        </div>
+    <section className={`${bg} relative h-[200vh]`}>
+      <div className="sticky top-0 flex h-screen items-center justify-center overflow-hidden">
+        {children}
       </div>
     </section>
   );
