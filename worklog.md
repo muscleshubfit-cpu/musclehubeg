@@ -852,3 +852,59 @@ Stage Summary:
 - Social share: now shares the actual article URL with image + title + summary
   via OG tags. Works on Facebook, LinkedIn, X, WhatsApp.
 - Language: share text matches the article language (AR for Arabic, EN for English).
+
+---
+Task ID: 1
+Agent: Super Z (main)
+Task: PASS 2 — Group 1: Add server-side auth to all 13 unprotected API routes (S1, S2, S3, U1)
+
+Work Log:
+- Created `src/lib/auth-server.ts` with `getAuthUser()`, `requireUser()`, `requireCoach()`, `getAuthUserFromHeaders()`, and `isAuthConfigured` flag
+- Added `getSubscriptionForClient(clientId)` to `src/lib/data.ts` as the scoped replacement for `listAllSubscriptions()` in user-facing routes
+- Applied auth checks to 13 routes:
+  - requireUser (any logged-in user): `/api/ai/chat`, `/api/ai/swap`, `/api/ai/regenerate-meal`
+  - requireCoach (admin only): `/api/ai/generate-article`, `/api/ai/research-topic`, `/api/ai/pick-topic`, `/api/ai/plan`, `/api/ai/settings` (POST), `/api/ai/test`, `/api/ai/generate-image`, `/api/plans/normalize`, `/api/blog/fetch-images`
+- Fixed S2 IDOR: `/api/ai/chat` now takes `userId` from the verified Supabase session, NOT the request body. Replaced `listAllSubscriptions()` with `getSubscriptionForClient(userId)` so a caller can no longer read other users' subscriptions.
+- Fixed S3: replaced hardcoded "fetch-images-2026" shared secret with coach session check
+- Behavior change: in demo mode (no Supabase configured), auth is skipped — preserves preview behavior. In production, all 13 routes now return 401/403 without a valid session.
+- All auth checks are no-ops in demo mode (isAuthConfigured === false), so existing local preview behavior is preserved.
+
+Stage Summary:
+- 13 API routes now have auth (was 0)
+- 1 IDOR fixed (chat no longer trusts body userId)
+- 1 hardcoded secret removed (fetch-images)
+- `tsc --noEmit` clean, `next build` succeeds
+- Risk for user to smoke-test: log in as a client, send a chat message → should still work (session cookie sent automatically). Log in as coach, hit `/admin/blog` "Generate with AI" → should work. Hit `/api/ai/chat` from curl with no cookies → should 401.
+
+---
+Task ID: 2-6
+Agent: Super Z (main)
+Task: PASS 2 — Groups 2-6: XSS fix, dead code removal, dedup, dep updates, small fixes
+
+Work Log:
+- **Group 2 (S4)**: Rewrote `renderMarkdown` in `src/lib/blog.ts` to escape HTML entities before markdown transforms. Added `escapeHtml()` and `isSafeUrl()` helpers. Code blocks and inline code are extracted before escaping (so their content is escaped but not double-processed). Links validate URL scheme (rejects `javascript:`, `data:`, `vbscript:`). Added `rel="noopener noreferrer"` to links. Behavior change: any existing blog posts that relied on raw HTML in their markdown will no longer render the HTML (they'll show escaped text). This is the intended security fix.
+- **Group 3 (R3/R4/R5)**: Removed `src/lib/db.ts` (dead Prisma client), `db/` dir, `prisma` + `@prisma/client` + `next-auth` from package.json, `db:*` scripts. Removed `package-lock.json` (Vercel uses `bun install` → `bun.lock`). Added `package-lock.json`, `yarn.lock`, `pnpm-lock.yaml` to `.gitignore`.
+- **Group 4 (D1/D2/D3/U2)**:
+  - Added `callFreeOpenRouter()` + `FREE_OPENROUTER_MODELS` to `src/lib/ai-provider.ts` — replaced 3 copies of the OpenRouter model iteration loop in chat/swap/research-topic routes.
+  - Moved `getOverrideFromRequest` + `AI_SETTINGS_COOKIES` from `src/app/api/ai/settings/route.ts` into `src/lib/ai-provider.ts`. Settings route re-exports for backward compat. Updated `generate-article` and `test` routes to import from `@/lib/ai-provider` directly.
+  - Created `src/lib/blog-server.ts` with `fetchBlogForOG(slug, lang)` — replaced 3 copies of the Supabase blog REST query (in middleware [now deleted], /api/og/[slug], and both blog/[slug] page.tsx files).
+- **Group 5**: Added `overrides` to package.json: `nanoid: ^3.3.17`, `postcss: ^8.5.26`. These fix 2 of the original 5 high-severity CVEs without breaking changes. The other 3 (js-yaml via @mdxeditor, prismjs via react-syntax-highlighter, sharp) require major-version bumps — flagged for user decision.
+  - Note: an initial `bun update` accidentally bumped ~20 packages including 5 major versions (lucide-react 0.525→1.31 broke brand icons, react-table 8→9, react-resizable-panels 3→4, react-syntax-highlighter 15→16, typescript 5→7). Reverted by restoring package.json from git and re-applying only the intentional changes.
+- **Group 6**:
+  - S6: Fixed `maxDuration` mismatch — `generate-article` route bumped from 60→300 (matches comment); `cron/generate-blog-post` bumped from 60→300.
+  - S7: Removed `typescript.ignoreBuildErrors: true` from next.config.ts. Added `skills`, `scripts`, `examples`, `mini-services`, `.next` to tsconfig.json `exclude` so Next's type checker doesn't scan gitignored dirs.
+  - S9: Deleted dead `injectBlogOGTags` function from `src/middleware.ts` (68 lines removed — was never called; OG tags are handled by server components + /api/og route).
+  - H3: Removed broken `process.cwd()` write attempt in `generate-image` route (Vercel serverless cwd is read-only; the /tmp write is kept).
+  - H5: Stale "Gemini failed" log in chat route was already fixed in Group 1 edit.
+  - H6: OG image URL escaping was already done in Group 4 rewrite of /api/og/[slug].
+
+Stage Summary:
+- All builds pass: `tsc --noEmit` clean, `next build` succeeds, ESLint has 1 pre-existing error (BlogAdminView.tsx:24 — `load` used before declaration — not introduced by this audit).
+- Files created: `src/lib/auth-server.ts`, `src/lib/blog-server.ts`
+- Files deleted: `src/lib/db.ts`, `db/`, dead 86 lines from `src/middleware.ts`
+- Files significantly refactored: `src/lib/blog.ts` (renderMarkdown), `src/lib/ai-provider.ts` (added 2 helpers + moved settings cookie logic), `src/app/api/og/[slug]/route.ts`, both `blog/[slug]/page.tsx` files
+- API routes with auth added: 13 (3 requireUser, 10 requireCoach)
+- Deps removed: prisma, @prisma/client, next-auth
+- CVEs fixed: nanoid, postcss (via overrides)
+- CVEs flagged for user decision: js-yaml (needs @mdxeditor 4.x), prismjs (needs react-syntax-highlighter 16.x), sharp (needs 0.35.x)
+- Items NOT done (flagged in PASS 1, not approved): S5 (git history scrub), S8 (cookie maxAge), S10 (CSP/HSTS headers), H1 (pagination), H2 (batch image fetch), H4 (sitemap force-dynamic)

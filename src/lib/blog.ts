@@ -148,14 +148,59 @@ export function parseTableOfContents(content: string): Array<{ level: number; te
  return toc;
 }
 
+/**
+ * Escape HTML special characters in text content. Used before interpolating
+ * user/AI-generated text into HTML to prevent stored XSS.
+ *
+ * The order matters: & must be escaped first so we don't double-escape
+ * entities we just produced.
+ */
+function escapeHtml(s: string): string {
+ return s
+ .replace(/&/g, "&amp;")
+ .replace(/</g, "&lt;")
+ .replace(/>/g, "&gt;")
+ .replace(/"/g, "&quot;")
+ .replace(/'/g, "&#39;");
+}
+
+/**
+ * Validate that a URL is safe to use in an href/src attribute.
+ * Allows http, https, mailto, tel, and fragment (#...) links.
+ * Rejects javascript:, data:, vbscript:, and anything else.
+ */
+function isSafeUrl(url: string): boolean {
+ const trimmed = url.trim();
+ if (!trimmed) return false;
+ if (trimmed.startsWith("#")) return true;
+ if (/^(https?:|mailto:|tel:)/i.test(trimmed)) return true;
+ // Relative URLs (no scheme) are also safe
+ if (!/^[a-z][a-z0-9+.-]*:/i.test(trimmed)) return true;
+ return false;
+}
+
 /** Convert markdown to HTML (basic — for production use a proper parser) */
 export function renderMarkdown(content: string): string {
- let html = content;
+ // 1. Extract code blocks first (their content is escaped, not markdown-parsed)
+ const codeBlocks: string[] = [];
+ let html = content.replace(/```([\s\S]*?)```/g, (_, code) => {
+ const escaped = escapeHtml(code.trim());
+ codeBlocks.push(`<pre class="bg-muted p-4 rounded-lg overflow-x-auto text-sm"><code>${escaped}</code></pre>`);
+ return `\u0000CODEBLOCK${codeBlocks.length - 1}\u0000`;
+ });
 
- // Code blocks
- html = html.replace(/```([\s\S]*?)```/g, (_, code) => `<pre class="bg-muted p-4 rounded-lg overflow-x-auto text-sm"><code>${code.trim()}</code></pre>`);
+ // 2. Extract inline code (`code`) — also escaped, not parsed
+ const inlineCodes: string[] = [];
+ html = html.replace(/`([^`\n]+)`/g, (_, code) => {
+ const escaped = escapeHtml(code);
+ inlineCodes.push(`<code class="bg-muted px-1.5 py-0.5 rounded text-sm">${escaped}</code>`);
+ return `\u0000INLINE${inlineCodes.length - 1}\u0000`;
+ });
 
- // Headings with IDs
+ // 3. Escape the rest of the content (prevents XSS from raw <script>, onerror=, etc.)
+ html = escapeHtml(html);
+
+ // 4. Headings with IDs (text is already escaped)
  html = html.replace(/^### (.+)$/gm, (_, text) => {
  const id = text.toLowerCase().replace(/[^\w\u0600-\u06FF\s-]/g, "").replace(/\s+/g, "-");
  return `<h3 id="${id}" class="text-lg font-bold mt-6 mb-2">${text}</h3>`;
@@ -166,34 +211,41 @@ export function renderMarkdown(content: string): string {
  });
  html = html.replace(/^# (.+)$/gm, (_, text) => `<h1 class="text-2xl font-bold mt-8 mb-4">${text}</h1>`);
 
- // Bold
+ // 5. Bold
  html = html.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
 
- // Italic
+ // 6. Italic
  html = html.replace(/\*(.+?)\*/g, "<em>$1</em>");
 
- // Blockquotes
- html = html.replace(/^> (.+)$/gm, '<blockquote class="border-s-4 border-primary ps-4 py-2 my-4 text-muted-foreground italic">$1</blockquote>');
+ // 7. Blockquotes
+ html = html.replace(/^&gt; (.+)$/gm, '<blockquote class="border-s-4 border-primary ps-4 py-2 my-4 text-muted-foreground italic">$1</blockquote>');
 
- // Ordered lists
+ // 8. Ordered lists
  html = html.replace(/^(\d+)\.\s+(.+)$/gm, '<li class="ms-6 list-decimal">$2</li>');
  html = html.replace(/(<li[^>]*>.*<\/li>\n?)+/g, (match) => `<ol class="space-y-1 my-4">${match}</ol>`);
 
- // Unordered lists
+ // 9. Unordered lists
  html = html.replace(/^-\s+(.+)$/gm, '<li class="ms-6 list-disc">$1</li>');
 
- // Tables (basic)
- html = html.replace(/\|(.+)\|/g, (_, content) => {
- const cells = content.split("|").map((c: string) => c.trim()).filter(Boolean);
+ // 10. Tables (basic) — cells already escaped
+ html = html.replace(/\|(.+)\|/g, (_, body) => {
+ const cells = body.split("|").map((c: string) => c.trim()).filter(Boolean);
  return `<tr>${cells.map((c: string) => `<td class="p-2 border border-border">${c}</td>`).join("")}</tr>`;
  });
  html = html.replace(/(<tr>.*<\/tr>\n?)+/g, (match) => `<table class="w-full text-sm border-collapse my-4"><tbody>${match}</tbody></table>`);
 
- // Paragraphs
- html = html.replace(/^(?!<[hbluo])(.+)$/gm, '<p class="my-3 leading-relaxed">$1</p>');
+ // 11. Links — validate URL scheme to prevent javascript: etc.
+ html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (match, text, url) => {
+ if (!isSafeUrl(url)) return text; // strip unsafe links to plain text
+ return `<a href="${url}" rel="noopener noreferrer" class="text-primary hover:underline">${text}</a>`;
+ });
 
- // Links
- html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" class="text-primary hover:underline">$1</a>');
+ // 12. Paragraphs
+ html = html.replace(/^(?!<[hbluol])(.+)$/gm, '<p class="my-3 leading-relaxed">$1</p>');
+
+ // 13. Restore code blocks and inline code
+ html = html.replace(/\u0000CODEBLOCK(\d+)\u0000/g, (_, i) => codeBlocks[Number(i)]);
+ html = html.replace(/\u0000INLINE(\d+)\u0000/g, (_, i) => inlineCodes[Number(i)]);
 
  return html;
 }

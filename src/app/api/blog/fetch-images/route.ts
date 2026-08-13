@@ -1,21 +1,27 @@
 // @ts-nocheck
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { requireCoach, isAuthConfigured } from "@/lib/auth-server";
 
 /**
  * Auto-fetch featured images for all published blog posts that don't have one.
  * Uses Pexels API to search for images matching the article's focus keyword or title.
  *
  * POST /api/blog/fetch-images
- * Body: { key: "fetch-images-2026" }
+ *
+ * Auth: coach-only. Previously "protected" by a hardcoded shared string
+ * ("fetch-images-2026") that was trivially discoverable in the source.
  */
 export const maxDuration = 120;
 
 export async function POST(request: NextRequest) {
-  const body = await request.json().catch(() => ({}));
-  if ((body.key || "") !== "fetch-images-2026") {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  // Coach-only — writes to blog_posts using the service-role key.
+  if (isAuthConfigured) {
+    const auth = await requireCoach(request);
+    if (auth instanceof Response) return auth;
   }
+
+  const body = await request.json().catch(() => ({}));
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;

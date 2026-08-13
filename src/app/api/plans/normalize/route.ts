@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { normalizeCoachPlanText } from "@/lib/plan-generator";
+import { requireCoach, isAuthConfigured } from "@/lib/auth-server";
 
 /**
  * Normalize a coach-pasted plan (free text, markdown, or loosely-structured
@@ -25,6 +26,12 @@ export const maxDuration = 180;
 
 export async function POST(request: NextRequest) {
  try {
+ // Coach-only — uses OpenRouter credits to normalize coach-pasted plans.
+ if (isAuthConfigured) {
+ const auth = await requireCoach(request);
+ if (auth instanceof Response) return auth;
+ }
+
  const body = await request.json();
  const { text, planType } = body as {
  text: string;

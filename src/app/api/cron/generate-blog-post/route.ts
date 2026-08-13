@@ -5,7 +5,9 @@ import { generateArticleBundle } from "@/lib/blog-generate";
 import { fetchFeaturedImage } from "@/lib/blog-images";
 import { supabaseAdmin, isSupabaseAdminConfigured } from "@/lib/supabase/admin";
 
-export const maxDuration = 60;
+// 300s (5 min) — article generation + image fetch can exceed 60s on free models.
+// Vercel's hobby plan caps at 60s; pro/enterprise allows up to 300s/900s.
+export const maxDuration = 300;
 
 function slugify(input: string): string {
  return input.toLowerCase().trim().replace(/[^\w\s-]/g, "").replace(/\s+/g, "-").replace(/-+/g, "-").slice(0, 80);

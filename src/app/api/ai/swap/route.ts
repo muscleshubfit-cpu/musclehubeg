@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { callAIWithFallback, parseJSON, type AIProvider } from "@/lib/ai-provider";
+import { callFreeOpenRouter, parseJSON } from "@/lib/ai-provider";
+import { requireUser, isAuthConfigured } from "@/lib/auth-server";
 
 /**
  * Swap a meal or exercise for an alternative.
@@ -8,23 +9,22 @@ import { callAIWithFallback, parseJSON, type AIProvider } from "@/lib/ai-provide
  * POST /api/ai/swap
  * Body: { type, item, clientContext, note }
  * Returns: { replacement, source }
+ *
+ * Used by both the coach (plan editor) and the client (swap button).
+ * Auth: any logged-in user (requireUser). The client_id for swap limit
+ * accounting is taken from the verified session, NOT the body — so a
+ * logged-in client can't swap on behalf of another user.
  */
 export const maxDuration = 180;
 
-const OPENROUTER_KEY = process.env.OPENROUTER_API_KEY || process.env.AI_API_KEY || "";
-const OPENROUTER_BASE = "https://openrouter.ai/api/v1";
-
-// Try multiple free OpenRouter models in order
-const FREE_MODELS = [
- "google/gemma-4-26b-a4b-it:free",
- "google/gemma-4-31b-it:free",
- "google/gemma-4-26b-a4b-it:free",
- "openai/gpt-oss-20b:free",
- "poolside/laguna-s-2.1:free",
-];
-
 export async function POST(request: NextRequest) {
  try {
+ // Any logged-in user — both coach and clients use swaps.
+ if (isAuthConfigured) {
+ const auth = await requireUser(request);
+ if (auth instanceof Response) return auth;
+ }
+
  const body = await request.json();
  const { type, item, clientContext, note } = body;
 
@@ -58,11 +58,9 @@ ${note ? `طلب العميل: ${note}` : ""}
  "notes": "ملاحظة قصيرة"
 }`;
 
- // Try OpenRouter free models
- for (const model of FREE_MODELS) {
- if (!OPENROUTER_KEY) break;
+ // Try OpenRouter free models (shared helper handles the iteration)
  try {
- const { text } = await callAIWithFallback(
+ const { text, model } = await callFreeOpenRouter(
  prompt,
  {
  systemPrompt: "أنت أخصائي تغذية محترف. أعد JSON صالح فقط.",
@@ -71,20 +69,13 @@ ${note ? `طلب العميل: ${note}` : ""}
  jsonMode: true,
  timeoutMs: 90_000,
  },
- {
- provider: "openrouter" as AIProvider,
- apiKey: OPENROUTER_KEY,
- model,
- baseUrl: OPENROUTER_BASE,
- },
  );
  const replacement = parseJSON<any>(text);
  if (replacement && replacement.items) {
  return NextResponse.json({ replacement, source: `openrouter:${model}` });
  }
  } catch (e: any) {
- console.error(`[api/ai/swap] OpenRouter ${model} failed:`, e?.message);
- }
+ console.error("[api/ai/swap] meal OpenRouter failed:", e?.message);
  }
  } else if (type === "exercise") {
  const prompt = `أنت مدرب لياقة. استبدل التمرين التالي بتمرين بديل يستهدف نفس العضلة (${item.focus || "غير محدد"}) بنفس الحجم والشدة.
@@ -107,10 +98,8 @@ ${note ? `طلب العميل: ${note}` : ""}
  "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/..."
 }`;
 
- for (const model of FREE_MODELS) {
- if (!OPENROUTER_KEY) break;
  try {
- const { text } = await callAIWithFallback(
+ const { text, model } = await callFreeOpenRouter(
  prompt,
  {
  systemPrompt: "أنت مدرب لياقة محترف. أعد JSON صالح فقط.",
@@ -119,20 +108,13 @@ ${note ? `طلب العميل: ${note}` : ""}
  jsonMode: true,
  timeoutMs: 60_000,
  },
- {
- provider: "openrouter" as AIProvider,
- apiKey: OPENROUTER_KEY,
- model,
- baseUrl: OPENROUTER_BASE,
- },
  );
  const replacement = parseJSON<any>(text);
  if (replacement && replacement.name) {
  return NextResponse.json({ replacement, source: `openrouter:${model}` });
  }
  } catch (e: any) {
- console.error(`[api/ai/swap] OpenRouter ${model} failed:`, e?.message);
- }
+ console.error("[api/ai/swap] exercise OpenRouter failed:", e?.message);
  }
  }
 

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { testConnection, type AIProvider } from "@/lib/ai-provider";
-import { getOverrideFromRequest } from "@/app/api/ai/settings/route";
+import { testConnection, getOverrideFromRequest, type AIProvider } from "@/lib/ai-provider";
+import { requireCoach, isAuthConfigured } from "@/lib/auth-server";
 
 /**
  * Test Connection — POST /api/ai/test
@@ -9,9 +9,17 @@ import { getOverrideFromRequest } from "@/app/api/ai/settings/route";
  * - { use: "saved" } → test whatever is in the saved cookies/env
  * - { use: "preview", provider, apiKey, model, baseUrl } → test the form
  * values BEFORE saving them, so the admin can validate before commit.
+ *
+ * Coach-only — could otherwise be abused to validate stolen API keys.
  */
 export async function POST(request: NextRequest) {
  try {
+ // Coach-only — don't let anonymous callers validate arbitrary API keys.
+ if (isAuthConfigured) {
+ const auth = await requireCoach(request);
+ if (auth instanceof Response) return auth;
+ }
+
  const body = await request.json();
 
  let override: any = null;

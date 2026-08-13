@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { callAIWithFallback, parseJSON, type AIProvider } from "@/lib/ai-provider";
+import { callFreeOpenRouter, parseJSON } from "@/lib/ai-provider";
+import { requireCoach, isAuthConfigured } from "@/lib/auth-server";
 
 /**
  * Topic Research endpoint — uses OpenRouter AI to research a topic before
@@ -16,6 +17,12 @@ export const maxDuration = 60;
 
 export async function POST(request: NextRequest) {
   try {
+    // Coach-only — burns OpenRouter credits.
+    if (isAuthConfigured) {
+      const auth = await requireCoach(request);
+      if (auth instanceof Response) return auth;
+    }
+
     const body = await request.json();
     const { topic, focusKeyword } = body as { topic?: string; focusKeyword?: string };
 
@@ -25,10 +32,7 @@ export async function POST(request: NextRequest) {
 
     const searchTerm = focusKeyword || topic || "";
 
-    const OPENROUTER_KEY = process.env.OPENROUTER_API_KEY || process.env.AI_API_KEY || "";
-    const OPENROUTER_BASE = "https://openrouter.ai/api/v1";
-
-    if (!OPENROUTER_KEY) {
+    if (!process.env.OPENROUTER_API_KEY && !process.env.AI_API_KEY) {
       return NextResponse.json({ error: "OpenRouter API key not configured" }, { status: 500 });
     }
 
@@ -54,52 +58,38 @@ Return STRICT JSON only:
   "searcherGoal": "what the searcher really wants to achieve"
 }`;
 
-    const models = [
-      "google/gemma-4-26b-a4b-it:free",
-      "google/gemma-4-31b-it:free",
-      "google/gemma-4-26b-a4b-it:free",
-    ];
+    try {
+      const { text, model } = await callFreeOpenRouter(
+        prompt,
+        {
+          systemPrompt: "You are an expert SEO strategist with deep knowledge of Google search trends, Answer The Public data, and fitness/nutrition content. Return JSON only.",
+          temperature: 0.5,
+          maxTokens: 2000,
+          jsonMode: true,
+          timeoutMs: 60_000,
+        },
+      );
 
-    for (const model of models) {
-      try {
-        const { text } = await callAIWithFallback(
-          prompt,
-          {
-            systemPrompt: "You are an expert SEO strategist with deep knowledge of Google search trends, Answer The Public data, and fitness/nutrition content. Return JSON only.",
-            temperature: 0.5,
-            maxTokens: 2000,
-            jsonMode: true,
-            timeoutMs: 60_000,
-          },
-          {
-            provider: "openrouter" as AIProvider,
-            apiKey: OPENROUTER_KEY,
-            model,
-            baseUrl: OPENROUTER_BASE,
-          },
-        );
-
-        const parsed = parseJSON<any>(text);
-        if (parsed && (parsed.relatedQuestions || parsed.topArticles)) {
-          return NextResponse.json({
-            searchTerm,
-            topArticles: (parsed.topArticles || []).map((a: any) => ({
-              title: a.title || a.name || "",
-              snippet: a.description || a.coversWhat || "",
-              host: "",
-            })),
-            relatedQuestions: parsed.relatedQuestions || [],
-            trendingAngles: parsed.trendingKeywords || [],
-            contentGaps: parsed.contentGaps || [],
-            searchIntent: parsed.searchIntent || "informational",
-            searcherGoal: parsed.searcherGoal || "",
-            totalResults: (parsed.relatedQuestions?.length || 0) + (parsed.topArticles?.length || 0),
-            source: `openrouter:${model}`,
-          });
-        }
-      } catch (e: any) {
-        console.error(`[research-topic] OpenRouter ${model} failed:`, e?.message);
+      const parsed = parseJSON<any>(text);
+      if (parsed && (parsed.relatedQuestions || parsed.topArticles)) {
+        return NextResponse.json({
+          searchTerm,
+          topArticles: (parsed.topArticles || []).map((a: any) => ({
+            title: a.title || a.name || "",
+            snippet: a.description || a.coversWhat || "",
+            host: "",
+          })),
+          relatedQuestions: parsed.relatedQuestions || [],
+          trendingAngles: parsed.trendingKeywords || [],
+          contentGaps: parsed.contentGaps || [],
+          searchIntent: parsed.searchIntent || "informational",
+          searcherGoal: parsed.searcherGoal || "",
+          totalResults: (parsed.relatedQuestions?.length || 0) + (parsed.topArticles?.length || 0),
+          source: `openrouter:${model}`,
+        });
       }
+    } catch (e: any) {
+      console.error("[research-topic] OpenRouter failed:", e?.message);
     }
 
     // All models failed — return empty research (article generation will still work)

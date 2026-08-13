@@ -1271,6 +1271,25 @@ export async function listAllSubscriptions() {
  return read<any[]>(LS_SUBS, []);
 }
 
+/**
+ * Fetch ONLY the calling user's own subscription.
+ * Use this in user-facing contexts (e.g. /api/ai/chat) instead of
+ * listAllSubscriptions() — which returns every row and is meant for
+ * coach-only views. RLS also enforces this server-side, but defense in
+ * depth: never trust the body's userId, and never fetch more than needed.
+ */
+export async function getSubscriptionForClient(clientId: string) {
+ if (isSupabaseConfigured && supabase) {
+ const { data } = await supabase
+ .from("subscriptions")
+ .select("*")
+ .eq("client_id", clientId)
+ .maybeSingle();
+ return data ?? null;
+ }
+ return read<any[]>(LS_SUBS, []).find((s) => s.client_id === clientId) ?? null;
+}
+
 export async function upsertSubscription(clientId: string, tier: string, months: number, startDate: string, endDate: string) {
  if (isSupabaseConfigured && supabase) {
  const { data, error } = await supabase

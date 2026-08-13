@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { pickSmartTopic } from "@/lib/blog-topics";
+import { requireCoach, isAuthConfigured } from "@/lib/auth-server";
 
 /**
  * Auto-pick a blog topic — same logic as the cron job.
@@ -13,6 +14,12 @@ export const maxDuration = 60;
 
 export async function POST(request: NextRequest) {
   try {
+    // Coach-only — burns OpenRouter credits.
+    if (isAuthConfigured) {
+      const auth = await requireCoach(request);
+      if (auth instanceof Response) return auth;
+    }
+
     const body = await request.json().catch(() => ({}));
     const pick = await pickSmartTopic();
     return NextResponse.json(pick);

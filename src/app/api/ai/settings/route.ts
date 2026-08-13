@@ -3,8 +3,11 @@ import {
  AI_PROVIDERS,
  getStatus,
  mergeOverride,
+ getOverrideFromRequest as getOverrideFromCookies,
+ AI_SETTINGS_COOKIES,
  type AIProvider,
 } from "@/lib/ai-provider";
+import { requireCoach, isAuthConfigured } from "@/lib/auth-server";
 
 /**
  * AI Settings — GET returns the current status (key never exposed).
@@ -13,12 +16,16 @@ import {
  *
  * This is server-only: the API key is never returned to the browser, and it
  * is never logged.
+ *
+ * The cookie-reading helper and cookie names live in `@/lib/ai-provider`
+ * so other server routes can use them without a circular import on this
+ * route handler.
  */
 
-const COOKIE_PROVIDER = "ai_provider";
-const COOKIE_KEY = "ai_api_key";
-const COOKIE_MODEL = "ai_model";
-const COOKIE_BASE = "ai_base_url";
+const COOKIE_PROVIDER = AI_SETTINGS_COOKIES.provider;
+const COOKIE_KEY = AI_SETTINGS_COOKIES.apiKey;
+const COOKIE_MODEL = AI_SETTINGS_COOKIES.model;
+const COOKIE_BASE = AI_SETTINGS_COOKIES.baseUrl;
 const COOKIE_OPTS = {
  httpOnly: true,
  secure: process.env.NODE_ENV === "production",
@@ -27,22 +34,8 @@ const COOKIE_OPTS = {
  maxAge: 60 * 60 * 24 * 365, // 1 year
 };
 
-function readOverrideFromCookies(req: NextRequest) {
- const provider = req.cookies.get(COOKIE_PROVIDER)?.value as AIProvider | undefined;
- const apiKey = req.cookies.get(COOKIE_KEY)?.value;
- const model = req.cookies.get(COOKIE_MODEL)?.value;
- const baseUrl = req.cookies.get(COOKIE_BASE)?.value;
- if (!provider && !apiKey) return null;
- return {
- provider: provider || undefined,
- apiKey: apiKey || undefined,
- model: model || undefined,
- baseUrl: baseUrl || undefined,
- };
-}
-
 export async function GET(request: NextRequest) {
- const override = readOverrideFromCookies(request);
+ const override = getOverrideFromCookies(request);
  const status = getStatus(override);
  return NextResponse.json({
  status,
@@ -60,6 +53,12 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
  try {
+ // Coach-only — stores an AI provider key in admin's cookies.
+ if (isAuthConfigured) {
+ const auth = await requireCoach(request);
+ if (auth instanceof Response) return auth;
+ }
+
  const body = await request.json();
  const { action } = body as { action?: "save" | "clear" };
 
@@ -117,12 +116,12 @@ export async function POST(request: NextRequest) {
 }
 
 /**
- * Helper used by other server routes to read the AI override config from
- * the request cookies. Exported so /api/ai/test and /api/ai/generate-article
- * can share the same override resolution logic.
+ * Backward-compat re-export. Other server routes used to import this from
+ * the settings route handler; the implementation now lives in
+ * `@/lib/ai-provider` to avoid a circular dependency on a route file.
+ * Update imports to `@/lib/ai-provider` — this re-export will be removed
+ * in a future cleanup.
  */
-export function getOverrideFromRequest(request: NextRequest) {
- return readOverrideFromCookies(request);
-}
+export { getOverrideFromRequest } from "@/lib/ai-provider";
 
 export { mergeOverride };

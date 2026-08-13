@@ -27,6 +27,11 @@ yarn-error.log*
 .env.local
 .env.*.local
 
+# duplicate lockfile — we use bun.lock (Vercel runs `bun install`)
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
 # vercel
 .vercel
 

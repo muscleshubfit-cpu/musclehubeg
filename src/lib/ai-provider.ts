@@ -451,3 +451,102 @@ function repairTruncatedJSON(s: string): string {
  }
  return out;
 }
+
+/* -------------------------------------------------------------------------- */
+/* Free OpenRouter models — shared fallback list                              */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Free OpenRouter models tried in order by the chat / swap / research-topic
+ * routes. Centralized here so we don't have three copies drifting apart.
+ *
+ * Order: fastest first. gemma-4-26b-a4b-it is non-reasoning (clean content,
+ * no reasoning_details wrapper) so it's preferred for short replies and JSON.
+ */
+export const FREE_OPENROUTER_MODELS = [
+ "google/gemma-4-26b-a4b-it:free",
+ "google/gemma-4-31b-it:free",
+ "nvidia/nemotron-3-super-49b-a4b-it:free",
+ "nvidia/nemotron-3-ultra-550b-a55b:free",
+ "openai/gpt-oss-20b:free",
+];
+
+/**
+ * Try each free OpenRouter model in order, returning the first non-empty
+ * response. Used by routes that want to specifically iterate free models
+ * (rather than callAIWithFallback's provider-level fallback).
+ *
+ * Returns { text, model } on success, throws on total failure.
+ */
+export async function callFreeOpenRouter(
+ prompt: string,
+ options: CallAIOptions = {},
+): Promise<{ text: string; model: string }> {
+ const apiKey = process.env.OPENROUTER_API_KEY || process.env.AI_API_KEY || "";
+ const baseUrl = "https://openrouter.ai/api/v1";
+ if (!apiKey) throw new Error("OPENROUTER_API_KEY not configured");
+
+ const errors: string[] = [];
+ for (const model of FREE_OPENROUTER_MODELS) {
+ try {
+ const { text } = await callAIWithFallback(
+ prompt,
+ options,
+ {
+ provider: "openrouter",
+ apiKey,
+ model,
+ baseUrl,
+ },
+ );
+ if (text && text.trim().length > 0) {
+ return { text, model };
+ }
+ } catch (e: any) {
+ errors.push(`${model}: ${e?.message || e}`);
+ }
+ }
+ throw new Error(`All free OpenRouter models failed:\n${errors.join("\n")}`);
+}
+
+/* -------------------------------------------------------------------------- */
+/* AI Settings cookie override — read from request cookies                    */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Cookie names used by the AI Settings page to store the admin-selected
+ * AI provider override (provider + key + model + baseUrl). The cookies are
+ * httpOnly, so they're only readable on the server.
+ *
+ * Kept here (not in the settings route) so other server routes can import
+ * getOverrideFromRequest without a circular dependency on a route handler.
+ */
+export const AI_SETTINGS_COOKIES = {
+ provider: "ai_provider",
+ apiKey: "ai_api_key",
+ model: "ai_model",
+ baseUrl: "ai_base_url",
+} as const;
+
+/**
+ * Read the AI provider override from the request cookies (set by the
+ * AI Settings page). Returns null if no override is configured — callers
+ * then fall back to process.env-based defaults via mergeOverride(null).
+ */
+export function getOverrideFromRequest(request: {
+ cookies: { get(name: string): { value: string | undefined } | undefined };
+}): Partial<AIConfig> | null {
+ const provider = request.cookies.get(AI_SETTINGS_COOKIES.provider)?.value as
+ | AIProvider
+ | undefined;
+ const apiKey = request.cookies.get(AI_SETTINGS_COOKIES.apiKey)?.value;
+ const model = request.cookies.get(AI_SETTINGS_COOKIES.model)?.value;
+ const baseUrl = request.cookies.get(AI_SETTINGS_COOKIES.baseUrl)?.value;
+ if (!provider && !apiKey) return null;
+ return {
+ provider: provider || undefined,
+ apiKey: apiKey || undefined,
+ model: model || undefined,
+ baseUrl: baseUrl || undefined,
+ };
+}

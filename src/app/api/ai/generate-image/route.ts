@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireCoach, isAuthConfigured } from "@/lib/auth-server";
 
 /**
  * AI Image Generation endpoint — generates an image from a text prompt
@@ -14,6 +15,14 @@ import { NextRequest, NextResponse } from "next/server";
 export const maxDuration = 60;
 
 export async function GET(request: NextRequest) {
+  // Coach-only — used by the blog editor. Even though it doesn't cost
+  // OpenRouter credits, it does invoke the z-ai-web-dev-sdk which is
+  // rate-limited; don't leave it open.
+  if (isAuthConfigured) {
+    const auth = await requireCoach(request);
+    if (auth instanceof Response) return auth;
+  }
+
   const url = new URL(request.url);
   const prompt = url.searchParams.get("prompt");
 
@@ -22,7 +31,9 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    // Ensure the .z-ai-config file exists on Vercel
+    // Ensure the .z-ai-config file exists on Vercel. The SDK looks for it in
+    // process.cwd() and /tmp — on Vercel serverless, process.cwd() is
+    // read-only, so we only write to /tmp (which is writable).
     const fs = await import("fs");
     const path = await import("path");
 
@@ -33,9 +44,6 @@ export async function GET(request: NextRequest) {
       token: process.env.ZAI_TOKEN || "",
       userId: process.env.ZAI_USER_ID || "",
     });
-
-    const cwdConfig = path.join(process.cwd(), ".z-ai-config");
-    try { if (!fs.existsSync(cwdConfig)) fs.writeFileSync(cwdConfig, configContent); } catch {}
 
     const tmpConfig = path.join("/tmp", ".z-ai-config");
     try {

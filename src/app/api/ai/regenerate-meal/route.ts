@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { regenerateMeal } from "@/lib/plan-generator";
+import { requireUser, isAuthConfigured } from "@/lib/auth-server";
 
 /**
  * Regenerate a single meal — used by both the coach (in the plan editor)
@@ -15,12 +16,19 @@ import { regenerateMeal } from "@/lib/plan-generator";
  *
  * Returns: { meal, source }
  *
- * Tries OpenRouter's best free models in order, throws if all fail.
+ * Auth: any logged-in user (requireUser). Tries OpenRouter's best free
+ * models in order, throws if all fail.
  */
 export const maxDuration = 60; // 3 min
 
 export async function POST(request: NextRequest) {
  try {
+ // Any logged-in user — coach + clients both use this.
+ if (isAuthConfigured) {
+ const auth = await requireUser(request);
+ if (auth instanceof Response) return auth;
+ }
+
  const body = await request.json();
  const { meal, targetCalories, clientContext, coachNote } = body as {
  meal: any;

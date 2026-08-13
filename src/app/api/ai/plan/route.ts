@@ -4,6 +4,7 @@ import {
  generateWorkoutPlanAI,
  type PlanOverrides,
 } from "@/lib/plan-generator";
+import { requireCoach, isAuthConfigured } from "@/lib/auth-server";
 
 /**
  * Generate a workout or nutrition plan via OpenRouter AI (best free model).
@@ -31,6 +32,12 @@ export const maxDuration = 300; // 5 min — long plans can be slow on free mode
 
 export async function POST(request: NextRequest) {
  try {
+ // Coach-only — generates plans for clients (uses OpenRouter credits).
+ if (isAuthConfigured) {
+ const auth = await requireCoach(request);
+ if (auth instanceof Response) return auth;
+ }
+
  const body = await request.json();
  const { clientId, planType, clientContext, overrides } = body as {
  clientId: string;

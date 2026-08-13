@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { generateArticleBundle } from "@/lib/blog-generate";
 import { fetchFeaturedImage } from "@/lib/blog-images";
-import { getOverrideFromRequest } from "@/app/api/ai/settings/route";
+import { getOverrideFromRequest } from "@/lib/ai-provider";
+import { requireCoach, isAuthConfigured } from "@/lib/auth-server";
 
 /**
  * AI Article Generator — POST /api/ai/generate-article
@@ -13,10 +14,16 @@ import { getOverrideFromRequest } from "@/app/api/ai/settings/route";
  * NOTE: long-form article generation can take 60-120 seconds on free models.
  * We set `maxDuration = 300` (5 min) so Vercel doesn't kill the request.
  */
-export const maxDuration = 60;
+export const maxDuration = 300;
 
 export async function POST(request: NextRequest) {
  try {
+ // Coach-only — burns OpenRouter credits.
+ if (isAuthConfigured) {
+ const auth = await requireCoach(request);
+ if (auth instanceof Response) return auth;
+ }
+
  const body = await request.json();
  const { topic, focusKeyword, category, language, research } = body as {
  topic?: string;

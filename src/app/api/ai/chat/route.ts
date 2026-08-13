@@ -1,39 +1,57 @@
 import { NextRequest, NextResponse } from "next/server";
-import { callAIWithFallback, type AIProvider } from "@/lib/ai-provider";
+import { callFreeOpenRouter } from "@/lib/ai-provider";
 import { generateChatReply } from "@/lib/ai-local";
-import { listPlans, listProgress, getQuestionnaire, listAllSubscriptions } from "@/lib/data";
+import { listPlans, listProgress, getQuestionnaire, getSubscriptionForClient } from "@/lib/data";
 import { getTier } from "@/lib/plans";
+import { requireUser, isAuthConfigured } from "@/lib/auth-server";
 
 /**
  * AI Coach chat endpoint.
  * Uses OpenRouter AI, falls back to local rule-based chat.
  *
  * POST /api/ai/chat
- * Body: { message, history, userId, userName }
+ * Body: { message, history, userName? }
  * Returns: { reply, source }
+ *
+ * SECURITY: the caller's userId is taken from the verified Supabase session,
+ * NEVER from the request body. This prevents IDOR (a caller pretending to be
+ * another user to read their plans / progress / questionnaires / subscription).
+ *
+ * In demo mode (Supabase not configured) there is no server-side session;
+ * the route falls through to the local rule-based reply with no per-user
+ * context (same behavior as before — demo mode is client-only).
  */
 export async function POST(request: NextRequest) {
  try {
- const body = await request.json();
- const { message, history = [], userId, userName } = body;
+ // 1. Authenticate (skip in demo mode — preserves preview behavior)
+ let userId: string | undefined;
+ let userName: string | undefined;
+ if (isAuthConfigured) {
+ const auth = await requireUser(request);
+ if (auth instanceof Response) return auth;
+ userId = auth.id;
+ userName = auth.full_name || auth.email || undefined;
+ }
+
+ const body = await request.json().catch(() => ({}));
+ const { message, history = [] } = body;
 
  if (!message) {
  return NextResponse.json({ error: "Missing message" }, { status: 400 });
  }
 
- // Build full client context from database
+ // 2. Build full client context from database (scoped to the session user)
  let clientContext: any = { name: userName || "العميل" };
  if (userId) {
  try {
- const [plans, progress, nutriQ, fitQ, subs] = await Promise.all([
+ const [plans, progress, nutriQ, fitQ, sub] = await Promise.all([
  listPlans(userId),
  listProgress(userId),
  getQuestionnaire(userId, "nutrition"),
  getQuestionnaire(userId, "fitness"),
- listAllSubscriptions(),
+ getSubscriptionForClient(userId),
  ]);
- const userSub = subs.find((s: any) => s.client_id === userId);
- const tierId = (userSub?.tier as any) || "starter";
+ const tierId = (sub?.tier as any) || "starter";
  const tier = getTier(tierId);
 
  clientContext = {
@@ -61,10 +79,8 @@ export async function POST(request: NextRequest) {
  }
  }
 
- // Try Gemini AI first
- const OPENROUTER_KEY = process.env.OPENROUTER_API_KEY || process.env.AI_API_KEY || "";
- const OPENROUTER_BASE = "https://openrouter.ai/api/v1";
- if (OPENROUTER_KEY) {
+ // Try OpenRouter free models (shared helper iterates the model list)
+ if (process.env.OPENROUTER_API_KEY || process.env.AI_API_KEY) {
  try {
  const systemInstruction = buildSystemPrompt(clientContext);
  const messages = [
@@ -77,16 +93,17 @@ export async function POST(request: NextRequest) {
 
  const chatPrompt = messages.map(m => `${m.role === "user" ? "User" : "Assistant"}: ${m.content}`).join("\n\n");
  const fullPrompt = `${systemInstruction}\n\n${chatPrompt}\n\nAssistant:`;
- const models = ["google/gemma-4-26b-a4b-it:free", "google/gemma-4-31b-it:free", "nvidia/nemotron-3-ultra-550b-a55b:free"];
- for (const model of models) {
- try {
- const { text } = await callAIWithFallback(fullPrompt, { temperature: 0.6, maxTokens: 1000, timeoutMs: 30_000 }, { provider: "openrouter" as AIProvider, apiKey: OPENROUTER_KEY, model, baseUrl: OPENROUTER_BASE });
- if (text && text.length > 10) return NextResponse.json({ reply: text, source: `openrouter:${model}` });
- } catch (e) { console.error(`[chat] OpenRouter ${model} failed:`, e); }
+
+ const { text, model } = await callFreeOpenRouter(fullPrompt, {
+ temperature: 0.6,
+ maxTokens: 1000,
+ timeoutMs: 30_000,
+ });
+ if (text && text.length > 10) {
+ return NextResponse.json({ reply: text, source: `openrouter:${model}` });
  }
- 
  } catch (aiErr) {
- console.error("[api/ai/chat] Gemini failed, falling back to local:", aiErr);
+ console.error("[api/ai/chat] OpenRouter failed, falling back to local:", aiErr);
  }
  }
 
