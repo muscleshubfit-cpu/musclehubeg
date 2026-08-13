@@ -32,6 +32,7 @@ import {
  FileText,
  Flame,
  Calendar,
+ MousePointerClick,
 } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
@@ -41,6 +42,7 @@ import { LanguageToggle } from "@/components/LanguageToggle";
 import { SiteHeader } from "@/components/SiteHeader";
 import { useNav } from "@/hooks/use-nav";
 import { useAuth } from "@/hooks/use-auth";
+import { useScrollAnimation, AnimatedCounter } from "@/hooks/use-scroll-animation";
 import {
  Accordion,
  AccordionContent,
@@ -48,6 +50,30 @@ import {
  AccordionTrigger,
 } from "@/components/ui/accordion";
 import { listBlogPosts, getCategoryLabel, type BlogPost } from "@/lib/blog";
+
+// Reusable scroll-reveal wrapper
+function Reveal({
+ children,
+ className = "",
+ delay = 0,
+ as: Tag = "div",
+}: {
+ children: React.ReactNode;
+ className?: string;
+ delay?: number;
+ as?: React.ElementType;
+}) {
+ const { ref, isVisible } = useScrollAnimation<HTMLDivElement>();
+ return (
+ <Tag
+ ref={ref}
+ className={`${isVisible ? "animate-fade-up" : "scroll-hidden"} ${className}`}
+ style={delay ? { animationDelay: `${delay}ms` } : undefined}
+ >
+ {children}
+ </Tag>
+ );
+}
 
 // Premium images
 const HERO_IMG = "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/6f2587b25688.jpeg";
@@ -107,7 +133,7 @@ export function LandingView() {
  <div className="absolute inset-0 grid-bg opacity-30" />
  <div className="relative mx-auto grid max-w-7xl items-center gap-12 px-4 py-20 sm:px-6 md:grid-cols-2 md:py-32">
  {/* Text */}
- <div className="text-center md:text-start">
+ <div className="text-center md:text-start animate-fade-up">
  <span className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/5 px-4 py-1.5 text-xs font-semibold text-primary">
  <Sparkles className="h-3.5 w-3.5 animate-neon-flicker" />
  {isAr ? "منصة تحسين الأداء البشري بالذكاء الاصطناعي" : "AI-Powered Human Optimization Platform"}
@@ -133,9 +159,9 @@ export function LandingView() {
  : "Not just a fitness app. Not just an AI chatbot. MuscleHub is the intelligent ecosystem that combines Coach Ahmed Zake's expertise with the EVO AI engine to optimize every aspect of your human performance."}
  </p>
  <div className="mt-8 flex flex-wrap items-center justify-center gap-4 md:justify-start">
- <Button size="lg" className="gap-2 shadow-glow text-base" onClick={() => navigate("auth", { mode: "signup" })}>
+ <Button size="lg" className="gap-2 shadow-glow text-base group" onClick={() => navigate("auth", { mode: "signup" })}>
  {isAr ? "ابدأ تحوّلك" : "Start Your Transformation"}
- <ArrowRight className="h-5 w-5 rtl:rotate-180" />
+ <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1 rtl:rotate-180 rtl:group-hover:-translate-x-1" />
  </Button>
  <Button size="lg" variant="outline" className="gap-2 border-primary/30 text-base" onClick={() => navigate("auth", { mode: "signup" })}>
  <Bot className="h-5 w-5 text-primary" />
@@ -150,9 +176,9 @@ export function LandingView() {
  </div>
 
  {/* Hero Visual */}
- <div className="relative">
+ <div className="relative animate-scale-in" style={{ animationDelay: "200ms" }}>
  <div className="absolute -inset-6 rounded-[2rem] bg-gradient-primary opacity-20 blur-3xl" />
- <div className="relative overflow-hidden rounded-[2rem] border border-primary/20 shadow-glow">
+ <div className="relative overflow-hidden rounded-[2rem] border border-primary/20 shadow-soft-glow">
  <img
  src={HERO_IMG}
  alt={isAr ? "رياضي محترف في جيم بإضاءة درامية" : "Professional athlete in dramatic gym lighting"}
@@ -168,7 +194,7 @@ export function LandingView() {
  </span>
  <span className="text-xs font-semibold text-foreground">EVO {isAr ? "يعمل الآن" : "Active"}</span>
  </div>
- {/* Stats overlay */}
+ {/* Stats overlay with animated counters */}
  <div className="absolute inset-x-4 bottom-4 grid grid-cols-3 gap-2">
  {[
  { v: "+500", l: isAr ? "عميل" : "clients" },
@@ -176,12 +202,22 @@ export function LandingView() {
  { v: "24/7", l: isAr ? "تحليل" : "monitoring" },
  ].map((s) => (
  <div key={s.l} className="rounded-xl border border-primary/10 bg-background/60 p-3 text-center backdrop-blur-xl">
- <div className="font-display text-lg font-bold text-primary">{s.v}</div>
+ <div className="font-display text-lg font-bold text-primary">
+ <AnimatedCounter value={s.v} />
+ </div>
  <div className="text-[10px] text-muted-foreground">{s.l}</div>
  </div>
  ))}
  </div>
  </div>
+ </div>
+ </div>
+
+ {/* Scroll indicator */}
+ <div className="absolute bottom-6 left-1/2 -translate-x-1/2 hidden md:block">
+ <div className="flex flex-col items-center gap-2 text-muted-foreground/60">
+ <span className="text-[10px] font-medium uppercase tracking-widest">{isAr ? "اكتشف" : "Scroll"}</span>
+ <ChevronDown className="h-5 w-5 animate-scroll-bounce" />
  </div>
  </div>
  </section>
@@ -197,15 +233,15 @@ export function LandingView() {
  { icon: Shield, title: isAr ? "دعم مستمر" : "Continuous Support", desc: isAr ? "مراقبة 24/7 وإشعارات" : "24/7 monitoring + alerts" },
  { icon: TrendingUp, title: isAr ? "نتائج حقيقية" : "Real Results", desc: isAr ? "+500 قصة نجاح" : "+500 success stories" },
  ].map((item, i) => (
- <div key={i} className="flex flex-col items-center gap-3 text-center">
- <span className="grid h-12 w-12 place-items-center rounded-2xl border border-primary/20 bg-primary/5 text-primary">
+ <Reveal key={i} delay={i * 100} className="flex flex-col items-center gap-3 text-center">
+ <span className="grid h-12 w-12 place-items-center rounded-2xl border border-primary/20 bg-primary/5 text-primary transition-transform hover:scale-110 hover:shadow-soft-glow">
  <item.icon className="h-5 w-5" />
  </span>
  <div>
  <h3 className="text-sm font-bold">{item.title}</h3>
  <p className="mt-0.5 text-xs text-muted-foreground">{item.desc}</p>
  </div>
- </div>
+ </Reveal>
  ))}
  </div>
  </div>
@@ -214,9 +250,12 @@ export function LandingView() {
  {/* ===================== 3. WHAT IS MUSCLEHUB ===================== */}
  <section className="relative overflow-hidden py-24">
  <div className="mx-auto max-w-4xl px-4 text-center sm:px-6">
+ <Reveal>
  <span className="inline-block rounded-full border border-border bg-card px-4 py-1.5 text-xs font-medium text-muted-foreground">
  {isAr ? "ما هي MuscleHub؟" : "What is MuscleHub?"}
  </span>
+ </Reveal>
+ <Reveal delay={100}>
  <h2 className="mt-6 text-4xl font-extrabold leading-tight md:text-5xl">
  {isAr ? (
  <>
@@ -232,11 +271,15 @@ export function LandingView() {
  </>
  )}
  </h2>
+ </Reveal>
+ <Reveal delay={200}>
  <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-muted-foreground">
  {isAr
  ? "MuscleHub تجمع بين خبرة الإنسان وعلم الرياضة والتغذية وعلم النفس السلوكي والذكاء الاصطناعي وتحليل البيانات والتعلم المستمر — في نظام بيئي ذكي واحد. الهدف ليس فقط تغيير جسمك، بل تحسين أدائك الكامل كإنسان."
  : "MuscleHub combines human expertise, sports science, nutrition science, behavioral psychology, artificial intelligence, data analysis, and continuous learning — in one intelligent ecosystem. The goal isn't just to change your body, but to optimize your entire human performance."}
  </p>
+ </Reveal>
+ <Reveal delay={300}>
  <div className="mt-10 flex flex-wrap justify-center gap-3">
  {[
  isAr ? "خبرة بشرية" : "Human Experience",
@@ -247,11 +290,12 @@ export function LandingView() {
  isAr ? "تحليل بيانات" : "Data Analysis",
  isAr ? "تعلم مستمر" : "Continuous Learning",
  ].map((tag) => (
- <span key={tag} className="rounded-full border border-primary/20 bg-primary/5 px-4 py-2 text-sm font-medium text-primary">
+ <span key={tag} className="cursor-default rounded-full border border-primary/20 bg-primary/5 px-4 py-2 text-sm font-medium text-primary transition-all hover:scale-105 hover:border-primary/40 hover:shadow-soft">
  {tag}
  </span>
  ))}
  </div>
+ </Reveal>
  </div>
  </section>
 
@@ -350,13 +394,13 @@ export function LandingView() {
  { icon: RefreshCw, title: isAr ? "تحديث تلقائي" : "Auto-Update Plans", desc: isAr ? "يحدّث خططك تلقائياً حسب تقدمك وتغيرات جسمك." : "Automatically updates your plans based on progress and body changes." },
  { icon: Clock, title: isAr ? "مراقبة 24/7" : "24/7 Monitoring", desc: isAr ? "يراقب تقدمك باستمرار ويرسل إشعارات فورية." : "Continuously monitors your progress and sends instant alerts." },
  ].map((f, i) => (
- <div key={i} className="group rounded-2xl border border-border bg-card p-6 transition-all hover:border-primary/40 hover:shadow-glow">
- <span className="grid h-12 w-12 place-items-center rounded-2xl bg-gradient-primary text-primary-foreground shadow-glow transition-transform group-hover:scale-110">
+ <Reveal key={i} delay={(i % 3) * 100} className="card-lift group rounded-2xl border border-border bg-card p-6 hover:border-primary/40 hover:shadow-soft-glow">
+ <span className="grid h-12 w-12 place-items-center rounded-2xl bg-gradient-primary text-primary-foreground shadow-soft-glow transition-transform group-hover:scale-110 group-hover:rotate-3">
  <f.icon className="h-5 w-5" />
  </span>
  <h3 className="mt-4 font-bold">{f.title}</h3>
  <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{f.desc}</p>
- </div>
+ </Reveal>
  ))}
  </div>
  </div>
@@ -416,11 +460,15 @@ export function LandingView() {
  { n: "03", title: isAr ? "EVO يحلل ويخطط" : "EVO analyzes & plans", desc: isAr ? "الكوتش + EVO يولّدون خططك ويوافقون عليها." : "Coach + EVO generate and approve your plans." },
  { n: "04", title: isAr ? "ابدأ التحوّل" : "Start transforming", desc: isAr ? "تتبع تقدمك، استبدل، واسأل EVO أي وقت." : "Track progress, swap, and ask EVO anytime." },
  ].map((s, i) => (
- <div key={i} className="relative rounded-2xl border border-border bg-card p-6">
- <span className="font-display text-4xl font-bold text-primary/30">{s.n}</span>
+ <Reveal key={i} delay={i * 120} className="card-lift relative rounded-2xl border border-border bg-card p-6 hover:border-primary/40 hover:shadow-soft">
+ <span className="font-display text-4xl font-bold text-primary/30 transition-colors hover:text-primary/50">{s.n}</span>
  <h3 className="mt-2 font-bold">{s.title}</h3>
  <p className="mt-1 text-sm text-muted-foreground">{s.desc}</p>
- </div>
+ {/* Connector line between steps */}
+ {i < 3 && (
+ <div className="absolute top-1/2 -end-3 hidden h-px w-6 bg-border lg:block" />
+ )}
+ </Reveal>
  ))}
  </div>
  </div>
@@ -533,13 +581,15 @@ export function LandingView() {
  {[
  { v: "+500", l: isAr ? "عميل نجح" : "clients succeeded" },
  { v: "95%", l: isAr ? "نسبة رضا" : "satisfaction rate" },
- { v: "-8.5kg", l: isAr ? "متوسط الفقد" : "avg. weight loss" },
- { v: "12wk", l: isAr ? "متوسط المدة" : "avg. duration" },
- ].map((s) => (
- <div key={s.l} className="rounded-2xl border border-border bg-card/60 p-5 backdrop-blur-xl">
- <div className="font-display text-3xl font-bold text-primary">{s.v}</div>
- <div className="mt-1 text-xs text-muted-foreground">{s.l}</div>
+ { v: "-8.5", l: isAr ? "متوسط الفقد (كجم)" : "avg. weight loss (kg)" },
+ { v: "12", l: isAr ? "متوسط المدة (أسبوع)" : "avg. duration (weeks)" },
+ ].map((s, i) => (
+ <Reveal key={s.l} delay={i * 100} className="rounded-2xl border border-border bg-card/60 p-5 backdrop-blur-xl card-lift hover:border-primary/40 hover:shadow-soft">
+ <div className="font-display text-3xl font-bold text-primary">
+ <AnimatedCounter value={s.v} />
  </div>
+ <div className="mt-1 text-xs text-muted-foreground">{s.l}</div>
+ </Reveal>
  ))}
  </div>
  </div>
@@ -562,7 +612,7 @@ export function LandingView() {
  { name: isAr ? "سارة منصور" : "Sara Mansour", result: isAr ? "-2 مقاس في 4 أشهر" : "-2 sizes in 4 months", text: isAr ? "كنت حاسة إني ضايعه، بس أحمد فهم حالتي وعمللي خطة تناسبني. التتبع الأسبوعي خلاني ملتزمة." : "I felt lost, but Ahmed understood my situation and made a plan that fits me. Weekly tracking kept me committed." },
  { name: isAr ? "أحمد فؤاد" : "Ahmed Fouad", result: isAr ? "+6 كجم عضلات" : "+6kg muscle", text: isAr ? "برنامج التمارين احترافي جداً. كل تمرين متفسر بالعربي وفيه نصايح. التبديلات سريعة ومريحة في الجيم." : "The workout program is very professional. Every exercise explained in Arabic with tips. Swaps are quick at the gym." },
  ].map((tm, i) => (
- <div key={i} className="rounded-2xl border border-border bg-card p-6 shadow-card">
+ <Reveal key={i} delay={i * 150} className="card-lift rounded-2xl border border-border bg-card p-6 shadow-soft hover:shadow-soft-lg hover:border-primary/30">
  <div className="flex items-center gap-1 text-gold">
  {Array.from({ length: 5 }).map((_, j) => <Star key={j} className="h-4 w-4 fill-current" />)}
  </div>
@@ -575,7 +625,7 @@ export function LandingView() {
  <p className="text-xs text-success">{tm.result}</p>
  </div>
  </div>
- </div>
+ </Reveal>
  ))}
  </div>
  </div>
@@ -753,33 +803,43 @@ export function LandingView() {
  <div className="absolute inset-0 bg-hero-glow" />
  <div className="absolute inset-0 grid-bg opacity-20" />
  <div className="relative mx-auto max-w-3xl px-4 text-center sm:px-6">
- <span className="mx-auto grid h-20 w-20 place-items-center rounded-3xl bg-gradient-primary shadow-glow">
+ <Reveal>
+ <span className="mx-auto grid h-20 w-20 place-items-center rounded-3xl bg-gradient-primary shadow-soft-glow animate-gold-pulse">
  <Dumbbell className="h-10 w-10 text-primary-foreground" />
  </span>
+ </Reveal>
+ <Reveal delay={100}>
  <h2 className="mt-8 text-5xl font-extrabold leading-tight md:text-6xl">
  {isAr ? "جسمك الجديد" : "Your new body"}
  <br />
  <span className="text-shimmer">{isAr ? "بيستناك" : "is waiting"}</span>
  </h2>
+ </Reveal>
+ <Reveal delay={200}>
  <p className="mx-auto mt-6 max-w-xl text-lg text-muted-foreground">
  {isAr
  ? "انضم لأكثر من 500 عميل غيّروا حياتهم. ابدأ اليوم بخطة مخصصة لك وحدك، مع كوتش حقيقي وذكاء اصطناعي يتابعك 24/7."
  : "Join 500+ clients who transformed their lives. Start today with a plan made just for you, with a real coach and AI monitoring you 24/7."}
  </p>
+ </Reveal>
+ <Reveal delay={300}>
  <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
- <Button size="lg" className="gap-2 shadow-glow text-lg" onClick={() => navigate("auth", { mode: "signup" })}>
+ <Button size="lg" className="gap-2 shadow-glow text-lg group" onClick={() => navigate("auth", { mode: "signup" })}>
  {isAr ? "ابدأ تحوّلي" : "Start My Transformation"}
- <ArrowRight className="h-5 w-5 rtl:rotate-180" />
+ <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1 rtl:rotate-180 rtl:group-hover:-translate-x-1" />
  </Button>
  <Button size="lg" variant="outline" className="gap-2 border-primary/30 text-lg" onClick={() => navigate("pricing")}>
  {isAr ? "شوف الأسعار" : "View Pricing"}
  </Button>
  </div>
+ </Reveal>
+ <Reveal delay={400}>
  <div className="mt-8 flex items-center justify-center gap-6 text-xs text-muted-foreground">
  <span className="flex items-center gap-1.5"><Clock className="h-4 w-4" /> {isAr ? "ابدأ خلال دقيقة" : "Start in a minute"}</span>
  <span className="flex items-center gap-1.5"><Lock className="h-4 w-4" /> {isAr ? "بياناتك آمنة" : "Data is secure"}</span>
  <span className="flex items-center gap-1.5"><Wifi className="h-4 w-4" /> {isAr ? "EVO يعمل 24/7" : "EVO active 24/7"}</span>
  </div>
+ </Reveal>
  </div>
  </section>
 
