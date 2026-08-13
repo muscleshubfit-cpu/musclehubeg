@@ -71,7 +71,7 @@ function ProductCard({
         <img
           src={image}
           alt={title}
-          className="aspect-[4/3] w-full rounded-2xl object-cover"
+          className="aspect-[4/3] w-full rounded-2xl object-contain"
           loading="lazy"
         />
       </div>
@@ -168,7 +168,7 @@ export function LandingView() {
                   key={i}
                   src={img.src}
                   alt={img.alt}
-                  className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-700 ${
+                  className={`absolute inset-0 h-full w-full object-contain transition-opacity duration-700 ${
                     i === currentSlide ? "opacity-100" : "opacity-0"
                   }`}
                   loading={i === 0 ? "eager" : "lazy"}
@@ -294,7 +294,7 @@ export function LandingView() {
             <img
               src={IMAGES.evo}
               alt="EVO"
-              className="aspect-[4/5] w-full max-w-xs rounded-2xl object-cover md:max-w-sm"
+              className="aspect-[4/5] w-full max-w-xs rounded-2xl object-contain md:max-w-sm"
               loading="lazy"
             />
           </div>
@@ -344,7 +344,7 @@ export function LandingView() {
               <img
                 src={IMAGES.together}
                 alt={isAr ? "أحمد زكي و EVO" : "Ahmed Zake and EVO"}
-                className="mx-auto aspect-[4/5] w-full max-w-md rounded-3xl object-cover md:max-w-lg"
+                className="mx-auto aspect-[4/5] w-full max-w-md rounded-3xl object-contain md:max-w-lg"
                 loading="lazy"
               />
             </div>
