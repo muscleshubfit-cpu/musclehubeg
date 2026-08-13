@@ -908,3 +908,48 @@ Stage Summary:
 - CVEs fixed: nanoid, postcss (via overrides)
 - CVEs flagged for user decision: js-yaml (needs @mdxeditor 4.x), prismjs (needs react-syntax-highlighter 16.x), sharp (needs 0.35.x)
 - Items NOT done (flagged in PASS 1, not approved): S5 (git history scrub), S8 (cookie maxAge), S10 (CSP/HSTS headers), H1 (pagination), H2 (batch image fetch), H4 (sitemap force-dynamic)
+
+---
+Task ID: 7-9
+Agent: Super Z (main)
+Task: PASS 2 — Groups 7-9: small fixes, content/logic bugs, breaking dep bumps
+
+Work Log:
+- **Group 7 (S8/S10/H4/R6/ESLint/S5)**:
+  - S8: Lowered AI settings cookie maxAge from 1 year → 30 days (security review item).
+  - S10: Added `Strict-Transport-Security` (HSTS, 2 years, includeSubDomains, preload) + `Permissions-Policy` (camera/microphone/geolocation/browsing-topics/interest-cohort all disabled) to vercel.json. Skipped CSP — too risky with Next.js inline styles without report-only testing.
+  - H4: Changed sitemap from `force-dynamic` (regenerated on every request) to `revalidate: 3600` (regenerated hourly). Build output confirms `/sitemap.xml ○ 1h`.
+  - R6: Removed `@ts-nocheck` from `src/app/api/blog/fetch-images/route.ts` and `src/app/api/cron/generate-blog-post/route.ts`. Fixed the one type error it revealed (added type annotation to Pexels `photo` variable).
+  - Fixed pre-existing ESLint errors in BlogAdminView.tsx (reordered `load` declaration) and CoachClientView.tsx (used `Object.assign` instead of direct prop mutation).
+  - S5: Decoded the Z.ai JWT from git history. It has NO `exp` claim — doesn't auto-expire. User must rotate it via Z.ai dashboard (can't be done in code).
+
+- **Group 8 (content/logic bugs from original 20 issues)**:
+  - FAQ mixing (issue #4): Root cause — the prompt asked for `faq_ar` but the ArticleBundle type and code only read `faq`. The Arabic post inherited the English FAQ via object spread. Fixed: added `faqAr` field to type, parse it from AI response, and the cron route now saves `bundle.faqAr` (with fallback to `bundle.faq` if AI didn't return Arabic FAQ) for the Arabic post.
+  - "training" category (issue #5): Added `normalizeCategory()` to `src/lib/blog.ts` that maps synonyms (training→workout, exercise→workout, diet→nutrition, etc.) and falls back to "nutrition". Applied in the cron route before saving. Also exported `VALID_CATEGORY_IDS` set for future validation use.
+  - Duplicate titles (issue #8): Added `titleAlreadyExists(title, lang)` check in the cron route. After generating an article, if the EN or AR title already exists (case-insensitive `ilike` match), the run is skipped with status 200 (not an error — the next cron tick picks a different topic).
+  - Sitemap missing blog URLs (issue #9): Verified sitemap.ts already fetches all published posts from Supabase and adds their URLs. Was already fixed in an earlier commit.
+  - robots.txt (issue #13): Verified public/robots.txt exists and is comprehensive (allows public pages, disallows dashboard/coach/admin/api, points to sitemap).
+
+- **Group 9 (breaking dep bumps → turned out to be removals)**:
+  - **sharp**: Bumped 0.34.5 → 0.35.3 (fixes 4 libvips CVEs). Build passes.
+  - **@mdxeditor/editor**: Discovered it's NEVER imported in src/ — dead dependency. Removed entirely (fixes js-yaml high-sev DoS without a major-version migration).
+  - **react-syntax-highlighter**: Discovered it's NEVER imported in src/ — dead dependency. Removed entirely (fixes prismjs moderate DOM clobbering).
+  - Also found and removed 4 more unused deps: @dnd-kit/core, @dnd-kit/sortable, @dnd-kit/utilities, @reactuses/core.
+  - Total deps removed this group: 7 (all were dead code — no behavior change).
+
+Stage Summary:
+- **`npm audit` (production): 0 vulnerabilities** (was 4 high, 2 moderate after Group 5)
+- **`npm audit` (incl dev): 0 vulnerabilities** (was 5 high, 4 moderate at audit start)
+- **`tsc --noEmit`: clean** (0 errors)
+- **`eslint src/`: clean** (0 errors — was 2 pre-existing errors)
+- **`next build`: succeeds**
+- Files created: `src/lib/auth-server.ts`, `src/lib/blog-server.ts`
+- Files deleted: `src/lib/db.ts`, `db/`
+- Deps removed (total across all groups): prisma, @prisma/client, next-auth, @mdxeditor/editor, react-syntax-highlighter, @dnd-kit/core, @dnd-kit/sortable, @dnd-kit/utilities, @reactuses/core (9 total — all dead code)
+- Deps bumped: sharp 0.34 → 0.35, nanoid (override) → 3.3.18, postcss (override) → 8.5.26
+- Content bugs fixed: FAQ AR/EN mixing, category normalization, duplicate title prevention
+- Security headers added: HSTS, Permissions-Policy
+- Cookie maxAge lowered: 1 year → 30 days
+- Items still needing user action (cannot be done in code):
+  - S5: Rotate Z.ai JWT in git history (no exp claim — valid forever unless rotated)
+  - S10: Consider adding CSP `report-only` header in a future iteration

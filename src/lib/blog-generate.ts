@@ -159,6 +159,9 @@ RETURN STRICT JSON with this exact shape:
  "faq": [
  { "question": "string", "answer": "string" }
  ],
+ "faq_ar": [
+ { "question": "string (Arabic)", "answer": "string (Arabic)" }
+ ],
  "internalLinks": [
  { "slug": "string", "anchorText": "string", "reason": "string" }
  ],
@@ -195,6 +198,7 @@ export type ArticleBundle = {
  englishArticle: string;
  arabicArticle: string;
  faq: { question: string; answer: string }[];
+ faqAr: { question: string; answer: string }[];
  internalLinks: { slug: string; anchorText: string; reason: string }[];
  externalLinks: { url: string; anchorText: string; reason: string }[];
  imagePrompts: { featuredImage: string; facebookImage: string; openGraphImage: string };
@@ -245,6 +249,7 @@ export async function generateArticleBundle(
  englishArticle: parsed.englishArticle || "",
  arabicArticle: parsed.arabicArticle || "",
  faq: Array.isArray(parsed.faq) ? parsed.faq : [],
+ faqAr: Array.isArray(parsed.faq_ar) ? parsed.faq_ar : [],
  internalLinks: Array.isArray(parsed.internalLinks) ? parsed.internalLinks : [],
  externalLinks: Array.isArray(parsed.externalLinks) ? parsed.externalLinks : [],
  imagePrompts: parsed.imagePrompts || { featuredImage: "", facebookImage: "", openGraphImage: "" },

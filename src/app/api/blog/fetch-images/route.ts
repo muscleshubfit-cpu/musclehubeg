@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { requireCoach, isAuthConfigured } from "@/lib/auth-server";
@@ -65,7 +64,7 @@ export async function POST(request: NextRequest) {
         `https://api.pexels.com/v1/search?query=${encodeURIComponent(query)}&per_page=1&orientation=landscape`,
         { headers: { Authorization: pexelsKey }, signal: AbortSignal.timeout(10_000) },
       );
-      let photo = null;
+      let photo: { src?: { large?: string; medium?: string; original?: string }; alt?: string } | null = null;
       if (searchRes.ok) {
         const data = await searchRes.json();
         photo = data?.photos?.[0];

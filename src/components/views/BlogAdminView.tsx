@@ -20,10 +20,6 @@ export function BlogAdminView() {
  const [loading, setLoading] = useState(true);
  const [filter, setFilter] = useState<"all" | "en" | "ar">("all");
 
- useEffect(() => {
- load();
- }, []);
-
  const load = async () => {
  setLoading(true);
  try {
@@ -36,6 +32,11 @@ export function BlogAdminView() {
  setLoading(false);
  }
  };
+
+ useEffect(() => {
+ load();
+ // eslint-disable-next-line react-hooks/exhaustive-deps
+ }, []);
 
  const handleDelete = async (id: string) => {
  if (!confirm(isAr ? "حذف هذا المقال؟" : "Delete this article?")) return;

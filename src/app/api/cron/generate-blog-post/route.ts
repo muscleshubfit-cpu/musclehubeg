@@ -1,9 +1,9 @@
-// @ts-nocheck
 import { NextRequest, NextResponse } from "next/server";
 import { pickSmartTopic } from "@/lib/blog-topics";
 import { generateArticleBundle } from "@/lib/blog-generate";
 import { fetchFeaturedImage } from "@/lib/blog-images";
 import { supabaseAdmin, isSupabaseAdminConfigured } from "@/lib/supabase/admin";
+import { normalizeCategory } from "@/lib/blog";
 
 // 300s (5 min) — article generation + image fetch can exceed 60s on free models.
 // Vercel's hobby plan caps at 60s; pro/enterprise allows up to 300s/900s.
@@ -26,6 +26,28 @@ async function uniqueSlug(base: string, language: "en" | "ar"): Promise<string> 
  return `${base}-${Date.now()}`;
 }
 
+/**
+ * Check whether an article with the same title (case-insensitive, trimmed)
+ * already exists in the given language. Prevents the AI from publishing
+ * a near-duplicate of an existing post when the topic picker's "don't
+ * repeat" instruction didn't take.
+ */
+async function titleAlreadyExists(title: string, language: "en" | "ar"): Promise<boolean> {
+ if (!supabaseAdmin) return false;
+ const normalized = title.trim().toLowerCase();
+ if (!normalized) return false;
+ // Supabase REST filters are case-sensitive by default; use ilike for
+ // case-insensitive match. We also trim in the query in case the DB has
+ // surrounding whitespace.
+ const { data } = await supabaseAdmin
+ .from("blog_posts" as any)
+ .select("id")
+ .eq("language", language)
+ .ilike("title", normalized)
+ .limit(1);
+ return Array.isArray(data) && data.length > 0;
+}
+
 export async function GET(request: NextRequest) {
  const auth = request.headers.get("authorization");
  const expected = process.env.CRON_SECRET;
@@ -38,12 +60,33 @@ export async function GET(request: NextRequest) {
  // 1. Pick topic (uses OpenRouter via callAIWithFallback)
  const pick = await pickSmartTopic();
 
+ // Normalize the category defensively — pickSmartTopic already restricts
+ // to CONTENT_PILLARS, but belt-and-suspenders in case the AI returns a
+ // synonym like "training" instead of "workout".
+ const safeCategory = normalizeCategory(pick.category);
+
  // 2. Generate article (skip research for speed)
  const bundle = await generateArticleBundle({
  topic: pick.topic,
  focusKeyword: pick.focusKeyword,
- category: pick.category,
+ category: safeCategory,
  });
+
+ // Reject duplicate titles — the topic picker is told not to repeat, but
+ // the AI sometimes ignores that. Better to skip this run than publish
+ // a duplicate (the next cron tick will pick a different topic).
+ if (await titleAlreadyExists(bundle.seo.en.seoTitle, "en")) {
+ return NextResponse.json(
+ { skipped: true, reason: "duplicate-en-title", title: bundle.seo.en.seoTitle },
+ { status: 200 },
+ );
+ }
+ if (await titleAlreadyExists(bundle.seo.ar.seoTitle, "ar")) {
+ return NextResponse.json(
+ { skipped: true, reason: "duplicate-ar-title", title: bundle.seo.ar.seoTitle },
+ { status: 200 },
+ );
+ }
 
  const now = new Date().toISOString();
  const enSlug = await uniqueSlug(slugify(bundle.seo.en.slug || pick.focusKeyword), "en");
@@ -67,7 +110,7 @@ export async function GET(request: NextRequest) {
  meta_description: bundle.seo.en.metaDescription,
  focus_keyword: bundle.seo.focusKeyword,
  keywords: bundle.seo.secondaryKeywords,
- category: pick.category,
+ category: safeCategory,
  tags: bundle.seo.secondaryKeywords.slice(0, 5),
  featured_image: imageUrl,
  cover_alt: bundle.seo.en.seoTitle,
@@ -88,6 +131,9 @@ export async function GET(request: NextRequest) {
  content: bundle.arabicArticle,
  meta_title: bundle.seo.ar.metaTitle,
  meta_description: bundle.seo.ar.metaDescription,
+ // Use the Arabic FAQ — previously this inherited bundle.faq (English)
+ // from enRow, which caused English Q&A to appear on Arabic articles.
+ faq_json: bundle.faqAr && bundle.faqAr.length > 0 ? bundle.faqAr : bundle.faq,
  };
 
  const { data: enPost, error: enErr } = await supabaseAdmin.from("blog_posts" as any).insert(enRow).select().single() as any;

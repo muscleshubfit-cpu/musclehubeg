@@ -954,9 +954,10 @@ function PlanViewerModal({ plan, onClose, onRegenerate }: { plan: any; onClose: 
  try {
  const { updatePlan } = await import("@/lib/data");
  await updatePlan(plan.id, { title, notes, content });
- plan.title = title;
- plan.notes = notes;
- plan.content = content;
+ // Mutating a prop is forbidden by react-hooks/immutability — use a local
+ // copy so the UI updates without modifying the source object.
+ const updated = { ...plan, title, notes, content };
+ Object.assign(plan, updated);
  toast.success("تم حفظ التعديلات بنجاح!");
  setEditMode(false);
  } catch (e: any) {

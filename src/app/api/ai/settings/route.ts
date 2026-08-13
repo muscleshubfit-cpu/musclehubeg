@@ -31,7 +31,10 @@ const COOKIE_OPTS = {
  secure: process.env.NODE_ENV === "production",
  sameSite: "lax" as const,
  path: "/",
- maxAge: 60 * 60 * 24 * 365, // 1 year
+ // 30 days — balances convenience against the risk of a leaked cookie
+ // (the cookie stores an AI provider API key). Was 1 year; lowered per
+ // security review. The admin can re-enter the key in /admin/ai-settings.
+ maxAge: 60 * 60 * 24 * 30,
 };
 
 export async function GET(request: NextRequest) {

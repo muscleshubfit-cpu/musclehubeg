@@ -40,6 +40,39 @@ export const BLOG_CATEGORIES = [
  { id: "science", en: "Science", ar: "علم" },
 ];
 
+export const VALID_CATEGORY_IDS = new Set(BLOG_CATEGORIES.map((c) => c.id));
+
+/**
+ * Normalize a category id to a valid one. Maps common AI-hallucinated
+ * synonyms (e.g. "training" → "workout") and falls back to "nutrition"
+ * for anything unrecognized. Use this when saving posts to prevent
+ * the filter UI from showing broken/unknown categories.
+ */
+export function normalizeCategory(categoryId: string | undefined | null): string {
+ if (!categoryId) return "nutrition";
+ const id = categoryId.trim().toLowerCase();
+ if (VALID_CATEGORY_IDS.has(id)) return id;
+ // Common synonyms the AI model has returned in the past
+ const SYNONYMS: Record<string, string> = {
+ training: "workout",
+ exercise: "workout",
+ fitness: "workout",
+ diet: "nutrition",
+ food: "nutrition",
+ supplement: "supplements",
+ "weight loss": "weight-loss",
+ fatloss: "weight-loss",
+ "muscle building": "muscle-gain",
+ bodybuilding: "muscle-gain",
+ recipe: "recipes",
+ cooking: "recipes",
+ wellness: "health",
+ medical: "science",
+ research: "science",
+ };
+ return SYNONYMS[id] || "nutrition";
+}
+
 export function getCategoryLabel(categoryId: string, lang: "en" | "ar"): string {
  const cat = BLOG_CATEGORIES.find((c) => c.id === categoryId);
  return cat ? (lang === "ar" ? cat.ar : cat.en) : categoryId;
