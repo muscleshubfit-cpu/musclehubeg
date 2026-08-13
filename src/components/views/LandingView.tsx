@@ -120,14 +120,29 @@ export function LandingView() {
     })();
   }, [lang]);
 
+  // Hero carousel — auto-rotates through the 4 studio images
+  const heroImages = [
+    { src: IMAGES.hero, alt: isAr ? "أحمد زكي" : "Ahmed Zake" },
+    { src: IMAGES.coach, alt: isAr ? "أحمد زكي — الكوتش" : "Ahmed Zake — Coach" },
+    { src: IMAGES.evo, alt: "EVO" },
+    { src: IMAGES.together, alt: isAr ? "أحمد زكي و EVO" : "Ahmed Zake and EVO" },
+  ];
+  const [currentSlide, setCurrentSlide] = useState(0);
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % heroImages.length);
+    }, 4000); // 4 seconds per slide
+    return () => clearInterval(timer);
+  }, [heroImages.length]);
+
   const blogHref = isCoach ? "/admin/blog" : isAr ? "/ar/blog" : "/blog";
 
   return (
     <div className="min-h-screen bg-white text-[#1d1d1f]">
       <SiteHeader variant="landing" />
 
-      {/* ===================== 1. HERO — Apple product page style ===================== */}
-      <section className="flex min-h-[85vh] flex-col items-center justify-center bg-white px-4 pt-20 text-center">
+      {/* ===================== 1. HERO — with image carousel ===================== */}
+      <section className="flex min-h-[85vh] flex-col items-center justify-center bg-white px-4 pt-16 text-center md:pt-20">
         <Reveal>
           <p className="mb-3 text-sm font-normal text-[#6e6e73] md:text-base">
             {isAr ? "منصة MuscleHub" : "MuscleHub"}
@@ -143,8 +158,44 @@ export function LandingView() {
             {isAr ? "كوتشينج حقيقي. ذكاء اصطناعي. نتائج حقيقية." : "Real coaching. Real AI. Real results."}
           </p>
         </Reveal>
+
+        {/* Image Carousel */}
         <Reveal delay={300}>
-          <div className="mt-6 flex flex-wrap items-center justify-center gap-4 text-base md:gap-6">
+          <div className="relative mt-10 w-full max-w-md md:max-w-lg">
+            <div className="relative aspect-[4/5] overflow-hidden rounded-3xl bg-[#f5f5f7]">
+              {heroImages.map((img, i) => (
+                <img
+                  key={i}
+                  src={img.src}
+                  alt={img.alt}
+                  className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-700 ${
+                    i === currentSlide ? "opacity-100" : "opacity-0"
+                  }`}
+                  loading={i === 0 ? "eager" : "lazy"}
+                />
+              ))}
+            </div>
+
+            {/* Carousel dots */}
+            <div className="mt-6 flex justify-center gap-2">
+              {heroImages.map((_, i) => (
+                <button
+                  key={i}
+                  onClick={() => setCurrentSlide(i)}
+                  aria-label={`Slide ${i + 1}`}
+                  className={`h-2 rounded-full transition-all ${
+                    i === currentSlide
+                      ? "w-8 bg-[#0071e3]"
+                      : "w-2 bg-[#d2d2d7] hover:bg-[#6e6e73]"
+                  }`}
+                />
+              ))}
+            </div>
+          </div>
+        </Reveal>
+
+        <Reveal delay={500}>
+          <div className="mt-10 flex flex-wrap items-center justify-center gap-4 text-base md:gap-6">
             <button
               onClick={() => navigate("auth", { mode: "signup" })}
               className="rounded-full bg-[#0071e3] px-6 py-2.5 font-normal text-white transition-opacity hover:opacity-90 md:px-7 md:py-3"
@@ -159,20 +210,6 @@ export function LandingView() {
             </button>
           </div>
         </Reveal>
-      </section>
-
-      {/* ===================== 2. HERO IMAGE — Ahmed Zake ===================== */}
-      <section className="bg-white px-4 pb-20 md:pb-32">
-        <div className="mx-auto max-w-4xl">
-          <Reveal>
-            <img
-              src={IMAGES.hero}
-              alt={isAr ? "الكوتش أحمد زكي" : "Coach Ahmed Zake"}
-              className="mx-auto aspect-[4/5] w-full max-w-md rounded-3xl object-cover md:max-w-lg"
-              loading="eager"
-            />
-          </Reveal>
-        </div>
       </section>
 
       {/* ===================== 3. STICKY SCROLL — "Not just fitness" ===================== */}
