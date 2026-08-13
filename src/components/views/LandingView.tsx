@@ -1,955 +1,582 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import {
- Dumbbell,
- ArrowRight,
- LayoutDashboard,
- Check,
- Star,
- Heart,
- Zap,
- Target,
- TrendingUp,
- Shield,
- Clock,
- Quote,
- Sparkles,
- Brain,
- Activity,
- LineChart,
- Salad,
- MessageCircle,
- Cpu,
- Eye,
- RefreshCw,
- Lock,
- Users,
- Award,
- ChevronDown,
- Bot,
- Wifi,
- FileText,
- Flame,
- Calendar,
- MousePointerClick,
-} from "lucide-react";
 import { useI18n } from "@/lib/i18n";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Card } from "@/components/ui/card";
-import { LanguageToggle } from "@/components/LanguageToggle";
-import { SiteHeader } from "@/components/SiteHeader";
 import { useNav } from "@/hooks/use-nav";
 import { useAuth } from "@/hooks/use-auth";
-import { useScrollAnimation, AnimatedCounter } from "@/hooks/use-scroll-animation";
+import { useScrollAnimation } from "@/hooks/use-scroll-animation";
 import {
- Accordion,
- AccordionContent,
- AccordionItem,
- AccordionTrigger,
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
 } from "@/components/ui/accordion";
 import { listBlogPosts, getCategoryLabel, type BlogPost } from "@/lib/blog";
 
-// Reusable scroll-reveal wrapper
+// Apple-style reveal wrapper — gentle fade only, no scale/slide
 function Reveal({
- children,
- className = "",
- delay = 0,
- as: Tag = "div",
+  children,
+  className = "",
+  delay = 0,
 }: {
- children: React.ReactNode;
- className?: string;
- delay?: number;
- as?: React.ElementType;
+  children: React.ReactNode;
+  className?: string;
+  delay?: number;
 }) {
- const { ref, isVisible } = useScrollAnimation<HTMLDivElement>();
- return (
- <Tag
- ref={ref}
- className={`${isVisible ? "animate-fade-up" : "scroll-hidden"} ${className}`}
- style={delay ? { animationDelay: `${delay}ms` } : undefined}
- >
- {children}
- </Tag>
- );
+  const { ref, isVisible } = useScrollAnimation<HTMLDivElement>();
+  return (
+    <div
+      ref={ref}
+      className={`${isVisible ? "animate-fade-in" : "scroll-hidden"} ${className}`}
+      style={delay ? { animationDelay: `${delay}ms` } : undefined}
+    >
+      {children}
+    </div>
+  );
 }
 
-// Premium images
+// Premium images — Apple-style full-bleed photography
 const HERO_IMG = "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/6f2587b25688.jpeg";
 const AI_IMG = "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/28994da5426f.jpg";
 const TRANSFORM_IMG = "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/d107f788f4a2.jpg";
 const MEAL_IMG = "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/75179d5df07d.jpg";
 
 export function LandingView() {
- const { t, lang } = useI18n();
- const { navigate } = useNav();
- const { profile, isCoach } = useAuth();
- const isLoggedIn = !!profile;
- const isAr = lang === "ar";
+  const { t, lang } = useI18n();
+  const { navigate } = useNav();
+  const { profile, isCoach } = useAuth();
+  const isLoggedIn = !!profile;
+  const isAr = lang === "ar";
 
- // Fetch latest articles in the user's selected language for the homepage
- // "Latest Articles" + "Popular Articles" sections. Visitors and clients see
- // only their language; admin (coach) sees all languages via the admin
- // dashboard, but the homepage still shows their selected language only.
- const [latestPosts, setLatestPosts] = useState<BlogPost[]>([]);
- const [popularPosts, setPopularPosts] = useState<BlogPost[]>([]);
- useEffect(() => {
- (async () => {
- const posts = await listBlogPosts(lang);
- // Latest = newest published_at first (already sorted by listBlogPosts).
- setLatestPosts(posts.slice(0, 3));
- // Popular = posts with the longest content + most keywords/tags as a
- // simple proxy until we have real view-count analytics. Stable order
- // so the section doesn't reshuffle on every render.
- const popular = [...posts]
- .sort(
- (a, b) =>
- (b.keywords?.length || 0) +
- (b.tags?.length || 0) +
- Math.min((b.content?.length || 0) / 500, 10) -
- ((a.keywords?.length || 0) +
- (a.tags?.length || 0) +
- Math.min((a.content?.length || 0) / 500, 10)),
- )
- .slice(0, 3);
- setPopularPosts(popular);
- })();
- }, [lang]);
+  const [latestPosts, setLatestPosts] = useState<BlogPost[]>([]);
+  useEffect(() => {
+    (async () => {
+      const posts = await listBlogPosts(lang);
+      setLatestPosts(posts.slice(0, 3));
+    })();
+  }, [lang]);
 
- // Where the "Blog" header button should go depends on who's logged in:
- // - Coach (admin) → /admin/blog (sees everything)
- // - Client / visitor → /blog or /ar/blog (their selected language only)
- const blogHref = isCoach ? "/admin/blog" : isAr ? "/ar/blog" : "/blog";
+  const blogHref = isCoach ? "/admin/blog" : isAr ? "/ar/blog" : "/blog";
 
- return (
- <div className="min-h-screen bg-background text-foreground">
- {/* ===================== HEADER (hamburger menu) ===================== */}
- <SiteHeader variant="landing" />
+  return (
+    <div className="min-h-screen bg-background text-foreground">
+      <SiteHeader variant="landing" />
 
- {/* ===================== 1. HERO ===================== */}
- <section className="relative overflow-hidden pt-16">
- <div className="absolute inset-0 bg-hero-glow" />
- <div className="absolute inset-0 grid-bg opacity-30" />
- <div className="relative mx-auto grid max-w-7xl items-center gap-12 px-4 py-20 sm:px-6 md:grid-cols-2 md:py-32">
- {/* Text */}
- <div className="text-center md:text-start animate-fade-up">
- <span className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/5 px-4 py-1.5 text-xs font-semibold text-primary">
- <Sparkles className="h-3.5 w-3.5 animate-neon-flicker" />
- {isAr ? "منصة تحسين الأداء البشري بالذكاء الاصطناعي" : "AI-Powered Human Optimization Platform"}
- </span>
- <h1 className="mt-6 text-5xl font-extrabold leading-[1.1] tracking-tight md:text-7xl">
- {isAr ? (
- <>
- ابنِ نسخة
- <br />
- <span className="text-shimmer">أقوى منك</span>
- </>
- ) : (
- <>
- Build a
- <br />
- <span className="text-shimmer">Stronger You</span>
- </>
- )}
- </h1>
- <p className="mx-auto mt-6 max-w-lg text-lg leading-relaxed text-muted-foreground md:mx-0">
- {isAr
- ? "ليست مجرد تطبيق لياقة. ليست مجرد دردشة ذكاء اصطناعي. MuscleHub هي النظام البيئي الذكي الذي يجمع بين خبرة الكوتش أحمد زكي ومحرك الذكاء الاصطناعي EVO لتحسين كل جانب من أدائك البشري."
- : "Not just a fitness app. Not just an AI chatbot. MuscleHub is the intelligent ecosystem that combines Coach Ahmed Zake's expertise with the EVO AI engine to optimize every aspect of your human performance."}
- </p>
- <div className="mt-8 flex flex-wrap items-center justify-center gap-4 md:justify-start">
- <Button size="lg" className="gap-2 shadow-glow text-base group" onClick={() => navigate("auth", { mode: "signup" })}>
- {isAr ? "ابدأ تحوّلك" : "Start Your Transformation"}
- <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1 rtl:rotate-180 rtl:group-hover:-translate-x-1" />
- </Button>
- <Button size="lg" variant="outline" className="gap-2 border-primary/30 text-base" onClick={() => navigate("auth", { mode: "signup" })}>
- <Bot className="h-5 w-5 text-primary" />
- {isAr ? "تعرّف على EVO" : "Meet EVO"}
- </Button>
- </div>
- <div className="mt-8 flex items-center justify-center gap-6 text-xs text-muted-foreground md:justify-start">
- <span className="flex items-center gap-1.5"><Check className="h-4 w-4 text-success" /> {isAr ? "ابدأ خلال دقيقة" : "Start in a minute"}</span>
- <span className="flex items-center gap-1.5"><Check className="h-4 w-4 text-success" /> {isAr ? "خطط بالـ AI" : "AI-personalized"}</span>
- <span className="flex items-center gap-1.5"><Check className="h-4 w-4 text-success" /> {isAr ? "كوتش حقيقي" : "Real coach"}</span>
- </div>
- </div>
+      {/* ===================== 1. HERO — Apple-style full-bleed ===================== */}
+      <section className="relative flex min-h-[90vh] flex-col items-center justify-center overflow-hidden bg-background px-4 text-center">
+        <Reveal>
+          <p className="mb-4 text-sm font-normal text-primary md:text-base">
+            {isAr ? "منصة تحسين الأداء البشري" : "Human Optimization Platform"}
+          </p>
+        </Reveal>
+        <Reveal delay={100}>
+          <h1 className="mx-auto max-w-4xl text-5xl font-semibold leading-[1.05] tracking-tight md:text-7xl lg:text-8xl">
+            {isAr ? (
+              <>
+                ابنِ نسخة
+                <br />
+                أقوى منك.
+              </>
+            ) : (
+              <>
+                Build a
+                <br />
+                Stronger You.
+              </>
+            )}
+          </h1>
+        </Reveal>
+        <Reveal delay={300}>
+          <p className="mx-auto mt-6 max-w-xl text-lg font-normal leading-relaxed text-muted-foreground md:text-xl md:leading-relaxed">
+            {isAr
+              ? "كوتشينج حقيقي. ذكاء اصطناعي يفهم جسمك. خطط تتكيف معك."
+              : "Real coaching. AI that understands your body. Plans that adapt to you."}
+          </p>
+        </Reveal>
+        <Reveal delay={500}>
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-6 text-base md:gap-8">
+            <button
+              onClick={() => navigate("auth", { mode: "signup" })}
+              className="rounded-full bg-primary px-8 py-3 font-normal text-primary-foreground transition-opacity hover:opacity-90"
+            >
+              {isAr ? "ابدأ تحوّلك" : "Start your transformation"}
+            </button>
+            <button
+              onClick={() => navigate("pricing")}
+              className="font-normal text-primary transition-opacity hover:opacity-70"
+            >
+              {isAr ? "تعرّف على الأسعار ›" : "Learn about pricing ›"}
+            </button>
+          </div>
+        </Reveal>
+      </section>
 
- {/* Hero Visual */}
- <div className="relative animate-scale-in" style={{ animationDelay: "200ms" }}>
- <div className="absolute -inset-6 rounded-[2rem] bg-gradient-primary opacity-20 blur-3xl" />
- <div className="relative overflow-hidden rounded-[2rem] border border-primary/20 shadow-soft-glow">
- <img
- src={HERO_IMG}
- alt={isAr ? "رياضي محترف في جيم بإضاءة درامية" : "Professional athlete in dramatic gym lighting"}
- className="aspect-[4/5] w-full object-cover"
- loading="eager"
- />
- <div className="absolute inset-0 bg-gradient-to-t from-background via-background/20 to-transparent" />
- {/* EVO badge */}
- <div className="absolute end-4 top-4 flex items-center gap-2 rounded-2xl border border-primary/30 bg-background/60 px-4 py-2 backdrop-blur-xl">
- <span className="relative flex h-2 w-2">
- <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-success opacity-75" />
- <span className="relative inline-flex h-2 w-2 rounded-full bg-success" />
- </span>
- <span className="text-xs font-semibold text-foreground">EVO {isAr ? "يعمل الآن" : "Active"}</span>
- </div>
- {/* Stats overlay with animated counters */}
- <div className="absolute inset-x-4 bottom-4 grid grid-cols-3 gap-2">
- {[
- { v: "+500", l: isAr ? "عميل" : "clients" },
- { v: "95%", l: isAr ? "نجاح" : "success" },
- { v: "24/7", l: isAr ? "تحليل" : "monitoring" },
- ].map((s) => (
- <div key={s.l} className="rounded-xl border border-primary/10 bg-background/60 p-3 text-center backdrop-blur-xl">
- <div className="font-display text-lg font-bold text-primary">
- <AnimatedCounter value={s.v} />
- </div>
- <div className="text-[10px] text-muted-foreground">{s.l}</div>
- </div>
- ))}
- </div>
- </div>
- </div>
- </div>
+      {/* ===================== 2. HERO IMAGE — full-bleed ===================== */}
+      <section className="relative h-[60vh] w-full overflow-hidden md:h-[80vh]">
+        <img
+          src={HERO_IMG}
+          alt={isAr ? "رياضي محترف" : "Professional athlete"}
+          className="h-full w-full object-cover"
+          loading="eager"
+        />
+      </section>
 
- {/* Scroll indicator */}
- <div className="absolute bottom-6 left-1/2 -translate-x-1/2 hidden md:block">
- <div className="flex flex-col items-center gap-2 text-muted-foreground/60">
- <span className="text-[10px] font-medium uppercase tracking-widest">{isAr ? "اكتشف" : "Scroll"}</span>
- <ChevronDown className="h-5 w-5 animate-scroll-bounce" />
- </div>
- </div>
- </section>
+      {/* ===================== 3. WHAT IS MUSCLEHUB — Apple section ===================== */}
+      <section className="bg-secondary px-4 py-24 text-center md:py-32">
+        <div className="mx-auto max-w-3xl">
+          <Reveal>
+            <h2 className="text-4xl font-semibold leading-[1.1] tracking-tight md:text-6xl">
+              {isAr ? "ليست منصة لياقة." : "Not a fitness platform."}
+            </h2>
+          </Reveal>
+          <Reveal delay={150}>
+            <h2 className="mt-2 text-4xl font-semibold leading-[1.1] tracking-tight text-muted-foreground md:text-6xl">
+              {isAr ? "بل نظام تحسين بشري." : "A human optimization system."}
+            </h2>
+          </Reveal>
+          <Reveal delay={300}>
+            <p className="mx-auto mt-8 max-w-2xl text-lg font-normal leading-relaxed text-muted-foreground md:text-xl">
+              {isAr
+                ? "نجمع بين خبرة الكوتش أحمد زكي وعلم الرياضة والتغذية والذكاء الاصطناعي وتحليل البيانات في نظام بيئي واحد. الهدف ليس فقط تغيير جسمك، بل تحسين أدائك الكامل."
+                : "We combine Coach Ahmed Zake's expertise with sports science, nutrition, AI, and data analysis in one ecosystem. The goal isn't just to change your body — it's to optimize your entire performance."}
+            </p>
+          </Reveal>
+        </div>
+      </section>
 
- {/* ===================== 2. TRUST SECTION ===================== */}
- <section className="border-y border-border/50 bg-card/30">
- <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6">
- <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-5">
- {[
- { icon: Award, title: isAr ? "خبرة بشرية" : "Human Expertise", desc: isAr ? "+8 سنوات كوتشينج حقيقي" : "+8 years real coaching" },
- { icon: Brain, title: isAr ? "ذكاء اصطناعي" : "AI Intelligence", desc: isAr ? "محرك EVO يحلل بياناتك" : "EVO engine analyzes your data" },
- { icon: Activity, title: isAr ? "علم رياضي" : "Sports Science", desc: isAr ? "منهجية علمية مثبتة" : "Proven scientific methodology" },
- { icon: Shield, title: isAr ? "دعم مستمر" : "Continuous Support", desc: isAr ? "مراقبة 24/7 وإشعارات" : "24/7 monitoring + alerts" },
- { icon: TrendingUp, title: isAr ? "نتائج حقيقية" : "Real Results", desc: isAr ? "+500 قصة نجاح" : "+500 success stories" },
- ].map((item, i) => (
- <Reveal key={i} delay={i * 100} className="flex flex-col items-center gap-3 text-center">
- <span className="grid h-12 w-12 place-items-center rounded-2xl border border-primary/20 bg-primary/5 text-primary transition-transform hover:scale-110 hover:shadow-soft-glow">
- <item.icon className="h-5 w-5" />
- </span>
- <div>
- <h3 className="text-sm font-bold">{item.title}</h3>
- <p className="mt-0.5 text-xs text-muted-foreground">{item.desc}</p>
- </div>
- </Reveal>
- ))}
- </div>
- </div>
- </section>
+      {/* ===================== 4. STATS — Apple-style large numbers ===================== */}
+      <section className="bg-background px-4 py-24 md:py-32">
+        <div className="mx-auto max-w-5xl">
+          <div className="grid gap-16 md:grid-cols-4 md:gap-8">
+            {[
+              { v: "+500", l: isAr ? "عميل نجح" : "clients succeeded" },
+              { v: "95%", l: isAr ? "نسبة رضا" : "satisfaction rate" },
+              { v: "-8.5kg", l: isAr ? "متوسط الفقد" : "avg. weight loss" },
+              { v: "12wk", l: isAr ? "متوسط المدة" : "avg. duration" },
+            ].map((s, i) => (
+              <Reveal key={s.l} delay={i * 100} className="text-center">
+                <div className="text-5xl font-semibold tracking-tight text-foreground md:text-7xl">
+                  {s.v}
+                </div>
+                <div className="mt-2 text-sm font-normal text-muted-foreground md:text-base">
+                  {s.l}
+                </div>
+              </Reveal>
+            ))}
+          </div>
+        </div>
+      </section>
 
- {/* ===================== 3. WHAT IS MUSCLEHUB ===================== */}
- <section className="relative overflow-hidden py-24">
- <div className="mx-auto max-w-4xl px-4 text-center sm:px-6">
- <Reveal>
- <span className="inline-block rounded-full border border-border bg-card px-4 py-1.5 text-xs font-medium text-muted-foreground">
- {isAr ? "ما هي MuscleHub؟" : "What is MuscleHub?"}
- </span>
- </Reveal>
- <Reveal delay={100}>
- <h2 className="mt-6 text-4xl font-extrabold leading-tight md:text-5xl">
- {isAr ? (
- <>
- ليست منصة لياقة.
- <br />
- <span className="text-gradient">بل نظام تحسين بشري كامل.</span>
- </>
- ) : (
- <>
- Not a fitness platform.
- <br />
- <span className="text-gradient">A complete human optimization system.</span>
- </>
- )}
- </h2>
- </Reveal>
- <Reveal delay={200}>
- <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-muted-foreground">
- {isAr
- ? "MuscleHub تجمع بين خبرة الإنسان وعلم الرياضة والتغذية وعلم النفس السلوكي والذكاء الاصطناعي وتحليل البيانات والتعلم المستمر — في نظام بيئي ذكي واحد. الهدف ليس فقط تغيير جسمك، بل تحسين أدائك الكامل كإنسان."
- : "MuscleHub combines human expertise, sports science, nutrition science, behavioral psychology, artificial intelligence, data analysis, and continuous learning — in one intelligent ecosystem. The goal isn't just to change your body, but to optimize your entire human performance."}
- </p>
- </Reveal>
- <Reveal delay={300}>
- <div className="mt-10 flex flex-wrap justify-center gap-3">
- {[
- isAr ? "خبرة بشرية" : "Human Experience",
- isAr ? "علم رياضي" : "Sports Science",
- isAr ? "علم تغذية" : "Nutrition Science",
- isAr ? "علم نفس سلوكي" : "Behavioral Psychology",
- isAr ? "ذكاء اصطناعي" : "Artificial Intelligence",
- isAr ? "تحليل بيانات" : "Data Analysis",
- isAr ? "تعلم مستمر" : "Continuous Learning",
- ].map((tag) => (
- <span key={tag} className="cursor-default rounded-full border border-primary/20 bg-primary/5 px-4 py-2 text-sm font-medium text-primary transition-all hover:scale-105 hover:border-primary/40 hover:shadow-soft">
- {tag}
- </span>
- ))}
- </div>
- </Reveal>
- </div>
- </section>
+      {/* ===================== 5. EVO — Dark section (Apple-style black) ===================== */}
+      <section className="relative h-[80vh] w-full overflow-hidden bg-black md:h-[90vh]">
+        <img
+          src={AI_IMG}
+          alt={isAr ? "ذكاء اصطناعي" : "AI intelligence"}
+          className="h-full w-full object-cover opacity-60"
+          loading="lazy"
+        />
+        <div className="absolute inset-0 flex flex-col items-center justify-center px-4 text-center">
+          <Reveal>
+            <h2 className="text-4xl font-semibold leading-[1.1] tracking-tight text-white md:text-6xl lg:text-7xl">
+              {isAr ? "EVO." : "EVO."}
+            </h2>
+          </Reveal>
+          <Reveal delay={150}>
+            <p className="mx-auto mt-4 max-w-xl text-lg font-normal leading-relaxed text-gray-300 md:text-xl">
+              {isAr
+                ? "ليس شات بوت. بل محرك أداء ذكي يحلل بياناتك، يتنبأ بنتائجك، ويحدّث خططك تلقائياً."
+                : "Not a chatbot. An intelligent engine that analyzes your data, predicts outcomes, and updates your plans automatically."}
+            </p>
+          </Reveal>
+        </div>
+      </section>
 
- {/* ===================== 4. HUMAN + AI (AHI) ===================== */}
- <section className="border-y border-border/50 bg-card/30 py-24">
- <div className="mx-auto max-w-7xl px-4 sm:px-6">
- <div className="text-center">
- <span className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/5 px-4 py-1.5 text-xs font-semibold text-primary">
- <Cpu className="h-3.5 w-3.5" />
- {isAr ? "الذكاء البشري الاصطناعي (AHI)" : "Artificial Human Intelligence (AHI)"}
- </span>
- <h2 className="mt-6 text-4xl font-extrabold leading-tight md:text-5xl">
- {isAr ? "المستقبل ليس إنسان ضد AI." : "The future isn't Human vs AI."}
- <br />
- <span className="text-shimmer">{isAr ? "المستقبل إنسان + AI." : "The future is Human + AI."}</span>
- </h2>
- </div>
+      {/* ===================== 6. HOW IT WORKS — Apple-style numbered steps ===================== */}
+      <section className="bg-background px-4 py-24 md:py-32">
+        <div className="mx-auto max-w-5xl">
+          <Reveal>
+            <h2 className="text-center text-4xl font-semibold leading-[1.1] tracking-tight md:text-6xl">
+              {isAr ? "رحلتك في ٤ خطوات." : "Your journey in 4 steps."}
+            </h2>
+          </Reveal>
+          <div className="mt-20 space-y-16 md:space-y-24">
+            {[
+              {
+                n: "01",
+                title: isAr ? "أنشئ حسابك" : "Create your account",
+                desc: isAr ? "في ثوانٍ. بالإيميل أو Google." : "In seconds. Email or Google.",
+              },
+              {
+                n: "02",
+                title: isAr ? "أكمل الاستبيانات" : "Complete questionnaires",
+                desc: isAr ? "أخبرنا عن هدفك، وزنك، عاداتك، إصاباتك." : "Tell us your goal, weight, habits, injuries.",
+              },
+              {
+                n: "03",
+                title: isAr ? "EVO يحلل ويخطط" : "EVO analyzes & plans",
+                desc: isAr ? "الكوتش + EVO يولّدون خططك ويوافقون عليها." : "Coach + EVO generate and approve your plans.",
+              },
+              {
+                n: "04",
+                title: isAr ? "ابدأ التحوّل" : "Start transforming",
+                desc: isAr ? "تتبع تقدمك، استبدل، واسأل EVO أي وقت." : "Track progress, swap, and ask EVO anytime.",
+              },
+            ].map((s, i) => (
+              <Reveal key={s.n} delay={i * 100}>
+                <div className="flex flex-col gap-4 border-t border-border pt-8 md:flex-row md:items-baseline md:gap-12">
+                  <div className="text-sm font-normal text-muted-foreground md:w-24 md:flex-shrink-0">
+                    {s.n}
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-2xl font-semibold tracking-tight md:text-4xl">
+                      {s.title}
+                    </h3>
+                    <p className="mt-2 text-lg font-normal text-muted-foreground md:text-xl">
+                      {s.desc}
+                    </p>
+                  </div>
+                </div>
+              </Reveal>
+            ))}
+          </div>
+        </div>
+      </section>
 
- <div className="mt-16 grid items-center gap-8 md:grid-cols-3">
- {/* Ahmed Zake */}
- <div className="gradient-border rounded-[1.5rem] p-8 text-center">
- <span className="mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-gradient-primary text-primary-foreground shadow-glow">
- <Users className="h-8 w-8" />
- </span>
- <h3 className="mt-4 text-xl font-bold">Ahmed Zake</h3>
- <p className="text-sm text-primary">{isAr ? "الكوتش البشري" : "The Human Coach"}</p>
- <ul className="mt-4 space-y-2 text-sm text-muted-foreground">
- <li className="flex items-center gap-2"><Check className="h-4 w-4 text-success" /> {isAr ? "خبرة +8 سنوات" : "+8 years experience"}</li>
- <li className="flex items-center gap-2"><Check className="h-4 w-4 text-success" /> {isAr ? "تعاطف وفهم" : "Empathy & understanding"}</li>
- <li className="flex items-center gap-2"><Check className="h-4 w-4 text-success" /> {isAr ? "تفكير نقدي" : "Critical thinking"}</li>
- <li className="flex items-center gap-2"><Check className="h-4 w-4 text-success" /> {isAr ? "إشراف شخصي" : "Personal supervision"}</li>
- </ul>
- </div>
+      {/* ===================== 7. ADAPTIVE COACHING — Apple-style split section ===================== */}
+      <section className="bg-secondary px-4 py-24 md:py-32">
+        <div className="mx-auto max-w-5xl">
+          <Reveal>
+            <h2 className="text-4xl font-semibold leading-[1.1] tracking-tight md:text-6xl">
+              {isAr ? "خطط تتغير كأنها حية." : "Plans that evolve."}
+            </h2>
+          </Reveal>
+          <Reveal delay={150}>
+            <p className="mt-6 max-w-2xl text-lg font-normal leading-relaxed text-muted-foreground md:text-xl">
+              {isAr
+                ? "خطتك ليست ملف PDF ثابت. كل أسبوع، EVO يحلل تقدمك ويعدّل السعرات، الماكروز، التمارين، والكثافة — تلقائياً."
+                : "Your plan isn't a static PDF. Every week, EVO analyzes your progress and adjusts calories, macros, exercises, and intensity — automatically."}
+            </p>
+          </Reveal>
+          <Reveal delay={300}>
+            <div className="mt-12 overflow-hidden rounded-2xl">
+              <img
+                src={MEAL_IMG}
+                alt={isAr ? "وجبة صحية" : "Healthy meal"}
+                className="aspect-[16/10] w-full object-cover"
+                loading="lazy"
+              />
+            </div>
+          </Reveal>
+        </div>
+      </section>
 
- {/* Plus symbol */}
- <div className="flex flex-col items-center justify-center">
- <span className="font-display text-6xl font-bold text-primary">+</span>
- <p className="mt-2 text-xs text-muted-foreground">{isAr ? "يتجانسان معاً" : "synergize together"}</p>
- </div>
+      {/* ===================== 8. TESTIMONIALS — Apple-style quotes ===================== */}
+      <section className="bg-background px-4 py-24 md:py-32">
+        <div className="mx-auto max-w-4xl">
+          <Reveal>
+            <h2 className="text-center text-4xl font-semibold leading-[1.1] tracking-tight md:text-6xl">
+              {isAr ? "عملاء حقيون. نتائج حقيقية." : "Real clients. Real results."}
+            </h2>
+          </Reveal>
+          <div className="mt-20 space-y-20">
+            {[
+              {
+                name: isAr ? "محمد العشري" : "Mohamed ElAshry",
+                result: isAr ? "-12 كجم في 3 أشهر" : "-12kg in 3 months",
+                text: isAr
+                  ? "أحسن كوتش جربته. EVO بيرد على أسئلتي في أي وقت وحسابات التبديلات مظبوطة 100%."
+                  : "Best coach I've tried. EVO answers my questions anytime and swap calculations are 100% accurate.",
+              },
+              {
+                name: isAr ? "سارة منصور" : "Sara Mansour",
+                result: isAr ? "-2 مقاس في 4 أشهر" : "-2 sizes in 4 months",
+                text: isAr
+                  ? "كنت حاسة إني ضايعه، بس أحمد فهم حالتي وعمللي خطة تناسبني. التتبع الأسبوعي خلاني ملتزمة."
+                  : "I felt lost, but Ahmed understood my situation and made a plan that fits me. Weekly tracking kept me committed.",
+              },
+              {
+                name: isAr ? "أحمد فؤاد" : "Ahmed Fouad",
+                result: isAr ? "+6 كجم عضلات" : "+6kg muscle",
+                text: isAr
+                  ? "برنامج التمارين احترافي جداً. كل تمرين متفسر بالعربي وفيه نصايح. التبديلات سريعة ومريحة في الجيم."
+                  : "The workout program is very professional. Every exercise explained in Arabic with tips. Swaps are quick at the gym.",
+              },
+            ].map((tm, i) => (
+              <Reveal key={i} delay={i * 100}>
+                <blockquote className="text-center">
+                  <p className="mx-auto max-w-2xl text-2xl font-normal leading-relaxed tracking-tight md:text-4xl md:leading-relaxed">
+                    "{tm.text}"
+                  </p>
+                  <footer className="mt-8">
+                    <div className="text-base font-semibold text-foreground">{tm.name}</div>
+                    <div className="mt-1 text-sm font-normal text-success">{tm.result}</div>
+                  </footer>
+                </blockquote>
+              </Reveal>
+            ))}
+          </div>
+        </div>
+      </section>
 
- {/* EVO */}
- <div className="gradient-border rounded-[1.5rem] p-8 text-center">
- <span className="mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-gradient-gold text-gold-foreground shadow-gold">
- <Bot className="h-8 w-8" />
- </span>
- <h3 className="mt-4 text-xl font-bold">EVO</h3>
- <p className="text-sm text-gold">{isAr ? "محرك الأداء الذكي" : "AI Performance Engine"}</p>
- <ul className="mt-4 space-y-2 text-sm text-muted-foreground">
- <li className="flex items-center gap-2"><Check className="h-4 w-4 text-success" /> {isAr ? "ذكاء وتحليل" : "Intelligence & analysis"}</li>
- <li className="flex items-center gap-2"><Check className="h-4 w-4 text-success" /> {isAr ? "تنبؤ واستباق" : "Prediction & prevention"}</li>
- <li className="flex items-center gap-2"><Check className="h-4 w-4 text-success" /> {isAr ? "أتمتة وتحسين" : "Automation & optimization"}</li>
- <li className="flex items-center gap-2"><Check className="h-4 w-4 text-success" /> {isAr ? "تعلم مستمر" : "Continuous learning"}</li>
- </ul>
- </div>
- </div>
+      {/* ===================== 9. PRICING — Apple-style simple pricing ===================== */}
+      <section className="bg-secondary px-4 py-24 md:py-32">
+        <div className="mx-auto max-w-5xl">
+          <Reveal>
+            <h2 className="text-center text-4xl font-semibold leading-[1.1] tracking-tight md:text-6xl">
+              {isAr ? "استثمر في نفسك." : "Invest in yourself."}
+            </h2>
+          </Reveal>
+          <Reveal delay={150}>
+            <p className="mx-auto mt-4 max-w-xl text-center text-lg font-normal text-muted-foreground md:text-xl">
+              {isAr ? "باقتين تناسب كل هدف وميزانية." : "Two plans for every goal and budget."}
+            </p>
+          </Reveal>
+          <div className="mt-16 grid gap-8 md:grid-cols-2">
+            {[
+              {
+                name: "Starter",
+                price: "$10",
+                period: isAr ? "/شهر" : "/mo",
+                egp: "≈ 500 ج.م",
+                features: [
+                  isAr ? "2 تبديل يومي" : "2 daily swaps",
+                  isAr ? "خطة تغذية + تمارين" : "Nutrition + workout plan",
+                  isAr ? "مساعد EVO الذكي" : "EVO AI coach",
+                  isAr ? "تتبع تقدم" : "Progress tracking",
+                ],
+                highlight: false,
+              },
+              {
+                name: "Elite",
+                price: "$20",
+                period: isAr ? "/شهر" : "/mo",
+                egp: "≈ 1000 ج.م",
+                features: [
+                  isAr ? "تبديلات غير محدودة" : "Unlimited swaps",
+                  isAr ? "كوتشينج VIP" : "VIP coaching",
+                  isAr ? "استجابة فورية" : "Instant response",
+                  isAr ? "أقصى مساءلة" : "Max accountability",
+                ],
+                highlight: true,
+              },
+            ].map((p, i) => (
+              <Reveal key={i} delay={i * 150}>
+                <div
+                  className={`h-full rounded-2xl p-8 ${
+                    p.highlight ? "bg-foreground text-background" : "bg-background text-foreground"
+                  }`}
+                >
+                  <h3 className="text-2xl font-semibold tracking-tight">{p.name}</h3>
+                  <div className="mt-4 flex items-baseline gap-1">
+                    <span className="text-5xl font-semibold tracking-tight">{p.price}</span>
+                    <span className="text-lg font-normal opacity-60">{p.period}</span>
+                  </div>
+                  <p className="mt-1 text-sm font-normal opacity-60">{p.egp}{p.period}</p>
+                  <ul className="mt-8 space-y-3 text-base font-normal">
+                    {p.features.map((f, j) => (
+                      <li key={j} className="flex items-start gap-3">
+                        <span className="mt-2 h-1 w-1 flex-shrink-0 rounded-full bg-current opacity-40" />
+                        <span>{f}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <button
+                    onClick={() => navigate("pricing")}
+                    className={`mt-8 w-full rounded-full px-6 py-3 text-base font-normal transition-opacity hover:opacity-90 ${
+                      p.highlight
+                        ? "bg-background text-foreground"
+                        : "bg-primary text-primary-foreground"
+                    }`}
+                  >
+                    {isAr ? "ابدأ الآن" : "Get Started"}
+                  </button>
+                </div>
+              </Reveal>
+            ))}
+          </div>
+          <Reveal delay={400}>
+            <div className="mt-12 text-center">
+              <button
+                onClick={() => navigate("pricing")}
+                className="font-normal text-primary transition-opacity hover:opacity-70"
+              >
+                {isAr ? "شوف كل التفاصيل ›" : "See all details ›"}
+              </button>
+            </div>
+          </Reveal>
+        </div>
+      </section>
 
- <div className="mt-12 rounded-[1.5rem] border border-primary/20 bg-primary/5 p-8 text-center">
- <p className="text-lg font-medium text-foreground">
- {isAr
- ? "معاً، يخلقان تجربة كوتشينج لا مثيل لها — ذكاء الآلة بدقة الإنسان، وسرعة البيانات بحكمة الخبرة."
- : "Together, they create the ultimate coaching experience — machine intelligence with human precision, data speed with experiential wisdom."}
- </p>
- </div>
- </div>
- </section>
+      {/* ===================== 10. FAQ — Apple-style clean accordion ===================== */}
+      <section className="bg-background px-4 py-24 md:py-32">
+        <div className="mx-auto max-w-3xl">
+          <Reveal>
+            <h2 className="text-center text-4xl font-semibold leading-[1.1] tracking-tight md:text-6xl">
+              {isAr ? "أسئلة شائعة." : "Frequently Asked."}
+            </h2>
+          </Reveal>
+          <Reveal delay={150}>
+            <Accordion type="single" collapsible className="mt-16">
+              {[
+                { q: isAr ? "ما هو MuscleHub؟" : "What is MuscleHub?", a: isAr ? "منصة تحسين أداء بشري تجمع بين خبرة الكوتش أحمد زكي ومحرك الذكاء الاصطناعي EVO لتقديم خطط تغذية وتمارين مخصصة، تتبع تقدم ذكي، ومساعد ذكي بذاكرة عن بياناتك." : "A human optimization platform combining Coach Ahmed Zake's expertise with the EVO AI engine for personalized nutrition, workout plans, smart tracking, and an AI coach with memory of your data." },
+                { q: isAr ? "من هو EVO؟" : "Who is EVO?", a: isAr ? "محرك الأداء الذكي. ليس شات بوت عادي، بل نظام يحلل بياناتك، يتنبأ بالنتائج، يوصي بالتحسينات، ويحدّث خططك تلقائياً." : "The intelligent performance engine. Not a regular chatbot — a system that analyzes your data, predicts outcomes, recommends improvements, and updates your plans automatically." },
+                { q: isAr ? "هل الخطط مخصصة فعلاً لي؟" : "Are the plans truly personalized?", a: isAr ? "نعم. كل خطة تُبنى بناءً على استبياناتك ويتم تحديثها تلقائياً حسب تقدمك الأسبوعي." : "Yes. Every plan is built from your questionnaires and automatically updated based on your weekly progress." },
+                { q: isAr ? "كم تبديل يومياً مسموح؟" : "How many daily swaps?", a: isAr ? "حسب باقتك: Starter = 2 تبديل يومياً. Elite = غير محدود." : "Based on your plan: Starter = 2 daily. Elite = unlimited." },
+                { q: isAr ? "هل الكوتش حقيقي؟" : "Is the coach real?", a: isAr ? "نعم. الكوتش أحمد زكي حقيقي تماماً. يراجع استبياناتك ويوافق على خططك بنفسه." : "Yes. Coach Ahmed Zake is 100% real. He reviews your questionnaires and approves your plans personally." },
+                { q: isAr ? "ما طرق الدفع؟" : "Payment methods?", a: isAr ? "InstaPay و Vodafone Cash." : "InstaPay and Vodafone Cash." },
+                { q: isAr ? "هل بياناتي آمنة؟" : "Is my data secure?", a: isAr ? "نعم. جميع البيانات محفوظة بشكل مشفر على Supabase مع سياسات RLS." : "Yes. All data is encrypted on Supabase with RLS policies." },
+                { q: isAr ? "هل يدعم العربية؟" : "Does it support Arabic?", a: isAr ? "نعم، المنصة ثنائية اللغة بالكامل مع دعم RTL." : "Yes, fully bilingual with RTL support." },
+              ].map((faq, i) => (
+                <AccordionItem key={i} value={`item-${i}`} className="border-b border-border">
+                  <AccordionTrigger className="py-5 text-start text-lg font-normal hover:no-underline">
+                    {faq.q}
+                  </AccordionTrigger>
+                  <AccordionContent className="pb-5 text-base font-normal leading-relaxed text-muted-foreground">
+                    {faq.a}
+                  </AccordionContent>
+                </AccordionItem>
+              ))}
+            </Accordion>
+          </Reveal>
+        </div>
+      </section>
 
- {/* ===================== 5. MEET EVO ===================== */}
- <section className="py-24">
- <div className="mx-auto max-w-7xl px-4 sm:px-6">
- <div className="text-center">
- <span className="inline-flex items-center gap-2 rounded-full border border-gold/30 bg-gold/5 px-4 py-1.5 text-xs font-semibold text-gold">
- <Bot className="h-3.5 w-3.5" />
- {isAr ? "تعرّف على EVO" : "Meet EVO"}
- </span>
- <h2 className="mt-6 text-4xl font-extrabold leading-tight md:text-5xl">
- {isAr ? "EVO ليس شات بوت." : "EVO is not a chatbot."}
- <br />
- <span className="text-gradient">{isAr ? "بل محرك أداء ذكي." : "It's an intelligent performance engine."}</span>
- </h2>
- <p className="mx-auto mt-4 max-w-2xl text-muted-foreground">
- {isAr
- ? "EVO يعمل مع الكوتش، ليس بدلاً منه. يحلل، يتنبأ، يوصي، ويحدّث خططك تلقائياً — 24/7."
- : "EVO works with the coach, not instead of the coach. It analyzes, predicts, recommends, and updates your plans automatically — 24/7."}
- </p>
- </div>
+      {/* ===================== 11. LATEST ARTICLES — Apple-style grid ===================== */}
+      {latestPosts.length > 0 && (
+        <section className="bg-secondary px-4 py-24 md:py-32">
+          <div className="mx-auto max-w-6xl">
+            <Reveal>
+              <div className="mb-16 text-center">
+                <h2 className="text-4xl font-semibold leading-[1.1] tracking-tight md:text-6xl">
+                  {isAr ? "من المدونة." : "From the blog."}
+                </h2>
+              </div>
+            </Reveal>
+            <div className="grid gap-8 md:grid-cols-3">
+              {latestPosts.map((post, i) => (
+                <Reveal key={post.id} delay={i * 100}>
+                  <a
+                    href={`${isAr ? "/ar" : ""}/blog/${encodeURIComponent(post.slug)}`}
+                    className="group block"
+                  >
+                    <div className="overflow-hidden rounded-2xl bg-background">
+                      {post.featured_image && (
+                        <img
+                          src={post.featured_image}
+                          alt={post.cover_alt || post.title}
+                          className="aspect-[16/10] w-full object-cover"
+                          loading="lazy"
+                        />
+                      )}
+                      <div className="p-6">
+                        <p className="text-xs font-normal uppercase tracking-wide text-muted-foreground">
+                          {getCategoryLabel(post.category, lang)}
+                        </p>
+                        <h3 className="mt-3 text-xl font-semibold leading-tight tracking-tight">
+                          {post.title}
+                        </h3>
+                        {post.excerpt && (
+                          <p className="mt-2 line-clamp-2 text-base font-normal text-muted-foreground">
+                            {post.excerpt}
+                          </p>
+                        )}
+                        <p className="mt-4 text-sm font-normal text-primary">
+                          {isAr ? "اقرأ المزيد ›" : "Read more ›"}
+                        </p>
+                      </div>
+                    </div>
+                  </a>
+                </Reveal>
+              ))}
+            </div>
+            <Reveal delay={400}>
+              <div className="mt-16 text-center">
+                <a
+                  href={blogHref}
+                  className="font-normal text-primary transition-opacity hover:opacity-70"
+                >
+                  {isAr ? "كل المقالات ›" : "View all articles ›"}
+                </a>
+              </div>
+            </Reveal>
+          </div>
+        </section>
+      )}
 
- <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
- {[
- { icon: Activity, title: isAr ? "تحليل بيانات الجسم" : "Body Data Analysis", desc: isAr ? "يحلل وزنك، قياساتك، تقدمك الأسبوعي ويكتشف الأنماط." : "Analyzes your weight, measurements, weekly progress and detects patterns." },
- { icon: Brain, title: isAr ? "تحليل العادات" : "Habit Analysis", desc: isAr ? "يفهم عاداتك الغذائية والرياضية ويحدد نقاط الضعف." : "Understands your nutrition and training habits, identifies weak points." },
- { icon: Salad, title: isAr ? "تحليل التغذية" : "Nutrition Analysis", desc: isAr ? "يحسب السعرات والماكروز ويقترح تبديلات بنفس القيمة الغذائية." : "Calculates calories, macros and suggests equivalent food swaps." },
- { icon: Dumbbell, title: isAr ? "تحليل التمارين" : "Workout Analysis", desc: isAr ? "يقيس الحجم والشدة ويقترح بدائل مناسبة لمستواك." : "Measures volume and intensity, suggests alternatives for your level." },
- { icon: Eye, title: isAr ? "اكتشاف استباقي" : "Problem Detection", desc: isAr ? "يكتشف المشاكل قبل وقوعها — ثبات، إفراط، إصابات محتملة." : "Detects problems before they happen — plateaus, overtraining, injuries." },
- { icon: TrendingUp, title: isAr ? "تنبؤ بالثبات" : "Plateau Prediction", desc: isAr ? "يتنبأ بفترات الثبات ويعدّل خطتك قبل حدوثها." : "Predicts plateau phases and adjusts your plan before they happen." },
- { icon: Zap, title: isAr ? "توصيات ذكية" : "Smart Recommendations", desc: isAr ? "يقدم توصيات شخصية مبنية على بياناتك الفعلية." : "Delivers personalized recommendations based on your actual data." },
- { icon: RefreshCw, title: isAr ? "تحديث تلقائي" : "Auto-Update Plans", desc: isAr ? "يحدّث خططك تلقائياً حسب تقدمك وتغيرات جسمك." : "Automatically updates your plans based on progress and body changes." },
- { icon: Clock, title: isAr ? "مراقبة 24/7" : "24/7 Monitoring", desc: isAr ? "يراقب تقدمك باستمرار ويرسل إشعارات فورية." : "Continuously monitors your progress and sends instant alerts." },
- ].map((f, i) => (
- <Reveal key={i} delay={(i % 3) * 100} className="card-lift group rounded-2xl border border-border bg-card p-6 hover:border-primary/40 hover:shadow-soft-glow">
- <span className="grid h-12 w-12 place-items-center rounded-2xl bg-gradient-primary text-primary-foreground shadow-soft-glow transition-transform group-hover:scale-110 group-hover:rotate-3">
- <f.icon className="h-5 w-5" />
- </span>
- <h3 className="mt-4 font-bold">{f.title}</h3>
- <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{f.desc}</p>
- </Reveal>
- ))}
- </div>
- </div>
- </section>
+      {/* ===================== 12. FINAL CTA — Apple-style minimal ===================== */}
+      <section className="bg-background px-4 py-32 text-center md:py-48">
+        <Reveal>
+          <h2 className="mx-auto max-w-3xl text-5xl font-semibold leading-[1.05] tracking-tight md:text-7xl">
+            {isAr ? "جسمك الجديد بيستناك." : "Your new body is waiting."}
+          </h2>
+        </Reveal>
+        <Reveal delay={200}>
+          <div className="mt-10 flex flex-wrap items-center justify-center gap-6">
+            <button
+              onClick={() => navigate("auth", { mode: "signup" })}
+              className="rounded-full bg-primary px-8 py-3 text-base font-normal text-primary-foreground transition-opacity hover:opacity-90"
+            >
+              {isAr ? "ابدأ تحوّلي" : "Start my transformation"}
+            </button>
+            <button
+              onClick={() => navigate("pricing")}
+              className="font-normal text-primary transition-opacity hover:opacity-70"
+            >
+              {isAr ? "شوف الأسعار ›" : "View pricing ›"}
+            </button>
+          </div>
+        </Reveal>
+      </section>
 
- {/* ===================== 6. WHY MUSCLEHUB ===================== */}
- <section className="border-y border-border/50 bg-card/30 py-24">
- <div className="mx-auto max-w-7xl px-4 sm:px-6">
- <div className="text-center">
- <h2 className="text-4xl font-extrabold leading-tight md:text-5xl">
- {isAr ? "ليه MuscleHub مش زي أي منصة تانية؟" : "Why MuscleHub is different?"}
- </h2>
- <p className="mx-auto mt-4 max-w-2xl text-muted-foreground">
- {isAr ? "مش بنبيعك ميزات — بنبيعك نتائج وتحوّل حقيقي." : "We don't sell features — we sell results and real transformation."}
- </p>
- </div>
-
- <div className="mt-12 grid gap-6 md:grid-cols-2">
- {[
- { icon: Users, title: isAr ? "كوتش حقيقي يتابعك" : "A real coach follows you", desc: isAr ? "مش AI بس. الكوتش أحمد زكي بيراجع استبياناتك، يوافق على خططك، ويرد على تذاكرك بنفسه." : "Not just AI. Coach Ahmed Zake reviews your questionnaires, approves your plans, and replies to your tickets personally." },
- { icon: Bot, title: isAr ? "AI بذاكرة عنك" : "AI with memory of you", desc: isAr ? "EVO بيتعلم من بياناتك ويبقى عنده مرجعية كاملة عنك. لما تسأله، بيرد بناءً على خطتك الفعلية." : "EVO learns from your data and has full reference of you. When you ask, it responds based on your actual plan." },
- { icon: RefreshCw, title: isAr ? "خطط تتكيف معك" : "Plans that adapt to you", desc: isAr ? "مش خطة ثابتة. خطتك تتغير تلقائياً حسب تقدمك، وزنك، التزامك، وتغييرات جسمك." : "Not a static plan. Your plan changes automatically based on progress, weight, adherence, and body changes." },
- { icon: Lock, title: isAr ? "بياناتك آمنة" : "Your data is secure", desc: isAr ? "كل بياناتك محفوظة بشكل مشفر على Supabase. مفيش حد بيشوفها غيرك وإنت والكوتش بس." : "All your data is encrypted on Supabase. No one sees it except you and your coach." },
- { icon: MessageCircle, title: isAr ? "تبديلات ذكية بالجرام" : "Smart swaps in grams", desc: isAr ? "لما تطلب تبديل وجبة، EVO بيحسب البديل بالجرامات والسعرات والماكروز بدقة." : "When you request a meal swap, EVO calculates the alternative in grams, calories, and macros precisely." },
- { icon: Award, title: isAr ? "نتائج موثقة" : "Proven results", desc: isAr ? "أكتر من 500 عميل غيّروا حياتهم. قصص نجاح حقيقية بأرقام وصور قبل وبعد." : "Over 500 clients transformed their lives. Real success stories with numbers and before/after photos." },
- ].map((b, i) => (
- <div key={i} className="flex items-start gap-4 rounded-2xl border border-border bg-background p-6">
- <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl border border-primary/20 bg-primary/5 text-primary">
- <b.icon className="h-5 w-5" />
- </span>
- <div>
- <h3 className="font-bold">{b.title}</h3>
- <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{b.desc}</p>
- </div>
- </div>
- ))}
- </div>
- </div>
- </section>
-
- {/* ===================== 7. HOW IT WORKS ===================== */}
- <section className="py-24">
- <div className="mx-auto max-w-7xl px-4 sm:px-6">
- <div className="text-center">
- <span className="inline-block rounded-full border border-border bg-card px-4 py-1.5 text-xs font-medium text-muted-foreground">
- {isAr ? "إزاي تشتغل" : "How it works"}
- </span>
- <h2 className="mt-6 text-4xl font-extrabold leading-tight md:text-5xl">
- {isAr ? "رحلتك في 4 خطوات" : "Your journey in 4 steps"}
- </h2>
- </div>
-
- <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
- {[
- { n: "01", title: isAr ? "أنشئ حسابك" : "Create account", desc: isAr ? "في ثوانٍ. بالإيميل أو Google." : "In seconds. Email or Google." },
- { n: "02", title: isAr ? "أكمل الاستبيانات" : "Complete questionnaires", desc: isAr ? "أخبرنا عن هدفك، وزنك، عاداتك، إصاباتك." : "Tell us your goal, weight, habits, injuries." },
- { n: "03", title: isAr ? "EVO يحلل ويخطط" : "EVO analyzes & plans", desc: isAr ? "الكوتش + EVO يولّدون خططك ويوافقون عليها." : "Coach + EVO generate and approve your plans." },
- { n: "04", title: isAr ? "ابدأ التحوّل" : "Start transforming", desc: isAr ? "تتبع تقدمك، استبدل، واسأل EVO أي وقت." : "Track progress, swap, and ask EVO anytime." },
- ].map((s, i) => (
- <Reveal key={i} delay={i * 120} className="card-lift relative rounded-2xl border border-border bg-card p-6 hover:border-primary/40 hover:shadow-soft">
- <span className="font-display text-4xl font-bold text-primary/30 transition-colors hover:text-primary/50">{s.n}</span>
- <h3 className="mt-2 font-bold">{s.title}</h3>
- <p className="mt-1 text-sm text-muted-foreground">{s.desc}</p>
- {/* Connector line between steps */}
- {i < 3 && (
- <div className="absolute top-1/2 -end-3 hidden h-px w-6 bg-border lg:block" />
- )}
- </Reveal>
- ))}
- </div>
- </div>
- </section>
-
- {/* ===================== 8. PERSONALIZED COACHING ===================== */}
- <section className="border-y border-border/50 bg-card/30 py-24">
- <div className="mx-auto grid max-w-7xl items-center gap-12 px-4 sm:px-6 md:grid-cols-2">
- <div>
- <span className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/5 px-4 py-1.5 text-xs font-semibold text-primary">
- <Target className="h-3.5 w-3.5" />
- {isAr ? "كوتشينج متكيف" : "Adaptive Coaching"}
- </span>
- <h2 className="mt-6 text-4xl font-extrabold leading-tight md:text-5xl">
- {isAr ? "خطط تتغير كأنها حية" : "Plans that evolve like they're alive"}
- </h2>
- <p className="mt-4 text-lg leading-relaxed text-muted-foreground">
- {isAr
- ? "خطتك ليست ملف PDF ثابت. إنها نظام حي يتكيف معك. كل أسبوع، EVO يحلل تقدمك ويعدّل السعرات، الماكروز، التمارين، والكثافة — تلقائياً. إذا توقفت، يعدّل. إذا تقدمت بسرعة، يزيد التحدي."
- : "Your plan isn't a static PDF. It's a living system that adapts to you. Every week, EVO analyzes your progress and adjusts calories, macros, exercises, and intensity — automatically. If you stall, it adjusts. If you progress fast, it increases the challenge."}
- </p>
- <ul className="mt-6 space-y-3">
- {[
- isAr ? "تتبع أسبوعي للوزن والقياسات" : "Weekly weight & measurement tracking",
- isAr ? "رسوم بيانية واضحة لتقدمك" : "Clear progress charts",
- isAr ? "صور قبل وبعد موثقة" : "Documented before/after photos",
- isAr ? "تعديلات تلقائية حسب التقدم" : "Automatic adjustments based on progress",
- ].map((item, i) => (
- <li key={i} className="flex items-start gap-3">
- <span className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-success/15 text-success">
- <Check className="h-3.5 w-3.5" />
- </span>
- <span className="text-sm">{item}</span>
- </li>
- ))}
- </ul>
- </div>
- <div className="relative">
- <div className="overflow-hidden rounded-[1.5rem] border border-border shadow-card">
- <img src={MEAL_IMG} alt={isAr ? "وجبة صحية متوازنة" : "Healthy balanced meal"} className="aspect-square w-full object-cover" loading="lazy" />
- <div className="absolute inset-0 bg-gradient-to-t from-background/50 to-transparent" />
- </div>
- <div className="absolute end-4 top-4 rounded-2xl border border-primary/20 bg-background/80 p-3 backdrop-blur-xl">
- <div className="flex items-center gap-3 text-xs">
- <div><div className="font-bold text-success">P: 180g</div><div className="text-muted-foreground">{isAr ? "بروتين" : "Protein"}</div></div>
- <div><div className="font-bold text-warning">C: 200g</div><div className="text-muted-foreground">{isAr ? "كارب" : "Carbs"}</div></div>
- <div><div className="font-bold text-primary">F: 70g</div><div className="text-muted-foreground">{isAr ? "دهون" : "Fat"}</div></div>
- </div>
- </div>
- </div>
- </div>
- </section>
-
- {/* ===================== 9. AI INTELLIGENCE ===================== */}
- <section className="py-24">
- <div className="mx-auto grid max-w-7xl items-center gap-12 px-4 sm:px-6 md:grid-cols-2">
- <div className="order-2 md:order-1">
- <div className="overflow-hidden rounded-[1.5rem] border border-border shadow-card">
- <img src={AI_IMG} alt={isAr ? "شبكة عصبية ذكاء اصطناعي" : "AI neural network"} className="aspect-square w-full object-cover" loading="lazy" />
- </div>
- </div>
- <div className="order-1 md:order-2">
- <span className="inline-flex items-center gap-2 rounded-full border border-gold/30 bg-gold/5 px-4 py-1.5 text-xs font-semibold text-gold">
- <Cpu className="h-3.5 w-3.5" />
- {isAr ? "ذكاء EVO" : "EVO Intelligence"}
- </span>
- <h2 className="mt-6 text-4xl font-extrabold leading-tight md:text-5xl">
- {isAr ? "ذكاء يفكر بدلاً عنك" : "Intelligence that thinks for you"}
- </h2>
- <p className="mt-4 text-lg leading-relaxed text-muted-foreground">
- {isAr
- ? "EVO لا ينتظر أن تسأل. يحلل بياناتك باستمرار، يكتشف الأنماط، يتنبأ بالمشاكل، ويوصي بالتحسينات — قبل أن تدرك أنك بحاجتها."
- : "EVO doesn't wait for you to ask. It continuously analyzes your data, detects patterns, predicts problems, and recommends improvements — before you realize you need them."}
- </p>
- <div className="mt-6 grid grid-cols-2 gap-4">
- {[
- { icon: Zap, label: isAr ? "ردود فورية" : "Instant responses" },
- { icon: Eye, label: isAr ? "كشف استباقي" : "Proactive detection" },
- { icon: TrendingUp, label: isAr ? "تنبؤ بالنتائج" : "Outcome prediction" },
- { icon: RefreshCw, label: isAr ? "تحديث تلقائي" : "Auto-updates" },
- ].map((item, i) => (
- <div key={i} className="flex items-center gap-3 rounded-xl border border-border bg-card p-3">
- <item.icon className="h-5 w-5 text-primary" />
- <span className="text-sm font-medium">{item.label}</span>
- </div>
- ))}
- </div>
- </div>
- </div>
- </section>
-
- {/* ===================== 10. RESULTS ===================== */}
- <section className="relative overflow-hidden border-y border-border/50 py-24">
- <div className="absolute inset-0">
- <img src={TRANSFORM_IMG} alt={isAr ? "تحوّل لياقة" : "Fitness transformation"} className="h-full w-full object-cover opacity-20" loading="lazy" />
- <div className="absolute inset-0 bg-gradient-to-r from-background via-background/90 to-background/70" />
- </div>
- <div className="relative mx-auto max-w-4xl px-4 text-center sm:px-6">
- <h2 className="text-4xl font-extrabold leading-tight md:text-5xl">
- {isAr ? "التحوّل مش مستحيل." : "Transformation isn't impossible."}
- <br />
- <span className="text-gradient">{isAr ? "محتاج نظام ذكي." : "It needs a smart system."}</span>
- </h2>
- <p className="mx-auto mt-6 max-w-2xl text-lg text-muted-foreground">
- {isAr
- ? "أكتر حاجة بتوقف الناس إنهم مش عارفين يبدأوا منين. احنا بنشيل عنك التفكير كله — تخطيط، متابعة، تعديل، تحفيز. إنت بس التزم وشف النتيجة."
- : "The biggest thing stopping people is not knowing where to start. We take away all the thinking — planning, tracking, adjusting, motivating. You just commit and see results."}
- </p>
- <div className="mt-10 grid grid-cols-2 gap-6 md:grid-cols-4">
- {[
- { v: "+500", l: isAr ? "عميل نجح" : "clients succeeded" },
- { v: "95%", l: isAr ? "نسبة رضا" : "satisfaction rate" },
- { v: "-8.5", l: isAr ? "متوسط الفقد (كجم)" : "avg. weight loss (kg)" },
- { v: "12", l: isAr ? "متوسط المدة (أسبوع)" : "avg. duration (weeks)" },
- ].map((s, i) => (
- <Reveal key={s.l} delay={i * 100} className="rounded-2xl border border-border bg-card/60 p-5 backdrop-blur-xl card-lift hover:border-primary/40 hover:shadow-soft">
- <div className="font-display text-3xl font-bold text-primary">
- <AnimatedCounter value={s.v} />
- </div>
- <div className="mt-1 text-xs text-muted-foreground">{s.l}</div>
- </Reveal>
- ))}
- </div>
- </div>
- </section>
-
- {/* ===================== 11. TESTIMONIALS ===================== */}
- <section className="py-24">
- <div className="mx-auto max-w-7xl px-4 sm:px-6">
- <div className="text-center">
- <span className="inline-block rounded-full border border-border bg-card px-4 py-1.5 text-xs font-medium text-muted-foreground">
- {isAr ? "قصص نجاح" : "Success Stories"}
- </span>
- <h2 className="mt-6 text-4xl font-extrabold leading-tight md:text-5xl">
- {isAr ? "عملاء حقيين، نتائج حقيقية" : "Real clients, real results"}
- </h2>
- </div>
- <div className="mt-12 grid gap-5 md:grid-cols-3">
- {[
- { name: isAr ? "محمد العشري" : "Mohamed ElAshry", result: isAr ? "-12 كجم في 3 أشهر" : "-12kg in 3 months", text: isAr ? "أحسن كوتش جربته. EVO بيرد على أسئلتي في أي وقت وحسابات التبديلات مظبوطة 100%." : "Best coach I've tried. EVO answers my questions anytime and swap calculations are 100% accurate." },
- { name: isAr ? "سارة منصور" : "Sara Mansour", result: isAr ? "-2 مقاس في 4 أشهر" : "-2 sizes in 4 months", text: isAr ? "كنت حاسة إني ضايعه، بس أحمد فهم حالتي وعمللي خطة تناسبني. التتبع الأسبوعي خلاني ملتزمة." : "I felt lost, but Ahmed understood my situation and made a plan that fits me. Weekly tracking kept me committed." },
- { name: isAr ? "أحمد فؤاد" : "Ahmed Fouad", result: isAr ? "+6 كجم عضلات" : "+6kg muscle", text: isAr ? "برنامج التمارين احترافي جداً. كل تمرين متفسر بالعربي وفيه نصايح. التبديلات سريعة ومريحة في الجيم." : "The workout program is very professional. Every exercise explained in Arabic with tips. Swaps are quick at the gym." },
- ].map((tm, i) => (
- <Reveal key={i} delay={i * 150} className="card-lift rounded-2xl border border-border bg-card p-6 shadow-soft hover:shadow-soft-lg hover:border-primary/30">
- <div className="flex items-center gap-1 text-gold">
- {Array.from({ length: 5 }).map((_, j) => <Star key={j} className="h-4 w-4 fill-current" />)}
- </div>
- <Quote className="mt-4 h-8 w-8 text-primary/20" />
- <p className="mt-2 text-sm leading-relaxed">{tm.text}</p>
- <div className="mt-5 flex items-center gap-3 border-t border-border pt-4">
- <span className="grid h-10 w-10 place-items-center rounded-full bg-gradient-primary text-sm font-bold text-primary-foreground">{tm.name.charAt(0)}</span>
- <div>
- <p className="text-sm font-semibold">{tm.name}</p>
- <p className="text-xs text-success">{tm.result}</p>
- </div>
- </div>
- </Reveal>
- ))}
- </div>
- </div>
- </section>
-
- {/* ===================== 12. PRICING PREVIEW ===================== */}
- <section className="border-y border-border/50 bg-card/30 py-24">
- <div className="mx-auto max-w-7xl px-4 sm:px-6">
- <div className="text-center">
- <span className="inline-block rounded-full border border-gold/30 bg-gold/5 px-4 py-1.5 text-xs font-medium text-gold">
- {isAr ? "الأسعار" : "Pricing"}
- </span>
- <h2 className="mt-6 text-4xl font-extrabold leading-tight md:text-5xl">
- {isAr ? "استثمر في نفسك" : "Invest in yourself"}
- </h2>
- <p className="mx-auto mt-4 max-w-2xl text-muted-foreground">
- {isAr ? "باقتين تناسب كل هدف وميزانية. ابدأ من $10/شهر." : "2 plans for every goal and budget. Start from $10/month."}
- </p>
- </div>
- <div className="mt-12 grid gap-5 md:grid-cols-2">
- {[
- { name: "Starter", price: "$10", period: isAr ? "/شهر" : "/mo", egp: "≈ 500 ج.م", features: [isAr ? "2 تبديل يومي" : "2 daily swaps", isAr ? "خطة تغذية + تمارين" : "Nutrition + workout plan", isAr ? "مساعد EVO الذكي" : "EVO AI coach", isAr ? "تتبع تقدم" : "Progress tracking"], highlight: false },
- { name: "Elite", price: "$20", period: isAr ? "/شهر" : "/mo", egp: "≈ 1000 ج.م", features: [isAr ? "تبديلات غير محدودة" : "Unlimited swaps", isAr ? "كوتشينج VIP" : "VIP coaching", isAr ? "استجابة فورية" : "Instant response", isAr ? "أقصى مساءلة" : "Max accountability"], highlight: true },
- ].map((p, i) => (
- <div key={i} className={`relative rounded-[1.5rem] border p-6 ${p.highlight ? "border-primary/50 glass-gold animate-gold-pulse" : "border-border bg-card"}`}>
- {p.highlight && (
- <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-gradient-primary px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-primary-foreground">
- {isAr ? "الأكثر شيوعاً" : "MOST POPULAR"}
- </span>
- )}
- <h3 className="font-display text-xl font-bold">{p.name}</h3>
- <div className="mt-4 flex items-end gap-1">
- <span className="font-display text-4xl font-extrabold text-gradient">{p.price}</span>
- <span className="mb-1 text-sm text-muted-foreground">{p.period}</span>
- </div>
- <p className="mt-1 text-xs text-muted-foreground">{p.egp}{p.period}</p>
- <ul className="mt-6 space-y-2.5 text-sm">
- {p.features.map((f, j) => (
- <li key={j} className="flex items-start gap-2">
- <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
- <span>{f}</span>
- </li>
- ))}
- </ul>
- <Button className="mt-6 w-full gap-2" variant={p.highlight ? "default" : "secondary"} onClick={() => navigate("pricing")}>
- {isAr ? "ابدأ الآن" : "Get Started"}
- <ArrowRight className="h-4 w-4 rtl:rotate-180" />
- </Button>
- </div>
- ))}
- </div>
- <div className="mt-8 text-center">
- <Button variant="ghost" className="gap-2 text-primary" onClick={() => navigate("pricing")}>
- {isAr ? "شوف كل التفاصيل والأسعار" : "See all details & pricing"}
- <ArrowRight className="h-4 w-4 rtl:rotate-180" />
- </Button>
- </div>
- </div>
- </section>
-
- {/* ===================== 13. FAQ ===================== */}
- <section className="py-24">
- <div className="mx-auto max-w-3xl px-4 sm:px-6">
- <div className="text-center">
- <span className="inline-block rounded-full border border-border bg-card px-4 py-1.5 text-xs font-medium text-muted-foreground">
- FAQ
- </span>
- <h2 className="mt-6 text-4xl font-extrabold leading-tight md:text-5xl">
- {isAr ? "أسئلة شائعة" : "Frequently Asked Questions"}
- </h2>
- </div>
- <Accordion type="single" collapsible className="mt-10">
- {[
- { q: isAr ? "ما هو MuscleHub؟" : "What is MuscleHub?", a: isAr ? "MuscleHub هي منصة تحسين أداء بشري تجمع بين خبرة الكوتش أحمد زكي ومحرك الذكاء الاصطناعي EVO لتقديم خطط تغذية وتمارين مخصصة، تتبع تقدم ذكي، ومساعد ذكي بذاكرة عن بياناتك." : "MuscleHub is a human optimization platform combining Coach Ahmed Zake's expertise with the EVO AI engine to deliver personalized nutrition and workout plans, smart progress tracking, and an AI coach with memory of your data." },
- { q: isAr ? "من هو EVO؟" : "Who is EVO?", a: isAr ? "EVO هو محرك الأداء الذكي. ليس شات بوت عادي، بل نظام يحلل بياناتك، يتنبأ بالنتائج، يوصي بالتحسينات، ويحدّث خططك تلقائياً. يعمل مع الكوتش وليس بدلاً منه." : "EVO is the intelligent performance engine. Not a regular chatbot, it's a system that analyzes your data, predicts outcomes, recommends improvements, and updates your plans automatically. It works with the coach, not instead of the coach." },
- { q: isAr ? "هل الخطط مخصصة فعلاً لي؟" : "Are the plans truly personalized?", a: isAr ? "نعم. كل خطة تُبنى بناءً على استبياناتك (الوزن، الهدف، الحساسية، الإصابات، المعدات، الخبرة) ويتم تحديثها تلقائياً حسب تقدمك الأسبوعي." : "Yes. Every plan is built from your questionnaires (weight, goal, allergies, injuries, equipment, experience) and automatically updated based on your weekly progress." },
- { q: isAr ? "كم تبديل يومياً مسموح؟" : "How many daily swaps are allowed?", a: isAr ? "حسب باقتك: Starter = 2 تبديل وجبات + 2 تبديل تمارين يومياً. Pro = 5 + 5. Elite = غير محدود. التبديلات تتجدد كل يوم." : "Based on your plan: Starter = 2 meal + 2 exercise swaps daily. Pro = 5 + 5. Elite = unlimited. Swaps reset daily." },
- { q: isAr ? "هل الكوتش حقيقي أم AI فقط؟" : "Is the coach real or just AI?", a: isAr ? "الكوتش أحمد زكي حقيقي تماماً. يراجع استبياناتك، يوافق على خططك بنفسه، ويرد على تذاكر الدعم. EVO يساعده في التحليل والتوصيات لكن القرار النهائي للكوتش." : "Coach Ahmed Zake is 100% real. He reviews your questionnaires, approves your plans personally, and replies to support tickets. EVO assists with analysis and recommendations but the final decision is the coach's." },
- { q: isAr ? "ما طرق الدفع المتاحة؟" : "What payment methods are available?", a: isAr ? "InstaPay و Vodafone Cash حالياً. ترفع إيصال الدفع والكوتش يراجعه ويوافق عليه." : "InstaPay and Vodafone Cash currently. You upload a payment receipt and the coach reviews and approves it." },
- { q: isAr ? "هل يمكنني الإلغاء؟" : "Can I cancel?", a: isAr ? "نعم، يمكنك عدم التجديد في أي وقت. لا توجد عقود ملزمة." : "Yes, you can choose not to renew at any time. No binding contracts." },
- { q: isAr ? "هل بياناتي آمنة؟" : "Is my data secure?", a: isAr ? "نعم. جميع البيانات محفوظة بشكل مشفر على Supabase مع سياسات RLS. لا يمكن لأحد رؤية بياناتك سواك والكوتش." : "Yes. All data is encrypted on Supabase with RLS policies. No one can see your data except you and the coach." },
- { q: isAr ? "هل يدعم العربية؟" : "Does it support Arabic?", a: isAr ? "نعم، المنصة ثنائية اللغة (عربي/إنجليزي) بالكامل مع دعم RTL." : "Yes, the platform is fully bilingual (Arabic/English) with RTL support." },
- { q: isAr ? "هل يعمل على الموبايل؟" : "Does it work on mobile?", a: isAr ? "نعم، الموقع متجاوب بالكامل ويمكن تثبيته كتطبيق (PWA) على الموبايل." : "Yes, the site is fully responsive and can be installed as a PWA app on mobile." },
- { q: isAr ? "ما الفرق بين MuscleHub والتطبيقات الأخرى؟" : "How is MuscleHub different from other apps?", a: isAr ? "MuscleHub يجمع بين الكوتش البشري والذكاء الاصطناعي في نظام واحد. التطبيقات الأخرى تقدم إما AI فقط أو كوتش فقط. نحن نقدم الاثنين معاً (AHI)." : "MuscleHub combines human coaching and AI in one system. Other apps offer either AI only or coach only. We offer both together (AHI)." },
- { q: isAr ? "كم يستغرق رؤية نتائج؟" : "How long to see results?", a: isAr ? "مع الالتزام، تبدأ برؤية نتائج خلال 2-4 أسابيع. نتائج ملحوظة خلال 8-12 أسبوع." : "With commitment, you start seeing results in 2-4 weeks. Noticeable results in 8-12 weeks." },
- ].map((faq, i) => (
- <AccordionItem key={i} value={`item-${i}`}>
- <AccordionTrigger className="text-start text-base font-semibold hover:text-primary">
- {faq.q}
- </AccordionTrigger>
- <AccordionContent className="text-sm leading-relaxed text-muted-foreground">
- {faq.a}
- </AccordionContent>
- </AccordionItem>
- ))}
- </Accordion>
- </div>
- </section>
-
- {/* ===================== 14. LATEST ARTICLES ===================== */}
- <section className="border-y border-border/50 bg-card/30 py-24">
- <div className="mx-auto max-w-7xl px-4 sm:px-6">
- <div className="mb-12 flex flex-wrap items-end justify-between gap-4">
- <div>
- <span className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/5 px-3 py-1 text-xs font-semibold text-primary">
- <Sparkles className="h-3 w-3" />
- {isAr ? "من المدونة" : "From the Blog"}
- </span>
- <h2 className="mt-4 text-4xl font-extrabold tracking-tight md:text-5xl">
- {isAr ? "أحدث المقالات" : "Latest Articles"}
- </h2>
- <p className="mt-3 max-w-xl text-muted-foreground">
- {isAr
- ? "نصائح علمية وإرشادات عملية من الكوتش أحمد زكي — محدّثة أسبوعياً."
- : "Science-backed tips and practical guidance from Coach Ahmed Zake — updated weekly."}
- </p>
- </div>
- <a
- href={blogHref}
- className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:gap-2.5 transition-all"
- >
- {isAr ? "كل المقالات" : "View all articles"}
- <ArrowRight className="h-4 w-4 rtl:rotate-180" />
- </a>
- </div>
-
- {latestPosts.length === 0 ? (
- <Card className="p-10 text-center text-muted-foreground">
- <FileText className="mx-auto h-8 w-8 opacity-50" />
- <p className="mt-3">
- {isAr
- ? "لا توجد مقالات منشورة بعد بهذه اللغة. اختر اللغة الأخرى من الأعلى لرؤية المقالات."
- : "No articles published in this language yet. Switch the language toggle above to see articles in the other language."}
- </p>
- </Card>
- ) : (
- <div className="grid gap-6 md:grid-cols-3">
- {latestPosts.map((post) => (
- <BlogCard key={post.id} post={post} lang={lang} />
- ))}
- </div>
- )}
- </div>
- </section>
-
- {/* ===================== 15. POPULAR ARTICLES ===================== */}
- {popularPosts.length > 0 && (
- <section className="py-24">
- <div className="mx-auto max-w-7xl px-4 sm:px-6">
- <div className="mb-12 text-center">
- <span className="inline-flex items-center gap-2 rounded-full border border-gold/30 bg-gold/5 px-3 py-1 text-xs font-semibold text-gold">
- <Flame className="h-3 w-3" />
- {isAr ? "الأكثر رواجاً" : "Trending"}
- </span>
- <h2 className="mt-4 text-4xl font-extrabold tracking-tight md:text-5xl">
- {isAr ? "أشهر المقالات" : "Popular Articles"}
- </h2>
- <p className="mx-auto mt-3 max-w-xl text-muted-foreground">
- {isAr
- ? "المقالات اللي بيتفاعل معاها القراء أكتر — ابدأ بيهم رحلتك."
- : "The articles readers are engaging with most — start your journey here."}
- </p>
- </div>
- <div className="grid gap-6 md:grid-cols-3">
- {popularPosts.map((post, i) => (
- <BlogCard key={post.id} post={post} lang={lang} rank={i + 1} />
- ))}
- </div>
- </div>
- </section>
- )}
-
- {/* ===================== 16. FINAL CTA ===================== */}
- <section className="relative overflow-hidden py-32">
- <div className="absolute inset-0 bg-hero-glow" />
- <div className="absolute inset-0 grid-bg opacity-20" />
- <div className="relative mx-auto max-w-3xl px-4 text-center sm:px-6">
- <Reveal>
- <span className="mx-auto grid h-20 w-20 place-items-center rounded-3xl bg-gradient-primary shadow-soft-glow animate-gold-pulse">
- <Dumbbell className="h-10 w-10 text-primary-foreground" />
- </span>
- </Reveal>
- <Reveal delay={100}>
- <h2 className="mt-8 text-5xl font-extrabold leading-tight md:text-6xl">
- {isAr ? "جسمك الجديد" : "Your new body"}
- <br />
- <span className="text-shimmer">{isAr ? "بيستناك" : "is waiting"}</span>
- </h2>
- </Reveal>
- <Reveal delay={200}>
- <p className="mx-auto mt-6 max-w-xl text-lg text-muted-foreground">
- {isAr
- ? "انضم لأكثر من 500 عميل غيّروا حياتهم. ابدأ اليوم بخطة مخصصة لك وحدك، مع كوتش حقيقي وذكاء اصطناعي يتابعك 24/7."
- : "Join 500+ clients who transformed their lives. Start today with a plan made just for you, with a real coach and AI monitoring you 24/7."}
- </p>
- </Reveal>
- <Reveal delay={300}>
- <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
- <Button size="lg" className="gap-2 shadow-glow text-lg group" onClick={() => navigate("auth", { mode: "signup" })}>
- {isAr ? "ابدأ تحوّلي" : "Start My Transformation"}
- <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1 rtl:rotate-180 rtl:group-hover:-translate-x-1" />
- </Button>
- <Button size="lg" variant="outline" className="gap-2 border-primary/30 text-lg" onClick={() => navigate("pricing")}>
- {isAr ? "شوف الأسعار" : "View Pricing"}
- </Button>
- </div>
- </Reveal>
- <Reveal delay={400}>
- <div className="mt-8 flex items-center justify-center gap-6 text-xs text-muted-foreground">
- <span className="flex items-center gap-1.5"><Clock className="h-4 w-4" /> {isAr ? "ابدأ خلال دقيقة" : "Start in a minute"}</span>
- <span className="flex items-center gap-1.5"><Lock className="h-4 w-4" /> {isAr ? "بياناتك آمنة" : "Data is secure"}</span>
- <span className="flex items-center gap-1.5"><Wifi className="h-4 w-4" /> {isAr ? "EVO يعمل 24/7" : "EVO active 24/7"}</span>
- </div>
- </Reveal>
- </div>
- </section>
-
- {/* ===================== FOOTER ===================== */}
- <footer className="border-t border-border bg-card/30">
- <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6">
- <div className="grid gap-8 md:grid-cols-4">
- <div className="md:col-span-2">
- <div className="flex items-center gap-2">
- <img
- src="/logo.png"
- alt="MuscleHub"
- className="h-10 w-auto object-contain"
- />
- </div>
- <p className="mt-3 max-w-sm text-sm text-muted-foreground">
- {isAr ? "منصة تحسين أداء بشري بالذكاء الاصطناعي. نجمع بين خبرة الكوتش أحمد زكي ومحرك EVO الذكي." : "AI-powered human optimization platform. Combining Coach Ahmed Zake's expertise with the EVO AI engine."}
- </p>
- </div>
- <div>
- <h4 className="font-semibold">{isAr ? "روابط" : "Links"}</h4>
- <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
- <li><button onClick={() => navigate("pricing")} className="hover:text-primary">{isAr ? "الأسعار" : "Pricing"}</button></li>
- <li><button onClick={() => navigate("about")} className="hover:text-primary">{isAr ? "من نحن" : "About Us"}</button></li>
- <li><button onClick={() => navigate("blog")} className="hover:text-primary">{isAr ? "المدونة" : "Blog"}</button></li>
- <li><button onClick={() => navigate("faq")} className="hover:text-primary">{isAr ? "الأسئلة الشائعة" : "FAQ"}</button></li>
- <li><button onClick={() => navigate("contact")} className="hover:text-primary">{isAr ? "اتصل بنا" : "Contact Us"}</button></li>
- </ul>
- </div>
- <div>
- <h4 className="font-semibold">{isAr ? "قانوني" : "Legal"}</h4>
- <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
- <li><button onClick={() => navigate("privacy")} className="hover:text-primary">{isAr ? "سياسة الخصوصية" : "Privacy Policy"}</button></li>
- <li><button onClick={() => navigate("terms")} className="hover:text-primary">{isAr ? "الشروط والأحكام" : "Terms & Conditions"}</button></li>
- </ul>
- </div>
- <div>
- <h4 className="font-semibold">{isAr ? "تواصل" : "Contact"}</h4>
- <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
- <li className="flex items-center gap-2"><MessageCircle className="h-4 w-4" /> WhatsApp</li>
- <li className="flex items-center gap-2"><Heart className="h-4 w-4" /> Instagram</li>
- <li className="flex items-center gap-2"><Shield className="h-4 w-4" /> {isAr ? "دعم 24/7" : "24/7 support"}</li>
- </ul>
- </div>
- </div>
- <div className="mt-8 border-t border-border pt-6 text-center text-sm text-muted-foreground">
- © {new Date().getFullYear()} MuscleHub. {isAr ? "كل الحقوق محفوظة." : "All rights reserved."}
- </div>
- </div>
- </footer>
- </div>
- );
+      {/* ===================== FOOTER — Apple-style minimal ===================== */}
+      <footer className="border-t border-border bg-secondary px-4 py-12">
+        <div className="mx-auto max-w-6xl">
+          <div className="grid gap-8 md:grid-cols-4">
+            <div className="md:col-span-1">
+              <p className="text-base font-semibold">MuscleHub</p>
+              <p className="mt-2 text-sm font-normal text-muted-foreground">
+                {isAr ? "منصة تحسين أداء بشري." : "Human optimization platform."}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs font-normal uppercase tracking-wide text-muted-foreground">
+                {isAr ? "روابط" : "Links"}
+              </p>
+              <ul className="mt-3 space-y-2 text-sm font-normal">
+                <li><button onClick={() => navigate("pricing")} className="text-primary hover:opacity-70">{isAr ? "الأسعار" : "Pricing"}</button></li>
+                <li><button onClick={() => navigate("about")} className="text-primary hover:opacity-70">{isAr ? "من نحن" : "About"}</button></li>
+                <li><button onClick={() => navigate("blog")} className="text-primary hover:opacity-70">{isAr ? "المدونة" : "Blog"}</button></li>
+                <li><button onClick={() => navigate("faq")} className="text-primary hover:opacity-70">{isAr ? "الأسئلة الشائعة" : "FAQ"}</button></li>
+              </ul>
+            </div>
+            <div>
+              <p className="text-xs font-normal uppercase tracking-wide text-muted-foreground">
+                {isAr ? "قانوني" : "Legal"}
+              </p>
+              <ul className="mt-3 space-y-2 text-sm font-normal">
+                <li><button onClick={() => navigate("privacy")} className="text-primary hover:opacity-70">{isAr ? "الخصوصية" : "Privacy"}</button></li>
+                <li><button onClick={() => navigate("terms")} className="text-primary hover:opacity-70">{isAr ? "الشروط" : "Terms"}</button></li>
+              </ul>
+            </div>
+            <div>
+              <p className="text-xs font-normal uppercase tracking-wide text-muted-foreground">
+                {isAr ? "تواصل" : "Contact"}
+              </p>
+              <ul className="mt-3 space-y-2 text-sm font-normal text-muted-foreground">
+                <li>WhatsApp</li>
+                <li>Instagram</li>
+                <li>{isAr ? "دعم 24/7" : "24/7 support"}</li>
+              </ul>
+            </div>
+          </div>
+          <div className="mt-12 border-t border-border pt-6 text-center text-xs font-normal text-muted-foreground">
+            © {new Date().getFullYear()} MuscleHub. {isAr ? "كل الحقوق محفوظة." : "All rights reserved."}
+          </div>
+        </div>
+      </footer>
+    </div>
+  );
 }
 
-// ---- Blog card used in the homepage Latest/Popular articles sections ----
-function BlogCard({ post, lang, rank }: { post: BlogPost; lang: "en" | "ar"; rank?: number }) {
- const isAr = lang === "ar";
- const href = `${isAr ? "/ar" : ""}/blog/${encodeURIComponent(post.slug)}`;
- const fallbackImg = isAr
- ? "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/d107f788f4a2.jpg"
- : "https://z-cdn.chatglm.cn/image-search-mcp/images-ppt/6f2587b25688.jpeg";
- const img = post.featured_image || fallbackImg;
- const date = post.published_at || post.created_at;
-
- return (
- <a
- href={href}
- className="group block overflow-hidden rounded-2xl border border-border bg-card shadow-card transition-all hover:-translate-y-1 hover:border-primary/40 hover:shadow-glow"
- >
- <div className="relative aspect-[16/9] overflow-hidden bg-muted">
- <img
- src={img}
- alt={post.cover_alt || post.title}
- className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
- loading="lazy"
- />
- <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-transparent to-transparent" />
- {rank && (
- <span className="absolute start-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-gold/90 text-sm font-bold text-gold-foreground shadow-glow">
- #{rank}
- </span>
- )}
- <Badge className="absolute end-3 top-3" variant="secondary">
- {getCategoryLabel(post.category, lang)}
- </Badge>
- </div>
- <div className="p-5">
- <h3 className="line-clamp-2 font-display text-lg font-bold leading-snug transition-colors group-hover:text-primary">
- {post.title}
- </h3>
- {post.excerpt && (
- <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">
- {post.excerpt}
- </p>
- )}
- <div className="mt-4 flex items-center justify-between text-xs text-muted-foreground">
- <span className="flex items-center gap-1.5">
- <Clock className="h-3.5 w-3.5" />
- {post.reading_time} {isAr ? "د قراءة" : "min read"}
- </span>
- <span className="flex items-center gap-1.5">
- <Calendar className="h-3.5 w-3.5" />
- {new Date(date).toLocaleDateString(isAr ? "ar-EG" : "en-US", {
- day: "numeric",
- month: "short",
- year: "numeric",
- })}
- </span>
- </div>
- </div>
- </a>
- );
-}
+// Import SiteHeader at the top of the file
+import { SiteHeader } from "@/components/SiteHeader";

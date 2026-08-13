@@ -76,80 +76,78 @@
 :root {
   --radius: 1rem; /* 16px — large, soft, premium */
 
-  /* === Liquid Glass Light Theme === */
-  /* Page background — cool off-white with slight blue tint */
-  --background: #f5f8fc;
-  --foreground: #0f172a; /* Slate-900 */
+  /* === Apple-style Minimal Theme === */
+  /* Inspired by apple.com/iphone — pure white, true black, generous space */
+  --background: #ffffff;
+  --foreground: #1d1d1f; /* Apple's primary text color */
 
-  /* Card surface — semi-transparent white with glass blur */
-  --card: rgba(255, 255, 255, 0.72);
-  --card-foreground: #0f172a;
+  /* Card surface — solid white, no glass */
+  --card: #ffffff;
+  --card-foreground: #1d1d1f;
 
-  --popover: rgba(255, 255, 255, 0.95);
-  --popover-foreground: #0f172a;
+  --popover: #ffffff;
+  --popover-foreground: #1d1d1f;
 
-  /* Primary — indigo/blue (soft, not neon) */
-  --primary: #6366f1; /* Indigo-500 */
+  /* Primary — Apple blue (#0071e3) for links/CTAs */
+  --primary: #0071e3; /* Apple blue */
   --primary-foreground: #ffffff;
 
-  /* Secondary — very pale indigo background */
-  --secondary: #eef2ff; /* Indigo-50 */
-  --secondary-foreground: #4338ca; /* Indigo-700 */
+  /* Secondary — light gray section backgrounds */
+  --secondary: #f5f5f7; /* Apple's section gray */
+  --secondary-foreground: #1d1d1f;
 
-  /* Muted — subtle gray for backgrounds */
-  --muted: #f1f5f9; /* Slate-100 */
-  --muted-foreground: #64748b; /* Slate-500 */
+  /* Muted — for secondary text */
+  --muted: #f5f5f7;
+  --muted-foreground: #6e6e73; /* Apple's secondary text gray */
 
-  /* Accent — pale blue */
-  --accent: #eff6ff; /* Blue-50 */
-  --accent-foreground: #2563eb; /* Blue-600 */
+  /* Accent — same as primary, kept for compatibility */
+  --accent: #f5f5f7;
+  --accent-foreground: #0071e3;
 
-  /* Semantic colors — light backgrounds + strong text */
-  --destructive: #ef4444; /* Red-500 */
+  /* Semantic colors — minimal, Apple-style */
+  --destructive: #ff3b30; /* Apple red */
   --destructive-foreground: #ffffff;
 
-  --success: #22c55e; /* Green-500 */
+  --success: #34c759; /* Apple green */
   --success-foreground: #ffffff;
 
-  --warning: #f59e0b; /* Amber-500 */
+  --warning: #ff9500; /* Apple orange */
   --warning-foreground: #ffffff;
 
-  --gold: #d97706; /* Amber-600 — more premium than bright gold */
+  --gold: #1d1d1f; /* Replaced gold with black — monochrome */
   --gold-foreground: #ffffff;
 
-  /* Borders — subtle gray-blue */
-  --border: #e2e8f0; /* Slate-200 */
-  --input: #e2e8f0;
-  --ring: #818cf8; /* Indigo-400 */
+  /* Borders — barely visible, Apple-style */
+  --border: #d2d2d7; /* Apple's border gray */
+  --input: #d2d2d7;
+  --ring: #0071e3; /* Apple blue focus */
 
-  /* Chart colors — premium palette */
-  --chart-1: #6366f1; /* Indigo */
-  --chart-2: #3b82f6; /* Blue */
-  --chart-3: #22c55e; /* Green */
-  --chart-4: #f59e0b; /* Amber */
-  --chart-5: #ec4899; /* Pink */
+  /* Chart colors — Apple palette */
+  --chart-1: #0071e3; /* Blue */
+  --chart-2: #1d1d1f; /* Black */
+  --chart-3: #34c759; /* Green */
+  --chart-4: #ff9500; /* Orange */
+  --chart-5: #ff3b30; /* Red */
 
-  /* Sidebar — slightly darker than page */
-  --sidebar: rgba(255, 255, 255, 0.8);
-  --sidebar-foreground: #0f172a;
-  --sidebar-primary: #6366f1;
+  /* Sidebar — clean white */
+  --sidebar: #ffffff;
+  --sidebar-foreground: #1d1d1f;
+  --sidebar-primary: #0071e3;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #eef2ff;
-  --sidebar-accent-foreground: #4338ca;
-  --sidebar-border: #e2e8f0;
-  --sidebar-ring: #818cf8;
+  --sidebar-accent: #f5f5f7;
+  --sidebar-accent-foreground: #1d1d1f;
+  --sidebar-border: #d2d2d7;
+  --sidebar-ring: #0071e3;
 
-  /* Gradients — soft, subtle */
-  --gradient-primary: linear-gradient(135deg, #6366f1, #3b82f6);
-  --gradient-gold: linear-gradient(135deg, #d97706, #f59e0b);
-  --gradient-hero: radial-gradient(80% 80% at 50% 0%, rgba(99, 102, 241, 0.08) 0%, transparent 60%),
-    radial-gradient(60% 60% at 80% 100%, rgba(59, 130, 246, 0.05) 0%, transparent 50%),
-    radial-gradient(40% 40% at 20% 80%, rgba(34, 197, 94, 0.03) 0%, transparent 50%);
+  /* No gradients — Apple uses solid colors only */
+  --gradient-primary: none;
+  --gradient-gold: none;
+  --gradient-hero: none;
 
-  /* Shadows — soft, diffused (no neon glow) */
-  --shadow-glow: 0 8px 30px rgba(99, 102, 241, 0.12), 0 4px 12px rgba(99, 102, 241, 0.06);
-  --shadow-gold: 0 8px 30px rgba(217, 119, 6, 0.15), 0 4px 12px rgba(217, 119, 6, 0.08);
-  --shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 10px 15px -3px rgba(0, 0, 0, 0.03), 0 0 0 1px rgba(226, 232, 240, 0.5);
+  /* Shadows — minimal, subtle */
+  --shadow-glow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  --shadow-gold: 0 4px 12px rgba(0, 0, 0, 0.08);
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.04), 0 4px 12px rgba(0, 0, 0, 0.04);
 }
 
 .dark {
@@ -183,21 +181,29 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
+    /* Apple-style smooth scrolling */
+    scroll-behavior: smooth;
   }
 
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
     -webkit-font-smoothing: antialiased;
+    /* Apple uses letter-spacing slightly tighter */
+    letter-spacing: -0.01em;
   }
 
+  /* Apple-style typography — large, light weight, tight tracking */
   h1, h2, h3, h4, .font-display {
     font-family: var(--font-display);
-    letter-spacing: -0.02em;
-    font-weight: 700;
+    letter-spacing: -0.03em; /* Apple's tight tracking */
+    font-weight: 600; /* Apple uses semibold, not bold */
+    line-height: 1.08; /* Apple's tight line height for headlines */
   }
 
-  /* Arabic / RTL typography */
+  h1 { font-weight: 600; }
+
+  /* Arabic / RTL typography — keep weight slightly heavier for readability */
   html[dir="rtl"] {
     font-family: var(--font-arabic);
   }
@@ -210,12 +216,23 @@
     font-family: var(--font-arabic);
     letter-spacing: 0;
     font-weight: 700;
+    line-height: 1.2;
   }
 
-  /* Selection color */
+  /* Selection color — Apple blue */
   ::selection {
-    background-color: rgba(99, 102, 241, 0.2);
-    color: #4338ca;
+    background-color: rgba(0, 113, 227, 0.2);
+    color: #1d1d1f;
+  }
+
+  /* Apple-style link defaults */
+  a {
+    color: var(--primary);
+    text-decoration: none;
+    transition: opacity 0.2s ease;
+  }
+  a:hover {
+    opacity: 0.7;
   }
 }
 
@@ -537,107 +554,32 @@ textarea:disabled {
   }
 }
 
-/* === UI/UX Pro Max — Scroll-Triggered Animations === */
-
-@keyframes fade-up {
-  from {
-    opacity: 0;
-    transform: translateY(24px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
+/* === Apple-style Animations === */
+/* Apple uses very subtle, slow fades. No bounces, no scales, no slides. */
 
 @keyframes fade-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
-@keyframes scale-in {
-  from {
-    opacity: 0;
-    transform: scale(0.95);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-@keyframes slide-in-right {
-  from {
-    opacity: 0;
-    transform: translateX(40px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-@keyframes slide-in-left {
-  from {
-    opacity: 0;
-    transform: translateX(-40px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
+/* Single, gentle animation — Apple-style */
 @utility animate-fade-up {
-  animation: fade-up 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  animation: fade-in 0.8s cubic-bezier(0.28, 0.11, 0.32, 1) forwards;
 }
 
 @utility animate-fade-in {
-  animation: fade-in 0.5s ease-out forwards;
+  animation: fade-in 0.8s cubic-bezier(0.28, 0.11, 0.32, 1) forwards;
 }
 
-@utility animate-scale-in {
-  animation: scale-in 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-}
-
-@utility animate-slide-in-right {
-  animation: slide-in-right 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-}
-
-@utility animate-slide-in-left {
-  animation: slide-in-left 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-}
+/* Removed — too flashy for Apple style */
+/* animate-scale-in, animate-slide-in-right/left, animate-scroll-bounce,
+   stagger-*, card-lift, animate-neon-flicker, text-shimmer,
+   animate-gold-pulse, animate-pulse-ring — all removed */
 
 /* Initial hidden state for scroll-triggered animations */
 .scroll-hidden {
   opacity: 0;
 }
 
-/* Stagger delays for grid items */
-@utility stagger-1 { animation-delay: 0.1s; }
-@utility stagger-2 { animation-delay: 0.2s; }
-@utility stagger-3 { animation-delay: 0.3s; }
-@utility stagger-4 { animation-delay: 0.4s; }
-@utility stagger-5 { animation-delay: 0.5s; }
-@utility stagger-6 { animation-delay: 0.6s; }
-
-/* Scroll indicator (hero bounce) */
-@keyframes scroll-bounce {
-  0%, 100% { transform: translateY(0); opacity: 0.6; }
-  50% { transform: translateY(8px); opacity: 1; }
-}
-
-@utility animate-scroll-bounce {
-  animation: scroll-bounce 2s ease-in-out infinite;
-}
-
-/* Card lift effect on hover */
-.card-lift {
-  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-              box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-              border-color 0.3s ease;
-}
-
-.card-lift:hover {
-  transform: translateY(-4px);
-}
+/* No card lift — Apple doesn't do hover transforms on cards.
+   Cards stay still. Only links/buttons have hover states. */
