@@ -1,24 +1,19 @@
 -- =====================================================================
 --  MuscleHubEG — Referral & Commission System
---  Run in Supabase SQL Editor (Dashboard → SQL → New query).
---  Idempotent — safe to run multiple times.
+--  Copy ALL of this and paste into Supabase SQL Editor, then Run.
+--  Safe to run multiple times.
 -- =====================================================================
 
--- ---------- 1. Add referral_code column to profiles ----------
+-- 1. Add referral_code column to profiles
 alter table public.profiles
   add column if not exists referral_code text unique;
 
--- Auto-generate referral_code for existing profiles if missing
--- Format: first 4 chars of name + random 4 chars (e.g. AHMED7K3X)
-insert into public.profiles (id, referral_code)
-select
-  p.id,
-  upper(substr(coalesce(p.full_name, 'user'), 1, 4)) || substr(md5(random()::text), 1, 4)
-from public.profiles p
-where p.referral_code is null
-on conflict (id) do nothing;
+-- 2. Auto-generate referral_code for existing profiles (using UPDATE, not INSERT)
+update public.profiles
+  set referral_code = upper(substr(coalesce(full_name, 'user'), 1, 4)) || substr(md5(random()::text), 1, 4)
+  where referral_code is null;
 
--- ---------- 2. referrals table ----------
+-- 3. referrals table
 create table if not exists public.referrals (
   id uuid primary key default gen_random_uuid(),
   referrer_id uuid not null references public.profiles(id) on delete cascade,
@@ -38,28 +33,25 @@ create index if not exists idx_referrals_status on public.referrals(status);
 
 alter table public.referrals enable row level security;
 
--- Users can see referrals where they are the referrer
 drop policy if exists referrals_select_own on public.referrals;
 create policy referrals_select_own
   on public.referrals for select
   to authenticated
   using (auth.uid() = referrer_id or public.is_coach());
 
--- Coaches can insert (for manual referrals)
 drop policy if exists referrals_insert_coach on public.referrals;
 create policy referrals_insert_coach
   on public.referrals for insert
   to authenticated
   with check (public.is_coach() or auth.uid() = referrer_id);
 
--- Coaches can update (to mark completed/rejected)
 drop policy if exists referrals_update_coach on public.referrals;
 create policy referrals_update_coach
   on public.referrals for update
   to authenticated
   using (public.is_coach());
 
--- ---------- 3. referral_earnings table ----------
+-- 4. referral_earnings table
 create table if not exists public.referral_earnings (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references public.profiles(id) on delete cascade,
@@ -78,14 +70,12 @@ create index if not exists idx_earnings_status on public.referral_earnings(statu
 
 alter table public.referral_earnings enable row level security;
 
--- Users can see their own earnings
 drop policy if exists earnings_select_own on public.referral_earnings;
 create policy earnings_select_own
   on public.referral_earnings for select
   to authenticated
   using (auth.uid() = user_id or public.is_coach());
 
--- Coaches can insert/update (when commission is earned, paid, etc.)
 drop policy if exists earnings_insert_coach on public.referral_earnings;
 create policy earnings_insert_coach
   on public.referral_earnings for insert
@@ -98,7 +88,7 @@ create policy earnings_update_coach
   to authenticated
   using (public.is_coach() or auth.uid() = user_id);
 
--- ---------- 4. referral_payouts table ----------
+-- 5. referral_payouts table
 create table if not exists public.referral_payouts (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references public.profiles(id) on delete cascade,
@@ -117,30 +107,23 @@ create index if not exists idx_payouts_status on public.referral_payouts(status)
 
 alter table public.referral_payouts enable row level security;
 
--- Users can see their own payout requests
 drop policy if exists payouts_select_own on public.referral_payouts;
 create policy payouts_select_own
   on public.referral_payouts for select
   to authenticated
   using (auth.uid() = user_id or public.is_coach());
 
--- Users can insert (create payout request)
 drop policy if exists payouts_insert_own on public.referral_payouts;
 create policy payouts_insert_own
   on public.referral_payouts for insert
   to authenticated
   with check (auth.uid() = user_id);
 
--- Coaches can update (approve/reject/pay)
 drop policy if exists payouts_update_coach on public.referral_payouts;
 create policy payouts_update_coach
   on public.referral_payouts for update
   to authenticated
   using (public.is_coach());
 
--- ---------- 5. Grant execute on is_coach() to anon + authenticated ----------
--- (already granted in previous migration, but re-grant for safety)
+-- 6. Grant execute on is_coach()
 grant execute on function public.is_coach() to anon, authenticated;
-
--- ---------- 6. Create notification helper for referral earnings ----------
--- (reuses the existing notifications table from migration 0003)
