@@ -103,6 +103,12 @@ const IMAGES = {
   coach: "/images/coach-portrait.png",
   evo: "/images/evo-standalone.png",
   together: "/images/ahmed-evo-together.png",
+  meal: "/images/meal-nutrition.png",
+  workout: "/images/ahmed-workout.png",
+  progress: "/images/ahmed-progress-tablet.png",
+  running: "/images/ahmed-running.png",
+  data: "/images/evo-data.png",
+  accessories: "/images/accessories.png",
 };
 
 export function LandingView() {
@@ -120,12 +126,16 @@ export function LandingView() {
     })();
   }, [lang]);
 
-  // Hero carousel — auto-rotates through the 4 studio images
+  // Hero carousel — auto-rotates through all studio images
   const heroImages = [
     { src: IMAGES.hero, alt: isAr ? "أحمد زكي" : "Ahmed Zake" },
     { src: IMAGES.coach, alt: isAr ? "أحمد زكي — الكوتش" : "Ahmed Zake — Coach" },
-    { src: IMAGES.evo, alt: "EVO" },
     { src: IMAGES.together, alt: isAr ? "أحمد زكي و EVO" : "Ahmed Zake and EVO" },
+    { src: IMAGES.workout, alt: isAr ? "تمارين القوة" : "Strength Training" },
+    { src: IMAGES.meal, alt: isAr ? "تغذية صحية" : "Healthy Nutrition" },
+    { src: IMAGES.progress, alt: isAr ? "تتبع التقدم" : "Progress Tracking" },
+    { src: IMAGES.running, alt: isAr ? "كارديو" : "Cardio" },
+    { src: IMAGES.evo, alt: "EVO" },
   ];
   const [currentSlide, setCurrentSlide] = useState(0);
   useEffect(() => {
@@ -350,6 +360,64 @@ export function LandingView() {
             </div>
           </Reveal>
         </div>
+      </section>
+
+      {/* ===================== 7.5. FEATURE SHOWCASE — Nutrition + Workout + Progress ===================== */}
+      <section className="bg-[#f5f5f7] px-4 py-20 md:py-28">
+        <div className="mx-auto max-w-6xl">
+          <Reveal>
+            <h2 className="mb-4 text-center text-3xl font-semibold tracking-tight md:mb-6 md:text-5xl">
+              {isAr ? "كل أداة محتاجها." : "Every tool you need."}
+            </h2>
+          </Reveal>
+          <Reveal delay={100}>
+            <p className="mx-auto mb-16 max-w-xl text-center text-lg font-normal text-[#6e6e73] md:text-xl">
+              {isAr ? "تغذية مخصصة. تمارين احترافية. تتبع دقيق." : "Personalized nutrition. Professional workouts. Precise tracking."}
+            </p>
+          </Reveal>
+          <div className="grid gap-5 md:grid-cols-3 md:gap-6">
+            {/* Nutrition */}
+            <Reveal>
+              <div className="overflow-hidden rounded-3xl bg-white">
+                <img src={IMAGES.meal} alt={isAr ? "تغذية" : "Nutrition"} className="aspect-[4/3] w-full object-contain" loading="lazy" />
+                <div className="p-6">
+                  <h3 className="text-lg font-semibold tracking-tight">{isAr ? "خطط تغذية" : "Nutrition Plans"}</h3>
+                  <p className="mt-2 text-sm font-normal text-[#6e6e73]">{isAr ? "مخصصة بالجرام والسعرات والماكروز." : "Personalized to the gram, calories, and macros."}</p>
+                </div>
+              </div>
+            </Reveal>
+            {/* Workout */}
+            <Reveal delay={100}>
+              <div className="overflow-hidden rounded-3xl bg-white">
+                <img src={IMAGES.workout} alt={isAr ? "تمارين" : "Workout"} className="aspect-[4/3] w-full object-contain" loading="lazy" />
+                <div className="p-6">
+                  <h3 className="text-lg font-semibold tracking-tight">{isAr ? "برامج تمارين" : "Workout Programs"}</h3>
+                  <p className="mt-2 text-sm font-normal text-[#6e6e73]">{isAr ? "تتكيف مع تقدمك ومستواك." : "Adapt to your progress and level."}</p>
+                </div>
+              </div>
+            </Reveal>
+            {/* Progress */}
+            <Reveal delay={200}>
+              <div className="overflow-hidden rounded-3xl bg-white">
+                <img src={IMAGES.progress} alt={isAr ? "تتبع" : "Progress"} className="aspect-[4/3] w-full object-contain" loading="lazy" />
+                <div className="p-6">
+                  <h3 className="text-lg font-semibold tracking-tight">{isAr ? "تتبع التقدم" : "Progress Tracking"}</h3>
+                  <p className="mt-2 text-sm font-normal text-[#6e6e73]">{isAr ? "صور، قياسات، أرقام — كل حاجة في مكان واحد." : "Photos, measurements, data — all in one place."}</p>
+                </div>
+              </div>
+            </Reveal>
+          </div>
+        </div>
+      </section>
+
+      {/* ===================== 7.6. RUNNING — full-bleed image ===================== */}
+      <section className="relative h-[50vh] w-full overflow-hidden bg-white md:h-[65vh]">
+        <img
+          src={IMAGES.running}
+          alt={isAr ? "كارديو" : "Cardio"}
+          className="h-full w-full object-contain"
+          loading="lazy"
+        />
       </section>
 
       {/* ===================== 8. HOW IT WORKS — Apple-style numbered steps ===================== */}
