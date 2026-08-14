@@ -218,9 +218,9 @@ export async function generateArticleBundle(
  {
  systemPrompt: ARTICLE_SYSTEM_PROMPT,
  temperature: 0.7,
- maxTokens: 6_000,
+ maxTokens: 4_000,
  jsonMode: true,
- timeoutMs: 120_000,
+ timeoutMs: 50_000,
  },
  override,
  );
