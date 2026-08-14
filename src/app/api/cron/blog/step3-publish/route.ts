@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { fetchFeaturedImage } from "@/lib/blog-images";
 import { supabaseAdmin, isSupabaseAdminConfigured } from "@/lib/supabase/admin";
-import { normalizeCategory } from "@/lib/blog";
+import { normalizeCategory } from "@/lib/blog-server";
 
 export const maxDuration = 60;
 

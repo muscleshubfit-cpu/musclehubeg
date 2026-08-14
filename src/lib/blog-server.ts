@@ -6,6 +6,46 @@ import { createClient } from "@supabase/supabase-js";
  * client; this file uses a fresh server client and never touches the browser.)
  */
 
+export const BLOG_CATEGORIES = [
+  { id: "nutrition", en: "Nutrition", ar: "تغذية" },
+  { id: "workout", en: "Workout", ar: "تمارين" },
+  { id: "supplements", en: "Supplements", ar: "مكملات" },
+  { id: "weight-loss", en: "Weight Loss", ar: "خسارة وزن" },
+  { id: "muscle-gain", en: "Muscle Gain", ar: "بناء عضلات" },
+  { id: "health", en: "Health", ar: "صحة" },
+  { id: "recipes", en: "Recipes", ar: "وصفات" },
+  { id: "science", en: "Science", ar: "علم" },
+] as const;
+
+export const VALID_CATEGORY_IDS = new Set(BLOG_CATEGORIES.map((c) => c.id));
+
+/**
+ * Normalize a category id to a valid one. Server-safe (no "use client").
+ */
+export function normalizeCategory(categoryId: string | undefined | null): string {
+  if (!categoryId) return "nutrition";
+  const id = categoryId.trim().toLowerCase();
+  if (VALID_CATEGORY_IDS.has(id)) return id;
+  const SYNONYMS: Record<string, string> = {
+    training: "workout",
+    exercise: "workout",
+    fitness: "workout",
+    diet: "nutrition",
+    food: "nutrition",
+    supplement: "supplements",
+    "weight loss": "weight-loss",
+    fatloss: "weight-loss",
+    "muscle building": "muscle-gain",
+    bodybuilding: "muscle-gain",
+    recipe: "recipes",
+    cooking: "recipes",
+    wellness: "health",
+    medical: "science",
+    research: "science",
+  };
+  return SYNONYMS[id] || "nutrition";
+}
+
 export type BlogOGData = {
   title: string;
   description: string;

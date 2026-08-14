@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { pickSmartTopic } from "@/lib/blog-topics";
 import { supabaseAdmin, isSupabaseAdminConfigured } from "@/lib/supabase/admin";
-import { normalizeCategory } from "@/lib/blog";
+import { normalizeCategory } from "@/lib/blog-server";
 
 export const maxDuration = 60;
 
