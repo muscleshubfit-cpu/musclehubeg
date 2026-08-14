@@ -28,7 +28,6 @@ export async function GET(request: NextRequest) {
         topic: pick.topic,
         focus_keyword: pick.focusKeyword,
         category: safeCategory,
-        rationale: pick.rationale || "",
         status: "topic_picked",
         created_at: new Date().toISOString(),
       })

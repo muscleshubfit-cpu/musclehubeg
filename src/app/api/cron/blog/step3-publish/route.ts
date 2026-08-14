@@ -62,7 +62,7 @@ export async function GET(request: NextRequest) {
       .from("blog_generation_queue" as any)
       .select("*")
       .eq("status", "generated")
-      .order("generated_at", { ascending: false })
+      .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();
 
@@ -154,7 +154,6 @@ export async function GET(request: NextRequest) {
       .from("blog_generation_queue" as any)
       .update({
         status: "published",
-        published_at: now,
         en_post_id: enPost?.id,
         ar_post_id: arPost?.id,
       })

@@ -54,7 +54,6 @@ export async function GET(request: NextRequest) {
       .update({
         status: "generated",
         article_bundle: JSON.stringify(bundle),
-        generated_at: new Date().toISOString(),
       })
       .eq("id", queueItem.id);
 
