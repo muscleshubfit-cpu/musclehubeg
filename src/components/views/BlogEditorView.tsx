@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { Dumbbell, Save, Eye, Code, Sparkles, Loader2, ArrowLeft, Plus, X, CheckCircle, AlertCircle, Clock, Wand2, Settings2 } from "lucide-react";
+import { Save, Eye, Code, Sparkles, Loader2, ArrowLeft, Plus, X, CheckCircle, AlertCircle, Clock, Wand2, Settings2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -236,7 +236,7 @@ export function BlogEditorView({ mode, postId }: { mode: "new" | "edit"; postId?
  };
 
  return (
- <div className="space-y-4">
+ <div className="space-y-6">
  {/* AI Generate Modal */}
  <AIGenerateModal
  open={showAIModal}
@@ -245,67 +245,59 @@ export function BlogEditorView({ mode, postId }: { mode: "new" | "edit"; postId?
  defaultLanguage={post.language as "en" | "ar"}
  />
 
- {/* Header */}
- <div className="flex flex-wrap items-center justify-between gap-3">
- <div className="flex items-center gap-3">
- <Button variant="ghost" size="sm" className="gap-1" onClick={() => router.push("/admin/blog")}>
- <ArrowLeft className="h-4 w-4 rtl:rotate-180" />
- {isAr ? "رجوع" : "Back"}
- </Button>
- <h1 className="text-xl font-bold">{mode === "new" ? (isAr ? "مقال جديد" : "New Article") : (isAr ? "تعديل المقال" : "Edit Article")}</h1>
+ {/* Header — Apple-style */}
+ <div className="flex flex-wrap items-center justify-between gap-4">
+ <div className="flex items-center gap-4">
+ <button
+ onClick={() => router.push("/admin/blog")}
+ className="text-sm font-normal text-[#0071e3] transition-opacity hover:opacity-70"
+ >
+ ‹ {isAr ? "رجوع" : "Back"}
+ </button>
+ <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">
+ {mode === "new" ? (isAr ? "مقال جديد" : "New Article") : (isAr ? "تعديل المقال" : "Edit Article")}
+ </h1>
  </div>
  <div className="flex flex-wrap items-center gap-2">
- {/* Generate with AI — primary action */}
- <Button
- size="sm"
- className="gap-2 bg-gradient-to-r from-primary to-primary/80 shadow-glow"
+ <button
+ className="rounded-full bg-[#0071e3] px-4 py-2 text-sm font-normal text-white transition-opacity hover:opacity-90"
  onClick={() => {
  if (aiStatus && !aiStatus.isConfigured) {
- toast.info(
- isAr
- ? "Configure your AI provider first — opening AI Settings"
- : "Configure your AI provider first — opening AI Settings",
- );
+ toast.info(isAr ? "Configure your AI provider first — opening AI Settings" : "Configure your AI provider first — opening AI Settings");
  router.push("/admin/ai-settings");
  return;
  }
  setShowAIModal(true);
  }}
  >
- <Wand2 className="h-4 w-4" />
  {isAr ? "توليد بالذكاء الاصطناعي" : "Generate with AI"}
- </Button>
- {/* AI Settings shortcut */}
- <Button
- variant="ghost"
- size="sm"
- className="gap-1.5"
+ </button>
+ <button
  onClick={() => router.push("/admin/ai-settings")}
- title={isAr ? "إعدادات الذكاء الاصطناعي" : "AI Settings"}
+ className="rounded-full border border-[#d2d2d7] bg-white px-4 py-2 text-sm font-normal transition-opacity hover:opacity-90"
  >
- <Settings2 className="h-4 w-4" />
- {aiStatus?.isConfigured ? (
- <Badge variant="outline" className="border-success/40 text-[10px] text-success">
- {aiStatus.provider}
- </Badge>
- ) : aiStatus ? (
- <Badge variant="outline" className="border-warning/40 text-[10px] text-warning">
- {isAr ? "غير مهيأ" : "Setup"}
- </Badge>
- ) : null}
- </Button>
- <Button variant="ghost" size="sm" className="gap-2" onClick={() => setShowPreview(!showPreview)}>
- {showPreview ? <Code className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+ {aiStatus?.isConfigured ? aiStatus.provider : (isAr ? "غير مهيأ" : "Setup")}
+ </button>
+ <button
+ onClick={() => setShowPreview(!showPreview)}
+ className="rounded-full border border-[#d2d2d7] bg-white px-4 py-2 text-sm font-normal transition-opacity hover:opacity-90"
+ >
  {showPreview ? (isAr ? "تحرير" : "Edit") : (isAr ? "معاينة" : "Preview")}
- </Button>
- <Button variant="secondary" size="sm" className="gap-2" onClick={() => save(false)} disabled={saving}>
- {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
- {isAr ? "حفظ مسودة" : "Save Draft"}
- </Button>
- <Button size="sm" className="gap-2" onClick={() => save(true)} disabled={saving}>
- <CheckCircle className="h-4 w-4" />
+ </button>
+ <button
+ onClick={() => save(false)}
+ disabled={saving}
+ className="rounded-full border border-[#d2d2d7] bg-white px-4 py-2 text-sm font-normal transition-opacity hover:opacity-90 disabled:opacity-50"
+ >
+ {saving ? "..." : (isAr ? "حفظ مسودة" : "Save Draft")}
+ </button>
+ <button
+ onClick={() => save(true)}
+ disabled={saving}
+ className="rounded-full bg-[#1d1d1f] px-4 py-2 text-sm font-normal text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+ >
  {isAr ? "نشر" : "Publish"}
- </Button>
+ </button>
  </div>
  </div>
 

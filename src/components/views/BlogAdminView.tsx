@@ -1,224 +1,250 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Dumbbell, FileText, CheckCircle, Clock, Globe, ArrowRight, Plus, Edit3, Trash2, Copy, Eye, TrendingUp, Settings2, Sparkles } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Card } from "@/components/ui/card";
 import { useI18n } from "@/lib/i18n";
 import { useRouter } from "next/navigation";
 import { getBlogStats, adminListPosts, adminDeletePost, adminDuplicatePost, type AdminBlogPost } from "@/lib/blog-admin";
-import { BLOG_CATEGORIES, getCategoryLabel } from "@/lib/blog";
+import { getCategoryLabel } from "@/lib/blog";
 import { toast } from "sonner";
 
 export function BlogAdminView() {
- const { t, lang } = useI18n();
- const router = useRouter();
- const isAr = lang === "ar";
- const [stats, setStats] = useState<any>(null);
- const [posts, setPosts] = useState<AdminBlogPost[]>([]);
- const [loading, setLoading] = useState(true);
- const [filter, setFilter] = useState<"all" | "en" | "ar">("all");
+  const { t, lang } = useI18n();
+  const router = useRouter();
+  const isAr = lang === "ar";
+  const [stats, setStats] = useState<any>(null);
+  const [posts, setPosts] = useState<AdminBlogPost[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState<"all" | "en" | "ar">("all");
 
- const load = async () => {
- setLoading(true);
- try {
- const [s, p] = await Promise.all([getBlogStats(), adminListPosts()]);
- setStats(s);
- setPosts(p);
- } catch (e: any) {
- toast.error(e.message);
- } finally {
- setLoading(false);
- }
- };
+  const load = async () => {
+    setLoading(true);
+    try {
+      const [s, p] = await Promise.all([getBlogStats(), adminListPosts()]);
+      setStats(s);
+      setPosts(p);
+    } catch (e: any) {
+      toast.error(e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
- useEffect(() => {
- load();
- // eslint-disable-next-line react-hooks/exhaustive-deps
- }, []);
+  useEffect(() => {
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
- const handleDelete = async (id: string) => {
- if (!confirm(isAr ? "حذف هذا المقال؟" : "Delete this article?")) return;
- try {
- await adminDeletePost(id);
- await load();
- toast.success(isAr ? "تم الحذف" : "Deleted");
- } catch (e: any) { toast.error(e.message); }
- };
+  const handleDelete = async (id: string) => {
+    if (!confirm(isAr ? "حذف هذا المقال؟" : "Delete this article?")) return;
+    try {
+      await adminDeletePost(id);
+      await load();
+      toast.success(isAr ? "تم الحذف" : "Deleted");
+    } catch (e: any) {
+      toast.error(e.message);
+    }
+  };
 
- const handleDuplicate = async (id: string) => {
- try {
- await adminDuplicatePost(id);
- await load();
- toast.success(isAr ? "تم نسخ المقال" : "Article duplicated");
- } catch (e: any) { toast.error(e.message); }
- };
+  const handleDuplicate = async (id: string) => {
+    try {
+      await adminDuplicatePost(id);
+      await load();
+      toast.success(isAr ? "تم نسخ المقال" : "Article duplicated");
+    } catch (e: any) {
+      toast.error(e.message);
+    }
+  };
 
- const filtered = filter === "all" ? posts : posts.filter((p) => p.language === filter);
+  const filtered = filter === "all" ? posts : posts.filter((p) => p.language === filter);
 
- if (loading) return <div className="p-8 text-center text-muted-foreground">{isAr ? "جارٍ التحميل..." : "Loading..."}</div>;
+  if (loading)
+    return (
+      <div className="py-20 text-center text-base font-normal text-[#6e6e73]">
+        {isAr ? "جارٍ التحميل..." : "Loading..."}
+      </div>
+    );
 
- const statCards = [
- { label: isAr ? "إجمالي المقالات" : "Total Articles", value: stats?.total || 0, icon: FileText, color: "text-primary" },
- { label: isAr ? "منشورة" : "Published", value: stats?.published || 0, icon: CheckCircle, color: "text-success" },
- { label: isAr ? "مسودات" : "Drafts", value: stats?.drafts || 0, icon: Clock, color: "text-warning" },
- { label: isAr ? "إنجليزي" : "English", value: stats?.en || 0, icon: Globe, color: "text-primary" },
- { label: isAr ? "عربي" : "Arabic", value: stats?.ar || 0, icon: Globe, color: "text-gold" },
- ];
+  const statCards = [
+    { label: isAr ? "إجمالي المقالات" : "Total", value: stats?.total || 0 },
+    { label: isAr ? "منشورة" : "Published", value: stats?.published || 0 },
+    { label: isAr ? "مسودات" : "Drafts", value: stats?.drafts || 0 },
+    { label: isAr ? "إنجليزي" : "English", value: stats?.en || 0 },
+    { label: isAr ? "عربي" : "Arabic", value: stats?.ar || 0 },
+  ];
 
- return (
- <div className="space-y-6">
- {/* Header */}
- <div className="flex flex-wrap items-center justify-between gap-3">
- <div>
- <h1 className="text-2xl font-bold md:text-3xl">{isAr ? "إدارة المدونة" : "Blog Admin"}</h1>
- <p className="mt-1 text-sm text-muted-foreground">{isAr ? "أنشئ وحرّر وانشر المقالات" : "Create, edit and publish articles"}</p>
- </div>
- <div className="flex flex-wrap items-center gap-2">
- <Button variant="outline" className="gap-2" onClick={() => router.push("/admin/ai-settings")}>
- <Settings2 className="h-4 w-4" />
- {isAr ? "إعدادات AI" : "AI Settings"}
- </Button>
- <Button className="gap-2" onClick={() => router.push("/admin/blog/new")}>
- <Plus className="h-4 w-4" />
- {isAr ? "مقال جديد" : "New Article"}
- </Button>
- </div>
- </div>
+  return (
+    <div className="space-y-8">
+      {/* Header */}
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">
+            {isAr ? "إدارة المدونة" : "Blog Admin"}
+          </h1>
+          <p className="mt-2 text-base font-normal text-[#6e6e73] md:text-lg">
+            {isAr ? "أنشئ وحرّر وانشر المقالات" : "Create, edit and publish articles"}
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            onClick={() => router.push("/admin/ai-settings")}
+            className="rounded-full border border-[#d2d2d7] bg-white px-5 py-2.5 text-sm font-normal transition-opacity hover:opacity-90"
+          >
+            {isAr ? "إعدادات AI" : "AI Settings"}
+          </button>
+          <button
+            onClick={() => router.push("/admin/blog/new")}
+            className="rounded-full bg-[#0071e3] px-5 py-2.5 text-sm font-normal text-white transition-opacity hover:opacity-90"
+          >
+            {isAr ? "مقال جديد" : "New Article"}
+          </button>
+        </div>
+      </div>
 
- {/* AI Assistant hint banner */}
- <Card className="flex flex-wrap items-center justify-between gap-3 border-primary/30 bg-primary/5 p-4">
- <div className="flex items-center gap-3">
- <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/15 text-primary">
- <Sparkles className="h-5 w-5" />
- </div>
- <div>
- <p className="text-sm font-semibold">
- {isAr ? "مساعد الذكاء الاصطناعي جاهز" : "AI Content Assistant is ready"}
- </p>
- <p className="text-xs text-muted-foreground">
- {isAr
- ? "افتح مقالاً جديداً واضغط «توليد بالذكاء الاصطناعي» — يكتب المقال كاملاً من موضوع أو كلمة مفتاحية واحدة."
- : "Open a new article and click \"Generate with AI\" — it builds the entire article from a single topic or keyword."}
- </p>
- </div>
- </div>
- <Button size="sm" className="gap-2" onClick={() => router.push("/admin/blog/new")}>
- <Sparkles className="h-4 w-4" />
- {isAr ? "ابدأ التوليد" : "Start Generating"}
- </Button>
- </Card>
+      {/* AI Assistant hint */}
+      <div className="flex flex-wrap items-center justify-between gap-4 rounded-3xl bg-[#f5f5f7] p-6">
+        <div>
+          <p className="text-base font-semibold">{isAr ? "مساعد الذكاء الاصطناعي جاهز" : "AI Content Assistant is ready"}</p>
+          <p className="mt-1 text-sm font-normal text-[#6e6e73]">
+            {isAr
+              ? "افتح مقالاً جديداً واضغط «توليد بالذكاء الاصطناعي» — يكتب المقال كاملاً من موضوع واحد."
+              : "Open a new article and click \"Generate with AI\" — it builds the entire article from a single topic."}
+          </p>
+        </div>
+        <button
+          onClick={() => router.push("/admin/blog/new")}
+          className="rounded-full bg-[#0071e3] px-5 py-2.5 text-sm font-normal text-white transition-opacity hover:opacity-90"
+        >
+          {isAr ? "ابدأ التوليد ›" : "Start ›"}
+        </button>
+      </div>
 
- {/* Stats */}
- <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
- {statCards.map((s, i) => (
- <Card key={i} className="p-4 shadow-card">
- <div className="flex items-center gap-2">
- <s.icon className={`h-4 w-4 ${s.color}`} />
- <span className="text-xs text-muted-foreground">{s.label}</span>
- </div>
- <p className="mt-2 font-display text-2xl font-bold">{s.value}</p>
- </Card>
- ))}
- </div>
+      {/* Stats */}
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+        {statCards.map((s, i) => (
+          <div key={i} className="rounded-2xl bg-[#f5f5f7] p-6">
+            <p className="text-3xl font-semibold tracking-tight">{s.value}</p>
+            <p className="mt-1 text-xs font-normal text-[#6e6e73]">{s.label}</p>
+          </div>
+        ))}
+      </div>
 
- {/* Filter */}
- <div className="flex gap-2">
- {(["all", "en", "ar"] as const).map((f) => (
- <button
- key={f}
- onClick={() => setFilter(f)}
- className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${filter === f ? "bg-primary text-primary-foreground" : "border border-border text-muted-foreground hover:text-foreground"}`}
- >
- {f === "all" ? (isAr ? "الكل" : "All") : f === "en" ? "English" : "العربية"}
- </button>
- ))}
- </div>
+      {/* Filter */}
+      <div className="inline-flex rounded-full bg-[#f5f5f7] p-1">
+        {(["all", "en", "ar"] as const).map((f) => (
+          <button
+            key={f}
+            onClick={() => setFilter(f)}
+            className={`rounded-full px-5 py-2 text-sm font-normal transition-all ${
+              filter === f ? "bg-white text-[#1d1d1f] shadow-sm" : "text-[#6e6e73]"
+            }`}
+          >
+            {f === "all" ? (isAr ? "الكل" : "All") : f === "en" ? "English" : "العربية"}
+          </button>
+        ))}
+      </div>
 
- {/* Articles table */}
- <Card className="overflow-hidden p-0 shadow-card">
- <div className="overflow-x-auto">
- <table className="w-full text-sm">
- <thead>
- <tr className="border-b border-border bg-muted/30">
- <th className="p-3 text-start font-medium text-muted-foreground">{isAr ? "العنوان" : "Title"}</th>
- <th className="p-3 text-center font-medium text-muted-foreground">{isAr ? "اللغة" : "Lang"}</th>
- <th className="p-3 text-center font-medium text-muted-foreground">{isAr ? "التصنيف" : "Category"}</th>
- <th className="p-3 text-center font-medium text-muted-foreground">{isAr ? "الحالة" : "Status"}</th>
- <th className="p-3 text-center font-medium text-muted-foreground">{isAr ? "إجراءات" : "Actions"}</th>
- </tr>
- </thead>
- <tbody>
- {filtered.length === 0 ? (
- <tr><td colSpan={5} className="p-8 text-center text-muted-foreground">{isAr ? "لا توجد مقالات" : "No articles"}</td></tr>
- ) : (
- filtered.map((post) => (
- <tr key={post.id} className="border-b border-border/60 hover:bg-muted/20">
- <td className="p-3">
- <p className="font-medium">{post.title}</p>
- <p className="text-xs text-muted-foreground">/{post.language === "ar" ? "ar/" : ""}blog/{post.slug}</p>
- </td>
- <td className="p-3 text-center">
- <Badge variant="outline">{post.language === "ar" ? "ع" : "EN"}</Badge>
- </td>
- <td className="p-3 text-center">
- <Badge variant="secondary">{getCategoryLabel(post.category, lang)}</Badge>
- </td>
- <td className="p-3 text-center">
- {post.is_published ? (
- <Badge variant="outline" className="border-success text-success">{isAr ? "منشور" : "Published"}</Badge>
- ) : (
- <Badge variant="outline" className="border-warning text-warning">{isAr ? "مسودة" : "Draft"}</Badge>
- )}
- </td>
- <td className="p-3">
- <div className="flex items-center justify-center gap-1">
- <button onClick={() => router.push(`/admin/blog/${post.id}`)} className="rounded-lg p-2 text-primary hover:bg-primary/10" title={isAr ? "تعديل" : "Edit"}>
- <Edit3 className="h-4 w-4" />
- </button>
- <button onClick={() => handleDuplicate(post.id)} className="rounded-lg p-2 text-muted-foreground hover:bg-secondary" title={isAr ? "نسخ" : "Duplicate"}>
- <Copy className="h-4 w-4" />
- </button>
- {post.is_published && (
- <a href={`${post.language === "ar" ? "/ar" : ""}/blog/${post.slug}`} target="_blank" rel="noreferrer" className="rounded-lg p-2 text-muted-foreground hover:bg-secondary" title={isAr ? "عرض" : "View"}>
- <Eye className="h-4 w-4" />
- </a>
- )}
- <button onClick={() => handleDelete(post.id)} className="rounded-lg p-2 text-destructive hover:bg-destructive/10" title={isAr ? "حذف" : "Delete"}>
- <Trash2 className="h-4 w-4" />
- </button>
- </div>
- </td>
- </tr>
- ))
- )}
- </tbody>
- </table>
- </div>
- </Card>
+      {/* Articles table */}
+      <div className="overflow-hidden rounded-3xl bg-[#f5f5f7]">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-[#d2d2d7]">
+                <th className="p-4 text-start text-xs font-normal uppercase tracking-wide text-[#6e6e73]">{isAr ? "العنوان" : "Title"}</th>
+                <th className="p-4 text-center text-xs font-normal uppercase tracking-wide text-[#6e6e73]">{isAr ? "اللغة" : "Lang"}</th>
+                <th className="p-4 text-center text-xs font-normal uppercase tracking-wide text-[#6e6e73]">{isAr ? "التصنيف" : "Category"}</th>
+                <th className="p-4 text-center text-xs font-normal uppercase tracking-wide text-[#6e6e73]">{isAr ? "الحالة" : "Status"}</th>
+                <th className="p-4 text-center text-xs font-normal uppercase tracking-wide text-[#6e6e73]">{isAr ? "إجراءات" : "Actions"}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="p-12 text-center text-base font-normal text-[#6e6e73]">
+                    {isAr ? "لا توجد مقالات" : "No articles"}
+                  </td>
+                </tr>
+              ) : (
+                filtered.map((post) => (
+                  <tr key={post.id} className="border-b border-[#d2d2d7]/60 hover:bg-white/50">
+                    <td className="p-4">
+                      <p className="font-medium">{post.title}</p>
+                      <p className="text-xs font-normal text-[#6e6e73]">/{post.language === "ar" ? "ar/" : ""}blog/{post.slug}</p>
+                    </td>
+                    <td className="p-4 text-center">
+                      <span className="rounded-full bg-white px-2.5 py-0.5 text-xs font-normal">{post.language === "ar" ? "ع" : "EN"}</span>
+                    </td>
+                    <td className="p-4 text-center">
+                      <span className="text-xs font-normal text-[#6e6e73]">{getCategoryLabel(post.category, lang)}</span>
+                    </td>
+                    <td className="p-4 text-center">
+                      <span
+                        className={`rounded-full px-2.5 py-0.5 text-xs font-normal ${
+                          post.is_published
+                            ? "bg-[#0071e3]/10 text-[#0071e3]"
+                            : "bg-[#ff9500]/10 text-[#ff9500]"
+                        }`}
+                      >
+                        {post.is_published ? (isAr ? "منشور" : "Published") : (isAr ? "مسودة" : "Draft")}
+                      </span>
+                    </td>
+                    <td className="p-4">
+                      <div className="flex items-center justify-center gap-2">
+                        <button
+                          onClick={() => router.push(`/admin/blog/${post.id}`)}
+                          className="text-sm font-normal text-[#0071e3] transition-opacity hover:opacity-70"
+                        >
+                          {isAr ? "تعديل ›" : "Edit ›"}
+                        </button>
+                        <button
+                          onClick={() => handleDuplicate(post.id)}
+                          className="text-sm font-normal text-[#6e6e73] transition-opacity hover:opacity-70"
+                        >
+                          {isAr ? "نسخ" : "Copy"}
+                        </button>
+                        {post.is_published && (
+                          <a
+                            href={`${post.language === "ar" ? "/ar" : ""}/blog/${post.slug}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-sm font-normal text-[#6e6e73] transition-opacity hover:opacity-70"
+                          >
+                            {isAr ? "عرض" : "View"}
+                          </a>
+                        )}
+                        <button
+                          onClick={() => handleDelete(post.id)}
+                          className="text-sm font-normal text-[#ff3b30] transition-opacity hover:opacity-70"
+                        >
+                          {isAr ? "حذف" : "Delete"}
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
 
- {/* Recent articles preview */}
- {stats?.recent?.length > 0 && (
- <div>
- <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
- <TrendingUp className="h-4 w-4" />
- {isAr ? "أحدث المقالات" : "Recent Articles"}
- </h2>
- <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
- {stats.recent.map((p: AdminBlogPost) => (
- <Card key={p.id} className="p-4 shadow-card">
- <div className="flex items-center gap-2">
- <Badge variant="outline">{p.language === "ar" ? "ع" : "EN"}</Badge>
- <Badge variant="secondary">{getCategoryLabel(p.category, lang)}</Badge>
- </div>
- <h3 className="mt-2 truncate font-medium">{p.title}</h3>
- <p className="mt-1 text-xs text-muted-foreground">{new Date(p.created_at).toLocaleDateString()}</p>
- </Card>
- ))}
- </div>
- </div>
- )}
- </div>
- );
+      {/* Recent articles */}
+      {stats?.recent?.length > 0 && (
+        <div>
+          <h2 className="mb-6 text-xl font-semibold tracking-tight">{isAr ? "أحدث المقالات" : "Recent Articles"}</h2>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {stats.recent.map((p: AdminBlogPost) => (
+              <div key={p.id} className="rounded-2xl bg-[#f5f5f7] p-5">
+                <div className="flex items-center gap-2">
+                  <span className="rounded-full bg-white px-2.5 py-0.5 text-xs font-normal">{p.language === "ar" ? "ع" : "EN"}</span>
+                  <span className="text-xs font-normal text-[#6e6e73]">{getCategoryLabel(p.category, lang)}</span>
+                </div>
+                <h3 className="mt-3 truncate text-base font-medium">{p.title}</h3>
+                <p className="mt-1 text-xs font-normal text-[#6e6e73]">{new Date(p.created_at).toLocaleDateString()}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }

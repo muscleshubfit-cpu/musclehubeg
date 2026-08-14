@@ -180,8 +180,8 @@ export function AISettingsView() {
 
  if (loading) {
  return (
- <div className="p-8 text-center text-muted-foreground">
- <Loader2 className="mx-auto h-6 w-6 animate-spin" />
+ <div className="py-20 text-center text-base font-normal text-[#6e6e73]">
+ Loading...
  </div>
  );
  }
@@ -189,87 +189,69 @@ export function AISettingsView() {
  const currentMeta = providers.find((p) => p.id === provider);
 
  return (
- <div className="space-y-6">
- {/* Header */}
- <div className="flex flex-wrap items-center justify-between gap-3">
- <div className="flex items-center gap-3">
- <Button variant="ghost" size="sm" className="gap-1" onClick={() => router.push("/admin/blog")}>
- <ArrowLeft className="h-4 w-4 rtl:rotate-180" />
- {isAr ? "رجوع" : "Back"}
- </Button>
+ <div className="space-y-8">
+ {/* Header — Apple-style */}
+ <div className="flex flex-wrap items-center justify-between gap-4">
+ <div className="flex items-center gap-4">
+ <button
+ onClick={() => router.push("/admin/blog")}
+ className="text-sm font-normal text-[#0071e3] transition-opacity hover:opacity-70"
+ >
+ ‹ {isAr ? "رجوع" : "Back"}
+ </button>
  <div>
- <h1 className="flex items-center gap-2 text-xl font-bold md:text-2xl">
- <Settings2 className="h-5 w-5 text-primary" />
+ <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">
  {isAr ? "إعدادات الذكاء الاصطناعي" : "AI Settings"}
  </h1>
- <p className="mt-0.5 text-sm text-muted-foreground">
+ <p className="mt-2 text-base font-normal text-[#6e6e73] md:text-lg">
  {isAr
  ? "اختر مزود الذكاء الاصطناعي وأدخل مفتاح API. يمكن التبديل في أي وقت بدون تغيير الكود."
  : "Pick your AI provider and API key. Switch any time — no code changes needed."}
  </p>
  </div>
  </div>
- <Button variant="outline" size="sm" className="gap-2" onClick={load}>
- <RefreshCw className="h-4 w-4" />
+ <button
+ onClick={load}
+ className="rounded-full border border-[#d2d2d7] bg-white px-5 py-2.5 text-sm font-normal transition-opacity hover:opacity-90"
+ >
  {isAr ? "تحديث" : "Refresh"}
- </Button>
+ </button>
  </div>
 
- {/* Status banner */}
+ {/* Status banner — Apple-style */}
  {status && (
- <Card className={`p-4 ${status.isConfigured ? "border-success/40" : "border-warning/40"}`}>
- <div className="flex flex-wrap items-center gap-3">
- <div
- className={`flex h-10 w-10 items-center justify-center rounded-full ${
- status.isConfigured ? "bg-success/15 text-success" : "bg-warning/15 text-warning"
- }`}
- >
- {status.isConfigured ? <CheckCircle2 className="h-5 w-5" /> : <AlertCircle className="h-5 w-5" />}
- </div>
+ <div className={`rounded-3xl p-6 ${status.isConfigured ? "bg-[#0071e3]/5" : "bg-[#ff9500]/5"}`}>
+ <div className="flex flex-wrap items-center gap-4">
  <div className="flex-1">
- <p className="text-sm font-semibold">
+ <p className="text-base font-semibold">
  {status.isConfigured
- ? isAr
- ? "الذكاء الاصطناعي جاهز"
- : "AI is ready"
- : isAr
- ? "غير مُهيأ — أدخل مفتاح API أدناه"
- : "Not configured — add your API key below"}
+ ? (isAr ? "الذكاء الاصطناعي جاهز" : "AI is ready")
+ : (isAr ? "غير مُهيأ — أدخل مفتاح API أدناه" : "Not configured — add your API key below")}
  </p>
- <p className="text-xs text-muted-foreground">
+ <p className="mt-1 text-sm font-normal text-[#6e6e73]">
  {isAr ? "المزود" : "Provider"}: <span className="font-medium">{status.provider}</span>
  {" · "}
  {isAr ? "الموديل" : "Model"}: <span className="font-medium">{status.model}</span>
  {" · "}
  {isAr ? "المصدر" : "Source"}:{" "}
- <Badge variant="outline" className="text-[10px]">
- {status.source === "env"
- ? isAr
- ? "متغيرات البيئة"
- : "env var"
- : status.source === "override"
- ? isAr
- ? "محفوظ في المتصفح"
- : "saved override"
- : isAr
- ? "غير موجود"
- : "none"}
- </Badge>
+ <span className="rounded-full bg-white px-2.5 py-0.5 text-xs font-normal">
+ {status.source === "env" ? (isAr ? "متغيرات البيئة" : "env var") : status.source === "override" ? (isAr ? "محفوظ في المتصفح" : "saved override") : (isAr ? "غير موجود" : "none")}
+ </span>
  {status.maskedKey && (
  <>
  {" · "}
- {isAr ? "المفتاح" : "Key"}: <code className="font-mono text-[10px]">{status.maskedKey}</code>
+ {isAr ? "المفتاح" : "Key"}: <code className="font-mono text-xs">{status.maskedKey}</code>
  </>
  )}
  </p>
  </div>
  </div>
- </Card>
+ </div>
  )}
 
  <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
  {/* Form */}
- <Card className="space-y-5 p-5 shadow-card">
+ <div className="space-y-5 rounded-3xl bg-[#f5f5f7] p-6 md:p-8">
  {/* Provider picker */}
  <div>
  <Label className="text-sm font-semibold">
@@ -446,11 +428,11 @@ export function AISettingsView() {
  )}
  </div>
  )}
- </Card>
+ </div>
 
  {/* Sidebar: help */}
  <div className="space-y-4">
- <Card className="p-4 shadow-card">
+ <div className="rounded-2xl bg-[#f5f5f7] p-5">
  <h3 className="mb-2 flex items-center gap-2 text-sm font-bold">
  <Sparkles className="h-4 w-4 text-primary" />
  {isAr ? "كيف يعمل؟" : "How it works"}
@@ -479,9 +461,9 @@ export function AISettingsView() {
  : "Open the Blog Editor and click \"Generate with AI\"."}
  </li>
  </ol>
- </Card>
+ </div>
 
- <Card className="p-4 shadow-card">
+ <div className="rounded-2xl bg-[#f5f5f7] p-5">
  <h3 className="mb-2 text-sm font-bold">
  {isAr ? "الأمان" : "Security"}
  </h3>
@@ -511,9 +493,9 @@ export function AISettingsView() {
  : "Switching providers requires zero code changes."}
  </li>
  </ul>
- </Card>
+ </div>
 
- <Card className="p-4 shadow-card">
+ <div className="rounded-2xl bg-[#f5f5f7] p-5">
  <h3 className="mb-2 text-sm font-bold">
  {isAr ? "المزودون المدعومون" : "Supported providers"}
  </h3>
@@ -533,7 +515,7 @@ export function AISettingsView() {
  ? "أي endpoint متوافق مع OpenAI سيعمل عبر حقل Base URL."
  : "Any OpenAI-compatible endpoint works via the Base URL field."}
  </p>
- </Card>
+ </div>
  </div>
  </div>
  </div>
