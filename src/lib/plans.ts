@@ -1,5 +1,5 @@
 // Subscription tiers, pricing, and feature matrix.
-// 2 tiers only: Starter ($10/mo, $100/yr) + Elite ($20/mo, $200/yr)
+// 2 tiers only: Starter ($20/mo, $200/yr) + Elite ($40/mo, $400/yr)
 // Swap limits per day are tier-dependent.
 
 export type TierId = "starter" | "elite";
@@ -25,18 +25,18 @@ export type Tier = {
 };
 
 // Prices in USD:
-// - Starter: $10/month or $100/year (≈ 2 months free)
-// - Elite: $20/month or $200/year (≈ 2 months free)
+// - Starter: $20/month or $200/year (≈ 2 months free)
+// - Elite: $40/month or $400/year (≈ 2 months free)
 // EGP equivalent (≈ 50 EGP per $1):
-// - Starter: ≈ 500 ج.م/شهر or ≈ 5000 ج.م/سنة
-// - Elite: ≈ 1000 ج.م/شهر or ≈ 10000 ج.م/سنة
+// - Starter: ≈ 1000 ج.م/شهر or ≈ 10000 ج.م/سنة
+// - Elite: ≈ 2000 ج.م/شهر or ≈ 20000 ج.م/سنة
 export const TIERS: Tier[] = [
  {
  id: "starter",
  nameKey: "tier.starter",
  subKey: "tier.starter.sub",
  ctaKey: "tier.starter.cta",
- prices: { 1: 10, 12: 100 },
+ prices: { 1: 20, 12: 200 },
  swapLimit: 2,
  featureKeys: [
  "feat.nutritionPlan",
@@ -55,7 +55,7 @@ export const TIERS: Tier[] = [
  ctaKey: "tier.elite.cta",
  inheritsFrom: "starter",
  best: true,
- prices: { 1: 20, 12: 200 },
+ prices: { 1: 40, 12: 400 },
  swapLimit: null, // unlimited
  featureKeys: [
  "feat.swapsUnlimited",
