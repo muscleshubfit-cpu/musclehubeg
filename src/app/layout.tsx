@@ -5,6 +5,7 @@ import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
 import { I18nProvider } from "@/lib/i18n";
 import { AuthProvider } from "@/hooks/use-auth";
+import { ReferralCookieChecker } from "@/components/ReferralCookieChecker";
 
 export const metadata: Metadata = {
  title: "MuscleHub — AI-Powered Human Optimization Platform | Ahmed Zake",
@@ -93,6 +94,8 @@ export default function RootLayout({
  <a href="#main-content" className="sr-only-focusable">
  Skip to content
  </a>
+ {/* Referral cookie checker — sets 30-day cookie when ?ref=CODE is in URL */}
+ <ReferralCookieChecker />
  <I18nProvider>
  <AuthProvider>
  <Suspense fallback={null}>{children}</Suspense>

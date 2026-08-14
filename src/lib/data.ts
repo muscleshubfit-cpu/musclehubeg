@@ -4,6 +4,8 @@
 import { supabase, isSupabaseConfigured } from "@/lib/supabase/client";
 import type { Profile } from "@/lib/supabase/types";
 import { swapLimitFor } from "@/lib/plans";
+import { trackReferral, awardCommission } from "@/lib/referral";
+import { getReferralCookie, clearReferralCookie } from "@/lib/referral-cookie";
 
 /* -------------------------------------------------------------------------- */
 /* Local fallback store — used when Supabase env vars are missing. */
@@ -76,6 +78,14 @@ export async function signUpEmail(
  `${fullName} (${email}) انضم للمنصة. اطمئن على استبياناته وجهّز خططه.`,
  "coach",
  ).catch(() => {});
+ // Track referral if cookie exists
+ try {
+ const refCode = getReferralCookie();
+ if (refCode) {
+ await trackReferral(refCode, data.user.id, email);
+ clearReferralCookie();
+ }
+ } catch {}
  return { error: null, profile };
  }
  return { error: null, profile: null };
@@ -1009,6 +1019,13 @@ export async function reviewSubscriptionRequest(id: string, action: "approve" | 
  await upsertSubscription(req.user_id, req.plan_tier, req.duration_months, start.toISOString(), end.toISOString());
  // Notify the user
  await createNotification(req.user_id, "subscription_approved", "تم تفعيل اشتراكك!", `تم الموافقة على طلب اشتراكك (${req.plan_tier}) لمدة ${req.duration_months} أشهر.`, "/dashboard");
+ // Award referral commission (20% of payment)
+ try {
+ const paymentAmount = req.price_egp ? Number(req.price_egp) / 50 : 10; // EGP to USD approx
+ await awardCommission(req.user_id, paymentAmount, req.id);
+ } catch (e) {
+ console.error("[reviewSubscriptionRequest] Commission error:", e);
+ }
  } else {
  await createNotification(data.user_id, "subscription_rejected", "تم رفض طلب الاشتراك", "تم رفض طلب اشتراكك. يرجى التواصل مع الدعم.", "/pricing");
  }

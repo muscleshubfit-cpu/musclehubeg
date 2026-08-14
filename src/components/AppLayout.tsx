@@ -29,6 +29,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
     { to: "coach-support", label: t("nav.support.coach"), emoji: "🔧" },
     { to: "coach-payments", label: t("nav.admin"), emoji: "💳" },
     { to: "blog-admin", label: isAr ? "المدونة" : "Blog", emoji: "📝" },
+    { to: "admin-referrals", label: isAr ? "الإحالات" : "Referrals", emoji: "🎁" },
   ];
   const nav = isCoach ? coachNav : clientNav;
 

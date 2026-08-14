@@ -546,6 +546,50 @@ export function LandingView() {
         </section>
       )}
 
+      {/* ===================== 12.5. REFERRAL PROGRAM — Earn 20% ===================== */}
+      <section className="bg-[#1d1d1f] px-4 py-28 text-white md:py-40">
+        <div className="mx-auto max-w-4xl text-center">
+          <Reveal>
+            <h2 className="text-4xl font-semibold tracking-tight md:text-6xl">
+              {isAr ? "اكسب مع MuscleHub." : "Earn with MuscleHub."}
+            </h2>
+          </Reveal>
+          <Reveal delay={150}>
+            <p className="mx-auto mt-6 max-w-2xl text-lg font-normal leading-relaxed text-gray-300 md:text-xl">
+              {isAr
+                ? "ادعي أصدقاؤك واكسب 20% عمولة من كل اشتراك. العمولة تُضاف لرصيدك فور تأكيد الدفع. اسحبها لمحفظتك أو خصمها من اشتراكك."
+                : "Invite your friends and earn 20% commission on every subscription. Commission is added to your balance when payment is confirmed. Withdraw to your wallet or apply as subscription discount."}
+            </p>
+          </Reveal>
+          <Reveal delay={300}>
+            <div className="mt-12 grid grid-cols-3 gap-8">
+              <div>
+                <p className="text-4xl font-semibold tracking-tight text-[#0071e3] md:text-5xl">20%</p>
+                <p className="mt-2 text-sm font-normal text-gray-400">{isAr ? "عمولة" : "Commission"}</p>
+              </div>
+              <div>
+                <p className="text-4xl font-semibold tracking-tight md:text-5xl">30</p>
+                <p className="mt-2 text-sm font-normal text-gray-400">{isAr ? "يوم كوكيز" : "Day cookie"}</p>
+              </div>
+              <div>
+                <p className="text-4xl font-semibold tracking-tight md:text-5xl">$10</p>
+                <p className="mt-2 text-sm font-normal text-gray-400">{isAr ? "حد أدنى للسحب" : "Min payout"}</p>
+              </div>
+            </div>
+          </Reveal>
+          <Reveal delay={500}>
+            <div className="mt-12">
+              <button
+                onClick={() => navigate("auth", { mode: "signup" })}
+                className="rounded-full bg-[#0071e3] px-8 py-3 text-base font-normal text-white transition-opacity hover:opacity-90"
+              >
+                {isAr ? "ابدأ الربح الآن" : "Start earning now"}
+              </button>
+            </div>
+          </Reveal>
+        </div>
+      </section>
+
       {/* ===================== 13. FINAL CTA — Apple-style ===================== */}
       <section className="bg-white px-4 py-28 text-center md:py-40">
         <Reveal>

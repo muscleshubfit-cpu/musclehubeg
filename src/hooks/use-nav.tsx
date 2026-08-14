@@ -26,7 +26,8 @@ export type View =
  | "terms"
  | "faq"
  | "blog-admin"
- | "blog-editor";
+ | "blog-editor"
+ | "admin-referrals";
 
 /**
  * Real, crawlable, back-button-friendly routing.
@@ -61,6 +62,8 @@ function pathForView(view: View, params: Record<string, any> = {}): string {
  return "/coach";
  case "blog-admin":
  return "/admin/blog";
+ case "admin-referrals":
+ return "/admin/referrals";
  case "blog-editor":
  // New article by default; if a postId is provided, edit that article.
  return params.postId ? `/admin/blog/${encodeURIComponent(params.postId)}` : "/admin/blog/new";
@@ -77,6 +80,7 @@ function viewForPath(pathname: string): View {
  if (pathname.startsWith("/coach/")) return "coach-client";
  if (pathname === "/coach") return "coach";
  if (pathname.startsWith("/admin/blog")) return "blog-admin";
+ if (pathname.startsWith("/admin/referrals")) return "admin-referrals";
  const clean = pathname.replace(/^\//, "").split("/")[0];
  const known: View[] = [
  "pricing", "auth", "checkout", "dashboard", "questionnaires",
