@@ -1,5 +1,4 @@
 "use client";
-import { Reveal, PageFade } from "@/components/motion";
 
 import { useEffect, useState, useRef } from "react";
 import { Plus, TrendingDown, TrendingUp, Camera, Trash2, Loader2 } from "lucide-react";

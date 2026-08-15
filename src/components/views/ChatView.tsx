@@ -5,7 +5,6 @@ import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/hooks/use-auth";
 import { useNav } from "@/hooks/use-nav";
 import { listChat, addChat, getSwapUsage } from "@/lib/data";
-import { Reveal, PageFade } from "@/components/motion";
 
 export function ChatView() {
   const { t, lang } = useI18n();

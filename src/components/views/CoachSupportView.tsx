@@ -5,7 +5,6 @@ import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { listAllTickets, listTicketMessages, addTicketMessage } from "@/lib/data";
 import { toast } from "sonner";
-import { Reveal, PageFade } from "@/components/motion";
 
 export function CoachSupportView() {
   const { t } = useI18n();

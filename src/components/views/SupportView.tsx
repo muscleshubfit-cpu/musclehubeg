@@ -1,5 +1,4 @@
 "use client";
-import { Reveal, PageFade } from "@/components/motion";
 
 import { useEffect, useState } from "react";
 import { Plus, Send, MessageSquare } from "lucide-react";

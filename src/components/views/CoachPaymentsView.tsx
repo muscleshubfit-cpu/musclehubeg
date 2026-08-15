@@ -6,7 +6,6 @@ import { cn } from "@/lib/utils";
 import { listSubscriptionRequests, reviewSubscriptionRequest, getReceiptSignedUrl } from "@/lib/data";
 import { getTier, type TierId } from "@/lib/plans";
 import { toast } from "sonner";
-import { Reveal, PageFade } from "@/components/motion";
 
 export function CoachPaymentsView() {
   const { t } = useI18n();

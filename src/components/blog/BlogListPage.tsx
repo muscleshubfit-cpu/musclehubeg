@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { LanguageToggle } from "@/components/LanguageToggle";
 import { listBlogPosts, BLOG_CATEGORIES, getCategoryLabel, type BlogPost } from "@/lib/blog";
-import { Reveal, PageFade } from "@/components/motion";
 
 export function BlogListPage({ lang }: { lang: "en" | "ar" }) {
   const isAr = lang === "ar";

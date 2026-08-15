@@ -6,7 +6,6 @@ import { useAuth } from "@/hooks/use-auth";
 import { useNav } from "@/hooks/use-nav";
 import { listProgress, listPlans, getSubscriptionForClient } from "@/lib/data";
 import { getTier } from "@/lib/plans";
-import { Reveal, PageFade } from "@/components/motion";
 
 export function DashboardView() {
   const { t, lang } = useI18n();
