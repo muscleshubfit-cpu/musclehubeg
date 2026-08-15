@@ -14,6 +14,7 @@ import {
 import { listBlogPosts, getCategoryLabel, type BlogPost } from "@/lib/blog";
 import { SiteHeader } from "@/components/SiteHeader";
 import { Marquee } from "@/components/ui/3d-testimonials";
+import { ImageStreamHero, type StreamImage } from "@/components/ui/image-stream-hero";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -166,22 +167,17 @@ export function LandingView() {
     })();
   }, [lang]);
 
-  // Hero carousel — mix of sports photography + ONE person image
-  const heroImages = [
+  // Image stream corridor — mix of sports photography + fitness images
+  const streamImages: StreamImage[] = [
     { src: IMAGES.gym, alt: isAr ? "صالة ألعاب رياضية" : "Modern gym" },
     { src: IMAGES.meal, alt: isAr ? "تغذية صحية" : "Healthy nutrition" },
     { src: IMAGES.dumbbell, alt: isAr ? "تمارين قوة" : "Strength training" },
     { src: IMAGES.running, alt: isAr ? "كارديو" : "Cardio" },
     { src: IMAGES.tracker, alt: isAr ? "تتبع اللياقة" : "Fitness tracking" },
     { src: IMAGES.together, alt: isAr ? "أحمد زكي و EVO" : "Ahmed Zake and EVO" },
+    { src: IMAGES.ahmed, alt: isAr ? "أحمد زكي" : "Ahmed Zake" },
+    { src: IMAGES.evo, alt: "EVO" },
   ];
-  const [currentSlide, setCurrentSlide] = useState(0);
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % heroImages.length);
-    }, 4000); // 4 seconds per slide
-    return () => clearInterval(timer);
-  }, [heroImages.length]);
 
   const blogHref = isCoach ? "/admin/blog" : isAr ? "/ar/blog" : "/blog";
 
@@ -189,76 +185,51 @@ export function LandingView() {
     <div className="min-h-screen bg-white text-[#1d1d1f]">
       <SiteHeader variant="landing" />
 
-      {/* ===================== 1. HERO — with image carousel ===================== */}
-      <section className="flex min-h-[60vh] flex-col items-center justify-center bg-white px-4 py-16 text-center md:py-20">
-        <Reveal>
-          <p className="mb-3 text-sm font-normal text-[#6e6e73] md:text-base">
-            {isAr ? "منصة MuscleHub" : "MuscleHub"}
-          </p>
-        </Reveal>
-        <Reveal delay={100}>
-          <h1 className="text-5xl font-semibold leading-[1.05] tracking-tight md:text-7xl lg:text-[80px]">
-            {isAr ? "أقوى نسخة منك." : "A stronger you."}
-          </h1>
-        </Reveal>
-        <Reveal delay={200}>
-          <p className="mx-auto mt-4 max-w-xl text-xl font-normal leading-snug text-[#1d1d1f] md:text-2xl">
-            {isAr ? "كوتشينج حقيقي. ذكاء اصطناعي. نتائج حقيقية." : "Real coaching. Real AI. Real results."}
-          </p>
-        </Reveal>
-
-        {/* Image Carousel */}
-        <Reveal delay={300}>
-          <div className="relative mt-10 w-full max-w-md md:max-w-lg">
-            <div className="relative aspect-[4/5] overflow-hidden rounded-3xl bg-[#f5f5f7]">
-              {heroImages.map((img, i) => (
-                <img
-                  key={i}
-                  src={img.src}
-                  alt={img.alt}
-                  className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-700 ${
-                    i === currentSlide ? "opacity-100" : "opacity-0"
-                  }`}
-                  loading={i === 0 ? "eager" : "lazy"}
-                />
-              ))}
-            </div>
-
-            {/* Carousel dots */}
-            <div className="mt-6 flex justify-center gap-2">
-              {heroImages.map((_, i) => (
+      {/* ===================== 1. HERO — Image Stream Corridor ===================== */}
+      <ImageStreamHero
+        images={streamImages}
+        cards={9}
+        speed={18}
+        axis={50}
+        className="h-[80vh] w-full bg-white"
+      >
+        <div className="relative z-10 flex h-full flex-col items-center justify-between py-16 text-center md:py-20">
+          <Reveal>
+            <p className="text-sm font-normal text-[#6e6e73] md:text-base">
+              {isAr ? "منصة MuscleHub" : "MuscleHub"}
+            </p>
+          </Reveal>
+          <div className="flex flex-col items-center gap-6">
+            <Reveal delay={100}>
+              <h1 className="text-5xl font-semibold leading-[1.05] tracking-tight md:text-7xl lg:text-[80px]">
+                {isAr ? "أقوى نسخة منك." : "A stronger you."}
+              </h1>
+            </Reveal>
+            <Reveal delay={200}>
+              <p className="mx-auto max-w-xl text-xl font-normal leading-snug text-[#1d1d1f] md:text-2xl">
+                {isAr ? "كوتشينج حقيقي. ذكاء اصطناعي. نتائج حقيقية." : "Real coaching. Real AI. Real results."}
+              </p>
+            </Reveal>
+            <Reveal delay={400}>
+              <div className="flex flex-wrap items-center justify-center gap-4 text-base md:gap-6">
                 <button
-                  key={i}
-                  onClick={() => setCurrentSlide(i)}
-                  aria-label={`Slide ${i + 1}`}
-                  className={`h-2 rounded-full transition-all ${
-                    i === currentSlide
-                      ? "w-8 bg-[#0071e3]"
-                      : "w-2 bg-[#d2d2d7] hover:bg-[#6e6e73]"
-                  }`}
-                />
-              ))}
-            </div>
+                  onClick={() => navigate("auth", { mode: "signup" })}
+                  className="rounded-full bg-[#0071e3] px-6 py-2.5 font-normal text-white transition-opacity hover:opacity-90 md:px-7 md:py-3"
+                >
+                  {isAr ? "ابدأ تحوّلك" : "Start your transformation"}
+                </button>
+                <button
+                  onClick={() => navigate("pricing")}
+                  className="font-normal text-[#0071e3] transition-opacity hover:opacity-70"
+                >
+                  {isAr ? "الأسعار ›" : "Pricing ›"}
+                </button>
+              </div>
+            </Reveal>
           </div>
-        </Reveal>
-
-        <Reveal delay={500}>
-          <div className="mt-10 flex flex-wrap items-center justify-center gap-4 text-base md:gap-6">
-            <button
-              onClick={() => navigate("auth", { mode: "signup" })}
-              className="rounded-full bg-[#0071e3] px-6 py-2.5 font-normal text-white transition-opacity hover:opacity-90 md:px-7 md:py-3"
-            >
-              {isAr ? "ابدأ تحوّلك" : "Start your transformation"}
-            </button>
-            <button
-              onClick={() => navigate("pricing")}
-              className="font-normal text-[#0071e3] transition-opacity hover:opacity-70"
-            >
-              {isAr ? "الأسعار ›" : "Pricing ›"}
-            </button>
-          </div>
-        </Reveal>
-      </section>
+          <div />
+        </div>
+      </ImageStreamHero>
 
       {/* ===================== 3. STICKY SCROLL — "Not just fitness" ===================== */}
       <CenteredSection bg="bg-white">
