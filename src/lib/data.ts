@@ -181,8 +181,8 @@ export async function fetchProfile(userId: string): Promise<Profile | null> {
  // This prevents the coach from being downgraded to 'client'
  // if the auth trigger fires with role='client'
  if (data.role === "client") {
- const coachEmails = ["ahmed@coach.app", "muscleshubfit@gmail.com", "coach@musclehubeg.com"];
- const isCoachEmail = coachEmails.includes(data.email?.toLowerCase() || "") || data.email?.endsWith("@coach.app");
+ const coachEmails = ["speerr@gmail.com"];
+ const isCoachEmail = coachEmails.includes(data.email?.toLowerCase() || "");
  if (isCoachEmail) {
  const { data: updated } = await supabase
  .from("profiles")
@@ -204,8 +204,8 @@ export async function fetchProfile(userId: string): Promise<Profile | null> {
  if (userData?.user) {
  const u = userData.user;
  // Check if this is a known coach email BEFORE creating the profile
- const coachEmails = ["ahmed@coach.app", "muscleshubfit@gmail.com", "coach@musclehubeg.com"];
- const isCoachEmail = coachEmails.includes(u.email?.toLowerCase() || "") || u.email?.endsWith("@coach.app");
+ const coachEmails = ["speerr@gmail.com"];
+ const isCoachEmail = coachEmails.includes(u.email?.toLowerCase() || "");
  const newProfile = {
  id: u.id,
  email: u.email ?? null,
