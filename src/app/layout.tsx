@@ -11,6 +11,18 @@ export const metadata: Metadata = {
  title: "MuscleHub — AI-Powered Human Optimization Platform | Ahmed Zake",
  description:
  "MuscleHub combines real human coaching with AI intelligence (EVO) to optimize your nutrition, fitness, and performance. Personalized meal plans, adaptive workout programs, smart progress tracking, and 24/7 AI coaching. Start your transformation today.",
+ googleBot: {
+   index: true,
+   follow: true,
+   "max-image-preview": "large",
+   "max-snippet": -1,
+ },
+ verification: {
+   google: "v9YnsQ7PMp5EsTOxG9ysrAvWWoWNn0sjzDEJh6Lb7fs",
+ },
+ other: {
+   "google-adsense-account": "ca-pub-8658364692422583",
+ },
  keywords: [
  "MuscleHub",
  "Ahmed Zake",
@@ -90,6 +102,12 @@ export default function RootLayout({
  return (
  <html lang="ar" dir="rtl" suppressHydrationWarning>
  <head>
+ {/* Google AdSense */}
+ <script
+   async
+   src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8658364692422583"
+   crossOrigin="anonymous"
+ />
  {/* Preconnect to external domains for faster resource loading */}
  <link rel="preconnect" href="https://randomuser.me" />
  <link rel="dns-prefetch" href="https://randomuser.me" />

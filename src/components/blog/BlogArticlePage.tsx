@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { LanguageToggle } from "@/components/LanguageToggle";
 import { getBlogPost, getRelatedPosts, getLinkedPost, parseTableOfContents, renderMarkdown, getCategoryLabel, type BlogPost } from "@/lib/blog";
 import { BlogCTA, NewsletterBlock, SocialShare, ReadingProgress, TableOfContents } from "./BlogComponents";
+import { AdSenseAd } from "@/components/AdSenseAd";
 
 export function BlogArticlePage({ lang, slug }: { lang: "en" | "ar"; slug: string }) {
   const isAr = lang === "ar";
@@ -207,6 +208,9 @@ export function BlogArticlePage({ lang, slug }: { lang: "en" | "ar"; slug: strin
               className="prose prose-sm max-w-none text-[#1d1d1f] [&_a]:text-[#0071e3] [&_a]:no-underline [&_a]:transition-opacity [&_a]:hover:opacity-70 [&_h2]:mt-10 [&_h2]:mb-4 [&_h2]:text-2xl [&_h2]:font-semibold [&_h2]:tracking-tight [&_h3]:mt-8 [&_h3]:mb-3 [&_h3]:text-xl [&_h3]:font-semibold [&_h3]:tracking-tight [&_p]:my-5 [&_p]:text-base [&_p]:leading-relaxed [&_p]:text-[#1d1d1f] [&_p]:md:text-lg [&_p]:md:leading-relaxed [&_blockquote]:border-s-4 [&_blockquote]:border-[#0071e3] [&_blockquote]:ps-5 [&_blockquote]:py-2 [&_blockquote]:my-6 [&_blockquote]:text-lg [&_blockquote]:font-normal [&_blockquote]:text-[#1d1d1f] [&_blockquote]:italic [&_code]:rounded [&_code]:bg-[#f5f5f7] [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:text-sm [&_code]:font-mono [&_pre]:my-6 [&_pre]:rounded-2xl [&_pre]:bg-[#1d1d1f] [&_pre]:p-5 [&_pre]:text-sm [&_pre]:text-white [&_pre]:overflow-x-auto [&_table]:my-6 [&_table]:w-full [&_td]:border [&_td]:border-[#d2d2d7] [&_td]:p-3 [&_th]:border [&_th]:border-[#d2d2d7] [&_th]:p-3 [&_th]:bg-[#f5f5f7] [&_th]:text-start [&_th]:font-semibold [&_ul]:my-5 [&_ul]:list-disc [&_ul]:ps-6 [&_ol]:my-5 [&_ol]:list-decimal [&_ol]:ps-6 [&_li]:my-2 [&_li]:text-base [&_li]:md:text-lg [&_li]:leading-relaxed"
               dangerouslySetInnerHTML={{ __html: htmlContent }}
             />
+
+            {/* AdSense — after article content */}
+            <AdSenseAd format="auto" />
 
             {/* Tags */}
             {post.tags && post.tags.length > 0 && (
