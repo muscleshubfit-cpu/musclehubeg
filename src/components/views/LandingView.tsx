@@ -130,7 +130,7 @@ function CenteredSection({
   bg?: string;
 }) {
   return (
-    <section className={`${bg} px-4 py-24 md:py-40`}>
+    <section className={`${bg} px-4 py-16 md:py-24`}>
       <div className="mx-auto max-w-4xl text-center">{children}</div>
     </section>
   );
@@ -258,7 +258,7 @@ export function LandingView() {
       </CenteredSection>
 
       {/* ===================== 4. MEET THE TEAM — Compact profile cards ===================== */}
-      <section className="bg-[#f5f5f7] px-4 py-20 md:px-6 md:py-28">
+      <section className="bg-[#f5f5f7] px-4 py-12 px-4 md:px-6 md:py-20">
         <div className="mx-auto max-w-4xl">
           <Reveal>
             <h2 className="mb-4 text-center text-3xl font-semibold tracking-tight md:mb-6 md:text-5xl">
@@ -266,7 +266,7 @@ export function LandingView() {
             </h2>
           </Reveal>
           <Reveal delay={100}>
-            <p className="mx-auto mb-12 max-w-xl text-center text-lg font-normal text-[#6e6e73] md:mb-16 md:text-xl">
+            <p className="mx-auto mb-8 max-w-xl text-center text-lg font-normal text-[#6e6e73] md:mb-16 md:text-xl">
               {isAr ? "الكوتش أحمد زكي ومحرك EVO — معاً." : "Coach Ahmed Zake and the EVO engine — together."}
             </p>
           </Reveal>
@@ -339,7 +339,7 @@ export function LandingView() {
       </CenteredSection>
 
       {/* ===================== 6. STATS — Apple-style large numbers ===================== */}
-      <section className="bg-white px-4 py-20 md:py-28">
+      <section className="bg-white px-4 py-12 md:py-20">
         <div className="mx-auto max-w-5xl">
           <div className="grid gap-12 md:grid-cols-4 md:gap-8">
             {[
@@ -362,7 +362,7 @@ export function LandingView() {
       </section>
 
       {/* ===================== 7. HUMAN + AI TOGETHER ===================== */}
-      <section className="bg-white px-4 py-20 md:py-28">
+      <section className="bg-white px-4 py-12 md:py-20">
         <div className="mx-auto max-w-4xl text-center">
           <Reveal>
             <h2 className="text-3xl font-semibold tracking-tight md:text-5xl">
@@ -390,7 +390,7 @@ export function LandingView() {
       </section>
 
       {/* ===================== 7.5. FEATURE SHOWCASE — Nutrition + Workout + Progress ===================== */}
-      <section className="bg-[#f5f5f7] px-4 py-20 md:py-28">
+      <section className="bg-[#f5f5f7] px-4 py-12 md:py-20">
         <div className="mx-auto max-w-6xl">
           <Reveal>
             <h2 className="mb-4 text-center text-3xl font-semibold tracking-tight md:mb-6 md:text-5xl">
@@ -398,7 +398,7 @@ export function LandingView() {
             </h2>
           </Reveal>
           <Reveal delay={100}>
-            <p className="mx-auto mb-16 max-w-xl text-center text-lg font-normal text-[#6e6e73] md:text-xl">
+            <p className="mx-auto mb-8 max-w-xl text-center text-lg font-normal text-[#6e6e73] md:text-xl">
               {isAr ? "تغذية مخصصة. تمارين احترافية. تتبع دقيق." : "Personalized nutrition. Professional workouts. Precise tracking."}
             </p>
           </Reveal>
@@ -448,14 +448,14 @@ export function LandingView() {
       </section>
 
       {/* ===================== 8. HOW IT WORKS — Apple-style numbered steps ===================== */}
-      <section className="bg-white px-4 py-20 md:py-28">
+      <section className="bg-white px-4 py-12 md:py-20">
         <div className="mx-auto max-w-4xl">
           <Reveal>
             <h2 className="text-center text-3xl font-semibold tracking-tight md:text-5xl">
               {isAr ? "رحلتك في ٤ خطوات." : "Your journey in 4 steps."}
             </h2>
           </Reveal>
-          <div className="mt-16 space-y-12 md:mt-20 md:space-y-16">
+          <div className="mt-8 space-y-8 md:space-y-12">
             {[
               { n: "01", title: isAr ? "أنشئ حسابك" : "Create your account", desc: isAr ? "في ثوانٍ. بالإيميل أو Google." : "In seconds. Email or Google." },
               { n: "02", title: isAr ? "أكمل الاستبيانات" : "Complete questionnaires", desc: isAr ? "أخبرنا عن هدفك، وزنك، عاداتك." : "Tell us your goal, weight, habits." },
@@ -477,7 +477,7 @@ export function LandingView() {
       </section>
 
       {/* ===================== 9. TESTIMONIALS — 3D Marquee + Apple quotes ===================== */}
-      <section className="bg-[#f5f5f7] px-4 py-20 md:py-28">
+      <section className="bg-[#f5f5f7] px-4 py-12 md:py-20">
         <div className="mx-auto max-w-6xl">
           <Reveal>
             <h2 className="text-center text-3xl font-semibold tracking-tight md:text-5xl">
@@ -492,7 +492,7 @@ export function LandingView() {
 
           {/* 3D Marquee Testimonials */}
           <Reveal delay={300}>
-            <div className="relative mt-16 flex h-[500px] w-full items-center justify-center overflow-hidden [perspective:300px]">
+            <div className="relative mt-8 flex h-[400px] w-full items-center justify-center overflow-hidden [perspective:300px]">
               <div
                 className="flex flex-row items-center gap-4"
                 style={{
@@ -534,7 +534,7 @@ export function LandingView() {
           </Reveal>
 
           {/* Featured large quotes (kept for impact) */}
-          <div className="mt-20 space-y-16 md:space-y-20">
+          <div className="mt-8 space-y-8 md:space-y-12">
             {[
               { name: isAr ? "محمد العشري" : "Mohamed ElAshry", result: isAr ? "-12 كجم في 3 أشهر" : "-12kg in 3 months", text: isAr ? "أحسن كوتش جربته. EVO بيرد على أسئلتي في أي وقت." : "Best coach I've tried. EVO answers my questions anytime." },
               { name: isAr ? "سارة منصور" : "Sara Mansour", result: isAr ? "-2 مقاس في 4 أشهر" : "-2 sizes in 4 months", text: isAr ? "أحمد فهم حالتي وعمللي خطة تناسبني. التتبع خلاني ملتزمة." : "Ahmed understood my situation and made a plan that fits me." },
@@ -556,7 +556,7 @@ export function LandingView() {
       </section>
 
       {/* ===================== 10. PRICING — Apple-style simple ===================== */}
-      <section className="bg-white px-4 py-20 md:py-28">
+      <section className="bg-white px-4 py-12 md:py-20">
         <div className="mx-auto max-w-5xl">
           <Reveal>
             <h2 className="text-center text-3xl font-semibold tracking-tight md:text-5xl">
@@ -610,7 +610,7 @@ export function LandingView() {
       </section>
 
       {/* ===================== 11. FAQ — Apple-style ===================== */}
-      <section className="bg-[#f5f5f7] px-4 py-20 md:py-28">
+      <section className="bg-[#f5f5f7] px-4 py-12 md:py-20">
         <div className="mx-auto max-w-3xl">
           <Reveal>
             <h2 className="text-center text-3xl font-semibold tracking-tight md:text-5xl">
@@ -643,10 +643,10 @@ export function LandingView() {
 
       {/* ===================== 12. BLOG — Apple-style minimal grid ===================== */}
       {latestPosts.length > 0 && (
-        <section className="bg-white px-4 py-20 md:py-28">
+        <section className="bg-white px-4 py-12 md:py-20">
           <div className="mx-auto max-w-6xl">
             <Reveal>
-              <h2 className="mb-12 text-center text-3xl font-semibold tracking-tight md:mb-16 md:text-5xl">
+              <h2 className="mb-8 text-center text-3xl font-semibold tracking-tight md:mb-16 md:text-5xl">
                 {isAr ? "من المدونة." : "From the blog."}
               </h2>
             </Reveal>
@@ -691,7 +691,7 @@ export function LandingView() {
       )}
 
       {/* ===================== 12.5. REFERRAL PROGRAM — Earn 20% ===================== */}
-      <section className="bg-[#1d1d1f] px-4 py-28 text-white md:py-40">
+      <section className="bg-[#1d1d1f] px-4 py-12 text-white md:py-20">
         <div className="mx-auto max-w-4xl text-center">
           <Reveal>
             <h2 className="text-4xl font-semibold tracking-tight md:text-6xl">
@@ -735,7 +735,7 @@ export function LandingView() {
       </section>
 
       {/* ===================== 13. FINAL CTA — Apple-style ===================== */}
-      <section className="bg-white px-4 py-28 text-center md:py-40">
+      <section className="bg-white px-4 py-12 text-center md:py-20">
         <Reveal>
           <h2 className="mx-auto max-w-3xl text-4xl font-semibold leading-[1.05] tracking-tight md:text-6xl lg:text-7xl">
             {isAr ? "جسمك الجديد بيستناك." : "Your new body is waiting."}
