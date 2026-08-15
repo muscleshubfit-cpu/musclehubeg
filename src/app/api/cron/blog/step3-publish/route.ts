@@ -89,6 +89,8 @@ export async function GET(request: NextRequest) {
     const arSlug = await uniqueSlug(slugify(bundle.seo.ar.slug || bundle.seo.en.slug || queueItem.focus_keyword), "ar");
 
     // Fetch image (Pexels — fast, ~3-5s)
+    // Image is stored as a remote URL — Pexels CDN serves optimized images.
+    // No local compression needed since images are served from Pexels CDN.
     let imageUrl: string | null = null;
     try {
       const img = await fetchFeaturedImage(bundle.seo.focusKeyword || queueItem.focus_keyword || queueItem.topic);

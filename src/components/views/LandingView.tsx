@@ -199,37 +199,32 @@ export function LandingView() {
         images={streamImages}
         cards={9}
         speed={18}
-        axis={50}
+        axis={55}
         path={{ cardWidth: 22, cardHeight: 30, cardRadius: 0.6 }}
-        className="h-[85vh] w-full bg-white"
+        className="h-[70vh] w-full bg-white"
       >
-        <div className="relative z-10 flex h-full flex-col items-center justify-start pt-16 text-center md:pt-20">
-          <Reveal>
-            <h1 className="text-5xl font-semibold leading-[1.05] tracking-tight md:text-7xl lg:text-[80px]">
-              {isAr ? "أقوى نسخة منك." : "A stronger you."}
-            </h1>
-          </Reveal>
-          <Reveal delay={200}>
-            <p className="mx-auto mt-4 max-w-xl text-xl font-normal leading-snug text-[#1d1d1f] md:text-2xl">
-              {isAr ? "كوتشينج حقيقي. ذكاء اصطناعي. نتائج حقيقية." : "Real coaching. Real AI. Real results."}
-            </p>
-          </Reveal>
-          <Reveal delay={400}>
-            <div className="mt-6 flex flex-wrap items-center justify-center gap-4 text-base md:gap-6">
-              <button
-                onClick={() => navigate("auth", { mode: "signup" })}
-                className="rounded-full bg-[#0071e3] px-6 py-2.5 font-normal text-white transition-opacity hover:opacity-90 md:px-7 md:py-3"
-              >
-                {isAr ? "ابدأ تحوّلك" : "Start your transformation"}
-              </button>
-              <button
-                onClick={() => navigate("pricing")}
-                className="font-normal text-[#0071e3] transition-opacity hover:opacity-70"
-              >
-                {isAr ? "الأسعار ›" : "Pricing ›"}
-              </button>
-            </div>
-          </Reveal>
+        {/* Text overlay — NO animation delay, shows immediately */}
+        <div className="relative z-10 flex h-full flex-col items-center justify-center text-center">
+          <h1 className="text-5xl font-semibold leading-[1.05] tracking-tight md:text-7xl lg:text-[80px]">
+            {isAr ? "أقوى نسخة منك." : "A stronger you."}
+          </h1>
+          <p className="mx-auto mt-4 max-w-xl text-xl font-normal leading-snug text-[#1d1d1f] md:text-2xl">
+            {isAr ? "كوتشينج حقيقي. ذكاء اصطناعي. نتائج حقيقية." : "Real coaching. Real AI. Real results."}
+          </p>
+          <div className="mt-6 flex flex-wrap items-center justify-center gap-4 text-base md:gap-6">
+            <button
+              onClick={() => navigate("auth", { mode: "signup" })}
+              className="rounded-full bg-[#0071e3] px-6 py-2.5 font-normal text-white transition-opacity hover:opacity-90 md:px-7 md:py-3"
+            >
+              {isAr ? "ابدأ تحوّلك" : "Start your transformation"}
+            </button>
+            <button
+              onClick={() => navigate("pricing")}
+              className="font-normal text-[#0071e3] transition-opacity hover:opacity-70"
+            >
+              {isAr ? "الأسعار ›" : "Pricing ›"}
+            </button>
+          </div>
         </div>
       </ImageStreamHero>
 
