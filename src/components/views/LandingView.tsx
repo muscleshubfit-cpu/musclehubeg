@@ -135,18 +135,20 @@ function CenteredSection({
   );
 }
 
-// Premium images — MuscleHub Studio Style (clean white, photorealistic)
+// Premium images — MuscleHub Studio Style
+// Person images: ONE per person (profile style) + ONE together
+// Sports/nutrition images: real photography for sections
 const IMAGES = {
-  hero: "/images/hero-ahmed.png",
-  coach: "/images/coach-portrait.png",
+  // Person images (limited — used as profiles, not full-bleed)
+  ahmed: "/images/hero-ahmed.png",
   evo: "/images/evo-standalone.png",
   together: "/images/ahmed-evo-together.png",
-  meal: "/images/meal-nutrition.png",
-  workout: "/images/ahmed-workout.png",
-  progress: "/images/ahmed-progress-tablet.png",
-  running: "/images/ahmed-running.png",
-  data: "/images/evo-data.png",
-  accessories: "/images/accessories.png",
+  // Sports / nutrition / fitness photography
+  gym: "/images/gym-interior.jpg",
+  meal: "/images/meal-clean.jpg",
+  running: "/images/running-outdoor.jpg",
+  dumbbell: "/images/dumbbell-gym.jpg",
+  tracker: "/images/fitness-tracker.jpg",
 };
 
 export function LandingView() {
@@ -164,16 +166,14 @@ export function LandingView() {
     })();
   }, [lang]);
 
-  // Hero carousel — auto-rotates through all studio images
+  // Hero carousel — mix of sports photography + ONE person image
   const heroImages = [
-    { src: IMAGES.hero, alt: isAr ? "أحمد زكي" : "Ahmed Zake" },
-    { src: IMAGES.coach, alt: isAr ? "أحمد زكي — الكوتش" : "Ahmed Zake — Coach" },
-    { src: IMAGES.together, alt: isAr ? "أحمد زكي و EVO" : "Ahmed Zake and EVO" },
-    { src: IMAGES.workout, alt: isAr ? "تمارين القوة" : "Strength Training" },
-    { src: IMAGES.meal, alt: isAr ? "تغذية صحية" : "Healthy Nutrition" },
-    { src: IMAGES.progress, alt: isAr ? "تتبع التقدم" : "Progress Tracking" },
+    { src: IMAGES.gym, alt: isAr ? "صالة ألعاب رياضية" : "Modern gym" },
+    { src: IMAGES.meal, alt: isAr ? "تغذية صحية" : "Healthy nutrition" },
+    { src: IMAGES.dumbbell, alt: isAr ? "تمارين قوة" : "Strength training" },
     { src: IMAGES.running, alt: isAr ? "كارديو" : "Cardio" },
-    { src: IMAGES.evo, alt: "EVO" },
+    { src: IMAGES.tracker, alt: isAr ? "تتبع اللياقة" : "Fitness tracking" },
+    { src: IMAGES.together, alt: isAr ? "أحمد زكي و EVO" : "Ahmed Zake and EVO" },
   ];
   const [currentSlide, setCurrentSlide] = useState(0);
   useEffect(() => {
@@ -190,7 +190,7 @@ export function LandingView() {
       <SiteHeader variant="landing" />
 
       {/* ===================== 1. HERO — with image carousel ===================== */}
-      <section className="flex min-h-[85vh] flex-col items-center justify-center bg-white px-4 pt-16 text-center md:pt-20">
+      <section className="flex min-h-[60vh] flex-col items-center justify-center bg-white px-4 py-16 text-center md:py-20">
         <Reveal>
           <p className="mb-3 text-sm font-normal text-[#6e6e73] md:text-base">
             {isAr ? "منصة MuscleHub" : "MuscleHub"}
@@ -216,7 +216,7 @@ export function LandingView() {
                   key={i}
                   src={img.src}
                   alt={img.alt}
-                  className={`absolute inset-0 h-full w-full object-contain transition-opacity duration-700 ${
+                  className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-700 ${
                     i === currentSlide ? "opacity-100" : "opacity-0"
                   }`}
                   loading={i === 0 ? "eager" : "lazy"}
@@ -289,9 +289,9 @@ export function LandingView() {
         </div>
       </CenteredSection>
 
-      {/* ===================== 4. MEET THE TEAM — Apple-style cards ===================== */}
+      {/* ===================== 4. MEET THE TEAM — Compact profile cards ===================== */}
       <section className="bg-[#f5f5f7] px-4 py-20 md:px-6 md:py-28">
-        <div className="mx-auto max-w-6xl">
+        <div className="mx-auto max-w-4xl">
           <Reveal>
             <h2 className="mb-4 text-center text-3xl font-semibold tracking-tight md:mb-6 md:text-5xl">
               {isAr ? "إنسان + ذكاء اصطناعي." : "Human + AI."}
@@ -303,28 +303,49 @@ export function LandingView() {
             </p>
           </Reveal>
           <div className="grid gap-5 md:grid-cols-2 md:gap-6">
+            {/* Ahmed — compact profile */}
             <Reveal>
-              <ProductCard
-                title={isAr ? "أحمد زكي" : "Ahmed Zake"}
-                subtitle={isAr ? "الكوتش البشري" : "The Human Coach"}
-                image={IMAGES.coach}
-                cta={{ label: isAr ? "اعرف أكثر" : "Learn more", onClick: () => navigate("about") }}
-              />
+              <div className="flex flex-col items-center rounded-3xl bg-white p-8 text-center">
+                <img
+                  src={IMAGES.ahmed}
+                  alt={isAr ? "أحمد زكي" : "Ahmed Zake"}
+                  className="h-32 w-32 rounded-full object-cover object-top"
+                  loading="lazy"
+                />
+                <h3 className="mt-4 text-xl font-semibold tracking-tight">{isAr ? "أحمد زكي" : "Ahmed Zake"}</h3>
+                <p className="mt-1 text-sm font-normal text-[#6e6e73]">{isAr ? "الكوتش البشري" : "The Human Coach"}</p>
+                <button
+                  onClick={() => navigate("about")}
+                  className="mt-4 text-sm font-normal text-[#0071e3] transition-opacity hover:opacity-70"
+                >
+                  {isAr ? "اعرف أكثر ›" : "Learn more ›"}
+                </button>
+              </div>
             </Reveal>
+            {/* EVO — compact profile */}
             <Reveal delay={100}>
-              <ProductCard
-                title="EVO"
-                subtitle={isAr ? "محرك الأداء الذكي" : "AI Performance Engine"}
-                image={IMAGES.evo}
-                isDark
-                cta={{ label: isAr ? "اعرف أكثر" : "Learn more", onClick: () => navigate("auth", { mode: "signup" }) }}
-              />
+              <div className="flex flex-col items-center rounded-3xl bg-[#1d1d1f] p-8 text-center">
+                <img
+                  src={IMAGES.evo}
+                  alt="EVO"
+                  className="h-32 w-32 rounded-full object-cover object-top"
+                  loading="lazy"
+                />
+                <h3 className="mt-4 text-xl font-semibold tracking-tight text-white">EVO</h3>
+                <p className="mt-1 text-sm font-normal text-gray-400">{isAr ? "محرك الأداء الذكي" : "AI Performance Engine"}</p>
+                <button
+                  onClick={() => navigate("auth", { mode: "signup" })}
+                  className="mt-4 text-sm font-normal text-[#0071e3] transition-opacity hover:opacity-70"
+                >
+                  {isAr ? "اعرف أكثر ›" : "Learn more ›"}
+                </button>
+              </div>
             </Reveal>
           </div>
         </div>
       </section>
 
-      {/* ===================== 5. EVO spotlight ===================== */}
+      {/* ===================== 5. EVO spotlight — with gym image ===================== */}
       <CenteredSection bg="bg-black">
         <div className="px-4 text-center text-white">
           <p className="text-sm font-normal text-gray-400 md:text-base">
@@ -340,9 +361,9 @@ export function LandingView() {
           </p>
           <div className="mt-8 flex justify-center">
             <img
-              src={IMAGES.evo}
-              alt="EVO"
-              className="aspect-[4/5] w-full max-w-xs rounded-2xl object-contain md:max-w-sm"
+              src={IMAGES.tracker}
+              alt={isAr ? "تتبع اللياقة" : "Fitness tracking"}
+              className="aspect-[16/9] w-full max-w-2xl rounded-3xl object-cover"
               loading="lazy"
             />
           </div>
@@ -417,7 +438,7 @@ export function LandingView() {
             {/* Nutrition */}
             <Reveal>
               <div className="overflow-hidden rounded-3xl bg-white">
-                <img src={IMAGES.meal} alt={isAr ? "تغذية" : "Nutrition"} className="aspect-[4/3] w-full object-contain" loading="lazy" />
+                <img src={IMAGES.meal} alt={isAr ? "تغذية" : "Nutrition"} className="aspect-[4/3] w-full object-cover" loading="lazy" />
                 <div className="p-6">
                   <h3 className="text-lg font-semibold tracking-tight">{isAr ? "خطط تغذية" : "Nutrition Plans"}</h3>
                   <p className="mt-2 text-sm font-normal text-[#6e6e73]">{isAr ? "مخصصة بالجرام والسعرات والماكروز." : "Personalized to the gram, calories, and macros."}</p>
@@ -427,7 +448,7 @@ export function LandingView() {
             {/* Workout */}
             <Reveal delay={100}>
               <div className="overflow-hidden rounded-3xl bg-white">
-                <img src={IMAGES.workout} alt={isAr ? "تمارين" : "Workout"} className="aspect-[4/3] w-full object-contain" loading="lazy" />
+                <img src={IMAGES.dumbbell} alt={isAr ? "تمارين" : "Workout"} className="aspect-[4/3] w-full object-cover" loading="lazy" />
                 <div className="p-6">
                   <h3 className="text-lg font-semibold tracking-tight">{isAr ? "برامج تمارين" : "Workout Programs"}</h3>
                   <p className="mt-2 text-sm font-normal text-[#6e6e73]">{isAr ? "تتكيف مع تقدمك ومستواك." : "Adapt to your progress and level."}</p>
@@ -437,7 +458,7 @@ export function LandingView() {
             {/* Progress */}
             <Reveal delay={200}>
               <div className="overflow-hidden rounded-3xl bg-white">
-                <img src={IMAGES.progress} alt={isAr ? "تتبع" : "Progress"} className="aspect-[4/3] w-full object-contain" loading="lazy" />
+                <img src={IMAGES.tracker} alt={isAr ? "تتبع" : "Progress"} className="aspect-[4/3] w-full object-cover" loading="lazy" />
                 <div className="p-6">
                   <h3 className="text-lg font-semibold tracking-tight">{isAr ? "تتبع التقدم" : "Progress Tracking"}</h3>
                   <p className="mt-2 text-sm font-normal text-[#6e6e73]">{isAr ? "صور، قياسات، أرقام — كل حاجة في مكان واحد." : "Photos, measurements, data — all in one place."}</p>
@@ -453,7 +474,7 @@ export function LandingView() {
         <img
           src={IMAGES.running}
           alt={isAr ? "كارديو" : "Cardio"}
-          className="h-full w-full object-contain"
+          className="w-full h-full object-cover"
           loading="lazy"
         />
       </section>
