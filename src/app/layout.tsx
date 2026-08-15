@@ -89,6 +89,13 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
  return (
  <html lang="ar" dir="rtl" suppressHydrationWarning>
+ <head>
+ {/* Preconnect to external domains for faster resource loading */}
+ <link rel="preconnect" href="https://randomuser.me" />
+ <link rel="dns-prefetch" href="https://randomuser.me" />
+ <link rel="preconnect" href="https://api.qrserver.com" />
+ <link rel="dns-prefetch" href="https://api.qrserver.com" />
+ </head>
  <body className="antialiased bg-background text-foreground">
  {/* Skip-to-content link for keyboard/screen-reader users (WCAG 2.1) */}
  <a href="#main-content" className="sr-only-focusable">
