@@ -447,6 +447,38 @@ export function LandingView() {
         />
       </section>
 
+      {/* ===================== 7.8. FREE TOOLS — teaser ===================== */}
+      <section className="bg-white px-4 py-12 md:py-20">
+        <div className="mx-auto max-w-4xl text-center">
+          <Reveal>
+            <h2 className="text-3xl font-semibold tracking-tight md:text-5xl">
+              {isAr ? "أدوات مجانية" : "Free Tools"}
+            </h2>
+          </Reveal>
+          <Reveal delay={100}>
+            <p className="mx-auto mt-3 max-w-md text-base font-normal text-[#6e6e73] md:text-lg">
+              {isAr ? "احسب احتياجاتك الغذائية مجاناً." : "Calculate your nutrition needs for free."}
+            </p>
+          </Reveal>
+          <Reveal delay={200}>
+            <a
+              href="/tools/calorie-calculator"
+              className="mt-8 inline-block rounded-3xl bg-[#f5f5f7] p-8 transition-opacity hover:opacity-90"
+            >
+              <h3 className="text-xl font-semibold tracking-tight">
+                {isAr ? "حاسبة السعرات الحرارية" : "Calorie Calculator"}
+              </h3>
+              <p className="mt-2 text-sm font-normal text-[#6e6e73]">
+                {isAr ? "احسب السعرات + الماكروز اليومية" : "Calculate daily calories + macros"}
+              </p>
+              <span className="mt-4 inline-block text-sm font-normal text-[#0071e3]">
+                {isAr ? "ابدأ الحساب ›" : "Start calculating ›"}
+              </span>
+            </a>
+          </Reveal>
+        </div>
+      </section>
+
       {/* ===================== 8. HOW IT WORKS — Apple-style numbered steps ===================== */}
       <section className="bg-white px-4 py-12 md:py-20">
         <div className="mx-auto max-w-4xl">

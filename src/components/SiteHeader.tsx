@@ -7,6 +7,7 @@ import {
   Home,
   FileText,
   Crown,
+  Calculator,
   LayoutDashboard,
   ClipboardList,
   LineChart,
@@ -83,6 +84,13 @@ export function SiteHeader({ variant = "landing" }: { variant?: "landing" | "app
     label: isAr ? "المدونة" : "Blog",
     icon: FileText,
     href: blogHref,
+  });
+
+  // 2b. Tools (free calculators)
+  menu.push({
+    label: isAr ? "الأدوات المجانية" : "Free Tools",
+    icon: Calculator,
+    href: "/tools/calorie-calculator",
   });
 
   // 3. Pricing
