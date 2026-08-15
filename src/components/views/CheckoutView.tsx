@@ -13,6 +13,7 @@ import { getTier, type TierId, type Duration, type PaymentMethod } from "@/lib/p
 import { submitSubscriptionRequest, uploadReceipt } from "@/lib/data";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { Reveal, PageFade } from "@/components/motion";
 
 export function CheckoutView({ tier, months }: { tier: TierId; months: Duration }) {
  const { t } = useI18n();

@@ -6,6 +6,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useNav } from "@/hooks/use-nav";
 import { listAllClients, listAllSubscriptions } from "@/lib/data";
 import { getTier } from "@/lib/plans";
+import { Reveal, PageFade } from "@/components/motion";
 
 export function CoachView() {
   const { t } = useI18n();

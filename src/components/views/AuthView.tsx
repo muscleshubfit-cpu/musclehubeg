@@ -10,6 +10,7 @@ import { useNav } from "@/hooks/use-nav";
 import { useAuth } from "@/hooks/use-auth";
 import { isSupabaseConfigured } from "@/lib/supabase/client";
 import { toast } from "sonner";
+import { Reveal, PageFade } from "@/components/motion";
 
 export function AuthView({ mode }: { mode: "login" | "signup" }) {
   const { t, lang } = useI18n();

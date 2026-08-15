@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { getQuestionnaire, upsertQuestionnaire } from "@/lib/data";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { Reveal, PageFade } from "@/components/motion";
 
 type QType = "nutrition" | "fitness";
 

@@ -4,7 +4,8 @@ import { useState, useEffect } from "react";
 import { useI18n } from "@/lib/i18n";
 import { useNav } from "@/hooks/use-nav";
 import { useAuth } from "@/hooks/use-auth";
-import { useScrollAnimation } from "@/hooks/use-scroll-animation";
+import { Reveal, StaggerGroup, StaggerItem, HoverCard, PageFade, fadeUp, fadeIn } from "@/components/motion";
+import { AnimatedNumber, ScrollProgress, AnimatedCard } from "@/components/ui/animated";
 import {
   Accordion,
   AccordionContent,
@@ -52,27 +53,7 @@ function TestimonialCard({ img, name, username, body, country, isAr }: { img: st
   );
 }
 
-// Apple-style gentle reveal
-function Reveal({
-  children,
-  className = "",
-  delay = 0,
-}: {
-  children: React.ReactNode;
-  className?: string;
-  delay?: number;
-}) {
-  const { ref, isVisible } = useScrollAnimation<HTMLDivElement>();
-  return (
-    <div
-      ref={ref}
-      className={`${isVisible ? "animate-fade-in" : "scroll-hidden"} ${className}`}
-      style={delay ? { animationDelay: `${delay}ms` } : undefined}
-    >
-      {children}
-    </div>
-  );
-}
+// Reveal is now imported from @/components/motion (Framer Motion)
 
 // Apple-style product card (rounded, hover scale)
 function ProductCard({
@@ -92,7 +73,7 @@ function ProductCard({
   const text = isDark ? "text-white" : "text-[#1d1d1f]";
   const subText = isDark ? "text-gray-400" : "text-[#6e6e73]";
   return (
-    <div className={`overflow-hidden rounded-3xl ${bg} ${text}`}>
+    <AnimatedCard className={`overflow-hidden rounded-3xl ${bg} ${text}`}>
       <div className="px-6 pt-10 text-center md:px-10 md:pt-16">
         <h3 className="text-2xl font-semibold tracking-tight md:text-4xl">{title}</h3>
         <p className={`mt-2 text-sm font-normal md:text-lg ${subText}`}>{subtitle}</p>
@@ -113,7 +94,7 @@ function ProductCard({
           loading="lazy"
         />
       </div>
-    </div>
+    </AnimatedCard>
   );
 }
 
@@ -187,6 +168,7 @@ export function LandingView() {
 
   return (
     <div className="min-h-screen bg-white text-[#1d1d1f]">
+      <ScrollProgress />
       <SiteHeader variant="landing" />
 
       {/* ===================== 1. HERO — with image carousel ===================== */}
@@ -349,19 +331,24 @@ export function LandingView() {
         </div>
       </CenteredSection>
 
-      {/* ===================== 6. STATS — Apple-style large numbers ===================== */}
+      {/* ===================== 6. STATS — Apple-style large numbers with AnimatedNumber ===================== */}
       <section className="bg-white px-4 py-20 md:py-28">
         <div className="mx-auto max-w-5xl">
           <div className="grid gap-12 md:grid-cols-4 md:gap-8">
             {[
-              { v: "+500", l: isAr ? "عميل نجح" : "clients" },
-              { v: "95%", l: isAr ? "نسبة رضا" : "satisfaction" },
-              { v: "-8.5kg", l: isAr ? "متوسط الفقد" : "avg. loss" },
-              { v: "12", l: isAr ? "أسبوع" : "weeks" },
+              { num: 500, prefix: "+", suffix: "", l: isAr ? "عميل نجح" : "clients" },
+              { num: 95, prefix: "", suffix: "%", l: isAr ? "نسبة رضا" : "satisfaction" },
+              { num: 8.5, prefix: "-", suffix: "kg", l: isAr ? "متوسط الفقد" : "avg. loss", decimals: 1 },
+              { num: 12, prefix: "", suffix: "", l: isAr ? "أسبوع" : "weeks" },
             ].map((s, i) => (
               <Reveal key={i} delay={i * 100} className="text-center">
                 <div className="text-4xl font-semibold tracking-tight text-[#1d1d1f] md:text-6xl">
-                  {s.v}
+                  <AnimatedNumber
+                    value={s.num}
+                    prefix={s.prefix}
+                    suffix={s.suffix}
+                    decimals={s.decimals || 0}
+                  />
                 </div>
                 <div className="mt-2 text-sm font-normal text-[#6e6e73] md:text-base">
                   {s.l}

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { LanguageToggle } from "@/components/LanguageToggle";
 import { getBlogPost, getRelatedPosts, getLinkedPost, parseTableOfContents, renderMarkdown, getCategoryLabel, type BlogPost } from "@/lib/blog";
 import { BlogCTA, NewsletterBlock, SocialShare, ReadingProgress, TableOfContents } from "./BlogComponents";
+import { Reveal, PageFade } from "@/components/motion";
 
 export function BlogArticlePage({ lang, slug }: { lang: "en" | "ar"; slug: string }) {
   const isAr = lang === "ar";

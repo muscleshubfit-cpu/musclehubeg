@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { listPlans, getPlanFileUrl, recordSwap, getSwapUsage } from "@/lib/data";
 import { resolveExerciseImage, getExerciseImage } from "@/lib/exercise-images";
 import { toast } from "sonner";
+import { Reveal, PageFade } from "@/components/motion";
 
 export function PlansView() {
  const { t } = useI18n();
