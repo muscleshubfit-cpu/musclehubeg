@@ -177,8 +177,13 @@ export async function fetchProfile(userId: string): Promise<Profile | null> {
  if (isSupabaseConfigured && supabase) {
  const { data, error } = await supabase.from("profiles").select("*").eq("id", userId).maybeSingle();
  if (data) {
- // Auto-bootstrap a coach account for the demo email
- if (data.role === "client" && data.email?.endsWith("@coach.app")) {
+ // Auto-bootstrap a coach account for known coach emails
+ // This prevents the coach from being downgraded to 'client'
+ // if the auth trigger fires with role='client'
+ if (data.role === "client") {
+ const coachEmails = ["ahmed@coach.app", "muscleshubfit@gmail.com", "coach@musclehubeg.com"];
+ const isCoachEmail = coachEmails.includes(data.email?.toLowerCase() || "") || data.email?.endsWith("@coach.app");
+ if (isCoachEmail) {
  const { data: updated } = await supabase
  .from("profiles")
  .update({ role: "coach" })
@@ -186,6 +191,7 @@ export async function fetchProfile(userId: string): Promise<Profile | null> {
  .select()
  .single();
  return updated as Profile;
+ }
  }
  return data as Profile;
  }
@@ -197,6 +203,9 @@ export async function fetchProfile(userId: string): Promise<Profile | null> {
  const { data: userData } = await supabase.auth.getUser();
  if (userData?.user) {
  const u = userData.user;
+ // Check if this is a known coach email BEFORE creating the profile
+ const coachEmails = ["ahmed@coach.app", "muscleshubfit@gmail.com", "coach@musclehubeg.com"];
+ const isCoachEmail = coachEmails.includes(u.email?.toLowerCase() || "") || u.email?.endsWith("@coach.app");
  const newProfile = {
  id: u.id,
  email: u.email ?? null,
@@ -206,7 +215,7 @@ export async function fetchProfile(userId: string): Promise<Profile | null> {
  u.email ||
  null,
  phone: (u.user_metadata?.phone as string) || null,
- role: "client" as const,
+ role: (isCoachEmail ? "coach" : "client") as "coach" | "client",
  avatar_url: (u.user_metadata?.avatar_url as string) || null,
  };
  const { data: inserted, error: insErr } = await supabase
