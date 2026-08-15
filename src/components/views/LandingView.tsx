@@ -13,6 +13,44 @@ import {
 } from "@/components/ui/accordion";
 import { listBlogPosts, getCategoryLabel, type BlogPost } from "@/lib/blog";
 import { SiteHeader } from "@/components/SiteHeader";
+import { Marquee } from "@/components/ui/3d-testimonials";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Card, CardContent } from "@/components/ui/card";
+
+// 3D Testimonials data — MuscleHub clients
+const testimonialsData = [
+  { name: "Mohamed ElAshry", username: "@mohamed", body: "Lost 12kg in 3 months. EVO AI answers my questions anytime!", img: "https://randomuser.me/api/portraits/men/32.jpg", country: "🇪🇬 Egypt" },
+  { name: "Sara Mansour", username: "@sara", body: "Ahmed understood my situation and made a plan that fits me perfectly.", img: "https://randomuser.me/api/portraits/women/44.jpg", country: "🇪🇬 Egypt" },
+  { name: "Ahmed Fouad", username: "@ahmedf", body: "Gained 6kg muscle. The workout program is very professional.", img: "https://randomuser.me/api/portraits/men/52.jpg", country: "🇪🇬 Egypt" },
+  { name: "Omar Hassan", username: "@omar", body: "The swap feature is a game changer. Quick and accurate!", img: "https://randomuser.me/api/portraits/men/22.jpg", country: "🇸🇦 KSA" },
+  { name: "Layla Ahmed", username: "@layla", body: "Weekly tracking kept me committed. Down 2 sizes in 4 months!", img: "https://randomuser.me/api/portraits/women/68.jpg", country: "🇦🇪 UAE" },
+  { name: "Khaled Ibrahim", username: "@khaled", body: "Best coaching platform in Egypt. The AI + human combo is unbeatable.", img: "https://randomuser.me/api/portraits/men/85.jpg", country: "🇪🇬 Egypt" },
+  { name: "Nour Adel", username: "@nour", body: "EVO adjusts my plan automatically. I never hit a plateau!", img: "https://randomuser.me/api/portraits/women/45.jpg", country: "🇰🇼 Kuwait" },
+  { name: "Youssef Tarek", username: "@youssef", body: "The meal plans are personalized to the gram. Incredible attention to detail.", img: "https://randomuser.me/api/portraits/men/33.jpg", country: "🇪🇬 Egypt" },
+  { name: "Mariam Sherif", username: "@mariam", body: "Lost 8kg and gained confidence. Coach Ahmed is the real deal.", img: "https://randomuser.me/api/portraits/women/53.jpg", country: "🇪🇬 Egypt" },
+];
+
+function TestimonialCard({ img, name, username, body, country, isAr }: { img: string; name: string; username: string; body: string; country: string; isAr: boolean }) {
+  return (
+    <Card className="w-72 shrink-0 bg-white">
+      <CardContent className="p-5">
+        <div className="flex items-center gap-2.5">
+          <Avatar className="h-9 w-9">
+            <AvatarImage src={img} alt={name} />
+            <AvatarFallback>{name[0]}</AvatarFallback>
+          </Avatar>
+          <div className="flex flex-col">
+            <figcaption className="text-sm font-medium text-[#1d1d1f] flex items-center gap-1">
+              {name} <span className="text-xs">{country}</span>
+            </figcaption>
+            <p className="text-xs font-normal text-[#6e6e73]">{username}</p>
+          </div>
+        </div>
+        <blockquote className="mt-3 text-sm font-normal leading-relaxed text-[#1d1d1f]">{body}</blockquote>
+      </CardContent>
+    </Card>
+  );
+}
 
 // Apple-style gentle reveal
 function Reveal({
@@ -449,19 +487,68 @@ export function LandingView() {
         </div>
       </section>
 
-      {/* ===================== 9. TESTIMONIALS — Apple-style large quotes ===================== */}
+      {/* ===================== 9. TESTIMONIALS — 3D Marquee + Apple quotes ===================== */}
       <section className="bg-[#f5f5f7] px-4 py-20 md:py-28">
-        <div className="mx-auto max-w-4xl">
+        <div className="mx-auto max-w-6xl">
           <Reveal>
             <h2 className="text-center text-3xl font-semibold tracking-tight md:text-5xl">
               {isAr ? "نتائج حقيقية." : "Real results."}
             </h2>
           </Reveal>
-          <div className="mt-16 space-y-16 md:mt-20 md:space-y-20">
+          <Reveal delay={150}>
+            <p className="mx-auto mt-4 max-w-xl text-center text-lg font-normal text-[#6e6e73] md:text-xl">
+              {isAr ? "+500 عميل غيّروا حياتهم مع MuscleHub." : "500+ clients transformed their lives with MuscleHub."}
+            </p>
+          </Reveal>
+
+          {/* 3D Marquee Testimonials */}
+          <Reveal delay={300}>
+            <div className="relative mt-16 flex h-[500px] w-full items-center justify-center overflow-hidden [perspective:300px]">
+              <div
+                className="flex flex-row items-center gap-4"
+                style={{
+                  transform: 'translateX(-100px) translateY(0px) translateZ(-100px) rotateX(20deg) rotateY(-10deg) rotateZ(20deg)',
+                }}
+              >
+                {/* Column 1 — down */}
+                <Marquee vertical pauseOnHover repeat={3} className="[--duration:40s]">
+                  {testimonialsData.map((review) => (
+                    <TestimonialCard key={review.username} {...review} isAr={isAr} />
+                  ))}
+                </Marquee>
+                {/* Column 2 — up */}
+                <Marquee vertical pauseOnHover reverse repeat={3} className="[--duration:40s]">
+                  {testimonialsData.map((review) => (
+                    <TestimonialCard key={review.username} {...review} isAr={isAr} />
+                  ))}
+                </Marquee>
+                {/* Column 3 — down */}
+                <Marquee vertical pauseOnHover repeat={3} className="[--duration:40s]">
+                  {testimonialsData.map((review) => (
+                    <TestimonialCard key={review.username} {...review} isAr={isAr} />
+                  ))}
+                </Marquee>
+                {/* Column 4 — up */}
+                <Marquee vertical pauseOnHover reverse repeat={3} className="[--duration:40s]">
+                  {testimonialsData.map((review) => (
+                    <TestimonialCard key={review.username} {...review} isAr={isAr} />
+                  ))}
+                </Marquee>
+              </div>
+
+              {/* Gradient overlays */}
+              <div className="pointer-events-none absolute inset-x-0 top-0 h-1/4 bg-gradient-to-b from-[#f5f5f7]"></div>
+              <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1/4 bg-gradient-to-t from-[#f5f5f7]"></div>
+              <div className="pointer-events-none absolute inset-y-0 left-0 w-1/4 bg-gradient-to-r from-[#f5f5f7]"></div>
+              <div className="pointer-events-none absolute inset-y-0 right-0 w-1/4 bg-gradient-to-l from-[#f5f5f7]"></div>
+            </div>
+          </Reveal>
+
+          {/* Featured large quotes (kept for impact) */}
+          <div className="mt-20 space-y-16 md:space-y-20">
             {[
               { name: isAr ? "محمد العشري" : "Mohamed ElAshry", result: isAr ? "-12 كجم في 3 أشهر" : "-12kg in 3 months", text: isAr ? "أحسن كوتش جربته. EVO بيرد على أسئلتي في أي وقت." : "Best coach I've tried. EVO answers my questions anytime." },
               { name: isAr ? "سارة منصور" : "Sara Mansour", result: isAr ? "-2 مقاس في 4 أشهر" : "-2 sizes in 4 months", text: isAr ? "أحمد فهم حالتي وعمللي خطة تناسبني. التتبع خلاني ملتزمة." : "Ahmed understood my situation and made a plan that fits me." },
-              { name: isAr ? "أحمد فؤاد" : "Ahmed Fouad", result: isAr ? "+6 كجم عضلات" : "+6kg muscle", text: isAr ? "برنامج التمارين احترافي جداً. التبديلات سريعة في الجيم." : "The workout program is very professional. Swaps are quick at the gym." },
             ].map((tm, i) => (
               <Reveal key={i} delay={i * 100}>
                 <blockquote className="text-center">

@@ -583,3 +583,28 @@ textarea:disabled {
 
 /* No card lift — Apple doesn't do hover transforms on cards.
    Cards stay still. Only links/buttons have hover states. */
+
+/* === 3D Testimonials Marquee Animations === */
+
+@theme inline {
+  --animate-marquee: marquee var(--duration) infinite linear;
+  --animate-marquee-vertical: marquee-vertical var(--duration) linear infinite;
+}
+
+@keyframes marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(calc(-100% - var(--gap)));
+  }
+}
+
+@keyframes marquee-vertical {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(calc(-100% - var(--gap)));
+  }
+}
