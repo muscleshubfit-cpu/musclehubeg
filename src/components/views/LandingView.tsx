@@ -203,24 +203,24 @@ export function LandingView() {
         path={{ cardWidth: 22, cardHeight: 30, cardRadius: 0.6 }}
         className="h-[70vh] w-full bg-white"
       >
-        {/* Text overlay — NO animation delay, shows immediately */}
-        <div className="relative z-10 flex h-full flex-col items-center justify-center text-center">
-          <h1 className="text-5xl font-semibold leading-[1.05] tracking-tight md:text-7xl lg:text-[80px]">
+        {/* Text ABOVE the image corridor — top of hero */}
+        <div className="relative z-10 flex flex-col items-center justify-start px-4 pt-20 text-center md:pt-24">
+          <h1 className="text-4xl font-semibold leading-[1.1] tracking-tight md:text-6xl lg:text-7xl">
             {isAr ? "أقوى نسخة منك." : "A stronger you."}
           </h1>
-          <p className="mx-auto mt-4 max-w-xl text-xl font-normal leading-snug text-[#1d1d1f] md:text-2xl">
+          <p className="mx-auto mt-3 max-w-md text-lg font-normal leading-snug text-[#1d1d1f] md:text-xl">
             {isAr ? "كوتشينج حقيقي. ذكاء اصطناعي. نتائج حقيقية." : "Real coaching. Real AI. Real results."}
           </p>
-          <div className="mt-6 flex flex-wrap items-center justify-center gap-4 text-base md:gap-6">
+          <div className="mt-5 flex flex-wrap items-center justify-center gap-3 text-sm md:gap-5">
             <button
               onClick={() => navigate("auth", { mode: "signup" })}
-              className="rounded-full bg-[#0071e3] px-6 py-2.5 font-normal text-white transition-opacity hover:opacity-90 md:px-7 md:py-3"
+              className="rounded-full bg-[#0071e3] px-5 py-2 font-normal text-white transition-opacity hover:opacity-90 md:px-6 md:py-2.5 md:text-base"
             >
               {isAr ? "ابدأ تحوّلك" : "Start your transformation"}
             </button>
             <button
               onClick={() => navigate("pricing")}
-              className="font-normal text-[#0071e3] transition-opacity hover:opacity-70"
+              className="text-sm font-normal text-[#0071e3] transition-opacity hover:opacity-70 md:text-base"
             >
               {isAr ? "الأسعار ›" : "Pricing ›"}
             </button>
