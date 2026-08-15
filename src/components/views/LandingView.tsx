@@ -150,6 +150,12 @@ const IMAGES = {
   running: "/images/running-outdoor.jpg",
   dumbbell: "/images/dumbbell-gym.jpg",
   tracker: "/images/fitness-tracker.jpg",
+  // New diverse images
+  fitnessDark: "/images/fitness-dark.jpg",
+  fitnessPortrait: "/images/fitness-portrait.jpg",
+  mealDark: "/images/meal-dark.jpg",
+  mealBowl: "/images/meal-bowl.jpg",
+  yoga: "/images/yoga-studio.jpg",
 };
 
 export function LandingView() {
@@ -167,16 +173,19 @@ export function LandingView() {
     })();
   }, [lang]);
 
-  // Image stream corridor — mix of sports photography + fitness images
+  // Image stream corridor — diverse sports/fitness/nutrition photography
   const streamImages: StreamImage[] = [
-    { src: IMAGES.gym, alt: isAr ? "صالة ألعاب رياضية" : "Modern gym" },
-    { src: IMAGES.meal, alt: isAr ? "تغذية صحية" : "Healthy nutrition" },
-    { src: IMAGES.dumbbell, alt: isAr ? "تمارين قوة" : "Strength training" },
+    { src: IMAGES.gym, alt: isAr ? "صالة ألعاب" : "Gym" },
+    { src: IMAGES.meal, alt: isAr ? "تغذية" : "Nutrition" },
+    { src: IMAGES.dumbbell, alt: isAr ? "قوة" : "Strength" },
     { src: IMAGES.running, alt: isAr ? "كارديو" : "Cardio" },
-    { src: IMAGES.tracker, alt: isAr ? "تتبع اللياقة" : "Fitness tracking" },
-    { src: IMAGES.together, alt: isAr ? "أحمد زكي و EVO" : "Ahmed Zake and EVO" },
-    { src: IMAGES.ahmed, alt: isAr ? "أحمد زكي" : "Ahmed Zake" },
-    { src: IMAGES.evo, alt: "EVO" },
+    { src: IMAGES.tracker, alt: isAr ? "تتبع" : "Tracking" },
+    { src: IMAGES.fitnessDark, alt: isAr ? "لياقة" : "Fitness" },
+    { src: IMAGES.fitnessPortrait, alt: isAr ? "تمرين" : "Workout" },
+    { src: IMAGES.mealDark, alt: isAr ? "طعام صحي" : "Healthy food" },
+    { src: IMAGES.mealBowl, alt: isAr ? "وجبة" : "Meal" },
+    { src: IMAGES.yoga, alt: isAr ? "يوجا" : "Yoga" },
+    { src: IMAGES.together, alt: isAr ? "أحمد و EVO" : "Ahmed and EVO" },
   ];
 
   const blogHref = isCoach ? "/admin/blog" : isAr ? "/ar/blog" : "/blog";
@@ -191,43 +200,36 @@ export function LandingView() {
         cards={9}
         speed={18}
         axis={50}
-        className="h-[80vh] w-full bg-white"
+        path={{ cardWidth: 22, cardHeight: 30, cardRadius: 0.6 }}
+        className="h-[85vh] w-full bg-white"
       >
-        <div className="relative z-10 flex h-full flex-col items-center justify-between py-16 text-center md:py-20">
+        <div className="relative z-10 flex h-full flex-col items-center justify-start pt-16 text-center md:pt-20">
           <Reveal>
-            <p className="text-sm font-normal text-[#6e6e73] md:text-base">
-              {isAr ? "منصة MuscleHub" : "MuscleHub"}
+            <h1 className="text-5xl font-semibold leading-[1.05] tracking-tight md:text-7xl lg:text-[80px]">
+              {isAr ? "أقوى نسخة منك." : "A stronger you."}
+            </h1>
+          </Reveal>
+          <Reveal delay={200}>
+            <p className="mx-auto mt-4 max-w-xl text-xl font-normal leading-snug text-[#1d1d1f] md:text-2xl">
+              {isAr ? "كوتشينج حقيقي. ذكاء اصطناعي. نتائج حقيقية." : "Real coaching. Real AI. Real results."}
             </p>
           </Reveal>
-          <div className="flex flex-col items-center gap-6">
-            <Reveal delay={100}>
-              <h1 className="text-5xl font-semibold leading-[1.05] tracking-tight md:text-7xl lg:text-[80px]">
-                {isAr ? "أقوى نسخة منك." : "A stronger you."}
-              </h1>
-            </Reveal>
-            <Reveal delay={200}>
-              <p className="mx-auto max-w-xl text-xl font-normal leading-snug text-[#1d1d1f] md:text-2xl">
-                {isAr ? "كوتشينج حقيقي. ذكاء اصطناعي. نتائج حقيقية." : "Real coaching. Real AI. Real results."}
-              </p>
-            </Reveal>
-            <Reveal delay={400}>
-              <div className="flex flex-wrap items-center justify-center gap-4 text-base md:gap-6">
-                <button
-                  onClick={() => navigate("auth", { mode: "signup" })}
-                  className="rounded-full bg-[#0071e3] px-6 py-2.5 font-normal text-white transition-opacity hover:opacity-90 md:px-7 md:py-3"
-                >
-                  {isAr ? "ابدأ تحوّلك" : "Start your transformation"}
-                </button>
-                <button
-                  onClick={() => navigate("pricing")}
-                  className="font-normal text-[#0071e3] transition-opacity hover:opacity-70"
-                >
-                  {isAr ? "الأسعار ›" : "Pricing ›"}
-                </button>
-              </div>
-            </Reveal>
-          </div>
-          <div />
+          <Reveal delay={400}>
+            <div className="mt-6 flex flex-wrap items-center justify-center gap-4 text-base md:gap-6">
+              <button
+                onClick={() => navigate("auth", { mode: "signup" })}
+                className="rounded-full bg-[#0071e3] px-6 py-2.5 font-normal text-white transition-opacity hover:opacity-90 md:px-7 md:py-3"
+              >
+                {isAr ? "ابدأ تحوّلك" : "Start your transformation"}
+              </button>
+              <button
+                onClick={() => navigate("pricing")}
+                className="font-normal text-[#0071e3] transition-opacity hover:opacity-70"
+              >
+                {isAr ? "الأسعار ›" : "Pricing ›"}
+              </button>
+            </div>
+          </Reveal>
         </div>
       </ImageStreamHero>
 
