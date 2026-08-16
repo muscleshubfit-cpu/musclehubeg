@@ -11,7 +11,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { isSupabaseConfigured } from "@/lib/supabase/client";
 import { toast } from "sonner";
 
-export function AuthView({ mode }: { mode: "login" | "signup" }) {
+export function AuthView({ mode, next }: { mode: "login" | "signup"; next?: string }) {
   const { t, lang } = useI18n();
   const { navigate } = useNav();
   const { signIn, signUp, signInGoogle } = useAuth();
@@ -25,7 +25,16 @@ export function AuthView({ mode }: { mode: "login" | "signup" }) {
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
 
-  const goHome = (isCoach: boolean) => navigate(isCoach ? "coach" : "dashboard");
+  // After a successful login, redirect to `next` if provided (e.g. /checkout),
+  // otherwise fall back to the coach/client dashboard.
+  const goAfterLogin = (isCoach: boolean) => {
+    if (next) {
+      // Use a hard navigation so query params (?tier=...&months=...) are preserved.
+      window.location.href = next;
+      return;
+    }
+    navigate(isCoach ? "coach" : "dashboard");
+  };
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,7 +46,7 @@ export function AuthView({ mode }: { mode: "login" | "signup" }) {
           toast.error(error);
         } else {
           toast.success(t("auth.accountCreated"));
-          goHome(false);
+          goAfterLogin(false);
         }
       } else {
         const { error, profile } = await signIn(email, password);
@@ -45,7 +54,7 @@ export function AuthView({ mode }: { mode: "login" | "signup" }) {
           toast.error(error);
         } else {
           toast.success(t("auth.welcomeBack"));
-          goHome(profile?.role === "coach");
+          goAfterLogin(profile?.role === "coach");
         }
       }
     } finally {
@@ -56,7 +65,7 @@ export function AuthView({ mode }: { mode: "login" | "signup" }) {
   const handleGoogle = async () => {
     setGoogleLoading(true);
     try {
-      const { error } = await signInGoogle();
+      const { error } = await signInGoogle(next);
       if (error) {
         toast.error(t("auth.googleError"));
         setGoogleLoading(false);
@@ -89,6 +98,22 @@ export function AuthView({ mode }: { mode: "login" | "signup" }) {
             <p className="mt-2 text-base font-normal text-[#6e6e73] md:text-lg">
               {isSignup ? t("auth.signup.subtitle") : t("auth.login.subtitle")}
             </p>
+
+            {/* Banner: explain why login is needed */}
+            {next && (
+              <div className="mt-6 rounded-2xl border border-[#0071e3]/20 bg-[#0071e3]/5 p-4 text-sm font-normal text-[#1d1d1f]">
+                <p className="font-medium">
+                  {isAr
+                    ? "سجّل الدخول عشان تكمّل عملية الاشتراك"
+                    : "Log in to continue your subscription"}
+                </p>
+                <p className="mt-1 text-[#6e6e73]">
+                  {isAr
+                    ? "هترجع تلقائياً لصفحة الدفع بعد ما تسجّل."
+                    : "You'll be returned to checkout automatically after logging in."}
+                </p>
+              </div>
+            )}
 
             {!isSupabaseConfigured && (
               <div className="mt-6 rounded-xl bg-[#f5f5f7] p-4 text-sm font-normal text-[#6e6e73]">

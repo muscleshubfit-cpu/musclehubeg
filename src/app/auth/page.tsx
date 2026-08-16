@@ -6,32 +6,42 @@ import { useAuth } from "@/hooks/use-auth";
 import { AuthView } from "@/components/views/AuthView";
 
 function AuthPageInner() {
- const { profile, loading, isCoach } = useAuth();
- const router = useRouter();
- const searchParams = useSearchParams();
- const mode = (searchParams.get("mode") as "login" | "signup") || "login";
+  const { profile, loading, isCoach } = useAuth();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const mode = (searchParams.get("mode") as "login" | "signup") || "login";
+  // `next` is the path the user wanted to reach before being bounced to /auth
+  // (e.g. /checkout?tier=essential&months=6). After login we send them back there.
+  const next = searchParams.get("next") || undefined;
 
- useEffect(() => {
- if (!loading && profile) {
- router.replace(isCoach ? "/coach" : "/dashboard");
- }
- }, [loading, profile, isCoach, router]);
+  useEffect(() => {
+    if (!loading && profile) {
+      // Already logged in — skip the form and go to the destination.
+      // Coaches usually go to /coach, but if `next` is present it wins
+      // (e.g. a coach hitting /checkout should land on /checkout, not /coach).
+      if (next) {
+        window.location.href = next;
+      } else {
+        router.replace(isCoach ? "/coach" : "/dashboard");
+      }
+    }
+  }, [loading, profile, isCoach, router, next]);
 
- if (loading || profile) {
- return (
- <div className="flex min-h-screen items-center justify-center">
- <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
- </div>
- );
- }
+  if (loading || profile) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+      </div>
+    );
+  }
 
- return <AuthView mode={mode} />;
+  return <AuthView mode={mode} next={next} />;
 }
 
 export default function Page() {
- return (
- <Suspense fallback={null}>
- <AuthPageInner />
- </Suspense>
- );
+  return (
+    <Suspense fallback={null}>
+      <AuthPageInner />
+    </Suspense>
+  );
 }

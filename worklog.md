@@ -1041,3 +1041,29 @@ Stage Summary:
 - Login is presented as an optional entry in the SiteHeader (the "دخول" button), no longer forced by any CTA.
 - Login IS required (with clear UX) for: subscriptions (checkout submit), referrals, dashboard, plans, chat, progress, coach pages, and admin pages.
 - Fixed pre-existing security hole: `/admin/*` was publicly accessible — now gated to coach role only.
+
+---
+Task ID: 15
+Agent: Super Z (main)
+Task: Make /checkout require login first (with auto-return to checkout after login)
+
+Work Log:
+- **`src/app/checkout/page.tsx`** — Rewrote to add an auth gate. Reads `tier` + `months` from query, builds a `next` path (`/checkout?tier=...&months=...`), and redirects unauthenticated visitors to `/auth?mode=login&next=<encoded path>`. Shows a spinner during the loading check, same pattern as `(app)/layout.tsx` and `admin/layout.tsx`.
+- **`src/app/auth/page.tsx`** — Now reads the `next` query param. If a user is already logged in when they hit /auth, they're redirected to `next` (if present) instead of always going to /dashboard or /coach. Passes `next` down to AuthView.
+- **`src/components/views/AuthView.tsx`** — Added `next` prop. After successful email/password login OR signup, redirects to `next` (via `window.location.href` to preserve query params) instead of always going to dashboard. Added a contextual banner at the top of the form when `next` is present: "سجّل الدخول عشان تكمّل عملية الاشتراك / هترجع تلقائياً لصفحة الدفع بعد ما تسجّل." This makes it clear to the user why login is being requested.
+- **`src/lib/data.ts`** — Updated `signInWithGoogle` to accept an optional `nextPath` parameter and append it as `?next=` to the OAuth callback URL. So Google OAuth users also get returned to /checkout after they finish signing in.
+- **`src/hooks/use-auth.tsx`** — Updated `signInGoogle` type signature to accept `nextPath` and forward it to `signInWithGoogle`.
+- **`src/components/views/CheckoutView.tsx`** — Removed the old "login banner" inside the checkout form (the page-level gate now handles this entirely). Cleaner UX.
+
+Flow verification (curl + dev server):
+- `/checkout?tier=essential&months=6` (no session) → 200 OK with spinner HTML → JS hydrates → `router.replace('/auth?mode=login&next=%2Fcheckout%3Ftier%3Dessential%26months%3D6')` runs → user lands on /auth with the "continue to checkout" banner.
+- `/auth?mode=login&next=...` (no session) → 200 OK → AuthView renders with the banner.
+- `/auth?mode=login&next=...` (with session) → useEffect redirects to `next` (i.e. back to /checkout).
+- `/auth/callback?next=...` (Google OAuth) — pre-existing code already honors `next`, so OAuth users land on /checkout too.
+- `/tools` (no session) → 200 OK (unchanged, still public).
+
+Stage Summary:
+- /checkout now requires login — unauthenticated visitors are bounced to /auth with the original URL preserved as `next`.
+- After successful login (email/password, signup, OR Google OAuth), the user is automatically returned to the exact checkout URL they were trying to reach (tier + months query params preserved).
+- All other public pages (landing, tools, blog, pricing, about, etc.) remain accessible without login, as required in the previous task.
+- Build passes cleanly.

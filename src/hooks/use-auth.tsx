@@ -25,7 +25,7 @@ type AuthCtx = {
  isCoach: boolean;
  signUp: (email: string, password: string, fullName: string, phone: string) => Promise<{ error: string | null }>;
  signIn: (email: string, password: string) => Promise<{ error: string | null; profile: Profile | null }>;
- signInGoogle: () => Promise<{ error: string | null }>;
+ signInGoogle: (nextPath?: string) => Promise<{ error: string | null }>;
  signOutAsync: () => Promise<void>;
 };
 
@@ -83,8 +83,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
  return { error, profile: p };
  }, []);
 
- const signInGoogle = useCallback(async () => {
- return await signInWithGoogle();
+ const signInGoogle = useCallback(async (nextPath?: string) => {
+ return await signInWithGoogle(nextPath);
  }, []);
 
  const signOutAsync = useCallback(async () => {

@@ -152,18 +152,20 @@ export async function signOut() {
  * our /auth/callback route (server-side) → exchanges code for session
  * cookie → redirects to / where the client picks up the session.
  */
-export async function signInWithGoogle(): Promise<{ error: string | null }> {
+export async function signInWithGoogle(nextPath?: string): Promise<{ error: string | null }> {
  if (!isSupabaseConfigured || !supabase) {
  return { error: "Google login requires Supabase to be configured" };
  }
- const redirectTo =
- typeof window !== "undefined"
- ? `${window.location.origin}/auth/callback`
- : undefined;
+ const origin = typeof window !== "undefined" ? window.location.origin : "";
+ // Append `next` to the callback URL so /auth/callback can redirect back
+ // to the original page (e.g. /checkout) after OAuth completes.
+ const callbackUrl = nextPath
+ ? `${origin}/auth/callback?next=${encodeURIComponent(nextPath)}`
+ : `${origin}/auth/callback`;
  const { error } = await supabase.auth.signInWithOAuth({
  provider: "google",
  options: {
- redirectTo,
+ redirectTo: callbackUrl,
  queryParams: {
  access_type: "offline",
  prompt: "consent",
