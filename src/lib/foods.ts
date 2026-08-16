@@ -38,9 +38,6 @@ export type Food = {
   defaultServingAr: string;
   defaultServingEn: string;
   defaultGrams: number;
-  image: string;
-  imageAltAr: string;
-  imageAltEn: string;
   tags: string[];
 };
 
@@ -70,9 +67,6 @@ export const TAG_LABELS: Record<string, { ar: string; en: string; color: string 
   "good-for-bulking": { ar: "للتضخيم", en: "For Bulking", color: "#0071e3" },
 };
 
-// Unsplash images — verified working photo IDs, each food has its own unique image
-const img = (id: string, w = 600) => `https://images.unsplash.com/photo-${id}?w=${w}&q=80&auto=format&fit=crop`;
-
 export const FOODS: Food[] = [
   // ==================== PROTEIN (12) ====================
   {
@@ -84,9 +78,6 @@ export const FOODS: Food[] = [
     defaultServingAr: "1 صدر متوسط",
     defaultServingEn: "1 medium breast",
     defaultGrams: 150,
-    image: img("1532550907401-a500c9a57435"),
-    imageAltAr: "صدور دجاج مشوية",
-    imageAltEn: "Grilled chicken breast",
     tags: ["high-protein", "low-carb", "low-fat", "keto-friendly", "good-for-cutting", "no-cook"],
   },
   {
@@ -98,9 +89,6 @@ export const FOODS: Food[] = [
     defaultServingAr: "1 قطعة متوسطة",
     defaultServingEn: "1 medium piece",
     defaultGrams: 150,
-    image: img("1558030006-450675393462"),
-    imageAltAr: "لحم بقري",
-    imageAltEn: "Lean beef",
     tags: ["high-protein", "low-carb", "good-for-bulking"],
   },
   {
@@ -112,9 +100,6 @@ export const FOODS: Food[] = [
     defaultServingAr: "1 فيليه متوسط",
     defaultServingEn: "1 medium fillet",
     defaultGrams: 150,
-    image: img("1467003909585-2f8a72700288"),
-    imageAltAr: "سمك سلمون",
-    imageAltEn: "Salmon fillet",
     tags: ["high-protein", "low-carb", "keto-friendly", "good-for-bulking"],
   },
   {
@@ -126,9 +111,6 @@ export const FOODS: Food[] = [
     defaultServingAr: "1 علبة",
     defaultServingEn: "1 can",
     defaultGrams: 100,
-    image: img("1604908554007-23ec5d6c91e0"),
-    imageAltAr: "تونة معلبة",
-    imageAltEn: "Canned tuna",
     tags: ["high-protein", "low-carb", "low-fat", "keto-friendly", "good-for-cutting", "no-cook", "quick-prep"],
   },
   {
@@ -140,9 +122,6 @@ export const FOODS: Food[] = [
     defaultServingAr: "2 بيضات",
     defaultServingEn: "2 eggs",
     defaultGrams: 100,
-    image: img("1582722872445-44dc5f7e3c8f"),
-    imageAltAr: "بيض",
-    imageAltEn: "Eggs",
     tags: ["high-protein", "low-carb", "keto-friendly", "vegetarian", "quick-prep"],
   },
   {
@@ -154,9 +133,6 @@ export const FOODS: Food[] = [
     defaultServingAr: "4 بياض بيض",
     defaultServingEn: "4 egg whites",
     defaultGrams: 120,
-    image: img("1607013251379-e6eecfffe234"),
-    imageAltAr: "بياض البيض",
-    imageAltEn: "Egg whites",
     tags: ["high-protein", "low-carb", "low-fat", "good-for-cutting", "quick-prep"],
   },
   {
@@ -168,9 +144,6 @@ export const FOODS: Food[] = [
     defaultServingAr: "100g",
     defaultServingEn: "100g",
     defaultGrams: 100,
-    image: img("1529692236671-f1f6e1d52f4e"),
-    imageAltAr: "ديك رومي",
-    imageAltEn: "Turkey breast",
     tags: ["high-protein", "low-carb", "low-fat", "good-for-cutting"],
   },
   {
@@ -182,9 +155,6 @@ export const FOODS: Food[] = [
     defaultServingAr: "150g",
     defaultServingEn: "150g",
     defaultGrams: 150,
-    image: img("1565680018434-b513d5e5fd47"),
-    imageAltAr: "جمبري",
-    imageAltEn: "Shrimp",
     tags: ["high-protein", "low-carb", "low-fat", "keto-friendly", "good-for-cutting"],
   },
   {
@@ -196,9 +166,6 @@ export const FOODS: Food[] = [
     defaultServingAr: "1 فيليه",
     defaultServingEn: "1 fillet",
     defaultGrams: 150,
-    image: img("1535140728325-a4d3707eee61"),
-    imageAltAr: "سمك بلطي",
-    imageAltEn: "Tilapia",
     tags: ["high-protein", "low-carb", "low-fat", "good-for-cutting"],
   },
   {
@@ -210,9 +177,6 @@ export const FOODS: Food[] = [
     defaultServingAr: "150g",
     defaultServingEn: "150g",
     defaultGrams: 150,
-    image: img("1572802419224-296b0aeee0d9"),
-    imageAltAr: "لحم مفروم",
-    imageAltEn: "Ground beef",
     tags: ["high-protein", "low-carb", "good-for-bulking"],
   },
   {
@@ -224,9 +188,6 @@ export const FOODS: Food[] = [
     defaultServingAr: "150g",
     defaultServingEn: "150g",
     defaultGrams: 150,
-    image: img("1607103058027-4c5e2d6e8f8a"),
-    imageAltAr: "لحم تندرلوين",
-    imageAltEn: "Pork tenderloin",
     tags: ["high-protein", "low-carb", "low-fat", "good-for-cutting"],
   },
   {
@@ -238,9 +199,6 @@ export const FOODS: Food[] = [
     defaultServingAr: "100g",
     defaultServingEn: "100g",
     defaultGrams: 100,
-    image: img("1605908503413-4c3a6f8f8f8c"),
-    imageAltAr: "توفو",
-    imageAltEn: "Tofu",
     tags: ["high-protein", "low-carb", "vegan", "vegetarian", "good-for-cutting"],
   },
 
@@ -254,9 +212,6 @@ export const FOODS: Food[] = [
     defaultServingAr: "1 كوب مطبوخ",
     defaultServingEn: "1 cup cooked",
     defaultGrams: 150,
-    image: img("1586201375761-83865001e31c"),
-    imageAltAr: "أرز أبيض",
-    imageAltEn: "White rice",
     tags: ["low-fat", "good-for-bulking", "quick-prep"],
   },
   {
@@ -268,9 +223,6 @@ export const FOODS: Food[] = [
     defaultServingAr: "1 كوب مطبوخ",
     defaultServingEn: "1 cup cooked",
     defaultGrams: 150,
-    image: img("1536304663823-e45dcac2f92c"),
-    imageAltAr: "أرز بني",
-    imageAltEn: "Brown rice",
     tags: ["low-fat", "high-fiber", "good-for-bulking"],
   },
   {
@@ -282,9 +234,6 @@ export const FOODS: Food[] = [
     defaultServingAr: "1/2 كوب (جاف)",
     defaultServingEn: "1/2 cup (dry)",
     defaultGrams: 40,
-    image: img("1517673400267-0251440c45dc"),
-    imageAltAr: "شوفان",
-    imageAltEn: "Oatmeal",
     tags: ["high-fiber", "vegetarian", "vegan", "good-for-bulking", "quick-prep"],
   },
   {
@@ -296,9 +245,6 @@ export const FOODS: Food[] = [
     defaultServingAr: "1 بطاطس متوسطة",
     defaultServingEn: "1 medium potato",
     defaultGrams: 150,
-    image: img("1561644168-8c2b8b8b8f8c"),
-    imageAltAr: "بطاطس",
-    imageAltEn: "Potato",
     tags: ["low-fat", "high-fiber", "vegetarian", "vegan", "good-for-bulking"],
   },
   {
@@ -310,9 +256,6 @@ export const FOODS: Food[] = [
     defaultServingAr: "1 بطاطا متوسطة",
     defaultServingEn: "1 medium sweet potato",
     defaultGrams: 150,
-    image: img("1596079893206-fa368e9081eb"),
-    imageAltAr: "بطاطا حلوة",
-    imageAltEn: "Sweet potato",
     tags: ["low-fat", "high-fiber", "vegetarian", "vegan", "good-for-bulking"],
   },
   {
@@ -324,9 +267,6 @@ export const FOODS: Food[] = [
     defaultServingAr: "1 شريحة",
     defaultServingEn: "1 slice",
     defaultGrams: 30,
-    image: img("1509440159596-0249088772ff"),
-    imageAltAr: "خبز أسمر",
-    imageAltEn: "Whole wheat bread",
     tags: ["high-fiber", "vegetarian", "vegan", "quick-prep", "no-cook"],
   },
   {
@@ -338,9 +278,6 @@ export const FOODS: Food[] = [
     defaultServingAr: "1 كوب مطبوخ",
     defaultServingEn: "1 cup cooked",
     defaultGrams: 140,
-    image: img("1551462147-37885acc36f1"),
-    imageAltAr: "باستا",
-    imageAltEn: "Pasta",
     tags: ["low-fat", "vegetarian", "vegan", "good-for-bulking"],
   },
   {
@@ -352,9 +289,6 @@ export const FOODS: Food[] = [
     defaultServingAr: "1 كوب مطبوخ",
     defaultServingEn: "1 cup cooked",
     defaultGrams: 185,
-    image: img("1505253716362-afaea1d3d1af"),
-    imageAltAr: "كينوا",
-    imageAltEn: "Quinoa",
     tags: ["high-fiber", "high-protein", "vegetarian", "vegan", "good-for-bulking"],
   },
   {
@@ -366,9 +300,6 @@ export const FOODS: Food[] = [
     defaultServingAr: "1 كوب مطبوخ",
     defaultServingEn: "1 cup cooked",
     defaultGrams: 157,
-    image: img("1548249550-9c6c4e5f8f8b"),
-    imageAltAr: "كسكس",
-    imageAltEn: "Couscous",
     tags: ["low-fat", "vegetarian", "vegan", "good-for-bulking", "quick-prep"],
   },
   {
@@ -380,9 +311,6 @@ export const FOODS: Food[] = [
     defaultServingAr: "1 كوب مطبوخ",
     defaultServingEn: "1 cup cooked",
     defaultGrams: 198,
-    image: img("1547593811-9a1c6c2c2c2c"),
-    imageAltAr: "عدس",
-    imageAltEn: "Lentils",
     tags: ["high-protein", "high-fiber", "low-fat", "vegetarian", "vegan", "good-for-bulking"],
   },
   {
@@ -394,9 +322,6 @@ export const FOODS: Food[] = [
     defaultServingAr: "1 كوب",
     defaultServingEn: "1 cup",
     defaultGrams: 164,
-    image: img("1485921325833-c519f76c4927"),
-    imageAltAr: "حمص",
-    imageAltEn: "Chickpeas",
     tags: ["high-protein", "high-fiber", "vegetarian", "vegan", "good-for-bulking"],
   },
   {
@@ -408,9 +333,6 @@ export const FOODS: Food[] = [
     defaultServingAr: "1 كوب",
     defaultServingEn: "1 cup",
     defaultGrams: 172,
-    image: img("1515543237350-b3eea1ec8082"),
-    imageAltAr: "فول أسود",
-    imageAltEn: "Black beans",
     tags: ["high-protein", "high-fiber", "low-fat", "vegetarian", "vegan", "good-for-bulking"],
   },
   {
@@ -422,9 +344,6 @@ export const FOODS: Food[] = [
     defaultServingAr: "1 كوز متوسط",
     defaultServingEn: "1 medium ear",
     defaultGrams: 100,
-    image: img("1551758375-095257b6639d"),
-    imageAltAr: "ذرة",
-    imageAltEn: "Corn",
     tags: ["low-fat", "vegetarian", "vegan"],
   },
   {
@@ -436,9 +355,6 @@ export const FOODS: Food[] = [
     defaultServingAr: "1 كوب",
     defaultServingEn: "1 cup",
     defaultGrams: 28,
-    image: img("1605908503413-4c3a6f8f8f8b"),
-    imageAltAr: "سيريال",
-    imageAltEn: "Cereal",
     tags: ["low-fat", "vegetarian", "vegan", "quick-prep", "no-cook"],
   },
   {
@@ -450,9 +366,6 @@ export const FOODS: Food[] = [
     defaultServingAr: "1/2 كوب",
     defaultServingEn: "1/2 cup",
     defaultGrams: 60,
-    image: img("1567743168808-4ee1ad8d25c8"),
-    imageAltAr: "جرانولا",
-    imageAltEn: "Granola",
     tags: ["high-fiber", "vegetarian", "good-for-bulking", "quick-prep", "no-cook"],
   },
 
@@ -466,9 +379,6 @@ export const FOODS: Food[] = [
     defaultServingAr: "1/2 أفوكادو",
     defaultServingEn: "1/2 avocado",
     defaultGrams: 100,
-    image: img("1601039641847-7857b994d704"),
-    imageAltAr: "أفوكادو",
-    imageAltEn: "Avocado",
     tags: ["keto-friendly", "high-fiber", "vegetarian", "vegan", "good-for-bulking", "no-cook"],
   },
   {
@@ -480,9 +390,6 @@ export const FOODS: Food[] = [
     defaultServingAr: "1 ملعقة طعام",
     defaultServingEn: "1 tablespoon",
     defaultGrams: 14,
-    image: img("1474979266404-7eaacbcd87c5"),
-    imageAltAr: "زيت زيتون",
-    imageAltEn: "Olive oil",
     tags: ["keto-friendly", "vegan", "good-for-bulking", "no-cook"],
   },
   {
@@ -494,9 +401,6 @@ export const FOODS: Food[] = [
     defaultServingAr: "1 ملعقة طعام",
     defaultServingEn: "1 tablespoon",
     defaultGrams: 16,
-    image: img("1571179956150-8d2b8f8f8f8b"),
-    imageAltAr: "زبدة فول سوداني",
-    imageAltEn: "Peanut butter",
     tags: ["high-protein", "keto-friendly", "vegetarian", "vegan", "good-for-bulking", "no-cook"],
   },
   {
@@ -508,9 +412,6 @@ export const FOODS: Food[] = [
     defaultServingAr: "1 ملعقة طعام",
     defaultServingEn: "1 tablespoon",
     defaultGrams: 14,
-    image: img("1620705903661-4d6d4b4e4a4e"),
-    imageAltAr: "زيت جوز الهند",
-    imageAltEn: "Coconut oil",
     tags: ["keto-friendly", "vegan", "good-for-bulking", "no-cook"],
   },
   {
@@ -522,9 +423,6 @@ export const FOODS: Food[] = [
     defaultServingAr: "1 ملعقة طعام",
     defaultServingEn: "1 tablespoon",
     defaultGrams: 14,
-    image: img("1589985270834-4b8b4d4b4e4e"),
-    imageAltAr: "زبدة",
-    imageAltEn: "Butter",
     tags: ["keto-friendly", "vegetarian", "good-for-bulking", "no-cook"],
   },
   {
@@ -536,9 +434,6 @@ export const FOODS: Food[] = [
     defaultServingAr: "1 شريحة (30g)",
     defaultServingEn: "1 slice (30g)",
     defaultGrams: 30,
-    image: img("1486297678162-eb2a19b0a32d"),
-    imageAltAr: "جبن شيدر",
-    imageAltEn: "Cheddar cheese",
     tags: ["high-protein", "keto-friendly", "vegetarian", "good-for-bulking", "no-cook"],
   },
   {
@@ -550,9 +445,6 @@ export const FOODS: Food[] = [
     defaultServingAr: "1/4 كوب مبشور",
     defaultServingEn: "1/4 cup grated",
     defaultGrams: 25,
-    image: img("1452195449026-44f3b8f8f8f8b"),
-    imageAltAr: "جبن بارميزان",
-    imageAltEn: "Parmesan cheese",
     tags: ["high-protein", "keto-friendly", "vegetarian", "good-for-bulking", "no-cook"],
   },
   {
@@ -564,9 +456,6 @@ export const FOODS: Food[] = [
     defaultServingAr: "2 شريحة",
     defaultServingEn: "2 slices",
     defaultGrams: 30,
-    image: img("1528607929212-2636ec44253e"),
-    imageAltAr: "بيكون",
-    imageAltEn: "Bacon",
     tags: ["high-protein", "keto-friendly", "good-for-bulking", "quick-prep"],
   },
 
@@ -580,9 +469,6 @@ export const FOODS: Food[] = [
     defaultServingAr: "1 كوب",
     defaultServingEn: "1 cup",
     defaultGrams: 90,
-    image: img("1583696549300-9b35f4c4a9d9"),
-    imageAltAr: "بروكلي",
-    imageAltEn: "Broccoli",
     tags: ["low-carb", "low-fat", "high-fiber", "vegetarian", "vegan", "good-for-cutting"],
   },
   {
@@ -594,9 +480,6 @@ export const FOODS: Food[] = [
     defaultServingAr: "2 كوب طازج",
     defaultServingEn: "2 cups fresh",
     defaultGrams: 60,
-    image: img("1576045057995-568f588f82fb"),
-    imageAltAr: "سبانخ",
-    imageAltEn: "Spinach",
     tags: ["low-carb", "low-fat", "high-fiber", "vegetarian", "vegan", "good-for-cutting"],
   },
   {
@@ -608,9 +491,6 @@ export const FOODS: Food[] = [
     defaultServingAr: "1 خيارة متوسطة",
     defaultServingEn: "1 medium cucumber",
     defaultGrams: 150,
-    image: img("1604977042948-711f9ce8f8f8b"),
-    imageAltAr: "خيار",
-    imageAltEn: "Cucumber",
     tags: ["low-carb", "low-fat", "vegetarian", "vegan", "good-for-cutting", "no-cook"],
   },
   {
@@ -622,9 +502,6 @@ export const FOODS: Food[] = [
     defaultServingAr: "1 طماطم متوسطة",
     defaultServingEn: "1 medium tomato",
     defaultGrams: 123,
-    image: img("1546470427-e26264be0b0d"),
-    imageAltAr: "طماطم",
-    imageAltEn: "Tomato",
     tags: ["low-carb", "low-fat", "vegetarian", "vegan", "good-for-cutting", "no-cook"],
   },
   {
@@ -636,9 +513,6 @@ export const FOODS: Food[] = [
     defaultServingAr: "1 جزرة متوسطة",
     defaultServingEn: "1 medium carrot",
     defaultGrams: 61,
-    image: img("1598170855022-0d6b4b4b4e4e"),
-    imageAltAr: "جزر",
-    imageAltEn: "Carrot",
     tags: ["low-fat", "high-fiber", "vegetarian", "vegan", "no-cook"],
   },
   {
@@ -650,9 +524,6 @@ export const FOODS: Food[] = [
     defaultServingAr: "1 فلفلة متوسطة",
     defaultServingEn: "1 medium pepper",
     defaultGrams: 120,
-    image: img("1563565375-f3fdfdbefa03"),
-    imageAltAr: "فلفل ألوان",
-    imageAltEn: "Bell pepper",
     tags: ["low-fat", "high-fiber", "vegetarian", "vegan", "no-cook"],
   },
   {
@@ -664,9 +535,6 @@ export const FOODS: Food[] = [
     defaultServingAr: "1 بصلة متوسطة",
     defaultServingEn: "1 medium onion",
     defaultGrams: 110,
-    image: img("1518977676601-b53f82aba655"),
-    imageAltAr: "بصل",
-    imageAltEn: "Onion",
     tags: ["low-fat", "vegetarian", "vegan", "no-cook"],
   },
   {
@@ -678,9 +546,6 @@ export const FOODS: Food[] = [
     defaultServingAr: "1 كوسة متوسطة",
     defaultServingEn: "1 medium zucchini",
     defaultGrams: 120,
-    image: img("1599908233168-8f8b4b4b4e4e"),
-    imageAltAr: "كوسة",
-    imageAltEn: "Zucchini",
     tags: ["low-carb", "low-fat", "vegetarian", "vegan", "good-for-cutting"],
   },
   {
@@ -692,9 +557,6 @@ export const FOODS: Food[] = [
     defaultServingAr: "1 كوب",
     defaultServingEn: "1 cup",
     defaultGrams: 100,
-    image: img("1568901344371-3eb415b8f8f8b"),
-    imageAltAr: "قرنبيط",
-    imageAltEn: "Cauliflower",
     tags: ["low-carb", "low-fat", "keto-friendly", "vegetarian", "vegan", "good-for-cutting"],
   },
   {
@@ -706,9 +568,6 @@ export const FOODS: Food[] = [
     defaultServingAr: "2 كوب",
     defaultServingEn: "2 cups",
     defaultGrams: 80,
-    image: img("1551892374-ecf8754cf8b0"),
-    imageAltAr: "خس",
-    imageAltEn: "Lettuce",
     tags: ["low-carb", "low-fat", "vegetarian", "vegan", "good-for-cutting", "no-cook"],
   },
 
@@ -722,9 +581,6 @@ export const FOODS: Food[] = [
     defaultServingAr: "1 موزة متوسطة",
     defaultServingEn: "1 medium banana",
     defaultGrams: 120,
-    image: img("1571771894821-ce9b6c11b08e"),
-    imageAltAr: "موز",
-    imageAltEn: "Banana",
     tags: ["low-fat", "high-fiber", "vegetarian", "vegan", "good-for-bulking", "no-cook", "quick-prep"],
   },
   {
@@ -736,9 +592,6 @@ export const FOODS: Food[] = [
     defaultServingAr: "1 تفاحة متوسطة",
     defaultServingEn: "1 medium apple",
     defaultGrams: 150,
-    image: img("1560806887-1e4cd0b6cbd6"),
-    imageAltAr: "تفاح",
-    imageAltEn: "Apple",
     tags: ["low-fat", "high-fiber", "vegetarian", "vegan", "good-for-cutting", "no-cook"],
   },
   {
@@ -750,9 +603,6 @@ export const FOODS: Food[] = [
     defaultServingAr: "1 برتقالة متوسطة",
     defaultServingEn: "1 medium orange",
     defaultGrams: 130,
-    image: img("1582956516813-02999f7c9a2c"),
-    imageAltAr: "برتقال",
-    imageAltEn: "Orange",
     tags: ["low-fat", "high-fiber", "vegetarian", "vegan", "good-for-cutting", "no-cook"],
   },
   {
@@ -764,9 +614,6 @@ export const FOODS: Food[] = [
     defaultServingAr: "1 كوب",
     defaultServingEn: "1 cup",
     defaultGrams: 150,
-    image: img("1488900128323-21503983a07e"),
-    imageAltAr: "توت مشكل",
-    imageAltEn: "Mixed berries",
     tags: ["low-fat", "high-fiber", "vegetarian", "vegan", "good-for-cutting", "no-cook"],
   },
   {
@@ -778,9 +625,6 @@ export const FOODS: Food[] = [
     defaultServingAr: "1 كوب",
     defaultServingEn: "1 cup",
     defaultGrams: 152,
-    image: img("1464979266404-7eaacbcd87c5"),
-    imageAltAr: "فراولة",
-    imageAltEn: "Strawberry",
     tags: ["low-fat", "high-fiber", "vegetarian", "vegan", "good-for-cutting", "no-cook"],
   },
   {
@@ -792,9 +636,6 @@ export const FOODS: Food[] = [
     defaultServingAr: "1 كوب",
     defaultServingEn: "1 cup",
     defaultGrams: 150,
-    image: img("1599866035888-7f8b4b4b4e4e"),
-    imageAltAr: "عنب",
-    imageAltEn: "Grapes",
     tags: ["low-fat", "vegetarian", "vegan", "no-cook"],
   },
   {
@@ -806,9 +647,6 @@ export const FOODS: Food[] = [
     defaultServingAr: "1 شريحة",
     defaultServingEn: "1 slice",
     defaultGrams: 280,
-    image: img("1561758033-d89a9ad46330"),
-    imageAltAr: "بطيخ",
-    imageAltEn: "Watermelon",
     tags: ["low-fat", "vegetarian", "vegan", "good-for-cutting", "no-cook"],
   },
   {
@@ -820,9 +658,6 @@ export const FOODS: Food[] = [
     defaultServingAr: "1 شريحة",
     defaultServingEn: "1 slice",
     defaultGrams: 165,
-    image: img("1559056199-641a0c8bca57"),
-    imageAltAr: "أناناس",
-    imageAltEn: "Pineapple",
     tags: ["low-fat", "vegetarian", "vegan", "no-cook"],
   },
   {
@@ -834,9 +669,6 @@ export const FOODS: Food[] = [
     defaultServingAr: "1 حبة متوسطة",
     defaultServingEn: "1 medium mango",
     defaultGrams: 200,
-    image: img("1605027990121-cbae9e0642df"),
-    imageAltAr: "مانجو",
-    imageAltEn: "Mango",
     tags: ["low-fat", "vegetarian", "vegan", "no-cook"],
   },
   {
@@ -848,9 +680,6 @@ export const FOODS: Food[] = [
     defaultServingAr: "5 حبات",
     defaultServingEn: "5 dates",
     defaultGrams: 50,
-    image: img("1568688229554-7e8b4b4b4e4e"),
-    imageAltAr: "تمر",
-    imageAltEn: "Dates",
     tags: ["low-fat", "high-fiber", "vegetarian", "vegan", "good-for-bulking", "no-cook"],
   },
 
@@ -864,9 +693,6 @@ export const FOODS: Food[] = [
     defaultServingAr: "1 كوب",
     defaultServingEn: "1 cup",
     defaultGrams: 170,
-    image: img("1488477181946-6428a0291777"),
-    imageAltAr: "زبادي يوناني",
-    imageAltEn: "Greek yogurt",
     tags: ["high-protein", "low-carb", "low-fat", "vegetarian", "good-for-cutting", "no-cook"],
   },
   {
@@ -878,9 +704,6 @@ export const FOODS: Food[] = [
     defaultServingAr: "1/2 كوب",
     defaultServingEn: "1/2 cup",
     defaultGrams: 110,
-    image: img("1486297678162-eb2a19b0a32e"),
-    imageAltAr: "جبن قريش",
-    imageAltEn: "Cottage cheese",
     tags: ["high-protein", "low-carb", "vegetarian", "good-for-cutting", "no-cook"],
   },
   {
@@ -892,9 +715,6 @@ export const FOODS: Food[] = [
     defaultServingAr: "1 كوب",
     defaultServingEn: "1 cup",
     defaultGrams: 240,
-    image: img("1550583724-b2692b85b150"),
-    imageAltAr: "حليب",
-    imageAltEn: "Milk",
     tags: ["vegetarian", "good-for-bulking", "no-cook"],
   },
   {
@@ -906,9 +726,6 @@ export const FOODS: Food[] = [
     defaultServingAr: "1 كوب",
     defaultServingEn: "1 cup",
     defaultGrams: 240,
-    image: img("1563636662-7cb1ad8f8f8b"),
-    imageAltAr: "حليب خالي الدسم",
-    imageAltEn: "Skim milk",
     tags: ["high-protein", "low-fat", "vegetarian", "good-for-cutting", "no-cook"],
   },
   {
@@ -920,9 +737,6 @@ export const FOODS: Food[] = [
     defaultServingAr: "1/2 كوب",
     defaultServingEn: "1/2 cup",
     defaultGrams: 112,
-    image: img("1575157157123-8d8c8f8f8f8b"),
-    imageAltAr: "جبن موزاريلا",
-    imageAltEn: "Mozzarella cheese",
     tags: ["high-protein", "vegetarian", "good-for-bulking", "no-cook"],
   },
   {
@@ -934,9 +748,6 @@ export const FOODS: Food[] = [
     defaultServingAr: "30g",
     defaultServingEn: "30g",
     defaultGrams: 30,
-    image: img("1626387346567-8d2b8b8b8f8b"),
-    imageAltAr: "جبن فيتا",
-    imageAltEn: "Feta cheese",
     tags: ["high-protein", "vegetarian", "no-cook"],
   },
   {
@@ -948,9 +759,6 @@ export const FOODS: Food[] = [
     defaultServingAr: "2 ملعقة طعام",
     defaultServingEn: "2 tablespoons",
     defaultGrams: 60,
-    image: img("1623341214825-9f4f9637274e"),
-    imageAltAr: "لبنة",
-    imageAltEn: "Labneh",
     tags: ["high-protein", "vegetarian", "no-cook"],
   },
   {
@@ -962,9 +770,6 @@ export const FOODS: Food[] = [
     defaultServingAr: "1/2 كوب",
     defaultServingEn: "1/2 cup",
     defaultGrams: 124,
-    image: img("1565904163821-3eb415b8f8f8b"),
-    imageAltAr: "جبن ريكوتا",
-    imageAltEn: "Ricotta cheese",
     tags: ["high-protein", "vegetarian", "no-cook"],
   },
 
@@ -978,9 +783,6 @@ export const FOODS: Food[] = [
     defaultServingAr: "1/4 كوب",
     defaultServingEn: "1/4 cup",
     defaultGrams: 35,
-    image: img("1623341214825-9f4f963727da"),
-    imageAltAr: "لوز",
-    imageAltEn: "Almonds",
     tags: ["high-protein", "high-fiber", "keto-friendly", "vegetarian", "vegan", "good-for-bulking", "no-cook"],
   },
   {
@@ -992,9 +794,6 @@ export const FOODS: Food[] = [
     defaultServingAr: "1/4 كوب",
     defaultServingEn: "1/4 cup",
     defaultGrams: 35,
-    image: img("1590029541235-bfe23ad4f8a4"),
-    imageAltAr: "فول سوداني",
-    imageAltEn: "Peanuts",
     tags: ["high-protein", "high-fiber", "keto-friendly", "vegetarian", "vegan", "good-for-bulking", "no-cook"],
   },
   {
@@ -1006,9 +805,6 @@ export const FOODS: Food[] = [
     defaultServingAr: "1/4 كوب",
     defaultServingEn: "1/4 cup",
     defaultGrams: 30,
-    image: img("1572490122747-3968b2c4b4e4e"),
-    imageAltAr: "عين جمل",
-    imageAltEn: "Walnuts",
     tags: ["high-protein", "keto-friendly", "vegetarian", "vegan", "good-for-bulking", "no-cook"],
   },
   {
@@ -1020,9 +816,6 @@ export const FOODS: Food[] = [
     defaultServingAr: "1/4 كوب",
     defaultServingEn: "1/4 cup",
     defaultGrams: 35,
-    image: img("1574053243521-4e6b4b4b4e4e"),
-    imageAltAr: "كاجو",
-    imageAltEn: "Cashews",
     tags: ["high-protein", "vegetarian", "vegan", "good-for-bulking", "no-cook"],
   },
   {
@@ -1034,9 +827,6 @@ export const FOODS: Food[] = [
     defaultServingAr: "1/4 كوب",
     defaultServingEn: "1/4 cup",
     defaultGrams: 30,
-    image: img("1615485925548-7d2b8b8b8f8b"),
-    imageAltAr: "فستق",
-    imageAltEn: "Pistachios",
     tags: ["high-protein", "high-fiber", "vegetarian", "vegan", "good-for-bulking", "no-cook"],
   },
   {
@@ -1048,9 +838,6 @@ export const FOODS: Food[] = [
     defaultServingAr: "2 ملعقة طعام",
     defaultServingEn: "2 tablespoons",
     defaultGrams: 28,
-    image: img("1582719478250-c89cae4dc85b"),
-    imageAltAr: "بذور الشيا",
-    imageAltEn: "Chia seeds",
     tags: ["high-protein", "high-fiber", "vegetarian", "vegan", "good-for-bulking", "no-cook"],
   },
 
@@ -1064,9 +851,6 @@ export const FOODS: Food[] = [
     defaultServingAr: "1 سكوب (30g)",
     defaultServingEn: "1 scoop (30g)",
     defaultGrams: 30,
-    image: img("1593095948071-474c5cc2989d"),
-    imageAltAr: "بروتين شيك",
-    imageAltEn: "Protein shake",
     tags: ["high-protein", "low-carb", "low-fat", "quick-prep", "no-cook", "good-for-cutting", "good-for-bulking"],
   },
   {
@@ -1078,9 +862,6 @@ export const FOODS: Food[] = [
     defaultServingAr: "1 قطعة (10g)",
     defaultServingEn: "1 piece (10g)",
     defaultGrams: 10,
-    image: img("1606312619070-d48b4c652a52"),
-    imageAltAr: "شوكولاتة داكنة",
-    imageAltEn: "Dark chocolate",
     tags: ["vegetarian", "vegan", "good-for-bulking", "no-cook"],
   },
   {
@@ -1092,9 +873,6 @@ export const FOODS: Food[] = [
     defaultServingAr: "1 قطعة",
     defaultServingEn: "1 cake",
     defaultGrams: 9,
-    image: img("1569058242253-92a9c755a0ec"),
-    imageAltAr: "كيك الأرز",
-    imageAltEn: "Rice cakes",
     tags: ["low-fat", "vegetarian", "vegan", "quick-prep", "no-cook"],
   },
   {
@@ -1106,9 +884,6 @@ export const FOODS: Food[] = [
     defaultServingAr: "2 كوب",
     defaultServingEn: "2 cups",
     defaultGrams: 16,
-    image: img("1578849278319-4d6d4b4e4a4e"),
-    imageAltAr: "فشار",
-    imageAltEn: "Popcorn",
     tags: ["high-fiber", "low-fat", "vegetarian", "vegan", "good-for-cutting", "quick-prep"],
   },
   {
@@ -1120,9 +895,6 @@ export const FOODS: Food[] = [
     defaultServingAr: "1 بار (60g)",
     defaultServingEn: "1 bar (60g)",
     defaultGrams: 60,
-    image: img("1606902965551-dce093cda6e7"),
-    imageAltAr: "بار بروتين",
-    imageAltEn: "Protein bar",
     tags: ["high-protein", "no-cook", "quick-prep", "good-for-bulking"],
   },
   {
@@ -1134,9 +906,6 @@ export const FOODS: Food[] = [
     defaultServingAr: "1/4 كوب",
     defaultServingEn: "1/4 cup",
     defaultGrams: 60,
-    image: img("1571197119282-7c4c4b4e4a4e"),
-    imageAltAr: "حمص متبل",
-    imageAltEn: "Hummus",
     tags: ["high-protein", "high-fiber", "vegetarian", "vegan", "no-cook"],
   },
 
@@ -1150,9 +919,6 @@ export const FOODS: Food[] = [
     defaultServingAr: "1 كوب",
     defaultServingEn: "1 cup",
     defaultGrams: 240,
-    image: img("1559056199-641a0ac8b55e"),
-    imageAltAr: "قهوة سادة",
-    imageAltEn: "Black coffee",
     tags: ["low-carb", "low-fat", "vegetarian", "vegan", "good-for-cutting", "no-cook"],
   },
   {
@@ -1164,9 +930,6 @@ export const FOODS: Food[] = [
     defaultServingAr: "1 كوب",
     defaultServingEn: "1 cup",
     defaultGrams: 240,
-    image: img("1627435601361-ec25f5b1d0e5"),
-    imageAltAr: "شاي أخضر",
-    imageAltEn: "Green tea",
     tags: ["low-carb", "low-fat", "vegetarian", "vegan", "good-for-cutting", "no-cook"],
   },
   {
@@ -1178,9 +941,6 @@ export const FOODS: Food[] = [
     defaultServingAr: "1 كوب",
     defaultServingEn: "1 cup",
     defaultGrams: 248,
-    image: img("1600271886745-f4064d85b8f8b"),
-    imageAltAr: "عصير برتقال",
-    imageAltEn: "Orange juice",
     tags: ["low-fat", "vegetarian", "vegan", "no-cook"],
   },
   {
@@ -1192,9 +952,6 @@ export const FOODS: Food[] = [
     defaultServingAr: "1 كوب",
     defaultServingEn: "1 cup",
     defaultGrams: 240,
-    image: img("1551024506-0bccd828d307"),
-    imageAltAr: "ماء جوز الهند",
-    imageAltEn: "Coconut water",
     tags: ["low-fat", "vegan", "vegetarian", "no-cook"],
   },
   {
@@ -1206,9 +963,6 @@ export const FOODS: Food[] = [
     defaultServingAr: "1 علبة",
     defaultServingEn: "1 can",
     defaultGrams: 355,
-    image: img("1622463746367-5b1c1c0c0c0c"),
-    imageAltAr: "صودا دايت",
-    imageAltEn: "Diet soda",
     tags: ["low-carb", "low-fat", "good-for-cutting", "no-cook"],
   },
 ];

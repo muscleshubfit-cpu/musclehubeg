@@ -1,0 +1,108 @@
+import { NextRequest, NextResponse } from "next/server";
+import { FOODS } from "@/lib/foods";
+
+/**
+ * GET /api/food-search?q=chicken+breast
+ *
+ * Unified food search combining:
+ *   1. Our local food database (FOODS array)
+ *   2. Open Food Facts API (for commercial products with images)
+ *
+ * Returns unified results with consistent format.
+ * Open Food Facts results include product images.
+ */
+
+type SearchResult = {
+  name: string;
+  source: "local" | "openfoodfacts";
+  slug?: string;
+  url?: string;
+  per100g: {
+    calories: number;
+    protein: number;
+    carbs: number;
+    fat: number;
+  };
+  image?: string;
+  brand?: string;
+};
+
+export async function GET(request: NextRequest) {
+  const { searchParams } = new URL(request.url);
+  const query = searchParams.get("q") || "";
+
+  if (!query.trim()) {
+    return NextResponse.json({ results: [] });
+  }
+
+  const q = query.trim().toLowerCase();
+
+  // 1. Search local database
+  const localResults: SearchResult[] = FOODS.filter(
+    (f) =>
+      f.nameAr.toLowerCase().includes(q) ||
+      f.nameEn.toLowerCase().includes(q),
+  )
+    .slice(0, 10)
+    .map((f) => ({
+      name: f.nameEn,
+      source: "local" as const,
+      slug: f.slug,
+      url: `/foods/${f.slug}`,
+      per100g: f.per100g,
+    }));
+
+  // 2. Search Open Food Facts (if query is long enough)
+  let offResults: SearchResult[] = [];
+  if (q.length >= 3) {
+    try {
+      const offUrl = `https://world.openfoodfacts.org/api/v2/search?search_terms=${encodeURIComponent(
+        query,
+      )}&page_size=10&fields=product_name,brands,nutriments,image_front_small_url,code`;
+
+      const offRes = await fetch(offUrl, {
+        signal: AbortSignal.timeout(8000),
+      });
+
+      if (offRes.ok) {
+        const offData = await offRes.json();
+        const products = offData.products || [];
+
+        offResults = products
+          .filter((p: any) => {
+            // Only include products with nutrition data
+            const n = p.nutriments || {};
+            return n["energy-kcal_100g"] || n["proteins_100g"];
+          })
+          .map((p: any) => {
+            const n = p.nutriments || {};
+            return {
+              name: p.product_name || p.code || "Unknown",
+              source: "openfoodfacts" as const,
+              brand: p.brands || undefined,
+              image: p.image_front_small_url || undefined,
+              per100g: {
+                calories: Math.round(n["energy-kcal_100g"] || 0),
+                protein: Math.round((n["proteins_100g"] || 0) * 10) / 10,
+                carbs: Math.round((n["carbohydrates_100g"] || 0) * 10) / 10,
+                fat: Math.round((n["fat_100g"] || 0) * 10) / 10,
+              },
+            };
+          })
+          .slice(0, 10);
+      }
+    } catch (e) {
+      console.error("[api/food-search] Open Food Facts failed:", e);
+    }
+  }
+
+  // 3. Merge results — local first, then Open Food Facts
+  const all = [...localResults, ...offResults];
+
+  return NextResponse.json({
+    results: all,
+    count: all.length,
+    localCount: localResults.length,
+    offCount: offResults.length,
+  });
+}

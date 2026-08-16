@@ -207,16 +207,11 @@ export default function FoodsPage() {
               <a
                 key={food.slug}
                 href={`/foods/${food.slug}`}
-                className="group overflow-hidden rounded-3xl bg-[#f5f5f7] transition-opacity hover:opacity-90"
+                className="group rounded-3xl bg-[#f5f5f7] transition-opacity hover:opacity-90"
               >
-                {/* Image */}
-                <div className="aspect-square w-full overflow-hidden bg-white">
-                  <img
-                    src={food.image}
-                    alt={isAr ? food.imageAltAr : food.imageAltEn}
-                    className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-                    loading="lazy"
-                  />
+                {/* Emoji header instead of image */}
+                <div className="flex aspect-square w-full items-center justify-center bg-white">
+                  <span className="text-5xl">{CATEGORY_LABELS[food.category].emoji}</span>
                 </div>
                 {/* Content */}
                 <div className="p-3">

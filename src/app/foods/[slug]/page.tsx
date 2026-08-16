@@ -96,15 +96,9 @@ export default function FoodDetailPage() {
 
         {/* Header */}
         <div className="mt-6 grid gap-8 md:grid-cols-2">
-          {/* Image */}
-          <div className="overflow-hidden rounded-3xl bg-[#f5f5f7]">
-            <div className="aspect-square w-full">
-              <img
-                src={food.image}
-                alt={isAr ? food.imageAltAr : food.imageAltEn}
-                className="h-full w-full object-cover"
-              />
-            </div>
+          {/* Emoji header instead of image */}
+          <div className="flex aspect-square w-full items-center justify-center rounded-3xl bg-[#f5f5f7]">
+            <span className="text-8xl">{CATEGORY_LABELS[food.category].emoji}</span>
           </div>
 
           {/* Info */}
@@ -399,15 +393,10 @@ export default function FoodDetailPage() {
                 <a
                   key={rel.slug}
                   href={`/foods/${rel.slug}`}
-                  className="group overflow-hidden rounded-2xl bg-[#f5f5f7] transition-opacity hover:opacity-90"
+                  className="group rounded-2xl bg-[#f5f5f7] transition-opacity hover:opacity-90"
                 >
-                  <div className="aspect-square w-full overflow-hidden">
-                    <img
-                      src={rel.image}
-                      alt={isAr ? rel.imageAltAr : rel.imageAltEn}
-                      className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-                      loading="lazy"
-                    />
+                  <div className="flex aspect-square w-full items-center justify-center">
+                    <span className="text-4xl">{CATEGORY_LABELS[rel.category].emoji}</span>
                   </div>
                   <div className="p-3">
                     <p className="text-sm font-semibold">{isAr ? rel.nameAr : rel.nameEn}</p>
