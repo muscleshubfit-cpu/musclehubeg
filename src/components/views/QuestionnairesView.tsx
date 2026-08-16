@@ -80,8 +80,12 @@ export function QuestionnairesView() {
     }
   };
 
-  // Save nutrition as draft and move to fitness step
+  // Save nutrition as draft and move to fitness step (with validation)
   const goToFitness = async () => {
+    if (!validateNutrition()) {
+      toast.error(t("q.fillBasicInfo"));
+      return;
+    }
     const row = await saveQuestionnaire("nutrition", "draft");
     if (row) {
       toast.success(t("q.nutritionSaved"));
@@ -168,35 +172,54 @@ export function QuestionnairesView() {
   };
 
   // ---- Field definitions ----
+  // required: true = must fill before "Next" / "Submit"
+  // required: false = optional (measurements, photos, notes)
   const nutritionFields = [
-    { key: "gender", label: t("q.n.gender"), type: "gender" as const },
-    { key: "age", label: t("q.n.age"), type: "number" as const },
-    { key: "height", label: t("q.n.height"), type: "number" as const },
-    { key: "weight", label: t("q.n.weight"), type: "number" as const },
-    { key: "target_weight", label: t("q.n.target"), type: "number" as const },
-    { key: "waist", label: t("q.n.waist"), type: "number" as const },
-    { key: "neck", label: t("q.n.neck"), type: "number" as const },
-    { key: "hip", label: t("q.n.hip"), type: "number" as const },
-    { key: "diet", label: t("q.n.diet"), placeholder: t("q.n.diet.ph"), type: "text" as const },
-    { key: "allergies", label: t("q.n.allergies"), type: "text" as const },
-    { key: "disliked", label: t("q.n.disliked"), type: "text" as const },
-    { key: "meals", label: t("q.n.meals"), type: "number" as const },
-    { key: "water", label: t("q.n.water"), type: "number" as const },
-    { key: "medical", label: t("q.n.medical"), type: "text" as const },
-    { key: "supplements", label: t("q.n.supplements"), type: "text" as const },
+    { key: "gender", label: t("q.n.gender"), type: "gender" as const, required: true },
+    { key: "age", label: t("q.n.age"), type: "number" as const, required: true },
+    { key: "height", label: t("q.n.height"), type: "number" as const, required: true },
+    { key: "weight", label: t("q.n.weight"), type: "number" as const, required: true },
+    { key: "target_weight", label: t("q.n.target"), type: "number" as const, required: true },
+    { key: "waist", label: t("q.n.waist"), type: "number" as const, required: false },
+    { key: "neck", label: t("q.n.neck"), type: "number" as const, required: false },
+    { key: "hip", label: t("q.n.hip"), type: "number" as const, required: false },
+    { key: "diet", label: t("q.n.diet"), placeholder: t("q.n.diet.ph"), type: "text" as const, required: false },
+    { key: "allergies", label: t("q.n.allergies"), type: "text" as const, required: false },
+    { key: "disliked", label: t("q.n.disliked"), type: "text" as const, required: false },
+    { key: "meals", label: t("q.n.meals"), type: "number" as const, required: false },
+    { key: "water", label: t("q.n.water"), type: "number" as const, required: false },
+    { key: "medical", label: t("q.n.medical"), type: "text" as const, required: false },
+    { key: "supplements", label: t("q.n.supplements"), type: "text" as const, required: false },
   ];
 
   const fitnessFields = [
-    { key: "goal", label: t("q.f.goal"), placeholder: t("q.f.goal.ph"), type: "text" as const },
-    { key: "activity", label: t("q.f.activity"), type: "select" as const, options: ACTIVITY_OPTIONS, optionPrefix: "q.f.activity." as const },
-    { key: "days", label: t("q.f.days"), type: "number" as const },
-    { key: "location", label: t("q.f.location"), placeholder: t("q.f.location.ph"), type: "text" as const },
-    { key: "experience", label: t("q.f.experience"), type: "text" as const },
-    { key: "injuries", label: t("q.f.injuries"), type: "text" as const },
-    { key: "preferred", label: t("q.f.preferred"), type: "text" as const },
-    { key: "equipment", label: t("q.f.equipment"), type: "text" as const },
-    { key: "sleep", label: t("q.f.sleep"), type: "number" as const },
+    { key: "goal", label: t("q.f.goal"), placeholder: t("q.f.goal.ph"), type: "text" as const, required: true },
+    { key: "activity", label: t("q.f.activity"), type: "select" as const, options: ACTIVITY_OPTIONS, optionPrefix: "q.f.activity." as const, required: true },
+    { key: "days", label: t("q.f.days"), type: "number" as const, required: true },
+    { key: "location", label: t("q.f.location"), placeholder: t("q.f.location.ph"), type: "text" as const, required: false },
+    { key: "experience", label: t("q.f.experience"), type: "text" as const, required: false },
+    { key: "injuries", label: t("q.f.injuries"), type: "text" as const, required: false },
+    { key: "preferred", label: t("q.f.preferred"), type: "text" as const, required: false },
+    { key: "equipment", label: t("q.f.equipment"), type: "text" as const, required: false },
+    { key: "sleep", label: t("q.f.sleep"), type: "number" as const, required: false },
   ];
+
+  // Validation: check required fields are filled
+  const validateNutrition = (): boolean => {
+    if (!nutritionForm.gender) return false;
+    if (!nutritionForm.age) return false;
+    if (!nutritionForm.height) return false;
+    if (!nutritionForm.weight) return false;
+    if (!nutritionForm.target_weight) return false;
+    return true;
+  };
+
+  const validateFitness = (): boolean => {
+    if (!fitnessForm.goal) return false;
+    if (!fitnessForm.activity) return false;
+    if (!fitnessForm.days) return false;
+    return true;
+  };
 
   const renderField = (
     f: typeof nutritionFields[number],
@@ -204,10 +227,26 @@ export function QuestionnairesView() {
     setForm: (updater: (prev: Record<string, any>) => Record<string, any>) => void,
     locked: boolean,
   ) => {
+    // Label with required/optional badge
+    const fieldLabel = (
+      <div className="flex items-center gap-2">
+        <Label htmlFor={f.key}>{f.label}</Label>
+        {f.required ? (
+          <span className="rounded-full bg-[#ff3b30]/10 px-1.5 py-0.5 text-[10px] font-medium text-[#ff3b30]">
+            {t("q.required")}
+          </span>
+        ) : (
+          <span className="rounded-full bg-[#6e6e73]/10 px-1.5 py-0.5 text-[10px] font-medium text-[#6e6e73]">
+            {t("q.optional")}
+          </span>
+        )}
+      </div>
+    );
+
     if (f.type === "gender") {
       return (
         <div key={f.key}>
-          <Label htmlFor={f.key}>{f.label}</Label>
+          {fieldLabel}
           <div className="mt-1.5 grid grid-cols-2 gap-2">
             <button
               type="button"
@@ -244,7 +283,7 @@ export function QuestionnairesView() {
     if (f.type === "select" && f.options) {
       return (
         <div key={f.key} className="sm:col-span-2">
-          <Label htmlFor={f.key}>{f.label}</Label>
+          {fieldLabel}
           <select
             id={f.key}
             disabled={locked}
@@ -264,7 +303,7 @@ export function QuestionnairesView() {
     }
     return (
       <div key={f.key}>
-        <Label htmlFor={f.key}>{f.label}</Label>
+        {fieldLabel}
         <Input
           id={f.key}
           type={f.type === "number" ? "number" : "text"}
@@ -515,6 +554,10 @@ export function QuestionnairesView() {
               </button>
               <button
                 onClick={() => {
+                  if (!validateFitness()) {
+                    toast.error(t("q.fillFitnessBasic"));
+                    return;
+                  }
                   saveQuestionnaire("fitness", "draft").then((row) => {
                     if (row) {
                       setStep(3);
