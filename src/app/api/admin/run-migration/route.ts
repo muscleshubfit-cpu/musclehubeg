@@ -68,10 +68,19 @@ create policy "Coaches can delete tool leads"
 };
 
 export async function POST(request: NextRequest) {
-  // Coach-only
-  if (isAuthConfigured) {
+  // Auth: coach session OR a temporary admin secret (for one-shot migrations
+  // when we don't have a logged-in coach browser session handy).
+  // The admin secret is read from ADMIN_MIGRATION_SECRET env var (server-only).
+  const adminSecret = process.env.ADMIN_MIGRATION_SECRET;
+  const providedSecret = request.headers.get("x-admin-secret") || "";
+
+  if (adminSecret && providedSecret && adminSecret === providedSecret) {
+    // Authenticated via admin secret — skip coach check
+  } else if (isAuthConfigured) {
     const auth = await requireCoach(request);
     if (auth instanceof Response) return auth;
+  } else {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const body = await request.json().catch(() => ({}));
