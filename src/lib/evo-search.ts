@@ -82,6 +82,7 @@ const TOOLS = [
 
 /**
  * Normalize text for search — remove diacritics, lowercase, trim.
+ * Also removes common question words (stop words) that don't help with matching.
  */
 function normalize(text: string): string {
   return text
@@ -93,8 +94,13 @@ function normalize(text: string): string {
     .replace(/[إأآ]/g, "ا")
     // Remove taa marbuta
     .replace(/ة/g, "ه")
+    // Remove Arabic question marks
+    .replace(/[؟?]/g, " ")
+    // Remove common Arabic question/filler words (stop words)
+    .replace(/\b(ازاي|إزاي|كيف|how|to|do|what|is|the|a|an|في|من|عن|علي|على|ان|إن|و|او|أو|لا|ما|متى|مين|مين|ليه|لماذا|هل|فيه|فيه|عايز|عايده|عاوزه|محتاج|محتاجه|عندي|عندك|كم|كام|اد\nايه|ايه|إيه|شنو|شنو|ايش|إيش|وش|اللي|الى|التي|الذي|بس|برضه|كمان|كده|دا|ده|دي|كده|اكتر|اكثر|شوي|شوية|جد|جدا|قوي|نفس|زي|يبقى|يبقي|كانه|كان|يكون|تكون|يقدر|تقدر|اعمل|اعمل|اعرف|نعمل|تعال|تعالي|قول|قولي|ممكن|يقدر|تقدر|سؤال|سوال|معلومة|معلومه|استفسار)\b/g, " ")
     // Collapse spaces
-    .replace(/\s+/g, " ");
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 /**
