@@ -85,11 +85,11 @@ export function EvoFloatingWidget() {
             <img
               src="/images/evo-standalone.jpg"
               alt="EVO"
-              className="h-14 w-14 rounded-full object-cover ring-2 ring-white/40"
+              className="h-9 w-9 rounded-full object-cover ring-2 ring-white/40"
             />
             <span className="absolute inset-0 animate-ping rounded-full bg-[#0071e3] opacity-20" />
             {/* Online indicator */}
-            <span className="absolute bottom-1 end-1 h-3.5 w-3.5 rounded-full bg-[#34c759] ring-2 ring-white" />
+            <span className="absolute bottom-0 end-0 h-2.5 w-2.5 rounded-full bg-[#34c759] ring-1.5 ring-white" />
           </span>
         </button>
       )}

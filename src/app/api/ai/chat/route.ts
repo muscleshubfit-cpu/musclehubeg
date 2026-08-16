@@ -55,22 +55,33 @@ export async function POST(request: NextRequest) {
     const platformResults = searchPlatform(message);
     const foodNutrition = isNutritionQuery(message) ? getFoodNutrition(message) : null;
 
-    // 3. Search the blog (if Supabase is configured)
-    const blogResults = await searchBlog(message);
+    // 3. Only search the blog if the platform search didn't find high-relevance results
+    //    This prevents EVO from returning blog links instead of the actual exercise/food page
+    const hasHighRelevancePlatformResult = platformResults.some((r) => r.relevance >= 0.6);
+    const blogResults = hasHighRelevancePlatformResult
+      ? [] // Skip blog search — we already found a specific platform page
+      : await searchBlog(message);
 
-    // 4. Build links from search results
+    // 4. Build links from search results — platform results FIRST, blog SECOND
     const links: Array<{ label: string; url: string }> = [];
-    for (const result of platformResults.slice(0, 3)) {
+
+    // Platform links (exercises, foods, programs, tools) — only high relevance
+    const highRelevancePlatform = platformResults.filter((r) => r.relevance >= 0.5);
+    for (const result of highRelevancePlatform.slice(0, 3)) {
       links.push({
         label: `${result.nameAr} — ${result.description}`,
         url: result.url,
       });
     }
-    for (const blog of blogResults.slice(0, 2)) {
-      links.push({
-        label: `📖 ${blog.title}`,
-        url: blog.url,
-      });
+
+    // Blog links — only if no high-relevance platform results
+    if (highRelevancePlatform.length === 0) {
+      for (const blog of blogResults.slice(0, 2)) {
+        links.push({
+          label: `📖 ${blog.title}`,
+          url: blog.url,
+        });
+      }
     }
 
     // 5. Build context for the AI
@@ -309,8 +320,9 @@ function buildSystemPrompt(
 القواعد المهمة جداً:
 - أجب بالعربية إذا كان السؤال بالعربية، وبالإنجليزية إذا كان بالإنجليزية.
 - كن مختصراً جداً (3-5 أسطر كحد أقصى).
-- لو السؤال عن تمرين/أكل/برنامج/أداة موجود في نتائج البحث أعلاه، اذكر اسمه وإجابة مختصرة.
-- لو في مقالات في المدونة بيتكلموا عن الموضوع، اذكرها.
+- لو السؤال عن تمرين/أكل/برنامج/أداة موجود في نتائج البحث، اذكر اسمه وإجابة مختصرة.
+- لو السؤال عن تمرين محدد (مثل: إزاي أعمل بنش بريس) ونتائج البحث فيها التمرين، قول خطوات مختصرة + قول "شوف التفاصيل في الرابط تحت".
+- متذكرش مقالات المدونة إلا لو مفيش نتائج بحث في المنصة (تمارين/أكلات/برامج).
 - لو مفيش نتائج بحث مطابقة للسؤال، متقولش "شوف الرابط تحت" — قول إجابتك العامة بس.
 - متقولش "الرابط تحت" إلا لو فعلاً في نتائج بحث.
 - لو المستخدم مشترك، استخدم بياناته الشخصية.

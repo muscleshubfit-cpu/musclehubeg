@@ -460,14 +460,21 @@ function repairTruncatedJSON(s: string): string {
  * Free OpenRouter models tried in order by the chat / swap / research-topic
  * routes. Centralized here so we don't have three copies drifting apart.
  *
- * Order: fastest first. gemma-4-26b-a4b-it is non-reasoning (clean content,
- * no reasoning_details wrapper) so it's preferred for short replies and JSON.
+ * Order: LARGEST and SMARTEST first. We want the best quality answers,
+ * not just the fastest. These are the best free models available:
+ *   1. nvidia/nemotron-3-ultra-550b (550B params, 1M context — best quality)
+ *   2. nvidia/nemotron-3.5-lightning (1M context, fast + smart)
+ *   3. nvidia/nemotron-3-super-120b (120B params, 262K context)
+ *   4. google/gemma-4-31b (31B, 262K, multimodal)
+ *   5. google/gemma-4-26b (26B, 262K, multimodal — clean output)
+ *   6. openai/gpt-oss-20b (20B, 131K — fallback)
  */
 export const FREE_OPENROUTER_MODELS = [
- "google/gemma-4-26b-a4b-it:free",
- "google/gemma-4-31b-it:free",
- "nvidia/nemotron-3-super-49b-a4b-it:free",
  "nvidia/nemotron-3-ultra-550b-a55b:free",
+ "nvidia/nemotron-3.5-lightning:free",
+ "nvidia/nemotron-3-super-120b-a12b:free",
+ "google/gemma-4-31b-it:free",
+ "google/gemma-4-26b-a4b-it:free",
  "openai/gpt-oss-20b:free",
 ];
 
