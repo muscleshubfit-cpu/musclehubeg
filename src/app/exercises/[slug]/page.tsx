@@ -99,26 +99,40 @@ export default function ExerciseDetailPage() {
 
         {/* Header */}
         <div className="mt-6 grid gap-8 md:grid-cols-2">
-          {/* Image */}
+          {/* Images — show both (start + end position) */}
           <div className="overflow-hidden rounded-3xl bg-[#f5f5f7]">
-            <div className="aspect-square w-full">
-              {imgUrl ? (
-                <img
-                  src={imgUrl}
-                  alt={isAr ? exercise.nameAr : exercise.nameEn}
-                  className="h-full w-full object-contain"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).src = getFallbackSVG(exercise.category);
-                  }}
-                />
+            <div className="grid grid-cols-2 gap-1">
+              {imgUrls.length > 0 ? (
+                imgUrls.map((url, idx) => (
+                  <div key={idx} className="aspect-square w-full">
+                    <img
+                      src={url}
+                      alt={`${isAr ? exercise.nameAr : exercise.nameEn} — ${idx === 0 ? (isAr ? "البداية" : "Start") : (isAr ? "النهاية" : "End")}`}
+                      className="h-full w-full object-contain"
+                      loading="lazy"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = getFallbackSVG(exercise.category);
+                      }}
+                    />
+                  </div>
+                ))
               ) : (
-                <img
-                  src={getFallbackSVG(exercise.category)}
-                  alt={isAr ? exercise.nameAr : exercise.nameEn}
-                  className="h-full w-full object-contain"
-                />
+                <div className="col-span-2 aspect-square w-full">
+                  <img
+                    src={getFallbackSVG(exercise.category)}
+                    alt={isAr ? exercise.nameAr : exercise.nameEn}
+                    className="h-full w-full object-contain"
+                  />
+                </div>
               )}
             </div>
+            {/* Labels under images */}
+            {imgUrls.length > 1 && (
+              <div className="grid grid-cols-2 gap-1 px-2 pb-2 pt-1">
+                <p className="text-center text-[10px] font-normal text-[#6e6e73]">{isAr ? "البداية" : "Start"}</p>
+                <p className="text-center text-[10px] font-normal text-[#6e6e73]">{isAr ? "النهاية" : "End"}</p>
+              </div>
+            )}
           </div>
 
           {/* Info */}

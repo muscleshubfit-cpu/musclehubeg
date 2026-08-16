@@ -166,25 +166,29 @@ export default function ExercisesPage() {
           <div className="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {filtered.map((exercise) => {
               const imgUrls = getExerciseImages(exercise.imageKey);
-              const imgUrl = imgUrls[0] || null;
               return (
                 <a
                   key={exercise.slug}
                   href={`/exercises/${exercise.slug}`}
                   className="group overflow-hidden rounded-3xl bg-[#f5f5f7] transition-opacity hover:opacity-90"
                 >
-                  {/* Image */}
+                  {/* Images — show both side by side */}
                   <div className="aspect-[4/3] w-full overflow-hidden bg-white">
-                    {imgUrl ? (
-                      <img
-                        src={imgUrl}
-                        alt={isAr ? exercise.nameAr : exercise.nameEn}
-                        className="h-full w-full object-contain"
-                        loading="lazy"
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).src = getFallbackSVG(exercise.category);
-                        }}
-                      />
+                    {imgUrls.length > 0 ? (
+                      <div className="grid h-full grid-cols-2 gap-0.5">
+                        {imgUrls.slice(0, 2).map((url, idx) => (
+                          <img
+                            key={idx}
+                            src={url}
+                            alt={`${isAr ? exercise.nameAr : exercise.nameEn} ${idx + 1}`}
+                            className="h-full w-full object-contain"
+                            loading="lazy"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).src = getFallbackSVG(exercise.category);
+                            }}
+                          />
+                        ))}
+                      </div>
                     ) : (
                       <img
                         src={getFallbackSVG(exercise.category)}

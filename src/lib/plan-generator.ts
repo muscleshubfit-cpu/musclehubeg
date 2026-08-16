@@ -27,6 +27,7 @@ import {
  generateWorkoutPlan,
  type ClientContext,
 } from "@/lib/ai-local";
+import { EXERCISES } from "@/lib/exercises";
 
 // OpenRouter's best available free models, ordered by preference.
 // We try them in order — the first that returns valid JSON wins.
@@ -35,12 +36,12 @@ import {
 // explicit OpenRouter override so plans always go through OpenRouter
 // regardless of what's set in AI Settings.)
 const OPENROUTER_FREE_MODELS = [
- "google/gemma-4-26b-a4b-it:free", // 262K, FASTEST, non-reasoning
- "google/gemma-4-31b-it:free", // 262K, non-reasoning
+ "nvidia/nemotron-3-ultra-550b-a55b:free", // 1M context, BEST quality
+ "nvidia/nemotron-3.5-lightning:free", // 1M context, fast + smart
  "nvidia/nemotron-3-super-120b-a12b:free", // 262K
- "nvidia/nemotron-3-ultra-550b-a55b:free", // 1M context, SLOWEST
+ "google/gemma-4-31b-it:free", // 262K
+ "google/gemma-4-26b-a4b-it:free", // 262K, non-reasoning
  "openai/gpt-oss-20b:free", // 131K, reasoning
- "poolside/laguna-s-2.1:free", // 262K
 ];
 
 // OpenRouter API key (from env). We read it directly so plans always use
@@ -123,6 +124,7 @@ export type WorkoutPlanContent = {
  rest: string;
  notes: string;
  image?: string;
+ exerciseSlug?: string; // links to our exercise library
  }>;
  }>;
  // New optional fields for the richer format
@@ -682,16 +684,88 @@ function normalizeWorkoutPlan(plan: any): WorkoutPlanContent {
  day: d.day || "",
  focus: d.focus || "",
  isRest: !!d.isRest,
- exercises: (d.exercises || []).map((ex: any) => ({
- name: ex.name || "",
+ exercises: (d.exercises || []).map((ex: any) => {
+ const name = ex.name || "";
+ const matched = findExerciseInLibrary(name);
+ return {
+ name: matched ? matched.nameEn : name,
  sets: typeof ex.sets === "number" ? ex.sets : parseInt(ex.sets) || 0,
  reps: ex.reps || "",
  rest: ex.rest || "",
  notes: ex.notes || "",
- image: ex.image,
- })),
+ image: matched ? getExerciseImageFromLibrary(matched) : ex.image,
+ exerciseSlug: matched ? matched.slug : undefined,
+ };
+ }),
  })),
  };
+}
+
+/**
+ * Find an exercise in our library by name (fuzzy match).
+ * The AI generates Arabic or English exercise names — we try to match them
+ * to our 547-exercise library.
+ */
+function findExerciseInLibrary(name: string): any | null {
+ if (!name) return null;
+ const q = name.toLowerCase().trim();
+
+ // Direct name match
+ let match = EXERCISES.find((e) => e.nameEn.toLowerCase() === q);
+ if (match) return match;
+
+ // Partial name match
+ match = EXERCISES.find(
+ (e) => e.nameEn.toLowerCase().includes(q) || q.includes(e.nameEn.toLowerCase()),
+ );
+ if (match) return match;
+
+ // Arabic keyword matching
+ const arabicMap: Array<{ keywords: string[]; enName: string }> = [
+ { keywords: ["بنش بريس", "bench press"], enName: "Bench Press" },
+ { keywords: ["سكوات", "squat"], enName: "Barbell Squat" },
+ { keywords: ["ديدليفت", "deadlift"], enName: "Deadlift" },
+ { keywords: ["عقلة", "pull-up", "pull up"], enName: "Pull-Up" },
+ { keywords: ["ضغط أرضي", "push-up", "push up"], enName: "Push-Up" },
+ { keywords: ["بلانك", "plank"], enName: "Plank" },
+ { keywords: ["كرنش", "crunch"], enName: "Crunches" },
+ { keywords: ["لانجز", "lunge"], enName: "Lunges" },
+ { keywords: ["بايسبس", "bicep", "curl"], enName: "Dumbbell Bicep Curl" },
+ { keywords: ["ترايسبس", "tricep", "pushdown"], enName: "Triceps Pushdown" },
+ { keywords: ["كتف", "shoulder", "press"], enName: "Dumbbell Shoulder Press" },
+ { keywords: ["تجديف", "row"], enName: "Bent Over Row" },
+ { keywords: ["هيب ثرست", "hip thrust"], enName: "Barbell Hip Thrust" },
+ { keywords: ["كاف", "calf"], enName: "Standing Calf Raises" },
+ { keywords: ["ليج بريس", "leg press"], enName: "Leg Press" },
+ { keywords: ["ليج كيرل", "leg curl"], enName: "Lying Leg Curls" },
+ { keywords: ["ليج اكستنشن", "leg extension"], enName: "Leg Extensions" },
+ ];
+
+ for (const { keywords, enName } of arabicMap) {
+ for (const kw of keywords) {
+ if (q.includes(kw.toLowerCase())) {
+ match = EXERCISES.find((e) => e.nameEn === enName);
+ if (match) return match;
+ // Fuzzy: find any exercise whose name contains the English keyword
+ match = EXERCISES.find((e) =>
+ e.nameEn.toLowerCase().includes(kw.toLowerCase()),
+ );
+ if (match) return match;
+ }
+ }
+ }
+
+ return null;
+}
+
+/**
+ * Get the first image URL from an exercise in our library.
+ */
+function getExerciseImageFromLibrary(exercise: any): string | undefined {
+ if (!exercise || !exercise.imageKey) return undefined;
+ const images = exercise.imageKey.split(",").filter(Boolean);
+ if (images.length === 0) return undefined;
+ return `https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/${images[0].trim()}`;
 }
 
 /* ----------------- Coach-pasted plan normalizer ----------------- */

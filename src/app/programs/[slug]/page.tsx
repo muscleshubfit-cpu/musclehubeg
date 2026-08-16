@@ -201,50 +201,48 @@ export default function ProgramDetailPage() {
                       // Try to find the exercise in our DB to get its image
                       const exerciseData = EXERCISES.find((e) => e.slug === ex.exerciseSlug);
                       const imgUrls = exerciseData ? getExerciseImages(exerciseData.imageKey) : [];
-                      const imgUrl = imgUrls[0] || null;
                       return (
                         <a
                           key={i}
                           href={`/exercises/${ex.exerciseSlug}`}
-                          className="flex items-center gap-3 rounded-2xl bg-white p-3 transition-colors hover:bg-[#fafafa]"
+                          className="block overflow-hidden rounded-2xl bg-white transition-colors hover:bg-[#fafafa]"
                         >
-                          {/* Exercise image */}
-                          <div className="h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-[#f5f5f7]">
-                            {imgUrl ? (
-                              <img
-                                src={imgUrl}
-                                alt={isAr ? ex.nameAr : ex.nameEn}
-                                className="h-full w-full object-contain"
-                                loading="lazy"
-                                onError={(e) => {
-                                  (e.target as HTMLImageElement).src = getFallbackSVG(exerciseData?.category || "default");
-                                }}
-                              />
-                            ) : (
-                              <img
-                                src={getFallbackSVG(exerciseData?.category || "default")}
-                                alt={isAr ? ex.nameAr : ex.nameEn}
-                                className="h-full w-full object-contain"
-                              />
-                            )}
-                          </div>
-                          {/* Exercise info */}
-                          <div className="min-w-0 flex-1">
-                            <p className="truncate text-sm font-medium">
-                              {isAr ? ex.nameAr : ex.nameEn}
-                            </p>
-                            <p className="mt-0.5 text-xs font-normal text-[#6e6e73]">
-                              {ex.sets} × {ex.reps}
-                            </p>
-                          </div>
-                          {/* Rest */}
-                          <div className="shrink-0 text-end">
-                            <p className="text-xs font-normal text-[#6e6e73]">
-                              {isAr ? "راحة" : "Rest"}
-                            </p>
-                            <p className="text-xs font-medium" dir="ltr">
-                              {isAr ? ex.restAr : ex.restEn}
-                            </p>
+                          {/* Exercise image — ABOVE the text, full width */}
+                          {imgUrls.length > 0 && (
+                            <div className="flex h-24 w-full items-center justify-center gap-1 bg-[#f5f5f7]">
+                              {imgUrls.slice(0, 2).map((url, idx) => (
+                                <img
+                                  key={idx}
+                                  src={url}
+                                  alt={`${isAr ? ex.nameAr : ex.nameEn} ${idx + 1}`}
+                                  className="h-full w-1/2 object-contain"
+                                  loading="lazy"
+                                  onError={(e) => {
+                                    (e.target as HTMLImageElement).src = getFallbackSVG(exerciseData?.category || "default");
+                                  }}
+                                />
+                              ))}
+                            </div>
+                          )}
+                          {/* Exercise info — below the image */}
+                          <div className="flex items-center justify-between gap-3 p-3">
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate text-sm font-medium">
+                                {isAr ? ex.nameAr : ex.nameEn}
+                              </p>
+                              <p className="mt-0.5 text-xs font-normal text-[#6e6e73]">
+                                {ex.sets} × {ex.reps}
+                              </p>
+                            </div>
+                            {/* Rest */}
+                            <div className="shrink-0 text-end">
+                              <p className="text-xs font-normal text-[#6e6e73]">
+                                {isAr ? "راحة" : "Rest"}
+                              </p>
+                              <p className="text-xs font-medium" dir="ltr">
+                                {isAr ? ex.restAr : ex.restEn}
+                              </p>
+                            </div>
                           </div>
                         </a>
                       );
