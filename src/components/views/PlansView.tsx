@@ -9,7 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { listPlans, getPlanFileUrl, recordSwap, getSwapUsage } from "@/lib/data";
-import { resolveExerciseImage, getExerciseImage } from "@/lib/exercise-images";
+import { resolveExerciseImage, getExerciseImage, getExerciseImages } from "@/lib/exercise-images";
+import { EXERCISES } from "@/lib/exercises";
 import { toast } from "sonner";
 
 export function PlansView() {
@@ -629,23 +630,39 @@ function WorkoutContent({ content, onSwap, swapLoading, planId }: any) {
  </tr>
  </thead>
  <tbody>
- {d.exercises?.map((ex: any, j: number) => (
+ {d.exercises?.map((ex: any, j: number) => {
+ // Find exercise in library to get both images
+ const exLib = EXERCISES.find((e) => e.slug === ex.exerciseSlug || e.nameEn === ex.name);
+ const exImages = exLib ? getExerciseImages(exLib.imageKey) : (ex.image ? [ex.image] : []);
+ const exHref = ex.exerciseSlug ? `/exercises/${ex.exerciseSlug}` : null;
+ return (
  <tr key={j} className="border-t border-border/60">
  <td className="p-2">
- <div className="flex items-center gap-3">
+ {/* Two images ABOVE the text */}
+ {exImages.length > 0 && (
+ <div className="mb-2 flex gap-1">
+ {exImages.slice(0, 2).map((url: string, idx: number) => (
  <img
- src={resolveExerciseImage(ex.image, ex.name)}
- alt={ex.name}
- className="h-14 w-20 shrink-0 rounded-lg object-cover border border-border bg-card"
+ key={idx}
+ src={url}
+ alt={`${ex.name} ${idx + 1}`}
+ className="h-20 w-20 rounded-lg object-contain border border-border bg-card"
  loading="lazy"
  onError={(e) => {
  (e.target as HTMLImageElement).src = getExerciseImage(ex.name);
  }}
  />
- <div>
- <p className="font-medium">{ex.name}</p>
- {ex.notes && <p className="text-xs text-muted-foreground">{ex.notes}</p>}
+ ))}
  </div>
+ )}
+ {/* Text below images */}
+ <div>
+ <p className="font-medium">
+ {exHref ? (
+ <a href={exHref} className="text-primary hover:underline">{ex.name}</a>
+ ) : ex.name}
+ </p>
+ {ex.notes && <p className="text-xs text-muted-foreground">{ex.notes}</p>}
  </div>
  </td>
  <td className="p-2">{ex.sets}</td>
@@ -667,7 +684,8 @@ function WorkoutContent({ content, onSwap, swapLoading, planId }: any) {
  </Button>
  </td>
  </tr>
- ))}
+ );
+ })}
  </tbody>
  </table>
  </div>

@@ -321,14 +321,15 @@ function buildSystemPrompt(
 - أجب بالعربية إذا كان السؤال بالعربية، وبالإنجليزية إذا كان بالإنجليزية.
 - كن مختصراً جداً (3-5 أسطر كحد أقصى).
 - لو السؤال عن تمرين/أكل/برنامج/أداة موجود في نتائج البحث، اذكر اسمه وإجابة مختصرة.
-- لو السؤال عن تمرين محدد (مثل: إزاي أعمل بنش بريس) ونتائج البحث فيها التمرين، قول خطوات مختصرة + قول "شوف التفاصيل في الرابط تحت".
-- متذكرش مقالات المدونة إلا لو مفيش نتائج بحث في المنصة (تمارين/أكلات/برامج).
-- لو مفيش نتائج بحث مطابقة للسؤال، متقولش "شوف الرابط تحت" — قول إجابتك العامة بس.
-- متقولش "الرابط تحت" إلا لو فعلاً في نتائج بحث.
+- لو السؤال عن تمرين محدد ونتائج البحث فيها التمرين، قول خطوات مختصرة.
+- متذكرش مقالات المدونة إلا لو مفيش نتائج بحث في المنصة.
+- متكتبش روابط أو مسارات (مثل /foods/ أو /exercises/) في النص — الروابط بتظهر تلقائياً تحت الرد.
+- متقولش "شوف الرابط تحت" أو "التفاصيل في الرابط" — الروابط بتظهر لوحدها.
+- لو مفيش نتائج بحث مطابقة، قول إجابتك العامة بس بدون أي ذكر للروابط.
 - لو المستخدم مشترك، استخدم بياناته الشخصية.
 - لا تخترع أرقام غير موجودة في نتائج البحث.
 - لا تقدم نصائح طبية.
-- للأسئلة العامة (مش مرتبطة بالمنصة)، ارد بمعرفة عامة رياضية وتغذوية بدون ذكر روابط.`;
+- للأسئلة العامة، ارد بمعرفة عامة رياضية وتغذوية بدون ذكر روابط.`;
 }
 
 /**
@@ -344,13 +345,11 @@ function generateLocalReply(
 ): string {
   // If we found food nutrition info (exact match)
   if (foodNutrition) {
-    return `${foodNutrition.nameAr} (${foodNutrition.nameEn}) فيه:
-• ${foodNutrition.per100g.calories} سعرة حرارية لكل 100g
-• ${foodNutrition.per100g.protein}g بروتين
-• ${foodNutrition.per100g.carbs}g كارب
-• ${foodNutrition.per100g.fat}g دهون
-
-شوف التفاصيل والجرامات في الرابط تحت 👇`;
+    return `${foodNutrition.nameAr} (${foodNutrition.nameEn}):
+• ${foodNutrition.per100g.calories} kcal per 100g
+• ${foodNutrition.per100g.protein}g protein
+• ${foodNutrition.per100g.carbs}g carbs
+• ${foodNutrition.per100g.fat}g fat`;
   }
 
   // Only use platform results if they're HIGH relevance (above 0.6)
@@ -360,22 +359,19 @@ function generateLocalReply(
   const exercises = highRelevanceResults.filter((r) => r.type === "exercise");
   if (exercises.length > 0 && isExerciseQuery(message)) {
     const ex = exercises[0];
-    return `${ex.nameAr} (${ex.nameEn}) تمرين لـ ${ex.description}.
-شوف خطوات التنفيذ والنصائح في الرابط تحت 👇`;
+    return `${ex.nameAr} (${ex.nameEn}) — ${ex.description}.`;
   }
 
   // If we found programs with high relevance
   const programs = highRelevanceResults.filter((r) => r.type === "program");
   if (programs.length > 0 && isProgramQuery(message)) {
     const prog = programs[0];
-    return `${prog.nameAr} — ${prog.description}.
-شوف الجدول الأسبوعي كامل في الرابط تحت 👇`;
+    return `${prog.nameAr} — ${prog.description}.`;
   }
 
   // If we found blog articles
   if (blogResults.length > 0) {
-    return `كتبنا مقال عن ده: "${blogResults[0].title}".
-شوف الرابط تحت للمقال كامل 👇`;
+    return `We wrote about this: "${blogResults[0].title}".`;
   }
 
   // Generic fallback — DON'T mention links if there are none
