@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
 
     // 3. Only search the blog if the platform search didn't find high-relevance results
     //    This prevents EVO from returning blog links instead of the actual exercise/food page
-    const hasHighRelevancePlatformResult = platformResults.some((r) => r.relevance >= 0.6);
+    const hasHighRelevancePlatformResult = platformResults.some((r) => r.relevance >= 0.4);
     const blogResults = hasHighRelevancePlatformResult
       ? [] // Skip blog search — we already found a specific platform page
       : await searchBlog(message);
@@ -65,8 +65,8 @@ export async function POST(request: NextRequest) {
     // 4. Build links from search results — platform results FIRST, blog SECOND
     const links: Array<{ label: string; url: string }> = [];
 
-    // Platform links (exercises, foods, programs, tools) — only high relevance
-    const highRelevancePlatform = platformResults.filter((r) => r.relevance >= 0.5);
+    // Platform links (exercises, foods, programs, tools) — only relevant results
+    const highRelevancePlatform = platformResults.filter((r) => r.relevance >= 0.3);
     for (const result of highRelevancePlatform.slice(0, 3)) {
       links.push({
         label: `${result.nameAr} — ${result.description}`,
