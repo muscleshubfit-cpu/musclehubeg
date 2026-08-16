@@ -509,6 +509,59 @@ export function LandingView() {
         </div>
       </section>
 
+      {/* ===================== 7.9. EXERCISE LIBRARY — preview ===================== */}
+      <section className="bg-white px-4 py-12 md:py-20">
+        <div className="mx-auto max-w-4xl">
+          <div className="text-center">
+            <Reveal>
+              <h2 className="text-3xl font-semibold tracking-tight md:text-5xl">
+                {isAr ? "مكتبة التمارين" : "Exercise Library"}
+              </h2>
+            </Reveal>
+            <Reveal delay={100}>
+              <p className="mx-auto mt-3 max-w-md text-base font-normal text-[#6e6e73] md:text-lg">
+                {isAr
+                  ? "تمارين احترافية بشرح كامل، عضلات مستهدفة، ومستوى الصعوبة."
+                  : "Professional exercises with full instructions and difficulty levels."}
+              </p>
+            </Reveal>
+          </div>
+
+          <div className="mt-10 grid grid-cols-2 gap-4 md:grid-cols-4">
+            {[
+              { emoji: "💪", labelAr: "صدر", labelEn: "Chest", slug: "chest", count: 3 },
+              { emoji: "🦵", labelAr: "أرجل", labelEn: "Legs", slug: "legs", count: 6 },
+              { emoji: "🎯", labelAr: "كور", labelEn: "Core", slug: "core", count: 4 },
+              { emoji: "❤️", labelAr: "كارديو", labelEn: "Cardio", slug: "cardio", count: 2 },
+            ].map((cat, i) => (
+              <Reveal key={cat.slug} delay={i * 80}>
+                <a
+                  href={`/exercises?cat=${cat.slug}`}
+                  className="group block rounded-3xl bg-[#f5f5f7] p-6 text-center transition-opacity hover:opacity-90"
+                >
+                  <span className="text-4xl">{cat.emoji}</span>
+                  <h3 className="mt-3 text-base font-semibold tracking-tight">
+                    {isAr ? cat.labelAr : cat.labelEn}
+                  </h3>
+                  <p className="mt-1 text-xs font-normal text-[#6e6e73]">
+                    {cat.count} {isAr ? "تمارين" : "exercises"}
+                  </p>
+                </a>
+              </Reveal>
+            ))}
+          </div>
+
+          <div className="mt-8 text-center">
+            <a
+              href="/exercises"
+              className="inline-block rounded-full bg-[#1d1d1f] px-6 py-2.5 text-sm font-normal text-white transition-opacity hover:opacity-90"
+            >
+              {isAr ? "تصفّح كل التمارين ›" : "Browse all exercises ›"}
+            </a>
+          </div>
+        </div>
+      </section>
+
       {/* ===================== 8. HOW IT WORKS — Apple-style numbered steps ===================== */}
       <section className="bg-white px-4 py-12 md:py-20">
         <div className="mx-auto max-w-4xl">

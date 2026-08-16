@@ -8,6 +8,7 @@ import {
   FileText,
   Crown,
   Calculator,
+  Dumbbell,
   LayoutDashboard,
   ClipboardList,
   LineChart,
@@ -91,6 +92,13 @@ export function SiteHeader({ variant = "landing" }: { variant?: "landing" | "app
     label: isAr ? "الأدوات المجانية" : "Free Tools",
     icon: Calculator,
     href: "/tools",
+  });
+
+  // 2c. Exercise Library
+  menu.push({
+    label: isAr ? "مكتبة التمارين" : "Exercises",
+    icon: Dumbbell,
+    href: "/exercises",
   });
 
   // 3. Pricing

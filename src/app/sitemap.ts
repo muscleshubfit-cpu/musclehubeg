@@ -1,5 +1,6 @@
 import type { MetadataRoute } from "next";
 import { createClient } from "@supabase/supabase-js";
+import { EXERCISES } from "@/lib/exercises";
 
 // Revalidate every hour instead of force-dynamic (which regenerated on every
 // request). The sitemap queries Supabase for all published posts — caching it
@@ -17,11 +18,27 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${baseUrl}/about`, lastModified, changeFrequency: "monthly", priority: 0.8 },
     { url: `${baseUrl}/blog`, lastModified, changeFrequency: "weekly", priority: 0.8 },
     { url: `${baseUrl}/ar/blog`, lastModified, changeFrequency: "weekly", priority: 0.8 },
+    { url: `${baseUrl}/exercises`, lastModified, changeFrequency: "weekly", priority: 0.8 },
+    { url: `${baseUrl}/tools`, lastModified, changeFrequency: "weekly", priority: 0.8 },
+    { url: `${baseUrl}/tools/calorie-calculator`, lastModified, changeFrequency: "monthly", priority: 0.7 },
+    { url: `${baseUrl}/tools/bmi-calculator`, lastModified, changeFrequency: "monthly", priority: 0.7 },
+    { url: `${baseUrl}/tools/macro-calculator`, lastModified, changeFrequency: "monthly", priority: 0.7 },
+    { url: `${baseUrl}/tools/body-fat-calculator`, lastModified, changeFrequency: "monthly", priority: 0.7 },
     { url: `${baseUrl}/faq`, lastModified, changeFrequency: "monthly", priority: 0.7 },
     { url: `${baseUrl}/contact`, lastModified, changeFrequency: "yearly", priority: 0.6 },
     { url: `${baseUrl}/privacy`, lastModified, changeFrequency: "yearly", priority: 0.3 },
     { url: `${baseUrl}/terms`, lastModified, changeFrequency: "yearly", priority: 0.3 },
   ];
+
+  // Add all exercise detail pages
+  for (const ex of EXERCISES) {
+    staticUrls.push({
+      url: `${baseUrl}/exercises/${ex.slug}`,
+      lastModified,
+      changeFrequency: "monthly",
+      priority: 0.6,
+    });
+  }
 
   // Fetch all published blog posts and add their URLs
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
