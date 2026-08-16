@@ -224,7 +224,7 @@ export function SiteHeader({ variant = "landing" }: { variant?: "landing" | "app
             {/* Account icon — profile photo if logged in, generic icon if not */}
             {isLoggedIn ? (
               <a
-                href="/dashboard"
+                href="/profile"
                 className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full ring-2 ring-[#0071e3]/20 transition-all hover:ring-[#0071e3]/40"
                 aria-label={isAr ? "حسابي" : "My account"}
               >
@@ -335,7 +335,7 @@ export function SiteHeader({ variant = "landing" }: { variant?: "landing" | "app
               <>
                 {/* Account link */}
                 <a
-                  href="/dashboard"
+                  href="/profile"
                   onClick={() => setOpen(false)}
                   className="mb-1 flex items-center gap-3 rounded-lg px-3 py-3 text-start text-sm font-normal transition-colors text-[#1d1d1f] hover:bg-[#f5f5f7]"
                 >
