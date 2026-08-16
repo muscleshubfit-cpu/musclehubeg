@@ -2,8 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { useI18n } from "@/lib/i18n";
-import { supabase } from "@/lib/supabase/client";
-import { isSupabaseConfigured } from "@/lib/supabase/client";
 import type { ToolLead } from "@/lib/supabase/types";
 import { toast } from "sonner";
 import { Mail, MessageCircle, Search, CheckCircle2, Circle, Download } from "lucide-react";
@@ -25,25 +23,25 @@ export function AdminLeadsView() {
 
   const load = async () => {
     setLoading(true);
-    if (!isSupabaseConfigured || !supabase) {
+    try {
+      const url = filter !== "all"
+        ? `/api/admin/leads?tool=${encodeURIComponent(filter)}`
+        : "/api/admin/leads";
+      const res = await fetch(url);
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        toast.error(err.error || (isAr ? "فشل التحميل" : "Failed to load"));
+        setLeads([]);
+      } else {
+        const data = await res.json();
+        setLeads(data.leads || []);
+      }
+    } catch (e: any) {
+      toast.error(e?.message || (isAr ? "فشل التحميل" : "Failed to load"));
       setLeads([]);
+    } finally {
       setLoading(false);
-      return;
     }
-    let q = supabase
-      .from("tool_leads")
-      .select("*")
-      .order("created_at", { ascending: false })
-      .limit(500);
-    if (filter !== "all") q = q.eq("tool_slug", filter);
-    const { data, error } = await q;
-    if (error) {
-      toast.error(error.message);
-      setLeads([]);
-    } else {
-      setLeads(data as ToolLead[]);
-    }
-    setLoading(false);
   };
 
   useEffect(() => {
@@ -51,34 +49,44 @@ export function AdminLeadsView() {
   }, [filter]);
 
   const toggleContacted = async (lead: ToolLead) => {
-    if (!supabase) return;
-    const { error } = await supabase
-      .from("tool_leads")
-      .update({ contacted: !lead.contacted })
-      .eq("id", lead.id);
-    if (error) {
-      toast.error(error.message);
-    } else {
+    try {
+      const res = await fetch("/api/admin/leads", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: lead.id, contacted: !lead.contacted }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        toast.error(err.error || (isAr ? "فشل التحديث" : "Update failed"));
+        return;
+      }
       toast.success(isAr ? "تم التحديث" : "Updated");
       setLeads((prev) =>
         prev.map((l) => (l.id === lead.id ? { ...l, contacted: !l.contacted } : l)),
       );
+    } catch (e: any) {
+      toast.error(e?.message || (isAr ? "فشل التحديث" : "Update failed"));
     }
   };
 
   const toggleConverted = async (lead: ToolLead) => {
-    if (!supabase) return;
-    const { error } = await supabase
-      .from("tool_leads")
-      .update({ converted: !lead.converted })
-      .eq("id", lead.id);
-    if (error) {
-      toast.error(error.message);
-    } else {
+    try {
+      const res = await fetch("/api/admin/leads", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: lead.id, converted: !lead.converted }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        toast.error(err.error || (isAr ? "فشل التحديث" : "Update failed"));
+        return;
+      }
       toast.success(isAr ? "تم التحديث" : "Updated");
       setLeads((prev) =>
         prev.map((l) => (l.id === lead.id ? { ...l, converted: !l.converted } : l)),
       );
+    } catch (e: any) {
+      toast.error(e?.message || (isAr ? "فشل التحديث" : "Update failed"));
     }
   };
 

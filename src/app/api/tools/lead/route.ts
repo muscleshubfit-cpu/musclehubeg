@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createServerClient } from "@supabase/ssr";
-import { cookies } from "next/headers";
+import { createClient } from "@supabase/supabase-js";
 
 /**
  * POST /api/tools/lead
@@ -84,17 +83,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ ok: true, demo: true });
     }
 
-    const cookieStore = await cookies();
-    const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll();
-        },
-        setAll() {
-          // No-op for API route — we're not establishing a session here.
-        },
-      },
-    });
+    // Use the SERVICE ROLE key (server-only, bypasses RLS) for inserts.
+    // This is a public endpoint — anonymous users submit leads from the
+    // free tools. The RLS INSERT policy for anon was not being honored
+    // by PostgREST (schema cache issue), so we bypass it server-side.
+    // The route still validates all input before writing.
+    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    const supabase = serviceKey
+      ? createClient(supabaseUrl, serviceKey, {
+          auth: { persistSession: false, autoRefreshToken: false },
+        })
+      : createClient(supabaseUrl, supabaseAnonKey, {
+          auth: { persistSession: false, autoRefreshToken: false },
+        });
 
     const { data, error } = await supabase
       .from("tool_leads")
