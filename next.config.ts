@@ -20,6 +20,7 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "z-cdn.chatglm.cn" },
       { protocol: "https", hostname: "images.unsplash.com" },
       { protocol: "https", hostname: "wger.de" },
+      { protocol: "https", hostname: "raw.githubusercontent.com" },
     ],
     minimumCacheTTL: 86400, // 24 hours
   },

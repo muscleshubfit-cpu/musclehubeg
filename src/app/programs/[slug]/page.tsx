@@ -12,7 +12,8 @@ import {
   LEVEL_LABELS,
   GOAL_LABELS,
 } from "@/lib/workout-programs";
-import { getWgerImageUrl, getFallbackSVG } from "@/lib/exercise-images";
+import { getExerciseImages, getFallbackSVG } from "@/lib/exercise-images";
+import { EXERCISES } from "@/lib/exercises";
 import { ArrowLeft, Clock, Calendar, Dumbbell, Coffee } from "lucide-react";
 import { getBreadcrumbSchema } from "@/lib/seo";
 
@@ -197,7 +198,10 @@ export default function ProgramDetailPage() {
                 {!day.isRest && (
                   <div className="mt-4 space-y-2">
                     {day.exercises.map((ex, i) => {
-                      const imgUrl = getWgerImageUrl(ex.exerciseSlug);
+                      // Try to find the exercise in our DB to get its image
+                      const exerciseData = EXERCISES.find((e) => e.slug === ex.exerciseSlug);
+                      const imgUrls = exerciseData ? getExerciseImages(exerciseData.imageKey) : [];
+                      const imgUrl = imgUrls[0] || null;
                       return (
                         <a
                           key={i}
@@ -213,12 +217,12 @@ export default function ProgramDetailPage() {
                                 className="h-full w-full object-contain"
                                 loading="lazy"
                                 onError={(e) => {
-                                  (e.target as HTMLImageElement).src = getFallbackSVG(ex.exerciseSlug);
+                                  (e.target as HTMLImageElement).src = getFallbackSVG(exerciseData?.category || "default");
                                 }}
                               />
                             ) : (
                               <img
-                                src={getFallbackSVG(ex.exerciseSlug)}
+                                src={getFallbackSVG(exerciseData?.category || "default")}
                                 alt={isAr ? ex.nameAr : ex.nameEn}
                                 className="h-full w-full object-contain"
                               />

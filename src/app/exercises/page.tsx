@@ -3,7 +3,7 @@
 import { useState, useMemo } from "react";
 import { useI18n } from "@/lib/i18n";
 import { SiteHeader } from "@/components/SiteHeader";
-import { getWgerImageUrl, getFallbackSVG } from "@/lib/exercise-images";
+import { getExerciseImages, getFallbackSVG } from "@/lib/exercise-images";
 import {
   EXERCISES,
   CATEGORY_LABELS,
@@ -165,7 +165,8 @@ export default function ExercisesPage() {
         ) : (
           <div className="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {filtered.map((exercise) => {
-              const imgUrl = getWgerImageUrl(exercise.imageKey);
+              const imgUrls = getExerciseImages(exercise.imageKey);
+              const imgUrl = imgUrls[0] || null;
               return (
                 <a
                   key={exercise.slug}

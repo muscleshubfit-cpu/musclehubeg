@@ -5,7 +5,7 @@ import { useParams } from "next/navigation";
 import { useI18n } from "@/lib/i18n";
 import { SiteHeader } from "@/components/SiteHeader";
 import { ShareButtons } from "@/components/ShareButtons";
-import { getWgerImageUrl, getFallbackSVG } from "@/lib/exercise-images";
+import { getExerciseImages, getFallbackSVG } from "@/lib/exercise-images";
 import {
   getExerciseBySlug,
   getRelatedExercises,
@@ -63,7 +63,8 @@ export default function ExerciseDetailPage() {
     );
   }
 
-  const imgUrl = getWgerImageUrl(exercise.imageKey);
+  const imgUrls = getExerciseImages(exercise.imageKey);
+  const imgUrl = imgUrls[0] || null;
   const related = getRelatedExercises(exercise);
   const categoryLabel = isAr ? CATEGORY_LABELS[exercise.category].ar : CATEGORY_LABELS[exercise.category].en;
   const levelLabel = isAr ? LEVEL_LABELS[exercise.level].ar : LEVEL_LABELS[exercise.level].en;
@@ -242,7 +243,8 @@ export default function ExerciseDetailPage() {
             </h2>
             <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
               {related.map((rel) => {
-                const relImg = getWgerImageUrl(rel.imageKey);
+                const relImgUrls = getExerciseImages(rel.imageKey);
+                const relImg = relImgUrls[0] || null;
                 return (
                   <a
                     key={rel.slug}
