@@ -1355,3 +1355,61 @@ Stage Summary:
 - Real Unsplash images for programs (high-quality fitness photography)
 - All program detail pages added to sitemap
 - Next steps: user mentioned "تعديلات كتير مطلوبة لكن هناجلها" — they'll come back with specific adjustments later
+
+---
+Task ID: 23
+Agent: Super Z (main)
+Task: Build food library with macro calculator + grams adjuster
+
+Work Log:
+- **Created src/lib/foods.ts** (~500 lines):
+  - 32 foods across 9 categories:
+    - Protein (6): chicken breast, lean beef, salmon, tuna, eggs, egg whites
+    - Carbs (7): white/brown rice, oatmeal, potato, sweet potato, whole wheat bread, pasta
+    - Fats (3): avocado, olive oil, peanut butter
+    - Vegetables (2): broccoli, spinach
+    - Fruits (4): banana, apple, orange, mixed berries
+    - Dairy (3): greek yogurt, cottage cheese, milk
+    - Nuts (2): almonds, peanuts
+    - Snacks (2): protein shake, dark chocolate
+    - Drinks (1): black coffee
+  - Each food has: slug, bilingual name, category, per100g nutrition (calories/protein/carbs/fat/fiber/sugar), default serving, default grams, real Unsplash image, bilingual alt text, tags
+  - 11 tag types: high-protein, low-carb, keto-friendly, vegan, vegetarian, low-fat, high-fiber, no-cook, quick-prep, good-for-cutting, good-for-bulking
+  - Helper functions: getFoodBySlug, getFoodsByCategory, filterFoods (with macro filters), calculateNutrition (grams → macros), findFoodsForMacroTarget, getRelatedFoods
+- **Created /foods browse page**:
+  - Search bar (by name)
+  - Category pills (10 options with emoji: All + 9 categories)
+  - Tag filter pills (6 popular tags, color-coded, multi-select)
+  - Advanced filters (collapsible): min protein, max carbs, max calories per 100g
+  - Results count
+  - Responsive grid (2/3/4 columns) — each card shows: image, category badge, name, 3 macro chips (calories/protein/carbs per 100g)
+- **Created /foods/[slug] detail page** with the main feature — GRAMS CALCULATOR:
+  - Large image + info card (category, tags, default serving)
+  - Per-100g reference table (4 macros)
+  - **Grams Calculator** (the user's main request):
+    - Slider (5-500g) + number input (synced)
+    - Quick presets (default serving + 50/100/150/200/250g, deduped)
+    - Live results: 5 cards (calories, protein, carbs, fat, fiber) — all update in real-time as user changes grams
+    - **"Want to hit a specific macro?"** section: 4 buttons (30g protein, 50g carbs, 20g fat, 300 kcal) — clicking auto-sets the grams needed from THIS food to hit that target
+  - Share buttons (after calculator)
+  - CTA to /pricing
+  - Related foods (3, matching category or tags)
+- **Navigation updates**:
+  - SiteHeader: added "مكتبة الأكلات / Foods" menu item with Utensils icon
+  - LandingView: added new section "7.11. FOOD LIBRARY" with 4 category preview cards (Protein, Carbs, Fats, Fruits & Veg)
+- **SEO updates** (sitemap.ts): Added /foods + all 32 food detail pages (priority 0.6)
+- **Production verification**:
+  - /foods → HTTP 200 ✅
+  - /foods/chicken-breast → HTTP 200 ✅
+  - /foods/oatmeal → HTTP 200 ✅
+  - /foods/avocado → HTTP 200 ✅
+  - Food data ("Chicken Breast" / "صدور دجاج") found in production JS bundle ✅
+
+Stage Summary:
+- Food library live at https://musclehubeg.vercel.app/foods
+- 32 foods with full nutrition data (per 100g) + real Unsplash images
+- Browse page with search + category pills + tag filters + advanced macro filters
+- Detail page with the main feature: GRAMS CALCULATOR — user changes grams via slider/input/presets, sees calories + all 5 macros update in real-time
+- "Hit a specific macro" feature: user clicks a target (e.g. "30g protein") → grams auto-set to hit that target from this food
+- All food detail pages added to sitemap
+- SiteHeader now has: Home, Blog, Free Tools, Exercises, Programs, Foods, Pricing — full library ecosystem
