@@ -1295,3 +1295,63 @@ Stage Summary:
 - Individual exercise pages with detailed instructions + related exercises
 - Integrated into main navigation + landing page
 - All exercise detail pages added to sitemap for SEO
+
+---
+Task ID: 22
+Agent: Super Z (main)
+Task: Build workout programs library + share buttons + real images
+
+Work Log:
+- **Created src/lib/workout-programs.ts** (~600 lines):
+  - 7 ready-to-use programs across 3 locations + 3 levels + 5 goals:
+    - Home (no equipment): Beginner Full Body (3d/w, 8 wks), Fat Loss HIIT (4d/w, 6 wks), Core Specialization (4d/w, 8 wks)
+    - Home (with dumbbells): Push Pull Legs (6d/w, 12 wks)
+    - Gym: Beginner Full Body (3d/w, 8 wks), PPL Intermediate (6d/w, 12 wks), Strength 5x5 Advanced (3d/w, 12 wks)
+  - Each program has: slug, bilingual name, description, location, level, goal, durationWeeks, daysPerWeek, real Unsplash image, full 7-day weekly schedule with exercises (slug, sets, reps, rest)
+  - Helper functions: getProgramBySlug, filterPrograms, getRelatedPrograms
+  - Label dictionaries: LOCATION_LABELS, LEVEL_LABELS, GOAL_LABELS
+- **Created /programs browse page**:
+  - Search bar
+  - Location filter pills (9 options with emoji: All, 🏠 Home, 🏡 Home+Equipment, 🏋️ Gym)
+  - Level dropdown (4 options)
+  - Goal dropdown (6 options: General, Strength, Hypertrophy, Fat Loss, Endurance)
+  - Results count
+  - Responsive grid (1/2/3 columns) — each card shows: real image, location+level badges, name, description (2 lines), duration/days info
+- **Created /programs/[slug] detail page**:
+  - Hero image (16:9) + 3 badges (location, level, goal)
+  - Bilingual title + description
+  - 3 stats cards (Duration, Frequency, Goal)
+  - ShareButtons (after stats)
+  - Full weekly schedule: 7 days, rest days marked with orange border + "Rest day" notice, exercise cards with image + sets × reps + rest time
+  - CTA section to /pricing
+  - Related programs (3, matching location/level/goal)
+- **Created ShareButtons component** (reusable):
+  - WhatsApp (wa.me), Facebook (sharer), X/Twitter (intent/tweet), LinkedIn (share-offsite), Telegram (share/url)
+  - Native share sheet (mobile, via navigator.share)
+  - Copy link button with "copied!" feedback (2s)
+  - Bilingual labels ("شارك:" / "Share:")
+  - Compact mode available
+- **Integrated ShareButtons** into:
+  - All 4 tools (calorie, BMI, macro, body-fat) — after LeadCaptureCard, before AdSense
+  - Exercise detail page — after tips section, before related exercises
+  - Program detail page — in header (after stats cards)
+- **Image optimization**: Added images.unsplash.com + wger.de to next.config.ts images.remotePatterns (for future Next/Image usage)
+- **Navigation updates**:
+  - SiteHeader: added "برامج التدريب / Programs" menu item with ClipboardList icon
+  - LandingView: added new section "7.10. WORKOUT PROGRAMS" with 3 program preview cards (Home, Gym, HIIT) linking to specific programs
+- **SEO updates** (sitemap.ts): Added /programs + all 7 program detail pages (priority 0.6)
+- **Production verification**:
+  - /programs → HTTP 200 ✅
+  - /programs/home-beginner-fullbody → HTTP 200 ✅
+  - /programs/gym-ppl-intermediate → HTTP 200 ✅
+  - /exercises/bench-press → HTTP 200 ✅ (with share buttons)
+  - Share buttons (wa.me) found in production JS bundle ✅
+
+Stage Summary:
+- Workout programs library live at https://musclehubeg.vercel.app/programs
+- 7 programs across 3 locations (home/home-equipment/gym) and 3 levels (beginner/intermediate/advanced)
+- Each program has full weekly schedule with exercises, sets, reps, rest times
+- ShareButtons integrated across all libraries (exercises, programs, tools) — 6 share platforms + native sheet + copy link
+- Real Unsplash images for programs (high-quality fitness photography)
+- All program detail pages added to sitemap
+- Next steps: user mentioned "تعديلات كتير مطلوبة لكن هناجلها" — they'll come back with specific adjustments later
