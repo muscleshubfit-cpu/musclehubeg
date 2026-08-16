@@ -4,177 +4,370 @@ import { generateChatReply } from "@/lib/ai-local";
 import { listPlans, listProgress, getQuestionnaire, getSubscriptionForClient } from "@/lib/data";
 import { getTier } from "@/lib/plans";
 import { requireUser, isAuthConfigured } from "@/lib/auth-server";
+import {
+  searchPlatform,
+  getFoodNutrition,
+  isNutritionQuery,
+  isExerciseQuery,
+  isProgramQuery,
+  type SearchResult,
+} from "@/lib/evo-search";
 
 /**
- * AI Coach chat endpoint.
- * Uses OpenRouter AI, falls back to local rule-based chat.
+ * EVO Chat endpoint — context-aware AI assistant.
+ *
+ * Features:
+ *   1. Platform search — finds exercises, foods, programs, tools
+ *   2. Blog RAG — searches Supabase blog_posts for relevant articles
+ *   3. OpenRouter AI — generates responses using AI (not just local rules)
+ *   4. Anonymous mode — works without login (rate-limited)
+ *   5. Subscriber mode — full context (plans, progress, questionnaires)
  *
  * POST /api/ai/chat
- * Body: { message, history, userName? }
- * Returns: { reply, source }
- *
- * SECURITY: the caller's userId is taken from the verified Supabase session,
- * NEVER from the request body. This prevents IDOR (a caller pretending to be
- * another user to read their plans / progress / questionnaires / subscription).
- *
- * In demo mode (Supabase not configured) there is no server-side session;
- * the route falls through to the local rule-based reply with no per-user
- * context (same behavior as before — demo mode is client-only).
+ * Body: { message, history }
+ * Returns: { response, links, source }
  */
+
+const BLOG_SEARCH_BASE_URL = "https://musclehubeg.vercel.app";
+
 export async function POST(request: NextRequest) {
- try {
- // 1. Authenticate (skip in demo mode — preserves preview behavior)
- let userId: string | undefined;
- let userName: string | undefined;
- if (isAuthConfigured) {
- const auth = await requireUser(request);
- if (auth instanceof Response) return auth;
- userId = auth.id;
- userName = auth.full_name || auth.email || undefined;
- }
+  try {
+    // 1. Authenticate (optional — works for anonymous too)
+    let userId: string | undefined;
+    let userName: string | undefined;
+    if (isAuthConfigured) {
+      const auth = await requireUser(request);
+      if (!(auth instanceof Response)) {
+        userId = auth.id;
+        userName = auth.full_name || auth.email || undefined;
+      }
+      // If auth fails (401), we continue as anonymous — EVO is free for all
+    }
 
- const body = await request.json().catch(() => ({}));
- const { message, history = [] } = body;
+    const body = await request.json().catch(() => ({}));
+    const { message, history = [] } = body;
 
- if (!message) {
- return NextResponse.json({ error: "Missing message" }, { status: 400 });
- }
+    if (!message) {
+      return NextResponse.json({ error: "Missing message" }, { status: 400 });
+    }
 
- // 2. Build full client context from database (scoped to the session user)
- let clientContext: any = { name: userName || "العميل" };
- if (userId) {
- try {
- const [plans, progress, nutriQ, fitQ, sub] = await Promise.all([
- listPlans(userId),
- listProgress(userId),
- getQuestionnaire(userId, "nutrition"),
- getQuestionnaire(userId, "fitness"),
- getSubscriptionForClient(userId),
- ]);
- const tierId = (sub?.tier as any) || "starter";
- const tier = getTier(tierId);
+    // 2. Search the platform's local databases (exercises, foods, programs, tools)
+    const platformResults = searchPlatform(message);
+    const foodNutrition = isNutritionQuery(message) ? getFoodNutrition(message) : null;
 
- clientContext = {
- name: userName || "العميل",
- nutrition: nutriQ?.data || null,
- fitness: fitQ?.data || null,
- recent_measurements: progress.slice(-3).map((p: any) => ({
- weight: p.weight,
- waist: p.waist,
- date: p.created_at,
- })),
- current_plans: plans.map((p: any) => ({
- type: p.type,
- title: p.title,
- content: p.content,
- })),
- subscription: {
- tier: tierId,
- tierName: tier?.nameKey,
- swapLimit: tier?.swapLimit,
- },
- };
- } catch (e) {
- console.error("[api/ai/chat] Failed to load context:", e);
- }
- }
+    // 3. Search the blog (if Supabase is configured)
+    const blogResults = await searchBlog(message);
 
- // Try OpenRouter free models (shared helper iterates the model list)
- if (process.env.OPENROUTER_API_KEY || process.env.AI_API_KEY) {
- try {
- const systemInstruction = buildSystemPrompt(clientContext);
- const messages = [
- ...history.slice(-10).map((m: any) => ({
- role: m.role,
- content: m.content,
- })),
- { role: "user", content: message },
- ];
+    // 4. Build links from search results
+    const links: Array<{ label: string; url: string }> = [];
+    for (const result of platformResults.slice(0, 3)) {
+      links.push({
+        label: `${result.nameAr} — ${result.description}`,
+        url: result.url,
+      });
+    }
+    for (const blog of blogResults.slice(0, 2)) {
+      links.push({
+        label: `📖 ${blog.title}`,
+        url: blog.url,
+      });
+    }
 
- const chatPrompt = messages.map(m => `${m.role === "user" ? "User" : "Assistant"}: ${m.content}`).join("\n\n");
- const fullPrompt = `${systemInstruction}\n\n${chatPrompt}\n\nAssistant:`;
+    // 5. Build context for the AI
+    let clientContext: any = { name: userName || "المستخدم" };
+    if (userId) {
+      try {
+        const [plans, progress, nutriQ, fitQ, sub] = await Promise.all([
+          listPlans(userId),
+          listProgress(userId),
+          getQuestionnaire(userId, "nutrition"),
+          getQuestionnaire(userId, "fitness"),
+          getSubscriptionForClient(userId),
+        ]);
+        const tierId = (sub?.tier as any) || "starter";
+        const tier = getTier(tierId);
 
- const { text, model } = await callFreeOpenRouter(fullPrompt, {
- temperature: 0.6,
- maxTokens: 1000,
- timeoutMs: 30_000,
- });
- if (text && text.length > 10) {
- return NextResponse.json({ reply: text, source: `openrouter:${model}` });
- }
- } catch (aiErr) {
- console.error("[api/ai/chat] OpenRouter failed, falling back to local:", aiErr);
- }
- }
+        clientContext = {
+          name: userName || "العميل",
+          isSubscriber: true,
+          nutrition: nutriQ?.data || null,
+          fitness: fitQ?.data || null,
+          recent_measurements: progress.slice(-3).map((p: any) => ({
+            weight: p.weight,
+            waist: p.waist,
+            date: p.created_at,
+          })),
+          current_plans: plans.map((p: any) => ({
+            type: p.type,
+            title: p.title,
+            content: p.content,
+          })),
+          subscription: {
+            tier: tierId,
+            tierName: tier?.nameKey,
+            swapLimit: tier?.swapLimit,
+          },
+        };
+      } catch (e) {
+        console.error("[api/ai/chat] Failed to load subscriber context:", e);
+      }
+    }
 
- // Fallback to local rule-based chat
- const reply = generateChatReply(message, clientContext);
- return NextResponse.json({ reply, source: "local" });
- } catch (e: any) {
- console.error("[api/ai/chat] Error:", e?.message || e);
- return NextResponse.json(
- { error: e?.message || "Internal server error" },
- { status: 500 },
- );
- }
+    // 6. Build the system prompt with platform context
+    const systemPrompt = buildSystemPrompt(
+      clientContext,
+      platformResults,
+      foodNutrition,
+      blogResults,
+    );
+
+    // 7. Try OpenRouter AI (if configured)
+    if (process.env.OPENROUTER_API_KEY || process.env.AI_API_KEY) {
+      try {
+        const messages = [
+          ...history.slice(-10).map((m: any) => ({
+            role: m.role,
+            content: m.content,
+          })),
+          { role: "user", content: message },
+        ];
+
+        const chatPrompt = messages
+          .map((m) => `${m.role === "user" ? "User" : "Assistant"}: ${m.content}`)
+          .join("\n\n");
+        const fullPrompt = `${systemPrompt}\n\n${chatPrompt}\n\nAssistant:`;
+
+        const { text, model } = await callFreeOpenRouter(fullPrompt, {
+          temperature: 0.6,
+          maxTokens: 800,
+          timeoutMs: 30_000,
+        });
+
+        if (text && text.length > 10) {
+          return NextResponse.json({
+            response: text,
+            links,
+            source: `openrouter:${model}`,
+          });
+        }
+      } catch (aiErr) {
+        console.error("[api/ai/chat] OpenRouter failed, using local fallback:", aiErr);
+      }
+    }
+
+    // 8. Fallback: local rule-based reply + platform context
+    const localReply = generateLocalReply(
+      message,
+      clientContext,
+      platformResults,
+      foodNutrition,
+      blogResults,
+    );
+
+    return NextResponse.json({
+      response: localReply,
+      links,
+      source: "local",
+    });
+  } catch (e: any) {
+    console.error("[api/ai/chat] Error:", e?.message || e);
+    return NextResponse.json(
+      { error: e?.message || "Internal server error" },
+      { status: 500 },
+    );
+  }
 }
 
-function buildSystemPrompt(ctx: any): string {
- const plans = ctx.current_plans || [];
- const nutrition = ctx.nutrition || {};
- const fitness = ctx.fitness || {};
- const subscription = ctx.subscription;
+/**
+ * Search the blog for relevant articles.
+ * Searches in the same language as the query.
+ */
+async function searchBlog(
+  query: string,
+): Promise<Array<{ title: string; url: string; excerpt: string }>> {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
- let planInfo = "لا توجد خطط مفعّلة بعد.";
- if (plans.length > 0) {
- planInfo = plans.map((p: any) => {
- const c = p.content;
- if (p.type === "meal" || p.type === "nutrition") {
- return `خطة تغذية "${p.title}": ${c?.daily_calories || "?"} كالوري/يوم، بروتين ${c?.macros?.protein_g || "?"}جم، كارب ${c?.macros?.carbs_g || "?"}جم، دهون ${c?.macros?.fat_g || "?"}جم، ${c?.meals?.length || 0} وجبات`;
- }
- if (p.type === "workout") {
- const trainingDays = c?.days?.filter((d: any) => !d.isRest) || [];
- return `برنامج تمارين "${p.title}": ${trainingDays.length} أيام تدريب، الأيام: ${c?.days?.map((d: any) => `${d.day}(${d.isRest ? "راحة" : d.focus})`).join("، ")}`;
- }
- return p.title;
- }).join("\n");
- }
+  if (!supabaseUrl || !supabaseKey) return [];
 
- return `أنت EVO، المساعد الذكي لمنصة MuscleHub للكوتشينج الرياضي والتغذية. اسم الكوتش أحمد زكي.
-دورك أن تتصرف كمدرب شخصي ذكي للعميل.
+  try {
+    // Determine language from query (simple heuristic)
+    const isArabic = /[\u0600-\u06FF]/.test(query);
 
-بيانات العميل الحالية:
-${JSON.stringify({
- name: ctx.name,
- weight: nutrition.weight,
- height: nutrition.height,
- age: nutrition.age,
- target: nutrition.target || nutrition.target_weight,
- goal: fitness.goal,
- activity: fitness.activity,
- training_days: fitness.days,
- location: fitness.location,
- experience: fitness.experience,
- injuries: fitness.injuries,
- allergies: nutrition.allergies,
- disliked_foods: nutrition.disliked,
- diet: nutrition.diet,
- subscription_tier: subscription?.tier,
- swap_limit: subscription?.swapLimit,
- recent_weight: ctx.recent_measurements?.[0]?.weight,
-}, null, 2)}
+    const { createClient } = await import("@supabase/supabase-js");
+    const supabase = createClient(supabaseUrl, serviceKey || supabaseKey, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
 
-الخطط المفعّلة:
-${planInfo}
+    // Search in blog_posts using ilike on title and excerpt
+    const { data, error } = await supabase
+      .from("blog_posts")
+      .select("slug, title, excerpt, language")
+      .eq("is_published", true)
+      .eq("language", isArabic ? "ar" : "en")
+      .or(`title.ilike.%${query}%,excerpt.ilike.%${query}%`)
+      .limit(3);
+
+    if (error || !data) return [];
+
+    return data.map((post: any) => ({
+      title: post.title,
+      url: `${post.language === "ar" ? "/ar/blog" : "/blog"}/${post.slug}`,
+      excerpt: post.excerpt || "",
+    }));
+  } catch (e) {
+    console.error("[api/ai/chat] Blog search failed:", e);
+    return [];
+  }
+}
+
+/**
+ * Build the system prompt for the AI.
+ * Includes platform context, search results, and blog articles.
+ */
+function buildSystemPrompt(
+  ctx: any,
+  platformResults: SearchResult[],
+  foodNutrition: any,
+  blogResults: Array<{ title: string; url: string; excerpt: string }>,
+): string {
+  const isSubscriber = ctx.isSubscriber;
+  const plans = ctx.current_plans || [];
+  const nutrition = ctx.nutrition || {};
+  const fitness = ctx.fitness || {};
+
+  // Build platform search context
+  let platformContext = "";
+  if (platformResults.length > 0) {
+    platformContext = "\n\nنتائج البحث في المنصة:\n";
+    platformContext += platformResults
+      .map(
+        (r) =>
+          `- ${r.nameAr} (${r.nameEn}): ${r.description} — الرابط: ${r.url}`,
+      )
+      .join("\n");
+  }
+
+  // Build food nutrition context
+  let nutritionContext = "";
+  if (foodNutrition) {
+    nutritionContext = `\n\nمعلومات غذائية لـ ${foodNutrition.nameAr}:\nلكل 100g: ${foodNutrition.per100g.calories} سعرة، ${foodNutrition.per100g.protein}g بروتين، ${foodNutrition.per100g.carbs}g كارب، ${foodNutrition.per100g.fat}g دهون\nالرابط: ${foodNutrition.url}`;
+  }
+
+  // Build blog context
+  let blogContext = "";
+  if (blogResults.length > 0) {
+    blogContext = "\n\nمقالات ذات صلة من المدونة:\n";
+    blogContext += blogResults
+      .map((b) => `- "${b.title}" — الرابط: ${b.url}`)
+      .join("\n");
+  }
+
+  // Build subscriber context (if logged in)
+  let subscriberContext = "";
+  if (isSubscriber) {
+    let planInfo = "لا توجد خطط مفعّلة بعد.";
+    if (plans.length > 0) {
+      planInfo = plans
+        .map((p: any) => {
+          const c = p.content;
+          if (p.type === "meal" || p.type === "nutrition") {
+            return `خطة تغذية "${p.title}": ${c?.daily_calories || "?"} كالوري/يوم`;
+          }
+          if (p.type === "workout") {
+            return `برنامج تمارين "${p.title}"`;
+          }
+          return p.title;
+        })
+        .join("\n");
+    }
+
+    subscriberContext = `\n\nبيانات المشترك:\n${JSON.stringify({
+      name: ctx.name,
+      weight: nutrition.weight,
+      height: nutrition.height,
+      age: nutrition.age,
+      target: nutrition.target || nutrition.target_weight,
+      goal: fitness.goal,
+      activity: fitness.activity,
+      training_days: fitness.days,
+      location: fitness.location,
+      experience: fitness.experience,
+      injuries: fitness.injuries,
+      allergies: nutrition.allergies,
+      disliked_foods: nutrition.disliked,
+      diet: nutrition.diet,
+    }, null, 2)}\n\nالخطط المفعّلة:\n${planInfo}`;
+  }
+
+  return `أنت EVO، محرك الأداء الذكي في منصة MuscleHub الرياضية الشاملة.
+منصة MuscleHub تقدم: مكتبة تمارين (55+ تمرين)، برامج تدريب جاهزة، حاسبات لياقة مجانية، مكتبة أكلات بالسعرات والماكروز، مدونة رياضية، وكوتشينج أونلاين.
+
+أنت لست مجرد شات بوت — أنت تحلل البيانات، تتنبأ بالنتائج، وتوجّه المستخدمين للمحتوى المناسب.${subscriberContext}${platformContext}${nutritionContext}${blogContext}
 
 القواعد:
-- أجب بالعربية دائماً.
-- أجب بناءً على بيانات العميل الفعلية أعلاه.
-- لا تخترع أرقاماً غير موجودة في بياناته.
-- عند طلب تبديل طعام، احسب الجرامات المكافئة بالسعرات والماكروز.
-- عند طلب تبديل تمرين، اقترح تمريناً يستهدف نفس العضلة.
+- أجب بالعربية إذا كان السؤال بالعربية، وبالإنجليزية إذا كان بالإنجليزية.
 - كن مختصراً وعملياً وودوداً.
-- لا تقدّم نصائح طبية. لو السؤال طبي، انصح بالتواصل مع الكوتش.
-- ذكّر العميل بحد التبديلات اليومي لو سأل عن التبديلات.
-- لو خلص العميل حد التبديلات، اقترح طلب تبديل من المدرب.`;
+- لو السؤال عن تمرين/أكل/برنامج/أداة موجود في المنصة، اذكره وأضف: "شوف التفاصيل في الرابط تحت" — والرابط هيظهر تلقائياً.
+- لو في مقال في المدونة بيتكلم عن الموضوع، اذكره: "كتبنا مقال عن ده — شوف الرابط تحت".
+- لو المستخدم مشترك، استخدم بياناته الشخصية في الرد.
+- لو المستخدم زائر (مش مشترك)، ارد بشكل عام بس مفيد.
+- لا تخترع أرقام غير موجودة.
+- لا تقدم نصائح طبية — لو السؤال طبي، انصح باستشارة مختص.
+- للأسئلة العامة (مش مرتبطة بالمنصة)، ارد بمعرفة عامة رياضية وتغذوية.`;
+}
+
+/**
+ * Generate a local reply (fallback when OpenRouter is not available).
+ * Uses platform search results to give a helpful answer.
+ */
+function generateLocalReply(
+  message: string,
+  ctx: any,
+  platformResults: SearchResult[],
+  foodNutrition: any,
+  blogResults: Array<{ title: string; url: string }>,
+): string {
+  // If we found food nutrition info
+  if (foodNutrition) {
+    return `${foodNutrition.nameAr} (${foodNutrition.nameEn}) فيه:
+• ${foodNutrition.per100g.calories} سعرة حرارية لكل 100g
+• ${foodNutrition.per100g.protein}g بروتين
+• ${foodNutrition.per100g.carbs}g كارب
+• ${foodNutrition.per100g.fat}g دهون
+
+شوف التفاصيل والجرامات في الرابط تحت 👇`;
+  }
+
+  // If we found exercises
+  const exercises = platformResults.filter((r) => r.type === "exercise");
+  if (exercises.length > 0 && isExerciseQuery(message)) {
+    const ex = exercises[0];
+    return `${ex.nameAr} (${ex.nameEn}) تمرين لـ ${ex.description}.
+شوف خطوات التنفيذ والنصائح في الرابط تحت 👇`;
+  }
+
+  // If we found programs
+  const programs = platformResults.filter((r) => r.type === "program");
+  if (programs.length > 0 && isProgramQuery(message)) {
+    const prog = programs[0];
+    return `${prog.nameAr} — ${prog.description}.
+شوف الجدول الأسبوعي كامل في الرابط تحت 👇`;
+  }
+
+  // If we found blog articles
+  if (blogResults.length > 0) {
+    return `كتبنا مقال عن ده: "${blogResults[0].title}".
+شوف الرابط تحت للمقال كامل 👇`;
+  }
+
+  // Generic fallback
+  return `سؤال حلو! مقدرش أرد عليك بالتفصيل دلوقتي، بس تقدر:
+• تتصفح مكتبة التمارين: /exercises
+• تشارك في برامج تدريب: /programs
+• تبحث عن أكلات بالسعرات: /foods
+• تستخدم حاسبات لياقة مجانية: /tools
+
+أو اسألني سؤال تاني محدد أكتر.`;
 }

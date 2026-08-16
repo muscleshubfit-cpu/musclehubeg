@@ -6,6 +6,8 @@ import { I18nProvider } from "@/lib/i18n";
 import { AuthProvider } from "@/hooks/use-auth";
 import { ReferralCookieChecker } from "@/components/ReferralCookieChecker";
 import { CookieConsent } from "@/components/CookieConsent";
+import { EvoChatProvider } from "@/lib/evo-chat-context";
+import { EvoFloatingWidget } from "@/components/EvoFloatingWidget";
 import { getOrganizationSchema, getWebSiteSchema } from "@/lib/seo";
 import { metadata, viewport } from "./metadata";
 
@@ -56,7 +58,11 @@ export default function RootLayout({
         <CookieConsent />
         <I18nProvider>
           <AuthProvider>
-            <Suspense fallback={null}>{children}</Suspense>
+            <EvoChatProvider>
+              <Suspense fallback={null}>{children}</Suspense>
+              {/* EVO Floating Widget — appears on all pages */}
+              <EvoFloatingWidget />
+            </EvoChatProvider>
           </AuthProvider>
         </I18nProvider>
         <Toaster position="top-center" richColors />
