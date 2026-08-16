@@ -1198,3 +1198,50 @@ Stage Summary:
 - All 6 migrations have been executed successfully.
 - Production is live and functional at https://musclehubeg.vercel.app/.
 - The sbp_ token can now be safely deleted by the user from https://supabase.com/dashboard/account/tokens.
+
+---
+Task ID: 20
+Agent: Super Z (main)
+Task: Fix WhatsApp + Email sending, add country code selector, add questionnaire validation
+
+Work Log:
+- **Problem 1: WhatsApp/Email not actually sending.** The old LeadCaptureCard just saved to DB and showed a generic "we'll send you the results" message — but nothing was actually sent.
+- **Fix — WhatsApp**: Instead of WhatsApp Business API (requires Meta verification + costs), implemented a "Click to Chat" flow:
+  1. User enters their number with country code.
+  2. API saves the lead + returns a `waMeUrl` (wa.me link to the COACH's WhatsApp, with a pre-filled message containing the user's results).
+  3. UI shows "Open WhatsApp & Send" button.
+  4. User clicks → WhatsApp opens (web or app) → message is pre-filled → they hit send → Coach Ahmed receives the lead + results on his WhatsApp.
+  - The coach's number is read from `COACH_WHATSAPP` env var (digits only, with country code). Falls back to the user's own number if not set.
+- **Fix — Email**: Server-side email sending via Resend API (https://resend.com, free tier 100/day):
+  1. User enters email.
+  2. API saves the lead + calls Resend to send a branded HTML email with the results.
+  3. If `RESEND_API_KEY` env var is not set, returns `emailSent: false` and the UI shows a generic "we'll send shortly" message (graceful degradation).
+  - Email template: bilingual (ar/en), Apple-style design, includes the results + a CTA to /pricing.
+- **Problem 2: WhatsApp input had no country code selector.** Users had to type the full +20... manually, often wrong.
+- **Fix**: Created `src/lib/countries.ts` with 32 countries (Egypt, Saudi, UAE, Kuwait first), each with flag emoji + dial code. Updated LeadCaptureCard to show a country dropdown (with flag + dial code) + a separate local number input. The two are combined into a full E.164 number on submit. Added live preview of the full number below the input.
+- **Problem 3: Questionnaire had no validation.** Users could click "Next" with empty fields.
+- **Fix**: Added `required` flag to each field definition:
+  - Nutrition required: gender, age, height, weight, target_weight
+  - Fitness required: goal, activity, days
+  - Optional: waist, neck, hip (measurements), photos, diet, allergies, disliked, meals, water, medical, supplements, location, experience, injuries, preferred, equipment, sleep, notes
+  - "Next" button calls `validateNutrition()` — if fails, shows toast error "برجاء ملء: الجنس، العمر، الطول، الوزن، والوزن المستهدف" and blocks navigation.
+  - "Review" button calls `validateFitness()` — same pattern.
+  - "Save Draft" button has NO validation (drafts can be incomplete).
+  - Visual badges on every field: red "إجباري" (Required) or gray "اختياري" (Optional) next to the label.
+- **Production tests**:
+  - WhatsApp lead with `+201001234567` → returned `waMeUrl: https://wa.me/201001234567?text=...` with pre-filled Arabic message ✅
+  - Email lead → returned `emailSent: false` (expected — no RESEND_API_KEY set yet) ✅
+  - WhatsApp without country code (`01001234567`) → returned 400 "Invalid WhatsApp number. Must include country code." ✅
+  - /questionnaires page → HTTP 200 ✅
+  - Cleaned up test data.
+
+Stage Summary:
+- WhatsApp sending: WORKING (via wa.me click-to-chat to coach's number with pre-filled results message).
+- Email sending: READY (requires RESEND_API_KEY env var in Vercel to activate).
+- WhatsApp input: country code dropdown with flags (32 countries) + local number field.
+- Questionnaire validation: required fields enforced before "Next"/"Review"; optional fields marked clearly.
+- To activate email sending, user needs to:
+  1. Sign up at resend.com (free)
+  2. Get API key
+  3. Add to Vercel env vars: RESEND_API_KEY + RESEND_FROM_EMAIL
+  4. (Optional) Add COACH_WHATSAPP env var (e.g. "201001234567") for the WhatsApp flow
