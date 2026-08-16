@@ -168,13 +168,17 @@ export default function MembershipsPage() {
                 </ul>
               </div>
               <div className="mt-6 shrink-0 md:ms-8 md:mt-0">
-                <p className="text-3xl font-semibold tracking-tight">$20+</p>
-                <p className="text-xs font-normal text-[#6e6e73]">/month</p>
                 <a
                   href="/coaching"
-                  className="mt-4 inline-block rounded-full bg-[#8b5cf6] px-6 py-3 text-sm font-normal text-white transition-opacity hover:opacity-90"
+                  className="inline-block rounded-full bg-[#8b5cf6] px-6 py-3 text-sm font-normal text-white transition-opacity hover:opacity-90"
                 >
                   {isAr ? "اعرف أكثر ›" : "Learn more ›"}
+                </a>
+                <a
+                  href="/pricing"
+                  className="mt-2 block text-center text-xs font-medium text-[#8b5cf6] hover:underline"
+                >
+                  {isAr ? "الأسعار ›" : "Pricing ›"}
                 </a>
               </div>
             </div>
