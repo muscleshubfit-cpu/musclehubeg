@@ -31,6 +31,10 @@ export function AppLayout({ children }: { children: ReactNode }) {
     { to: "blog-admin", label: isAr ? "المدونة" : "Blog", emoji: "📝" },
     { to: "admin-referrals", label: isAr ? "الإحالات" : "Referrals", emoji: "🎁" },
   ];
+  // Custom external link for tool leads (not in View type)
+  const coachExtraLinks = [
+    { href: "/admin/leads", label: isAr ? "Leads الأدوات" : "Tool Leads", emoji: "📨" },
+  ];
   const nav = isCoach ? coachNav : clientNav;
 
   return (
@@ -68,6 +72,23 @@ export function AppLayout({ children }: { children: ReactNode }) {
                   </button>
                 );
               })}
+              {isCoach && coachExtraLinks.map((link) => {
+                const active = view === ("admin-leads" as any);
+                return (
+                  <a
+                    key={link.href}
+                    href={link.href}
+                    className={cn(
+                      "block w-full rounded-lg px-3 py-2 text-start text-sm font-normal transition-colors",
+                      active
+                        ? "bg-[#f5f5f7] font-medium text-[#1d1d1f]"
+                        : "text-[#6e6e73] hover:text-[#1d1d1f]",
+                    )}
+                  >
+                    {link.label}
+                  </a>
+                );
+              })}
             </nav>
           </aside>
 
@@ -101,6 +122,16 @@ export function AppLayout({ children }: { children: ReactNode }) {
                     </button>
                   );
                 })}
+                {isCoach && coachExtraLinks.map((link) => (
+                  <a
+                    key={link.href}
+                    href={link.href}
+                    className="flex items-center gap-2 rounded-2xl bg-[#f5f5f7] px-4 py-3 text-sm font-medium text-[#1d1d1f] transition-colors"
+                  >
+                    <span className="text-base">{link.emoji}</span>
+                    <span className="truncate">{link.label}</span>
+                  </a>
+                ))}
               </div>
             </div>
 

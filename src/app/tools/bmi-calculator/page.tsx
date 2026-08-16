@@ -6,6 +6,7 @@ import { useNav } from "@/hooks/use-nav";
 import { SiteHeader } from "@/components/SiteHeader";
 import { AdSenseAd } from "@/components/AdSenseAd";
 import { OtherTools } from "@/components/OtherTools";
+import { LeadCaptureCard } from "@/components/LeadCaptureCard";
 
 type Unit = "metric" | "imperial";
 
@@ -217,6 +218,17 @@ export default function BMICalculatorPage() {
                 {isAr ? "احصل على خطة مخصصة ›" : "Get a personalized plan ›"}
               </button>
             </div>
+
+            {/* Lead Capture (Email / WhatsApp) — optional */}
+            <LeadCaptureCard
+              toolSlug="bmi-calculator"
+              resultSummary={
+                isAr
+                  ? `BMI: ${result.bmi} (${result.category}) · الوزن المثالي: ${result.idealWeightMin}-${result.idealWeightMax} ${unit === "metric" ? "كجم" : "lb"}`
+                  : `BMI: ${result.bmi} (${result.category}) · Ideal weight: ${result.idealWeightMin}-${result.idealWeightMax} ${unit === "metric" ? "kg" : "lb"}`
+              }
+              resultJson={result}
+            />
 
             {/* AdSense */}
             <AdSenseAd format="auto" />

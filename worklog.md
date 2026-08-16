@@ -1067,3 +1067,42 @@ Stage Summary:
 - After successful login (email/password, signup, OR Google OAuth), the user is automatically returned to the exact checkout URL they were trying to reach (tier + months query params preserved).
 - All other public pages (landing, tools, blog, pricing, about, etc.) remain accessible without login, as required in the previous task.
 - Build passes cleanly.
+
+---
+Task ID: 16
+Agent: Super Z (main)
+Task: Email + WhatsApp lead capture on tool result pages (optional, user picks one)
+
+Work Log:
+- **Migration `0006_tool_leads.sql`**: New `tool_leads` table with columns: id, tool_slug (CHECK-constrained to the 4 known tools), email, whatsapp, result_summary, result_json, lang, consent (default true), contacted (coach flag), converted (coach flag), created_at. RLS enabled: anon + authenticated can INSERT (public form), only coaches can SELECT/UPDATE/DELETE. Three indexes for created_at, tool_slug, email, whatsapp.
+- **Type update `src/lib/supabase/types.ts`**: Added `tool_leads` table type + `ToolLead` export.
+- **API route `src/app/api/tools/lead/route.ts`** (POST): Validates tool_slug against allowlist, requires at least one contact channel (email OR whatsapp), runs basic email regex + phone regex. Writes to `tool_leads` via SSR client (anon key). Returns `{ok: true, id}` on success. In demo mode (no Supabase env vars) returns `{ok: true, demo: true}` so the form UX still works in previews.
+- **Reusable component `src/components/LeadCaptureCard.tsx`** (~200 lines): Bilingual (ar/en) collapsible card with two radio-style toggle buttons (WhatsApp / Email), a single input field that switches based on method, a consent checkbox (default checked, mentioning Coach Ahmed Zake marketing), submit button, and success state. Props: `toolSlug`, `resultSummary` (string), `resultJson` (structured). Clearly labeled "optional — you can skip" so it never blocks the user from seeing their results.
+- **Integration in all 4 tools** — added `<LeadCaptureCard>` between the existing CTA and AdSense on the result page:
+  - `calorie-calculator` — summary: `Calories: 2500/day · Protein: 188g · Carbs: 250g · Fat: 83g`
+  - `bmi-calculator` — summary: `BMI: 22 (Normal) · Ideal weight: 60-80 kg`
+  - `macro-calculator` — summary: `Calories: 2000 · Balanced · Protein: 150g · Carbs: 200g · Fat: 67g`
+  - `body-fat-calculator` — summary: `Body Fat: 18% (Fitness) · Fat mass: 13kg · Lean mass: 62kg`
+- **Admin dashboard `src/app/admin/leads/page.tsx` + `AdminLeadsView.tsx`**: Coach-only page at `/admin/leads` (already gated by `admin/layout.tsx` from Task 14). Features:
+  - 4 stat cards: Total Leads, Contacted, Converted, Conversion Rate %
+  - Search input (filters by email/whatsapp/result_summary)
+  - Tool filter dropdown (All / Calorie / BMI / Macro / Body Fat)
+  - Sortable table: tool, contact (mailto: or wa.me link), result summary, date, contacted toggle, converted toggle
+  - One-click toggles to mark a lead as contacted/converted (writes back to DB)
+  - CSV export button (UTF-8 BOM for Excel Arabic support)
+- **Navigation**: Added "Leads الأدوات" / "Tool Leads" link to:
+  - SiteHeader drawer menu (under coach section)
+  - AppLayout desktop sidebar (extra `<a>` link, since it's not in the `View` type)
+  - AppLayout mobile top nav (extra link button)
+- **Verification**:
+  - `npx next build` succeeded — all routes compile, no type errors.
+  - POST /api/tools/lead with empty body → `{error: "Invalid tool_slug"}` (400) ✅
+  - POST /api/tools/lead with `{tool_slug: "bmi-calculator", whatsapp: "+201000000000", result_summary: "BMI: 22"}` → `{ok: true, demo: true}` (works in demo mode without Supabase env vars) ✅
+  - GET /admin/leads → HTTP 200 (layout handles auth gate) ✅
+  - GET /tools/calorie-calculator → HTTP 200 ✅
+
+Stage Summary:
+- 4 free tools now capture leads: users see a friendly optional card after they calculate their result, pick WhatsApp OR Email, enter their contact, and the lead is saved to `tool_leads` table.
+- Coaches have a dedicated dashboard at `/admin/leads` to browse, filter, search, mark contacted/converted, and export CSV.
+- Build passes cleanly. Works in demo mode (without Supabase env vars) and in production mode (with Supabase).
+- Next step: run the SQL migration `0006_tool_leads.sql` in Supabase SQL Editor before deploying to production.

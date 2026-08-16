@@ -6,6 +6,7 @@ import { useNav } from "@/hooks/use-nav";
 import { SiteHeader } from "@/components/SiteHeader";
 import { AdSenseAd } from "@/components/AdSenseAd";
 import { OtherTools } from "@/components/OtherTools";
+import { LeadCaptureCard } from "@/components/LeadCaptureCard";
 
 type Gender = "male" | "female";
 
@@ -150,6 +151,18 @@ export default function BodyFatCalculatorPage() {
                 {isAr ? "احصل على خطة مخصصة ›" : "Get a personalized plan ›"}
               </button>
             </div>
+
+            {/* Lead Capture (Email / WhatsApp) — optional */}
+            <LeadCaptureCard
+              toolSlug="body-fat-calculator"
+              resultSummary={
+                isAr
+                  ? `نسبة الدهون: ${result.bf}% (${result.category}) · كتلة دهون: ${result.fatMass}kg · كتلة عضلية: ${result.leanMass}kg`
+                  : `Body Fat: ${result.bf}% (${result.category}) · Fat mass: ${result.fatMass}kg · Lean mass: ${result.leanMass}kg`
+              }
+              resultJson={{ ...result, gender }}
+            />
+
             <AdSenseAd format="auto" />
             <OtherTools current="body-fat-calculator" />
           </div>

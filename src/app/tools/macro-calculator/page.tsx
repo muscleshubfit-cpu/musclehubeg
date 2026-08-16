@@ -6,6 +6,7 @@ import { useNav } from "@/hooks/use-nav";
 import { SiteHeader } from "@/components/SiteHeader";
 import { AdSenseAd } from "@/components/AdSenseAd";
 import { OtherTools } from "@/components/OtherTools";
+import { LeadCaptureCard } from "@/components/LeadCaptureCard";
 
 type DietType = "balanced" | "low_carb" | "high_protein" | "keto" | "low_fat";
 
@@ -109,6 +110,18 @@ export default function MacroCalculatorPage() {
                 {isAr ? "احصل على خطة مخصصة ›" : "Get a personalized plan ›"}
               </button>
             </div>
+
+            {/* Lead Capture (Email / WhatsApp) — optional */}
+            <LeadCaptureCard
+              toolSlug="macro-calculator"
+              resultSummary={
+                isAr
+                  ? `السعرات: ${calories} · ${DIET_PRESETS[diet].label_ar} · بروتين: ${result.protein_g}g · كارب: ${result.carbs_g}g · دهون: ${result.fat_g}g`
+                  : `Calories: ${calories} · ${DIET_PRESETS[diet].label_en} · Protein: ${result.protein_g}g · Carbs: ${result.carbs_g}g · Fat: ${result.fat_g}g`
+              }
+              resultJson={{ ...result, calories, diet }}
+            />
+
             <AdSenseAd format="auto" />
             <OtherTools current="macro-calculator" />
           </div>

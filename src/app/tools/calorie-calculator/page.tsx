@@ -6,6 +6,7 @@ import { useNav } from "@/hooks/use-nav";
 import { SiteHeader } from "@/components/SiteHeader";
 import { AdSenseAd } from "@/components/AdSenseAd";
 import { OtherTools } from "@/components/OtherTools";
+import { LeadCaptureCard } from "@/components/LeadCaptureCard";
 
 type Gender = "male" | "female";
 type Activity = "sedentary" | "light" | "moderate" | "active" | "very_active";
@@ -297,6 +298,17 @@ export default function CalorieCalculatorPage() {
                 {isAr ? "احصل على خطة مخصصة ›" : "Get a personalized plan ›"}
               </button>
             </div>
+
+            {/* Lead Capture (Email / WhatsApp) — optional */}
+            <LeadCaptureCard
+              toolSlug="calorie-calculator"
+              resultSummary={
+                isAr
+                  ? `السعرات: ${result.target}/يوم · بروتين: ${result.protein}g · كارب: ${result.carbs}g · دهون: ${result.fat}g`
+                  : `Calories: ${result.target}/day · Protein: ${result.protein}g · Carbs: ${result.carbs}g · Fat: ${result.fat}g`
+              }
+              resultJson={result}
+            />
 
             {/* AdSense */}
             <AdSenseAd format="auto" />

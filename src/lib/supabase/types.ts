@@ -273,6 +273,45 @@ export type Database = {
  };
  Relationships: [];
  };
+ tool_leads: {
+ Row: {
+ id: string;
+ tool_slug: "calorie-calculator" | "bmi-calculator" | "macro-calculator" | "body-fat-calculator";
+ email: string | null;
+ whatsapp: string | null;
+ result_summary: string | null;
+ result_json: Json | null;
+ lang: string | null;
+ consent: boolean;
+ contacted: boolean;
+ converted: boolean;
+ created_at: string;
+ };
+ Insert: {
+ id?: string;
+ tool_slug: "calorie-calculator" | "bmi-calculator" | "macro-calculator" | "body-fat-calculator";
+ email?: string | null;
+ whatsapp?: string | null;
+ result_summary?: string | null;
+ result_json?: Json | null;
+ lang?: string | null;
+ consent?: boolean;
+ contacted?: boolean;
+ converted?: boolean;
+ created_at?: string;
+ };
+ Update: {
+ email?: string | null;
+ whatsapp?: string | null;
+ result_summary?: string | null;
+ result_json?: Json | null;
+ lang?: string | null;
+ consent?: boolean;
+ contacted?: boolean;
+ converted?: boolean;
+ };
+ Relationships: [];
+ };
  };
  Views: {};
  Functions: {};
@@ -293,3 +332,4 @@ export type Subscription = Database["public"]["Tables"]["subscriptions"]["Row"];
 export type ProgressEntry = Database["public"]["Tables"]["progress_entries"]["Row"];
 export type Plan = Database["public"]["Tables"]["plans"]["Row"];
 export type SupportTicket = Database["public"]["Tables"]["support_tickets"]["Row"];
+export type ToolLead = Database["public"]["Tables"]["tool_leads"]["Row"];
