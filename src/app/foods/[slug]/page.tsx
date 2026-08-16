@@ -24,6 +24,11 @@ export default function FoodDetailPage() {
 
   // Default grams = the food's default serving
   const [grams, setGrams] = useState<number>(food?.defaultGrams || 100);
+  // Custom macro target — user picks a macro (calories/protein/carbs/fat) + value
+  const [customTarget, setCustomTarget] = useState<{
+    macro: "calories" | "protein" | "carbs" | "fat";
+    value: string;
+  }>({ macro: "calories", value: "" });
 
   // Re-sync when food changes (e.g. user navigates to a different food)
   useMemo(() => {
@@ -240,7 +245,7 @@ export default function FoodDetailPage() {
             </div>
           )}
 
-          {/* Per-macro calculation */}
+          {/* Hit a specific macro — custom input + quick presets */}
           <div className="mt-6 rounded-2xl bg-white p-4">
             <h3 className="flex items-center gap-2 text-sm font-semibold">
               <Target className="h-4 w-4 text-[#0071e3]" />
@@ -248,32 +253,94 @@ export default function FoodDetailPage() {
             </h3>
             <p className="mt-1 text-xs font-normal text-[#6e6e73]">
               {isAr
-                ? "الجرامات اللازمة من الأكلة دي عشان توصل للهدف:"
-                : "Grams of this food needed to hit the target:"}
+                ? "اكتب الهدف أو دوس على زرار جاهز — هاتحسب الجرامات تلقائياً."
+                : "Enter your target or click a preset — grams will be calculated automatically."}
             </p>
+
+            {/* Macro type selector + custom input */}
             <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
-              {[
-                { label: isAr ? "30g بروتين" : "30g protein", target: 30, macro: "protein" as const },
-                { label: isAr ? "50g كارب" : "50g carbs", target: 50, macro: "carbs" as const },
-                { label: isAr ? "20g دهون" : "20g fat", target: 20, macro: "fat" as const },
-                { label: isAr ? "300 سعرة" : "300 kcal", target: 300, macro: "calories" as const },
-              ].map((item) => {
-                const per100 = food.per100g[item.macro];
-                const gramsNeeded = per100 > 0 ? Math.round((item.target / per100) * 100) : 0;
+              {([
+                { macro: "calories", labelAr: "سعرات", labelEn: "Calories", color: "#0071e3", unit: "kcal" },
+                { macro: "protein", labelAr: "بروتين", labelEn: "Protein", color: "#34c759", unit: "g" },
+                { macro: "carbs", labelAr: "كارب", labelEn: "Carbs", color: "#ff9500", unit: "g" },
+                { macro: "fat", labelAr: "دهون", labelEn: "Fat", color: "#ff3b30", unit: "g" },
+              ] as const).map((m) => {
+                const per100 = food.per100g[m.macro as keyof typeof food.per100g];
+                const targetValue = customTarget.macro === m.macro ? customTarget.value : "";
+                const gramsNeeded = per100 > 0 && targetValue
+                  ? Math.round((Number(targetValue) / per100) * 100)
+                  : 0;
+                const isActive = customTarget.macro === m.macro;
                 return (
-                  <button
-                    key={item.label}
-                    onClick={() => gramsNeeded > 0 && setGrams(gramsNeeded)}
-                    disabled={gramsNeeded === 0 || gramsNeeded > 1000}
-                    className="rounded-xl bg-[#f5f5f7] p-3 text-center transition-colors hover:bg-[#e5e5e7] disabled:opacity-50"
+                  <div
+                    key={m.macro}
+                    className={`rounded-xl border-2 p-2 transition-colors ${
+                      isActive ? "bg-[#f5f5f7]" : "border-transparent bg-[#f5f5f7]/50"
+                    }`}
+                    style={isActive ? { borderColor: m.color } : {}}
                   >
-                    <p className="text-[10px] font-normal text-[#6e6e73]">{item.label}</p>
-                    <p className="mt-1 text-sm font-semibold text-[#1d1d1f]">
-                      {gramsNeeded > 0 && gramsNeeded <= 1000 ? `${gramsNeeded}g` : "—"}
-                    </p>
-                  </button>
+                    <button
+                      onClick={() => setCustomTarget({ macro: m.macro, value: customTarget.value || "" })}
+                      className="flex w-full items-center justify-between text-xs font-medium"
+                    >
+                      <span style={{ color: m.color }}>
+                        {isAr ? m.labelAr : m.labelEn}
+                      </span>
+                      <span className="text-[10px] text-[#6e6e73]">{m.unit}</span>
+                    </button>
+                    <input
+                      type="number"
+                      value={targetValue}
+                      onChange={(e) => setCustomTarget({ macro: m.macro, value: e.target.value })}
+                      placeholder="0"
+                      min="0"
+                      className="mt-1 w-full rounded-lg border border-[#d2d2d7] bg-white px-2 py-1 text-sm font-semibold outline-none focus:border-[#0071e3]"
+                    />
+                    {isActive && targetValue && gramsNeeded > 0 && gramsNeeded <= 2000 && (
+                      <button
+                        onClick={() => setGrams(gramsNeeded)}
+                        className="mt-1 w-full rounded-lg bg-[#0071e3] px-2 py-1 text-[10px] font-medium text-white hover:bg-[#0058b9]"
+                      >
+                        {isAr ? "اضبط" : "Set"} {gramsNeeded}g →
+                      </button>
+                    )}
+                  </div>
                 );
               })}
+            </div>
+
+            {/* Quick presets */}
+            <div className="mt-3">
+              <p className="mb-1.5 text-[10px] font-medium text-[#6e6e73]">
+                {isAr ? "أهداف سريعة:" : "Quick targets:"}
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {[
+                  { macro: "protein", label: "30g protein", target: 30 },
+                  { macro: "protein", label: "50g protein", target: 50 },
+                  { macro: "carbs", label: "50g carbs", target: 50 },
+                  { macro: "carbs", label: "100g carbs", target: 100 },
+                  { macro: "fat", label: "20g fat", target: 20 },
+                  { macro: "calories", label: "300 kcal", target: 300 },
+                  { macro: "calories", label: "500 kcal", target: 500 },
+                ].map((preset) => {
+                  const per100 = food.per100g[preset.macro as keyof typeof food.per100g];
+                  const gramsNeeded = per100 > 0 ? Math.round((preset.target / per100) * 100) : 0;
+                  return (
+                    <button
+                      key={preset.label}
+                      onClick={() => gramsNeeded > 0 && gramsNeeded <= 2000 && setGrams(gramsNeeded)}
+                      disabled={gramsNeeded === 0 || gramsNeeded > 2000}
+                      className="rounded-full bg-[#0071e3]/10 px-3 py-1 text-[11px] font-medium text-[#0071e3] transition-colors hover:bg-[#0071e3]/20 disabled:opacity-40"
+                    >
+                      {preset.label}
+                      {gramsNeeded > 0 && gramsNeeded <= 2000 && (
+                        <span className="ms-1 text-[#6e6e73]">→ {gramsNeeded}g</span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </div>
         </section>
