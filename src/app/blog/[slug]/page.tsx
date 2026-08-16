@@ -1,5 +1,6 @@
 import { BlogArticlePage } from "@/components/blog/BlogArticlePage";
 import { fetchBlogForOG } from "@/lib/blog-server";
+import { getArticleSchema, getBreadcrumbSchema } from "@/lib/seo";
 import type { Metadata } from "next";
 
 // Force dynamic rendering so generateMetadata runs on every request
@@ -46,5 +47,43 @@ export async function generateMetadata({
 
 export default async function Page({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  return <BlogArticlePage lang="en" slug={slug} />;
+
+  // Fetch blog data for Article schema
+  const og = await fetchBlogForOG(slug, "en");
+
+  const articleSchema = og
+    ? getArticleSchema({
+        title: og.title,
+        description: og.description,
+        slug,
+        image: og.image,
+        datePublished: og.publishedAt || new Date().toISOString(),
+      })
+    : null;
+
+  const breadcrumbSchema = og
+    ? getBreadcrumbSchema([
+        { name: "Home", url: "/" },
+        { name: "Blog", url: "/blog" },
+        { name: og.title, url: `/blog/${slug}` },
+      ])
+    : null;
+
+  return (
+    <>
+      {articleSchema && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(articleSchema) }}
+        />
+      )}
+      {breadcrumbSchema && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
+        />
+      )}
+      <BlogArticlePage lang="en" slug={slug} />
+    </>
+  );
 }

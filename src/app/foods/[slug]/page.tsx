@@ -13,6 +13,7 @@ import {
   TAG_LABELS,
 } from "@/lib/foods";
 import { ArrowLeft, Calculator, Target } from "lucide-react";
+import { getBreadcrumbSchema } from "@/lib/seo";
 
 export default function FoodDetailPage() {
   const { lang } = useI18n();
@@ -21,6 +22,15 @@ export default function FoodDetailPage() {
   const slug = params?.slug as string;
 
   const food = useMemo(() => getFoodBySlug(slug), [slug]);
+
+  // SEO: Breadcrumb schema
+  const breadcrumbSchema = food
+    ? getBreadcrumbSchema([
+        { name: isAr ? "الرئيسية" : "Home", url: "/" },
+        { name: isAr ? "الأكلات" : "Foods", url: "/foods" },
+        { name: isAr ? food.nameAr : food.nameEn, url: `/foods/${food.slug}` },
+      ])
+    : null;
 
   // Default grams = the food's default serving
   const [grams, setGrams] = useState<number>(food?.defaultGrams || 100);
@@ -65,6 +75,13 @@ export default function FoodDetailPage() {
 
   return (
     <div className="min-h-screen bg-white text-[#1d1d1f]">
+      {/* SEO: Breadcrumb schema */}
+      {breadcrumbSchema && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
+        />
+      )}
       <SiteHeader variant="landing" />
 
       <main className="mx-auto max-w-4xl px-4 py-8 md:py-12">

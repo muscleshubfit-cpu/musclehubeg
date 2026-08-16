@@ -14,6 +14,7 @@ import {
 } from "@/lib/workout-programs";
 import { getWgerImageUrl, getFallbackSVG } from "@/lib/exercise-images";
 import { ArrowLeft, Clock, Calendar, Dumbbell, Coffee } from "lucide-react";
+import { getBreadcrumbSchema } from "@/lib/seo";
 
 export default function ProgramDetailPage() {
   const { lang } = useI18n();
@@ -22,6 +23,15 @@ export default function ProgramDetailPage() {
   const slug = params?.slug as string;
 
   const program = useMemo(() => getProgramBySlug(slug), [slug]);
+
+  // SEO: Breadcrumb schema
+  const breadcrumbSchema = program
+    ? getBreadcrumbSchema([
+        { name: isAr ? "الرئيسية" : "Home", url: "/" },
+        { name: isAr ? "البرامج" : "Programs", url: "/programs" },
+        { name: isAr ? program.nameAr : program.nameEn, url: `/programs/${program.slug}` },
+      ])
+    : null;
 
   if (!program) {
     return (
@@ -51,6 +61,13 @@ export default function ProgramDetailPage() {
 
   return (
     <div className="min-h-screen bg-white text-[#1d1d1f]">
+      {/* SEO: Breadcrumb schema */}
+      {breadcrumbSchema && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
+        />
+      )}
       <SiteHeader variant="landing" />
 
       <main className="mx-auto max-w-4xl px-4 py-8 md:py-12">

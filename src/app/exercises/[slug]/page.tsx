@@ -14,6 +14,7 @@ import {
   LEVEL_LABELS,
 } from "@/lib/exercises";
 import { ArrowLeft, Dumbbell, Target, AlertCircle, CheckCircle2 } from "lucide-react";
+import { getHowToSchema, getBreadcrumbSchema } from "@/lib/seo";
 
 export default function ExerciseDetailPage() {
   const { lang } = useI18n();
@@ -22,6 +23,26 @@ export default function ExerciseDetailPage() {
   const slug = params?.slug as string;
 
   const exercise = useMemo(() => getExerciseBySlug(slug), [slug]);
+
+  // Build SEO schemas
+  const exerciseSchema = exercise
+    ? getHowToSchema({
+        name: isAr ? exercise.nameAr : exercise.nameEn,
+        description: isAr
+          ? `تمرين ${exercise.primaryMuscles.join("، ")} بمعدات ${exercise.equipment}`
+          : `Exercise for ${exercise.primaryMuscles.join(", ")} with ${exercise.equipment}`,
+        steps: isAr ? exercise.instructionsAr : exercise.instructionsEn,
+        tool: [exercise.equipment],
+      })
+    : null;
+
+  const breadcrumbSchema = exercise
+    ? getBreadcrumbSchema([
+        { name: isAr ? "الرئيسية" : "Home", url: "/" },
+        { name: isAr ? "التمارين" : "Exercises", url: "/exercises" },
+        { name: isAr ? exercise.nameAr : exercise.nameEn, url: `/exercises/${exercise.slug}` },
+      ])
+    : null;
 
   if (!exercise) {
     return (
@@ -50,6 +71,19 @@ export default function ExerciseDetailPage() {
 
   return (
     <div className="min-h-screen bg-white text-[#1d1d1f]">
+      {/* SEO: HowTo + Breadcrumb schemas */}
+      {exerciseSchema && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(exerciseSchema) }}
+        />
+      )}
+      {breadcrumbSchema && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
+        />
+      )}
       <SiteHeader variant="landing" />
 
       <main className="mx-auto max-w-4xl px-4 py-8 md:py-12">
