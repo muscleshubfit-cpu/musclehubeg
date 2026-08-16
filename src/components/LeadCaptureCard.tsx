@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { Mail, Send, CheckCircle2, Loader2 } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
-import { cn } from "@/lib/utils";
 
 type ToolSlug =
   | "calorie-calculator"
@@ -20,26 +19,20 @@ type Props = {
 };
 
 /**
- * LeadCaptureCard — appears on the result page of each free tool.
+ * LeadCaptureCard — simple newsletter signup on the result page of each free tool.
  *
- * Email-only flow (WhatsApp removed per user request):
- *   - User enters their email.
- *   - On submit, we save the lead to the database AND send a real
- *     email (via Resend, server-side) with the user's results in a
- *     branded HTML template.
- *   - If Resend is not configured, we still save the lead and show
- *     a "we'll send shortly" message (graceful degradation).
+ * Collects the visitor's email and stores it as a lead in the `tool_leads`
+ * table. The coach can later use these emails for newsletter campaigns.
+ * No email is sent to the user — just a "subscribed" confirmation.
  */
 export function LeadCaptureCard({ toolSlug, resultSummary, resultJson }: Props) {
   const { lang } = useI18n();
   const isAr = lang === "ar";
 
   const [email, setEmail] = useState("");
-  const [consent, setConsent] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [emailSent, setEmailSent] = useState<boolean>(false);
 
   const submit = async () => {
     setError(null);
@@ -66,7 +59,6 @@ export function LeadCaptureCard({ toolSlug, resultSummary, resultJson }: Props) 
           result_summary: resultSummary,
           result_json: resultJson,
           lang,
-          consent,
         }),
       });
       const data = await res.json();
@@ -74,7 +66,6 @@ export function LeadCaptureCard({ toolSlug, resultSummary, resultJson }: Props) 
         setError(data.error || (isAr ? "حصل خطأ" : "Something went wrong"));
         return;
       }
-      setEmailSent(!!data.emailSent);
       setDone(true);
     } catch (e: any) {
       setError(e?.message || (isAr ? "حصل خطأ" : "Something went wrong"));
@@ -91,16 +82,12 @@ export function LeadCaptureCard({ toolSlug, resultSummary, resultJson }: Props) 
           <CheckCircle2 className="h-6 w-6 text-white" />
         </div>
         <p className="mt-4 text-base font-medium text-[#1d1d1f]">
-          {isAr ? "تم تسجيل طلبك ✅" : "Request saved ✅"}
+          {isAr ? "تم الاشتراك ✅" : "Subscribed ✅"}
         </p>
         <p className="mt-2 text-sm font-normal text-[#6e6e73]">
-          {emailSent
-            ? isAr
-              ? `بعتنا نتائجك على ${email} ✉️`
-              : `We sent your results to ${email} ✉️`
-            : isAr
-              ? "هنرسلك نتائجك على الإيميل خلال دقائق."
-              : "We'll send your results to your email shortly."}
+          {isAr
+            ? `سجّلنا إيميلك (${email}) في النشرة البريدية. هنوصلك بأحدث النصائح والعروض.`
+            : `We've added ${email} to our newsletter. You'll receive our latest tips and offers.`}
         </p>
       </div>
     );
@@ -116,12 +103,12 @@ export function LeadCaptureCard({ toolSlug, resultSummary, resultJson }: Props) 
         </span>
         <div>
           <h3 className="text-base font-semibold tracking-tight text-[#1d1d1f]">
-            {isAr ? "ابعتلي نتائجي على الإيميل" : "Send me my results by email"}
+            {isAr ? "اشترك في النشرة البريدية" : "Subscribe to our newsletter"}
           </h3>
           <p className="mt-1 text-sm font-normal text-[#6e6e73]">
             {isAr
-              ? "اكتب إيميلك وهنرسلك نتائجك فوراً (اختياري)."
-              : "Enter your email and we'll send your results instantly (optional)."}
+              ? "نصائح أسبوعية للتغذية واللياقة + عروض حصرية على الاشتراكات."
+              : "Weekly nutrition & fitness tips + exclusive subscription offers."}
           </p>
         </div>
       </div>
@@ -141,21 +128,6 @@ export function LeadCaptureCard({ toolSlug, resultSummary, resultJson }: Props) 
         </div>
       </div>
 
-      {/* Consent checkbox */}
-      <label className="mt-3 flex items-start gap-2 text-xs font-normal text-[#6e6e73]">
-        <input
-          type="checkbox"
-          checked={consent}
-          onChange={(e) => setConsent(e.target.checked)}
-          className="mt-0.5 h-4 w-4 rounded border-[#d2d2d7]"
-        />
-        <span>
-          {isAr
-            ? "موافق إن الكوتش أحمد زكي يكلّمني بخصوص خطتي الرياضية وعروض الاشتراك."
-            : "I agree to be contacted by Coach Ahmed Zake about my fitness plan and subscription offers."}
-        </span>
-      </label>
-
       {/* Error */}
       {error && (
         <p className="mt-3 text-sm font-normal text-[#ff3b30]">{error}</p>
@@ -171,12 +143,12 @@ export function LeadCaptureCard({ toolSlug, resultSummary, resultJson }: Props) 
         {submitting ? (
           <>
             <Loader2 className="h-4 w-4 animate-spin" />
-            {isAr ? "جارٍ الإرسال..." : "Sending..."}
+            {isAr ? "جارٍ الاشتراك..." : "Subscribing..."}
           </>
         ) : (
           <>
             <Send className="h-4 w-4" />
-            {isAr ? "ابعتلي النتائج" : "Send me my results"}
+            {isAr ? "اشترك الآن" : "Subscribe now"}
           </>
         )}
       </button>
