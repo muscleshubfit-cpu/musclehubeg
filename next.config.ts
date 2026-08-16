@@ -18,6 +18,8 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       { protocol: "https", hostname: "randomuser.me" },
       { protocol: "https", hostname: "z-cdn.chatglm.cn" },
+      { protocol: "https", hostname: "images.unsplash.com" },
+      { protocol: "https", hostname: "wger.de" },
     ],
     minimumCacheTTL: 86400, // 24 hours
   },

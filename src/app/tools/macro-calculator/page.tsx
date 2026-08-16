@@ -7,6 +7,7 @@ import { SiteHeader } from "@/components/SiteHeader";
 import { AdSenseAd } from "@/components/AdSenseAd";
 import { OtherTools } from "@/components/OtherTools";
 import { LeadCaptureCard } from "@/components/LeadCaptureCard";
+import { ShareButtons } from "@/components/ShareButtons";
 
 type DietType = "balanced" | "low_carb" | "high_protein" | "keto" | "low_fat";
 
@@ -121,6 +122,17 @@ export default function MacroCalculatorPage() {
               }
               resultJson={{ ...result, calories, diet }}
             />
+
+            {/* Share buttons */}
+            <div className="rounded-2xl bg-[#f5f5f7] p-4">
+              <ShareButtons
+                title={
+                  isAr
+                    ? `ماكروزي: بروتين ${result.protein_g}g · كارب ${result.carbs_g}g · دهون ${result.fat_g}g | MuscleHub`
+                    : `My macros: Protein ${result.protein_g}g · Carbs ${result.carbs_g}g · Fat ${result.fat_g}g | MuscleHub`
+                }
+              />
+            </div>
 
             <AdSenseAd format="auto" />
             <OtherTools current="macro-calculator" />

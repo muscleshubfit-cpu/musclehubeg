@@ -562,6 +562,61 @@ export function LandingView() {
         </div>
       </section>
 
+      {/* ===================== 7.10. WORKOUT PROGRAMS — preview ===================== */}
+      <section className="bg-[#f5f5f7] px-4 py-12 md:py-20">
+        <div className="mx-auto max-w-5xl">
+          <div className="text-center">
+            <Reveal>
+              <h2 className="text-3xl font-semibold tracking-tight md:text-5xl">
+                {isAr ? "برامج تدريب جاهزة" : "Ready Workout Programs"}
+              </h2>
+            </Reveal>
+            <Reveal delay={100}>
+              <p className="mx-auto mt-3 max-w-md text-base font-normal text-[#6e6e73] md:text-lg">
+                {isAr
+                  ? "برامج كاملة حسب المستوى والهدف — منزل، جيم، أو معدات بسيطة."
+                  : "Complete programs by level and goal — home, gym, or minimal equipment."}
+              </p>
+            </Reveal>
+          </div>
+
+          <div className="mt-10 grid grid-cols-1 gap-4 md:grid-cols-3">
+            {[
+              { emoji: "🏠", titleAr: "منزلي بدون معدات", titleEn: "Home (No Equipment)", descAr: "تمارين بالوزن فقط", descEn: "Bodyweight only", slug: "home-beginner-fullbody" },
+              { emoji: "🏋️", titleAr: "جيم كامل", titleEn: "Full Gym", descAr: "بمعدات كاملة", descEn: "Full equipment", slug: "gym-ppl-intermediate" },
+              { emoji: "🔥", titleAr: "حرق دهون HIIT", titleEn: "Fat Loss HIIT", descAr: "حارب الدهون بسرعة", descEn: "Burn fat fast", slug: "home-fat-loss-hiit" },
+            ].map((prog, i) => (
+              <Reveal key={prog.slug} delay={i * 100}>
+                <a
+                  href={`/programs/${prog.slug}`}
+                  className="group block rounded-3xl bg-white p-6 transition-opacity hover:opacity-90"
+                >
+                  <span className="text-4xl">{prog.emoji}</span>
+                  <h3 className="mt-3 text-lg font-semibold tracking-tight">
+                    {isAr ? prog.titleAr : prog.titleEn}
+                  </h3>
+                  <p className="mt-1 text-sm font-normal text-[#6e6e73]">
+                    {isAr ? prog.descAr : prog.descEn}
+                  </p>
+                  <p className="mt-3 text-sm font-normal text-[#0071e3]">
+                    {isAr ? "ابدأ الآن ›" : "Start now ›"}
+                  </p>
+                </a>
+              </Reveal>
+            ))}
+          </div>
+
+          <div className="mt-8 text-center">
+            <a
+              href="/programs"
+              className="inline-block rounded-full bg-[#1d1d1f] px-6 py-2.5 text-sm font-normal text-white transition-opacity hover:opacity-90"
+            >
+              {isAr ? "كل البرامج ›" : "View all programs ›"}
+            </a>
+          </div>
+        </div>
+      </section>
+
       {/* ===================== 8. HOW IT WORKS — Apple-style numbered steps ===================== */}
       <section className="bg-white px-4 py-12 md:py-20">
         <div className="mx-auto max-w-4xl">

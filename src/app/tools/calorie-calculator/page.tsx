@@ -7,6 +7,7 @@ import { SiteHeader } from "@/components/SiteHeader";
 import { AdSenseAd } from "@/components/AdSenseAd";
 import { OtherTools } from "@/components/OtherTools";
 import { LeadCaptureCard } from "@/components/LeadCaptureCard";
+import { ShareButtons } from "@/components/ShareButtons";
 
 type Gender = "male" | "female";
 type Activity = "sedentary" | "light" | "moderate" | "active" | "very_active";
@@ -309,6 +310,17 @@ export default function CalorieCalculatorPage() {
               }
               resultJson={result}
             />
+
+            {/* Share buttons */}
+            <div className="rounded-2xl bg-[#f5f5f7] p-4">
+              <ShareButtons
+                title={
+                  isAr
+                    ? `نتائجي من حاسبة السعرات: ${result.target} سعرة/يوم | MuscleHub`
+                    : `My calorie results: ${result.target} cal/day | MuscleHub`
+                }
+              />
+            </div>
 
             {/* AdSense */}
             <AdSenseAd format="auto" />

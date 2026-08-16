@@ -101,6 +101,13 @@ export function SiteHeader({ variant = "landing" }: { variant?: "landing" | "app
     href: "/exercises",
   });
 
+  // 2d. Workout Programs
+  menu.push({
+    label: isAr ? "برامج التدريب" : "Programs",
+    icon: ClipboardList,
+    href: "/programs",
+  });
+
   // 3. Pricing
   menu.push({
     label: isAr ? "الأسعار" : "Pricing",

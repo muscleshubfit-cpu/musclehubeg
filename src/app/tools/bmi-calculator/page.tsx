@@ -7,6 +7,7 @@ import { SiteHeader } from "@/components/SiteHeader";
 import { AdSenseAd } from "@/components/AdSenseAd";
 import { OtherTools } from "@/components/OtherTools";
 import { LeadCaptureCard } from "@/components/LeadCaptureCard";
+import { ShareButtons } from "@/components/ShareButtons";
 
 type Unit = "metric" | "imperial";
 
@@ -229,6 +230,17 @@ export default function BMICalculatorPage() {
               }
               resultJson={result}
             />
+
+            {/* Share buttons */}
+            <div className="rounded-2xl bg-[#f5f5f7] p-4">
+              <ShareButtons
+                title={
+                  isAr
+                    ? `نتائجي من حاسبة BMI: ${result.bmi} (${result.category}) | MuscleHub`
+                    : `My BMI results: ${result.bmi} (${result.category}) | MuscleHub`
+                }
+              />
+            </div>
 
             {/* AdSense */}
             <AdSenseAd format="auto" />

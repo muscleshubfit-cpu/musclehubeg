@@ -7,6 +7,7 @@ import { SiteHeader } from "@/components/SiteHeader";
 import { AdSenseAd } from "@/components/AdSenseAd";
 import { OtherTools } from "@/components/OtherTools";
 import { LeadCaptureCard } from "@/components/LeadCaptureCard";
+import { ShareButtons } from "@/components/ShareButtons";
 
 type Gender = "male" | "female";
 
@@ -162,6 +163,17 @@ export default function BodyFatCalculatorPage() {
               }
               resultJson={{ ...result, gender }}
             />
+
+            {/* Share buttons */}
+            <div className="rounded-2xl bg-[#f5f5f7] p-4">
+              <ShareButtons
+                title={
+                  isAr
+                    ? `نسبة دهوني: ${result.bf}% (${result.category}) | MuscleHub`
+                    : `My body fat: ${result.bf}% (${result.category}) | MuscleHub`
+                }
+              />
+            </div>
 
             <AdSenseAd format="auto" />
             <OtherTools current="body-fat-calculator" />

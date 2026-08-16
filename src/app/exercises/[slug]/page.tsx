@@ -4,6 +4,7 @@ import { useState, useMemo } from "react";
 import { useParams } from "next/navigation";
 import { useI18n } from "@/lib/i18n";
 import { SiteHeader } from "@/components/SiteHeader";
+import { ShareButtons } from "@/components/ShareButtons";
 import { getWgerImageUrl, getFallbackSVG } from "@/lib/exercise-images";
 import {
   getExerciseBySlug,
@@ -187,6 +188,17 @@ export default function ExerciseDetailPage() {
             ))}
           </ul>
         </section>
+
+        {/* Share buttons */}
+        <div className="mt-6 flex items-center justify-between gap-4 rounded-2xl bg-[#f5f5f7] p-4">
+          <p className="text-sm font-medium text-[#1d1d1f]">
+            {isAr ? "شارك التمرين ده" : "Share this exercise"}
+          </p>
+          <ShareButtons
+            title={isAr ? `${exercise.nameAr} | MuscleHub` : `${exercise.nameEn} | MuscleHub`}
+            text={isAr ? exercise.instructionsAr[0] : exercise.instructionsEn[0]}
+          />
+        </div>
 
         {/* Related exercises */}
         {related.length > 0 && (
