@@ -96,13 +96,8 @@ export default function FoodDetailPage() {
 
         {/* Header */}
         <div className="mt-6 grid gap-8 md:grid-cols-2">
-          {/* Emoji header instead of image */}
-          <div className="flex aspect-square w-full items-center justify-center rounded-3xl bg-[#f5f5f7]">
-            <span className="text-8xl">{CATEGORY_LABELS[food.category].emoji}</span>
-          </div>
-
-          {/* Info */}
-          <div>
+          {/* Info card — no image */}
+          <div className="rounded-3xl bg-[#f5f5f7] p-6 md:p-8">
             <div className="flex flex-wrap items-center gap-2">
               <span className="rounded-full bg-[#0071e3]/10 px-3 py-1 text-xs font-medium text-[#0071e3]">
                 {CATEGORY_LABELS[food.category].emoji} {categoryLabel}
@@ -129,7 +124,7 @@ export default function FoodDetailPage() {
             </p>
 
             {/* Default serving */}
-            <div className="mt-4 rounded-2xl bg-[#f5f5f7] p-3">
+            <div className="mt-4 rounded-2xl bg-white p-3">
               <p className="text-xs font-medium text-[#6e6e73]">
                 {isAr ? "الحصة الافتراضية" : "Default serving"}
               </p>
@@ -393,17 +388,12 @@ export default function FoodDetailPage() {
                 <a
                   key={rel.slug}
                   href={`/foods/${rel.slug}`}
-                  className="group rounded-2xl bg-[#f5f5f7] transition-opacity hover:opacity-90"
+                  className="group rounded-2xl bg-[#f5f5f7] p-4 transition-opacity hover:opacity-90"
                 >
-                  <div className="flex aspect-square w-full items-center justify-center">
-                    <span className="text-4xl">{CATEGORY_LABELS[rel.category].emoji}</span>
-                  </div>
-                  <div className="p-3">
-                    <p className="text-sm font-semibold">{isAr ? rel.nameAr : rel.nameEn}</p>
-                    <p className="mt-0.5 text-xs font-normal text-[#6e6e73]">
-                      {rel.per100g.calories} kcal · {rel.per100g.protein}g protein
-                    </p>
-                  </div>
+                  <p className="text-sm font-semibold">{isAr ? rel.nameAr : rel.nameEn}</p>
+                  <p className="mt-0.5 text-xs font-normal text-[#6e6e73]">
+                    {rel.per100g.calories} kcal · {rel.per100g.protein}g protein
+                  </p>
                 </a>
               ))}
             </div>

@@ -209,20 +209,11 @@ export default function FoodsPage() {
                 href={`/foods/${food.slug}`}
                 className="group rounded-3xl bg-[#f5f5f7] transition-opacity hover:opacity-90"
               >
-                {/* Emoji header instead of image */}
-                <div className="flex aspect-square w-full items-center justify-center bg-white">
-                  <span className="text-5xl">{CATEGORY_LABELS[food.category].emoji}</span>
-                </div>
                 {/* Content */}
                 <div className="p-3">
-                  <div className="flex items-center gap-1">
-                    <span className="text-xs">
-                      {CATEGORY_LABELS[food.category].emoji}
-                    </span>
-                    <span className="text-[10px] font-medium text-[#6e6e73]">
-                      {isAr ? CATEGORY_LABELS[food.category].ar : CATEGORY_LABELS[food.category].en}
-                    </span>
-                  </div>
+                  <span className="text-[10px] font-medium text-[#6e6e73]">
+                    {isAr ? CATEGORY_LABELS[food.category].ar : CATEGORY_LABELS[food.category].en}
+                  </span>
                   <h3 className="mt-1 text-sm font-semibold tracking-tight">
                     {isAr ? food.nameAr : food.nameEn}
                   </h3>
