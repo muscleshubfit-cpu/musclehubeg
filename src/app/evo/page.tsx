@@ -83,10 +83,10 @@ export default function EvoPage() {
     },
     {
       icon: Sparkles,
-      titleAr: "مجاني للجميع",
-      titleEn: "Free for Everyone",
-      descAr: "EVO متاح لكل الزوار والمشتركين — مش محتاج حساب عشان تجرب.",
-      descEn: "EVO is available to all visitors and subscribers — no account needed to try.",
+      titleAr: "متاح للجميع",
+      titleEn: "Available to Everyone",
+      descAr: "EVO متاح لكل الزوار والمشتركين — الزوار بـ limits، المشتركين بكل الميزات.",
+      descEn: "EVO is available to all visitors and subscribers — visitors with limits, subscribers with full features.",
       color: "#ff9500",
     },
   ];
@@ -119,8 +119,8 @@ export default function EvoPage() {
     {
       chatbotAr: "متاح للمشتركين بس عادةً",
       chatbotEn: "Usually for subscribers only",
-      evoAr: "مجاني للجميع",
-      evoEn: "Free for everyone",
+      evoAr: "متاح للجميع بـ limits مختلفة",
+      evoEn: "Available to everyone with different limits",
     },
   ];
 
@@ -324,7 +324,7 @@ export default function EvoPage() {
             { icon: Zap, labelAr: "فوري", labelEn: "Instant", descAr: "ردود في ثواني", descEn: "Replies in seconds" },
             { icon: Clock, labelAr: "24/7", labelEn: "24/7", descAr: "متاح كل وقت", descEn: "Always available" },
             { icon: Shield, labelAr: "آمن", labelEn: "Secure", descAr: "بياناتك مشفرة", descEn: "Your data is encrypted" },
-            { icon: Sparkles, labelAr: "مجاني", labelEn: "Free", descAr: "للجميع", descEn: "For everyone" },
+            { icon: Sparkles, labelAr: "متاح", labelEn: "Available", descAr: "للجميع", descEn: "For everyone" },
           ].map((badge, i) => {
             const Icon = badge.icon;
             return (
@@ -341,6 +341,136 @@ export default function EvoPage() {
           })}
         </section>
 
+        {/* Free vs Subscriber comparison */}
+        <section className="mt-12">
+          <h2 className="text-center text-2xl font-semibold tracking-tight md:text-3xl">
+            {isAr ? "EVO للزوار vs EVO للمشتركين" : "EVO for Visitors vs Subscribers"}
+          </h2>
+          <p className="mx-auto mt-3 max-w-lg text-center text-sm font-normal text-[#6e6e73]">
+            {isAr
+              ? "EVO متاح للجميع، بس المشتركين بياخدو ميزات أكتر وأعمق."
+              : "EVO is available to everyone, but subscribers get deeper features."}
+          </p>
+
+          <div className="mt-8 overflow-hidden rounded-3xl border border-[#d2d2d7]">
+            <div className="grid grid-cols-3 bg-[#f5f5f7]">
+              <div className="p-4 text-center text-xs font-medium text-[#6e6e73]">
+                {isAr ? "الميزة" : "Feature"}
+              </div>
+              <div className="border-s border-[#d2d2d7] p-4 text-center text-xs font-medium text-[#6e6e73]">
+                {isAr ? "زائر (مجاني)" : "Visitor (Free)"}
+              </div>
+              <div className="border-s border-[#d2d2d7] p-4 text-center text-xs font-medium text-[#0071e3]">
+                {isAr ? "مشترك" : "Subscriber"}
+              </div>
+            </div>
+            {[
+              {
+                featAr: "المحادثة الأساسية",
+                featEn: "Basic chat",
+                freeAr: "✓ 10 رسائل/يوم",
+                freeEn: "✓ 10 msgs/day",
+                subAr: "✓ غير محدود",
+                subEn: "✓ Unlimited",
+              },
+              {
+                featAr: "التوجيه لصفحات المنصة",
+                featEn: "Platform page guidance",
+                freeAr: "✓",
+                freeEn: "✓",
+                subAr: "✓",
+                subEn: "✓",
+              },
+              {
+                featAr: "الإجابة من مقالات المدونة",
+                featEn: "Blog article answers",
+                freeAr: "✓ ملخص",
+                freeEn: "✓ Summary",
+                subAr: "✓ ملخص كامل + روابط",
+                subEn: "✓ Full summary + links",
+              },
+              {
+                featAr: "حفظ بيانات الجسم",
+                featEn: "Save body data",
+                freeAr: "✗ (session بس)",
+                freeEn: "✗ (session only)",
+                subAr: "✓ دائم",
+                subEn: "✓ Permanent",
+              },
+              {
+                featAr: "تحديث الخطة تلقائياً",
+                featEn: "Automatic plan updates",
+                freeAr: "✗",
+                freeEn: "✗",
+                subAr: "✓",
+                subEn: "✓",
+              },
+              {
+                featAr: "تبديل الوجبات/التمارين",
+                featEn: "Meal/exercise swaps",
+                freeAr: "✗ (نصائح عامة)",
+                freeEn: "✗ (general tips)",
+                subAr: "✓ (داخل خطتك)",
+                subEn: "✓ (in your plan)",
+              },
+              {
+                featAr: "التنبؤ بالنتائج",
+                featEn: "Outcome prediction",
+                freeAr: "✗",
+                freeEn: "✗",
+                subAr: "✓",
+                subEn: "✓",
+              },
+              {
+                featAr: "تحليل الأنماط",
+                featEn: "Pattern analysis",
+                freeAr: "✗",
+                freeEn: "✗",
+                subAr: "✓",
+                subEn: "✓",
+              },
+              {
+                featAr: "الذاكرة عبر الجلسات",
+                featEn: "Cross-session memory",
+                freeAr: "✗",
+                freeEn: "✗",
+                subAr: "✓",
+                subEn: "✓",
+              },
+            ].map((row, i) => (
+              <div key={i} className="grid grid-cols-3 border-t border-[#d2d2d7]/60">
+                <div className="p-3 text-xs font-medium text-[#1d1d1f]">
+                  {isAr ? row.featAr : row.featEn}
+                </div>
+                <div className="border-s border-[#d2d2d7] p-3 text-xs font-normal text-[#6e6e73]">
+                  {isAr ? row.freeAr : row.freeEn}
+                </div>
+                <div className="border-s border-[#d2d2d7] bg-[#0071e3]/[0.03] p-3 text-xs font-medium text-[#1d1d1f]">
+                  {isAr ? row.subAr : row.subEn}
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* One subscription for everything */}
+        <section className="mt-12 rounded-3xl bg-gradient-to-br from-[#1d1d1f] to-[#0071e3] p-8 text-center text-white md:p-12">
+          <h2 className="text-2xl font-semibold tracking-tight md:text-3xl">
+            {isAr ? "اشتراك واحد. كل الخدمات." : "One subscription. Everything."}
+          </h2>
+          <p className="mx-auto mt-4 max-w-md text-base font-normal text-white/80">
+            {isAr
+              ? "اشتراك الكوتشينج بيشمل: EVO بكل ميزاته + خطط تغذية مخصصة + برامج تمارين + متابعة شخصية + كل أدوات المنصة. مفيش زيادة في السعر."
+              : "Coaching subscription includes: EVO with full features + personalized nutrition plans + workout programs + personal follow-up + all platform tools. No extra cost."}
+          </p>
+          <a
+            href="/pricing"
+            className="mt-6 inline-block rounded-full bg-white px-6 py-3 text-base font-normal text-[#0071e3] transition-opacity hover:opacity-90"
+          >
+            {isAr ? "شوف الباقات ›" : "See plans ›"}
+          </a>
+        </section>
+
         {/* Final CTA — two buttons again */}
         <section className="mt-12 rounded-3xl bg-gradient-to-br from-[#0071e3] to-[#8b5cf6] p-8 text-center text-white md:p-12">
           <h2 className="text-2xl font-semibold tracking-tight md:text-3xl">
@@ -348,8 +478,8 @@ export default function EvoPage() {
           </h2>
           <p className="mx-auto mt-3 max-w-md text-base font-normal text-white/80">
             {isAr
-              ? "ابدأ المحادثة دلوقتي — مجاني، بدون تسجيل، ومش هتحتاج بطاقة ائتمان."
-              : "Start chatting now — free, no signup, no credit card required."}
+              ? "ابدأ المحادثة دلوقتي — بدون تسجيل. لو عايز كل الميزات، اشترك في الكوتشينج."
+              : "Start chatting now — no signup. For full features, subscribe to coaching."}
           </p>
           <div className="mt-6 flex flex-wrap items-center justify-center gap-4">
             <a
@@ -380,7 +510,7 @@ export default function EvoPage() {
           </p>
           <ShareButtons
             title={isAr ? "EVO — كوتش ذكاء اصطناعي | MuscleHub" : "EVO — AI Coach | MuscleHub"}
-            text={isAr ? "محرك أداء ذكي مش مجرد شات بوت — مجاني للجميع" : "An intelligent performance engine, not just a chatbot — free for everyone"}
+            text={isAr ? "محرك أداء ذكي مش مجرد شات بوت — متاح للجميع" : "An intelligent performance engine, not just a chatbot — available to everyone"}
           />
         </div>
       </main>

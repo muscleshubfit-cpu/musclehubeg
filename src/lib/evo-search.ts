@@ -99,6 +99,8 @@ function normalize(text: string): string {
 
 /**
  * Calculate relevance score — how well does the query match the text?
+ * Uses word-level matching, not raw substring (to avoid false positives
+ * like "تمرين" matching "تمر" which is dates).
  */
 function scoreMatch(query: string, text: string): number {
   const q = normalize(query);
@@ -111,23 +113,43 @@ function scoreMatch(query: string, text: string): number {
   // Starts with query
   if (t.startsWith(q)) return 0.9;
 
+  const words = t.split(" ").filter((w) => w.length > 1);
+  const queryWords = q.split(" ").filter((w) => w.length > 1);
+
   // Contains query as a whole word
-  const words = t.split(" ");
-  if (words.some((w) => w === q)) return 0.8;
+  if (words.some((w) => w === q)) return 0.85;
 
-  // Contains query as substring
-  if (t.includes(q)) return 0.7;
+  // Word-level matching: count how many query words match text words
+  let matchCount = 0;
+  for (const qw of queryWords) {
+    // Exact word match
+    if (words.some((w) => w === qw)) {
+      matchCount += 1;
+      continue;
+    }
+    // Word starts with query word (e.g., "bench" matches "bench-press")
+    if (words.some((w) => w.startsWith(qw) && qw.length >= 4)) {
+      matchCount += 0.8;
+      continue;
+    }
+    // Query word starts with text word (e.g., "benchpress" matches "bench")
+    if (words.some((w) => qw.startsWith(w) && w.length >= 4)) {
+      matchCount += 0.7;
+      continue;
+    }
+  }
 
-  // Query contains the text
-  if (q.includes(t)) return 0.6;
-
-  // Word-level matching
-  const queryWords = q.split(" ");
-  const matchedWords = queryWords.filter((qw) =>
-    words.some((w) => w.includes(qw) || qw.includes(w)),
-  );
-  if (matchedWords.length > 0) {
-    return 0.5 * (matchedWords.length / queryWords.length);
+  if (matchCount > 0) {
+    const ratio = matchCount / queryWords.length;
+    // Require at least 50% of query words to match
+    if (ratio >= 0.5) {
+      return 0.6 + ratio * 0.3; // 0.6 to 0.9
+    }
+    // Single significant word match (length >= 4)
+    if (queryWords.length === 1 && queryWords[0].length >= 4) {
+      // Only match if the word is significant (not "تمر" which is too short)
+      return 0;
+    }
   }
 
   return 0;

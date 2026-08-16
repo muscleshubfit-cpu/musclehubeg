@@ -139,8 +139,8 @@ export async function POST(request: NextRequest) {
 
         const { text, model } = await callFreeOpenRouter(fullPrompt, {
           temperature: 0.6,
-          maxTokens: 800,
-          timeoutMs: 30_000,
+          maxTokens: 500,
+          timeoutMs: 15_000,
         });
 
         if (text && text.length > 10) {
@@ -306,16 +306,17 @@ function buildSystemPrompt(
 
 أنت لست مجرد شات بوت — أنت تحلل البيانات، تتنبأ بالنتائج، وتوجّه المستخدمين للمحتوى المناسب.${subscriberContext}${platformContext}${nutritionContext}${blogContext}
 
-القواعد:
+القواعد المهمة جداً:
 - أجب بالعربية إذا كان السؤال بالعربية، وبالإنجليزية إذا كان بالإنجليزية.
-- كن مختصراً وعملياً وودوداً.
-- لو السؤال عن تمرين/أكل/برنامج/أداة موجود في المنصة، اذكره وأضف: "شوف التفاصيل في الرابط تحت" — والرابط هيظهر تلقائياً.
-- لو في مقال في المدونة بيتكلم عن الموضوع، اذكره: "كتبنا مقال عن ده — شوف الرابط تحت".
-- لو المستخدم مشترك، استخدم بياناته الشخصية في الرد.
-- لو المستخدم زائر (مش مشترك)، ارد بشكل عام بس مفيد.
-- لا تخترع أرقام غير موجودة.
-- لا تقدم نصائح طبية — لو السؤال طبي، انصح باستشارة مختص.
-- للأسئلة العامة (مش مرتبطة بالمنصة)، ارد بمعرفة عامة رياضية وتغذوية.`;
+- كن مختصراً جداً (3-5 أسطر كحد أقصى).
+- لو السؤال عن تمرين/أكل/برنامج/أداة موجود في نتائج البحث أعلاه، اذكر اسمه وإجابة مختصرة.
+- لو في مقالات في المدونة بيتكلموا عن الموضوع، اذكرها.
+- لو مفيش نتائج بحث مطابقة للسؤال، متقولش "شوف الرابط تحت" — قول إجابتك العامة بس.
+- متقولش "الرابط تحت" إلا لو فعلاً في نتائج بحث.
+- لو المستخدم مشترك، استخدم بياناته الشخصية.
+- لا تخترع أرقام غير موجودة في نتائج البحث.
+- لا تقدم نصائح طبية.
+- للأسئلة العامة (مش مرتبطة بالمنصة)، ارد بمعرفة عامة رياضية وتغذوية بدون ذكر روابط.`;
 }
 
 /**
@@ -329,7 +330,7 @@ function generateLocalReply(
   foodNutrition: any,
   blogResults: Array<{ title: string; url: string }>,
 ): string {
-  // If we found food nutrition info
+  // If we found food nutrition info (exact match)
   if (foodNutrition) {
     return `${foodNutrition.nameAr} (${foodNutrition.nameEn}) فيه:
 • ${foodNutrition.per100g.calories} سعرة حرارية لكل 100g
@@ -340,16 +341,19 @@ function generateLocalReply(
 شوف التفاصيل والجرامات في الرابط تحت 👇`;
   }
 
-  // If we found exercises
-  const exercises = platformResults.filter((r) => r.type === "exercise");
+  // Only use platform results if they're HIGH relevance (above 0.6)
+  const highRelevanceResults = platformResults.filter((r) => r.relevance >= 0.6);
+
+  // If we found exercises with high relevance
+  const exercises = highRelevanceResults.filter((r) => r.type === "exercise");
   if (exercises.length > 0 && isExerciseQuery(message)) {
     const ex = exercises[0];
     return `${ex.nameAr} (${ex.nameEn}) تمرين لـ ${ex.description}.
 شوف خطوات التنفيذ والنصائح في الرابط تحت 👇`;
   }
 
-  // If we found programs
-  const programs = platformResults.filter((r) => r.type === "program");
+  // If we found programs with high relevance
+  const programs = highRelevanceResults.filter((r) => r.type === "program");
   if (programs.length > 0 && isProgramQuery(message)) {
     const prog = programs[0];
     return `${prog.nameAr} — ${prog.description}.
@@ -362,12 +366,14 @@ function generateLocalReply(
 شوف الرابط تحت للمقال كامل 👇`;
   }
 
-  // Generic fallback
-  return `سؤال حلو! مقدرش أرد عليك بالتفصيل دلوقتي، بس تقدر:
-• تتصفح مكتبة التمارين: /exercises
-• تشارك في برامج تدريب: /programs
-• تبحث عن أكلات بالسعرات: /foods
-• تستخدم حاسبات لياقة مجانية: /tools
+  // Generic fallback — DON'T mention links if there are none
+  return `مقدرش ألاقي معلومات محددة عن ده في المنصة دلوقتي.
+
+تقدر تتصفح:
+• مكتبة التمارين (55+ تمرين)
+• برامج التدريب الجاهزة
+• مكتبة الأكلات (80+ أكلة)
+• الأدوات المجانية (حاسبات)
 
 أو اسألني سؤال تاني محدد أكتر.`;
 }

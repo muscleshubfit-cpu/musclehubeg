@@ -76,23 +76,20 @@ export function EvoFloatingWidget() {
       {!isOpen && (
         <button
           onClick={openChat}
-          className="fixed bottom-5 z-50 flex items-center gap-2 rounded-full bg-[#0071e3] p-1.5 pe-4 text-white shadow-lg transition-all hover:scale-105 hover:shadow-xl"
+          className="fixed bottom-5 z-50 rounded-full bg-[#0071e3] p-1 shadow-lg transition-all hover:scale-105 hover:shadow-xl"
           style={{ [isAr ? "left" : "right"]: "20px" } as React.CSSProperties}
           aria-label={isAr ? "افتح محادثة EVO" : "Open EVO chat"}
         >
-          {/* EVO profile image with pulse animation */}
-          <span className="relative">
+          {/* EVO profile image with pulse animation — image only, no text */}
+          <span className="relative block">
             <img
               src="/images/evo-standalone.jpg"
               alt="EVO"
-              className="h-11 w-11 rounded-full object-cover ring-2 ring-white/30"
+              className="h-14 w-14 rounded-full object-cover ring-2 ring-white/40"
             />
             <span className="absolute inset-0 animate-ping rounded-full bg-[#0071e3] opacity-20" />
             {/* Online indicator */}
-            <span className="absolute bottom-0 end-0 h-3 w-3 rounded-full bg-[#34c759] ring-2 ring-white" />
-          </span>
-          <span className="text-sm font-medium">
-            {isAr ? "اسأل EVO" : "Ask EVO"}
+            <span className="absolute bottom-1 end-1 h-3.5 w-3.5 rounded-full bg-[#34c759] ring-2 ring-white" />
           </span>
         </button>
       )}
