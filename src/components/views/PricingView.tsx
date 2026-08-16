@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useI18n } from "@/lib/i18n";
-import { LanguageToggle } from "@/components/LanguageToggle";
+import { SiteHeader } from "@/components/SiteHeader";
 import { useNav } from "@/hooks/use-nav";
 import { cn } from "@/lib/utils";
 import {
@@ -25,23 +25,17 @@ export function PricingView() {
 
   return (
     <div className="flex min-h-screen flex-col bg-white text-[#1d1d1f]">
-      <header className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between px-4">
-        <button
-          className="text-lg font-semibold tracking-tight"
-          onClick={() => navigate("landing")}
-        >
-          MuscleHub
-        </button>
-        <div className="flex items-center gap-4">
-          <LanguageToggle />
-          <button
-            onClick={() => navigate("auth", { mode: "login" })}
-            className="text-sm font-normal text-[#0071e3] transition-opacity hover:opacity-70"
-          >
-            {t("landing.hero.login")}
-          </button>
-        </div>
-      </header>
+      <SiteHeader variant="landing" />
+
+      {/* Free tools banner — accessible without login */}
+      <div className="bg-[#f5f5f7] px-4 py-2 text-center text-xs font-normal text-[#6e6e73]">
+        {isAr
+          ? "جرّب أدواتنا المجانية بدون تسجيل — "
+          : "Try our free tools without signing up — "}
+        <a href="/tools" className="font-medium text-[#0071e3] hover:opacity-70">
+          {isAr ? "كل الأدوات ›" : "View all tools ›"}
+        </a>
+      </div>
 
       <section className="px-4 py-20 text-center md:py-28">
         <div className="mx-auto max-w-3xl">

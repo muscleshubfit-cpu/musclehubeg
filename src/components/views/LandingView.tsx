@@ -213,11 +213,17 @@ export function LandingView() {
           </p>
           <div className="mt-5 flex flex-wrap items-center justify-center gap-3 text-sm md:gap-5">
             <button
-              onClick={() => navigate("auth", { mode: "signup" })}
+              onClick={() => navigate("pricing")}
               className="rounded-full bg-[#0071e3] px-5 py-2 font-normal text-white transition-opacity hover:opacity-90 md:px-6 md:py-2.5 md:text-base"
             >
               {isAr ? "ابدأ تحوّلك" : "Start your transformation"}
             </button>
+            <a
+              href="/tools"
+              className="rounded-full bg-white/90 px-5 py-2 font-normal text-[#1d1d1f] backdrop-blur transition-opacity hover:opacity-90 md:px-6 md:py-2.5 md:text-base"
+            >
+              {isAr ? "جرّب الأدوات المجانية" : "Try Free Tools"}
+            </a>
             <button
               onClick={() => navigate("pricing")}
               className="text-sm font-normal text-[#0071e3] transition-opacity hover:opacity-70 md:text-base"
@@ -302,7 +308,7 @@ export function LandingView() {
                 <h3 className="mt-4 text-xl font-semibold tracking-tight text-white">EVO</h3>
                 <p className="mt-1 text-sm font-normal text-gray-400">{isAr ? "محرك الأداء الذكي" : "AI Performance Engine"}</p>
                 <button
-                  onClick={() => navigate("auth", { mode: "signup" })}
+                  onClick={() => navigate("about")}
                   className="mt-4 text-sm font-normal text-[#0071e3] transition-opacity hover:opacity-70"
                 >
                   {isAr ? "اعرف أكثر ›" : "Learn more ›"}
@@ -800,11 +806,17 @@ export function LandingView() {
         <Reveal delay={200}>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-4 md:gap-6">
             <button
-              onClick={() => navigate("auth", { mode: "signup" })}
+              onClick={() => navigate("pricing")}
               className="rounded-full bg-[#0071e3] px-7 py-3 text-base font-normal text-white transition-opacity hover:opacity-90"
             >
               {isAr ? "ابدأ تحوّلي" : "Start my transformation"}
             </button>
+            <a
+              href="/tools"
+              className="rounded-full bg-[#f5f5f7] px-7 py-3 text-base font-normal text-[#1d1d1f] transition-opacity hover:opacity-90"
+            >
+              {isAr ? "الأدوات المجانية" : "Free Tools"}
+            </a>
             <button
               onClick={() => navigate("pricing")}
               className="font-normal text-[#0071e3] transition-opacity hover:opacity-70"

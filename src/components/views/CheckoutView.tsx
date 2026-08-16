@@ -78,6 +78,23 @@ export function CheckoutView({ tier, months }: { tier: TierId; months: Duration 
  <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-20 md:py-28">
  <h1 className="text-4xl font-semibold tracking-tight md:text-5xl">{t("checkout.title")}</h1>
 
+ {!profile && (
+ <div className="mt-6 rounded-2xl border border-[#0071e3]/20 bg-[#0071e3]/5 p-4 text-sm font-normal text-[#1d1d1f]">
+ <p className="font-medium">
+ {t("auth.login.title")}
+ </p>
+ <p className="mt-1 text-[#6e6e73]">
+ {t("auth.login.subtitle")}
+ </p>
+ <button
+ onClick={() => navigate("auth", { mode: "login" })}
+ className="mt-3 inline-flex items-center gap-1 rounded-full bg-[#0071e3] px-4 py-2 text-xs font-normal text-white transition-opacity hover:opacity-90"
+ >
+ {t("auth.signIn")} →
+ </button>
+ </div>
+ )}
+
  {done ? (
  <div className="mt-12 rounded-3xl bg-[#f5f5f7] p-12 text-center">
  <h2 className="text-2xl font-semibold tracking-tight">تم إرسال طلبك بنجاح!</h2>

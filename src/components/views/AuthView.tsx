@@ -204,6 +204,36 @@ export function AuthView({ mode }: { mode: "login" | "signup" }) {
                 {isSignup ? t("auth.toLogin") : t("auth.toSignup")}
               </button>
             </p>
+
+            {/* Continue as guest — login is optional, not a wall */}
+            <div className="mt-8 border-t border-[#d2d2d7] pt-6">
+              <p className="text-center text-sm font-normal text-[#6e6e73]">
+                {isAr
+                  ? "مش جاهز تسجّل؟ تقدر تستخدم الأدوات والمدونة بدون حساب."
+                  : "Not ready to sign up? You can use the tools and blog without an account."}
+              </p>
+              <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
+                <a
+                  href="/tools"
+                  className="rounded-full bg-[#f5f5f7] px-5 py-2 text-sm font-normal text-[#1d1d1f] transition-opacity hover:opacity-90"
+                >
+                  {isAr ? "الأدوات المجانية" : "Free Tools"}
+                </a>
+                <a
+                  href="/blog"
+                  className="rounded-full bg-[#f5f5f7] px-5 py-2 text-sm font-normal text-[#1d1d1f] transition-opacity hover:opacity-90"
+                >
+                  {isAr ? "المدونة" : "Blog"}
+                </a>
+                <button
+                  type="button"
+                  onClick={() => navigate("landing")}
+                  className="rounded-full bg-[#f5f5f7] px-5 py-2 text-sm font-normal text-[#1d1d1f] transition-opacity hover:opacity-90"
+                >
+                  {isAr ? "العودة للرئيسية" : "Back to home"}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </main>

@@ -1011,3 +1011,33 @@ Stage Summary:
 - ✅ Auth verified: /api/ai/chat returns 401 without session (S1 working in production).
 - Production deployment ID: dpl_DQCzg1AgKibz9EhcUBZpsEP6xcAd
 - Commit: a9eeaed (on main)
+
+---
+Task ID: 14
+Agent: Super Z (main)
+Task: Make site accessible without login (public access for tools/blog/landing; login only for subscriptions, referrals, admin)
+
+Work Log:
+- **LandingView CTAs updated**: Changed all "ابدأ تحوّلك" buttons from `/auth?mode=signup` → `/pricing` (no forced login). Added new "جرّب الأدوات المجانية" button → `/tools` on hero + final CTA section. EVO "اعرف أكثر" now goes to `/about` instead of `/auth`.
+- **AuthView**: Added "متابعة كزائر" section at the bottom of the auth page with 3 escape routes: Free Tools (`/tools`), Blog (`/blog`), Back to home (`/`). Makes it clear login is optional.
+- **PricingView**: Replaced custom header with shared `SiteHeader` (consistent nav with all public pages). Removed the in-your-face "Login" button from header. Added a small "جرّب أدواتنا المجانية بدون تسجيل" banner at top linking to `/tools`.
+- **CheckoutView**: Added a login prompt banner at the top of the checkout page for non-authenticated users — visible login CTA before they fill in the form. The submit-time redirect to `/auth` is preserved as a safety net.
+- **Admin auth gate**: Created `src/app/admin/layout.tsx` that gates ALL `/admin/*` routes (referrals, blog CMS, ai-settings) for coach-only access. Non-coaches get redirected to `/dashboard`; logged-out users go to `/auth`. Previously `/admin/*` had ZERO auth checks (security hole).
+- **Verified public access** (no auth required):
+  - `/` (landing) ✅
+  - `/tools`, `/tools/calorie-calculator`, `/tools/bmi-calculator`, `/tools/macro-calculator`, `/tools/body-fat-calculator` ✅
+  - `/blog`, `/blog/[slug]`, `/ar/blog/*` ✅
+  - `/pricing` ✅
+  - `/checkout` (viewable, but submit requires auth) ✅
+  - `/about`, `/contact`, `/faq`, `/terms`, `/privacy` ✅
+- **Verified auth required**:
+  - `/dashboard`, `/plans`, `/progress`, `/chat`, `/questionnaires`, `/support`, `/referral` (all under (app) group) ✅
+  - `/coach/*` (coach pages) ✅
+  - `/admin/*` (NEW: now coach-gated) ✅
+- **Build**: `npx next build` succeeded — all 60+ routes compile, no errors in modified files (LandingView, AuthView, PricingView, CheckoutView, admin/layout).
+
+Stage Summary:
+- Site is now usable end-to-end WITHOUT login: landing → tools → blog → pricing → checkout (view) all work for anonymous visitors.
+- Login is presented as an optional entry in the SiteHeader (the "دخول" button), no longer forced by any CTA.
+- Login IS required (with clear UX) for: subscriptions (checkout submit), referrals, dashboard, plans, chat, progress, coach pages, and admin pages.
+- Fixed pre-existing security hole: `/admin/*` was publicly accessible — now gated to coach role only.
