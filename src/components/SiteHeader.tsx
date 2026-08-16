@@ -20,12 +20,24 @@ import {
   LogOut,
   Bot,
   ChevronRight,
+  Bell,
+  User,
 } from "lucide-react";
 import { LanguageToggle } from "@/components/LanguageToggle";
 import { useI18n } from "@/lib/i18n";
 import { useNav } from "@/hooks/use-nav";
 import { useAuth } from "@/hooks/use-auth";
 import { cn } from "@/lib/utils";
+import { NotificationBell } from "@/components/NotificationBell";
+
+// Wrapper for header — smaller bell icon
+function NotificationBellHeader() {
+  return (
+    <div className="NotificationBellHeader">
+      <NotificationBell />
+    </div>
+  );
+}
 
 /**
  * Site header — Apple-style clean bar.
@@ -155,18 +167,7 @@ export function SiteHeader({ variant = "landing" }: { variant?: "landing" | "app
     );
   }
 
-  // 5. Logout — in drawer only (login is in header)
-  if (isLoggedIn) {
-    menu.push({
-      label: isAr ? "تسجيل الخروج" : "Logout",
-      icon: LogOut,
-      onClick: async () => {
-        await signOutAsync();
-        navigate("landing");
-        setOpen(false);
-      },
-    });
-  }
+  // Note: Logout is now in the bottom section of the drawer (separate from menu items)
 
   const handleItemClick = (item: MenuItem) => {
     setOpen(false);
@@ -202,35 +203,49 @@ export function SiteHeader({ variant = "landing" }: { variant?: "landing" | "app
             />
           </button>
 
-          {/* Right side: Language + Login/Logout + Menu */}
-          <div className="flex items-center gap-3 md:gap-4">
-            {/* Language toggle — always visible in header */}
+          {/* Right side: Language + Notifications + Account + Menu */}
+          <div className="flex items-center gap-2 md:gap-3">
+            {/* Language toggle — always visible */}
             <LanguageToggle />
 
-            {/* Login / Logout button — always visible in header */}
+            {/* Notifications bell — only for logged in users */}
+            {isLoggedIn && (
+              <NotificationBellHeader />
+            )}
+
+            {/* Account icon — profile photo if logged in, generic icon if not */}
             {isLoggedIn ? (
-              <button
-                onClick={async () => {
-                  await signOutAsync();
-                  navigate("landing");
-                }}
-                className="rounded-full bg-[#f5f5f7] px-4 py-2 text-sm font-normal text-[#1d1d1f] transition-opacity hover:opacity-70"
+              <a
+                href="/dashboard"
+                className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full ring-2 ring-[#0071e3]/20 transition-all hover:ring-[#0071e3]/40"
+                aria-label={isAr ? "حسابي" : "My account"}
               >
-                {isAr ? "خروج" : "Logout"}
-              </button>
+                {profile?.avatar_url ? (
+                  <img
+                    src={profile.avatar_url}
+                    alt={profile.full_name || "Profile"}
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <span className="flex h-full w-full items-center justify-center bg-[#0071e3] text-sm font-medium text-white">
+                    {(profile?.full_name || "U")[0].toUpperCase()}
+                  </span>
+                )}
+              </a>
             ) : (
               <button
                 onClick={() => navigate("auth", { mode: "login" })}
-                className="rounded-full bg-[#0071e3] px-5 py-2 text-sm font-normal text-white transition-opacity hover:opacity-90"
+                className="flex h-9 w-9 items-center justify-center rounded-full bg-[#f5f5f7] text-[#1d1d1f] transition-colors hover:bg-[#e5e5e7]"
+                aria-label={isAr ? "تسجيل الدخول" : "Log in"}
               >
-                {isAr ? "دخول" : "Log in"}
+                <User className="h-4 w-4" />
               </button>
             )}
 
             {/* Hamburger menu — opens drawer */}
             <button
               onClick={() => setOpen(true)}
-              className="flex h-10 w-10 items-center justify-center rounded-lg text-[#1d1d1f] hover:bg-[#f5f5f7]"
+              className="flex h-9 w-9 items-center justify-center rounded-lg text-[#1d1d1f] hover:bg-[#f5f5f7]"
               aria-label={isAr ? "فتح القائمة" : "Open menu"}
             >
               <Menu className="h-5 w-5" />
@@ -280,19 +295,13 @@ export function SiteHeader({ variant = "landing" }: { variant?: "landing" | "app
           <nav className="flex-1 overflow-y-auto p-3">
             <ul className="space-y-1">
               {menu.map((item, i) => {
-                const isLogout = item.label.includes("خروج") || item.label.includes("Logout");
                 return (
                   <li key={i}>
                     {item.href ? (
                       <a
                         href={item.href}
                         onClick={() => setOpen(false)}
-                        className={cn(
-                          "flex items-center gap-3 rounded-lg px-3 py-3 text-start text-sm font-normal transition-colors",
-                          isLogout
-                            ? "mt-2 text-[#ff3b30] hover:bg-[#ff3b30]/5"
-                            : "text-[#1d1d1f] hover:bg-[#f5f5f7]",
-                        )}
+                        className="flex items-center gap-3 rounded-lg px-3 py-3 text-start text-sm font-normal transition-colors text-[#1d1d1f] hover:bg-[#f5f5f7]"
                       >
                         <span className="flex-1">{item.label}</span>
                         <ChevronRight className="h-4 w-4 shrink-0 opacity-30 rtl:rotate-180" />
@@ -300,12 +309,7 @@ export function SiteHeader({ variant = "landing" }: { variant?: "landing" | "app
                     ) : (
                       <button
                         onClick={() => handleItemClick(item)}
-                        className={cn(
-                          "flex w-full items-center gap-3 rounded-lg px-3 py-3 text-start text-sm font-normal transition-colors",
-                          isLogout
-                            ? "mt-2 text-[#ff3b30] hover:bg-[#ff3b30]/5"
-                            : "text-[#1d1d1f] hover:bg-[#f5f5f7]",
-                        )}
+                        className="flex w-full items-center gap-3 rounded-lg px-3 py-3 text-start text-sm font-normal transition-colors text-[#1d1d1f] hover:bg-[#f5f5f7]"
                       >
                         <span className="flex-1">{item.label}</span>
                         <ChevronRight className="h-4 w-4 shrink-0 opacity-30 rtl:rotate-180" />
@@ -317,10 +321,60 @@ export function SiteHeader({ variant = "landing" }: { variant?: "landing" | "app
             </ul>
           </nav>
 
+          {/* Bottom section — account + logout */}
+          <div className="border-t border-[#d2d2d7] p-3">
+            {isLoggedIn ? (
+              <>
+                {/* Account link */}
+                <a
+                  href="/dashboard"
+                  onClick={() => setOpen(false)}
+                  className="mb-1 flex items-center gap-3 rounded-lg px-3 py-3 text-start text-sm font-normal transition-colors text-[#1d1d1f] hover:bg-[#f5f5f7]"
+                >
+                  {profile?.avatar_url ? (
+                    <img
+                      src={profile.avatar_url}
+                      alt={profile.full_name || "Profile"}
+                      className="h-7 w-7 rounded-full object-cover"
+                    />
+                  ) : (
+                    <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[#0071e3] text-xs font-medium text-white">
+                      {(profile?.full_name || "U")[0].toUpperCase()}
+                    </span>
+                  )}
+                  <span className="flex-1 truncate">{profile?.full_name || (isAr ? "حسابي" : "My account")}</span>
+                  <ChevronRight className="h-4 w-4 shrink-0 opacity-30 rtl:rotate-180" />
+                </a>
+                {/* Logout */}
+                <button
+                  onClick={async () => {
+                    await signOutAsync();
+                    navigate("landing");
+                    setOpen(false);
+                  }}
+                  className="flex w-full items-center gap-3 rounded-lg px-3 py-3 text-start text-sm font-normal transition-colors text-[#ff3b30] hover:bg-[#ff3b30]/5"
+                >
+                  <LogOut className="h-4 w-4" />
+                  <span>{isAr ? "تسجيل الخروج" : "Logout"}</span>
+                </button>
+              </>
+            ) : (
+              <button
+                onClick={() => {
+                  navigate("auth", { mode: "login" });
+                  setOpen(false);
+                }}
+                className="flex w-full items-center gap-3 rounded-lg px-3 py-3 text-start text-sm font-normal transition-colors text-[#0071e3] hover:bg-[#0071e3]/5"
+              >
+                <LogIn className="h-4 w-4" />
+                <span>{isAr ? "تسجيل الدخول" : "Log in"}</span>
+              </button>
+            )}
+          </div>
+
           {/* Footer */}
-          <div className="border-t border-[#d2d2d7] px-4 py-4 text-center text-xs font-normal text-[#6e6e73]">
+          <div className="border-t border-[#d2d2d7] px-4 py-3 text-center text-xs font-normal text-[#6e6e73]">
             <p>© {new Date().getFullYear()} MuscleHub</p>
-            <p className="mt-0.5">{isAr ? "كوتش أحمد زكي" : "Coach Ahmed Zake"}</p>
           </div>
         </aside>
       </div>
