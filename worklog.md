@@ -1128,3 +1128,36 @@ Stage Summary:
 - Tool leads are being saved to the database in production.
 - The PostgREST RLS cache issue was worked around by using the service-role key server-side.
 - The sbp_ token has been used and should be deleted by the user from their Supabase account settings for security.
+
+---
+Task ID: 18
+Agent: Super Z (main)
+Task: Unify nutrition + fitness questionnaires into one page with stepper flow
+
+Work Log:
+- **Old behavior**: Two separate tabs (Nutrition | Fitness) — user had to manually switch and submit each one independently.
+- **New behavior**: Single page with 3-step wizard:
+  1. Step 1 — Nutrition questionnaire (15 fields + photos + notes)
+  2. Step 2 — Fitness questionnaire (9 fields + notes)
+  3. Step 3 — Review summary + final submit
+- **Added 14 new i18n keys** (both EN + AR): `q.step1`, `q.step2`, `q.step1.desc`, `q.step2.desc`, `q.step`, `q.of`, `q.next`, `q.back`, `q.saveDraft`, `q.submitAll`, `q.nutritionSaved`, `q.allSubmitted`, `q.reviewTitle`, `q.reviewDesc`.
+- **Rewrote `QuestionnairesView.tsx`** (672 lines, +672/-371):
+  - Single `step` state (1 | 2 | 3) replaces the old `tab` state
+  - Separate `nutritionForm` and `fitnessForm` states (no more shared `form` that resets on tab switch — that was a bug source)
+  - **Stepper UI** at top: 3 numbered circles with checkmarks for completed steps, clickable to go back
+  - **Step 1 → Step 2 transition**: "Next" button saves nutrition as draft, shows success toast "تم حفظ استبيان التغذية! خلينا نكمل باستبيان اللياقة", auto-scrolls to top, advances to step 2
+  - **Step 2 → Step 3 transition**: "Review" button saves fitness as draft, advances to review step
+  - **Step 3 — Review screen**: Shows summary of BOTH questionnaires (field-by-field), with "Edit" buttons that jump back to the relevant step. Big "Submit both questionnaires" button at the bottom submits both to the coach in one click.
+  - **Back buttons**: Each step has a "Back" button (with RTL-aware chevron icons) to return to the previous step
+  - **Status badges**: Shows both questionnaires' status side-by-side (e.g. "Nutrition: Submitted · Fitness: Draft")
+  - **Locked state**: If both are submitted/approved, the stepper is hidden and a "locked" notice is shown
+- **Verification**:
+  - `npx next build` → ✓ Compiled successfully
+  - Pushed to GitHub → Vercel auto-deployed
+  - https://musclehubeg.vercel.app/questionnaires → HTTP 200 ✅
+
+Stage Summary:
+- The questionnaire page is now a single, guided flow: Nutrition → Fitness → Review → Submit.
+- Users can no longer "forget" to fill one of the questionnaires — the Next button guides them through both.
+- The Review step lets users double-check everything before sending to the coach.
+- All existing data is preserved (the component still uses `getQuestionnaire` + `upsertQuestionnaire` with the same `nutrition`/`fitness` types).
