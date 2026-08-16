@@ -9,6 +9,7 @@ import {
   Crown,
   Calculator,
   Dumbbell,
+  Utensils,
   LayoutDashboard,
   ClipboardList,
   LineChart,
@@ -106,6 +107,13 @@ export function SiteHeader({ variant = "landing" }: { variant?: "landing" | "app
     label: isAr ? "برامج التدريب" : "Programs",
     icon: ClipboardList,
     href: "/programs",
+  });
+
+  // 2e. Food Library
+  menu.push({
+    label: isAr ? "مكتبة الأكلات" : "Foods",
+    icon: Utensils,
+    href: "/foods",
   });
 
   // 3. Pricing

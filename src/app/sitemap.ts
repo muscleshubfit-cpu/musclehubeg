@@ -2,6 +2,7 @@ import type { MetadataRoute } from "next";
 import { createClient } from "@supabase/supabase-js";
 import { EXERCISES } from "@/lib/exercises";
 import { WORKOUT_PROGRAMS } from "@/lib/workout-programs";
+import { FOODS } from "@/lib/foods";
 
 // Revalidate every hour instead of force-dynamic (which regenerated on every
 // request). The sitemap queries Supabase for all published posts — caching it
@@ -21,6 +22,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${baseUrl}/ar/blog`, lastModified, changeFrequency: "weekly", priority: 0.8 },
     { url: `${baseUrl}/exercises`, lastModified, changeFrequency: "weekly", priority: 0.8 },
     { url: `${baseUrl}/programs`, lastModified, changeFrequency: "weekly", priority: 0.8 },
+    { url: `${baseUrl}/foods`, lastModified, changeFrequency: "weekly", priority: 0.8 },
     { url: `${baseUrl}/tools`, lastModified, changeFrequency: "weekly", priority: 0.8 },
     { url: `${baseUrl}/tools/calorie-calculator`, lastModified, changeFrequency: "monthly", priority: 0.7 },
     { url: `${baseUrl}/tools/bmi-calculator`, lastModified, changeFrequency: "monthly", priority: 0.7 },
@@ -46,6 +48,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   for (const prog of WORKOUT_PROGRAMS) {
     staticUrls.push({
       url: `${baseUrl}/programs/${prog.slug}`,
+      lastModified,
+      changeFrequency: "monthly",
+      priority: 0.6,
+    });
+  }
+
+  // Add all food detail pages
+  for (const food of FOODS) {
+    staticUrls.push({
+      url: `${baseUrl}/foods/${food.slug}`,
       lastModified,
       changeFrequency: "monthly",
       priority: 0.6,
