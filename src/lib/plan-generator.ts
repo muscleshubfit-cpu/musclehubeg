@@ -21,7 +21,7 @@
  * breaks for the coach.
  */
 
-import { callAIWithFallback, parseJSON, type AIProvider } from "@/lib/ai-provider";
+import { callAIWithFallback, parseJSON, FREE_OPENROUTER_MODELS, type AIProvider } from "@/lib/ai-provider";
 import {
  generateNutritionPlan,
  generateWorkoutPlan,
@@ -29,20 +29,10 @@ import {
 } from "@/lib/ai-local";
 import { EXERCISES } from "@/lib/exercises";
 
-// OpenRouter's best available free models, ordered by preference.
-// We try them in order — the first that returns valid JSON wins.
-// (callAIWithFallback tries the env-configured provider first, then
-// falls back to every other provider whose key is set. We pass an
-// explicit OpenRouter override so plans always go through OpenRouter
-// regardless of what's set in AI Settings.)
-const OPENROUTER_FREE_MODELS = [
- "nvidia/nemotron-3-ultra-550b-a55b:free", // 1M context, BEST quality
- "nvidia/nemotron-3.5-lightning:free", // 1M context, fast + smart
- "nvidia/nemotron-3-super-120b-a12b:free", // 262K
- "google/gemma-4-31b-it:free", // 262K
- "google/gemma-4-26b-a4b-it:free", // 262K, non-reasoning
- "openai/gpt-oss-20b:free", // 131K, reasoning
-];
+// Use the UNIFIED model list from ai-provider.ts — single source of truth.
+// Order: best/largest first. Same list used by EVO chat, plan generator,
+// blog generation, and all other AI calls.
+const OPENROUTER_FREE_MODELS = FREE_OPENROUTER_MODELS;
 
 // OpenRouter API key (from env). We read it directly so plans always use
 // OpenRouter even if the user changed the default provider in AI Settings.

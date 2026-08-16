@@ -81,8 +81,9 @@ const TOOLS = [
 ];
 
 /**
- * Normalize text for search — remove diacritics, lowercase, trim.
- * Also removes common question words (stop words) that don't help with matching.
+ * Normalize text for search — English-first, with Arabic support.
+ * Removes stop words in BOTH languages so search works regardless of
+ * which language the user types in.
  */
 function normalize(text: string): string {
   return text
@@ -94,10 +95,12 @@ function normalize(text: string): string {
     .replace(/[إأآ]/g, "ا")
     // Remove taa marbuta
     .replace(/ة/g, "ه")
-    // Remove Arabic question marks
+    // Remove question marks (both languages)
     .replace(/[؟?]/g, " ")
-    // Remove common Arabic question/filler words (stop words)
-    .replace(/\b(ازاي|إزاي|كيف|how|to|do|what|is|the|a|an|في|من|عن|علي|على|ان|إن|و|او|أو|لا|ما|متى|مين|مين|ليه|لماذا|هل|فيه|فيه|عايز|عايده|عاوزه|محتاج|محتاجه|عندي|عندك|كم|كام|اد\nايه|ايه|إيه|شنو|شنو|ايش|إيش|وش|اللي|الى|التي|الذي|بس|برضه|كمان|كده|دا|ده|دي|كده|اكتر|اكثر|شوي|شوية|جد|جدا|قوي|نفس|زي|يبقى|يبقي|كانه|كان|يكون|تكون|يقدر|تقدر|اعمل|اعمل|اعرف|نعمل|تعال|تعالي|قول|قولي|ممكن|يقدر|تقدر|سؤال|سوال|معلومة|معلومه|استفسار)\b/g, " ")
+    // Remove ENGLISH stop words (primary language)
+    .replace(/\b(how|to|do|what|is|the|a|an|of|for|in|on|at|with|and|or|not|can|i|you|he|she|it|we|they|me|him|her|us|them|my|your|his|its|our|their|this|that|these|those|are|was|were|been|being|have|has|had|will|would|could|should|may|might|must|shall|about|into|from|by|as|if|then|than|so|no|yes|please|tell|show|give|find|need|want|know|like|use|make|get|put|set|see|look|try|ask|say)\b/g, " ")
+    // Remove ARABIC stop words (secondary language)
+    .replace(/\b(ازاي|إزاي|كيف|في|من|عن|علي|على|ان|إن|و|او|أو|لا|ما|متى|مين|ليه|لماذا|هل|فيه|عايز|محتاج|كم|كام|ايه|إيه|شنو|ايش|اللي|الى|التي|الذي|بس|كمان|كده|دا|ده|دي|اكتر|اكثر|شوي|جد|جدا|قوي|نفس|زي|يبقى|كانه|كان|يكون|تكون|يقدر|تقدر|اعمل|اعرف|نعمل|تعال|قول|قولي|ممكن|سؤال|سوال|معلومة|استفسار)\b/g, " ")
     // Collapse spaces
     .replace(/\s+/g, " ")
     .trim();

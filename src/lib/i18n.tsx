@@ -753,11 +753,21 @@ type I18nCtx = {
 const Ctx = createContext<I18nCtx | null>(null);
 
 export function I18nProvider({ children }: { children: ReactNode }) {
- const [lang, setLangState] = useState<Lang>("ar");
+ // English is the DEFAULT language. Arabic is secondary.
+ // Detection order: localStorage → browser language → default "en"
+ const [lang, setLangState] = useState<Lang>("en");
 
  useEffect(() => {
  const saved = typeof window !== "undefined" ? (localStorage.getItem("mhe:lang") as Lang | null) : null;
- if (saved === "ar" || saved === "en") setLangState(saved);
+ if (saved === "ar" || saved === "en") {
+   setLangState(saved);
+ } else if (typeof navigator !== "undefined") {
+   // Auto-detect from browser: if browser is Arabic, use Arabic
+   const browserLang = navigator.language?.toLowerCase() || "";
+   if (browserLang.startsWith("ar")) {
+     setLangState("ar");
+   }
+ }
  }, []);
 
  useEffect(() => {

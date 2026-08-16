@@ -3,62 +3,64 @@ import type { Metadata, Viewport } from "next";
 /**
  * Site-wide metadata for MuscleHub.
  *
+ * English is the PRIMARY language (targeting English-speaking audience).
+ * Arabic is secondary (supported via language toggle).
+ *
  * Strategy: Position MuscleHub as a comprehensive sports & wellness platform
  * (not just a coaching site). Keywords cover all platform features:
  * exercises, programs, tools, food library, blog.
- *
- * Coaching is mentioned as ONE feature (not the main one) to ensure
- * coaching-related searches still find us.
  */
 export const metadata: Metadata = {
-  title: "MuscleHub — منصة رياضية شاملة | تمارين، برامج تدريب، حاسبات لياقة، وتغذية",
+  title: "MuscleHub — Comprehensive Sports Platform | Exercises, Programs, Calculators & Nutrition",
   description:
-    "MuscleHub منصة رياضية شاملة: مكتبة تمارين احترافية، برامج تدريب جاهزة، حاسبات لياقة مجانية (سعرات، BMI، ماكروز)، مكتبة أكلات بالسعرات والماكروز، مدونة رياضية علمية، وكوتشينج أونلاين مع مدربين متخصصين.",
+    "MuscleHub is a comprehensive sports platform: 547+ exercise library, ready workout programs, free fitness calculators (calories, BMI, macros), food database with nutrition info, fitness blog, and online coaching with nutrition specialists.",
   keywords: [
-    // Platform-level keywords (primary)
-    "منصة رياضية",
-    "مكتبة تمارين",
-    "برامج تدريب",
-    "حاسبات لياقة",
-    "حاسبة سعرات",
-    "حاسبة BMI",
-    "حاسبة ماكروز",
-    "مكتبة أكلات",
-    "سعرات حرارية",
-    "تغذية رياضية",
-    "مدونة رياضية",
-    "تمارين رياضية",
-    // Exercise-related
-    "تمارين صدر",
-    "تمارين ظهر",
-    "تمارين أرجل",
-    "تمارين كارديو",
-    "برامج جيم",
-    "تمارين منزلية",
-    // Food-related
-    "أطعمة بالسعرات",
-    "ماكروز الأكلات",
-    "حاسبة جرامات",
-    // English keywords
+    // Platform-level keywords (primary, English)
+    "sports platform",
     "exercise library",
     "workout programs",
     "fitness calculators",
     "calorie calculator",
     "BMI calculator",
     "macro calculator",
+    "body fat calculator",
     "food database",
     "nutrition database",
     "fitness blog",
     "free fitness tools",
+    // Exercise-related
+    "chest exercises",
+    "back exercises",
+    "leg exercises",
+    "shoulder exercises",
+    "bicep exercises",
+    "tricep exercises",
+    "core exercises",
+    "cardio exercises",
+    "gym programs",
+    "home workouts",
+    "bodyweight exercises",
+    // Food-related
+    "food calories",
+    "food macros",
+    "grams calculator",
+    "protein foods",
     // Coaching (secondary — one feature among many)
-    "كوتشينج أونلاين",
-    "مدربين تغذية",
-    "خطط تغذية مخصصة",
+    "online coaching",
+    "nutrition coaching",
+    "personalized meal plans",
+    "custom workout programs",
     // EVO (AI coach)
     "EVO AI coach",
-    "كوتش ذكاء اصطناعي",
-    "مساعد رياضي ذكي",
     "AI fitness coach",
+    "smart fitness assistant",
+    // Arabic keywords (secondary)
+    "منصة رياضية",
+    "مكتبة تمارين",
+    "برامج تدريب",
+    "حاسبات لياقة",
+    "كوتشينج أونلاين",
+    "تغذية رياضية",
     // Brand
     "MuscleHub",
   ],
@@ -78,27 +80,27 @@ export const metadata: Metadata = {
     title: "MuscleHub",
   },
   openGraph: {
-    title: "MuscleHub — منصة رياضية شاملة | تمارين، برامج، حاسبات، وتغذية",
+    title: "MuscleHub — Comprehensive Sports Platform",
     description:
-      "مكتبة تمارين احترافية، برامج تدريب جاهزة، حاسبات لياقة مجانية، مكتبة أكلات بالسعرات، مدونة رياضية، وكوتشينج أونلاين. كل ما تحتاجه لرحلتك الرياضية في مكان واحد.",
+      "547+ exercises, workout programs, free fitness calculators, food database, fitness blog, and online coaching. Everything you need for your fitness journey in one place.",
     type: "website",
     siteName: "MuscleHub",
-    locale: "ar_EG",
+    locale: "en_US",
     url: "https://musclehubeg.vercel.app",
     images: [
       {
         url: "/logo.png",
         width: 1200,
         height: 630,
-        alt: "MuscleHub — منصة رياضية شاملة",
+        alt: "MuscleHub — Comprehensive Sports Platform",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "MuscleHub — منصة رياضية شاملة",
+    title: "MuscleHub — Comprehensive Sports Platform",
     description:
-      "تمارين، برامج تدريب، حاسبات لياقة، مكتبة أكلات، مدونة رياضية، وكوتشينج أونلاين.",
+      "Exercises, workout programs, fitness calculators, food database, fitness blog, and online coaching.",
     images: ["/logo.png"],
   },
   robots: {
@@ -118,8 +120,8 @@ export const metadata: Metadata = {
   alternates: {
     canonical: "https://musclehubeg.vercel.app",
     languages: {
-      "ar-EG": "https://musclehubeg.vercel.app",
       "en-US": "https://musclehubeg.vercel.app",
+      "ar-EG": "https://musclehubeg.vercel.app",
     },
   },
   category: "Health & Fitness",
