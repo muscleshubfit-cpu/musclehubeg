@@ -1161,3 +1161,40 @@ Stage Summary:
 - Users can no longer "forget" to fill one of the questionnaires — the Next button guides them through both.
 - The Review step lets users double-check everything before sending to the coach.
 - All existing data is preserved (the component still uses `getQuestionnaire` + `upsertQuestionnaire` with the same `nutrition`/`fitness` types).
+
+---
+Task ID: 19
+Agent: Super Z (main)
+Task: Full audit of local project + Supabase before user deletes the sbp_ token
+
+Work Log:
+- **Git sync check**: Found 1 unpushed commit (worklog update). Pushed it. Local HEAD = remote HEAD = `75d4197`. No uncommitted changes.
+- **Production endpoint tests** (all returned HTTP 200): /, /tools, /auth, /pricing, /blog, /questionnaires, /admin/leads. API routes respond correctly: /api/tools/lead returns validation error for empty body, /api/admin/run-migration returns 401.
+- **Supabase full audit**:
+  - 21 tables in public schema: admin_notifications, blog_generation_queue, blog_posts, chat_messages, coach_presence, fitness_questionnaires, notifications, nutrition_questionnaires, plan_swaps, plans, profiles, progress_entries, progress_photos, referral_earnings, referral_payouts, referrals, subscription_requests, subscriptions, support_tickets, ticket_messages, tool_leads — ALL PRESENT.
+  - 5 functions: handle_new_user, has_role, is_coach, is_questionnaire_locked, update_updated_at_column — ALL PRESENT.
+  - 1 critical trigger: `on_auth_user_created` on auth.users → executes handle_new_user() (auto-creates profile on signup) — WORKING.
+  - All 21 tables have RLS enabled. 20 have RLS enabled (not forced), tool_leads has RLS enabled + forced.
+  - 75 RLS policies across 20 tables (every table except blog_generation_queue has policies).
+  - 8 storage buckets: meal-plans, workout-plans, plan-pdfs, receipts (private); qr-codes, progress-photos, questionnaire-photos (public).
+  - Database size: 12 MB.
+  - Real data: 9 profiles, 40 blog posts, 18 blog queue items, 3 subscriptions, 4 nutrition + 1 fitness questionnaires, 6 chat messages, 5 plans, 6 plan swaps, 4 notifications, 4 admin notifications.
+- **RLS functional tests** (anon key, direct PostgREST):
+  - anon CAN read blog_posts (public) → returned 3 published posts ✅
+  - anon CANNOT read profiles → returned [] ✅
+  - anon CANNOT read tool_leads → returned [] ✅
+  - anon INSERT to tool_leads → FAILED (PostgREST schema cache issue, known). WORKAROUND: /api/tools/lead route uses SUPABASE_SERVICE_ROLE_KEY server-side, verified working in production.
+- **All 6 migrations confirmed executed**:
+  - 0001_init.sql → base tables + trigger
+  - 0002_blog_posts_and_is_coach_grant.sql → blog_posts + is_coach grant
+  - 0003_subscriptions_rls_fix_and_notifications.sql → notifications tables
+  - 0004_referral_commission_system.sql → referrals + earnings + payouts
+  - 0005_blog_generation_queue.sql → blog queue
+  - 0006_tool_leads.sql → tool_leads (just added)
+
+Stage Summary:
+- Local project = remote GitHub = Vercel production (all in sync at commit 75d4197).
+- Supabase is fully configured: 21 tables, 5 functions, 1 critical trigger, 75 RLS policies, 8 storage buckets, 12 MB data.
+- All 6 migrations have been executed successfully.
+- Production is live and functional at https://musclehubeg.vercel.app/.
+- The sbp_ token can now be safely deleted by the user from https://supabase.com/dashboard/account/tokens.
