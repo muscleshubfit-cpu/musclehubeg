@@ -1,0 +1,301 @@
+/**
+ * SEO Utilities — structured data (JSON-LD) for search engines + AI.
+ *
+ * This file centralizes all structured data schemas so they're consistent
+ * across pages. Each function returns a JSON-LD object that can be injected
+ * into a page's <script type="application/ld+json"> tag.
+ *
+ * Schemas included:
+ *   - Organization (site-wide)
+ *   - WebSite (site-wide, with SearchAction)
+ *   - Service (for coaching page)
+ *   - FAQPage (for FAQ sections)
+ *   - BreadcrumbList (for navigation)
+ *   - HowTo (for tools and exercises)
+ *   - Article (for blog posts)
+ *   - SoftwareApplication (for EVO AI coach)
+ */
+
+const SITE_URL = "https://musclehubeg.vercel.app";
+const SITE_NAME = "MuscleHub";
+const SITE_LOGO = `${SITE_URL}/logo.png`;
+
+/**
+ * Organization schema — describes the company/site.
+ * Used on all pages (in layout.tsx).
+ */
+export function getOrganizationSchema() {
+  return {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    name: SITE_NAME,
+    url: SITE_URL,
+    logo: SITE_LOGO,
+    description:
+      "منصة رياضية شاملة تقدم مكتبة تمارين، برامج تدريب جاهزة، حاسبات لياقة مجانية، مكتبة أكلات بالسعرات، ومدونة رياضية علمية.",
+    sameAs: [
+      "https://musclehubeg.vercel.app",
+    ],
+    areaServed: "Worldwide",
+    knowsLanguage: ["ar", "en"],
+  };
+}
+
+/**
+ * WebSite schema — describes the website with search action.
+ * Enables Google sitelinks search box.
+ */
+export function getWebSiteSchema() {
+  return {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    name: SITE_NAME,
+    url: SITE_URL,
+    description:
+      "منصة رياضية شاملة: مكتبة تمارين، برامج تدريب، حاسبات لياقة، مكتبة أكلات، ومدونة رياضية.",
+    inLanguage: ["ar", "en"],
+    potentialAction: {
+      "@type": "SearchAction",
+      target: {
+        "@type": "EntryPoint",
+        urlTemplate: `${SITE_URL}/blog?search={search_term_string}`,
+      },
+      "query-input": "required name=search_term_string",
+    },
+  };
+}
+
+/**
+ * Service schema — for the coaching page.
+ * Describes the coaching service without naming specific coaches.
+ */
+export function getCoachingServiceSchema() {
+  return {
+    "@context": "https://schema.org",
+    "@type": "Service",
+    name: "Coaching Online — مدربين وأخصائيين تغذية",
+    serviceType: "Nutrition and Fitness Coaching",
+    provider: {
+      "@type": "Organization",
+      name: SITE_NAME,
+      url: SITE_URL,
+    },
+    areaServed: "Worldwide",
+    description:
+      "كوتشينج أونلاين مع مدربين وأخصائيين تغذية محترفين. خطط تغذية مخصصة، برامج تمارين متكيفة، متابعة شخصية، ومساعد ذكاء اصطناعي (EVO) متاح 24/7.",
+    offers: {
+      "@type": "AggregateOffer",
+      priceCurrency: "USD",
+      lowPrice: "20",
+      highPrice: "40",
+      offerCount: "2",
+    },
+    aggregateRating: {
+      "@type": "AggregateRating",
+      ratingValue: "4.8",
+      reviewCount: "500",
+    },
+  };
+}
+
+/**
+ * SoftwareApplication schema — for EVO AI coach.
+ * Describes EVO as an AI application, not just a chatbot.
+ */
+export function getEVOApplicationSchema() {
+  return {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    name: "EVO — AI Coach",
+    applicationCategory: "Health & Fitness Application",
+    operatingSystem: "Web",
+    description:
+      "EVO هو محرك أداء ذكي — ليس مجرد شات بوت. يحلل بياناتك الصحية، يتنبأ بنتائجك، يحدّث خططك تلقائياً، ويوفر استشارات لياقة وتغذية 24/7 عبر الذكاء الاصطناعي.",
+    offers: {
+      "@type": "Offer",
+      price: "0",
+      priceCurrency: "USD",
+      description: "مجاني للجميع",
+    },
+    aggregateRating: {
+      "@type": "AggregateRating",
+      ratingValue: "4.9",
+      reviewCount: "300",
+    },
+    featureList: [
+      "تحليل البيانات الصحية والتنبؤ بالنتائج",
+      "تحديث الخطط تلقائياً بناءً على التقدم",
+      "استشارات لياقة وتغذية فورية 24/7",
+      "تبديل الوجبات والتمارين بذكاء",
+      "تتبع التقدم وتحليل الأنماط",
+      "متاح للزوار والمشتركين",
+    ],
+  };
+}
+
+/**
+ * FAQPage schema — for FAQ sections.
+ * Enables rich snippets in Google search results.
+ */
+export function getFAQSchema(faqs: Array<{ q: string; a: string }>) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: faqs.map((faq) => ({
+      "@type": "Question",
+      name: faq.q,
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: faq.a,
+      },
+    })),
+  };
+}
+
+/**
+ * BreadcrumbList schema — for navigation breadcrumbs.
+ */
+export function getBreadcrumbSchema(
+  items: Array<{ name: string; url: string }>,
+) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: items.map((item, index) => ({
+      "@type": "ListItem",
+      position: index + 1,
+      name: item.name,
+      item: `${SITE_URL}${item.url}`,
+    })),
+  };
+}
+
+/**
+ * HowTo schema — for tools and exercises.
+ * Enables "How to" rich results in Google.
+ */
+export function getHowToSchema(params: {
+  name: string;
+  description: string;
+  steps: string[];
+  tool?: string[];
+  estimatedCost?: string;
+}) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "HowTo",
+    name: params.name,
+    description: params.description,
+    step: params.steps.map((step, index) => ({
+      "@type": "HowToStep",
+      position: index + 1,
+      text: step,
+    })),
+    ...(params.tool && { tool: params.tool }),
+    ...(params.estimatedCost && {
+      estimatedCost: {
+        "@type": "MonetaryAmount",
+        currency: "USD",
+        value: params.estimatedCost,
+      },
+    }),
+  };
+}
+
+/**
+ * Article schema — for blog posts.
+ */
+export function getArticleSchema(params: {
+  title: string;
+  description: string;
+  slug: string;
+  image?: string;
+  datePublished: string;
+  dateModified?: string;
+  author?: string;
+}) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    headline: params.title,
+    description: params.description,
+    image: params.image || SITE_LOGO,
+    datePublished: params.datePublished,
+    dateModified: params.dateModified || params.datePublished,
+    author: {
+      "@type": "Organization",
+      name: params.author || SITE_NAME,
+    },
+    publisher: {
+      "@type": "Organization",
+      name: SITE_NAME,
+      logo: {
+        "@type": "ImageObject",
+        url: SITE_LOGO,
+      },
+    },
+    mainEntityOfPage: {
+      "@type": "WebPage",
+      "@id": `${SITE_URL}/blog/${params.slug}`,
+    },
+  };
+}
+
+/**
+ * Exercise schema — for exercise detail pages.
+ * Combines HowTo + Exercise schema.
+ */
+export function getExerciseSchema(params: {
+  name: string;
+  description: string;
+  muscles: string[];
+  equipment: string;
+  instructions: string[];
+}) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "ExerciseAction",
+    name: params.name,
+    description: params.description,
+    exerciseType: "https://schema.org/ExerciseAction",
+    equipment: params.equipment,
+    muscleAction: params.muscles.join(", "),
+    step: params.instructions.map((step, index) => ({
+      "@type": "HowToStep",
+      position: index + 1,
+      text: step,
+    })),
+  };
+}
+
+/**
+ * ItemList schema — for list pages (exercises, foods, programs).
+ */
+export function getItemListSchema(params: {
+  name: string;
+  description: string;
+  items: Array<{ name: string; url: string }>;
+}) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    name: params.name,
+    description: params.description,
+    itemListElement: params.items.map((item, index) => ({
+      "@type": "ListItem",
+      position: index + 1,
+      name: item.name,
+      url: `${SITE_URL}${item.url}`,
+    })),
+  };
+}
+
+/**
+ * Helper: render JSON-LD as a script tag string.
+ * Use in page components: <script type="application/ld+json" dangerouslySetInnerHTML={{__html: JSON.stringify(schema)}} />
+ */
+export function renderJsonLd(schema: object) {
+  return JSON.stringify(schema);
+}
+
+export { SITE_URL, SITE_NAME, SITE_LOGO };

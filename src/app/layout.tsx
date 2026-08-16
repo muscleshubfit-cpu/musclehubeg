@@ -6,11 +6,16 @@ import { I18nProvider } from "@/lib/i18n";
 import { AuthProvider } from "@/hooks/use-auth";
 import { ReferralCookieChecker } from "@/components/ReferralCookieChecker";
 import { CookieConsent } from "@/components/CookieConsent";
+import { getOrganizationSchema, getWebSiteSchema } from "@/lib/seo";
 import { metadata, viewport } from "./metadata";
 
 export { metadata, viewport };
 
 const GA_ID = process.env.NEXT_PUBLIC_GA_ID || "";
+
+// Site-wide structured data (JSON-LD) — injected on every page
+const organizationSchema = getOrganizationSchema();
+const websiteSchema = getWebSiteSchema();
 
 export default function RootLayout({
   children,
@@ -29,6 +34,19 @@ export default function RootLayout({
         <link rel="dns-prefetch" href="https://randomuser.me" />
         <link rel="preconnect" href="https://api.qrserver.com" />
         <link rel="dns-prefetch" href="https://api.qrserver.com" />
+        <link rel="preconnect" href="https://images.unsplash.com" />
+        <link rel="dns-prefetch" href="https://images.unsplash.com" />
+        <link rel="preconnect" href="https://wger.de" />
+        <link rel="dns-prefetch" href="https://wger.de" />
+        {/* Structured data — Organization + WebSite (site-wide) */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteSchema) }}
+        />
       </head>
       <body className="antialiased bg-background text-foreground">
         <a href="#main-content" className="sr-only-focusable">

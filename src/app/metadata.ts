@@ -1,30 +1,68 @@
 import type { Metadata, Viewport } from "next";
 
+/**
+ * Site-wide metadata for MuscleHub.
+ *
+ * Strategy: Position MuscleHub as a comprehensive sports & wellness platform
+ * (not just a coaching site). Keywords cover all platform features:
+ * exercises, programs, tools, food library, blog.
+ *
+ * Coaching is mentioned as ONE feature (not the main one) to ensure
+ * coaching-related searches still find us.
+ */
 export const metadata: Metadata = {
-  title: "MuscleHub — AI-Powered Human Optimization Platform | Ahmed Zake",
+  title: "MuscleHub — منصة رياضية شاملة | تمارين، برامج تدريب، حاسبات لياقة، وتغذية",
   description:
-    "MuscleHub combines real human coaching with AI intelligence (EVO) to optimize your nutrition, fitness, and performance. Personalized meal plans, adaptive workout programs, smart progress tracking, and 24/7 AI coaching. Start your transformation today.",
+    "MuscleHub منصة رياضية شاملة: مكتبة تمارين احترافية، برامج تدريب جاهزة، حاسبات لياقة مجانية (سعرات، BMI، ماكروز)، مكتبة أكلات بالسعرات والماكروز، مدونة رياضية علمية، وكوتشينج أونلاين مع مدربين متخصصين.",
   keywords: [
-    "MuscleHub",
-    "Ahmed Zake",
-    "AI fitness coach",
-    "AI nutrition coach",
-    "personalized meal plans",
-    "custom workout programs",
-    "online coaching Egypt",
-    "AI human optimization",
-    "EVO AI coach",
-    "fitness transformation",
-    "nutrition coaching platform",
-    "progress tracking",
-    "smart food swaps",
-    "adaptive fitness plans",
-    "كوتش أونلاين",
+    // Platform-level keywords (primary)
+    "منصة رياضية",
+    "مكتبة تمارين",
+    "برامج تدريب",
+    "حاسبات لياقة",
+    "حاسبة سعرات",
+    "حاسبة BMI",
+    "حاسبة ماكروز",
+    "مكتبة أكلات",
+    "سعرات حرارية",
     "تغذية رياضية",
-    "تمارين مخصصة",
-    "ذكاء اصطناعي لياقة",
+    "مدونة رياضية",
+    "تمارين رياضية",
+    // Exercise-related
+    "تمارين صدر",
+    "تمارين ظهر",
+    "تمارين أرجل",
+    "تمارين كارديو",
+    "برامج جيم",
+    "تمارين منزلية",
+    // Food-related
+    "أطعمة بالسعرات",
+    "ماكروز الأكلات",
+    "حاسبة جرامات",
+    // English keywords
+    "exercise library",
+    "workout programs",
+    "fitness calculators",
+    "calorie calculator",
+    "BMI calculator",
+    "macro calculator",
+    "food database",
+    "nutrition database",
+    "fitness blog",
+    "free fitness tools",
+    // Coaching (secondary — one feature among many)
+    "كوتشينج أونلاين",
+    "مدربين تغذية",
+    "خطط تغذية مخصصة",
+    // EVO (AI coach)
+    "EVO AI coach",
+    "كوتش ذكاء اصطناعي",
+    "مساعد رياضي ذكي",
+    "AI fitness coach",
+    // Brand
+    "MuscleHub",
   ],
-  authors: [{ name: "Ahmed Zake" }],
+  authors: [{ name: "MuscleHub" }],
   manifest: "/manifest.json",
   icons: {
     icon: [
@@ -40,17 +78,28 @@ export const metadata: Metadata = {
     title: "MuscleHub",
   },
   openGraph: {
-    title: "MuscleHub — Build a Stronger You with AI + Human Coaching",
+    title: "MuscleHub — منصة رياضية شاملة | تمارين، برامج، حاسبات، وتغذية",
     description:
-      "Not just a fitness app. MuscleHub combines Coach Ahmed Zake's expertise with the EVO AI engine for personalized nutrition, adaptive workouts, and 24/7 intelligent monitoring.",
+      "مكتبة تمارين احترافية، برامج تدريب جاهزة، حاسبات لياقة مجانية، مكتبة أكلات بالسعرات، مدونة رياضية، وكوتشينج أونلاين. كل ما تحتاجه لرحلتك الرياضية في مكان واحد.",
     type: "website",
     siteName: "MuscleHub",
     locale: "ar_EG",
+    url: "https://musclehubeg.vercel.app",
+    images: [
+      {
+        url: "/logo.png",
+        width: 1200,
+        height: 630,
+        alt: "MuscleHub — منصة رياضية شاملة",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "MuscleHub — AI-Powered Human Optimization",
-    description: "Build a stronger you with AI + human coaching.",
+    title: "MuscleHub — منصة رياضية شاملة",
+    description:
+      "تمارين، برامج تدريب، حاسبات لياقة، مكتبة أكلات، مدونة رياضية، وكوتشينج أونلاين.",
+    images: ["/logo.png"],
   },
   robots: {
     index: true,
@@ -60,11 +109,20 @@ export const metadata: Metadata = {
       follow: true,
       "max-image-preview": "large",
       "max-snippet": -1,
+      "max-video-preview": -1,
     },
   },
   verification: {
     google: "v9YnsQ7PMp5EsTOxG9ysrAvWWoWNn0sjzDEJh6Lb7fs",
   },
+  alternates: {
+    canonical: "https://musclehubeg.vercel.app",
+    languages: {
+      "ar-EG": "https://musclehubeg.vercel.app",
+      "en-US": "https://musclehubeg.vercel.app",
+    },
+  },
+  category: "Health & Fitness",
 };
 
 export const viewport: Viewport = {

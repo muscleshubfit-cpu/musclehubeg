@@ -15,21 +15,28 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const lastModified = new Date();
 
   const staticUrls: MetadataRoute.Sitemap = [
+    // Homepage — highest priority
     { url: baseUrl, lastModified, changeFrequency: "weekly", priority: 1 },
-    { url: `${baseUrl}/pricing`, lastModified, changeFrequency: "monthly", priority: 0.9 },
-    { url: `${baseUrl}/about`, lastModified, changeFrequency: "monthly", priority: 0.8 },
+    // Main platform sections (high priority — core content)
+    { url: `${baseUrl}/exercises`, lastModified, changeFrequency: "weekly", priority: 0.9 },
+    { url: `${baseUrl}/programs`, lastModified, changeFrequency: "weekly", priority: 0.9 },
+    { url: `${baseUrl}/foods`, lastModified, changeFrequency: "weekly", priority: 0.9 },
+    { url: `${baseUrl}/tools`, lastModified, changeFrequency: "weekly", priority: 0.9 },
+    { url: `${baseUrl}/evo`, lastModified, changeFrequency: "monthly", priority: 0.9 },
     { url: `${baseUrl}/blog`, lastModified, changeFrequency: "weekly", priority: 0.8 },
     { url: `${baseUrl}/ar/blog`, lastModified, changeFrequency: "weekly", priority: 0.8 },
-    { url: `${baseUrl}/exercises`, lastModified, changeFrequency: "weekly", priority: 0.8 },
-    { url: `${baseUrl}/programs`, lastModified, changeFrequency: "weekly", priority: 0.8 },
-    { url: `${baseUrl}/foods`, lastModified, changeFrequency: "weekly", priority: 0.8 },
-    { url: `${baseUrl}/tools`, lastModified, changeFrequency: "weekly", priority: 0.8 },
-    { url: `${baseUrl}/tools/calorie-calculator`, lastModified, changeFrequency: "monthly", priority: 0.7 },
-    { url: `${baseUrl}/tools/bmi-calculator`, lastModified, changeFrequency: "monthly", priority: 0.7 },
-    { url: `${baseUrl}/tools/macro-calculator`, lastModified, changeFrequency: "monthly", priority: 0.7 },
-    { url: `${baseUrl}/tools/body-fat-calculator`, lastModified, changeFrequency: "monthly", priority: 0.7 },
+    // Coaching (secondary feature — one section of the platform)
+    { url: `${baseUrl}/coaching`, lastModified, changeFrequency: "monthly", priority: 0.8 },
+    { url: `${baseUrl}/pricing`, lastModified, changeFrequency: "monthly", priority: 0.7 },
+    // Tool detail pages
+    { url: `${baseUrl}/tools/calorie-calculator`, lastModified, changeFrequency: "monthly", priority: 0.8 },
+    { url: `${baseUrl}/tools/bmi-calculator`, lastModified, changeFrequency: "monthly", priority: 0.8 },
+    { url: `${baseUrl}/tools/macro-calculator`, lastModified, changeFrequency: "monthly", priority: 0.8 },
+    { url: `${baseUrl}/tools/body-fat-calculator`, lastModified, changeFrequency: "monthly", priority: 0.8 },
+    // Other pages
+    { url: `${baseUrl}/about`, lastModified, changeFrequency: "monthly", priority: 0.6 },
     { url: `${baseUrl}/faq`, lastModified, changeFrequency: "monthly", priority: 0.7 },
-    { url: `${baseUrl}/contact`, lastModified, changeFrequency: "yearly", priority: 0.6 },
+    { url: `${baseUrl}/contact`, lastModified, changeFrequency: "yearly", priority: 0.5 },
     { url: `${baseUrl}/privacy`, lastModified, changeFrequency: "yearly", priority: 0.3 },
     { url: `${baseUrl}/terms`, lastModified, changeFrequency: "yearly", priority: 0.3 },
   ];
