@@ -1049,15 +1049,19 @@ export function LandingView() {
           <div className="grid gap-8 md:grid-cols-4">
             <div>
               <p className="text-sm font-semibold text-[#1d1d1f]">MuscleHub</p>
-              <p className="mt-2 text-xs font-normal">{isAr ? "منصة تحسين أداء بشري." : "Human optimization platform."}</p>
+              <p className="mt-2 text-xs font-normal">{isAr ? "منصة رياضية شاملة." : "Comprehensive sports platform."}</p>
             </div>
             <div>
               <p className="text-xs font-normal uppercase tracking-wide">{isAr ? "روابط" : "Links"}</p>
               <ul className="mt-3 space-y-2 text-xs">
-                <li><button onClick={() => navigate("pricing")} className="hover:underline">{isAr ? "الأسعار" : "Pricing"}</button></li>
-                <li><button onClick={() => navigate("about")} className="hover:underline">{isAr ? "من نحن" : "About"}</button></li>
-                <li><button onClick={() => navigate("blog")} className="hover:underline">{isAr ? "المدونة" : "Blog"}</button></li>
-                <li><button onClick={() => navigate("faq")} className="hover:underline">{isAr ? "أسئلة شائعة" : "FAQ"}</button></li>
+                <li><a href="/exercises" className="hover:underline">{isAr ? "التمارين" : "Exercises"}</a></li>
+                <li><a href="/programs" className="hover:underline">{isAr ? "البرامج" : "Programs"}</a></li>
+                <li><a href="/foods" className="hover:underline">{isAr ? "الأكلات" : "Foods"}</a></li>
+                <li><a href="/tools" className="hover:underline">{isAr ? "الأدوات" : "Tools"}</a></li>
+                <li><a href="/evo" className="hover:underline">EVO</a></li>
+                <li><a href="/blog" className="hover:underline">{isAr ? "المدونة" : "Blog"}</a></li>
+                <li><a href="/coaching" className="hover:underline">{isAr ? "الكوتشينج" : "Coaching"}</a></li>
+                <li><a href="/pricing" className="hover:underline">{isAr ? "الأسعار" : "Pricing"}</a></li>
               </ul>
             </div>
             <div>
@@ -1065,6 +1069,8 @@ export function LandingView() {
               <ul className="mt-3 space-y-2 text-xs">
                 <li><button onClick={() => navigate("privacy")} className="hover:underline">{isAr ? "الخصوصية" : "Privacy"}</button></li>
                 <li><button onClick={() => navigate("terms")} className="hover:underline">{isAr ? "الشروط" : "Terms"}</button></li>
+                <li><button onClick={() => navigate("about")} className="hover:underline">{isAr ? "من نحن" : "About"}</button></li>
+                <li><button onClick={() => navigate("faq")} className="hover:underline">{isAr ? "أسئلة شائعة" : "FAQ"}</button></li>
               </ul>
             </div>
             <div>

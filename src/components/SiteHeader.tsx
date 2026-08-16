@@ -116,6 +116,13 @@ export function SiteHeader({ variant = "landing" }: { variant?: "landing" | "app
     href: "/foods",
   });
 
+  // 2f. EVO AI Coach
+  menu.push({
+    label: "EVO",
+    icon: Bot,
+    href: "/evo",
+  });
+
   // 3. Pricing
   menu.push({
     label: isAr ? "الأسعار" : "Pricing",
