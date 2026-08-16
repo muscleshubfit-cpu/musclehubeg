@@ -22,6 +22,7 @@ import {
   ChevronRight,
   Bell,
   User,
+  Sparkles,
 } from "lucide-react";
 import { LanguageToggle } from "@/components/LanguageToggle";
 import { useI18n } from "@/lib/i18n";
@@ -140,6 +141,13 @@ export function SiteHeader({ variant = "landing" }: { variant?: "landing" | "app
     label: isAr ? "الأسعار" : "Pricing",
     icon: Crown,
     onClick: () => navigate("pricing"),
+  });
+
+  // 3b. Memberships
+  menu.push({
+    label: isAr ? "العضويات" : "Memberships",
+    icon: Sparkles,
+    href: "/memberships",
   });
 
   // 4. Client pages

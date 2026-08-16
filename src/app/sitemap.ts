@@ -27,6 +27,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${baseUrl}/ar/blog`, lastModified, changeFrequency: "weekly", priority: 0.8 },
     // Coaching (secondary feature — one section of the platform)
     { url: `${baseUrl}/coaching`, lastModified, changeFrequency: "monthly", priority: 0.8 },
+    { url: `${baseUrl}/memberships`, lastModified, changeFrequency: "monthly", priority: 0.9 },
     { url: `${baseUrl}/pricing`, lastModified, changeFrequency: "monthly", priority: 0.7 },
     // Tool detail pages
     { url: `${baseUrl}/tools/calorie-calculator`, lastModified, changeFrequency: "monthly", priority: 0.8 },
