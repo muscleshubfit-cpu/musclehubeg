@@ -5,6 +5,7 @@ import { useI18n } from "@/lib/i18n";
 import { useNav } from "@/hooks/use-nav";
 import { SiteHeader } from "@/components/SiteHeader";
 import { AdSenseAd } from "@/components/AdSenseAd";
+import { OtherTools } from "@/components/OtherTools";
 
 type Gender = "male" | "female";
 type Activity = "sedentary" | "light" | "moderate" | "active" | "very_active";
@@ -299,6 +300,7 @@ export default function CalorieCalculatorPage() {
 
             {/* AdSense */}
             <AdSenseAd format="auto" />
+            <OtherTools current="calorie-calculator" />
           </div>
         )}
 

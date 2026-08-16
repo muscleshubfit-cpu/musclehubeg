@@ -90,7 +90,7 @@ export function SiteHeader({ variant = "landing" }: { variant?: "landing" | "app
   menu.push({
     label: isAr ? "الأدوات المجانية" : "Free Tools",
     icon: Calculator,
-    href: "/tools/calorie-calculator",
+    href: "/tools",
   });
 
   // 3. Pricing

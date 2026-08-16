@@ -5,6 +5,7 @@ import { useI18n } from "@/lib/i18n";
 import { useNav } from "@/hooks/use-nav";
 import { SiteHeader } from "@/components/SiteHeader";
 import { AdSenseAd } from "@/components/AdSenseAd";
+import { OtherTools } from "@/components/OtherTools";
 
 type Unit = "metric" | "imperial";
 
@@ -219,6 +220,7 @@ export default function BMICalculatorPage() {
 
             {/* AdSense */}
             <AdSenseAd format="auto" />
+            <OtherTools current="bmi-calculator" />
           </div>
         )}
 

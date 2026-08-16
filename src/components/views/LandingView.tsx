@@ -447,35 +447,59 @@ export function LandingView() {
         />
       </section>
 
-      {/* ===================== 7.8. FREE TOOLS — teaser ===================== */}
-      <section className="bg-white px-4 py-12 md:py-20">
-        <div className="mx-auto max-w-4xl text-center">
-          <Reveal>
-            <h2 className="text-3xl font-semibold tracking-tight md:text-5xl">
-              {isAr ? "أدوات مجانية" : "Free Tools"}
-            </h2>
-          </Reveal>
-          <Reveal delay={100}>
-            <p className="mx-auto mt-3 max-w-md text-base font-normal text-[#6e6e73] md:text-lg">
-              {isAr ? "احسب احتياجاتك الغذائية مجاناً." : "Calculate your nutrition needs for free."}
-            </p>
-          </Reveal>
-          <Reveal delay={200}>
-            <a
-              href="/tools/calorie-calculator"
-              className="mt-8 inline-block rounded-3xl bg-[#f5f5f7] p-8 transition-opacity hover:opacity-90"
-            >
-              <h3 className="text-xl font-semibold tracking-tight">
-                {isAr ? "حاسبة السعرات الحرارية" : "Calorie Calculator"}
-              </h3>
-              <p className="mt-2 text-sm font-normal text-[#6e6e73]">
-                {isAr ? "احسب السعرات + الماكروز اليومية" : "Calculate daily calories + macros"}
+      {/* ===================== 7.8. FREE TOOLS — grid of all tools ===================== */}
+      <section className="bg-[#f5f5f7] px-4 py-12 md:py-20">
+        <div className="mx-auto max-w-4xl">
+          <div className="text-center">
+            <Reveal>
+              <h2 className="text-3xl font-semibold tracking-tight md:text-5xl">
+                {isAr ? "أدوات مجانية" : "Free Tools"}
+              </h2>
+            </Reveal>
+            <Reveal delay={100}>
+              <p className="mx-auto mt-3 max-w-md text-base font-normal text-[#6e6e73] md:text-lg">
+                {isAr ? "حاسبات لياقة وتغذية مجانية لمساعدتك." : "Free fitness and nutrition calculators."}
               </p>
-              <span className="mt-4 inline-block text-sm font-normal text-[#0071e3]">
-                {isAr ? "ابدأ الحساب ›" : "Start calculating ›"}
-              </span>
+            </Reveal>
+          </div>
+
+          <div className="mt-10 grid grid-cols-1 gap-4 sm:grid-cols-2">
+            {[
+              { slug: "calorie-calculator", nameAr: "حاسبة السعرات", nameEn: "Calorie Calculator", descAr: "احسب احتياجك اليومي", descEn: "Daily calorie needs", emoji: "🔥", color: "#ff9500" },
+              { slug: "bmi-calculator", nameAr: "حاسبة BMI", nameEn: "BMI Calculator", descAr: "هل وزنك مثالي؟", descEn: "Is your weight healthy?", emoji: "⚖️", color: "#0071e3" },
+              { slug: "macro-calculator", nameAr: "حاسبة الماكروز", nameEn: "Macro Calculator", descAr: "بروتين وكارب ودهون", descEn: "Protein, carbs, fat", emoji: "🥩", color: "#34c759" },
+              { slug: "body-fat-calculator", nameAr: "حاسبة الدهون", nameEn: "Body Fat %", descAr: "نسبة دهون جسمك", descEn: "Your body fat %", emoji: "📊", color: "#ff3b30" },
+            ].map((tool, i) => (
+              <Reveal key={tool.slug} delay={i * 80}>
+                <a
+                  href={`/tools/${tool.slug}`}
+                  className="group flex items-center gap-4 rounded-3xl bg-white p-6 transition-opacity hover:opacity-90"
+                >
+                  <span
+                    className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl text-2xl"
+                    style={{ backgroundColor: `${tool.color}15` }}
+                  >
+                    {tool.emoji}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <h3 className="text-lg font-semibold tracking-tight">
+                      {isAr ? tool.nameAr : tool.nameEn}
+                    </h3>
+                    <p className="mt-1 text-sm font-normal text-[#6e6e73]">
+                      {isAr ? tool.descAr : tool.descEn}
+                    </p>
+                  </div>
+                  <span className="text-2xl text-[#6e6e73]">›</span>
+                </a>
+              </Reveal>
+            ))}
+          </div>
+
+          <div className="mt-8 text-center">
+            <a href="/tools" className="text-sm font-normal text-[#0071e3] transition-opacity hover:opacity-70">
+              {isAr ? "كل الأدوات ›" : "View all tools ›"}
             </a>
-          </Reveal>
+          </div>
         </div>
       </section>
 

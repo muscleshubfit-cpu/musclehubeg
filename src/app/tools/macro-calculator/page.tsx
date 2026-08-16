@@ -5,6 +5,7 @@ import { useI18n } from "@/lib/i18n";
 import { useNav } from "@/hooks/use-nav";
 import { SiteHeader } from "@/components/SiteHeader";
 import { AdSenseAd } from "@/components/AdSenseAd";
+import { OtherTools } from "@/components/OtherTools";
 
 type DietType = "balanced" | "low_carb" | "high_protein" | "keto" | "low_fat";
 
@@ -109,6 +110,7 @@ export default function MacroCalculatorPage() {
               </button>
             </div>
             <AdSenseAd format="auto" />
+            <OtherTools current="macro-calculator" />
           </div>
         )}
 

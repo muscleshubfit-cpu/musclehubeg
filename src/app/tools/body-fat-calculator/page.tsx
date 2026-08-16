@@ -5,6 +5,7 @@ import { useI18n } from "@/lib/i18n";
 import { useNav } from "@/hooks/use-nav";
 import { SiteHeader } from "@/components/SiteHeader";
 import { AdSenseAd } from "@/components/AdSenseAd";
+import { OtherTools } from "@/components/OtherTools";
 
 type Gender = "male" | "female";
 
@@ -150,6 +151,7 @@ export default function BodyFatCalculatorPage() {
               </button>
             </div>
             <AdSenseAd format="auto" />
+            <OtherTools current="body-fat-calculator" />
           </div>
         )}
 
