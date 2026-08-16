@@ -51,6 +51,49 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Missing message" }, { status: 400 });
     }
 
+    // SUBSCRIBER-ONLY features: meal plans, workout plans, meal generation,
+    // macro calculations, swap suggestions.
+    // Free users get: general Q&A, exercise info, food nutrition lookup,
+    // blog references, platform navigation.
+    const subscriberOnlyPatterns = [
+      /make\s+me\s+(a|an)?\s*(meal|workout|plan|diet|menu)/i,
+      /generate\s+(a|an)?\s*(meal|workout|plan|diet|menu)/i,
+      /create\s+(a|an)?\s*(meal|workout|plan|diet|menu)/i,
+      /plan\s+(for|with)\s+\d+\s*(calorie|kcal|cal)/i,
+      /meal\s+(plan|with|for)\s+\d+/i,
+      /\d+\s*(calorie|kcal|cal)\s*(meal|plan|diet)/i,
+      /workout\s+(plan|program|routine)\s*(for|with)/i,
+      /اعمل\s+(وجبة|خطة|برنامج|جدول|دايت|مينو)/i,
+      /صمم\s+(وجبة|خطة|برنامج|جدول)/i,
+      /انشئ\s+(وجبة|خطة|برنامج|جدول)/i,
+      /خطة\s+(تغذية|تمارين|دايت)\s+/i,
+      /وجبة\s+\d+\s*سعر/i,
+      /\d+\s*سعرة\s*(وجبة|خطة|مينو)/i,
+      /swap\s+(this|my|the)\s*(meal|food|exercise)/i,
+      /بدّل\s+(وجبة|أكلة|تمرين)/i,
+      /بديل\s+(وجبة|أكلة|تمرين)/i,
+      /regenerate\s+(meal|plan|workout)/i,
+      /أعد\s+(توليد|صناعة)\s*(وجبة|خطة)/i,
+    ];
+
+    const isSubscriberOnlyRequest = subscriberOnlyPatterns.some((pattern) =>
+      pattern.test(message),
+    );
+
+    if (isSubscriberOnlyRequest && !userId) {
+      return NextResponse.json({
+        response:
+          "🔒 This feature is for subscribers only. Meal plans, workout plans, and meal generation require an active coaching subscription.\n\nFree features I can help with:\n• Exercise info and instructions\n• Food calories and macros\n• Fitness calculators\n• General fitness Q&A\n\nSubscribe to get personalized meal & workout plans!",
+        links: [
+          {
+            label: "View coaching plans →",
+            url: "/pricing",
+          },
+        ],
+        source: "subscriber-gate",
+      });
+    }
+
     // 2. Search the platform's local databases (exercises, foods, programs, tools)
     const platformResults = searchPlatform(message);
     const foodNutrition = isNutritionQuery(message) ? getFoodNutrition(message) : null;
@@ -312,24 +355,26 @@ function buildSystemPrompt(
     }, null, 2)}\n\nالخطط المفعّلة:\n${planInfo}`;
   }
 
-  return `أنت EVO، محرك الأداء الذكي في منصة MuscleHub الرياضية الشاملة.
-منصة MuscleHub تقدم: مكتبة تمارين (55+ تمرين)، برامج تدريب جاهزة، حاسبات لياقة مجانية، مكتبة أكلات بالسعرات والماكروز، مدونة رياضية، وكوتشينج أونلاين.
+  return `You are EVO, the intelligent performance engine of the MuscleHub sports platform.
+MuscleHub offers: exercise library (868+ exercises), workout programs, free fitness calculators, food database with calories and macros, fitness blog, and online coaching.
 
-أنت لست مجرد شات بوت — أنت تحلل البيانات، تتنبأ بالنتائج، وتوجّه المستخدمين للمحتوى المناسب.${subscriberContext}${platformContext}${nutritionContext}${blogContext}
+You are NOT just a chatbot — you analyze data, predict outcomes, and guide users to relevant content.
+${isSubscriber ? "The user IS a subscriber — you can generate meal plans, workout plans, suggest swaps, and use their personal data." : "The user is a FREE visitor — do NOT generate meal plans, workout plans, or suggest swaps. Those are subscriber-only features. If asked, tell them to subscribe."}
+${subscriberContext}${platformContext}${nutritionContext}${blogContext}
 
-القواعد المهمة جداً:
-- أجب بالعربية إذا كان السؤال بالعربية، وبالإنجليزية إذا كان بالإنجليزية.
-- كن مختصراً جداً (3-5 أسطر كحد أقصى).
-- لو السؤال عن تمرين/أكل/برنامج/أداة موجود في نتائج البحث، اذكر اسمه وإجابة مختصرة.
-- لو السؤال عن تمرين محدد ونتائج البحث فيها التمرين، قول خطوات مختصرة.
-- متذكرش مقالات المدونة إلا لو مفيش نتائج بحث في المنصة.
-- متكتبش روابط أو مسارات (مثل /foods/ أو /exercises/) في النص — الروابط بتظهر تلقائياً تحت الرد.
-- متقولش "شوف الرابط تحت" أو "التفاصيل في الرابط" — الروابط بتظهر لوحدها.
-- لو مفيش نتائج بحث مطابقة، قول إجابتك العامة بس بدون أي ذكر للروابط.
-- لو المستخدم مشترك، استخدم بياناته الشخصية.
-- لا تخترع أرقام غير موجودة في نتائج البحث.
-- لا تقدم نصائح طبية.
-- للأسئلة العامة، ارد بمعرفة عامة رياضية وتغذوية بدون ذكر روابط.`;
+CRITICAL RULES:
+- Reply in the SAME language as the question (Arabic or English).
+- Keep responses VERY short (3-5 lines max).
+- If the question is about an exercise/food/program/tool found in search results, mention its name and a brief answer.
+- Do NOT write URLs or paths in the text — links appear automatically below.
+- Do NOT say "see the link below" — links appear on their own.
+- If no search results match, give a general answer without mentioning links.
+- NEVER generate full meal plans, workout plans, or macro calculations unless the user is a subscriber.
+- If a free user asks for a meal plan/workout plan, say: "This is a subscriber feature. Subscribe to coaching for personalized plans."
+- If the user is a subscriber, use their personal data in responses.
+- Do NOT invent numbers not in search results.
+- Do NOT give medical advice.
+- For general questions, answer with general fitness/nutrition knowledge without mentioning links.`;
 }
 
 /**
