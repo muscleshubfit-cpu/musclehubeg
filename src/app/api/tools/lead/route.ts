@@ -4,27 +4,15 @@ import { createClient } from "@supabase/supabase-js";
 /**
  * POST /api/tools/lead
  *
- * Saves an email/WhatsApp lead captured from one of the free tools AND
- * triggers the actual "send results" flow:
- *
- *   - WhatsApp: We DO NOT send via WhatsApp Business API (requires Meta
- *     verification + costs). Instead, we return a `waMeUrl` that opens
- *     WhatsApp with a pre-filled message to the COACH's number. The user
- *     clicks "Send on WhatsApp" in the UI → WhatsApp opens → message is
- *     pre-filled with their results → they hit send. The coach receives
- *     the lead + results and can reply directly.
- *
- *   - Email: We send a real email from the server to the user's email
- *     with their results. Uses Resend (if RESEND_API_KEY is set) or
- *     falls back to a mailto: link the user can click.
+ * Saves an email lead captured from one of the free tools AND sends
+ * a real email with the user's results via Resend.
  *
  * Public endpoint (no auth required).
  *
  * Body:
  *   {
  *     tool_slug: "calorie-calculator" | "bmi-calculator" | "macro-calculator" | "body-fat-calculator",
- *     email?: string,
- *     whatsapp?: string,        // full E.164 number with country code (e.g. "+201001234567")
+ *     email: string,
  *     result_summary?: string,
  *     result_json?: object,
  *     lang?: "ar" | "en",
@@ -32,7 +20,7 @@ import { createClient } from "@supabase/supabase-js";
  *   }
  *
  * Returns:
- *   { ok: true, id: string, waMeUrl?: string, emailSent?: boolean }
+ *   { ok: true, id: string, emailSent: boolean }
  */
 export async function POST(request: NextRequest) {
   try {
@@ -40,7 +28,6 @@ export async function POST(request: NextRequest) {
     const {
       tool_slug,
       email,
-      whatsapp,
       result_summary,
       result_json,
       lang,
@@ -62,27 +49,17 @@ export async function POST(request: NextRequest) {
     }
 
     const cleanEmail = typeof email === "string" ? email.trim().toLowerCase() : "";
-    const cleanWhatsapp = typeof whatsapp === "string" ? whatsapp.trim() : "";
 
-    if (!cleanEmail && !cleanWhatsapp) {
+    if (!cleanEmail) {
       return NextResponse.json(
-        { error: "Email or WhatsApp is required" },
+        { error: "Email is required" },
         { status: 400 },
       );
     }
 
-    if (cleanEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
       return NextResponse.json(
         { error: "Invalid email format" },
-        { status: 400 },
-      );
-    }
-
-    // WhatsApp now comes in as full E.164 (e.g. "+201001234567") from the
-    // country-code-aware input. Validate it has a + and 8-15 digits.
-    if (cleanWhatsapp && !/^\+[1-9]\d{6,14}$/.test(cleanWhatsapp.replace(/[\s-]/g, ""))) {
-      return NextResponse.json(
-        { error: "Invalid WhatsApp number. Must include country code." },
         { status: 400 },
       );
     }
@@ -91,9 +68,9 @@ export async function POST(request: NextRequest) {
     const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
     if (!supabaseUrl || !supabaseAnonKey) {
-      // Demo mode — return wa.me link so the UX still works
-      const demoWaUrl = buildWaMeUrl(cleanWhatsapp, result_summary, tool_slug, lang);
-      return NextResponse.json({ ok: true, demo: true, waMeUrl: demoWaUrl });
+      // Demo mode — no DB, but still try to send email
+      const emailSentDemo = await sendEmail(cleanEmail, result_summary || "", tool_slug, lang || "ar");
+      return NextResponse.json({ ok: true, demo: true, emailSent: emailSentDemo });
     }
 
     const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -109,8 +86,8 @@ export async function POST(request: NextRequest) {
       .from("tool_leads")
       .insert({
         tool_slug,
-        email: cleanEmail || null,
-        whatsapp: cleanWhatsapp || null,
+        email: cleanEmail,
+        whatsapp: null,
         result_summary: typeof result_summary === "string" ? result_summary.slice(0, 500) : null,
         result_json: result_json ?? null,
         lang: lang || "ar",
@@ -127,21 +104,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Build the WhatsApp "send to coach" URL
-    const waMeUrl = cleanWhatsapp
-      ? buildWaMeUrl(cleanWhatsapp, result_summary, tool_slug, lang)
-      : undefined;
-
-    // Try to send email (if email provided AND Resend is configured)
-    let emailSent = false;
-    if (cleanEmail) {
-      emailSent = await sendEmail(cleanEmail, result_summary || "", tool_slug, lang || "ar");
-    }
+    // Send the email with results (server-side via Resend)
+    const emailSent = await sendEmail(cleanEmail, result_summary || "", tool_slug, lang || "ar");
 
     return NextResponse.json({
       ok: true,
       id: data?.id,
-      waMeUrl,
       emailSent,
     });
   } catch (e: any) {
@@ -154,43 +122,8 @@ export async function POST(request: NextRequest) {
 }
 
 /**
- * Build a wa.me link that opens WhatsApp with a pre-filled message
- * to the COACH's number. The user reviews and hits send.
- *
- * The coach's WhatsApp number is read from COACH_WHATSAPP env var
- * (format: "201001234567" — digits only, with country code, no +).
- * Falls back to a generic wa.me without a target if not set.
- */
-function buildWaMeUrl(
-  leadWhatsapp: string,
-  resultSummary: string,
-  toolSlug: string,
-  lang?: string,
-): string {
-  const isAr = lang !== "en";
-  const coachNumber = (process.env.COACH_WHATSAPP || "").replace(/[^0-9]/g, "");
-
-  const toolNames: Record<string, { ar: string; en: string }> = {
-    "calorie-calculator": { ar: "حاسبة السعرات", en: "Calorie Calculator" },
-    "bmi-calculator": { ar: "حاسبة BMI", en: "BMI Calculator" },
-    "macro-calculator": { ar: "حاسبة الماكروز", en: "Macro Calculator" },
-    "body-fat-calculator": { ar: "حاسبة الدهون", en: "Body Fat Calculator" },
-  };
-  const toolName = isAr ? toolNames[toolSlug]?.ar : toolNames[toolSlug]?.en;
-
-  const message = isAr
-    ? `مرحباً كوتش أحمد 👋\n\nاستخدمت ${toolName} على موقع MuscleHub وهذه نتائجي:\n\n${resultSummary}\n\nعايزك تعملني خطة مخصصة بناءً على الأرقام دي. شكراً!`
-    : `Hi Coach Ahmed 👋\n\nI just used the ${toolName} on MuscleHub and here are my results:\n\n${resultSummary}\n\nI'd like a personalized plan based on these numbers. Thank you!`;
-
-  const digits = coachNumber || leadWhatsapp.replace(/[^0-9]/g, "");
-  return `https://wa.me/${digits}?text=${encodeURIComponent(message)}`;
-}
-
-/**
- * Send an email with the user's results.
- *
- * Uses Resend (https://resend.com) if RESEND_API_KEY is set.
- * Otherwise returns false (the UI will fall back to a mailto: link).
+ * Send an email with the user's results via Resend.
+ * Requires RESEND_API_KEY env var to be set.
  */
 async function sendEmail(
   toEmail: string,
@@ -219,13 +152,23 @@ async function sendEmail(
     ? `نتائجك من ${toolName} | MuscleHub`
     : `Your ${toolName} results | MuscleHub`;
 
+  // Escape HTML in the result summary to prevent injection
+  const safeSummary = resultSummary
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+
   const html = isAr
     ? `
       <div dir="rtl" style="font-family: 'Cairo', Arial, sans-serif; max-width: 560px; margin: 0 auto; padding: 24px; background: #f9fafb;">
         <div style="background: white; border-radius: 24px; padding: 32px; border: 1px solid #e5e7eb;">
-          <h1 style="font-size: 24px; font-weight: 600; color: #1d1d1f; margin: 0 0 16px;">نتائجك من ${toolName}</h1>
+          <div style="text-align: center; margin-bottom: 24px;">
+            <h1 style="font-size: 22px; font-weight: 600; color: #0071e3; margin: 0;">MuscleHub</h1>
+            <p style="font-size: 12px; color: #6e6e73; margin: 4px 0 0;">كوتش أحمد زكي</p>
+          </div>
+          <h2 style="font-size: 20px; font-weight: 600; color: #1d1d1f; margin: 0 0 16px;">نتائجك من ${toolName}</h2>
           <p style="font-size: 16px; color: #6e6e73; margin: 0 0 24px;">مرحباً! بناءً على طلبك، دي نتائجك من الأداة:</p>
-          <div style="background: #f5f5f7; border-radius: 16px; padding: 20px; font-size: 16px; color: #1d1d1f; line-height: 1.6; white-space: pre-wrap;">${resultSummary}</div>
+          <div style="background: #f5f5f7; border-radius: 16px; padding: 20px; font-size: 16px; color: #1d1d1f; line-height: 1.6; white-space: pre-wrap;">${safeSummary}</div>
           <div style="margin-top: 32px; padding-top: 24px; border-top: 1px solid #e5e7eb;">
             <p style="font-size: 14px; color: #6e6e73; margin: 0 0 16px;">عايز خطة مخصصة بالجرام بناءً على أرقامك؟</p>
             <a href="https://musclehubeg.vercel.app/pricing" style="display: inline-block; background: #0071e3; color: white; padding: 12px 24px; border-radius: 9999px; text-decoration: none; font-size: 14px;">احصل على خطة مخصصة ›</a>
@@ -237,9 +180,13 @@ async function sendEmail(
     : `
       <div style="font-family: -apple-system, Arial, sans-serif; max-width: 560px; margin: 0 auto; padding: 24px; background: #f9fafb;">
         <div style="background: white; border-radius: 24px; padding: 32px; border: 1px solid #e5e7eb;">
-          <h1 style="font-size: 24px; font-weight: 600; color: #1d1d1f; margin: 0 0 16px;">Your ${toolName} results</h1>
+          <div style="text-align: center; margin-bottom: 24px;">
+            <h1 style="font-size: 22px; font-weight: 600; color: #0071e3; margin: 0;">MuscleHub</h1>
+            <p style="font-size: 12px; color: #6e6e73; margin: 4px 0 0;">Coach Ahmed Zake</p>
+          </div>
+          <h2 style="font-size: 20px; font-weight: 600; color: #1d1d1f; margin: 0 0 16px;">Your ${toolName} results</h2>
           <p style="font-size: 16px; color: #6e6e73; margin: 0 0 24px;">Hi! As requested, here are your tool results:</p>
-          <div style="background: #f5f5f7; border-radius: 16px; padding: 20px; font-size: 16px; color: #1d1d1f; line-height: 1.6; white-space: pre-wrap;">${resultSummary}</div>
+          <div style="background: #f5f5f7; border-radius: 16px; padding: 20px; font-size: 16px; color: #1d1d1f; line-height: 1.6; white-space: pre-wrap;">${safeSummary}</div>
           <div style="margin-top: 32px; padding-top: 24px; border-top: 1px solid #e5e7eb;">
             <p style="font-size: 14px; color: #6e6e73; margin: 0 0 16px;">Want a personalized plan based on your numbers?</p>
             <a href="https://musclehubeg.vercel.app/pricing" style="display: inline-block; background: #0071e3; color: white; padding: 12px 24px; border-radius: 9999px; text-decoration: none; font-size: 14px;">Get a personalized plan ›</a>
@@ -270,7 +217,8 @@ async function sendEmail(
       return false;
     }
 
-    console.log("[api/tools/lead] Email sent to", toEmail);
+    const result = await res.json();
+    console.log("[api/tools/lead] Email sent to", toEmail, "ID:", result.id);
     return true;
   } catch (e: any) {
     console.error("[api/tools/lead] Email send exception:", e?.message);
