@@ -1245,3 +1245,53 @@ Stage Summary:
   2. Get API key
   3. Add to Vercel env vars: RESEND_API_KEY + RESEND_FROM_EMAIL
   4. (Optional) Add COACH_WHATSAPP env var (e.g. "201001234567") for the WhatsApp flow
+
+---
+Task ID: 21
+Agent: Super Z (main)
+Task: Build exercise library — browse page + individual exercise pages
+
+Work Log:
+- **Created src/lib/exercises.ts** (~700 lines):
+  - 21 exercises across 8 categories: Chest (3), Back (3), Shoulders (1), Legs (6), Biceps (1), Triceps (1), Core (4), Cardio (2)
+  - Each exercise has: slug, bilingual name (ar/en), category, equipment, level, primary + secondary muscles, 4-step bilingual instructions, 2-3 bilingual tips, image key
+  - Helper functions: getExerciseBySlug, getExercisesByCategory, filterExercises, getRelatedExercises
+  - Label dictionaries: EQUIPMENT_LABELS (8 types), LEVEL_LABELS (3 levels with colors), CATEGORY_LABELS (8 with emojis)
+- **Created /exercises browse page**:
+  - Search bar (filters by name or muscle)
+  - Category pills (9: All + 8 categories with emoji + label)
+  - Equipment dropdown (9 options: All + 8 types)
+  - Level dropdown (4 options: All + Beginner/Intermediate/Advanced)
+  - Results count display
+  - Responsive grid (1/2/3 columns) — each card shows: image, category badge (blue), level badge (color-coded), name, equipment label, "Learn more ›" CTA
+  - Empty state when no exercises match
+- **Created /exercises/[slug] detail page**:
+  - Back link to /exercises
+  - 2-column layout: large square image + info card
+  - Info card: 3 badges (category, level, equipment), bilingual title, target muscles (primary in blue, secondary in gray), CTA to /pricing
+  - Step-by-step instructions (numbered, blue circles)
+  - Important tips section (warning color, with AlertCircle icon)
+  - Related exercises (3 from same category, smaller cards)
+  - 404 fallback if slug not found
+- **Navigation updates**:
+  - SiteHeader: added "مكتبة التمارين / Exercises" menu item with Dumbbell icon
+  - LandingView: added new section "7.9. EXERCISE LIBRARY" with 4 category preview cards (Chest, Legs, Core, Cardio) linking to /exercises?cat={slug}
+- **SEO updates** (sitemap.ts):
+  - Added /exercises (priority 0.8)
+  - Added /tools + 4 individual tool pages (priority 0.7-0.8)
+  - Added all 21 exercise detail pages (priority 0.6)
+- **Image handling**: Reuses existing src/lib/exercise-images.ts (wger.de real photos + SVG fallbacks). Each exercise card has onError handler that swaps to category-specific SVG.
+- **Production verification**:
+  - /exercises → HTTP 200 ✅
+  - /exercises/bench-press → HTTP 200 ✅
+  - /exercises/barbell-squat → HTTP 200 ✅
+  - Exercise library text ("مكتبة التمارين") found in production JS bundle ✅
+  - /exercises page contains exercise content (Bench Press etc.) ✅
+
+Stage Summary:
+- Exercise library is live at https://musclehubeg.vercel.app/exercises
+- 21 exercises with full bilingual instructions, target muscles, and tips
+- Browse page with search + 3 filter dimensions (category, equipment, level)
+- Individual exercise pages with detailed instructions + related exercises
+- Integrated into main navigation + landing page
+- All exercise detail pages added to sitemap for SEO
