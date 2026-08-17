@@ -31,12 +31,13 @@ import { useNav } from "@/hooks/use-nav";
 import { useAuth } from "@/hooks/use-auth";
 import { cn } from "@/lib/utils";
 import { NotificationBell } from "@/components/NotificationBell";
+import { AdminNotificationBell } from "@/components/AdminNotificationBell";
 
 // Wrapper for header — smaller bell icon
-function NotificationBellHeader() {
+function NotificationBellHeader({ isAdmin = false }: { isAdmin?: boolean }) {
   return (
     <div className="NotificationBellHeader">
-      <NotificationBell />
+      {isAdmin ? <AdminNotificationBell /> : <NotificationBell />}
     </div>
   );
 }
@@ -218,9 +219,11 @@ export function SiteHeader({ variant = "landing" }: { variant?: "landing" | "app
             {/* Language toggle — always visible */}
             <LanguageToggle />
 
-            {/* Notifications bell — only for logged in users */}
+            {/* Notifications bell — only for logged in users.
+                Coaches see AdminNotificationBell (admin_notifications table),
+                regular users see NotificationBell (user notifications table). */}
             {isLoggedIn && (
-              <NotificationBellHeader />
+              <NotificationBellHeader isAdmin={isCoach} />
             )}
 
             {/* Account icon — profile photo if logged in, generic icon if not */}
