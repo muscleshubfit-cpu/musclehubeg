@@ -52,9 +52,26 @@ import {
  fetchProfile,
 } from "@/lib/data";
 import { TIERS, getTier, type Duration } from "@/lib/plans";
+import { MEMBERSHIPS } from "@/lib/memberships";
 import { resolveExerciseImage, getExerciseImage } from "@/lib/exercise-images";
 import { HealthMetricsDashboard } from "@/components/HealthMetricsDashboard";
 import { toast } from "sonner";
+
+// Unified tier list — combines new membership tiers (Premium, Pro, Coaching)
+// with legacy tiers (Starter, Elite) for backward compatibility. Used in the
+// subscription form so the coach can pick ANY tier.
+const ALL_TIERS: Array<{ id: string; nameAr: string; nameEn: string }> = [
+  ...MEMBERSHIPS.filter((m) => m.id !== "free").map((m) => ({
+    id: m.id,
+    nameAr: m.nameAr,
+    nameEn: m.nameEn,
+  })),
+  ...TIERS.map((t) => ({
+    id: t.id,
+    nameAr: t.id === "starter" ? "ستارتر (قديم)" : "إيليت (قديم)",
+    nameEn: t.id === "starter" ? "Starter (legacy)" : "Elite (legacy)",
+  })),
+];
 
 export function CoachClientView({ clientId }: { clientId: string }) {
  const { t, dir, lang } = useI18n();
@@ -69,7 +86,7 @@ export function CoachClientView({ clientId }: { clientId: string }) {
  const [tab, setTab] = useState<"overview" | "subscription" | "plans" | "ai-plans" | "questionnaires" | "progress">("overview");
 
  // Subscription form
- const [tier, setTier] = useState<string>("starter");
+ const [tier, setTier] = useState<string>("premium");
  const [months, setMonths] = useState<Duration>(12);
  const [startDate, setStartDate] = useState<string>("");
  const [endDate, setEndDate] = useState<string>("");
@@ -375,7 +392,34 @@ export function CoachClientView({ clientId }: { clientId: string }) {
  </div>
  {sub ? (
  <>
- <p className="mt-3 font-display text-lg font-bold">{t(getTier(sub.tier as any)?.nameKey || "")}</p>
+ <p className="mt-3 font-display text-lg font-bold">
+ {/* Try new MEMBERSHIPS table first, fall back to legacy TIERS */}
+ {(() => {
+ const m = MEMBERSHIPS.find((x) => x.id === sub.tier);
+ if (m) return lang === "ar" ? m.nameAr : m.nameEn;
+ const legacy = getTier(sub.tier as any);
+ if (legacy) return t(legacy.nameKey);
+ return sub.tier || "—";
+ })()}
+ </p>
+ {/* Show subscription status badge */}
+ {sub.status && (
+ <span
+ className={`mt-1 inline-block rounded-full px-2 py-0.5 text-[10px] font-medium ${
+ sub.status === "active"
+ ? "bg-[#34c759]/10 text-[#34c759]"
+ : sub.status === "pending"
+ ? "bg-[#ff9500]/10 text-[#ff9500]"
+ : "bg-[#6e6e73]/10 text-[#6e6e73]"
+ }`}
+ >
+ {sub.status === "active"
+ ? lang === "ar" ? "مؤكد" : "Confirmed"
+ : sub.status === "pending"
+ ? lang === "ar" ? "بانتظار التأكيد" : "Pending"
+ : sub.status}
+ </span>
+ )}
  <p className="text-xs text-muted-foreground">
  {sub.end_date ? `${t("dash.expiresOn")} ${new Date(sub.end_date).toLocaleDateString()}` : "—"}
  </p>
@@ -416,8 +460,8 @@ export function CoachClientView({ clientId }: { clientId: string }) {
  <div className="mt-4 grid gap-4 sm:grid-cols-2">
  <div>
  <Label>{t("checkout.plan")}</Label>
- <div className="mt-1.5 grid grid-cols-2 gap-2">
- {TIERS.map((tierObj) => (
+ <div className="mt-1.5 grid grid-cols-2 gap-2 sm:grid-cols-3">
+ {ALL_TIERS.map((tierObj) => (
  <button
  key={tierObj.id}
  onClick={() => setTier(tierObj.id)}
@@ -426,7 +470,7 @@ export function CoachClientView({ clientId }: { clientId: string }) {
  tier === tierObj.id ? "border-primary bg-secondary text-primary" : "border-border hover:border-primary/40",
  )}
  >
- {t(tierObj.nameKey)}
+ {lang === "ar" ? tierObj.nameAr : tierObj.nameEn}
  </button>
  ))}
  </div>
