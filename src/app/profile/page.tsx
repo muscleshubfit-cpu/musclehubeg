@@ -21,6 +21,7 @@ import {
   Settings,
   Bookmark,
   Trash2,
+  Utensils,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -292,11 +293,15 @@ export default function ProfilePage() {
         {/* Saved tool results */}
         <SavedResultsSection isAr={isAr} userId={profile?.id} />
 
+        {/* Saved meal plans */}
+        <SavedMealPlansSection isAr={isAr} userId={profile?.id} />
+
         {/* Quick links */}
         <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
           {[
             { label: isAr ? "لوحة التحكم" : "Dashboard", href: "/dashboard", icon: Dumbbell },
             { label: isAr ? "خططي" : "My Plans", href: "/plans", icon: FileText },
+            { label: isAr ? "مخطط الوجبات" : "Meal Planner", href: "/meal-planner", icon: Utensils },
             { label: isAr ? "تقدمي" : "Progress", href: "/progress", icon: Calculator },
             { label: isAr ? "كوتش EVO" : "EVO Coach", href: "/chat", icon: Bell },
             { label: isAr ? "الإحالات" : "Referral", href: "/referral", icon: Crown },
@@ -398,6 +403,7 @@ function SavedResultsSection({ isAr, userId }: { isAr: boolean; userId?: string 
     "bmi-calculator": isAr ? "حاسبة BMI" : "BMI Calculator",
     "macro-calculator": isAr ? "حاسبة الماكروز" : "Macro Calculator",
     "body-fat-calculator": isAr ? "حاسبة الدهون" : "Body Fat Calculator",
+    "water-tracker": isAr ? "متتبع الماء" : "Water Tracker",
   };
 
   return (
@@ -468,6 +474,172 @@ function SavedResultsSection({ isAr, userId }: { isAr: boolean; userId?: string 
               </div>
             </div>
           ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Saved meal plans section component
+function SavedMealPlansSection({ isAr, userId }: { isAr: boolean; userId?: string }) {
+  const [plans, setPlans] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!userId) {
+      setLoading(false);
+      return;
+    }
+    (async () => {
+      try {
+        const res = await fetch("/api/tools/saved-meal-plans");
+        if (res.ok) {
+          const data = await res.json();
+          setPlans(data.results || []);
+        }
+      } catch {
+        // silent
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [userId]);
+
+  const handleDelete = async (id: string) => {
+    try {
+      await fetch(`/api/tools/saved-meal-plans?id=${id}`, { method: "DELETE" });
+      setPlans((prev) => prev.filter((p) => p.id !== id));
+      toast.success(isAr ? "تم الحذف" : "Deleted");
+    } catch {
+      toast.error(isAr ? "فشل الحذف" : "Failed");
+    }
+  };
+
+  return (
+    <div className="mt-4 rounded-3xl bg-white p-6 md:p-8">
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-semibold tracking-tight">
+          {isAr ? "جداول الوجبات المحفوظة" : "Saved Meal Plans"}
+        </h2>
+        <span className="text-xs font-normal text-[#6e6e73]">
+          {plans.length} {isAr ? "جدول" : "plans"}
+        </span>
+      </div>
+
+      {loading ? (
+        <div className="mt-4 flex justify-center py-8">
+          <Loader2 className="h-6 w-6 animate-spin text-[#0071e3]" />
+        </div>
+      ) : plans.length === 0 ? (
+        <div className="mt-4 rounded-2xl bg-[#f5f5f7] p-8 text-center">
+          <Utensils className="mx-auto h-8 w-8 text-[#d2d2d7]" />
+          <p className="mt-3 text-sm font-normal text-[#6e6e73]">
+            {isAr
+              ? "مفيش جداول محفوظة بعد. ابدأ ببناء جدول وجباتك."
+              : "No saved meal plans yet. Start building your meal plan."}
+          </p>
+          <a
+            href="/meal-planner"
+            className="mt-3 inline-block text-sm font-medium text-[#0071e3] hover:underline"
+          >
+            {isAr ? "افتح مخطط الوجبات ›" : "Open Meal Planner ›"}
+          </a>
+        </div>
+      ) : (
+        <div className="mt-4 space-y-2">
+          {plans.map((p) => {
+            const isExpanded = expandedId === p.id;
+            const totals = {
+              calories: p.total_calories ?? 0,
+              protein: p.total_protein ?? 0,
+              carbs: p.total_carbs ?? 0,
+              fat: p.total_fat ?? 0,
+            };
+            const mealCount = p.meal_count ?? p.plan_data?.meals?.length ?? 0;
+            return (
+              <div
+                key={p.id}
+                className="rounded-xl bg-[#f5f5f7] p-3"
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <button
+                    onClick={() => setExpandedId(isExpanded ? null : p.id)}
+                    className="flex min-w-0 flex-1 items-center gap-3 text-start"
+                  >
+                    <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[#8b5cf6]/10 text-[#8b5cf6]">
+                      <Utensils className="h-4 w-4" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium">
+                        {p.title || (isAr ? "جدول وجبات" : "Meal Plan")}
+                      </p>
+                      <p className="mt-0.5 text-xs font-normal text-[#6e6e73]" dir="ltr">
+                        {totals.calories} kcal · P{totals.protein}g · C{totals.carbs}g · F{totals.fat}g · {mealCount} {isAr ? "وجبات" : "meals"} · {new Date(p.created_at).toLocaleDateString()}
+                      </p>
+                    </div>
+                  </button>
+                  <div className="flex items-center gap-1">
+                    <a
+                      href="/meal-planner"
+                      className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-[#0071e3] transition-colors hover:bg-[#0071e3]/5"
+                      title={isAr ? "افتح المخطط" : "Open planner"}
+                    >
+                      <Utensils className="h-4 w-4" />
+                    </a>
+                    <button
+                      onClick={() => handleDelete(p.id)}
+                      className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-[#ff3b30] transition-colors hover:bg-[#ff3b30]/5"
+                      title={isAr ? "حذف" : "Delete"}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+
+                {isExpanded && p.plan_data?.meals && (
+                  <div className="mt-3 space-y-2 border-t border-[#d2d2d7] pt-3">
+                    {p.plan_data.meals.map((meal: any, mi: number) => {
+                      let mCal = 0, mP = 0, mC = 0, mF = 0;
+                      for (const item of meal.items || []) {
+                        const factor = (item.grams || 0) / 100;
+                        mCal += Math.round((item.per100g?.calories || 0) * factor);
+                        mP   += Math.round((item.per100g?.protein  || 0) * factor);
+                        mC   += Math.round((item.per100g?.carbs    || 0) * factor);
+                        mF   += Math.round((item.per100g?.fat      || 0) * factor);
+                      }
+                      return (
+                        <div key={mi} className="rounded-lg bg-white p-3">
+                          <div className="flex items-center justify-between gap-2">
+                            <p className="text-sm font-medium">{meal.name}</p>
+                            <p className="text-xs font-normal text-[#6e6e73]" dir="ltr">
+                              {mCal} kcal · P{mP}g · C{mC}g · F{mF}g
+                            </p>
+                          </div>
+                          {(meal.items || []).length > 0 && (
+                            <ul className="mt-2 space-y-0.5">
+                              {meal.items.map((item: any, ii: number) => (
+                                <li
+                                  key={ii}
+                                  className="flex items-center justify-between text-xs text-[#6e6e73]"
+                                  dir="ltr"
+                                >
+                                  <span className="truncate">{item.name}</span>
+                                  <span className="shrink-0 ms-2">
+                                    {item.grams}g · {Math.round((item.per100g?.calories || 0) * (item.grams || 0) / 100)} kcal
+                                  </span>
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
     </div>

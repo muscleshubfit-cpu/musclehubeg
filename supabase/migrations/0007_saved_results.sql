@@ -11,7 +11,7 @@
 create table if not exists public.saved_results (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
-  tool_slug text not null check (tool_slug in ('calorie-calculator', 'bmi-calculator', 'macro-calculator', 'body-fat-calculator')),
+  tool_slug text not null check (tool_slug in ('calorie-calculator', 'bmi-calculator', 'macro-calculator', 'body-fat-calculator', 'water-tracker')),
   title text,
   result_data jsonb not null,
   created_at timestamptz not null default now()

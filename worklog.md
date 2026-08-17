@@ -1467,3 +1467,47 @@ Stage Summary:
 - Food search reuses the existing /api/food-search endpoint — local 8,830 foods + product database. No new search code needed.
 - No images in the planner (consistent with the rest of the food tooling — emoji-only on browse pills).
 - Per-gram calculation: `Math.round(per100g × grams / 100)`. Done client-side for live preview AND server-side for the saved denormalized totals (defense in depth).
+
+---
+Task ID: water-tracker
+Agent: main (super-z)
+Task: Add Water Tracker tool + Saved Meal Plans section in profile (item 1 + item 2 in the ordered next-steps list).
+
+Work Log:
+- (1) PROFILE SAVED MEAL PLANS:
+  - Added `Utensils` icon import to src/app/profile/page.tsx
+  - Added `<SavedMealPlansSection>` component below `<SavedResultsSection>` (renders the user's saved meal plans from /api/tools/saved-meal-plans)
+  - Section features: header with count badge, empty state with CTA to /meal-planner, expandable rows showing each meal's items + per-meal macros + grand totals, delete + open-planner buttons
+  - Added "Meal Planner" to the profile Quick Links grid
+
+- (2) WATER TRACKER TOOL:
+  - Created src/app/tools/water-tracker/page.tsx — full interactive water tracker:
+    * SVG progress ring showing today's consumed/goal ml + percentage
+    * "Goal reached!" badge when hitting the daily target
+    * +/- cup buttons (cup size configurable) + reset-today button
+    * Quick-add chips for 100/200/350/500 ml
+    * Settings panel: daily goal input, cup size input, weight→goal calculator (35ml × kg formula, capped to [2000, 4500])
+    * Last 7 days history bar chart (vertical bars in dark card, today highlighted)
+    * Save to DB button (Premium+ gated — reuses saved_results table with tool_slug="water-tracker")
+    * Download JSON button + ShareButtons + AdSenseAd + OtherTools
+    * SEO content paragraph at the bottom
+  - All state persists to localStorage (mh_water_log_v1 + mh_water_settings_v1 keys)
+  - No DB writes per click — only on explicit "Save log" button (Premium+ only)
+
+- (3) BACKEND WIRING:
+  - Updated src/app/api/tools/save-result/route.ts ALLOWED_TOOLS array to include "water-tracker"
+  - Updated supabase/migrations/0007_saved_results.sql CHECK constraint to include 'water-tracker' (for fresh installs)
+  - Created supabase/migrations/0009_water_tracker_constraint.sql — drops + recreates the constraint for EXISTING databases where 0007 was already applied
+  - Updated src/app/profile/page.tsx TOOL_NAMES to include water-tracker
+  - Updated src/components/views/AdminSavedResultsView.tsx TOOL_LABELS + summarizeResult (water-tracker case shows "consumed/goal ml · date")
+  - Updated src/components/OtherTools.tsx to include water-tracker
+  - Updated src/app/tools/page.tsx to list water-tracker (6 cards now)
+  - Updated src/components/views/LandingView.tsx tools section to include water-tracker
+  - Updated src/lib/memberships.ts Free tier feature list: "4 حاسبات" → "5 حاسبات"
+
+Stage Summary:
+- Build passes: `npx next build` succeeded with /tools/water-tracker as a static page.
+- TypeScript: zero new errors introduced.
+- Architecture decision: Water Tracker stores DAILY log state in localStorage (no per-click DB write — would burn through the user's monthly quota in minutes). The "Save log" button creates a single saved_result snapshot for Premium+ users (counts toward their savedResultsLimit like any other tool result).
+- UI consistency: water-tracker uses the same apple-inspired design system as the other tools (rounded-3xl cards, #0071e3 primary, #f5f5f7 secondary backgrounds, lucide icons).
+- The 7-day bar chart uses dark bg + colored bars (green when ≥100%, blue otherwise) — visually consistent with the existing grand-total dark card in the Meal Planner.

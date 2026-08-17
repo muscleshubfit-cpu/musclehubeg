@@ -30,6 +30,7 @@ const TOOL_LABELS: Record<string, { ar: string; en: string }> = {
   "bmi-calculator": { ar: "حاسبة BMI", en: "BMI Calculator" },
   "macro-calculator": { ar: "حاسبة الماكروز", en: "Macro Calculator" },
   "body-fat-calculator": { ar: "حاسبة الدهون", en: "Body Fat Calculator" },
+  "water-tracker": { ar: "متتبع الماء", en: "Water Tracker" },
 };
 
 /** Compact summary of the result_data — different per tool. */
@@ -44,6 +45,8 @@ function summarizeResult(tool: string, data: any): string {
       return `${data.calories || data.target || "—"} kcal · P:${data.protein || "?"}g · C:${data.carbs || "?"}g · F:${data.fat || "?"}g`;
     case "body-fat-calculator":
       return `${data.bodyFat || data.bf || "—"}% · ${data.category || "?"} · Lean: ${data.leanMass || "?"}kg`;
+    case "water-tracker":
+      return `${data.consumed_ml || 0}/${data.goal_ml || 0} ml · ${data.date || "?"}`;
     default:
       return JSON.stringify(data).slice(0, 100);
   }

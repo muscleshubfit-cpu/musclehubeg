@@ -28,6 +28,7 @@ export async function POST(request: NextRequest) {
     "bmi-calculator",
     "macro-calculator",
     "body-fat-calculator",
+    "water-tracker",
   ];
 
   if (!ALLOWED_TOOLS.includes(tool_slug)) {
