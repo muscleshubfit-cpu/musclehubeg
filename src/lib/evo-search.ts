@@ -3,7 +3,7 @@
  *
  * When a user asks EVO a question, this module searches:
  *   1. Exercises (55 exercises)
- *   2. Foods (80 foods)
+ *   2. Foods (8830 foods)
  *   3. Workout Programs (7 programs)
  *   4. Tools (4 calculators)
  *

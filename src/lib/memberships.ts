@@ -75,7 +75,7 @@ export const MEMBERSHIPS: MembershipInfo[] = [
     },
     features: [
       "تصفح 868+ تمرين",
-      "تصفح 80+ أكلة + بحث في ملايين المنتجات",
+      "تصفح 8830+ أكلة",
       "تصفح برامج التدريب",
       "4 حاسبات لياقة مجانية",
       "EVO: 10 رسائل/يوم",
@@ -264,7 +264,7 @@ export const COMPARISON_ROWS: Array<{
     coaching: "✓",
   },
   {
-    feature: "قاعدة بيانات الأكلات + Open Food Facts",
+    feature: "قاعدة بيانات الأكلات (8830+)",
     free: "✓",
     premium: "✓",
     pro: "✓",

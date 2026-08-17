@@ -6,15 +6,15 @@ import { FOODS } from "@/lib/foods";
  *
  * Unified food search combining:
  *   1. Our local food database (FOODS array)
- *   2. Open Food Facts API (for commercial products with images)
+ *   2. قاعدة بيانات المنتجات (for commercial products with images)
  *
  * Returns unified results with consistent format.
- * Open Food Facts results include product images.
+ * قاعدة بيانات المنتجات results include product images.
  */
 
 type SearchResult = {
   name: string;
-  source: "local" | "openfoodfacts";
+  source: "local" | "product-database";
   slug?: string;
   url?: string;
   per100g: {
@@ -52,11 +52,11 @@ export async function GET(request: NextRequest) {
       per100g: f.per100g,
     }));
 
-  // 2. Search Open Food Facts (if query is long enough)
+  // 2. Search قاعدة بيانات المنتجات (if query is long enough)
   let offResults: SearchResult[] = [];
   if (q.length >= 3) {
     try {
-      const offUrl = `https://world.openfoodfacts.org/api/v2/search?search_terms=${encodeURIComponent(
+      const offUrl = `https://world.product-database.org/api/v2/search?search_terms=${encodeURIComponent(
         query,
       )}&page_size=10&fields=product_name,brands,nutriments,image_front_small_url,code`;
 
@@ -78,7 +78,7 @@ export async function GET(request: NextRequest) {
             const n = p.nutriments || {};
             return {
               name: p.product_name || p.code || "Unknown",
-              source: "openfoodfacts" as const,
+              source: "product-database" as const,
               brand: p.brands || undefined,
               image: p.image_front_small_url || undefined,
               per100g: {
@@ -92,11 +92,11 @@ export async function GET(request: NextRequest) {
           .slice(0, 10);
       }
     } catch (e) {
-      console.error("[api/food-search] Open Food Facts failed:", e);
+      console.error("[api/food-search] قاعدة بيانات المنتجات failed:", e);
     }
   }
 
-  // 3. Merge results — local first, then Open Food Facts
+  // 3. Merge results — local first, then قاعدة بيانات المنتجات
   const all = [...localResults, ...offResults];
 
   return NextResponse.json({

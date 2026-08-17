@@ -407,7 +407,7 @@ export function LandingView() {
             </Reveal>
             <Reveal delay={100}>
               <p className="mx-auto mt-3 max-w-md text-base font-normal text-[#6e6e73] md:text-lg">
-                {isAr ? "55+ تمرين بشرح كامل ومستوى الصعوبة." : "55+ exercises with full instructions and difficulty levels."}
+                {isAr ? "868+ تمرين بشرح كامل ومستوى الصعوبة." : "868+ exercises with full instructions and difficulty levels."}
               </p>
             </Reveal>
           </div>
@@ -491,7 +491,7 @@ export function LandingView() {
             </Reveal>
             <Reveal delay={100}>
               <p className="mx-auto mt-3 max-w-md text-base font-normal text-[#6e6e73] md:text-lg">
-                {isAr ? "80+ أكلة بالسعرات والماكروز + حاسبة جرامات." : "80+ foods with calories and macros + grams calculator."}
+                {isAr ? "8830+ أكلة بالسعرات والماكروز + حاسبة جرامات." : "8830+ foods with calories and macros + grams calculator."}
               </p>
             </Reveal>
           </div>

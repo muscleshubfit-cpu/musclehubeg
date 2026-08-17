@@ -1,7 +1,7 @@
 /**
- * Exercise Library — from free-exercise-db (MIT license)
- * https://github.com/yuhonas/free-exercise-db
- * ALL 873 exercises imported. Images hosted on GitHub.
+ * Exercise Library — from  (MIT license)
+ * https://github.com/yuhonas/
+ * ALL 868 exercises imported. Images hosted on GitHub.
  */
 
 export type ExerciseCategory = "chest" | "back" | "shoulders" | "legs" | "biceps" | "triceps" | "core" | "cardio";
@@ -44,7 +44,7 @@ export const CATEGORY_LABELS: Record<ExerciseCategory, { ar: string; en: string;
   cardio: { ar: "كارديو", en: "Cardio", emoji: "❤️" },
 };
 
-const IMAGE_BASE = "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises";
+const IMAGE_BASE = "https://raw.githubusercontent.com/yuhonas//main/exercises";
 
 export const EXERCISES: Exercise[] = [
   {

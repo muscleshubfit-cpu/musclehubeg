@@ -144,7 +144,7 @@ export default function ProfilePage() {
   // Stats cards
   const stats = [
     { icon: Dumbbell, label: isAr ? "تمارين" : "Exercises", value: "868+", color: "#0071e3" },
-    { icon: Apple, label: isAr ? "أكلات" : "Foods", value: "80+", color: "#34c759" },
+    { icon: Apple, label: isAr ? "أكلات" : "Foods", value: "8,830+", color: "#34c759" },
     { icon: Calculator, label: isAr ? "أدوات" : "Tools", value: "4", color: "#ff9500" },
     { icon: FileText, label: isAr ? "برامج" : "Programs", value: "7", color: "#8b5cf6" },
   ];
