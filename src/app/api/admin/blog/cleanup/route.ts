@@ -107,10 +107,21 @@ type FixReport = {
 };
 
 export async function POST(request: NextRequest) {
-  // Auth gate — coach only.
-  if (isAuthConfigured) {
-    const auth = await requireCoach(request);
-    if (auth instanceof Response) return auth;
+  // Auth gate — accept EITHER:
+  //   (a) Coach cookie session (via requireCoach), OR
+  //   (b) CRON_SECRET header (Authorization: Bearer <CRON_SECRET>),
+  //       so automated maintenance scripts + GitHub Actions can call it
+  //       without a coach login session.
+  const cronAuth = request.headers.get("authorization");
+  const cronExpected = process.env.CRON_SECRET;
+  const isCronAuthed =
+    cronAuth && cronExpected && cronAuth === `Bearer ${cronExpected}`;
+
+  if (!isCronAuthed) {
+    if (isAuthConfigured) {
+      const auth = await requireCoach(request);
+      if (auth instanceof Response) return auth;
+    }
   }
 
   if (!isSupabaseAdminConfigured || !supabaseAdmin) {
