@@ -265,7 +265,7 @@ export function LandingView() {
           </p>
           <div className="mt-5 flex flex-wrap items-center justify-center gap-3 text-sm md:gap-5">
             <a
-              href="/tools"
+              href="/memberships"
               className="rounded-full bg-[#0071e3] px-5 py-2 font-normal text-white transition-opacity hover:opacity-90 md:px-6 md:py-2.5 md:text-base"
             >
               {isAr ? "ابدأ مجاناً" : "Start for free"}
@@ -590,7 +590,7 @@ export function LandingView() {
                   {isAr ? "اعرف أكثر ›" : "Learn more ›"}
                 </a>
                 <a
-                  href="/pricing"
+                  href="/memberships"
                   className="rounded-full bg-[#f5f5f7] px-6 py-2.5 text-sm font-normal text-[#1d1d1f] transition-opacity hover:opacity-90"
                 >
                   {isAr ? "الأسعار" : "Pricing"}
@@ -601,7 +601,100 @@ export function LandingView() {
         </div>
       </section>
 
-      {/* ===================== 10. FAQ ===================== */}
+      {/* ===================== 10. Premium Memberships ===================== */}
+      <section className="bg-[#1d1d1f] px-4 py-12 md:py-20 text-white">
+        <div className="mx-auto max-w-5xl">
+          <Reveal>
+            <h2 className="text-center text-3xl font-semibold tracking-tight md:text-5xl">
+              {isAr ? "عضويات MuscleHub المميزة." : "MuscleHub Premium memberships."}
+            </h2>
+          </Reveal>
+          <Reveal delay={150}>
+            <p className="mx-auto mt-4 max-w-md text-base font-normal text-gray-400 md:text-lg">
+              {isAr
+                ? "افتح القوة الكاملة للذكاء الاصطناعي والمحتوى المميز بعضوية Premium أو Pro."
+                : "Unlock the full power of AI and premium content with a Premium or Pro membership."}
+            </p>
+          </Reveal>
+
+          {/* Two-tier preview cards */}
+          <div className="mt-10 grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Reveal delay={200}>
+              <a
+                href="/memberships"
+                className="group block rounded-3xl bg-white/5 p-6 backdrop-blur ring-1 ring-white/10 transition-all hover:ring-[#0071e3]/40"
+              >
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-semibold tracking-tight">
+                    {isAr ? "بريميوم" : "Premium"}
+                  </h3>
+                  <span className="rounded-full bg-[#0071e3]/20 px-3 py-1 text-xs font-medium text-[#0071e3]">
+                    $9.99/{isAr ? "شهر" : "mo"}
+                  </span>
+                </div>
+                <p className="mt-2 text-sm font-normal text-gray-400">
+                  {isAr
+                    ? "EVO غير محدود، 3 خطط تغذية/تمرين شهرياً، 50 نتيجة محفوظة، تحميل PDF."
+                    : "Unlimited EVO, 3 nutrition/workout plans/mo, 50 saved results, PDF export."}
+                </p>
+                <div className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-[#0071e3] group-hover:opacity-80">
+                  {isAr ? "اشترك الآن" : "Subscribe now"}
+                  <span className="rtl:rotate-180">›</span>
+                </div>
+              </a>
+            </Reveal>
+            <Reveal delay={300}>
+              <a
+                href="/memberships"
+                className="group block rounded-3xl bg-[#0071e3]/10 p-6 ring-2 ring-[#0071e3]/40 transition-all hover:ring-[#0071e3]/80"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-lg font-semibold tracking-tight">
+                      {isAr ? "برو" : "Pro"}
+                    </h3>
+                    <span className="rounded-full bg-[#0071e3] px-2 py-0.5 text-[10px] font-semibold text-white">
+                      {isAr ? "الأكثر شعبية" : "Popular"}
+                    </span>
+                  </div>
+                  <span className="rounded-full bg-[#0071e3] px-3 py-1 text-xs font-medium text-white">
+                    $19.99/{isAr ? "شهر" : "mo"}
+                  </span>
+                </div>
+                <p className="mt-2 text-sm font-normal text-gray-300">
+                  {isAr
+                    ? "كل مميزات Premium + 6 خطط شهرياً، تحليل الأنماط، 200 نتيجة محفوظة، محتوى مميز."
+                    : "All Premium + 6 plans/mo, pattern analysis, 200 saved results, premium content."}
+                </p>
+                <div className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-[#0071e3] group-hover:opacity-80">
+                  {isAr ? "اشترك الآن" : "Subscribe now"}
+                  <span className="rtl:rotate-180">›</span>
+                </div>
+              </a>
+            </Reveal>
+          </div>
+
+          {/* Free tier mention + compare link */}
+          <Reveal delay={400}>
+            <div className="mt-8 flex flex-col items-center gap-3 text-center">
+              <p className="text-sm font-normal text-gray-400">
+                {isAr
+                  ? "أو ابدأ بالخطة المجانية — 868+ تمرين، 8,830+ أكلة، 5 حاسبات، EVO 10 رسائل/يوم."
+                  : "Or start with the Free plan — 868+ exercises, 8,830+ foods, 5 calculators, EVO 10 messages/day."}
+              </p>
+              <a
+                href="/memberships"
+                className="inline-flex items-center gap-2 rounded-full bg-white px-6 py-2.5 text-sm font-medium text-[#1d1d1f] transition-opacity hover:opacity-90"
+              >
+                {isAr ? "قارن كل العضويات" : "Compare all plans"}
+                <span className="rtl:rotate-180">›</span>
+              </a>
+            </div>
+          </Reveal>
+        </div>
+      </section>
+
+      {/* ===================== 11. FAQ ===================== */}
       <section className="bg-[#f5f5f7] px-4 py-12 md:py-20">
         <div className="mx-auto max-w-3xl">
           <Reveal>
@@ -636,7 +729,7 @@ export function LandingView() {
         <Reveal delay={200}>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-4 md:gap-6">
             <a
-              href="/tools"
+              href="/memberships"
               className="rounded-full bg-[#0071e3] px-7 py-3 text-base font-normal text-white transition-opacity hover:opacity-90"
             >
               {isAr ? "ابدأ مجاناً" : "Start for free"}

@@ -96,8 +96,8 @@ export function SaveResultButton({ toolSlug, title, resultData }: Props) {
     toast.success(isAr ? "تم التحميل" : "Downloaded");
   };
 
-  const handleDownloadPng = async () => {
-    // PNG export is a premium feature
+  const handleDownloadPdf = async () => {
+    // PDF export is a premium feature
     const tier = (profile as any)?.membership_tier || "free";
     const allowed = ["premium", "pro", "coaching"].includes(tier);
     if (!profile) {
@@ -107,8 +107,8 @@ export function SaveResultButton({ toolSlug, title, resultData }: Props) {
     if (!allowed) {
       toast.error(
         isAr
-          ? "تحميل الصورة متاح للأعضاء Premium فأعلى"
-          : "PNG export is Premium+ only",
+          ? "تحميل PDF متاح للأعضاء Premium فأعلى"
+          : "PDF export is Premium+ only",
       );
       window.location.href = "/memberships";
       return;
@@ -116,18 +116,18 @@ export function SaveResultButton({ toolSlug, title, resultData }: Props) {
 
     setExportingPng(true);
     try {
-      const { exportResultPng } = await import("@/lib/result-png-export");
-      await exportResultPng({
+      const { exportResultPdf } = await import("@/lib/result-png-export");
+      await exportResultPdf({
         toolSlug,
         title,
         resultData,
         isAr,
       });
-      toast.success(isAr ? "تم تحميل الصورة" : "Image downloaded");
+      toast.success(isAr ? "تم تحميل PDF" : "PDF downloaded");
     } catch (e: any) {
-      console.error("[PNG export]", e);
+      console.error("[PDF export]", e);
       toast.error(
-        isAr ? "فشل إنشاء الصورة" : "Failed to generate image",
+        isAr ? "فشل إنشاء PDF" : "Failed to generate PDF",
       );
     } finally {
       setExportingPng(false);
@@ -154,9 +154,9 @@ export function SaveResultButton({ toolSlug, title, resultData }: Props) {
           : isAr ? "حفظ النتيجة" : "Save result"}
       </button>
 
-      {/* PNG export button (premium+) */}
+      {/* PDF export button (premium+) */}
       <button
-        onClick={handleDownloadPng}
+        onClick={handleDownloadPdf}
         disabled={exportingPng}
         className="inline-flex items-center gap-2 rounded-full bg-[#1d1d1f] px-5 py-2.5 text-sm font-normal text-white transition-opacity hover:opacity-90 disabled:opacity-50"
       >
@@ -165,7 +165,7 @@ export function SaveResultButton({ toolSlug, title, resultData }: Props) {
         ) : (
           <ImageDown className="h-4 w-4" />
         )}
-        {isAr ? "تحميل صورة" : "PNG"}
+        {isAr ? "تحميل PDF" : "PDF"}
       </button>
 
       {/* JSON download button */}

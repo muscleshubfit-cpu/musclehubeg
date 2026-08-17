@@ -241,7 +241,7 @@ export function getPriceString(m: MembershipInfo): { monthly: string; yearly?: s
   if (m.priceMonthly === 0) {
     return { monthly: "Free" };
   }
-  const monthly = `$${m.priceMonthly.toFixed(2)}/mo`;
+  const monthly = `$${(m.priceMonthly ?? 0).toFixed(2)}/mo`;
   const yearly = m.priceYearly ? `$${m.priceYearly.toFixed(2)}/yr` : undefined;
   return { monthly, yearly };
 }

@@ -6,6 +6,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 export type View =
  | "landing"
  | "pricing"
+ | "memberships"
  | "auth"
  | "checkout"
  | "dashboard"
@@ -83,7 +84,7 @@ function viewForPath(pathname: string): View {
  if (pathname.startsWith("/admin/referrals")) return "admin-referrals";
  const clean = pathname.replace(/^\//, "").split("/")[0];
  const known: View[] = [
- "pricing", "auth", "checkout", "dashboard", "questionnaires",
+ "pricing", "memberships", "auth", "checkout", "dashboard", "questionnaires",
  "progress", "plans", "chat", "support", "referral", "blog",
  "about", "contact", "privacy", "terms", "faq",
  ];
