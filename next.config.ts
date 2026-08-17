@@ -1,16 +1,15 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Output standalone build — produces .next/standalone/server.js so
-  // `bun .next/standalone/server.js` works in production without
-  // depending on the full node_modules tree.
-  output: "standalone",
+  // NOTE: Do NOT set output: "standalone" — Vercel handles the build
+  // output natively and expects the standard .next/ structure. Setting
+  // standalone mode breaks Vercel's onBuildComplete step which looks
+  // for .next/next-server.js.nft.json at its standard location.
   typescript: {
     ignoreBuildErrors: true,
   },
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
+  // (Next.js 16 dropped support for `eslint` config in next.config.ts —
+  // we now run eslint via `bun run lint` instead.)
   reactStrictMode: false,
   outputFileTracingIncludes: {
     "/api/ai/research-topic": ["./.z-ai-config"],
