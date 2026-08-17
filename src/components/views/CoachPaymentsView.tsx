@@ -2,14 +2,20 @@
 
 import { useEffect, useState } from "react";
 import { useI18n } from "@/lib/i18n";
+import { useNav } from "@/hooks/use-nav";
 import { cn } from "@/lib/utils";
 import { listSubscriptionRequests, reviewSubscriptionRequest, getReceiptSignedUrl } from "@/lib/data";
+import { MEMBERSHIPS } from "@/lib/memberships";
 import { getTier, type TierId } from "@/lib/plans";
 import { toast } from "sonner";
 
+type FilterTab = "pending" | "approved" | "rejected" | "all";
+
 export function CoachPaymentsView() {
-  const { t } = useI18n();
-  const [filter, setFilter] = useState<"pending" | "approved" | "rejected" | "all">("pending");
+  const { t, lang } = useI18n();
+  const isAr = lang === "ar";
+  const { navigate } = useNav();
+  const [filter, setFilter] = useState<FilterTab>("pending");
   const [rows, setRows] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [reviewing, setReviewing] = useState<string | null>(null);
@@ -47,7 +53,29 @@ export function CoachPaymentsView() {
     }
   };
 
-  const tabs: typeof filter[] = ["pending", "approved", "rejected", "all"];
+  // Resolve membership tier name from new MEMBERSHIPS table OR legacy plans
+  const tierName = (planTier: string) => {
+    const m = MEMBERSHIPS.find((x) => x.id === planTier);
+    if (m) return isAr ? m.nameAr : m.nameEn;
+    const legacy = getTier(planTier as TierId);
+    if (legacy) return t(legacy.nameKey);
+    return planTier || "—";
+  };
+
+  // Resolve tier color (for badge styling)
+  const tierColor = (planTier: string) => {
+    if (planTier === "premium") return { bg: "bg-[#0071e3]/10", text: "text-[#0071e3]" };
+    if (planTier === "pro") return { bg: "bg-[#1d1d1f]/10", text: "text-[#1d1d1f]" };
+    if (planTier === "coaching") return { bg: "bg-[#8b5cf6]/10", text: "text-[#8b5cf6]" };
+    if (planTier === "starter") return { bg: "bg-[#34c759]/10", text: "text-[#34c759]" };
+    if (planTier === "elite") return { bg: "bg-[#ff9500]/10", text: "text-[#ff9500]" };
+    return { bg: "bg-[#6e6e73]/10", text: "text-[#6e6e73]" };
+  };
+
+  const tabs: FilterTab[] = ["pending", "approved", "rejected", "all"];
+
+  // Count pending for emphasis
+  const pendingCount = rows.filter((r) => r.status === "pending").length;
 
   return (
     <div className="space-y-8">
@@ -68,6 +96,11 @@ export function CoachPaymentsView() {
             )}
           >
             {t(`admin.${tab}`)}
+            {tab === "pending" && filter !== "pending" && pendingCount > 0 && (
+              <span className="ms-1.5 rounded-full bg-[#ff9500] px-1.5 py-0.5 text-[10px] font-bold text-white">
+                {pendingCount}
+              </span>
+            )}
           </button>
         ))}
       </div>
@@ -80,58 +113,72 @@ export function CoachPaymentsView() {
         </div>
       ) : (
         <div className="space-y-3">
-          {rows.map((r) => (
-            <div key={r.id} className="rounded-2xl bg-[#f5f5f7] p-6">
-              <div className="flex flex-wrap items-start justify-between gap-4">
-                <div className="min-w-0">
-                  <div className="flex items-center gap-3">
-                    <h3 className="truncate text-base font-medium">{r.full_name}</h3>
-                    <StatusPill status={r.status} t={t} />
+          {rows.map((r) => {
+            const tierCls = tierColor(r.plan_tier);
+            return (
+              <div key={r.id} className="rounded-2xl bg-[#f5f5f7] p-6">
+                <div className="flex flex-wrap items-start justify-between gap-4">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-3">
+                      <h3 className="truncate text-base font-medium">{r.full_name}</h3>
+                      <StatusPill status={r.status} t={t} />
+                    </div>
+                    <p dir="ltr" className="mt-1 text-sm font-normal text-[#6e6e73]">{r.whatsapp}</p>
+                    <p className="mt-1 text-xs font-normal text-[#6e6e73]">{new Date(r.created_at).toLocaleString()}</p>
                   </div>
-                  <p dir="ltr" className="mt-1 text-sm font-normal text-[#6e6e73]">{r.whatsapp}</p>
-                  <p className="mt-1 text-xs font-normal text-[#6e6e73]">{new Date(r.created_at).toLocaleString()}</p>
+                  <div className="text-end">
+                    <div className="text-xl font-semibold">${r.price_egp}</div>
+                    <p className="mt-0.5 text-xs font-normal text-[#6e6e73]">
+                      {r.duration_months} {t("admin.duration")}
+                    </p>
+                  </div>
                 </div>
-                <div className="text-end">
-                  <div className="text-xl font-semibold">${r.price_egp}</div>
-                  <p className="text-xs font-normal text-[#6e6e73]">
-                    {t(getTier(r.plan_tier as TierId)?.nameKey ?? r.plan_tier)} · {r.duration_months} {t("admin.duration")}
-                  </p>
-                </div>
-              </div>
 
-              <div className="mt-4 flex flex-wrap items-center gap-3">
-                <span className="rounded-full bg-white px-3 py-1 text-xs font-normal">
-                  {r.payment_method === "instapay" ? t("checkout.instapay") : t("checkout.vodafone")}
-                </span>
-                {r.receipt_path && (
+                {/* Membership tier badge + payment method */}
+                <div className="mt-4 flex flex-wrap items-center gap-3">
+                  <span className={cn("rounded-full px-3 py-1 text-xs font-medium", tierCls.bg, tierCls.text)}>
+                    {tierName(r.plan_tier)}
+                  </span>
+                  <span className="rounded-full bg-white px-3 py-1 text-xs font-normal">
+                    {r.payment_method === "instapay" ? t("checkout.instapay") : t("checkout.vodafone")}
+                  </span>
+                  {r.receipt_path && (
+                    <button
+                      onClick={() => openReceipt(r.receipt_path)}
+                      className="text-sm font-normal text-[#0071e3] transition-opacity hover:opacity-70"
+                    >
+                      {t("admin.viewReceipt")} ›
+                    </button>
+                  )}
+                  {/* Direct link to manage this client */}
                   <button
-                    onClick={() => openReceipt(r.receipt_path)}
-                    className="text-sm font-normal text-[#0071e3] transition-opacity hover:opacity-70"
+                    onClick={() => navigate("coach-client", { clientId: r.user_id })}
+                    className="text-sm font-normal text-[#6e6e73] transition-opacity hover:opacity-70"
                   >
-                    {t("admin.viewReceipt")} ›
+                    {isAr ? "إدارة العميل ›" : "Manage client ›"}
                   </button>
-                )}
-                {r.status === "pending" && (
-                  <div className="ms-auto flex gap-2">
-                    <button
-                      disabled={reviewing === r.id}
-                      onClick={() => review(r.id, "reject")}
-                      className="rounded-full border border-[#d2d2d7] bg-white px-4 py-2 text-sm font-normal text-[#ff3b30] transition-opacity hover:opacity-90"
-                    >
-                      {t("admin.reject")}
-                    </button>
-                    <button
-                      disabled={reviewing === r.id}
-                      onClick={() => review(r.id, "approve")}
-                      className="rounded-full bg-[#0071e3] px-4 py-2 text-sm font-normal text-white transition-opacity hover:opacity-90"
-                    >
-                      {reviewing === r.id ? "..." : t("admin.approve")}
-                    </button>
-                  </div>
-                )}
+                  {r.status === "pending" && (
+                    <div className="ms-auto flex gap-2">
+                      <button
+                        disabled={reviewing === r.id}
+                        onClick={() => review(r.id, "reject")}
+                        className="rounded-full border border-[#d2d2d7] bg-white px-4 py-2 text-sm font-normal text-[#ff3b30] transition-opacity hover:opacity-90"
+                      >
+                        {t("admin.reject")}
+                      </button>
+                      <button
+                        disabled={reviewing === r.id}
+                        onClick={() => review(r.id, "approve")}
+                        className="rounded-full bg-[#0071e3] px-4 py-2 text-sm font-normal text-white transition-opacity hover:opacity-90"
+                      >
+                        {reviewing === r.id ? "..." : t("admin.approve")}
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
@@ -150,4 +197,3 @@ function StatusPill({ status, t }: { status: string; t: (k: string) => string })
     </span>
   );
 }
-

@@ -20,7 +20,10 @@ type FilterTab =
   | "no_plan"
   | "no_questionnaire"
   | "pending_payment"
-  | "expired";
+  | "expired"
+  | "premium"
+  | "pro"
+  | "coaching";
 
 type ClientWithMeta = {
   id: string;
@@ -122,6 +125,9 @@ export function CoachView() {
       no_questionnaire: clients.filter((c) => !c.hasNutriQ && !c.hasFitQ).length,
       pending_payment: clients.filter((c) => c.hasPendingPayment).length,
       expired: clients.filter((c) => c.isExpired).length,
+      premium: clients.filter((c) => c.sub?.tier === "premium").length,
+      pro: clients.filter((c) => c.sub?.tier === "pro").length,
+      coaching: clients.filter((c) => c.sub?.tier === "coaching").length,
     };
   }, [clients]);
 
@@ -151,6 +157,12 @@ export function CoachView() {
           return c.hasPendingPayment;
         case "expired":
           return c.isExpired;
+        case "premium":
+          return c.sub?.tier === "premium";
+        case "pro":
+          return c.sub?.tier === "pro";
+        case "coaching":
+          return c.sub?.tier === "coaching";
         default:
           return true;
       }
@@ -185,6 +197,10 @@ export function CoachView() {
     { id: "no_questionnaire", labelAr: "بدون استبيان", labelEn: "No questionnaire", count: counts.no_questionnaire, color: "#ff3b30" },
     { id: "pending_payment", labelAr: "بانتظار الدفع", labelEn: "Pending payment", count: counts.pending_payment, color: "#0071e3" },
     { id: "expired", labelAr: "منتهي", labelEn: "Expired", count: counts.expired, color: "#8b5cf6" },
+    // Membership tier filters — group by plan
+    { id: "premium", labelAr: "بريميوم", labelEn: "Premium", count: counts.premium, color: "#0071e3" },
+    { id: "pro", labelAr: "برو", labelEn: "Pro", count: counts.pro, color: "#1d1d1f" },
+    { id: "coaching", labelAr: "كوتشينج", labelEn: "Coaching", count: counts.coaching, color: "#8b5cf6" },
   ];
 
   return (
@@ -368,9 +384,39 @@ export function CoachView() {
                       </td>
                       <td className="p-3">
                         {c.sub?.tier ? (
-                          <span className="rounded-full bg-[#f5f5f7] px-2.5 py-0.5 text-xs font-normal">
-                            {tierName(c.sub.tier)}
-                          </span>
+                          <div className="flex flex-col gap-1">
+                            <span
+                              className={`inline-block w-fit rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                                c.sub.tier === "premium"
+                                  ? "bg-[#0071e3]/10 text-[#0071e3]"
+                                  : c.sub.tier === "pro"
+                                    ? "bg-[#1d1d1f]/10 text-[#1d1d1f]"
+                                    : c.sub.tier === "coaching"
+                                      ? "bg-[#8b5cf6]/10 text-[#8b5cf6]"
+                                      : "bg-[#f5f5f7] text-[#6e6e73]"
+                              }`}
+                            >
+                              {tierName(c.sub.tier)}
+                            </span>
+                            {/* Confirmation status badge */}
+                            {c.sub?.status && (
+                              <span
+                                className={`inline-block w-fit rounded-full px-2 py-0.5 text-[10px] font-normal ${
+                                  c.sub.status === "active"
+                                    ? "bg-[#34c759]/10 text-[#34c759]"
+                                    : c.sub.status === "pending"
+                                      ? "bg-[#ff9500]/10 text-[#ff9500]"
+                                      : "bg-[#6e6e73]/10 text-[#6e6e73]"
+                                }`}
+                              >
+                                {c.sub.status === "active"
+                                  ? isAr ? "مؤكد" : "Confirmed"
+                                  : c.sub.status === "pending"
+                                    ? isAr ? "بانتظار التأكيد" : "Pending"
+                                    : c.sub.status}
+                              </span>
+                            )}
+                          </div>
                         ) : (
                           <span className="text-xs font-normal text-[#6e6e73]">—</span>
                         )}
