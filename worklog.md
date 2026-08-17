@@ -1621,3 +1621,47 @@ Stage Summary:
 - New "Cleanup articles" button in Blog Admin UI — user just clicks it, confirms, and the fixes are applied server-side. No env vars or scripts to run manually.
 - Blog article generation fixed to honor the AI Settings override, with callFreeOpenRouter as a graceful fallback when no override is set or when the override fails.
 - Build passes: `npx next build` succeeded, new route /api/admin/blog/cleanup is registered.
+
+---
+Task ID: remove-ai-settings
+Agent: main (super-z)
+Task: Remove the entire AI Settings override system (page, API routes, view component, cookie logic) and rely solely on the unified OpenRouter free-model iterator (callFreeOpenRouter). Also verify the Cleanup button is in the Blog Admin UI.
+
+Work Log:
+- DELETED:
+  • src/app/admin/ai-settings/page.tsx (admin page)
+  • src/app/api/ai/settings/route.ts (GET/POST/DELETE for AI provider config)
+  • src/app/api/ai/test/route.ts (Test Connection endpoint)
+  • src/components/views/AISettingsView.tsx (the full admin UI for AI Settings)
+- REFACTORED src/lib/blog-generate.ts:
+  • Removed callAIWithFallback + AIConfig imports
+  • Removed the override parameter from generateArticleBundle()
+  • Simplified to just call callFreeOpenRouter() — iterates FREE_OPENROUTER_MODELS in order (nvidia/nemotron-3-ultra-550b → nemotron-3.5-lightning → nemotron-3-super-120b → google/gemma-4-31b → gemma-4-26b → gpt-oss-20b) and returns the first successful response
+  • Same model-selection principle as EVO chat, swaps, plan-generator — single unified system site-wide
+- REFACTORED src/app/api/ai/generate-article/route.ts:
+  • Removed getOverrideFromRequest import + usage
+  • Removed `override` parameter passed to generateArticleBundle()
+- REFACTORED src/components/views/BlogAdminView.tsx:
+  • Removed the "AI Settings" button (was linking to /admin/ai-settings)
+  • The "Cleanup articles" button (orange outline) is still there, positioned before "New Article" — the user reported it missing but the build does include it. Will be visible after deploy.
+- REFACTORED src/components/views/BlogEditorView.tsx:
+  • Removed aiStatus state + the useEffect that fetched /api/ai/settings
+  • Removed the "AI provider status" button (was showing "Setup" / provider name) next to "Generate with AI"
+  • Removed the "if (!aiStatus.isConfigured) { router.push('/admin/ai-settings'); return; }" check — the Generate button now opens the modal directly (if OPENROUTER_API_KEY is set in env, generation will work; if not, the user sees the error message from the API)
+- CLEANED UP src/lib/ai-provider.ts:
+  • Removed the entire AI_SETTINGS_COOKIES constant
+  • Removed the entire getOverrideFromRequest function
+  • Updated the "not configured" error message to point to OPENROUTER_API_KEY env var (no longer mentions the AI Settings page)
+- VERIFIED via build:
+  • /admin/ai-settings — NO LONGER in build output ✅
+  • /api/ai/settings — NO LONGER in build output ✅
+  • /api/ai/test — NO LONGER in build output ✅
+  • /api/admin/blog/cleanup — still in build output ✅
+  • /api/ai/generate-article — still in build output (simplified) ✅
+
+Stage Summary:
+- The AI Settings system is completely gone — no more per-admin override, no more cookie storage, no more "Setup" button in the blog editor.
+- Single source of truth for AI calls: callFreeOpenRouter (in src/lib/ai-provider.ts), which iterates FREE_OPENROUTER_MODELS = [nvidia/nemotron-3-ultra-550b, nvidia/nemotron-3.5-lightning, nvidia/nemotron-3-super-120b, google/gemma-4-31b, google/gemma-4-26b, openai/gpt-oss-20b] in order.
+- The only env var needed: OPENROUTER_API_KEY (already set in Vercel per the user).
+- The "Cleanup articles" button IS in the code — it shows up between "AI Assistant is ready" hint banner and "New Article" button. Once Vercel redeploys with these changes, the user will see it.
+- Build passes, zero new TypeScript errors.

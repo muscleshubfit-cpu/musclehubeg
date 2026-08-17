@@ -47,16 +47,6 @@ export function BlogEditorView({ mode, postId }: { mode: "new" | "edit"; postId?
  const [aiLoading, setAiLoading] = useState<string | null>(null);
  const [aiResults, setAiResults] = useState<Record<string, string>>({});
  const [showAIModal, setShowAIModal] = useState(false);
- const [aiStatus, setAiStatus] = useState<{ isConfigured: boolean; provider: string } | null>(null);
-
- // Fetch AI provider status once on mount — used to show a hint linking to
- // the AI Settings page when no key is configured.
- useEffect(() => {
- fetch("/api/ai/settings")
- .then((r) => r.json())
- .then((d) => setAiStatus(d.status || null))
- .catch(() => {});
- }, []);
 
  useEffect(() => {
  if (mode === "edit" && postId) {
@@ -261,22 +251,9 @@ export function BlogEditorView({ mode, postId }: { mode: "new" | "edit"; postId?
  <div className="flex flex-wrap items-center gap-2">
  <button
  className="rounded-full bg-[#0071e3] px-4 py-2 text-sm font-normal text-white transition-opacity hover:opacity-90"
- onClick={() => {
- if (aiStatus && !aiStatus.isConfigured) {
- toast.info(isAr ? "Configure your AI provider first — opening AI Settings" : "Configure your AI provider first — opening AI Settings");
- router.push("/admin/ai-settings");
- return;
- }
- setShowAIModal(true);
- }}
+ onClick={() => setShowAIModal(true)}
  >
  {isAr ? "توليد بالذكاء الاصطناعي" : "Generate with AI"}
- </button>
- <button
- onClick={() => router.push("/admin/ai-settings")}
- className="rounded-full border border-[#d2d2d7] bg-white px-4 py-2 text-sm font-normal transition-opacity hover:opacity-90"
- >
- {aiStatus?.isConfigured ? aiStatus.provider : (isAr ? "غير مهيأ" : "Setup")}
  </button>
  <button
  onClick={() => setShowPreview(!showPreview)}

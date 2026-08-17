@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { generateArticleBundle } from "@/lib/blog-generate";
 import { fetchFeaturedImage } from "@/lib/blog-images";
-import { getOverrideFromRequest } from "@/lib/ai-provider";
 import { requireCoach, isAuthConfigured } from "@/lib/auth-server";
 
 /**
@@ -10,6 +9,10 @@ import { requireCoach, isAuthConfigured } from "@/lib/auth-server";
  * "Generate with AI" button). Automated generation lives in
  * /api/cron/generate-blog-post and shares the same core logic
  * via src/lib/blog-generate.ts.
+ *
+ * Uses the unified OpenRouter free-model iterator (callFreeOpenRouter)
+ * — same as EVO chat, swaps, and plan-generator. No per-admin override;
+ * OPENROUTER_API_KEY env var is the only key needed.
  *
  * NOTE: long-form article generation can take 60-120 seconds on free models.
  * We set `maxDuration = 300` (5 min) so Vercel doesn't kill the request.
@@ -40,11 +43,12 @@ export async function POST(request: NextRequest) {
  );
  }
 
- const override = getOverrideFromRequest(request);
- const bundle = await generateArticleBundle(
- { topic: topic?.trim(), focusKeyword: focusKeyword?.trim(), category: category || "nutrition", research },
- override as any,
- );
+ const bundle = await generateArticleBundle({
+   topic: topic?.trim(),
+   focusKeyword: focusKeyword?.trim(),
+   category: category || "nutrition",
+   research,
+ });
  const image = await fetchFeaturedImage(bundle.seo.focusKeyword || focusKeyword || topic || "");
 
  return NextResponse.json({ ...bundle, image, language: language || "en" });

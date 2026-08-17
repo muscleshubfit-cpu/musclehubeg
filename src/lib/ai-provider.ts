@@ -215,7 +215,7 @@ export async function callAI(
  const cfg = mergeOverride(configOverride);
  if (!cfg || !cfg.apiKey) {
  throw new Error(
- "AI provider not configured. Open AI Settings (admin/ai-settings) and add an API key, or set OPENROUTER_API_KEY in your environment.",
+ "AI provider not configured. Set OPENROUTER_API_KEY in your environment variables.",
  );
  }
 
@@ -514,46 +514,4 @@ export async function callFreeOpenRouter(
  }
  }
  throw new Error(`All free OpenRouter models failed:\n${errors.join("\n")}`);
-}
-
-/* -------------------------------------------------------------------------- */
-/* AI Settings cookie override — read from request cookies                    */
-/* -------------------------------------------------------------------------- */
-
-/**
- * Cookie names used by the AI Settings page to store the admin-selected
- * AI provider override (provider + key + model + baseUrl). The cookies are
- * httpOnly, so they're only readable on the server.
- *
- * Kept here (not in the settings route) so other server routes can import
- * getOverrideFromRequest without a circular dependency on a route handler.
- */
-export const AI_SETTINGS_COOKIES = {
- provider: "ai_provider",
- apiKey: "ai_api_key",
- model: "ai_model",
- baseUrl: "ai_base_url",
-} as const;
-
-/**
- * Read the AI provider override from the request cookies (set by the
- * AI Settings page). Returns null if no override is configured — callers
- * then fall back to process.env-based defaults via mergeOverride(null).
- */
-export function getOverrideFromRequest(request: {
- cookies: { get(name: string): { value: string | undefined } | undefined };
-}): Partial<AIConfig> | null {
- const provider = request.cookies.get(AI_SETTINGS_COOKIES.provider)?.value as
- | AIProvider
- | undefined;
- const apiKey = request.cookies.get(AI_SETTINGS_COOKIES.apiKey)?.value;
- const model = request.cookies.get(AI_SETTINGS_COOKIES.model)?.value;
- const baseUrl = request.cookies.get(AI_SETTINGS_COOKIES.baseUrl)?.value;
- if (!provider && !apiKey) return null;
- return {
- provider: provider || undefined,
- apiKey: apiKey || undefined,
- model: model || undefined,
- baseUrl: baseUrl || undefined,
- };
 }

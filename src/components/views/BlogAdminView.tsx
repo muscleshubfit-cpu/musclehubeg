@@ -122,12 +122,6 @@ export function BlogAdminView() {
             {isAr ? "تنظيف المقالات" : "Cleanup articles"}
           </button>
           <button
-            onClick={() => router.push("/admin/ai-settings")}
-            className="rounded-full border border-[#d2d2d7] bg-white px-5 py-2.5 text-sm font-normal transition-opacity hover:opacity-90"
-          >
-            {isAr ? "إعدادات AI" : "AI Settings"}
-          </button>
-          <button
             onClick={() => router.push("/admin/blog/new")}
             className="rounded-full bg-[#0071e3] px-5 py-2.5 text-sm font-normal text-white transition-opacity hover:opacity-90"
           >
