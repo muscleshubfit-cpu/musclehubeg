@@ -1,4 +1,4 @@
-import { callAIWithFallback, parseJSON } from "@/lib/ai-provider";
+import { callFreeOpenRouter, parseJSON, FREE_OPENROUTER_MODELS } from "@/lib/ai-provider";
 import type { AIConfig } from "@/lib/ai-provider";
 
 /**
@@ -10,7 +10,7 @@ import type { AIConfig } from "@/lib/ai-provider";
  * logic instead of a second, drifting copy.
  */
 
-export const ARTICLE_SYSTEM_PROMPT = `You are the MuscleHub AI Content Assistant — an expert SEO content strategist and copywriter for a premium online nutrition & fitness coaching platform (Coach Ahmed Zake, musclehubeg.vercel.app).
+export const ARTICLE_SYSTEM_PROMPT = `You are the MuscleHub AI Content Assistant — an expert SEO content strategist and copywriter for a premium online nutrition & fitness coaching platform (MuscleHub, musclehubeg.vercel.app).
 
 Your job: produce publication-ready blog content optimized for:
  - Google Search (E-E-A-T, helpful content, semantic SEO)
@@ -24,8 +24,9 @@ Style:
  - Structure: H1 + H2/H3 hierarchy, bullet lists, comparison tables where useful.
  - Always include a clear answer to the title question in the first 100 words (AEO).
  - Cite reputable sources (NIH, WHO, ISSN, ACE, Mayo Clinic, Examine.com) by name.
- - The COACHING CTA must invite readers to get a personalized plan from Coach Ahmed Zake.
- - The NEWSLETTER CTA must invite readers to subscribe for weekly evidence-based tips.
+ - The COACHING CTA must invite readers to subscribe to a MuscleHub membership plan (Free / Premium / Pro) or book a coaching session via /memberships.
+ - Do NOT mention any individual coach name. The platform brand is "MuscleHub".
+ - Do NOT include a newsletter subscription CTA. The site no longer has one.
 
 Output: STRICT JSON only. No prose outside the JSON, no markdown fences.`;
 
@@ -213,7 +214,13 @@ export async function generateArticleBundle(
 ): Promise<ArticleBundle> {
  const prompt = articleUserPrompt(input, input.research);
 
- const { text: raw, provider: usedProvider } = await callAIWithFallback(
+ // Use callFreeOpenRouter — iterates FREE_OPENROUTER_MODELS in order
+ // (nvidia/nemotron-3-ultra-550b → nvidia/nemotron-3.5-lightning →
+ //  nvidia/nemotron-3-super-120b → google/gemma-4-31b → google/gemma-4-26b
+ //  → openai/gpt-oss-20b) and returns the first successful response.
+ // This is the same unified model-selection principle used across the
+ // entire site (EVO chat, swaps, plan generator). Falls back gracefully.
+ const { text: raw, model: usedModel } = await callFreeOpenRouter(
  prompt,
  {
  systemPrompt: ARTICLE_SYSTEM_PROMPT,
@@ -222,7 +229,6 @@ export async function generateArticleBundle(
  jsonMode: true,
  timeoutMs: 50_000,
  },
- override,
  );
 
  const parsed = parseJSON<any>(raw);
@@ -258,6 +264,6 @@ export async function generateArticleBundle(
  typeof parsed.estimatedReadingTime === "number"
  ? parsed.estimatedReadingTime
  : Math.max(1, Math.ceil((parsed.englishArticle || "").split(/\s+/).length / 200)),
- source: usedProvider,
+ source: `openrouter:${usedModel}`,
  };
 }

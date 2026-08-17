@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { LanguageToggle } from "@/components/LanguageToggle";
 import { getBlogPost, getRelatedPosts, getLinkedPost, parseTableOfContents, renderMarkdown, getCategoryLabel, type BlogPost } from "@/lib/blog";
-import { BlogCTA, NewsletterBlock, SocialShare, ReadingProgress, TableOfContents } from "./BlogComponents";
+import { BlogMembershipCard, SocialShare, ReadingProgress, TableOfContents } from "./BlogComponents";
 import { AdSenseAd } from "@/components/AdSenseAd";
 
 export function BlogArticlePage({ lang, slug }: { lang: "en" | "ar"; slug: string }) {
@@ -255,11 +255,8 @@ export function BlogArticlePage({ lang, slug }: { lang: "en" | "ar"; slug: strin
               </div>
             )}
 
-            {/* CTA */}
-            {showCTA && <BlogCTA lang={lang} />}
-
-            {/* Newsletter */}
-            <NewsletterBlock lang={lang} />
+            {/* Membership card (replaces old BlogCTA + NewsletterBlock) */}
+            {showCTA && <BlogMembershipCard lang={lang} />}
 
             {/* Related posts */}
             {related.length > 0 && (

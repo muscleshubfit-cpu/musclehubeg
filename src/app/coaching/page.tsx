@@ -285,17 +285,15 @@ export default function CoachingPage() {
               </p>
             </Reveal>
 
-            {/* Coach Ahmed Zake profile — above the marquee */}
+            {/* MuscleHub brand mark — above the marquee */}
             <Reveal delay={200}>
               <div className="mt-10 flex flex-col items-center">
-                <img
-                  src="/images/hero-ahmed.jpg"
-                  alt="Coach Ahmed Zake"
-                  className="h-20 w-20 rounded-full object-cover object-top ring-4 ring-white shadow-lg"
-                />
-                <p className="mt-3 text-sm font-semibold">Coach Ahmed Zake</p>
+                <div className="grid h-20 w-20 place-items-center rounded-full bg-[#0071e3] text-3xl font-bold text-white ring-4 ring-white shadow-lg">
+                  M
+                </div>
+                <p className="mt-3 text-sm font-semibold">MuscleHub</p>
                 <p className="text-xs font-normal text-[#6e6e73]">
-                  {isAr ? "مدرب رئيسي | مؤسس MuscleHub" : "Head Coach | MuscleHub Founder"}
+                  {isAr ? "منصة لياقة وتغذية أونلاين" : "Online Fitness & Nutrition Platform"}
                 </p>
               </div>
             </Reveal>

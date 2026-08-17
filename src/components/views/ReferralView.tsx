@@ -66,8 +66,8 @@ export function ReferralView() {
 
   const shareX = () => {
     const text = isAr
-      ? `جرب MuscleHub! كوتشينج أونلاين مع الكوتش أحمد زكي + ذكاء اصطناعي. ${referralLink}`
-      : `Try MuscleHub! Online coaching with Coach Ahmed Zake + AI. ${referralLink}`;
+      ? `جرب MuscleHub! منصة لياقة وتغذية بالذكاء الاصطناعي. ${referralLink}`
+      : `Try MuscleHub! AI-powered fitness & nutrition platform. ${referralLink}`;
     window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`, "_blank");
   };
 

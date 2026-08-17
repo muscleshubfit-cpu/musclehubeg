@@ -1,96 +1,89 @@
 "use client";
 
-import { Dumbbell, ArrowRight, Check, Mail, Send, Facebook, Linkedin, Twitter, MessageCircle, Copy, Check as CheckIcon, Share2 } from "lucide-react";
+import { ArrowRight, Check, Facebook, Linkedin, Twitter, MessageCircle, Copy, Check as CheckIcon, Share2, Crown } from "lucide-react";
 import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 
-export function BlogCTA({ lang }: { lang: "en" | "ar" }) {
+/**
+ * BlogMembershipCard — compact single-card CTA shown inside blog articles.
+ *
+ * Replaces the old BlogCTA (which promoted an individual coach by name)
+ * with a clean membership pitch. One brief card, no images, no email form.
+ *
+ * Three tiers are highlighted in a single horizontal row so the reader
+ * can self-select without leaving the article.
+ */
+export function BlogMembershipCard({ lang }: { lang: "en" | "ar" }) {
  const isAr = lang === "ar";
+
+ const tiers = [
+ { id: "free", nameAr: "مجاني", nameEn: "Free", price: "$0", highlight: false },
+ { id: "premium", nameAr: "بريميوم", nameEn: "Premium", price: "$9.99", highlight: true },
+ { id: "pro", nameAr: "برو", nameEn: "Pro", price: "$19.99", highlight: false },
+ ];
+
  return (
- <div className="my-12 overflow-hidden rounded-3xl border border-primary/30 bg-gradient-to-br from-primary/5 to-card p-8 text-center">
- <span className="grid mx-auto h-12 w-12 place-items-center rounded-2xl bg-gradient-primary shadow-glow">
- <Dumbbell className="h-6 w-6 text-primary-foreground" />
+ <div className="my-12 overflow-hidden rounded-3xl border border-[#0071e3]/20 bg-[#0071e3]/5 p-6 md:p-8">
+ <div className="flex flex-col items-center text-center">
+ <span className="grid mx-auto h-12 w-12 place-items-center rounded-2xl bg-[#0071e3] text-white shadow-lg">
+ <Crown className="h-6 w-6" />
  </span>
- <h3 className="mt-4 text-2xl font-bold">
- {isAr ? "جاهز لتبدأ تحوّلك؟" : "Ready to start your transformation?"}
+ <h3 className="mt-4 text-xl font-semibold tracking-tight md:text-2xl">
+ {isAr ? "اختر عضوية MuscleHub المناسبة لهدفك" : "Pick the MuscleHub plan that fits your goal"}
  </h3>
- <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
+ <p className="mx-auto mt-2 max-w-md text-sm font-normal text-[#6e6e73]">
  {isAr
- ? "احصل على خطة مخصصة بالذكاء الاصطناعي + إشراف مباشر من الكوتش أحمد زكي. ابدأ اليوم."
- : "Get an AI-personalized plan + direct coaching from Ahmed Zake. Start today."}
+ ? "EVO ذكاء اصطناعي، خطط تغذية وتمارين مخصصة، ومتابعة أسبوعية — كله في مكان واحد."
+ : "EVO AI coach, personalized nutrition + workout plans, weekly tracking — all in one place."}
  </p>
+ </div>
+
+ {/* Tiers row */}
+ <div className="mt-6 grid grid-cols-3 gap-2 md:gap-3">
+ {tiers.map((tier) => (
+ <a
+ key={tier.id}
+ href="/memberships"
+ className={`block rounded-2xl p-3 text-center transition-all hover:opacity-90 ${
+ tier.highlight
+ ? "bg-[#1d1d1f] text-white"
+ : "bg-white text-[#1d1d1f] border border-[#d2d2d7]"
+ }`}
+ >
+ <p className="text-xs font-medium opacity-80">
+ {isAr ? tier.nameAr : tier.nameEn}
+ </p>
+ <p className="mt-1 text-base font-semibold tracking-tight">
+ {tier.price}
+ <span className="ms-0.5 text-[10px] font-normal opacity-60">/mo</span>
+ </p>
+ </a>
+ ))}
+ </div>
+
  <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
- <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
- <Check className="h-4 w-4 text-success" /> {isAr ? "خطة مخصصة" : "Personalized plan"}
+ <div className="flex items-center gap-1.5 text-xs text-[#6e6e73]">
+ <Check className="h-3.5 w-3.5 text-[#34c759]" />
+ {isAr ? "EVO غير محدود (Premium+)" : "Unlimited EVO (Premium+)"}
  </div>
- <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
- <Check className="h-4 w-4 text-success" /> {isAr ? "مساعد EVO الذكي" : "EVO AI coach"}
+ <div className="flex items-center gap-1.5 text-xs text-[#6e6e73]">
+ <Check className="h-3.5 w-3.5 text-[#34c759]" />
+ {isAr ? "خطط مخصصة" : "Personalized plans"}
  </div>
- <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
- <Check className="h-4 w-4 text-success" /> {isAr ? "تتبع تقدم" : "Progress tracking"}
+ <div className="flex items-center gap-1.5 text-xs text-[#6e6e73]">
+ <Check className="h-3.5 w-3.5 text-[#34c759]" />
+ {isAr ? "868+ تمرين و ٨٬٨٣٠+ أكلة" : "868+ exercises, 8,830+ foods"}
  </div>
  </div>
- <div className="mt-6 flex flex-wrap justify-center gap-3">
- <a href={isAr ? "/ar" : "/"}>
- <Button size="lg" className="gap-2 shadow-glow">
- {isAr ? "ابدأ الكوتشينج" : "Start Your Coaching"}
+
+ <div className="mt-6 text-center">
+ <a
+ href="/memberships"
+ className="inline-flex items-center gap-2 rounded-full bg-[#0071e3] px-6 py-2.5 text-sm font-normal text-white transition-opacity hover:opacity-90"
+ >
+ {isAr ? "قارن العضويات" : "Compare plans"}
  <ArrowRight className="h-4 w-4 rtl:rotate-180" />
- </Button>
- </a>
- <a href={isAr ? "/ar/contact" : "/contact"}>
- <Button size="lg" variant="outline">
- {isAr ? "احجز استشارة" : "Book Consultation"}
- </Button>
  </a>
  </div>
- </div>
- );
-}
-
-export function NewsletterBlock({ lang }: { lang: "en" | "ar" }) {
- const isAr = lang === "ar";
- const [email, setEmail] = useState("");
- const [done, setDone] = useState(false);
-
- const subscribe = (e: React.FormEvent) => {
- e.preventDefault();
- if (!email.trim()) return;
- const subs = JSON.parse(localStorage.getItem("mhe:newsletter") || "[]");
- subs.push({ email, date: new Date().toISOString() });
- localStorage.setItem("mhe:newsletter", JSON.stringify(subs));
- setDone(true);
- setEmail("");
- };
-
- return (
- <div className="my-12 rounded-2xl border border-border bg-card p-6 text-center">
- <Mail className="mx-auto h-8 w-8 text-primary" />
- <h3 className="mt-3 text-lg font-bold">
- {isAr ? "اشترك في النشرة البريدية" : "Subscribe to Newsletter"}
- </h3>
- <p className="mt-1 text-sm text-muted-foreground">
- {isAr ? "احصل على أحدث المقالات والنصائح مباشرة في بريدك" : "Get the latest articles and tips in your inbox"}
- </p>
- {done ? (
- <p className="mt-4 text-sm font-medium text-success">
- {isAr ? " تم الاشتراك! شكراً لك." : " Subscribed! Thank you."}
- </p>
- ) : (
- <form onSubmit={subscribe} className="mx-auto mt-4 flex max-w-sm gap-2">
- <Input
- type="email"
- value={email}
- onChange={(e) => setEmail(e.target.value)}
- placeholder={isAr ? "بريدك الإلكتروني" : "Your email"}
- required
- dir="ltr"
- />
- <Button type="submit" className="gap-2 shrink-0">
- <Send className="h-4 w-4" />
- </Button>
- </form>
- )}
  </div>
  );
 }

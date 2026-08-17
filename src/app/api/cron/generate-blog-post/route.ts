@@ -115,7 +115,7 @@ export async function GET(request: NextRequest) {
  featured_image: imageUrl,
  cover_alt: bundle.seo.en.seoTitle,
  reading_time: bundle.estimatedReadingTime,
- author: "Ahmed Zake",
+ author: "MuscleHub",
  is_published: true,
  published_at: now,
  faq_json: bundle.faq,

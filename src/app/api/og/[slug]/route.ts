@@ -17,7 +17,7 @@ export async function GET(
 
   // Defaults if Supabase isn't configured or the post isn't found
   const baseUrl = "https://musclehubeg.vercel.app";
-  let title = "MuscleHub — Coach Ahmed Zake";
+  let title = "MuscleHub — Fitness & Nutrition Platform";
   let description = "AI-powered fitness & nutrition coaching platform";
   let image = `${baseUrl}/logo.png`;
   let articleUrl = `${baseUrl}${lang === "ar" ? "/ar/blog" : "/blog"}/${slug}`;

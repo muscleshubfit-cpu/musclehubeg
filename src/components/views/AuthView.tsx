@@ -161,7 +161,7 @@ export function AuthView({ mode, next }: { mode: "login" | "signup"; next?: stri
                       required
                       value={fullName}
                       onChange={(e) => setFullName(e.target.value)}
-                      placeholder="Ahmed Ali"
+                      placeholder="Mohamed Ali"
                       className="rounded-xl border-[#d2d2d7] bg-white px-4 py-3 text-base"
                     />
                   </div>

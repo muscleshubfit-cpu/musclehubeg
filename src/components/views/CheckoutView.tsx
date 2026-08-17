@@ -82,7 +82,7 @@ export function CheckoutView({ tier, months }: { tier: TierId; months: Duration 
  <div className="mt-12 rounded-3xl bg-[#f5f5f7] p-12 text-center">
  <h2 className="text-2xl font-semibold tracking-tight">تم إرسال طلبك بنجاح!</h2>
  <p className="mt-3 text-base font-normal text-[#6e6e73]">
- استلمنا طلب اشتراكك وإيصال الدفع. سيراجعه الكوتش أحمد قريباً وسيتم تفعيل اشتراكك.
+ استلمنا طلب اشتراكك وإيصال الدفع. راجعه فريق MuscleHub قريباً وسيتم تفعيل اشتراكك.
  ستصللك إشعار فور التفعيل.
  </p>
  <button
@@ -156,7 +156,7 @@ export function CheckoutView({ tier, months }: { tier: TierId; months: Duration 
  />
  <p className="mt-3 text-center text-xs text-muted-foreground">{t("checkout.scanQr")}</p>
  <p className="mt-2 font-mono text-sm font-semibold" dir="ltr">
- {method === "instapay" ? "ahmedzake@instapay" : "01000000000"}
+ {method === "instapay" ? "musclehub@instapay" : "01000000000"}
  </p>
  </div>
 
@@ -168,7 +168,7 @@ export function CheckoutView({ tier, months }: { tier: TierId; months: Duration 
  id="fullname"
  value={fullName}
  onChange={(e) => setFullName(e.target.value)}
- placeholder="Ahmed Ali"
+ placeholder="Mohamed Ali"
  className="mt-1.5"
  />
  </div>

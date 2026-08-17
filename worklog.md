@@ -1511,3 +1511,43 @@ Stage Summary:
 - Architecture decision: Water Tracker stores DAILY log state in localStorage (no per-click DB write — would burn through the user's monthly quota in minutes). The "Save log" button creates a single saved_result snapshot for Premium+ users (counts toward their savedResultsLimit like any other tool result).
 - UI consistency: water-tracker uses the same apple-inspired design system as the other tools (rounded-3xl cards, #0071e3 primary, #f5f5f7 secondary backgrounds, lucide icons).
 - The 7-day bar chart uses dark bg + colored bars (green when ≥100%, blue otherwise) — visually consistent with the existing grand-total dark card in the Meal Planner.
+
+---
+Task ID: blog-audit
+Agent: main (super-z)
+Task: Review + clean up blog system across the whole site. Remove "Coach Ahmed Zaki" branding everywhere, replace the in-article CTA with a single compact membership card, remove the newsletter subscription form, switch the article-generation pipeline to use the unified OpenRouter best-model iterator (callFreeOpenRouter), and provide scripts to scan + fix garbled-text articles in the DB.
+
+Work Log:
+- AUDIT: grepped src/ for "أحمد زكي", "Ahmed Zaki", "Coach Ahmed", "Zake", "Zaki", "NewsletterBlock", "BlogCTA" → found references across 19 files (libs + components + views + pages + API routes + CSS).
+- (1) BLOG INDEX + ARTICLE HEADER: updated src/components/blog/BlogListPage.tsx hero subtitle from "Coach Ahmed Zake" → "the MuscleHub team"; updated src/components/views/BlogView.tsx page title from "مدونة أحمد زكي" → "مدونة MuscleHub".
+- (2) IN-ARTICLE CTA REPLACEMENT: deleted the old BlogCTA + NewsletterBlock components from src/components/blog/BlogComponents.tsx, replaced them with a new BlogMembershipCard — a single compact card (no images, no email form) showing 3 membership tiers (Free / Premium / Pro) in a horizontal row, with the 3 selling points (unlimited EVO, personalized plans, 868+ exercises / 8,830+ foods) and a CTA button linking to /memberships. Updated src/components/blog/BlogArticlePage.tsx to import BlogMembershipCard and drop NewsletterBlock usage entirely.
+- (3) BLOG GENERATION PROMPTS: src/lib/blog-generate.ts ARTICLE_SYSTEM_PROMPT cleaned — "premium coaching platform (MuscleHub)" instead of "(Coach Ahmed Zake)", COACHING CTA now points readers to /memberships, explicit instruction "Do NOT mention any individual coach name" + "Do NOT include a newsletter subscription CTA". src/lib/blog-topics.ts TOPIC_SYSTEM_PROMPT cleaned similarly. src/lib/blog-admin.ts meta_desc + cta + instagram hashtag strings all rewritten without the coach name.
+- (4) OPENROUTER MODEL SELECTION: src/lib/blog-generate.ts generateArticleBundle() now calls callFreeOpenRouter() (the unified iterator over FREE_OPENROUTER_MODELS in order: nvidia/nemotron-3-ultra-550b → nemotron-3.5-lightning → nemotron-3-super-120b → google/gemma-4-31b → gemma-4-26b → gpt-oss-20b). This matches the principle already used by EVO chat, swaps, and plan-generator — a single unified model-selection list site-wide. source field now reports "openrouter:<model>" instead of provider name.
+- (5) BRAND STRINGS: src/lib/i18n.tsx — updated both en + ar dicts: brand.name "Ahmed Zake"/"أحمد زكي" → "MuscleHub", brand.tagline, landing.hero.subtitle, landing.f6.desc, landing.how.s3.desc, plans.subtitle all rewritten to reference "MuscleHub team" / "AI-powered guidance" instead of the coach name.
+- (6) STATIC PAGES (about / faq / terms / privacy): src/components/views/StaticPageView.tsx — removed the "Coach Ahmed Zake" about-section entirely, replaced with a new "Memberships" section explaining Free / Premium / Pro / Coaching tiers. FAQ "هل الكوتش حقيقي؟" / "Is the coach real?" rewritten to clarify EVO is AI and human coaching is a separate optional add-on.
+- (7) PRICING PAGE: src/app/pricing/page.tsx metadata + OG tags cleaned — "Ahmed Zake Coaching" → "MuscleHub", Arabic description no longer mentions the coach by name.
+- (8) PROGRAMS DETAIL PAGE: src/app/programs/[slug]/page.tsx — the "Want a personalized plan?" CTA inside program detail pages now says "MuscleHub creates personalized plans" instead of "Coach Ahmed Zake creates personalized plans".
+- (9) OG IMAGE ROUTE: src/app/api/og/[slug]/route.ts default title changed from "MuscleHub — Coach Ahmed Zake" → "MuscleHub — Fitness & Nutrition Platform".
+- (10) COACHING PAGE: src/app/coaching/page.tsx — removed the coach profile photo + name "Coach Ahmed Zake | Head Coach | MuscleHub Founder", replaced with a brand mark (circle with "M" in brand blue) + "MuscleHub | Online Fitness & Nutrition Platform".
+- (11) CHECKOUT VIEW: src/components/views/CheckoutView.tsx — success message no longer says "الكوتش أحمد سيراجعه"; InstaPay handle changed from "ahmedzake@instapay" → "musclehub@instapay"; placeholder "Ahmed Ali" → "Mohamed Ali".
+- (12) PLANS / COACH-CLIENT VIEWS: src/components/views/PlansView.tsx + CoachClientView.tsx — the printable PDF report HTML header brand-name field no longer says "MuscleHub — Ahmed Zake"; footer copyright line no longer says "MuscleHub — Coach Ahmed Zake". Both now just say "MuscleHub".
+- (13) REFERRAL VIEW: src/components/views/ReferralView.tsx — share text no longer says "Online coaching with Coach Ahmed Zake + AI"; now says "AI-powered fitness & nutrition platform".
+- (14) CHAT VIEW: src/components/views/ChatView.tsx — fallback message no longer says "سيرد عليك الكوتش أحمد"; now says "سيرد عليك فريق MuscleHub".
+- (15) CRON JOBS: src/app/api/cron/generate-blog-post/route.ts + src/app/api/cron/blog/step3-publish/route.ts — `author: "Ahmed Zake"` → `author: "MuscleHub"` for newly published posts.
+- (16) PLAN-GENERATOR PROMPTS: src/lib/plan-generator.ts — NUTRITION_SYSTEM_PROMPT, WORKOUT_SYSTEM_PROMPT, and the parse-plan prompt all rewritten from "يعمل مع الكوتش أحمد زكي (MuscleHub)" to "يعمل في منصة MuscleHub".
+- (17) BLOG EDITOR DEFAULTS: src/components/views/BlogEditorView.tsx — default author for new drafts changed from "Ahmed Zake" → "MuscleHub".
+- (18) GLOBALS.CSS HEADER COMMENT: src/app/globals.css — "MUSCLEHUB — Ahmed Zake coaching platform" → "MUSCLEHUB — AI-powered fitness & nutrition platform".
+- (19) SEED PROFILE: src/lib/data.ts — coach profile full_name changed from "Ahmed Zake" → "MuscleHub Coach" (for the demo-mode local seed).
+- (20) GARBLED-TEXT DB SCAN SCRIPTS: created two scripts under /home/z/my-project/scripts/:
+  • scan-blog-garbled.js — connects to Supabase via REST, fetches all published blog_posts, scans content for mojibake patterns (Ã, Ø£, Ø³, Ù, Â, â€, ï»¿, stray Cyrillic/Greek/CJK) and language mismatches (Arabic posts with <30% Arabic chars). Prints offenders with ID + slug + title + match counts + snippet. Supports DELETE=1 env to remove offending rows.
+  • fix-blog-mojibake.js — for each post with mojibake, attempts to recover the original text by: (a) targeted smart-quote replacements (â€™ → ', â€œ → ", etc.), (b) Latin-1 → UTF-8 byte round-trip (the classic recovery for UTF-8-as-Latin-1 mojibake), (c) re-applying smart-quote fixes. Conservative sanity check: only commits the fix if the Arabic character count in the new content is ≥ 50% of the original (avoids making things worse). DRY_RUN=1 by default; DRY_RUN=0 to actually write fixes via Supabase PATCH.
+
+Stage Summary:
+- Build passes: `npx next build` succeeded with zero new errors. Pre-existing TypeScript errors in unrelated files (QuestionnairesView, blog cron routes types) untouched.
+- All "Ahmed Zaki / Ahmed Zake" references removed from src/ — verified with `grep -rn` returning zero matches (testimonials with Arabic first names "Ahmed Fouad" / "Layla Ahmed" intentionally left as customer names).
+- Blog article in-content CTA is now a single compact membership card (3-tier row + 3 selling points + CTA button), no images, no email form. Newsletter subscription form fully removed.
+- OpenRouter model selection is now consistent site-wide: blog article generation uses callFreeOpenRouter (the same iterator used by EVO chat, swaps, and plan-generator). The first model tried is nvidia/nemotron-3-ultra-550b (the largest), with 5 progressively smaller fallbacks.
+- Two recovery scripts are ready under /home/z/my-project/scripts/. The user needs to set NEXT_PUBLIC_SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY env vars and run:
+    1. `node scripts/scan-blog-garbled.js` — to see which articles are offending.
+    2. `node scripts/fix-blog-mojibake.js` — DRY RUN by default; re-run with DRY_RUN=0 to apply fixes.
+    3. If a post can't be auto-fixed, delete it via `DELETE=1 node scripts/scan-blog-garbled.js` or via the Blog Admin UI at /admin/blog and regenerate from the editor with the "Generate with AI" button.

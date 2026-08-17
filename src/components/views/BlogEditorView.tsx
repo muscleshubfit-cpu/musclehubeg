@@ -35,7 +35,7 @@ export function BlogEditorView({ mode, postId }: { mode: "new" | "edit"; postId?
  featured_image: "",
  cover_alt: "",
  reading_time: 1,
- author: "Ahmed Zake",
+ author: "MuscleHub",
  is_published: false,
  faq_json: [],
  });

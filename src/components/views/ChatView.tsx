@@ -216,5 +216,5 @@ function generateFallbackReply(input: string): string {
   if (text.includes("workout") || text.includes("تمرين") || text.includes("training")) {
     return "Stick to progressive overload on compound lifts (squat, bench, deadlift, row). Add 2.5 kg or 1 rep when you hit the top of the rep range with good form.";
   }
-  return "شكراً لسؤالك! الكوتش الذكي غير متاح حالياً مؤقتاً. يمكنك أيضاً فتح تذكرة دعم من صفحة الدعم وسيرد عليك الكوتش أحمد مباشرة.";
+  return "شكراً لسؤالك! الكوتش الذكي غير متاح حالياً مؤقتاً. يمكنك أيضاً فتح تذكرة دعم من صفحة الدعم وسيرد عليك فريق MuscleHub مباشرة.";
 }

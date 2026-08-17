@@ -293,7 +293,7 @@ export function seedLocalData() {
  const profiles: Record<string, Profile> = {
  [coachId]: {
  id: coachId,
- full_name: "Ahmed Zake",
+ full_name: "MuscleHub Coach",
  phone: "+20 100 000 0000",
  role: "coach",
  avatar_url: null,

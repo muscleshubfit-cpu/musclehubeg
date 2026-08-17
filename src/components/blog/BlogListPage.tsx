@@ -44,8 +44,8 @@ export function BlogListPage({ lang }: { lang: "en" | "ar" }) {
           </h1>
           <p className="mx-auto mt-6 max-w-xl text-lg font-normal text-[#6e6e73] md:text-xl">
             {isAr
-              ? "نصائح وإرشادات علمية للتغذية واللياقة من الكوتش أحمد زكي"
-              : "Science-backed nutrition and fitness tips from Coach Ahmed Zake"}
+              ? "نصائح وإرشادات علمية للتغذية واللياقة من فريق MuscleHub"
+              : "Science-backed nutrition and fitness tips from the MuscleHub team"}
           </p>
         </div>
 

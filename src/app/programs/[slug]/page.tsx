@@ -270,8 +270,8 @@ export default function ProgramDetailPage() {
           </h2>
           <p className="mt-2 text-sm font-normal text-gray-300">
             {isAr
-              ? "الكوتش أحمد زكي بيعمل خطط مخصصة بناءً على أهدافك ومستواك."
-              : "Coach Ahmed Zake creates personalized plans based on your goals and level."}
+              ? "منصة MuscleHub بتعمل خطط مخصصة بناءً على أهدافك ومستواك."
+              : "MuscleHub creates personalized plans based on your goals and level."}
           </p>
           <a
             href="/pricing"

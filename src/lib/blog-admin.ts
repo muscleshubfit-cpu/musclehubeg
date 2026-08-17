@@ -183,8 +183,8 @@ function localAITool(tool: string, params: { content?: string; title?: string; k
  return isAr ? `${title} | دليل شامل 2026` : `${title} | Complete Guide 2026`;
  case "meta_desc":
  return isAr
- ? `اكتشف ${title} في هذا الدليل الشامل. نصائح علمية وتوصيات عملية من الكوتش أحمد زكي.`
- : `Discover ${title} in this complete guide. Science-backed tips and practical recommendations from Coach Ahmed Zake.`;
+ ? `اكتشف ${title} في هذا الدليل الشامل. نصائح علمية وتوصيات عملية من MuscleHub.`
+ : `Discover ${title} in this complete guide. Science-backed tips and practical recommendations from MuscleHub.`;
  case "improve":
  return params.content?.slice(0, 500) || "";
  case "faq":
@@ -194,8 +194,8 @@ function localAITool(tool: string, params: { content?: string; title?: string; k
  ]);
  case "cta":
  return isAr
- ? " جاهز لتبدأ تحوّلك؟ احصل على خطة مخصصة من الكوتش أحمد زكي اليوم!"
- : " Ready to transform? Get a personalized plan from Coach Ahmed Zake today!";
+ ? " جاهز لتبدأ تحوّلك؟ اشترك في عضوية MuscleHub اليوم واحصل على خطط مخصصة!"
+ : " Ready to transform? Subscribe to a MuscleHub membership today and get personalized plans!";
  case "fb":
  return isAr
  ? ` مقال جديد: ${title}\n\nاكتشف النصائح العلمية في هذا الدليل الشامل.\n\n اقرأ المقال كاملاً\n#لياقة #تغذية #MuscleHub`
@@ -208,8 +208,8 @@ function localAITool(tool: string, params: { content?: string; title?: string; k
  return isAr ? ` ${title}\n\nنصائح علمية عملية من @MuscleHub\n\n#لياقة #تغذية` : ` ${title}\n\nScience-backed tips from @MuscleHub\n\n#fitness #nutrition`;
  case "instagram":
  return isAr
- ? `${title} \n.\n.\n.\n#لياقة #تغذية #تمارين #بناء_عضلات #MuscleHub #كوتش #أحمد_زكي`
- : `${title} \n.\n.\n.\n#fitness #nutrition #workout #musclebuilding #MuscleHub #coach #ahmedzake`;
+ ? `${title} \n.\n.\n.\n#لياقة #تغذية #تمارين #بناء_عضلات #MuscleHub #لياقة_بدون_حدود`
+ : `${title} \n.\n.\n.\n#fitness #nutrition #workout #musclebuilding #MuscleHub #fitnessjourney`;
  case "summary":
  return isAr ? "• نقطة 1\n• نقطة 2\n• نقطة 3" : "• Point 1\n• Point 2\n• Point 3";
  case "image_prompt":
