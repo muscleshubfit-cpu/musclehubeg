@@ -93,18 +93,32 @@ export async function getAuthUser(
 
   // Resolve membership tier from subscriptions table.
   // Coaches get "coaching" automatically.
+  // Multiple subs per client are allowed (e.g. Coaching + Premium).
+  // We pick the highest-priority active sub: coaching > pro > premium > free.
   let membership_tier: MembershipTier = "free";
   if (profile.role === "coach") {
     membership_tier = "coaching";
   } else {
-    const { data: sub } = await supabase
+    const { data: subs } = await supabase
       .from("subscriptions")
-      .select("tier")
+      .select("tier, status")
       .eq("client_id", user.id)
-      .eq("status", "active")
-      .maybeSingle();
-    if (sub?.tier && ["free", "premium", "pro", "coaching"].includes(sub.tier)) {
-      membership_tier = sub.tier as MembershipTier;
+      .eq("status", "active");
+    if (subs && subs.length > 0) {
+      const priority = (tier: string) => {
+        if (tier === "coaching") return 4;
+        if (tier === "pro") return 3;
+        if (tier === "premium") return 2;
+        if (tier === "elite") return 1;
+        return 0;
+      };
+      const activeSubs = subs.filter((s: any) =>
+        ["free", "premium", "pro", "coaching"].includes(s.tier),
+      );
+      if (activeSubs.length > 0) {
+        activeSubs.sort((a: any, b: any) => priority(b.tier) - priority(a.tier));
+        membership_tier = activeSubs[0].tier as MembershipTier;
+      }
     }
   }
 
@@ -192,14 +206,26 @@ export async function getAuthUserFromHeaders(): Promise<AuthUser | null> {
   if (profile.role === "coach") {
     membership_tier = "coaching";
   } else {
-    const { data: sub } = await supabase
+    const { data: subs } = await supabase
       .from("subscriptions")
-      .select("tier")
+      .select("tier, status")
       .eq("client_id", user.id)
-      .eq("status", "active")
-      .maybeSingle();
-    if (sub?.tier && ["free", "premium", "pro", "coaching"].includes(sub.tier)) {
-      membership_tier = sub.tier as MembershipTier;
+      .eq("status", "active");
+    if (subs && subs.length > 0) {
+      const priority = (tier: string) => {
+        if (tier === "coaching") return 4;
+        if (tier === "pro") return 3;
+        if (tier === "premium") return 2;
+        if (tier === "elite") return 1;
+        return 0;
+      };
+      const activeSubs = subs.filter((s: any) =>
+        ["free", "premium", "pro", "coaching"].includes(s.tier),
+      );
+      if (activeSubs.length > 0) {
+        activeSubs.sort((a: any, b: any) => priority(b.tier) - priority(a.tier));
+        membership_tier = activeSubs[0].tier as MembershipTier;
+      }
     }
   }
 

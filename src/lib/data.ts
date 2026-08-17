@@ -1327,19 +1327,50 @@ export async function getSubscriptionForClient(clientId: string) {
  .from("subscriptions")
  .select("*")
  .eq("client_id", clientId)
- .maybeSingle();
- return data ?? null;
+ .order("created_at", { ascending: false });
+ // Return the highest-priority active sub (coaching > pro > premium > others)
+ // but keep backward compat by returning a single object.
+ const arr = data ?? [];
+ if (arr.length === 0) return null;
+ const priority = (tier: string) => {
+ if (tier === "coaching") return 4;
+ if (tier === "pro") return 3;
+ if (tier === "premium") return 2;
+ if (tier === "elite") return 1;
+ return 0;
+ };
+ arr.sort((a, b) => priority(b.tier) - priority(a.tier));
+ return arr[0];
  }
  return read<any[]>(LS_SUBS, []).find((s) => s.client_id === clientId) ?? null;
 }
 
+/**
+ * Fetch ALL subscriptions for a client (not just one).
+ * Used by the coach client view to show multiple subscriptions
+ * (e.g. Coaching + Premium coexisting).
+ */
+export async function listSubscriptionsForClient(clientId: string) {
+ if (isSupabaseConfigured && supabase) {
+ const { data } = await supabase
+ .from("subscriptions")
+ .select("*")
+ .eq("client_id", clientId)
+ .order("created_at", { ascending: false });
+ return data ?? [];
+ }
+ return read<any[]>(LS_SUBS, []).filter((s) => s.client_id === clientId);
+}
+
 export async function upsertSubscription(clientId: string, tier: string, months: number, startDate: string, endDate: string) {
  if (isSupabaseConfigured && supabase) {
+ // Determine subscription_type from tier
+ const subscriptionType = tier === "coaching" ? "coaching" : "membership";
  const { data, error } = await supabase
  .from("subscriptions")
  .upsert(
- { client_id: clientId, tier, months, start_date: startDate, end_date: endDate, status: "active" },
- { onConflict: "client_id" },
+ { client_id: clientId, tier, months, start_date: startDate, end_date: endDate, status: "active", subscription_type: subscriptionType },
+ { onConflict: "client_id,tier" },
  )
  .select()
  .single();

@@ -42,6 +42,7 @@ import { cn } from "@/lib/utils";
 import {
  listAllSubscriptions,
  upsertSubscription,
+ listSubscriptionsForClient,
  listProgress,
  listPlans,
  listAllClientPlans,
@@ -78,6 +79,7 @@ export function CoachClientView({ clientId }: { clientId: string }) {
  const { navigate } = useNav();
  const [client, setClient] = useState<any | null>(null);
  const [sub, setSub] = useState<any | null>(null);
+ const [allSubs, setAllSubs] = useState<any[]>([]);
  const [progress, setProgress] = useState<any[]>([]);
  const [plans, setPlans] = useState<any[]>([]);
  const [nutriQ, setNutriQ] = useState<any | null>(null);
@@ -114,7 +116,19 @@ export function CoachClientView({ clientId }: { clientId: string }) {
  getQuestionnaire(clientId, "fitness"),
  ]);
  setClient(c);
- const s = subs.find((x) => x.client_id === clientId);
+ // Get ALL subs for this client (multiple allowed now)
+ const clientSubs = subs.filter((x) => x.client_id === clientId);
+ setAllSubs(clientSubs);
+ // Set the primary sub (highest priority) for backward compat
+ const priority = (tier: string) => {
+ if (tier === "coaching") return 4;
+ if (tier === "pro") return 3;
+ if (tier === "premium") return 2;
+ if (tier === "elite") return 1;
+ return 0;
+ };
+ const sorted = [...clientSubs].sort((a, b) => priority(b.tier) - priority(a.tier));
+ const s = sorted[0] || null;
  setSub(s);
  setProgress(p);
  setPlans(pl);
@@ -137,6 +151,19 @@ export function CoachClientView({ clientId }: { clientId: string }) {
  const end = endDate ? new Date(endDate).toISOString() : new Date(Date.now() + months * 30 * 864e5).toISOString();
  await upsertSubscription(clientId, tier, months, start, end);
  toast.success(t("coach.subUpdated"));
+ // Reload all subscriptions to show the updated list
+ const updatedSubs = await listSubscriptionsForClient(clientId);
+ setAllSubs(updatedSubs);
+ // Update primary sub for overview card
+ const priority = (t: string) => {
+ if (t === "coaching") return 4;
+ if (t === "pro") return 3;
+ if (t === "premium") return 2;
+ if (t === "elite") return 1;
+ return 0;
+ };
+ const sorted = [...updatedSubs].sort((a, b) => priority(b.tier) - priority(a.tier));
+ setSub(sorted[0] || null);
  } catch (e: any) {
  toast.error(e.message || t("common.error"));
  } finally {
@@ -455,8 +482,74 @@ export function CoachClientView({ clientId }: { clientId: string }) {
  )}
 
  {tab === "subscription" && (
+ <>
+ {/* All subscriptions list — shows every sub the client has */}
+ <Card className="mb-4 p-6 shadow-card">
+ <div className="flex items-center justify-between">
+ <h2 className="text-lg font-semibold">
+ {lang === "ar" ? "كل الاشتراكات" : "All Subscriptions"}
+ </h2>
+ <span className="rounded-full bg-[#f5f5f7] px-3 py-1 text-xs font-normal text-[#6e6e73]">
+ {allSubs.length} {lang === "ar" ? "اشتراك" : "subscriptions"}
+ </span>
+ </div>
+
+ {allSubs.length === 0 ? (
+ <p className="mt-4 text-sm text-muted-foreground">
+ {lang === "ar" ? "مفيش اشتراكات بعد." : "No subscriptions yet."}
+ </p>
+ ) : (
+ <div className="mt-4 space-y-3">
+ {allSubs.map((s) => {
+ const tierInfo = MEMBERSHIPS.find((m) => m.id === s.tier);
+ const tierAr = tierInfo?.nameAr || s.tier;
+ const tierEn = tierInfo?.nameEn || s.tier;
+ const isActive = s.status === "active" && (!s.end_date || new Date(s.end_date).getTime() > Date.now());
+ return (
+ <div key={s.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-[#f5f5f7] p-4">
+ <div className="min-w-0 flex-1">
+ <div className="flex items-center gap-2">
+ <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
+ s.tier === "premium" ? "bg-[#0071e3]/10 text-[#0071e3]"
+ : s.tier === "pro" ? "bg-[#1d1d1f]/10 text-[#1d1d1f]"
+ : s.tier === "coaching" ? "bg-[#8b5cf6]/10 text-[#8b5cf6]"
+ : "bg-[#f5f5f7] text-[#6e6e73]"
+ }`}>
+ {lang === "ar" ? tierAr : tierEn}
+ </span>
+ <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
+ isActive ? "bg-[#34c759]/10 text-[#34c759]"
+ : "bg-[#6e6e73]/10 text-[#6e6e73]"
+ }`}>
+ {isActive
+ ? (lang === "ar" ? "مؤكد" : "Active")
+ : s.status === "pending"
+ ? (lang === "ar" ? "بانتظار" : "Pending")
+ : (lang === "ar" ? "منتهي" : "Expired")}
+ </span>
+ </div>
+ <p className="mt-1 text-xs font-normal text-[#6e6e73]" dir="ltr">
+ {s.start_date ? new Date(s.start_date).toLocaleDateString() : "—"} → {s.end_date ? new Date(s.end_date).toLocaleDateString() : "—"}
+ </p>
+ </div>
+ <div className="text-end">
+ <p className="text-sm font-medium">{s.months} {lang === "ar" ? "شهر" : "months"}</p>
+ </div>
+ </div>
+ );
+ })}
+ </div>
+ )}
+ </Card>
+
+ {/* Add / update subscription form */}
  <Card className="p-6 shadow-card">
  <h2 className="text-lg font-semibold">{t("coach.subscriptionMgmt")}</h2>
+ <p className="mt-1 text-sm font-normal text-[#6e6e73]">
+ {lang === "ar"
+ ? "أضف أو حدّث اشتراك. لو العميل عنده اشتراك بنفس النوع، هيتحدّث. لو نوع مختلف، هيتضاف كاشتراك جديد."
+ : "Add or update a subscription. If the client already has the same tier, it updates. If different, it adds a new subscription."}
+ </p>
  <div className="mt-4 grid gap-4 sm:grid-cols-2">
  <div>
  <Label>{t("checkout.plan")}</Label>
@@ -505,6 +598,7 @@ export function CoachClientView({ clientId }: { clientId: string }) {
  {savingSub ? t("common.saving") : t("coach.updateSub")}
  </Button>
  </Card>
+ </>
  )}
 
  {tab === "plans" && (
