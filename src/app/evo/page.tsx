@@ -464,7 +464,7 @@ export default function EvoPage() {
               : "Coaching subscription includes: EVO with full features + personalized nutrition plans + workout programs + personal follow-up + all platform tools. No extra cost."}
           </p>
           <a
-            href="/pricing"
+            href="/memberships"
             className="mt-6 inline-block rounded-full bg-white px-6 py-3 text-base font-normal text-[#0071e3] transition-opacity hover:opacity-90"
           >
             {isAr ? "شوف الباقات ›" : "See plans ›"}

@@ -11,7 +11,7 @@ import { FOODS } from "@/lib/foods";
 export const revalidate = 3600;
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const baseUrl = "https://musclehubeg.vercel.app";
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://musclehubeg.vercel.app";
   const lastModified = new Date();
 
   const staticUrls: MetadataRoute.Sitemap = [
@@ -28,12 +28,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // Coaching (secondary feature — one section of the platform)
     { url: `${baseUrl}/coaching`, lastModified, changeFrequency: "monthly", priority: 0.8 },
     { url: `${baseUrl}/memberships`, lastModified, changeFrequency: "monthly", priority: 0.9 },
-    { url: `${baseUrl}/pricing`, lastModified, changeFrequency: "monthly", priority: 0.7 },
     // Tool detail pages
     { url: `${baseUrl}/tools/calorie-calculator`, lastModified, changeFrequency: "monthly", priority: 0.8 },
     { url: `${baseUrl}/tools/bmi-calculator`, lastModified, changeFrequency: "monthly", priority: 0.8 },
     { url: `${baseUrl}/tools/macro-calculator`, lastModified, changeFrequency: "monthly", priority: 0.8 },
     { url: `${baseUrl}/tools/body-fat-calculator`, lastModified, changeFrequency: "monthly", priority: 0.8 },
+    { url: `${baseUrl}/tools/water-tracker`, lastModified, changeFrequency: "monthly", priority: 0.8 },
+    { url: `${baseUrl}/meal-planner`, lastModified, changeFrequency: "monthly", priority: 0.8 },
     // Other pages
     { url: `${baseUrl}/about`, lastModified, changeFrequency: "monthly", priority: 0.6 },
     { url: `${baseUrl}/faq`, lastModified, changeFrequency: "monthly", priority: 0.7 },

@@ -195,7 +195,7 @@ export default function ExerciseDetailPage() {
                   : "Want a personalized workout plan based on your level and goals?"}
               </p>
               <a
-                href="/pricing"
+                href="/memberships"
                 className="mt-3 inline-block rounded-full bg-[#0071e3] px-5 py-2 text-xs font-normal text-white hover:opacity-90"
               >
                 {isAr ? "احصل على خطة مخصصة ›" : "Get a personalized plan ›"}

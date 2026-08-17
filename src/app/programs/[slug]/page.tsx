@@ -274,7 +274,7 @@ export default function ProgramDetailPage() {
               : "MuscleHub creates personalized plans based on your goals and level."}
           </p>
           <a
-            href="/pricing"
+            href="/memberships"
             className="mt-4 inline-block rounded-full bg-white px-6 py-2.5 text-sm font-normal text-[#1d1d1f] transition-opacity hover:opacity-90"
           >
             {isAr ? "احصل على خطة مخصصة ›" : "Get a personalized plan ›"}

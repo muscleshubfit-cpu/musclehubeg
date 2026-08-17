@@ -87,7 +87,7 @@ export async function POST(request: NextRequest) {
         links: [
           {
             label: "View coaching plans →",
-            url: "/pricing",
+            url: "/memberships",
           },
         ],
         source: "subscriber-gate",

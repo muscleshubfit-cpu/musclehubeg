@@ -57,6 +57,15 @@ export async function middleware(request: NextRequest) {
  // supabase.auth.getUser — the session refresh depends on this ordering.
  await supabase.auth.getUser();
 
+ // Set Content-Language header so search engines + browsers know which
+ // language is being served. This is a workaround for Next.js App Router's
+ // inability to dynamically change the root <html lang> attribute (it's
+ // hardcoded in src/app/layout.tsx). The header helps crawlers infer the
+ // correct language for /ar/* routes.
+ const pathname = request.nextUrl.pathname;
+ const isArabic = pathname.startsWith("/ar");
+ response.headers.set("Content-Language", isArabic ? "ar-EG" : "en-US");
+
  return response;
 }
 

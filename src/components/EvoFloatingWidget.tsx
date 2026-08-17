@@ -272,7 +272,7 @@ export function EvoFloatingWidget() {
                           : "Subscribe to continue chatting without limits"}
                       </p>
                       <a
-                        href="/pricing"
+                        href="/memberships"
                         className="mt-3 inline-block rounded-full bg-[#0071e3] px-4 py-2 text-xs font-medium text-white"
                       >
                         {isAr ? "اشترك الآن" : "Subscribe now"}

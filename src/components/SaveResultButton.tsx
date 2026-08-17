@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useI18n } from "@/lib/i18n";
+import { useMembershipTier } from "@/hooks/use-membership-tier";
 import { Bookmark, Loader2, Check, Download, Trash2, ImageDown } from "lucide-react";
 import { toast } from "sonner";
 
@@ -27,6 +28,7 @@ export function SaveResultButton({ toolSlug, title, resultData }: Props) {
   const { profile } = useAuth();
   const { lang } = useI18n();
   const isAr = lang === "ar";
+  const { tier } = useMembershipTier(profile);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [exportingPng, setExportingPng] = useState(false);
@@ -97,13 +99,14 @@ export function SaveResultButton({ toolSlug, title, resultData }: Props) {
   };
 
   const handleDownloadPdf = async () => {
-    // PDF export is a premium feature
-    const tier = (profile as any)?.membership_tier || "free";
-    const allowed = ["premium", "pro", "coaching"].includes(tier);
+    // PDF export is a premium feature — resolve tier via the
+    // useMembershipTier hook (queries subscriptions table, not the
+    // missing profile.membership_tier field).
     if (!profile) {
       toast.error(isAr ? "سجّل الدخول أولاً" : "Log in first");
       return;
     }
+    const allowed = ["premium", "pro", "coaching"].includes(tier);
     if (!allowed) {
       toast.error(
         isAr

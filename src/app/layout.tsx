@@ -1,5 +1,7 @@
 import { Suspense } from "react";
 import Script from "next/script";
+import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
 import { I18nProvider } from "@/lib/i18n";
@@ -14,6 +16,7 @@ import { metadata, viewport } from "./metadata";
 export { metadata, viewport };
 
 const GA_ID = process.env.NEXT_PUBLIC_GA_ID || "";
+const ADSENSE_CLIENT = process.env.NEXT_PUBLIC_ADSENSE_CLIENT || "";
 
 // Site-wide structured data (JSON-LD) — injected on every page
 const organizationSchema = getOrganizationSchema();
@@ -25,12 +28,16 @@ export default function RootLayout({
   return (
     <html lang="en" dir="ltr" suppressHydrationWarning>
       <head>
-        {/* Google AdSense */}
-        <script
-          async
-          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8658364692422583"
-          crossOrigin="anonymous"
-        />
+        {/* Google AdSense — only loaded when NEXT_PUBLIC_ADSENSE_CLIENT env
+            var is set. Avoids loading AdSense on local dev or when the
+            publisher hasn't been approved yet. */}
+        {ADSENSE_CLIENT && (
+          <script
+            async
+            src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_CLIENT}`}
+            crossOrigin="anonymous"
+          />
+        )}
         {/* Preconnect to external domains */}
         <link rel="preconnect" href="https://randomuser.me" />
         <link rel="dns-prefetch" href="https://randomuser.me" />
@@ -95,6 +102,13 @@ export default function RootLayout({
             </Script>
           </>
         )}
+
+        {/* Vercel Analytics — pageview + custom event tracking.
+            No-op in dev or when not deployed on Vercel. */}
+        <Analytics />
+
+        {/* Vercel Speed Insights — Core Web Vitals + LCP/CLS/INP tracking. */}
+        <SpeedInsights />
       </body>
     </html>
   );

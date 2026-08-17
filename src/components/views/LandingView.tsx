@@ -763,7 +763,7 @@ export function LandingView() {
                 <li><a href="/blog" className="hover:underline">{isAr ? "المدونة" : "Blog"}</a></li>
                 <li><a href="/coaching" className="hover:underline">{isAr ? "الكوتشينج" : "Coaching"}</a></li>
                 <li><a href="/memberships" className="hover:underline">{isAr ? "العضويات" : "Memberships"}</a></li>
-                <li><a href="/pricing" className="hover:underline">{isAr ? "الأسعار" : "Pricing"}</a></li>
+                <li><a href="/memberships" className="hover:underline">{isAr ? "الأسعار" : "Pricing"}</a></li>
               </ul>
             </div>
             <div>

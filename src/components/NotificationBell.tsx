@@ -80,7 +80,7 @@ export function NotificationBell() {
  onClick={() => {
  setOpen(false);
  if (n.link === "/dashboard") navigate("dashboard");
- else if (n.link === "/pricing") navigate("pricing");
+ else if (n.link === "/memberships") navigate("pricing");
  else if (n.link === "/questionnaires") navigate("questionnaires");
  else if (n.link === "/plans") navigate("plans");
  else if (n.link === "/support") navigate("support");

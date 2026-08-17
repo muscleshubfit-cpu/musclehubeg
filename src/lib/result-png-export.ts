@@ -87,12 +87,15 @@ const TOOL_META: Record<
     nameAr: "حاسبة الماكروز",
     nameEn: "Macro Calculator",
     format: (d, isAr) => ({
+      // Macro calculator sends result as { protein_g, carbs_g, fat_g, ... }
+      // (see src/app/tools/macro-calculator/page.tsx) — accept both
+      // _g-suffixed AND plain-name fields for safety.
       headline: `${d.calories || d.target || "—"}`,
       sublabel: isAr ? "سعرة حرارية / يوم" : "calories / day",
       rows: [
-        [isAr ? "بروتين" : "Protein", `${d.protein}g`],
-        [isAr ? "كارب" : "Carbs", `${d.carbs}g`],
-        [isAr ? "دهون" : "Fat", `${d.fat}g`],
+        [isAr ? "بروتين" : "Protein", `${d.protein_g ?? d.protein ?? "—"}g`],
+        [isAr ? "كارب" : "Carbs", `${d.carbs_g ?? d.carbs ?? "—"}g`],
+        [isAr ? "دهون" : "Fat", `${d.fat_g ?? d.fat ?? "—"}g`],
       ],
     }),
   },
@@ -107,6 +110,19 @@ const TOOL_META: Record<
         [isAr ? "كتلة الدهون" : "Fat mass", `${d.fatMass || "—"} kg`],
         [isAr ? "الكتلة الصافية" : "Lean mass", `${d.leanMass || "—"} kg`],
         [isAr ? "الطريقة" : "Method", d.method || "—"],
+      ],
+    }),
+  },
+  "water-tracker": {
+    nameAr: "متتبع شرب الماء",
+    nameEn: "Water Tracker",
+    format: (d, isAr) => ({
+      headline: `${d.consumed_ml ?? 0}`,
+      sublabel: isAr ? `مل / ${d.goal_ml ?? 0} مل` : `ml / ${d.goal_ml ?? 0} ml`,
+      rows: [
+        [isAr ? "التاريخ" : "Date", d.date || "—"],
+        [isAr ? "الهدف اليومي" : "Daily goal", `${d.goal_ml ?? "—"} ml`],
+        [isAr ? "حجم الكوب" : "Cup size", `${d.cup_ml ?? "—"} ml`],
       ],
     }),
   },

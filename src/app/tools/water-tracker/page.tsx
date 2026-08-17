@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/hooks/use-auth";
 import { useNav } from "@/hooks/use-nav";
+import { useMembershipTier } from "@/hooks/use-membership-tier";
 import { SiteHeader } from "@/components/SiteHeader";
 import { AdSenseAd } from "@/components/AdSenseAd";
 import { OtherTools } from "@/components/OtherTools";
@@ -81,6 +82,7 @@ export default function WaterTrackerPage() {
   const { lang } = useI18n();
   const { profile } = useAuth();
   const { navigate } = useNav();
+  const { tier } = useMembershipTier(profile);
   const isAr = lang === "ar";
 
   const [log, setLog] = useState<DayLog>({});
@@ -176,9 +178,8 @@ export default function WaterTrackerPage() {
       navigate("auth", { mode: "login" });
       return;
     }
-    // Water tracker DB save is a Premium+ feature (uses saved_results table
-    // with a custom tool_slug)
-    const tier = (profile as any)?.membership_tier || "free";
+    // Water tracker DB save is a Premium+ feature — resolve tier via
+    // the useMembershipTier hook (queries subscriptions table).
     const allowed = ["premium", "pro", "coaching"].includes(tier);
     if (!allowed) {
       toast.error(
@@ -518,7 +519,7 @@ export default function WaterTrackerPage() {
           </h2>
           <p>
             {isAr
-              ? "الماء بيأثر على كل وظيفة في جسمك: تنظيم الحرارة، نقل العناصر الغذائية، تزييت المفاصل، وحماية الأنسجة. الجفاف哪怕 الخفيف (1-2%) بيقلل التركيز والطاقة والأداء الرياضي."
+              ? "الماء بيأثر على كل وظيفة في جسمك: تنظيم الحرارة، نقل العناصر الغذائية، تزييت المفاصل، وحماية الأنسجة. الجفاف الخفيف (1-2%) بيقلل التركيز والطاقة والأداء الرياضي."
               : "Water affects every function in your body: temperature regulation, nutrient transport, joint lubrication, and tissue protection. Even mild dehydration (1-2%) reduces focus, energy, and athletic performance."}
           </p>
           <p>

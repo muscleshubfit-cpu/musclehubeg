@@ -1038,7 +1038,7 @@ export async function reviewSubscriptionRequest(id: string, action: "approve" | 
  console.error("[reviewSubscriptionRequest] Commission error:", e);
  }
  } else {
- await createNotification(data.user_id, "subscription_rejected", "تم رفض طلب الاشتراك", "تم رفض طلب اشتراكك. يرجى التواصل مع الدعم.", "/pricing");
+ await createNotification(data.user_id, "subscription_rejected", "تم رفض طلب الاشتراك", "تم رفض طلب اشتراكك. يرجى التواصل مع الدعم.", "/memberships");
  }
  return data;
  }

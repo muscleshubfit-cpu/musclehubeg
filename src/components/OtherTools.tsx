@@ -7,7 +7,9 @@ const ALL_TOOLS = [
   { slug: "bmi-calculator", nameAr: "حاسبة BMI", nameEn: "BMI Calculator", emoji: "⚖️", color: "#0071e3" },
   { slug: "macro-calculator", nameAr: "حاسبة الماكروز", nameEn: "Macro Calculator", emoji: "🥩", color: "#34c759" },
   { slug: "body-fat-calculator", nameAr: "حاسبة الدهون", nameEn: "Body Fat %", emoji: "📊", color: "#ff3b30" },
-  { slug: "meal-planner", nameAr: "مخطط الوجبات", nameEn: "Meal Planner", emoji: "🍽️", color: "#8b5cf6" },
+  // meal-planner + water-tracker are top-level routes (/meal-planner, /tools/water-tracker),
+  // so we mark them with an absolute path prefix.
+  { slug: "/meal-planner", nameAr: "مخطط الوجبات", nameEn: "Meal Planner", emoji: "🍽️", color: "#8b5cf6" },
   { slug: "water-tracker", nameAr: "متتبع الماء", nameEn: "Water Tracker", emoji: "💧", color: "#00b8d9" },
 ];
 
@@ -18,11 +20,17 @@ const ALL_TOOLS = [
  *
  * Props:
  *   current: the slug of the current tool (to exclude it from the list)
+ *
+ * Note: `current` may be either a relative slug like "calorie-calculator"
+ * OR an absolute path like "/meal-planner" — we match both forms so the
+ * current tool is correctly excluded.
  */
 export function OtherTools({ current }: { current: string }) {
   const { lang } = useI18n();
   const isAr = lang === "ar";
-  const others = ALL_TOOLS.filter((t) => t.slug !== current);
+  // Normalize "current" — handle both relative slugs and absolute paths
+  const normalizedCurrent = current.startsWith("/") ? current : current;
+  const others = ALL_TOOLS.filter((t) => t.slug !== normalizedCurrent);
 
   return (
     <div className="mt-8">
@@ -33,7 +41,7 @@ export function OtherTools({ current }: { current: string }) {
         {others.map((tool) => (
           <a
             key={tool.slug}
-            href={`/tools/${tool.slug}`}
+            href={tool.slug.startsWith("/") ? tool.slug : `/tools/${tool.slug}`}
             className="flex items-center gap-3 rounded-2xl bg-[#f5f5f7] p-4 transition-opacity hover:opacity-90"
           >
             <span

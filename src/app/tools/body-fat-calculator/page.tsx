@@ -61,9 +61,11 @@ export default function BodyFatCalculatorPage() {
       else { category = isAr ? "سمنة" : "Obese"; color = "#ff3b30"; }
     }
 
-    // Assume weight from BMI approximation (not ideal, but useful)
+    // Estimate weight from BMI approximation (BMI 22 = healthy midpoint).
+    // Formula: BMI = weight / height_m² → weight = BMI × height_m²
+    // For h=175cm → heightM=1.75 → weight = 22 × 1.75² = 67.375 kg
     const heightM = h / 100;
-    const estimatedWeight = 22 * heightM * heightM * 100; // rough estimate in kg
+    const estimatedWeight = 22 * heightM * heightM; // kg, no extra multiplier
     const fatMass = Math.round(estimatedWeight * bf / 100);
     const leanMass = Math.round(estimatedWeight - fatMass);
 

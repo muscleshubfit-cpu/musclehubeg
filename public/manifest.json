@@ -1,14 +1,14 @@
 {
-  "name": "MuscleHubEG — Ahmed Zake Coaching",
-  "short_name": "MuscleHubEG",
-  "description": "Online nutrition & fitness coaching platform with AI-powered plans",
+  "name": "MuscleHubFit — Fitness & Nutrition Platform",
+  "short_name": "MuscleHubFit",
+  "description": "AI-powered fitness & nutrition platform with 868+ exercises, 8,830+ foods, 6 free tools, EVO AI coach, and blog.",
   "start_url": "/",
   "display": "standalone",
   "orientation": "portrait-primary",
-  "background_color": "#f5f8fc",
-  "theme_color": "#6366f1",
-  "dir": "rtl",
-  "lang": "ar",
+  "background_color": "#ffffff",
+  "theme_color": "#0071e3",
+  "dir": "ltr",
+  "lang": "en",
   "categories": ["health", "fitness", "lifestyle"],
   "icons": [
     {
@@ -26,13 +26,23 @@
   ],
   "shortcuts": [
     {
-      "name": "Dashboard",
-      "url": "/?view=dashboard",
+      "name": "Free Tools",
+      "url": "/tools",
       "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
     },
     {
-      "name": "My Plans",
-      "url": "/?view=plans",
+      "name": "Exercises",
+      "url": "/exercises",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Memberships",
+      "url": "/memberships",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Blog",
+      "url": "/blog",
       "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
     }
   ]

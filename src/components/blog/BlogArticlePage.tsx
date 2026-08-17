@@ -98,55 +98,11 @@ export function BlogArticlePage({ lang, slug }: { lang: "en" | "ar"; slug: strin
       {linkedUrl && <link rel="alternate" hrefLang="ar" href={linkedUrl} />}
       <link rel="canonical" href={articleUrl} />
 
-      {/* JSON-LD Schemas (unchanged — for SEO) */}
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "Article",
-            headline: post.title,
-            description: post.meta_description || post.excerpt,
-            image: post.featured_image,
-            author: { "@type": "Person", name: post.author },
-            publisher: { "@type": "Organization", name: "MuscleHub" },
-            datePublished: post.published_at,
-            dateModified: post.updated_at,
-            mainEntityOfPage: { "@type": "WebPage", "@id": articleUrl },
-            keywords: (post.keywords || []).join(", "),
-          }),
-        }}
-      />
-      {post.faq_json && Array.isArray(post.faq_json) && post.faq_json.length > 0 && (
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{
-            __html: JSON.stringify({
-              "@context": "https://schema.org",
-              "@type": "FAQPage",
-              mainEntity: post.faq_json.map((faq: any) => ({
-                "@type": "Question",
-                name: faq.question,
-                acceptedAnswer: { "@type": "Answer", text: faq.answer },
-              })),
-            }),
-          }}
-        />
-      )}
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "BreadcrumbList",
-            itemListElement: [
-              { "@type": "ListItem", position: 1, name: isAr ? "الرئيسية" : "Home", item: baseUrl },
-              { "@type": "ListItem", position: 2, name: isAr ? "المدونة" : "Blog", item: `${baseUrl}${isAr ? "/ar/blog" : "/blog"}` },
-              { "@type": "ListItem", position: 3, name: post.title, item: articleUrl },
-            ],
-          }),
-        }}
-      />
+      {/* JSON-LD schemas are injected server-side in /app/blog/[slug]/page.tsx
+          and /app/ar/blog/[slug]/page.tsx (Article + Breadcrumb + FAQPage).
+          We deliberately DO NOT duplicate them here — server-rendered JSON-LD
+          is visible to crawlers without executing JavaScript, which is the
+          correct SEO pattern. */}
 
       <main className="mx-auto w-full max-w-4xl flex-1 px-4 py-12 sm:px-6 md:py-20">
         {/* Breadcrumb */}

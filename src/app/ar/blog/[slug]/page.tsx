@@ -21,7 +21,14 @@ export async function generateMetadata({
   return {
     title: og.title,
     description: og.description,
-    alternates: { canonical: og.articleUrl },
+    alternates: {
+      canonical: og.articleUrl,
+      // Correct hreflang — point en + ar to their own URLs (not the same URL).
+      languages: {
+        "en": `https://musclehubeg.vercel.app/blog/${slug}`,
+        "ar": og.articleUrl,
+      },
+    },
     openGraph: {
       type: "article",
       url: og.articleUrl,

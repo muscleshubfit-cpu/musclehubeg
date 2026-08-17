@@ -1,16 +1,8 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
+import dynamic from "next/dynamic";
 import { Plus, TrendingDown, TrendingUp, Camera, Trash2, Loader2 } from "lucide-react";
-import {
- ResponsiveContainer,
- AreaChart,
- Area,
- XAxis,
- YAxis,
- Tooltip,
- CartesianGrid,
-} from "recharts";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/hooks/use-auth";
 import { Card } from "@/components/ui/card";
@@ -28,6 +20,13 @@ import {
 } from "@/components/ui/dialog";
 import { listProgress, addProgress, listPhotos, uploadPhoto, deletePhoto } from "@/lib/data";
 import { toast } from "sonner";
+
+// Lazy-load the chart component so recharts (~600KB) is only fetched
+// when the Progress page is opened — not on every dashboard load.
+const WeightChart = dynamic(
+  () => import("@/components/WeightChart").then((m) => m.WeightChart),
+  { ssr: false, loading: () => null },
+);
 
 export function ProgressView() {
  const { t, lang } = useI18n();
@@ -171,27 +170,7 @@ export function ProgressView() {
  </div>
  <div className="mt-6 h-64">
  {chartData.length > 0 ? (
- <ResponsiveContainer width="100%" height="100%">
- <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
- <defs>
- <linearGradient id="weightGradient" x1="0" y1="0" x2="0" y2="1">
- <stop offset="0%" stopColor="#0071e3" stopOpacity={0.3} />
- <stop offset="100%" stopColor="#0071e3" stopOpacity={0} />
- </linearGradient>
- </defs>
- <CartesianGrid strokeDasharray="3 3" stroke="#d2d2d7" />
- <XAxis dataKey="date" tick={{ fontSize: 12, fill: "#6e6e73" }} />
- <YAxis tick={{ fontSize: 12, fill: "#6e6e73" }} domain={["auto", "auto"]} />
- <Tooltip
- contentStyle={{
- borderRadius: 12,
- border: "1px solid #d2d2d7",
- boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
- }}
- />
- <Area type="monotone" dataKey="weight" stroke="#0071e3" strokeWidth={2.5} fill="url(#weightGradient)" />
- </AreaChart>
- </ResponsiveContainer>
+ <WeightChart data={chartData} />
  ) : (
  <div className="flex h-full items-center justify-center text-sm font-normal text-[#6e6e73]">
  {t("prog.noEntries")}

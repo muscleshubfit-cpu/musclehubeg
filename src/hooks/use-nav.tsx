@@ -46,6 +46,12 @@ function pathForView(view: View, params: Record<string, any> = {}): string {
  return "/";
  case "auth":
  return params.mode ? `/auth?mode=${encodeURIComponent(params.mode)}` : "/auth";
+ case "pricing":
+ // Legacy view name — always redirect to the new memberships page.
+ // (We keep "pricing" in the View union for backward compatibility
+ // with existing navigate("pricing") call sites that haven't been
+ // migrated yet.)
+ return "/memberships";
  case "checkout": {
  const q = new URLSearchParams();
  if (params.tier) q.set("tier", String(params.tier));
