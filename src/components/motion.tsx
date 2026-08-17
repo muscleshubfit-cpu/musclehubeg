@@ -42,17 +42,22 @@ export const staggerContainer: Variants = {
 };
 
 // ===== Reveal Component =====
-// Scroll-triggered fade-up. Respects prefers-reduced-motion automatically
-// (Framer Motion handles this natively via useReducedMotion).
+// DISABLED — scroll-triggered animations were causing jarring "shake"
+// effects during scroll. The component now renders children directly
+// without any opacity/transform animation.
+//
+// Original behavior used Framer Motion's useInView to trigger fade-up.
+// Restoring: revert this to use `motion.div` with `variants` +
+// `useInView` hook (see git history).
 
 export function Reveal({
   children,
   className = "",
-  delay = 0,
-  variants = fadeUp,
-  duration = 0.6,
-  once = true,
-  amount = 0.2,
+  delay: _delay = 0,
+  variants: _variants = fadeUp,
+  duration: _duration = 0.6,
+  once: _once = true,
+  amount: _amount = 0.2,
 }: {
   children: ReactNode;
   className?: string;
@@ -62,32 +67,18 @@ export function Reveal({
   once?: boolean;
   amount?: number;
 }) {
-  const ref = useRef<HTMLDivElement>(null);
-  const isInView = useInView(ref, { once, amount });
-
-  return (
-    <motion.div
-      ref={ref}
-      className={className}
-      variants={variants}
-      initial="hidden"
-      animate={isInView ? "visible" : "hidden"}
-      transition={{ duration, delay, ease: [0.25, 0.1, 0.25, 1] }}
-    >
-      {children}
-    </motion.div>
-  );
+  return <div className={className}>{children}</div>;
 }
 
 // ===== Stagger Group =====
-// Wrap multiple <Reveal> or <MotionItem> children — they'll animate in sequence
+// DISABLED — same reason as Reveal. Renders children directly.
 
 export function StaggerGroup({
   children,
   className = "",
-  stagger = 0.1,
-  amount = 0.2,
-  once = true,
+  stagger: _stagger = 0.1,
+  amount: _amount = 0.2,
+  once: _once = true,
 }: {
   children: ReactNode;
   className?: string;
@@ -95,50 +86,24 @@ export function StaggerGroup({
   amount?: number;
   once?: boolean;
 }) {
-  const ref = useRef<HTMLDivElement>(null);
-  const isInView = useInView(ref, { once, amount });
-
-  return (
-    <motion.div
-      ref={ref}
-      className={className}
-      variants={{
-        hidden: {},
-        visible: {
-          transition: { staggerChildren: stagger, delayChildren: 0.05 },
-        },
-      }}
-      initial="hidden"
-      animate={isInView ? "visible" : "hidden"}
-    >
-      {children}
-    </motion.div>
-  );
+  return <div className={className}>{children}</div>;
 }
 
 // ===== Stagger Item =====
-// Use inside <StaggerGroup>
+// DISABLED — same reason as StaggerGroup. Renders children directly.
 
 export function StaggerItem({
   children,
   className = "",
-  variants = fadeUp,
-  duration = 0.6,
+  variants: _variants = fadeUp,
+  duration: _duration = 0.6,
 }: {
   children: ReactNode;
   className?: string;
   variants?: Variants;
   duration?: number;
 }) {
-  return (
-    <motion.div
-      className={className}
-      variants={variants}
-      transition={{ duration, ease: [0.25, 0.1, 0.25, 1] }}
-    >
-      {children}
-    </motion.div>
-  );
+  return <div className={className}>{children}</div>;
 }
 
 // ===== Hover Card =====

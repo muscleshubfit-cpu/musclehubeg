@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import { useI18n } from "@/lib/i18n";
 import { useNav } from "@/hooks/use-nav";
-import { useScrollAnimation } from "@/hooks/use-scroll-animation";
 import { SiteHeader } from "@/components/SiteHeader";
 import { ShareButtons } from "@/components/ShareButtons";
 import {
@@ -52,25 +51,18 @@ function TestimonialCard({ img, name, username, body, country, isAr }: { img: st
   );
 }
 
+// Disabled Reveal — animations were causing jarring "shake" effects
+// during scroll. Now just renders children directly.
 function Reveal({
   children,
   className = "",
-  delay = 0,
+  delay: _delay = 0,
 }: {
   children: React.ReactNode;
   className?: string;
   delay?: number;
 }) {
-  const { ref, isVisible } = useScrollAnimation<HTMLDivElement>();
-  return (
-    <div
-      ref={ref}
-      className={`${isVisible ? "animate-fade-in" : "scroll-hidden"} ${className}`}
-      style={delay ? { animationDelay: `${delay}ms` } : undefined}
-    >
-      {children}
-    </div>
-  );
+  return <div className={className}>{children}</div>;
 }
 
 function CenteredSection({

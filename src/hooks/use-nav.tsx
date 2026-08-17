@@ -115,7 +115,11 @@ export function useNav() {
  const navigate = useCallback(
  (v: View, p: Record<string, any> = {}) => {
  router.push(pathForView(v, p));
- if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
+ // NOTE: Do NOT call window.scrollTo here.
+ // The smooth-scroll on every navigation was causing a jarring "scroll
+ // to top before page change" effect. The browser's default behavior
+ // (instant jump on route change) is better — and Next.js App Router
+ // already handles scroll restoration correctly for back/forward.
  },
  [router],
  );

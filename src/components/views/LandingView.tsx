@@ -4,7 +4,6 @@ import { useState, useEffect, useRef } from "react";
 import { useI18n } from "@/lib/i18n";
 import { useNav } from "@/hooks/use-nav";
 import { useAuth } from "@/hooks/use-auth";
-import { useScrollAnimation } from "@/hooks/use-scroll-animation";
 import {
   Accordion,
   AccordionContent,
@@ -30,26 +29,19 @@ const IMAGES = {
   yoga: "/images/yoga-studio.jpg",
 };
 
-// Apple-style gentle reveal
+// Disabled Reveal — animations were causing jarring "shake" effects
+// during scroll. Now just renders children directly without any
+// opacity/transform animation.
 function Reveal({
   children,
   className = "",
-  delay = 0,
+  delay: _delay = 0,
 }: {
   children: React.ReactNode;
   className?: string;
   delay?: number;
 }) {
-  const { ref, isVisible } = useScrollAnimation<HTMLDivElement>();
-  return (
-    <div
-      ref={ref}
-      className={`${isVisible ? "animate-fade-in" : "scroll-hidden"} ${className}`}
-      style={delay ? { animationDelay: `${delay}ms` } : undefined}
-    >
-      {children}
-    </div>
-  );
+  return <div className={className}>{children}</div>;
 }
 
 function CenteredSection({
