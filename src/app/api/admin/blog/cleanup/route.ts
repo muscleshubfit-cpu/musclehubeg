@@ -107,30 +107,17 @@ type FixReport = {
 };
 
 export async function POST(request: NextRequest) {
-  // TEMP MAINTENANCE MODE: this endpoint accepts a hardcoded one-time
-  // maintenance key (CHANGE_THIS_BEFORE_DEPLOY). After running the
-  // cleanup once, this should be reverted to require coach auth.
-  //
   // Auth gate — accept EITHER:
   //   (a) Coach cookie session (via requireCoach), OR
-  //   (b) CRON_SECRET header (Authorization: Bearer <CRON_SECRET>), OR
-  //   (c) MAINTENANCE_KEY header (x-maintenance-key: <MAINTENANCE_KEY>), OR
-  //   (d) TEMP maintenance bypass header (x-cleanup-token: musclehub-cleanup-2026)
+  //   (b) CRON_SECRET header (Authorization: Bearer <CRON_SECRET>),
+  //       so automated maintenance scripts + GitHub Actions can call it
+  //       without a coach login session.
   const cronAuth = request.headers.get("authorization");
   const cronExpected = process.env.CRON_SECRET;
   const isCronAuthed =
     cronAuth && cronExpected && cronAuth === `Bearer ${cronExpected}`;
 
-  const maintenanceKey = request.headers.get("x-maintenance-key");
-  const expectedMaintenanceKey = process.env.MAINTENANCE_KEY;
-  const isMaintenanceAuthed =
-    maintenanceKey && expectedMaintenanceKey && maintenanceKey === expectedMaintenanceKey;
-
-  // TEMP: hardcoded bypass token — REMOVE after cleanup is done.
-  const bypassToken = request.headers.get("x-cleanup-token");
-  const isBypassAuthed = bypassToken === "musclehub-cleanup-2026";
-
-  if (!isCronAuthed && !isMaintenanceAuthed && !isBypassAuthed) {
+  if (!isCronAuthed) {
     if (isAuthConfigured) {
       const auth = await requireCoach(request);
       if (auth instanceof Response) return auth;
