@@ -1,4 +1,4 @@
-import { callFreeOpenRouter, parseJSON, FREE_OPENROUTER_MODELS } from "@/lib/ai-provider";
+import { callAIWithFallback, callFreeOpenRouter, parseJSON } from "@/lib/ai-provider";
 import type { AIConfig } from "@/lib/ai-provider";
 
 /**
@@ -210,30 +210,65 @@ export type ArticleBundle = {
 
 export async function generateArticleBundle(
  input: { topic?: string; focusKeyword?: string; category?: string; research?: any },
- override?: Partial<AIConfig>,
+ override?: Partial<AIConfig> | null,
 ): Promise<ArticleBundle> {
  const prompt = articleUserPrompt(input, input.research);
 
- // Use callFreeOpenRouter — iterates FREE_OPENROUTER_MODELS in order
- // (nvidia/nemotron-3-ultra-550b → nvidia/nemotron-3.5-lightning →
- //  nvidia/nemotron-3-super-120b → google/gemma-4-31b → google/gemma-4-26b
- //  → openai/gpt-oss-20b) and returns the first successful response.
- // This is the same unified model-selection principle used across the
- // entire site (EVO chat, swaps, plan generator). Falls back gracefully.
- const { text: raw, model: usedModel } = await callFreeOpenRouter(
- prompt,
- {
- systemPrompt: ARTICLE_SYSTEM_PROMPT,
- temperature: 0.7,
- maxTokens: 4_000,
- jsonMode: true,
- timeoutMs: 50_000,
- },
- );
+ // Model selection strategy (unified with the rest of the site):
+ //   1. If an admin override is set (via AI Settings page → stored in
+ //      HTTP-only cookies) AND has an API key → try callAIWithFallback
+ //      with that override first. Lets the admin switch to OpenAI/Gemini/etc.
+ //   2. If the override fails (or no override is set) → fall back to
+ //      callFreeOpenRouter, which iterates FREE_OPENROUTER_MODELS in
+ //      order (nvidia/nemotron-3-ultra-550b → nemotron-3.5-lightning →
+ //      nemotron-3-super-120b → google/gemma-4-31b → gemma-4-26b →
+ //      openai/gpt-oss-20b) and returns the first successful response.
+ const callOpts = {
+   systemPrompt: ARTICLE_SYSTEM_PROMPT,
+   temperature: 0.7,
+   maxTokens: 4_000,
+   jsonMode: true,
+   timeoutMs: 50_000,
+ };
+
+ let raw: string;
+ let source: string;
+ let lastError: any = null;
+
+ if (override && override.apiKey) {
+   try {
+     const { text, provider, model } = await callAIWithFallback(
+       prompt,
+       callOpts,
+       override,
+     );
+     raw = text;
+     source = `${provider}:${model}`;
+   } catch (e: any) {
+     console.warn("[blog-generate] override failed, falling back to free OpenRouter:", e?.message);
+     lastError = e;
+     const { text, model } = await callFreeOpenRouter(prompt, callOpts);
+     raw = text;
+     source = `openrouter:${model}`;
+   }
+ } else {
+   try {
+     const { text, model } = await callFreeOpenRouter(prompt, callOpts);
+     raw = text;
+     source = `openrouter:${model}`;
+   } catch (e: any) {
+     lastError = e;
+     throw e;
+   }
+ }
 
  const parsed = parseJSON<any>(raw);
  if (!parsed) {
- throw new Error("AI returned a response but it was not valid JSON.");
+   throw new Error(
+     `AI returned a response but it was not valid JSON.${
+       lastError ? ` (Last error: ${lastError.message})` : ""
+     }`,
+   );
  }
 
  const emptySeo: SeoBlock = { seoTitle: "", metaTitle: "", metaDescription: "", slug: "" };
@@ -264,6 +299,6 @@ export async function generateArticleBundle(
  typeof parsed.estimatedReadingTime === "number"
  ? parsed.estimatedReadingTime
  : Math.max(1, Math.ceil((parsed.englishArticle || "").split(/\s+/).length / 200)),
- source: `openrouter:${usedModel}`,
+ source: source,
  };
 }

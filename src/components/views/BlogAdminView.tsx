@@ -86,6 +86,42 @@ export function BlogAdminView() {
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <button
+            onClick={async () => {
+              if (!confirm(isAr ? "تنظيف النصوص المشوهة في المقالات المنشورة؟ (يدوياً)" : "Clean up garbled text in published articles? (dry run first)")) return;
+              // Step 1: dry run
+              const dryRes = await fetch("/api/admin/blog/cleanup", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ dry_run: true }),
+              });
+              if (!dryRes.ok) {
+                alert(isAr ? "فشل الفحص" : "Scan failed");
+                return;
+              }
+              const dry = await dryRes.json();
+              const msg = isAr
+                ? `تم العثور على ${dry.fixed} مقال تحتاج إصلاح. تطبّق الإصلاحات؟`
+                : `Found ${dry.fixed} articles needing fixes. Apply them now?`;
+              if (!confirm(msg)) return;
+              // Step 2: apply
+              const applyRes = await fetch("/api/admin/blog/cleanup", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ dry_run: false }),
+              });
+              const applied = await applyRes.json();
+              if (applyRes.ok) {
+                alert(isAr ? `تم إصلاح ${applied.fixed} مقال ✅` : `Fixed ${applied.fixed} articles ✅`);
+                window.location.reload();
+              } else {
+                alert(isAr ? "فشل التطبيق" : "Apply failed");
+              }
+            }}
+            className="rounded-full border border-[#ff9500]/30 bg-[#ff9500]/10 px-5 py-2.5 text-sm font-normal text-[#ff9500] transition-opacity hover:opacity-90"
+          >
+            {isAr ? "تنظيف المقالات" : "Cleanup articles"}
+          </button>
+          <button
             onClick={() => router.push("/admin/ai-settings")}
             className="rounded-full border border-[#d2d2d7] bg-white px-5 py-2.5 text-sm font-normal transition-opacity hover:opacity-90"
           >
