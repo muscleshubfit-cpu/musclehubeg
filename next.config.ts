@@ -1,18 +1,5 @@
 import type { NextConfig } from "next";
 
-// Sentry wrapper — when @sentry/nextjs is installed, wrap the config so
-// Sentry can inject its build-time instrumentation (source map upload,
-// release tagging). The wrapper falls through gracefully if Sentry
-// isn't configured (no SENTRY_AUTH_TOKEN env var).
-const { withSentryConfig } = (() => {
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    return require("@sentry/nextjs");
-  } catch {
-    return { withSentryConfig: (c: any) => c };
-  }
-})();
-
 const nextConfig: NextConfig = {
   // Output standalone build — produces .next/standalone/server.js so
   // `bun .next/standalone/server.js` works in production without
@@ -66,14 +53,4 @@ const nextConfig: NextConfig = {
   },
 };
 
-// Sentry build options — only active if SENTRY_AUTH_TOKEN is set in env.
-// Otherwise the wrapper is a no-op.
-export default withSentryConfig(nextConfig, {
-  // Only relevant when SENTRY_AUTH_TOKEN is set — silently ignored otherwise.
-  silent: true,
-  org: process.env.SENTRY_ORG,
-  project: process.env.SENTRY_PROJECT,
-  // Don't widen bundles when tree-shaking fails on Sentry imports
-  hideSourceMaps: true,
-  disableLogger: true,
-});
+export default nextConfig;
