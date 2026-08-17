@@ -17,8 +17,8 @@ export function BlogMembershipCard({ lang }: { lang: "en" | "ar" }) {
 
  const tiers = [
  { id: "free", nameAr: "مجاني", nameEn: "Free", price: "$0", highlight: false },
- { id: "premium", nameAr: "بريميوم", nameEn: "Premium", price: "$9.99", highlight: true },
- { id: "pro", nameAr: "برو", nameEn: "Pro", price: "$19.99", highlight: false },
+ { id: "premium", nameAr: "بريميوم", nameEn: "Premium", price: "$14.99", highlight: true },
+ { id: "pro", nameAr: "برو", nameEn: "Pro", price: "$29.99", highlight: false },
  ];
 
  return (

@@ -1,14 +1,15 @@
 /**
  * Membership tiers for MuscleHub platform.
  *
- * 4 levels:
- *   - Free:    basic access, limited EVO, 1 meal plan save
- *   - Premium: $9.99/mo or $79.99/yr — full EVO chat, limited plan gen
- *   - Pro:     $19.99/mo or $149.99/yr — full features, premium content
- *   - Coaching: separate ($20-40/mo) — human coach, NOT linked to Pro
+ * 4 levels (prices updated 2026 to cover Vercel + Supabase + AI +
+ * Lemon Squeezy 5%+$0.50 payment fees + profit margin):
+ *   - Free:     basic access, limited EVO, 1 meal plan save
+ *   - Premium:  $14.99/mo or $119/yr — full EVO chat, limited plan gen
+ *   - Pro:      $29.99/mo or $239/yr — full features, premium content
+ *   - Coaching: $39.99/mo or $359/yr — human coach, NOT linked to Pro
  *
  * Limits reset monthly for all tiers.
- * Ads show on ALL tiers (not mentioned anywhere).
+ * Ads show on Free + Premium tiers only (Pro+ are ad-free).
  */
 
 export type MembershipTier = "free" | "premium" | "pro" | "coaching";
@@ -89,8 +90,8 @@ export const MEMBERSHIPS: MembershipInfo[] = [
     id: "premium",
     nameAr: "بريميوم",
     nameEn: "Premium",
-    priceMonthly: 9.99,
-    priceYearly: 79.99,
+    priceMonthly: 14.99,
+    priceYearly: 119.0,
     limits: {
       evoChatDailyLimit: null,
       evoNutritionPlanLimit: 3,
@@ -125,8 +126,8 @@ export const MEMBERSHIPS: MembershipInfo[] = [
     id: "pro",
     nameAr: "برو",
     nameEn: "Pro",
-    priceMonthly: 19.99,
-    priceYearly: 149.99,
+    priceMonthly: 29.99,
+    priceYearly: 239.0,
     limits: {
       evoChatDailyLimit: null,
       evoNutritionPlanLimit: 6,
@@ -160,8 +161,8 @@ export const MEMBERSHIPS: MembershipInfo[] = [
     id: "coaching",
     nameAr: "كوتشينج",
     nameEn: "Coaching",
-    priceMonthly: 20,
-    priceYearly: null,
+    priceMonthly: 39.99,
+    priceYearly: 359.0,
     limits: {
       evoChatDailyLimit: null,
       evoNutritionPlanLimit: null,

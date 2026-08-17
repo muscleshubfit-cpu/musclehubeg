@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "Memberships | MuscleHub — Premium & Pro Plans",
   description:
-    "Choose your MuscleHub membership: Free, Premium ($9.99/mo), or Pro ($19.99/mo). Unlock unlimited EVO AI, meal planner, workout plan generation, and premium content.",
+    "Choose your MuscleHub membership: Free, Premium ($14.99/mo or $119/yr), or Pro ($29.99/mo or $239/yr). Unlock unlimited EVO AI, meal planner, workout plan generation, and premium content.",
   keywords: [
     "membership",
     "premium",

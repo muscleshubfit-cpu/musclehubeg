@@ -629,7 +629,7 @@ export function LandingView() {
                     {isAr ? "بريميوم" : "Premium"}
                   </h3>
                   <span className="rounded-full bg-[#0071e3]/20 px-3 py-1 text-xs font-medium text-[#0071e3]">
-                    $9.99/{isAr ? "شهر" : "mo"}
+                    $14.99/{isAr ? "شهر" : "mo"}
                   </span>
                 </div>
                 <p className="mt-2 text-sm font-normal text-gray-400">
@@ -658,7 +658,7 @@ export function LandingView() {
                     </span>
                   </div>
                   <span className="rounded-full bg-[#0071e3] px-3 py-1 text-xs font-medium text-white">
-                    $19.99/{isAr ? "شهر" : "mo"}
+                    $29.99/{isAr ? "شهر" : "mo"}
                   </span>
                 </div>
                 <p className="mt-2 text-sm font-normal text-gray-300">

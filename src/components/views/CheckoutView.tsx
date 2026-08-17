@@ -18,7 +18,7 @@ import { toast } from "sonner";
 /**
  * Unified checkout — supports both:
  *   1. New membership tiers (premium, pro) — uses MEMBERSHIPS table for
- *      pricing ($9.99/$19.99 monthly, $79.99/$149.99 yearly)
+ *      pricing ($14.99/$29.99 monthly, $119/$239 yearly)
  *   2. Legacy coaching tiers (starter, elite) — kept for backward compat
  *      with any old links
  */

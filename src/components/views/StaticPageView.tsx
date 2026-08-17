@@ -83,7 +83,7 @@ function getContent(page: string, isAr: boolean) {
  { heading: "من نحن", paragraphs: ["MuscleHub هي منصة تحسين أداء بشري بالذكاء الاصطناعي. نجمع بين محرك الذكاء الاصطناعي EVO وقاعدة بيانات ضخمة لتمارين (٨٦٨+) وأكلات (٨٬٨٣٠+) لتقديم تجربة لياقة وتغذية لا مثيل لها.", "تأسست MuscleHub برؤية بسيطة: المستقبل ليس إنسان ضد AI، بل إنسان + AI. نحن نؤمن بأن أفضل النتائج تأتي من الجمع بين حكمة الإنسان وذكاء الآلة."] },
  { heading: "رؤيتنا", paragraphs: ["أن نكون المنصة الأولى للكوتشينج الرياضي والتغذوي في العالم العربي، ونقدم تجربة عالمية المستوى لكل عضو."] },
  { heading: "EVO — محرك الأداء الذكي", paragraphs: ["EVO ليس شات بوت عادي. بل محرك ذكاء اصطناعي يحلل بياناتك، يتنبأ بالنتائج، يوصي بالتحسينات، ويحدّث خططك تلقائياً. متاح لجميع الأعضاء مع حدود حسب العضوية."] },
- { heading: "العضويات", paragraphs: ["MuscleHub تقدم 3 باقات: مجاني (وصول محدود)، بريميوم $9.99/شهر (EVO غير محدود + خطط شهرية)، برو $19.99/شهر (محتوى مميز + خطط مضاعفة). وكوتشينج بشري منفصل للمهتمين بمتابعة فردية."] },
+ { heading: "العضويات", paragraphs: ["MuscleHub تقدم 3 باقات: مجاني (وصول محدود)، بريميوم $14.99/شهر أو $119/سنة (EVO غير محدود + خطط شهرية)، برو $29.99/شهر أو $239/سنة (محتوى مميز + خطط مضاعفة). وكوتشينج بشري منفصل بـ $39.99/شهر أو $359/سنة للمهتمين بمتابعة فردية."] },
  ],
  } : {
  title: "About MuscleHub",
@@ -92,7 +92,7 @@ function getContent(page: string, isAr: boolean) {
  { heading: "Who We Are", paragraphs: ["MuscleHub is an AI-powered human optimization platform. We combine the EVO AI engine with a massive database of exercises (868+) and foods (8,830+) to deliver an unmatched fitness and nutrition experience.", "MuscleHub was founded on a simple vision: the future isn't Human vs AI, it's Human + AI. We believe the best results come from combining human wisdom with machine intelligence."] },
  { heading: "Our Vision", paragraphs: ["To be the leading fitness and nutrition platform in the Arab world, delivering a world-class experience to every member."] },
  { heading: "EVO — The AI Performance Engine", paragraphs: ["EVO is not a regular chatbot. It's an AI engine that analyzes your data, predicts outcomes, recommends improvements, and updates your plans automatically. Available to all members with tier-based limits."] },
- { heading: "Memberships", paragraphs: ["MuscleHub offers 3 tiers: Free (limited access), Premium $9.99/mo (unlimited EVO + monthly plans), Pro $19.99/mo (premium content + doubled plans). Human coaching is available separately for those who want 1-on-1 supervision."] },
+ { heading: "Memberships", paragraphs: ["MuscleHub offers 3 tiers: Free (limited access), Premium $14.99/mo or $119/yr (unlimited EVO + monthly plans), Pro $29.99/mo or $239/yr (premium content + doubled plans). Human coaching is available separately at $39.99/mo or $359/yr for those who want 1-on-1 supervision."] },
  ],
  };
  }
