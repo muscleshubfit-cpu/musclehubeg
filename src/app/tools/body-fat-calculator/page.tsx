@@ -7,6 +7,7 @@ import { SiteHeader } from "@/components/SiteHeader";
 import { AdSenseAd } from "@/components/AdSenseAd";
 import { OtherTools } from "@/components/OtherTools";
 import { LeadCaptureCard } from "@/components/LeadCaptureCard";
+import { SaveResultButton } from "@/components/SaveResultButton";
 import { ShareButtons } from "@/components/ShareButtons";
 
 type Gender = "male" | "female";
@@ -152,6 +153,13 @@ export default function BodyFatCalculatorPage() {
                 {isAr ? "احصل على خطة مخصصة ›" : "Get a personalized plan ›"}
               </button>
             </div>
+
+            {/* Save + Download */}
+            <SaveResultButton
+              toolSlug="body-fat-calculator"
+              title={`Body Fat: ${result.bf}% (${result.category})`}
+              resultData={{ ...result, gender }}
+            />
 
             {/* Lead Capture (Email / WhatsApp) — optional */}
             <LeadCaptureCard

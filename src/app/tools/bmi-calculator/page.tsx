@@ -7,6 +7,7 @@ import { SiteHeader } from "@/components/SiteHeader";
 import { AdSenseAd } from "@/components/AdSenseAd";
 import { OtherTools } from "@/components/OtherTools";
 import { LeadCaptureCard } from "@/components/LeadCaptureCard";
+import { SaveResultButton } from "@/components/SaveResultButton";
 import { ShareButtons } from "@/components/ShareButtons";
 
 type Unit = "metric" | "imperial";
@@ -219,6 +220,13 @@ export default function BMICalculatorPage() {
                 {isAr ? "احصل على خطة مخصصة ›" : "Get a personalized plan ›"}
               </button>
             </div>
+
+            {/* Save + Download */}
+            <SaveResultButton
+              toolSlug="bmi-calculator"
+              title={`BMI: ${result.bmi} (${result.category})`}
+              resultData={result}
+            />
 
             {/* Lead Capture (Email / WhatsApp) — optional */}
             <LeadCaptureCard

@@ -19,6 +19,8 @@ import {
   FileText,
   Calculator,
   Settings,
+  Bookmark,
+  Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -287,6 +289,9 @@ export default function ProfilePage() {
           </div>
         </div>
 
+        {/* Saved tool results */}
+        <SavedResultsSection isAr={isAr} userId={profile?.id} />
+
         {/* Quick links */}
         <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
           {[
@@ -349,6 +354,108 @@ export default function ProfilePage() {
           {isAr ? "تسجيل الخروج" : "Log out"}
         </button>
       </main>
+    </div>
+  );
+}
+
+// Saved results section component
+function SavedResultsSection({ isAr, userId }: { isAr: boolean; userId?: string }) {
+  const [results, setResults] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!userId) {
+      setLoading(false);
+      return;
+    }
+    (async () => {
+      try {
+        const res = await fetch("/api/tools/saved-results");
+        if (res.ok) {
+          const data = await res.json();
+          setResults(data.results || []);
+        }
+      } catch {
+        // silent
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [userId]);
+
+  const handleDelete = async (id: string) => {
+    try {
+      await fetch(`/api/tools/saved-results?id=${id}`, { method: "DELETE" });
+      setResults((prev) => prev.filter((r) => r.id !== id));
+      toast.success(isAr ? "تم الحذف" : "Deleted");
+    } catch {
+      toast.error(isAr ? "فشل الحذف" : "Failed");
+    }
+  };
+
+  const TOOL_NAMES: Record<string, string> = {
+    "calorie-calculator": isAr ? "حاسبة السعرات" : "Calorie Calculator",
+    "bmi-calculator": isAr ? "حاسبة BMI" : "BMI Calculator",
+    "macro-calculator": isAr ? "حاسبة الماكروز" : "Macro Calculator",
+    "body-fat-calculator": isAr ? "حاسبة الدهون" : "Body Fat Calculator",
+  };
+
+  return (
+    <div className="mt-4 rounded-3xl bg-white p-6 md:p-8">
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-semibold tracking-tight">
+          {isAr ? "النتائج المحفوظة" : "Saved Results"}
+        </h2>
+        <span className="text-xs font-normal text-[#6e6e73]">
+          {results.length} {isAr ? "نتيجة" : "results"}
+        </span>
+      </div>
+
+      {loading ? (
+        <div className="mt-4 flex justify-center py-8">
+          <Loader2 className="h-6 w-6 animate-spin text-[#0071e3]" />
+        </div>
+      ) : results.length === 0 ? (
+        <div className="mt-4 rounded-2xl bg-[#f5f5f7] p-8 text-center">
+          <Bookmark className="mx-auto h-8 w-8 text-[#d2d2d7]" />
+          <p className="mt-3 text-sm font-normal text-[#6e6e73]">
+            {isAr
+              ? "مفيش نتائج محفوظة بعد. استخدم الأدوات واحفظ نتائجك."
+              : "No saved results yet. Use the tools and save your results."}
+          </p>
+          <a
+            href="/tools"
+            className="mt-3 inline-block text-sm font-medium text-[#0071e3] hover:underline"
+          >
+            {isAr ? "تصفح الأدوات ›" : "Browse tools ›"}
+          </a>
+        </div>
+      ) : (
+        <div className="mt-4 space-y-2">
+          {results.map((r) => (
+            <div
+              key={r.id}
+              className="flex items-center justify-between gap-3 rounded-xl bg-[#f5f5f7] p-3"
+            >
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium">
+                  {r.title || TOOL_NAMES[r.tool_slug] || r.tool_slug}
+                </p>
+                <p className="mt-0.5 text-xs font-normal text-[#6e6e73]">
+                  {TOOL_NAMES[r.tool_slug] || r.tool_slug} ·{" "}
+                  {new Date(r.created_at).toLocaleDateString()}
+                </p>
+              </div>
+              <button
+                onClick={() => handleDelete(r.id)}
+                className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-[#ff3b30] transition-colors hover:bg-[#ff3b30]/5"
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

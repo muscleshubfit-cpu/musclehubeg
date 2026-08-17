@@ -7,6 +7,7 @@ import { SiteHeader } from "@/components/SiteHeader";
 import { AdSenseAd } from "@/components/AdSenseAd";
 import { OtherTools } from "@/components/OtherTools";
 import { LeadCaptureCard } from "@/components/LeadCaptureCard";
+import { SaveResultButton } from "@/components/SaveResultButton";
 import { ShareButtons } from "@/components/ShareButtons";
 
 type Gender = "male" | "female";
@@ -299,6 +300,13 @@ export default function CalorieCalculatorPage() {
                 {isAr ? "احصل على خطة مخصصة ›" : "Get a personalized plan ›"}
               </button>
             </div>
+
+            {/* Save + Download */}
+            <SaveResultButton
+              toolSlug="calorie-calculator"
+              title={`Calories: ${result.target} kcal/day`}
+              resultData={result}
+            />
 
             {/* Lead Capture (Email / WhatsApp) — optional */}
             <LeadCaptureCard

@@ -7,6 +7,7 @@ import { SiteHeader } from "@/components/SiteHeader";
 import { AdSenseAd } from "@/components/AdSenseAd";
 import { OtherTools } from "@/components/OtherTools";
 import { LeadCaptureCard } from "@/components/LeadCaptureCard";
+import { SaveResultButton } from "@/components/SaveResultButton";
 import { ShareButtons } from "@/components/ShareButtons";
 
 type DietType = "balanced" | "low_carb" | "high_protein" | "keto" | "low_fat";
@@ -111,6 +112,13 @@ export default function MacroCalculatorPage() {
                 {isAr ? "احصل على خطة مخصصة ›" : "Get a personalized plan ›"}
               </button>
             </div>
+
+            {/* Save + Download */}
+            <SaveResultButton
+              toolSlug="macro-calculator"
+              title={`Macros: P${result.protein_g}g C${result.carbs_g}g F${result.fat_g}g`}
+              resultData={{ ...result, calories, diet }}
+            />
 
             {/* Lead Capture (Email / WhatsApp) — optional */}
             <LeadCaptureCard
