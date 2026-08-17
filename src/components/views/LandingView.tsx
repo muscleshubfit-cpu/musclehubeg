@@ -366,14 +366,15 @@ export function LandingView() {
           </div>
           <div className="mt-10 grid grid-cols-1 gap-4 sm:grid-cols-2">
             {[
-              { slug: "calorie-calculator", nameAr: "حاسبة السعرات", nameEn: "Calorie Calculator", descAr: "احسب احتياجك اليومي", descEn: "Daily calorie needs", emoji: "🔥", color: "#ff9500" },
-              { slug: "bmi-calculator", nameAr: "حاسبة BMI", nameEn: "BMI Calculator", descAr: "هل وزنك مثالي؟", descEn: "Is your weight healthy?", emoji: "⚖️", color: "#0071e3" },
-              { slug: "macro-calculator", nameAr: "حاسبة الماكروز", nameEn: "Macro Calculator", descAr: "بروتين وكارب ودهون", descEn: "Protein, carbs, fat", emoji: "🥩", color: "#34c759" },
-              { slug: "body-fat-calculator", nameAr: "حاسبة الدهون", nameEn: "Body Fat %", descAr: "نسبة دهون جسمك", descEn: "Your body fat %", emoji: "📊", color: "#ff3b30" },
+              { slug: "calorie-calculator", nameAr: "حاسبة السعرات", nameEn: "Calorie Calculator", descAr: "احسب احتياجك اليومي", descEn: "Daily calorie needs", emoji: "🔥", color: "#ff9500", href: "/tools/calorie-calculator" },
+              { slug: "bmi-calculator", nameAr: "حاسبة BMI", nameEn: "BMI Calculator", descAr: "هل وزنك مثالي؟", descEn: "Is your weight healthy?", emoji: "⚖️", color: "#0071e3", href: "/tools/bmi-calculator" },
+              { slug: "macro-calculator", nameAr: "حاسبة الماكروز", nameEn: "Macro Calculator", descAr: "بروتين وكارب ودهون", descEn: "Protein, carbs, fat", emoji: "🥩", color: "#34c759", href: "/tools/macro-calculator" },
+              { slug: "body-fat-calculator", nameAr: "حاسبة الدهون", nameEn: "Body Fat %", descAr: "نسبة دهون جسمك", descEn: "Your body fat %", emoji: "📊", color: "#ff3b30", href: "/tools/body-fat-calculator" },
+              { slug: "meal-planner", nameAr: "مخطط الوجبات", nameEn: "Meal Planner", descAr: "ابني وجباتك بنفسك", descEn: "Build your own meals", emoji: "🍽️", color: "#8b5cf6", href: "/meal-planner" },
             ].map((tool, i) => (
               <Reveal key={tool.slug} delay={i * 80}>
                 <a
-                  href={`/tools/${tool.slug}`}
+                  href={tool.href}
                   className="group flex items-center gap-4 rounded-3xl bg-white p-6 transition-opacity hover:opacity-90"
                 >
                   <span className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl text-2xl" style={{ backgroundColor: `${tool.color}15` }}>

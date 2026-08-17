@@ -7,6 +7,7 @@ const ALL_TOOLS = [
   { slug: "bmi-calculator", nameAr: "حاسبة BMI", nameEn: "BMI Calculator", emoji: "⚖️", color: "#0071e3" },
   { slug: "macro-calculator", nameAr: "حاسبة الماكروز", nameEn: "Macro Calculator", emoji: "🥩", color: "#34c759" },
   { slug: "body-fat-calculator", nameAr: "حاسبة الدهون", nameEn: "Body Fat %", emoji: "📊", color: "#ff3b30" },
+  { slug: "meal-planner", nameAr: "مخطط الوجبات", nameEn: "Meal Planner", emoji: "🍽️", color: "#8b5cf6" },
 ];
 
 

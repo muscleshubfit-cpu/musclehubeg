@@ -1437,3 +1437,33 @@ Stage Summary:
 - Export pipeline: client-side canvas → result-png-export.ts draws branded card → canvas.toBlob() → download .png. Premium+ gated via tier check before calling export.
 - Admin pipeline: GET /api/admin/saved-results → requireCoach → joins saved_results + profiles → AdminSavedResultsView renders table with search/filter/expand/CSV export.
 - Profile pipeline: GET /api/tools/saved-results → user's own results only → render list with delete + open-tool links.
+
+---
+Task ID: meal-planner
+Agent: main (super-z)
+Task: Build Meal Planner tool (Phase 3, Part 2). Interactive table where user adds foods (search unified local 8,830 + product database), enters grams, sees auto-calculated macros per item + per meal + grand total. Membership-gated meal count + saved plan count.
+
+Work Log:
+- Created supabase/migrations/0008_meal_plans.sql: new `meal_plans` table with user_id FK, title, plan_data JSONB, denormalized totals (calories/protein/carbs/fat/meal_count) for fast admin views, RLS for insert/select/update/delete (owner-only).
+- Created src/app/api/tools/save-meal-plan/route.ts: POST handler — requires auth, resolves real membership_tier via requireUser, enforces mealPlannerMaxMeals (Free:3, Premium:6, Pro:8, Coaching:unlimited) and mealPlannerMaxSaved (Free:1, Premium:10, Pro:50, Coaching:unlimited). Computes totals server-side and stores them denormalized.
+- Created src/app/api/tools/saved-meal-plans/route.ts: GET (list user's own plans) + DELETE (by id, owner-gated).
+- Created src/app/meal-planner/page.tsx: full interactive page. Structure:
+  * Header with tier badge showing current limits (max meals + max saves).
+  * Plan title input + "Add meal" button (disabled when hitting tier cap).
+  * MealCard per meal: numbered circle, editable meal name, list of items, food search input, per-meal totals (4 mini-stats).
+  * ItemRow per food: name (read-only), source badge, grams input (default 100), live-computed macros as colored pills, remove (X) button.
+  * FoodSearchInput: debounced 300ms query to /api/food-search, dropdown with name + source + per-100g preview, click to add to current meal.
+  * Grand total card (dark bg, 4 large colored stats).
+  * Save plan button (toast on success/limit/error) + Download JSON button + ShareButtons + AdSenseAd + OtherTools.
+  * SEO paragraph at the bottom (Arabic + English).
+- Updated src/components/OtherTools.tsx: added meal-planner to ALL_TOOLS array.
+- Updated src/app/tools/page.tsx: added meal-planner entry with href=/meal-planner (not /tools/meal-planner since it's a separate tool). The card link uses href.startsWith("/") check to support both relative and absolute paths.
+- Updated src/components/views/LandingView.tsx: tools section now has 5 cards (was 4) — added Meal Planner with explicit href field per tool to support the /meal-planner absolute path.
+
+Stage Summary:
+- Build passes: `npx next build` succeeded. /meal-planner is a static page. /api/tools/save-meal-plan and /api/tools/saved-meal-plans are dynamic API routes.
+- TypeScript: zero new errors from this task.
+- Membership gating works at 3 levels: (1) client-side UI badge shows real limits, (2) "Add meal" button disables at cap, (3) server-side API enforces both mealPlannerMaxMeals and mealPlannerMaxSaved with explicit error responses.
+- Food search reuses the existing /api/food-search endpoint — local 8,830 foods + product database. No new search code needed.
+- No images in the planner (consistent with the rest of the food tooling — emoji-only on browse pills).
+- Per-gram calculation: `Math.round(per100g × grams / 100)`. Done client-side for live preview AND server-side for the saved denormalized totals (defense in depth).

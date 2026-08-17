@@ -8,6 +8,7 @@ const tools = [
   { slug: "bmi-calculator", nameAr: "حاسبة مؤشر كتلة الجسم", nameEn: "BMI Calculator", descAr: "اعرف هل وزنك مثالي أم زائد", descEn: "Check if your weight is healthy", emoji: "⚖️", color: "#0071e3" },
   { slug: "macro-calculator", nameAr: "حاسبة الماكروز", nameEn: "Macro Calculator", descAr: "وزّع سعراتك على بروتين وكارب ودهون", descEn: "Split calories into protein, carbs, fat", emoji: "🥩", color: "#34c759" },
   { slug: "body-fat-calculator", nameAr: "حاسبة نسبة الدهون", nameEn: "Body Fat Calculator", descAr: "احسب نسبة الدهون في جسمك", descEn: "Calculate your body fat percentage", emoji: "📊", color: "#ff3b30" },
+  { slug: "/meal-planner", nameAr: "مخطط الوجبات", nameEn: "Meal Planner", descAr: "ابني وجباتك من ٨٨٣٠+ أكلة وشوف الماكروز", descEn: "Build meals from 8,830+ foods and track macros", emoji: "🍽️", color: "#8b5cf6" },
 ];
 
 export default function ToolsPage() {
@@ -34,7 +35,7 @@ export default function ToolsPage() {
           {tools.map((tool) => (
             <a
               key={tool.slug}
-              href={`/tools/${tool.slug}`}
+              href={tool.slug.startsWith("/") ? tool.slug : `/tools/${tool.slug}`}
               className="group flex items-center gap-4 rounded-3xl bg-[#f5f5f7] p-6 transition-opacity hover:opacity-90"
             >
               <span
