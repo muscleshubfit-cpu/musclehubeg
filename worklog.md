@@ -1551,3 +1551,37 @@ Stage Summary:
     1. `node scripts/scan-blog-garbled.js` — to see which articles are offending.
     2. `node scripts/fix-blog-mojibake.js` — DRY RUN by default; re-run with DRY_RUN=0 to apply fixes.
     3. If a post can't be auto-fixed, delete it via `DELETE=1 node scripts/scan-blog-garbled.js` or via the Blog Admin UI at /admin/blog and regenerate from the editor with the "Generate with AI" button.
+
+---
+Task ID: blog-garbled-fix
+Agent: main (super-z)
+Task: Fix the 2 specific garbled-text articles the user pointed out (Arabic blog posts with stray CJK / Unicode symbols where Arabic letters should be).
+
+Work Log:
+- Built a URL-based scanner at scripts/scan-blog-urls.js — fetches /sitemap.xml, then for each blog article URL fetches the HTML, extracts title + meta description + body sample, and flags stray Unicode chars (CJK, Hiragana, Katakana, Hangul, Cyrillic, Greek, box-drawing, corner symbols, mojibake markers) + language mismatch (Arabic post with <30% Arabic chars).
+- Built a broader scanner at scripts/scan-blog-urls-broad.js — same approach but covers an even wider Unicode block list (Hebrew, Thai, Devanagari, geometric shapes, dingbats, arrows, math operators, halfwidth forms, etc.) plus reports the exact Unicode codepoint of each offending character.
+- Ran the scanner on the live site (44 articles in sitemap). Result: only 2 articles offending — exactly the 2 the user reported.
+  • Article 1: /ar/blog/tawqeet-ihdath-al-broteen-al-aadali
+    - Title: "توقيت合س البروتين العضلي" — 3 occurrences of CJK char U+5408 (合)
+    - The "合س" appears where "إحداث" should be (title "توقيت إحداث البروتين العضلي" = Protein Synthesis Timing)
+    - Arabic ratio is healthy (83.3%), so only the title + meta description + a few body spots are corrupted
+  • Article 2: /ar/blog/al-sawm-al-tareebi-liziyadat-al-aadalaat
+    - Title: "الصوم الت⌒ريبي لزيادة العضلات" — 3 occurrences of U+2312 (⌒)
+    - The "⌒ريبي" appears where "قطيعي" should be (title "الصوم التقطيعي" = Intermittent Fasting)
+    - Arabic ratio is healthy (84.5%)
+- Both corruptions are AI-generation errors (the model emitted wrong Unicode chars in the middle of Arabic words), NOT transport/encoding mojibake. So my earlier fix-blog-mojibake.js (Latin-1 round-trip) wouldn't have helped.
+- Built a targeted fix script at scripts/fix-blog-known-garbled.js — applies hand-verified find→replace rules to specific slugs:
+  • tawqeet-ihdath-al-broteen-al-aadali: "توقيت合س البروتين" → "توقيت إحداث البروتين" + "توقيت 合س البروتين" → "توقيت إحداث البروتين" + "合س" → "إحداث"
+  • al-sawm-al-tareebi-liziyadat-al-aadalaat: "الت⌒ريبي" → "التقطيعي" + "الت⌒ريب" → "التقطيع" + "⌒ر" → "قطع"
+- Script targets ALL string fields stored in the row (title, excerpt, meta_title, meta_description, seo_title, content) so all visible surfaces get fixed in one pass.
+- DRY_RUN=1 by default — user runs it once to see what would change, then re-runs with DRY_RUN=0 to actually write to the DB.
+
+Stage Summary:
+- Total offending articles confirmed: 2 (out of 44 published — 95.5% clean)
+- Total stray Unicode characters detected: 6 (3 in each article, across title + meta + body)
+- Fix script ready to run — requires NEXT_PUBLIC_SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY env vars (the user has these in their Vercel project settings).
+- Command sequence for the user:
+    1. `node scripts/scan-blog-urls-broad.js` — verify the same 2 articles are flagged (sanity check).
+    2. `NEXT_PUBLIC_SUPABASE_URL=... SUPABASE_SERVICE_ROLE_KEY=... node scripts/fix-blog-known-garbled.js` — DRY RUN, review the planned changes.
+    3. `DRY_RUN=0 NEXT_PUBLIC_SUPABASE_URL=... SUPABASE_SERVICE_ROLE_KEY=... node scripts/fix-blog-known-garbled.js` — actually apply the fixes.
+    4. Re-run `node scripts/scan-blog-urls-broad.js` to confirm both articles now scan clean.
