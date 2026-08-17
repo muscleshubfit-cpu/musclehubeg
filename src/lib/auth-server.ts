@@ -30,11 +30,24 @@ export const isAuthConfigured = Boolean(
   supabaseUrl && supabaseAnonKey && supabaseUrl.startsWith("http"),
 );
 
+export type MembershipTier =
+  | "free"
+  | "premium"
+  | "pro"
+  | "coaching";
+
 export type AuthUser = {
   id: string;
   email?: string;
   role: "client" | "coach";
   full_name?: string | null;
+  /**
+   * Active membership tier for the user, resolved from the
+   * `subscriptions` table (status='active', most recent). Falls back
+   * to "free" if no active subscription exists. Coaches are treated
+   * as "coaching" tier automatically.
+   */
+  membership_tier: MembershipTier;
 };
 
 /**
@@ -78,11 +91,29 @@ export async function getAuthUser(
 
   if (!profile) return null;
 
+  // Resolve membership tier from subscriptions table.
+  // Coaches get "coaching" automatically.
+  let membership_tier: MembershipTier = "free";
+  if (profile.role === "coach") {
+    membership_tier = "coaching";
+  } else {
+    const { data: sub } = await supabase
+      .from("subscriptions")
+      .select("tier")
+      .eq("client_id", user.id)
+      .eq("status", "active")
+      .maybeSingle();
+    if (sub?.tier && ["free", "premium", "pro", "coaching"].includes(sub.tier)) {
+      membership_tier = sub.tier as MembershipTier;
+    }
+  }
+
   return {
     id: profile.id,
     email: user.email,
     role: profile.role,
     full_name: profile.full_name,
+    membership_tier,
   };
 }
 
@@ -156,10 +187,27 @@ export async function getAuthUserFromHeaders(): Promise<AuthUser | null> {
     .eq("id", user.id)
     .maybeSingle();
   if (!profile) return null;
+
+  let membership_tier: MembershipTier = "free";
+  if (profile.role === "coach") {
+    membership_tier = "coaching";
+  } else {
+    const { data: sub } = await supabase
+      .from("subscriptions")
+      .select("tier")
+      .eq("client_id", user.id)
+      .eq("status", "active")
+      .maybeSingle();
+    if (sub?.tier && ["free", "premium", "pro", "coaching"].includes(sub.tier)) {
+      membership_tier = sub.tier as MembershipTier;
+    }
+  }
+
   return {
     id: profile.id,
     email: user.email,
     role: profile.role,
     full_name: profile.full_name,
+    membership_tier,
   };
 }

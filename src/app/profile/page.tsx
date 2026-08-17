@@ -438,20 +438,34 @@ function SavedResultsSection({ isAr, userId }: { isAr: boolean; userId?: string 
               className="flex items-center justify-between gap-3 rounded-xl bg-[#f5f5f7] p-3"
             >
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium">
+                <a
+                  href={`/tools/${r.tool_slug}`}
+                  className="block truncate text-sm font-medium text-[#1d1d1f] hover:text-[#0071e3]"
+                  title={isAr ? "افتح الأداة" : "Open tool"}
+                >
                   {r.title || TOOL_NAMES[r.tool_slug] || r.tool_slug}
-                </p>
+                </a>
                 <p className="mt-0.5 text-xs font-normal text-[#6e6e73]">
                   {TOOL_NAMES[r.tool_slug] || r.tool_slug} ·{" "}
                   {new Date(r.created_at).toLocaleDateString()}
                 </p>
               </div>
-              <button
-                onClick={() => handleDelete(r.id)}
-                className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-[#ff3b30] transition-colors hover:bg-[#ff3b30]/5"
-              >
-                <Trash2 className="h-4 w-4" />
-              </button>
+              <div className="flex items-center gap-1">
+                <a
+                  href={`/tools/${r.tool_slug}`}
+                  className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-[#0071e3] transition-colors hover:bg-[#0071e3]/5"
+                  title={isAr ? "فتح الأداة" : "Open tool"}
+                >
+                  <Calculator className="h-4 w-4" />
+                </a>
+                <button
+                  onClick={() => handleDelete(r.id)}
+                  className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-[#ff3b30] transition-colors hover:bg-[#ff3b30]/5"
+                  title={isAr ? "حذف" : "Delete"}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
             </div>
           ))}
         </div>

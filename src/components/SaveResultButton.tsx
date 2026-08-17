@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useI18n } from "@/lib/i18n";
-import { Bookmark, Loader2, Check, Download, Trash2 } from "lucide-react";
+import { Bookmark, Loader2, Check, Download, Trash2, ImageDown } from "lucide-react";
 import { toast } from "sonner";
 
 type Props = {
@@ -15,12 +15,13 @@ type Props = {
 /**
  * SaveResultButton — appears on tool result pages.
  *
- * Two actions:
+ * Three actions:
  *   1. Save: stores the result in Supabase (saved_results table)
  *      - Requires login
  *      - Enforces membership limits (Free: 3, Premium: 50, Pro: 200)
- *   2. Download: exports the result as a JSON file
- *      - Available to all users (no login required)
+ *   2. Download JSON: exports the result as a JSON file (any tier)
+ *   3. Download PNG: exports a formatted result card as a PNG image
+ *      - Premium/Pro/Coaching only (membership gate)
  */
 export function SaveResultButton({ toolSlug, title, resultData }: Props) {
   const { profile } = useAuth();
@@ -28,6 +29,7 @@ export function SaveResultButton({ toolSlug, title, resultData }: Props) {
   const isAr = lang === "ar";
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [exportingPng, setExportingPng] = useState(false);
 
   const handleSave = async () => {
     if (!profile) {
@@ -73,7 +75,7 @@ export function SaveResultButton({ toolSlug, title, resultData }: Props) {
     }
   };
 
-  const handleDownload = () => {
+  const handleDownloadJson = () => {
     const exportData = {
       tool: toolSlug,
       title,
@@ -92,6 +94,44 @@ export function SaveResultButton({ toolSlug, title, resultData }: Props) {
     URL.revokeObjectURL(url);
 
     toast.success(isAr ? "تم التحميل" : "Downloaded");
+  };
+
+  const handleDownloadPng = async () => {
+    // PNG export is a premium feature
+    const tier = (profile as any)?.membership_tier || "free";
+    const allowed = ["premium", "pro", "coaching"].includes(tier);
+    if (!profile) {
+      toast.error(isAr ? "سجّل الدخول أولاً" : "Log in first");
+      return;
+    }
+    if (!allowed) {
+      toast.error(
+        isAr
+          ? "تحميل الصورة متاح للأعضاء Premium فأعلى"
+          : "PNG export is Premium+ only",
+      );
+      window.location.href = "/memberships";
+      return;
+    }
+
+    setExportingPng(true);
+    try {
+      const { exportResultPng } = await import("@/lib/result-png-export");
+      await exportResultPng({
+        toolSlug,
+        title,
+        resultData,
+        isAr,
+      });
+      toast.success(isAr ? "تم تحميل الصورة" : "Image downloaded");
+    } catch (e: any) {
+      console.error("[PNG export]", e);
+      toast.error(
+        isAr ? "فشل إنشاء الصورة" : "Failed to generate image",
+      );
+    } finally {
+      setExportingPng(false);
+    }
   };
 
   return (
@@ -114,13 +154,27 @@ export function SaveResultButton({ toolSlug, title, resultData }: Props) {
           : isAr ? "حفظ النتيجة" : "Save result"}
       </button>
 
-      {/* Download button */}
+      {/* PNG export button (premium+) */}
       <button
-        onClick={handleDownload}
+        onClick={handleDownloadPng}
+        disabled={exportingPng}
+        className="inline-flex items-center gap-2 rounded-full bg-[#1d1d1f] px-5 py-2.5 text-sm font-normal text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+      >
+        {exportingPng ? (
+          <Loader2 className="h-4 w-4 animate-spin" />
+        ) : (
+          <ImageDown className="h-4 w-4" />
+        )}
+        {isAr ? "تحميل صورة" : "PNG"}
+      </button>
+
+      {/* JSON download button */}
+      <button
+        onClick={handleDownloadJson}
         className="inline-flex items-center gap-2 rounded-full border border-[#d2d2d7] bg-white px-5 py-2.5 text-sm font-normal text-[#1d1d1f] transition-colors hover:bg-[#f5f5f7]"
       >
         <Download className="h-4 w-4" />
-        {isAr ? "تحميل" : "Download"}
+        {isAr ? "JSON" : "JSON"}
       </button>
     </div>
   );

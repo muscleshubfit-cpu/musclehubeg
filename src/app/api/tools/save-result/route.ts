@@ -49,8 +49,9 @@ export async function POST(request: NextRequest) {
     .select("*", { count: "exact", head: true })
     .eq("user_id", auth.id);
 
-  // Determine membership tier (default: free)
-  const tier: MembershipTier = "free"; // TODO: read from profiles.membership_tier
+  // Use the real membership tier from the auth user (resolved from
+  // the subscriptions table inside requireUser).
+  const tier: MembershipTier = auth.membership_tier;
   const limits = getLimits(tier);
   const maxSaved = limits.savedResultsLimit;
 

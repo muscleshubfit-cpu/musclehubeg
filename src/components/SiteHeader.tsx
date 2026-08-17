@@ -23,6 +23,7 @@ import {
   Bell,
   User,
   Sparkles,
+  Bookmark,
 } from "lucide-react";
 import { LanguageToggle } from "@/components/LanguageToggle";
 import { useI18n } from "@/lib/i18n";
@@ -170,6 +171,7 @@ export function SiteHeader({ variant = "landing" }: { variant?: "landing" | "app
       { label: isAr ? "المدفوعات" : "Payments", icon: Crown, onClick: () => navigate("coach-payments") },
       { label: isAr ? "دعم العملاء" : "Client Support", icon: LifeBuoy, onClick: () => navigate("coach-support") },
       { label: isAr ? "Leads الأدوات" : "Tool Leads", icon: Calculator, href: "/admin/leads" },
+      { label: isAr ? "النتائج المحفوظة" : "Saved Results", icon: Bookmark, href: "/admin/saved-results" },
       { label: isAr ? "الإحالات" : "Referrals", icon: Gift, onClick: () => navigate("admin-referrals") },
       { label: isAr ? "المدونة" : "Blog Admin", icon: FileText, href: "/admin/blog" },
     );

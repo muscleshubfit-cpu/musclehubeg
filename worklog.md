@@ -1413,3 +1413,27 @@ Stage Summary:
 - "Hit a specific macro" feature: user clicks a target (e.g. "30g protein") → grams auto-set to hit that target from this food
 - All food detail pages added to sitemap
 - SiteHeader now has: Home, Blog, Free Tools, Exercises, Programs, Foods, Pricing — full library ecosystem
+
+---
+Task ID: saved-results
+Agent: main (super-z)
+Task: Implement "Saved Results" for the 4 fitness calculators (Phase 3, Part 1). Save button + download (JSON + PNG) in each tool, saved results view in profile, admin coach view, membership-tier-aware rate limiting.
+
+Work Log:
+- Read existing state: migration 0007_saved_results.sql already exists (table created with RLS). The 4 tools already had SaveResultButton imported, but the API hardcoded `tier = "free"`. The profile page already had a SavedResultsSection. Admin had NO saved-results view.
+- Updated src/lib/auth-server.ts: AuthUser type now includes `membership_tier: MembershipTier`. Both getAuthUser() and getAuthUserFromHeaders() now query the `subscriptions` table (column `client_id`, status='active') and resolve tier. Coaches auto-resolve to "coaching". Default fallback = "free".
+- Updated src/app/api/tools/save-result/route.ts: removed hardcoded `const tier: MembershipTier = "free"`. Now uses `auth.membership_tier` from requireUser().
+- Created src/lib/result-png-export.ts: client-side canvas PNG export — draws a branded 1080x1350 result card (dark header with MuscleHub logo + tool name + date, big primary metric in #0071e3, secondary stats in a card grid). Per-tool format() functions extract the headline number + 3-5 rows of secondary stats. No external libraries (pure Canvas 2D).
+- Upgraded src/components/SaveResultButton.tsx: added a third "PNG" button (dark, with ImageDown icon). PNG export is gated to Premium+ tiers — Free users see a toast + redirect to /memberships. Existing "Save" + "JSON" buttons preserved.
+- Created src/app/api/admin/saved-results/route.ts: GET endpoint (coach-only via requireCoach). Joins saved_results with profiles to return user_name + user_email for each result. Supports ?tool= filter, ?limit (max 500), ?offset pagination.
+- Created src/components/views/AdminSavedResultsView.tsx: full coach UI — header with total count + CSV export button, search box (name/email/title/summary), tool filter dropdown, responsive table (desktop: 12-col grid; mobile: stacked), expandable JSON view per row. CSV export includes id, date, user, tool, title, summary.
+- Created src/app/admin/saved-results/page.tsx: route wrapper using AdminSavedResultsView (already inside /admin layout which gates on coach role).
+- Updated src/components/SiteHeader.tsx: added Bookmark icon import + new menu item "Saved Results" / "النتائج المحفوظة" linking to /admin/saved-results (in the coach-only section).
+- Updated src/app/profile/page.tsx: SavedResultsSection rows are now clickable links to /tools/{slug} (so users can re-open the tool with the same slug). Added a separate calculator icon button next to delete for explicit "open tool" action.
+
+Stage Summary:
+- TypeScript check: zero new errors introduced by this task (verified with `npx tsc --noEmit`). Pre-existing errors in QuestionnairesView, profile/page.tsx line 112 (updateProfile), blog cron routes, and memberships.ts line 244 are unrelated and untouched.
+- Save pipeline: client → SaveResultButton → POST /api/tools/save-result → requireUser (resolves real membership_tier from subscriptions) → check count vs getLimits(tier).savedResultsLimit (Free:3, Premium:50, Pro:200, Coaching:unlimited) → insert with RLS.
+- Export pipeline: client-side canvas → result-png-export.ts draws branded card → canvas.toBlob() → download .png. Premium+ gated via tier check before calling export.
+- Admin pipeline: GET /api/admin/saved-results → requireCoach → joins saved_results + profiles → AdminSavedResultsView renders table with search/filter/expand/CSV export.
+- Profile pipeline: GET /api/tools/saved-results → user's own results only → render list with delete + open-tool links.
