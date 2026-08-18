@@ -1327,7 +1327,6 @@ function PlanViewerModal({ plan, onClose, onRegenerate }: { plan: any; onClose: 
  // Auto-calc calories when food or amount changes
  if (field === "food" || field === "amount") {
  try {
- // Search our food database (8,830+ foods) for matching food
  const res = await fetch(`/api/food-search?q=${encodeURIComponent(newContent.meals[mealIdx].items[itemIdx].food || "")}`);
  if (res.ok) {
  const data = await res.json();
@@ -1341,22 +1340,30 @@ function PlanViewerModal({ plan, onClose, onRegenerate }: { plan: any; onClose: 
  newContent.meals[mealIdx].items[itemIdx].fat_g = Math.round(match.per100g.fat * factor);
  }
  }
- const item = newContent.meals[mealIdx].items[itemIdx];
- const auto = calcCaloriesForItem(item.food, item.amount);
- if (auto !== null) {
- newContent.meals[mealIdx].items[itemIdx].calories = auto;
- }
  } catch {
- // module load failed — skip auto-calc
+ // food-search failed — skip auto-calc
  }
  }
  }
 
- // Recompute meal totals
- newContent.meals[mealIdx].total_calories = newContent.meals[mealIdx].items.reduce(
- (s: number, i: any) => s + (i.calories || 0),
- 0,
- );
+ // === Recompute meal totals (calories + protein + carbs + fat) ===
+ const mealItems = newContent.meals[mealIdx].items;
+ newContent.meals[mealIdx].total_calories = mealItems.reduce((s, i) => s + (i.calories || 0), 0);
+ newContent.meals[mealIdx].total_protein_g = mealItems.reduce((s, i) => s + (i.protein_g || 0), 0);
+ newContent.meals[mealIdx].total_carbs_g = mealItems.reduce((s, i) => s + (i.carbs_g || 0), 0);
+ newContent.meals[mealIdx].total_fat_g = mealItems.reduce((s, i) => s + (i.fat_g || 0), 0);
+
+ // === Recompute plan totals (daily_calories + macros) ===
+ const allMeals = newContent.meals;
+ newContent.daily_calories = allMeals.reduce((s, m) => s + (m.total_calories || 0), 0);
+ if (newContent.macros) {
+ newContent.macros.protein_g = allMeals.reduce((s, m) => s + (m.total_protein_g || 0), 0);
+ newContent.macros.carbs_g = allMeals.reduce((s, m) => s + (m.total_carbs_g || 0), 0);
+ newContent.macros.fat_g = allMeals.reduce((s, m) => s + (m.total_fat_g || 0), 0);
+ newContent.macros.protein_cal = newContent.macros.protein_g * 4;
+ newContent.macros.carbs_cal = newContent.macros.carbs_g * 4;
+ newContent.macros.fat_cal = newContent.macros.fat_g * 9;
+ }
 
  setContent(newContent);
  };
@@ -1387,6 +1394,25 @@ function PlanViewerModal({ plan, onClose, onRegenerate }: { plan: any; onClose: 
  const newContent = { ...content };
  newContent.meals = [...newContent.meals];
  newContent.meals[mealIdx] = { ...newMeal };
+
+ // === Recompute meal totals for the regenerated meal ===
+ const mealItems = newMeal.items || [];
+ newContent.meals[mealIdx].total_calories = mealItems.reduce((s, i) => s + (i.calories || 0), 0);
+ newContent.meals[mealIdx].total_protein_g = mealItems.reduce((s, i) => s + (i.protein_g || 0), 0);
+ newContent.meals[mealIdx].total_carbs_g = mealItems.reduce((s, i) => s + (i.carbs_g || 0), 0);
+ newContent.meals[mealIdx].total_fat_g = mealItems.reduce((s, i) => s + (i.fat_g || 0), 0);
+
+ // === Recompute plan totals (daily_calories + macros) ===
+ newContent.daily_calories = newContent.meals.reduce((s, m) => s + (m.total_calories || 0), 0);
+ if (newContent.macros) {
+ newContent.macros.protein_g = newContent.meals.reduce((s, m) => s + (m.total_protein_g || 0), 0);
+ newContent.macros.carbs_g = newContent.meals.reduce((s, m) => s + (m.total_carbs_g || 0), 0);
+ newContent.macros.fat_g = newContent.meals.reduce((s, m) => s + (m.total_fat_g || 0), 0);
+ newContent.macros.protein_cal = newContent.macros.protein_g * 4;
+ newContent.macros.carbs_cal = newContent.macros.carbs_g * 4;
+ newContent.macros.fat_cal = newContent.macros.fat_g * 9;
+ }
+
  setContent(newContent);
  toast.success("تم إعادة توليد الوجبة!");
  } catch (e: any) {
@@ -1412,18 +1438,43 @@ function PlanViewerModal({ plan, onClose, onRegenerate }: { plan: any; onClose: 
  };
 
  // Add meal item
+ // Helper: recompute meal + plan totals after any change to items
+ const recomputeTotals = (newContent: any) => {
+ for (let i = 0; i < newContent.meals.length; i++) {
+ const items = newContent.meals[i].items || [];
+ newContent.meals[i].total_calories = items.reduce((s, it) => s + (it.calories || 0), 0);
+ newContent.meals[i].total_protein_g = items.reduce((s, it) => s + (it.protein_g || 0), 0);
+ newContent.meals[i].total_carbs_g = items.reduce((s, it) => s + (it.carbs_g || 0), 0);
+ newContent.meals[i].total_fat_g = items.reduce((s, it) => s + (it.fat_g || 0), 0);
+ }
+ newContent.daily_calories = newContent.meals.reduce((s, m) => s + (m.total_calories || 0), 0);
+ if (newContent.macros) {
+ newContent.macros.protein_g = newContent.meals.reduce((s, m) => s + (m.total_protein_g || 0), 0);
+ newContent.macros.carbs_g = newContent.meals.reduce((s, m) => s + (m.total_carbs_g || 0), 0);
+ newContent.macros.fat_g = newContent.meals.reduce((s, m) => s + (m.total_fat_g || 0), 0);
+ newContent.macros.protein_cal = newContent.macros.protein_g * 4;
+ newContent.macros.carbs_cal = newContent.macros.carbs_g * 4;
+ newContent.macros.fat_cal = newContent.macros.fat_g * 9;
+ }
+ return newContent;
+ };
+
  const addMealItem = (mealIdx: number) => {
  const newContent = { ...content };
  newContent.meals = [...newContent.meals];
  newContent.meals[mealIdx] = { ...newContent.meals[mealIdx] };
  newContent.meals[mealIdx].items = [...newContent.meals[mealIdx].items, { food: "", amount: "", calories: 0 }];
+ recomputeTotals(newContent);
  setContent(newContent);
  };
 
  // Remove meal item
  const removeMealItem = (mealIdx: number, itemIdx: number) => {
  const newContent = { ...content };
+ newContent.meals = [...newContent.meals];
+ newContent.meals[mealIdx] = { ...newContent.meals[mealIdx] };
  newContent.meals[mealIdx].items = newContent.meals[mealIdx].items.filter((_: any, i: number) => i !== itemIdx);
+ recomputeTotals(newContent);
  setContent(newContent);
  };
 
