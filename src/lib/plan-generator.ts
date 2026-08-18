@@ -468,6 +468,8 @@ const WORKOUT_SYSTEM_PROMPT = `أنت مدرب لياقة محترف يعمل ف
 - أدخل أيام راحة بين أيام التدريب.
 - لكل يوم تدريبي: 4-6 تمارين مناسبة للعضلة المستهدفة.
 - اجعل البرنامج متنوعاً — لا تكرر نفس التمارين في كل مرة.
+- استخدم أسماء تمارين مطابقة لمكتبة التمارين لدينا بالإنجليزية (Bench Press, Squat, Deadlift, etc.) لتظهر صورها تلقائياً.
+- لا تضع حقل image — الصور تُولّد تلقائياً من اسم التمرين.
 
 تنسيق JSON:
 {
@@ -481,12 +483,11 @@ const WORKOUT_SYSTEM_PROMPT = `أنت مدرب لياقة محترف يعمل ف
  "isRest": false,
  "exercises": [
  {
- "name": "بنش بريس",
+ "name": "Bench Press",
  "sets": 4,
  "reps": "6-8",
  "rest": "2-3 دقائق",
- "notes": "نصيحة قصيرة بالعربية",
- "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8e/Bench_press.jpg/200px-Bench_press.jpg"
+ "notes": "نصيحة قصيرة بالعربية"
  }
  ]
  },
