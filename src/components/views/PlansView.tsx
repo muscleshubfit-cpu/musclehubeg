@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { listPlans, getPlanFileUrl, recordSwap, getSwapUsage } from "@/lib/data";
-import { resolveExerciseImage, getExerciseImage, getExerciseImages } from "@/lib/exercise-images";
+import { resolveExerciseImage, getExerciseImage, getExerciseImages, getFallbackSVG } from "@/lib/exercise-images";
 import { EXERCISES } from "@/lib/exercises";
 import { toast } from "sonner";
 
@@ -619,60 +619,59 @@ function WorkoutContent({ content, onSwap, swapLoading, planId }: any) {
  <span className="font-semibold">{d.day}</span>
  <Badge variant="secondary">{d.focus}</Badge>
  </div>
- <table className="w-full text-sm">
- <thead>
- <tr className="text-start">
- <th className="p-2 text-start font-medium text-muted-foreground">{t("plan.exercise")}</th>
- <th className="p-2 text-start font-medium text-muted-foreground">{t("plan.sets")}</th>
- <th className="p-2 text-start font-medium text-muted-foreground">{t("plan.reps")}</th>
- <th className="p-2 text-start font-medium text-muted-foreground">{t("plan.rest")}</th>
- <th className="p-2"></th>
- </tr>
- </thead>
- <tbody>
+ {/* Exercise list — card layout (responsive mobile + desktop) */}
+ <div className="space-y-3">
  {d.exercises?.map((ex: any, j: number) => {
  // Find exercise in library to get both images
- const exLib = EXERCISES.find((e) => e.slug === ex.exerciseSlug || e.nameEn === ex.name);
+ const exLib = EXERCISES.find((e) => e.slug === ex.exerciseSlug || e.nameEn === ex.name || e.nameEn.toLowerCase() === ex.name?.toLowerCase());
  const exImages = exLib ? getExerciseImages(exLib.imageKey) : (ex.image ? [ex.image] : []);
- const exHref = ex.exerciseSlug ? `/exercises/${ex.exerciseSlug}` : null;
+ const exHref = ex.exerciseSlug ? `/exercises/${ex.exerciseSlug}` : (exLib ? `/exercises/${exLib.slug}` : null);
  return (
- <tr key={j} className="border-t border-border/60">
- <td className="p-2">
- {/* Two images ABOVE the text */}
+ <div key={j} className="rounded-2xl border border-border/60 bg-card p-3">
+ {/* Two images ABOVE the text — like exercise library */}
  {exImages.length > 0 && (
- <div className="mb-2 flex gap-1">
+ <div className="mb-3 grid grid-cols-2 gap-2">
  {exImages.slice(0, 2).map((url: string, idx: number) => (
+ <div key={idx} className="aspect-square overflow-hidden rounded-xl bg-muted">
  <img
- key={idx}
  src={url}
  alt={`${ex.name} ${idx + 1}`}
- className="h-20 w-20 rounded-lg object-contain border border-border bg-card"
+ className="h-full w-full object-contain"
  loading="lazy"
  onError={(e) => {
- (e.target as HTMLImageElement).src = getExerciseImage(ex.name);
+ (e.target as HTMLImageElement).src = getFallbackSVG(exLib?.category || "default");
  }}
  />
+ </div>
  ))}
  </div>
  )}
- {/* Text below images */}
- <div>
- <p className="font-medium">
+ {/* Exercise name + notes */}
+ <div className="mb-2">
+ <p className="font-medium text-base">
  {exHref ? (
  <a href={exHref} className="text-primary hover:underline">{ex.name}</a>
  ) : ex.name}
  </p>
- {ex.notes && <p className="text-xs text-muted-foreground">{ex.notes}</p>}
+ {ex.notes && <p className="text-xs text-muted-foreground mt-0.5">{ex.notes}</p>}
  </div>
- </td>
- <td className="p-2">{ex.sets}</td>
- <td className="p-2">{ex.reps}</td>
- <td className="p-2">{ex.rest}</td>
- <td className="p-2">
+ {/* Sets / Reps / Rest — colored badges */}
+ <div className="flex flex-wrap items-center gap-2">
+ <span className="rounded-lg bg-[#0071e3]/10 px-3 py-1 text-sm font-semibold text-[#0071e3]">
+ {ex.sets} {t("plan.sets")}
+ </span>
+ <span className="rounded-lg bg-[#34c759]/10 px-3 py-1 text-sm font-semibold text-[#34c759]">
+ {ex.reps} {t("plan.reps")}
+ </span>
+ {ex.rest && (
+ <span className="rounded-lg bg-[#ff9500]/10 px-3 py-1 text-sm font-semibold text-[#ff9500]">
+ {ex.rest}
+ </span>
+ )}
  <Button
  size="sm"
  variant="ghost"
- className="h-7 gap-1 px-2 text-xs text-primary hover:bg-primary/10"
+ className="ml-auto h-7 gap-1 px-2 text-xs text-primary hover:bg-primary/10"
  onClick={() => onSwap(i, j)}
  disabled={swapLoading === `ex-${planId}-${i}-${j}`}
  >
@@ -682,12 +681,11 @@ function WorkoutContent({ content, onSwap, swapLoading, planId }: any) {
  <RefreshCw className="h-3.5 w-3.5" />
  )}
  </Button>
- </td>
- </tr>
+ </div>
+ </div>
  );
  })}
- </tbody>
- </table>
+ </div>
  </div>
  ))}
  </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import {
  ArrowLeft,
  User as UserIcon,
@@ -54,7 +54,8 @@ import {
 } from "@/lib/data";
 import { TIERS, getTier, type Duration } from "@/lib/plans";
 import { MEMBERSHIPS } from "@/lib/memberships";
-import { resolveExerciseImage, getExerciseImage } from "@/lib/exercise-images";
+import { resolveExerciseImage, getExerciseImage, getExerciseImages, getFallbackSVG } from "@/lib/exercise-images";
+import { EXERCISES } from "@/lib/exercises";
 import { HealthMetricsDashboard } from "@/components/HealthMetricsDashboard";
 import { toast } from "sonner";
 
@@ -69,8 +70,8 @@ const ALL_TIERS: Array<{ id: string; nameAr: string; nameEn: string }> = [
   })),
   ...TIERS.map((t) => ({
     id: t.id,
-    nameAr: t.id === "starter" ? "ستارتر (قديم)" : "إيليت (قديم)",
-    nameEn: t.id === "starter" ? "Starter (legacy)" : "Elite (legacy)",
+    nameAr: t.id === "starter" ? "ستارتر" : "إيليت",
+    nameEn: t.id === "starter" ? "Starter" : "Elite",
   })),
 ];
 
@@ -1405,18 +1406,22 @@ function PlanViewerModal({ plan, onClose, onRegenerate }: { plan: any; onClose: 
  };
 
  // Editable cell component
- const EditCell = ({ value, onChange, type = "text", className = "" }: { value: any; onChange: (v: string) => void; type?: string; className?: string }) => (
- editMode ? (
- <Input
- type={type}
- value={value ?? ""}
- onChange={(e) => onChange(e.target.value)}
- className={`h-8 text-sm ${className}`}
- />
- ) : (
- <span>{value ?? "—"}</span>
- )
- );
+ // EditCell — defined at module level to prevent focus loss on re-render
+ // (inline function definitions cause React to remount the component on every keystroke)
+ const EditCell = useMemo(() => {
+   return ({ value, onChange, type = "text", className = "" }: { value: any; onChange: (v: string) => void; type?: string; className?: string }) => (
+     editMode ? (
+       <Input
+         type={type}
+         value={value ?? ""}
+         onChange={(e) => onChange(e.target.value)}
+         className={`h-8 text-sm ${className}`}
+       />
+     ) : (
+       <span>{value ?? "—"}</span>
+     )
+   );
+ }, [editMode]);
 
  return (
  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" onClick={onClose}>
@@ -1964,20 +1969,30 @@ function PlanViewerModal({ plan, onClose, onRegenerate }: { plan: any; onClose: 
  </tr>
  </thead>
  <tbody>
- {d.exercises?.map((ex: any, exIdx: number) => (
+ {d.exercises?.map((ex: any, exIdx: number) => {
+ // Find exercise in library for images
+ const exLib = EXERCISES.find((e) => e.slug === ex.exerciseSlug || e.nameEn === ex.name || e.nameEn?.toLowerCase() === ex.name?.toLowerCase());
+ const exImages = exLib ? getExerciseImages(exLib.imageKey) : [];
+ return (
  <tr key={exIdx} className="border-t border-border/60">
  <td className="p-2">
- <div className="flex items-center gap-2">
- {!editMode && (
+ {/* Two images ABOVE the text — like exercise library */}
+ {!editMode && exImages.length > 0 && (
+ <div className="mb-2 grid grid-cols-2 gap-2">
+ {exImages.slice(0, 2).map((url: string, imgIdx: number) => (
+ <div key={imgIdx} className="aspect-square overflow-hidden rounded-lg bg-muted">
  <img
- src={resolveExerciseImage(ex.image, ex.name)}
- alt={ex.name}
- className="h-12 w-16 shrink-0 rounded-lg object-cover border border-border bg-card"
+ src={url}
+ alt={`${ex.name} ${imgIdx + 1}`}
+ className="h-full w-full object-contain"
  loading="lazy"
  onError={(e) => {
- (e.target as HTMLImageElement).src = getExerciseImage(ex.name);
+ (e.target as HTMLImageElement).src = getFallbackSVG(exLib?.category || "default");
  }}
  />
+ </div>
+ ))}
+ </div>
  )}
  <div>
  <EditCell value={ex.name} onChange={(v) => updateExercise(dayIdx, exIdx, "name", v)} className="font-medium" />
@@ -2001,7 +2016,6 @@ function PlanViewerModal({ plan, onClose, onRegenerate }: { plan: any; onClose: 
  ex.notes && <p className="text-xs text-muted-foreground">{ex.notes}</p>
  )}
  </div>
- </div>
  </td>
  <td className="p-2"><EditCell value={ex.sets} onChange={(v) => updateExercise(dayIdx, exIdx, "sets", v)} type="number" /></td>
  <td className="p-2"><EditCell value={ex.reps} onChange={(v) => updateExercise(dayIdx, exIdx, "reps", v)} /></td>
@@ -2014,7 +2028,8 @@ function PlanViewerModal({ plan, onClose, onRegenerate }: { plan: any; onClose: 
  </td>
  )}
  </tr>
- ))}
+ );
+ })}
  </tbody>
  </table>
  {editMode && (
