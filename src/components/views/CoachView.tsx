@@ -56,6 +56,14 @@ export function CoachView() {
   const [activeTab, setActiveTab] = useState<FilterTab>("all");
   const [pendingRequests, setPendingRequests] = useState<any[]>([]);
 
+  // Broadcast notification state — must be declared BEFORE any useMemo/return
+  const [showBroadcast, setShowBroadcast] = useState(false);
+  const [broadcastTitle, setBroadcastTitle] = useState("");
+  const [broadcastBody, setBroadcastBody] = useState("");
+  const [broadcastTarget, setBroadcastTarget] = useState<"all" | "single">("all");
+  const [broadcastLink, setBroadcastLink] = useState("/dashboard");
+  const [broadcasting, setBroadcasting] = useState(false);
+
   useEffect(() => {
     (async () => {
       try {
@@ -203,13 +211,6 @@ export function CoachView() {
     { id: "pro", labelAr: "برو", labelEn: "Pro", count: counts.pro, color: "#1d1d1f" },
     { id: "coaching", labelAr: "كوتشينج", labelEn: "Coaching", count: counts.coaching, color: "#8b5cf6" },
   ];
-
-  const [showBroadcast, setShowBroadcast] = useState(false);
-  const [broadcastTitle, setBroadcastTitle] = useState("");
-  const [broadcastBody, setBroadcastBody] = useState("");
-  const [broadcastTarget, setBroadcastTarget] = useState<"all" | "single">("all");
-  const [broadcastLink, setBroadcastLink] = useState("/dashboard");
-  const [broadcasting, setBroadcasting] = useState(false);
 
   const sendBroadcast = async () => {
     if (!broadcastTitle.trim() || !broadcastBody.trim()) return;
