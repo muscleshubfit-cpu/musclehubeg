@@ -1265,7 +1265,18 @@ function PlanViewerModal({ plan, onClose, onRegenerate }: { plan: any; onClose: 
  html += `<h3>${d.day} — ${d.focus || ""}</h3>`;
  html += `<table><tr><th style="width:30px">#</th><th>التمرين</th><th>مجموعات</th><th>تكرارات</th><th>راحة</th></tr>`;
  (d.exercises || []).forEach((ex: any, i: number) => {
- html += `<tr><td>${i + 1}</td><td><strong>${ex.name}</strong>${ex.notes ? `<br><span style="font-size:11px;color:#666">${ex.notes}</span>` : ""}</td><td>${ex.sets}</td><td>${ex.reps}</td><td>${ex.rest}</td></tr>`;
+ // Find exercise in library for images
+ const exLib = EXERCISES.find((e) => e.slug === ex.exerciseSlug || e.nameEn === ex.name || e.nameEn?.toLowerCase() === ex.name?.toLowerCase());
+ const exImages = exLib ? getExerciseImages(exLib.imageKey) : [];
+ let imgHtml = "";
+ if (exImages.length > 0) {
+ imgHtml = `<div style="display:flex;gap:4px;margin-bottom:4px">`;
+ exImages.slice(0, 2).forEach((url: string) => {
+ imgHtml += `<img src="${url}" alt="${ex.name}" style="width:60px;height:60px;object-fit:contain;border:1px solid #e2e2e2;border-radius:6px;background:#fafafa" onerror="this.style.display='none'">`;
+ });
+ imgHtml += `</div>`;
+ }
+ html += `<tr><td>${i + 1}</td><td>${imgHtml}<strong>${ex.name}</strong>${ex.notes ? `<br><span style="font-size:11px;color:#666">${ex.notes}</span>` : ""}</td><td style="color:#0071e3;font-weight:700">${ex.sets}</td><td style="color:#34c759;font-weight:700">${ex.reps}</td><td style="color:#ff9500;font-weight:700">${ex.rest}</td></tr>`;
  });
  html += `</table>`;
  }

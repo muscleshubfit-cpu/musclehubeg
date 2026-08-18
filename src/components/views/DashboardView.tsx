@@ -4,8 +4,9 @@ import { useEffect, useState } from "react";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/hooks/use-auth";
 import { useNav } from "@/hooks/use-nav";
-import { listProgress, listPlans, getSubscriptionForClient } from "@/lib/data";
+import { listProgress, listPlans, listSubscriptionsForClient } from "@/lib/data";
 import { getTier } from "@/lib/plans";
+import { MEMBERSHIPS } from "@/lib/memberships";
 
 export function DashboardView() {
   const { t, lang } = useI18n();
@@ -14,21 +15,21 @@ export function DashboardView() {
   const isAr = lang === "ar";
   const [progress, setProgress] = useState<any[]>([]);
   const [plans, setPlans] = useState<any[]>([]);
-  const [sub, setSub] = useState<any | null>(null);
+  const [allSubs, setAllSubs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!profile) return;
     (async () => {
       try {
-        const [p, pl, s] = await Promise.all([
+        const [p, pl, subs] = await Promise.all([
           listProgress(profile.id),
           listPlans(profile.id),
-          getSubscriptionForClient(profile.id),
+          listSubscriptionsForClient(profile.id),
         ]);
         setProgress(p);
         setPlans(pl);
-        setSub(s);
+        setAllSubs(subs);
       } finally {
         setLoading(false);
       }
@@ -45,10 +46,20 @@ export function DashboardView() {
   const latest = progress[progress.length - 1];
   const first = progress[0];
   const weightChange = latest?.weight && first?.weight ? latest.weight - first.weight : null;
+  // Show ALL subscriptions (coaching + memberships separately)
+  const membershipSubs = allSubs.filter((s) => ["premium", "pro"].includes(s.tier));
+  const coachingSub = allSubs.find((s) => s.tier === "coaching");
+  const sub = membershipSubs[0] || coachingSub || null;
   const daysLeft = sub?.end_date
     ? Math.max(0, Math.ceil((new Date(sub.end_date).getTime() - Date.now()) / 864e5))
     : null;
-  const tierName = sub?.tier ? getTier(sub.tier as any)?.nameKey : null;
+  const tierName = (tier: string) => {
+    const m = MEMBERSHIPS.find((x) => x.id === tier);
+    if (m) return isAr ? m.nameAr : m.nameEn;
+    const legacy = getTier(tier as any);
+    if (legacy) return t(legacy.nameKey);
+    return tier;
+  };
 
   return (
     <div className="space-y-12">
@@ -64,29 +75,44 @@ export function DashboardView() {
 
       {/* Stat cards — Apple-style minimal */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {/* Subscription */}
+        {/* Subscription — show ALL active subscriptions */}
         <div className="rounded-2xl bg-[#f5f5f7] p-6">
           <div className="flex items-center justify-between">
             <span className="text-xs font-normal uppercase tracking-wide text-[#6e6e73]">
               {t("dash.subscription")}
             </span>
-            {tierName && (
-              <span className="rounded-full bg-[#0071e3] px-2.5 py-0.5 text-[10px] font-normal text-white">
-                {t(tierName)}
-              </span>
-            )}
           </div>
-          <div className="mt-4">
-            {sub ? (
-              <>
-                <p className="text-3xl font-semibold tracking-tight">
-                  {daysLeft}
-                  <span className="ml-1 text-base font-normal text-[#6e6e73]">{t("dash.daysLeft")}</span>
-                </p>
-                <p className="mt-1 text-xs font-normal text-[#6e6e73]">
-                  {t("dash.expiresOn")} {new Date(sub.end_date).toLocaleDateString()}
-                </p>
-              </>
+          <div className="mt-4 space-y-3">
+            {allSubs.length > 0 ? (
+              allSubs.map((s) => {
+                const days = s.end_date
+                  ? Math.max(0, Math.ceil((new Date(s.end_date).getTime() - Date.now()) / 864e5))
+                  : null;
+                return (
+                  <div key={s.id} className="flex items-center justify-between">
+                    <div>
+                      <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-medium ${
+                        s.tier === "premium" ? "bg-[#0071e3]/10 text-[#0071e3]"
+                        : s.tier === "pro" ? "bg-[#1d1d1f]/10 text-[#1d1d1f]"
+                        : s.tier === "coaching" ? "bg-[#8b5cf6]/10 text-[#8b5cf6]"
+                        : "bg-[#6e6e73]/10 text-[#6e6e73]"
+                      }`}>
+                        {tierName(s.tier)}
+                      </span>
+                      {days !== null && (
+                        <p className="mt-1 text-xs font-normal text-[#6e6e73]">
+                          {days} {isAr ? "يوم متبقي" : "days left"}
+                        </p>
+                      )}
+                    </div>
+                    {s.end_date && (
+                      <p className="text-[10px] text-[#6e6e73]">
+                        {new Date(s.end_date).toLocaleDateString()}
+                      </p>
+                    )}
+                  </div>
+                );
+              })
             ) : (
               <>
                 <p className="text-lg font-semibold">{t("dash.notSet")}</p>
