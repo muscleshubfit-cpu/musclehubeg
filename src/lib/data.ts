@@ -1328,18 +1328,23 @@ export async function getSubscriptionForClient(clientId: string) {
  .select("*")
  .eq("client_id", clientId)
  .order("created_at", { ascending: false });
- // Return the highest-priority active sub (pro > coaching > premium > others)
- // Priority by feature richness, NOT by price.
  const arr = data ?? [];
  if (arr.length === 0) return null;
+ // Separate coaching from memberships — pick best MEMBERSHIP tier
+ // (pro > premium). If only coaching, return coaching.
+ const hasCoaching = arr.some((s: any) => s.tier === "coaching");
+ const membershipSubs = arr.filter((s: any) => ["premium", "pro"].includes(s.tier));
+ if (membershipSubs.length > 0) {
  const priority = (tier: string) => {
- if (tier === "pro") return 4;
- if (tier === "coaching") return 3;
+ if (tier === "pro") return 3;
  if (tier === "premium") return 2;
- if (tier === "elite") return 1;
  return 0;
  };
- arr.sort((a, b) => priority(b.tier) - priority(a.tier));
+ membershipSubs.sort((a, b) => priority(b.tier) - priority(a.tier));
+ return membershipSubs[0];
+ } else if (hasCoaching) {
+ return arr.find((s: any) => s.tier === "coaching");
+ }
  return arr[0];
  }
  return read<any[]>(LS_SUBS, []).find((s) => s.client_id === clientId) ?? null;

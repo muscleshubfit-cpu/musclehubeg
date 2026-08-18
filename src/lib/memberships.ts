@@ -165,12 +165,11 @@ export const MEMBERSHIPS: MembershipInfo[] = [
     priceMonthly: 39.99,
     priceYearly: 359.0,
     limits: {
-      // EVO included — same as Premium level
-      evoChatDailyLimit: null, // unlimited
-      evoNutritionPlanLimit: 3, // same as Premium
+      // EVO included — same as Premium EVO limits
+      evoChatDailyLimit: null,
+      evoNutritionPlanLimit: 3,
       evoWorkoutPlanLimit: 3,
       evoSwapLimit: 3,
-      // Pro-only features NOT included
       evoPatternAnalysis: false,
       evoCrossSessionMemory: true,
       evoSaveBodyData: true,
@@ -179,7 +178,6 @@ export const MEMBERSHIPS: MembershipInfo[] = [
       mealPlannerExport: true,
       savedResultsLimit: 50,
       savedResultsExport: true,
-      // Pro-only: NOT included
       premiumContent: false,
       adsEnabled: true,
     },
@@ -195,7 +193,6 @@ export const MEMBERSHIPS: MembershipInfo[] = [
       "تبديلات يدوية من المدرب",
       "تذاكر دعم أولوية",
       "تواصل مباشر مع المدرب",
-      "لا يشمل محتوى Pro المميز",
     ],
     highlight: false,
     separate: true,

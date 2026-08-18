@@ -120,16 +120,22 @@ export function CoachClientView({ clientId }: { clientId: string }) {
  // Get ALL subs for this client (multiple allowed now)
  const clientSubs = subs.filter((x) => x.client_id === clientId);
  setAllSubs(clientSubs);
- // Set the primary sub (highest priority) for backward compat
+ // Set the primary sub — separate coaching from memberships
+ // Pick best MEMBERSHIP tier (pro > premium). If only coaching, pick coaching.
+ const hasCoaching = clientSubs.some((s: any) => s.tier === "coaching");
+ const membershipSubs = clientSubs.filter((s: any) => ["premium", "pro"].includes(s.tier));
+ let s: any = null;
+ if (membershipSubs.length > 0) {
  const priority = (tier: string) => {
- if (tier === "pro") return 4;
- if (tier === "coaching") return 3;
+ if (tier === "pro") return 3;
  if (tier === "premium") return 2;
- if (tier === "elite") return 1;
  return 0;
  };
- const sorted = [...clientSubs].sort((a, b) => priority(b.tier) - priority(a.tier));
- const s = sorted[0] || null;
+ const sorted = [...membershipSubs].sort((a, b) => priority(b.tier) - priority(a.tier));
+ s = sorted[0];
+ } else if (hasCoaching) {
+ s = clientSubs.find((sub: any) => sub.tier === "coaching");
+ }
  setSub(s);
  setProgress(p);
  setPlans(pl);
@@ -155,16 +161,22 @@ export function CoachClientView({ clientId }: { clientId: string }) {
  // Reload all subscriptions to show the updated list
  const updatedSubs = await listSubscriptionsForClient(clientId);
  setAllSubs(updatedSubs);
- // Update primary sub for overview card
+ // Update primary sub — separate coaching from memberships
+ const hasCoaching = updatedSubs.some((s: any) => s.tier === "coaching");
+ const membershipSubs = updatedSubs.filter((s: any) => ["premium", "pro"].includes(s.tier));
+ let s: any = null;
+ if (membershipSubs.length > 0) {
  const priority = (t: string) => {
- if (t === "pro") return 4;
- if (t === "coaching") return 3;
+ if (t === "pro") return 3;
  if (t === "premium") return 2;
- if (t === "elite") return 1;
  return 0;
  };
- const sorted = [...updatedSubs].sort((a, b) => priority(b.tier) - priority(a.tier));
- setSub(sorted[0] || null);
+ const sorted = [...membershipSubs].sort((a, b) => priority(b.tier) - priority(a.tier));
+ s = sorted[0];
+ } else if (hasCoaching) {
+ s = updatedSubs.find((sub: any) => sub.tier === "coaching");
+ }
+ setSub(s);
  } catch (e: any) {
  toast.error(e.message || t("common.error"));
  } finally {

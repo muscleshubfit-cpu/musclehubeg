@@ -92,10 +92,21 @@ export async function getAuthUser(
   if (!profile) return null;
 
   // Resolve membership tier from subscriptions table.
-  // Coaches get "coaching" automatically.
-  // Multiple subs per client are allowed (e.g. Coaching + Premium).
-  // We pick the tier that gives the MOST features:
-  //   pro (most features) > coaching (EVO + human coach) > premium > free
+  // Coaching and memberships (Premium/Pro) are COMPLETELY SEPARATE.
+  // A client can have BOTH (e.g. Coaching + Pro).
+  //
+  // We resolve TWO things:
+  // 1. membership_tier: the best MEMBERSHIP tier (pro > premium > free)
+  //    — used for premiumContent, adsEnabled, patternAnalysis, etc.
+  // 2. hasCoaching: whether the client has an active Coaching subscription
+  //    — used for human coach features
+  //
+  // EVO limits are resolved by merging: if client has Coaching, they get
+  // Premium-level EVO limits (same as Premium). If they also have Pro,
+  // they get Pro-level EVO limits (better).
+  //
+  // The membership_tier field picks the BEST membership (not coaching).
+  // Coaching EVO limits are merged via getLimits() in the client.
   let membership_tier: MembershipTier = "free";
   if (profile.role === "coach") {
     membership_tier = "coaching";
@@ -106,23 +117,24 @@ export async function getAuthUser(
       .eq("client_id", user.id)
       .eq("status", "active");
     if (subs && subs.length > 0) {
-      // Priority by feature richness (NOT by price):
-      // Pro has premiumContent + pattern analysis + no ads + 6 plans
-      // Coaching has EVO (3 plans) + human coach but NO premiumContent
-      // Premium has EVO (3 plans) but NO premiumContent
-      const priority = (tier: string) => {
-        if (tier === "pro") return 4;      // most features
-        if (tier === "coaching") return 3;  // EVO + human coach
-        if (tier === "premium") return 2;   // EVO only
-        if (tier === "elite") return 1;     // legacy
-        return 0;
-      };
-      const activeSubs = subs.filter((s: any) =>
-        ["free", "premium", "pro", "coaching"].includes(s.tier),
+      // Separate coaching from memberships
+      const hasCoaching = subs.some((s: any) => s.tier === "coaching");
+      const membershipSubs = subs.filter((s: any) =>
+        ["premium", "pro"].includes(s.tier),
       );
-      if (activeSubs.length > 0) {
-        activeSubs.sort((a: any, b: any) => priority(b.tier) - priority(a.tier));
-        membership_tier = activeSubs[0].tier as MembershipTier;
+
+      if (membershipSubs.length > 0) {
+        // Pick the best membership tier (pro > premium)
+        const priority = (tier: string) => {
+          if (tier === "pro") return 3;
+          if (tier === "premium") return 2;
+          return 0;
+        };
+        membershipSubs.sort((a: any, b: any) => priority(b.tier) - priority(a.tier));
+        membership_tier = membershipSubs[0].tier as MembershipTier;
+      } else if (hasCoaching) {
+        // Only coaching, no membership — tier is "coaching" for EVO access
+        membership_tier = "coaching";
       }
     }
   }
@@ -217,21 +229,22 @@ export async function getAuthUserFromHeaders(): Promise<AuthUser | null> {
       .eq("client_id", user.id)
       .eq("status", "active");
     if (subs && subs.length > 0) {
-      // Priority by feature richness (NOT by price):
-      // Pro > Coaching > Premium > Free
-      const priority = (tier: string) => {
-        if (tier === "pro") return 4;
-        if (tier === "coaching") return 3;
-        if (tier === "premium") return 2;
-        if (tier === "elite") return 1;
-        return 0;
-      };
-      const activeSubs = subs.filter((s: any) =>
-        ["free", "premium", "pro", "coaching"].includes(s.tier),
+      // Separate coaching from memberships
+      const hasCoaching = subs.some((s: any) => s.tier === "coaching");
+      const membershipSubs = subs.filter((s: any) =>
+        ["premium", "pro"].includes(s.tier),
       );
-      if (activeSubs.length > 0) {
-        activeSubs.sort((a: any, b: any) => priority(b.tier) - priority(a.tier));
-        membership_tier = activeSubs[0].tier as MembershipTier;
+
+      if (membershipSubs.length > 0) {
+        const priority = (tier: string) => {
+          if (tier === "pro") return 3;
+          if (tier === "premium") return 2;
+          return 0;
+        };
+        membershipSubs.sort((a: any, b: any) => priority(b.tier) - priority(a.tier));
+        membership_tier = membershipSubs[0].tier as MembershipTier;
+      } else if (hasCoaching) {
+        membership_tier = "coaching";
       }
     }
   }
