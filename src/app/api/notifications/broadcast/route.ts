@@ -7,14 +7,16 @@ import { supabaseAdmin, isSupabaseAdminConfigured } from "@/lib/supabase/admin";
  * POST /api/notifications/broadcast
  *
  * Coach-only endpoint to send notifications to:
- *   - ALL clients (broadcast: { target: "all" })
- *   - A SINGLE client (broadcast: { target: "single", userId: "xxx" })
+ *   - ALL clients (target: "all")
+ *   - SELECTED clients (target: "selected", userIds: string[])
+ *   - A SINGLE client (target: "single", userId: string)
  *
  * Body:
- *   { target: "all" | "single", userId?: string, title: string, body: string, link?: string }
+ *   { target: "all" | "selected" | "single", userId?: string, userIds?: string[],
+ *     title: string, body: string, link?: string }
  *
  * Uses supabaseAdmin (service_role) to bypass RLS and insert
- * notifications for all clients at once.
+ * notifications for all targeted clients at once.
  */
 export async function POST(request: NextRequest) {
   if (isAuthConfigured) {
@@ -30,7 +32,7 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json().catch(() => ({}));
-  const { target, userId, title, body: notifBody, link } = body;
+  const { target, userId, userIds, title, body: notifBody, link } = body;
 
   if (!title || !notifBody) {
     return NextResponse.json(
@@ -39,6 +41,14 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  if (!target || !["all", "selected", "single"].includes(target)) {
+    return NextResponse.json(
+      { error: "Invalid target. Must be 'all', 'selected', or 'single'" },
+      { status: 400 },
+    );
+  }
+
+  // --- Single client ---
   if (target === "single") {
     if (!userId) {
       return NextResponse.json(
@@ -64,7 +74,33 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: true, sent: 1, id: data?.id });
   }
 
-  // Broadcast to ALL clients
+  // --- Selected clients (multi-select) ---
+  if (target === "selected") {
+    if (!userIds || !Array.isArray(userIds) || userIds.length === 0) {
+      return NextResponse.json(
+        { error: "Missing userIds array for selected target" },
+        { status: 400 },
+      );
+    }
+    // Limit to 500 to prevent abuse
+    const ids = userIds.slice(0, 500);
+    const notifications = ids.map((uid: string) => ({
+      user_id: uid,
+      type: "coach_message",
+      title,
+      body: notifBody,
+      link: link || "/dashboard",
+    }));
+    const { error } = await supabaseAdmin
+      .from("notifications")
+      .insert(notifications);
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+    return NextResponse.json({ ok: true, sent: notifications.length });
+  }
+
+  // --- Broadcast to ALL clients ---
   const { data: clients, error: clientsError } = await supabaseAdmin
     .from("profiles")
     .select("id")

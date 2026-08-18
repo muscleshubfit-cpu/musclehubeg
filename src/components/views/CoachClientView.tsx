@@ -257,6 +257,54 @@ export function CoachClientView({ clientId }: { clientId: string }) {
  setPlans(data);
  };
 
+  // Notification state for this client
+  const [notifTitle, setNotifTitle] = useState("");
+  const [notifBody, setNotifBody] = useState("");
+  const [notifLink, setNotifLink] = useState("/dashboard");
+  const [notifSending, setNotifSending] = useState(false);
+  const [notifActiveTemplate, setNotifActiveTemplate] = useState<string | null>(null);
+  const [showNotif, setShowNotif] = useState(false);
+
+  const notifTemplates = [
+    { id: "questionnaire", icon: "📋", titleAr: "تذكير بملء الاستبيان", titleEn: "Questionnaire reminder", bodyAr: "يرجى ملء استبيان التغذية واللياقة البدنية حتى نتمكن من تجهيز برنامجك المخصص.", bodyEn: "Please fill out the nutrition and fitness questionnaire so we can prepare your personalized program.", link: "/questionnaires" },
+    { id: "plan_updated", icon: "✅", titleAr: "تم تحديث خطتك", titleEn: "Your plan has been updated", bodyAr: "تم تحديث خطتك التدريبية/الغذائية. تفضل بمراجعتها من قسم الخطط.", bodyEn: "Your workout/nutrition plan has been updated. Check it in the Plans section.", link: "/plans" },
+    { id: "followup", icon: "📅", titleAr: "موعد المتابعة", titleEn: "Follow-up reminder", bodyAr: "حان موعد متابعتك الدورية. يرجى تحديث بيانات التقدم ورفع الصور الحديثة.", bodyEn: "It's time for your follow-up. Please update your progress data and upload recent photos.", link: "/progress" },
+    { id: "workout", icon: "💪", titleAr: "تذكير بالتمارين", titleEn: "Workout reminder", bodyAr: "لا تنسَ تمارينك اليوم! الالتزام بالبرنامج هو مفتاح النتائج.", bodyEn: "Don't forget your workout today! Consistency is key to results.", link: "/plans" },
+    { id: "nutrition", icon: "🥗", titleAr: "تذكير بالتغذية", titleEn: "Nutrition reminder", bodyAr: "تذكر متابعة نظامك الغذائي وتسجيل وجباتك في متتبع الوجبات.", bodyEn: "Remember to follow your nutrition plan and log your meals in the meal planner.", link: "/meal-planner" },
+    { id: "payment", icon: "💳", titleAr: "تذكير بالتجديد", titleEn: "Renewal reminder", bodyAr: "اشتراكك على وشك الانتهاء. تجدد الآن للحفاظ على وصولك لكل الميزات.", bodyEn: "Your subscription is ending soon. Renew now to keep access to all features.", link: "/memberships" },
+  ];
+
+  const applyNotifTemplate = (tplId: string) => {
+    const tpl = notifTemplates.find((t) => t.id === tplId);
+    if (!tpl) return;
+    if (notifActiveTemplate === tplId) {
+      setNotifActiveTemplate(null); setNotifTitle(""); setNotifBody(""); setNotifLink("/dashboard");
+    } else {
+      setNotifActiveTemplate(tplId);
+      setNotifTitle(lang === "ar" ? tpl.titleAr : tpl.titleEn);
+      setNotifBody(lang === "ar" ? tpl.bodyAr : tpl.bodyEn);
+      setNotifLink(tpl.link);
+    }
+  };
+
+  const sendClientNotif = async () => {
+    if (!notifTitle.trim() || !notifBody.trim()) return;
+    setNotifSending(true);
+    try {
+      const res = await fetch("/api/notifications/broadcast", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ target: "single", userId: clientId, title: notifTitle.trim(), body: notifBody.trim(), link: notifLink }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        toast.success(lang === "ar" ? "تم إرسال الإشعار ✅" : "Notification sent ✅");
+        setNotifTitle(""); setNotifBody(""); setNotifActiveTemplate(null);
+      } else { toast.error(data.error || "Failed"); }
+    } catch (e: any) { toast.error(e.message); }
+    finally { setNotifSending(false); }
+  };
+
  if (loading) return <div className="text-muted-foreground">{t("common.loading")}</div>;
 
  const chartData = progress
@@ -271,6 +319,7 @@ export function CoachClientView({ clientId }: { clientId: string }) {
  { id: "subscription", label: t("coach.subscriptionMgmt") },
  { id: "plans", label: t("coach.plansSection") },
  { id: "ai-plans", label: t("coach.aiPlans") },
+ { id: "notifications", label: lang === "ar" ? "إشعارات" : "Notifications" },
  { id: "questionnaires", label: t("coach.questionnairesSection") },
  { id: "progress", label: t("coach.clientProgress") },
  ] as const;
@@ -826,6 +875,72 @@ export function CoachClientView({ clientId }: { clientId: string }) {
  t={t}
  onChanged={(row) => setFitQ(row)}
  />
+ </div>
+ )}
+
+ {/* Notifications tab */}
+ {tab === "notifications" && (
+ <div className="space-y-5">
+ <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+ {notifTemplates.map((tpl) => (
+ <button
+ key={tpl.id}
+ onClick={() => applyNotifTemplate(tpl.id)}
+ className={cn(
+ "rounded-xl border px-3 py-2.5 text-start text-xs transition-all",
+ notifActiveTemplate === tpl.id
+ ? "border-[#0071e3] bg-[#0071e3]/5"
+ : "border-[#d2d2d7] bg-white hover:bg-white/80",
+ )}
+ >
+ <span className="text-base">{tpl.icon}</span>
+ <span className="mt-0.5 block font-medium">{lang === "ar" ? tpl.titleAr : tpl.titleEn}</span>
+ </button>
+ ))}
+ </div>
+ <div className={notifActiveTemplate ? "opacity-60" : ""}>
+ <p className="mb-2 text-xs font-medium uppercase tracking-wide text-[#6e6e73]">
+ {lang === "ar" ? "رسالة مخصصة" : "Custom message"}
+ </p>
+ <input
+ value={notifTitle}
+ onChange={(e) => { setNotifTitle(e.target.value); setNotifActiveTemplate(null); }}
+ placeholder={lang === "ar" ? "عنوان الإشعار" : "Notification title"}
+ className="w-full rounded-xl border border-[#d2d2d7] bg-white px-4 py-2.5 text-sm outline-none focus:border-[#0071e3]"
+ />
+ <textarea
+ value={notifBody}
+ onChange={(e) => { setNotifBody(e.target.value); setNotifActiveTemplate(null); }}
+ placeholder={lang === "ar" ? "نص الإشعار" : "Notification body"}
+ rows={3}
+ className="mt-2 w-full rounded-xl border border-[#d2d2d7] bg-white px-4 py-2.5 text-sm outline-none focus:border-[#0071e3]"
+ />
+ </div>
+ <div>
+ <p className="mb-2 text-xs font-medium uppercase tracking-wide text-[#6e6e73]">
+ {lang === "ar" ? "رابط الإشعار" : "Notification link"}
+ </p>
+ <select
+ value={notifLink}
+ onChange={(e) => setNotifLink(e.target.value)}
+ className="w-full rounded-xl border border-[#d2d2d7] bg-white px-4 py-2.5 text-sm outline-none focus:border-[#0071e3]"
+ >
+ <option value="/dashboard">{lang === "ar" ? "لوحة التحكم" : "Dashboard"}</option>
+ <option value="/plans">{lang === "ar" ? "الخطط" : "Plans"}</option>
+ <option value="/questionnaires">{lang === "ar" ? "الاستبيانات" : "Questionnaires"}</option>
+ <option value="/progress">{lang === "ar" ? "التقدم" : "Progress"}</option>
+ <option value="/meal-planner">{lang === "ar" ? "مخطط الوجبات" : "Meal Planner"}</option>
+ <option value="/memberships">{lang === "ar" ? "العضويات" : "Memberships"}</option>
+ <option value="/support">{lang === "ar" ? "الدعم" : "Support"}</option>
+ </select>
+ </div>
+ <button
+ onClick={sendClientNotif}
+ disabled={notifSending || !notifTitle.trim() || !notifBody.trim()}
+ className="rounded-full bg-[#0071e3] px-5 py-2.5 text-sm font-normal text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+ >
+ {notifSending ? "..." : lang === "ar" ? "إرسال الإشعار" : "Send notification"}
+ </button>
  </div>
  )}
 

@@ -61,3 +61,11 @@ pnpm-lock.yaml
 .env*
 .z-ai-config
 .env.production
+
+# Junk files (screenshots, uploads, temp images)
+/upload/
+/Screenshot_*.jpg
+/Screenshot_*.png
+/file_*.png
+/.claude/
+/Caddyfile
