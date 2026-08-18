@@ -98,7 +98,12 @@ export function QuestionnairesView() {
   const submitAll = async () => {
     setSaving(true);
     try {
-      // Submit nutrition
+      // Validate both before submitting
+      if (!validateNutrition() || !validateFitness()) {
+        toast.error(t("q.fillBasicInfo"));
+        return;
+      }
+      // Submit nutrition (don't await notification — it's fire-and-forget)
       const nRow = await upsertQuestionnaire(profile!.id, "nutrition", nutritionForm, "submitted");
       if (nRow) setNutrition(nRow);
       // Submit fitness
@@ -107,6 +112,7 @@ export function QuestionnairesView() {
       toast.success(t("q.allSubmitted"));
       setStep(1); // Reset to start
     } catch (e: any) {
+      console.error("[submitAll] Error:", e);
       toast.error(e.message || t("common.error"));
     } finally {
       setSaving(false);
@@ -486,8 +492,8 @@ export function QuestionnairesView() {
           </div>
 
           {/* Action buttons */}
-          {!nutritionLocked && (
-            <div className="mt-6 flex flex-wrap gap-3">
+          <div className="mt-6 flex flex-wrap gap-3">
+            {!nutritionLocked && (
               <button
                 onClick={() => saveQuestionnaire("nutrition", "draft")}
                 disabled={saving}
@@ -495,16 +501,16 @@ export function QuestionnairesView() {
               >
                 {saving ? t("common.saving") : t("q.saveDraft")}
               </button>
-              <button
-                onClick={goToFitness}
-                disabled={saving}
-                className="inline-flex items-center gap-2 rounded-full bg-[#0071e3] px-5 py-2.5 text-sm font-normal text-white transition-opacity hover:opacity-90"
-              >
+            )}
+            <button
+              onClick={goToFitness}
+              disabled={saving || nutritionLocked}
+              className="inline-flex items-center gap-2 rounded-full bg-[#0071e3] px-5 py-2.5 text-sm font-normal text-white transition-opacity hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
                 {saving ? t("common.saving") : t("q.next")}
                 {isAr ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-              </button>
-            </div>
-          )}
+            </button>
+          </div>
         </div>
       )}
 
@@ -535,16 +541,16 @@ export function QuestionnairesView() {
             </div>
           </div>
 
-          {!fitnessLocked && (
-            <div className="mt-6 flex flex-wrap gap-3">
-              <button
-                onClick={() => setStep(1)}
-                disabled={saving}
-                className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-2.5 text-sm font-normal text-[#1d1d1f] border border-[#d2d2d7] transition-opacity hover:opacity-90"
-              >
-                {isAr ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
-                {t("q.back")}
-              </button>
+          <div className="mt-6 flex flex-wrap gap-3">
+            <button
+              onClick={() => setStep(1)}
+              disabled={saving}
+              className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-2.5 text-sm font-normal text-[#1d1d1f] border border-[#d2d2d7] transition-opacity hover:opacity-90"
+            >
+              {isAr ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+              {t("q.back")}
+            </button>
+            {!fitnessLocked && (
               <button
                 onClick={() => saveQuestionnaire("fitness", "draft")}
                 disabled={saving}
@@ -552,27 +558,27 @@ export function QuestionnairesView() {
               >
                 {saving ? t("common.saving") : t("q.saveDraft")}
               </button>
-              <button
-                onClick={() => {
-                  if (!validateFitness()) {
-                    toast.error(t("q.fillFitnessBasic"));
-                    return;
+            )}
+            <button
+              onClick={() => {
+                if (!validateFitness()) {
+                  toast.error(t("q.fillFitnessBasic"));
+                  return;
+                }
+                saveQuestionnaire("fitness", "draft").then((row) => {
+                  if (row) {
+                    setStep(3);
+                    window.scrollTo({ top: 0, behavior: "smooth" });
                   }
-                  saveQuestionnaire("fitness", "draft").then((row) => {
-                    if (row) {
-                      setStep(3);
-                      window.scrollTo({ top: 0, behavior: "smooth" });
-                    }
-                  });
-                }}
-                disabled={saving}
-                className="inline-flex items-center gap-2 rounded-full bg-[#0071e3] px-5 py-2.5 text-sm font-normal text-white transition-opacity hover:opacity-90"
-              >
-                {isAr ? "مراجعة" : "Review"}
-                {isAr ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-              </button>
-            </div>
-          )}
+                });
+              }}
+              disabled={saving || fitnessLocked}
+              className="inline-flex items-center gap-2 rounded-full bg-[#0071e3] px-5 py-2.5 text-sm font-normal text-white transition-opacity hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isAr ? "مراجعة" : "Review"}
+              {isAr ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+            </button>
+          </div>
         </div>
       )}
 
