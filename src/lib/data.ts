@@ -794,9 +794,9 @@ export async function upsertQuestionnaire(
  .select()
  .single();
  if (error) throw new Error(error.message);
- // If submitted, notify coach
+ // If submitted, notify coach (fire-and-forget — don't block on notification)
  if (status === "submitted") {
- await createAdminNotification(
+ createAdminNotification(
  "questionnaire_submitted",
  "استبيان جديد للمراجعة ",
  `استبيان ${type === "nutrition" ? "التغذية" : "اللياقة"} — بانتظار مراجعتك`,

@@ -51,6 +51,22 @@ export function QuestionnairesView() {
         setFitness(f);
         setNutritionForm((n?.data as Record<string, any>) ?? {});
         setFitnessForm((f?.data as Record<string, any>) ?? {});
+        // Auto-detect the correct starting step
+        const nStatus = n?.status as string | undefined;
+        const fStatus = f?.status as string | undefined;
+        const nDone = nStatus === "submitted" || nStatus === "approved";
+        const fDone = fStatus === "submitted" || fStatus === "approved";
+        if (nStatus === "needs_info") {
+          setStep(1);
+        } else if (fStatus === "needs_info") {
+          setStep(2);
+        } else if (nDone && fDone) {
+          setStep(3); // Both submitted — show review
+        } else if (nDone) {
+          setStep(2);
+        } else {
+          setStep(1);
+        }
       } finally {
         setLoading(false);
       }
@@ -80,37 +96,51 @@ export function QuestionnairesView() {
     }
   };
 
-  // Save nutrition as draft and move to fitness step (with validation)
-  const goToFitness = async () => {
-    if (!validateNutrition()) {
-      toast.error(t("q.fillBasicInfo"));
-      return;
+  // Navigate between steps with validation & auto-save
+  const goToStep = async (target: Step) => {
+    // Going from nutrition (step 1) → fitness (step 2)
+    if (target === 2) {
+      if (!nutritionLocked && !validateNutrition()) {
+        toast.error(t("q.fillBasicInfo"));
+        return;
+      }
+      if (!nutritionLocked) {
+        const row = await saveQuestionnaire("nutrition", "draft");
+        if (!row) return;
+      }
     }
-    const row = await saveQuestionnaire("nutrition", "draft");
-    if (row) {
-      toast.success(t("q.nutritionSaved"));
-      setStep(2);
-      window.scrollTo({ top: 0, behavior: "smooth" });
+    // Going from fitness (step 2) → review (step 3)
+    if (target === 3) {
+      if (!fitnessLocked && !validateFitness()) {
+        toast.error(t("q.fillFitnessBasic"));
+        return;
+      }
+      if (!fitnessLocked) {
+        const row = await saveQuestionnaire("fitness", "draft");
+        if (!row) return;
+      }
     }
+    setStep(target);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  // Submit both questionnaires
+  // Submit both questionnaires (final submission)
   const submitAll = async () => {
     setSaving(true);
     try {
-      // Validate both before submitting
       if (!validateNutrition() || !validateFitness()) {
         toast.error(t("q.fillBasicInfo"));
         return;
       }
-      // Submit nutrition (don't await notification — it's fire-and-forget)
-      const nRow = await upsertQuestionnaire(profile!.id, "nutrition", nutritionForm, "submitted");
+      // Submit both in parallel — notification is fire-and-forget inside upsert
+      const [nRow, fRow] = await Promise.all([
+        upsertQuestionnaire(profile!.id, "nutrition", nutritionForm, "submitted"),
+        upsertQuestionnaire(profile!.id, "fitness", fitnessForm, "submitted"),
+      ]);
       if (nRow) setNutrition(nRow);
-      // Submit fitness
-      const fRow = await upsertQuestionnaire(profile!.id, "fitness", fitnessForm, "submitted");
       if (fRow) setFitness(fRow);
       toast.success(t("q.allSubmitted"));
-      setStep(1); // Reset to start
+      setStep(1);
     } catch (e: any) {
       console.error("[submitAll] Error:", e);
       toast.error(e.message || t("common.error"));
@@ -336,8 +366,7 @@ export function QuestionnairesView() {
       </div>
 
       {/* Stepper */}
-      {!bothLocked && (
-        <div className="flex items-center justify-center gap-2 sm:gap-4">
+      <div className="flex items-center justify-center gap-2 sm:gap-4">
           {[
             { num: 1, label: t("q.step1"), icon: Salad },
             { num: 2, label: t("q.step2"), icon: Dumbbell },
@@ -378,8 +407,7 @@ export function QuestionnairesView() {
               </div>
             );
           })}
-        </div>
-      )}
+        </div>      
 
       {/* Status badges */}
       {(nutritionStatus || fitnessStatus) && (
@@ -491,24 +519,15 @@ export function QuestionnairesView() {
             )}
           </div>
 
-          {/* Action buttons */}
+          {/* Navigation: Next */}
           <div className="mt-6 flex flex-wrap gap-3">
-            {!nutritionLocked && (
-              <button
-                onClick={() => saveQuestionnaire("nutrition", "draft")}
-                disabled={saving}
-                className="rounded-full bg-white px-5 py-2.5 text-sm font-normal text-[#1d1d1f] border border-[#d2d2d7] transition-opacity hover:opacity-90"
-              >
-                {saving ? t("common.saving") : t("q.saveDraft")}
-              </button>
-            )}
             <button
-              onClick={goToFitness}
-              disabled={saving || nutritionLocked}
+              onClick={() => goToStep(2)}
+              disabled={saving}
               className="inline-flex items-center gap-2 rounded-full bg-[#0071e3] px-5 py-2.5 text-sm font-normal text-white transition-opacity hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-                {saving ? t("common.saving") : t("q.next")}
-                {isAr ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+              {saving ? t("common.saving") : t("q.next")}
+              {isAr ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
             </button>
           </div>
         </div>
@@ -541,41 +560,22 @@ export function QuestionnairesView() {
             </div>
           </div>
 
+          {/* Navigation: Back + Next */}
           <div className="mt-6 flex flex-wrap gap-3">
             <button
-              onClick={() => setStep(1)}
+              onClick={() => goToStep(1)}
               disabled={saving}
               className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-2.5 text-sm font-normal text-[#1d1d1f] border border-[#d2d2d7] transition-opacity hover:opacity-90"
             >
               {isAr ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
               {t("q.back")}
             </button>
-            {!fitnessLocked && (
-              <button
-                onClick={() => saveQuestionnaire("fitness", "draft")}
-                disabled={saving}
-                className="rounded-full bg-white px-5 py-2.5 text-sm font-normal text-[#1d1d1f] border border-[#d2d2d7] transition-opacity hover:opacity-90"
-              >
-                {saving ? t("common.saving") : t("q.saveDraft")}
-              </button>
-            )}
             <button
-              onClick={() => {
-                if (!validateFitness()) {
-                  toast.error(t("q.fillFitnessBasic"));
-                  return;
-                }
-                saveQuestionnaire("fitness", "draft").then((row) => {
-                  if (row) {
-                    setStep(3);
-                    window.scrollTo({ top: 0, behavior: "smooth" });
-                  }
-                });
-              }}
-              disabled={saving || fitnessLocked}
+              onClick={() => goToStep(3)}
+              disabled={saving}
               className="inline-flex items-center gap-2 rounded-full bg-[#0071e3] px-5 py-2.5 text-sm font-normal text-white transition-opacity hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isAr ? "مراجعة" : "Review"}
+              {saving ? t("common.saving") : t("q.next")}
               {isAr ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
             </button>
           </div>
@@ -678,33 +678,35 @@ export function QuestionnairesView() {
               </div>
             </div>
 
-            {/* Submit button */}
+            {/* Navigation: Back + Submit (only if not both locked) */}
             <div className="mt-6 flex flex-wrap gap-3">
               <button
-                onClick={() => setStep(2)}
+                onClick={() => goToStep(2)}
                 disabled={saving}
                 className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-2.5 text-sm font-normal text-[#1d1d1f] border border-[#d2d2d7] transition-opacity hover:opacity-90"
               >
                 {isAr ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
                 {t("q.back")}
               </button>
-              <button
-                onClick={submitAll}
-                disabled={saving}
-                className="inline-flex flex-1 items-center justify-center gap-2 rounded-full bg-[#0071e3] px-5 py-2.5 text-sm font-normal text-white transition-opacity hover:opacity-90"
-              >
-                {saving ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    {t("common.saving")}
-                  </>
-                ) : (
-                  <>
-                    <Send className="h-4 w-4" />
-                    {t("q.submitAll")}
-                  </>
-                )}
-              </button>
+              {!bothLocked && (
+                <button
+                  onClick={submitAll}
+                  disabled={saving}
+                  className="inline-flex flex-1 items-center justify-center gap-2 rounded-full bg-[#0071e3] px-5 py-2.5 text-sm font-normal text-white transition-opacity hover:opacity-90"
+                >
+                  {saving ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      {t("common.saving")}
+                    </>
+                  ) : (
+                    <>
+                      <Send className="h-4 w-4" />
+                      {t("q.submitAll")}
+                    </>
+                  )}
+                </button>
+              )}
             </div>
           </div>
         </div>
