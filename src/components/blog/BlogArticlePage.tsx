@@ -180,7 +180,7 @@ export function BlogArticlePage({ lang, slug }: { lang: "en" | "ar"; slug: strin
             )}
 
             {/* Social share */}
-            <SocialShare url={articleUrl} ogUrl={`${baseUrl}/api/og/${post.slug}?lang=${isAr ? "ar" : "en"}`} title={shareTitle} description={shareDescription} image={shareImage} lang={lang} />
+            <SocialShare url={articleUrl} ogUrl={`${baseUrl}/api/og-image/${post.slug}?lang=${isAr ? "ar" : "en"}`} title={shareTitle} description={shareDescription} image={shareImage} lang={lang} />
 
             {/* Language alternate link */}
             {linkedUrl && linked && (

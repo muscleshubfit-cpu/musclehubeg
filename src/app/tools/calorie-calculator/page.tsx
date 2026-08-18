@@ -294,7 +294,7 @@ export default function CalorieCalculatorPage() {
                   : "Need a personalized meal plan based on your numbers?"}
               </p>
               <button
-                onClick={() => navigate("pricing")}
+                onClick={() => navigate("memberships")}
                 className="mt-4 rounded-full bg-[#0071e3] px-6 py-2.5 text-sm font-normal text-white transition-opacity hover:opacity-90"
               >
                 {isAr ? "احصل على خطة مخصصة ›" : "Get a personalized plan ›"}

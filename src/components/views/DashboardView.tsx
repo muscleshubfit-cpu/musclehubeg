@@ -91,7 +91,7 @@ export function DashboardView() {
               <>
                 <p className="text-lg font-semibold">{t("dash.notSet")}</p>
                 <button
-                  onClick={() => navigate("pricing")}
+                  onClick={() => navigate("memberships")}
                   className="mt-3 rounded-full bg-[#0071e3] px-4 py-2 text-xs font-normal text-white transition-opacity hover:opacity-90"
                 >
                   {t("pricing.cta")}

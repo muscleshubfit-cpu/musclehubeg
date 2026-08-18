@@ -142,7 +142,7 @@ export function SiteHeader({ variant = "landing" }: { variant?: "landing" | "app
   menu.push({
     label: isAr ? "الأسعار" : "Pricing",
     icon: Crown,
-    onClick: () => navigate("pricing"),
+    onClick: () => navigate("memberships"),
   });
 
   // 3b. Memberships

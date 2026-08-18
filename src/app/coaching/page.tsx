@@ -153,7 +153,7 @@ export default function CoachingPage() {
             </p>
             <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
               <button
-                onClick={() => navigate("pricing")}
+                onClick={() => navigate("memberships")}
                 className="rounded-full bg-[#0071e3] px-7 py-3 text-base font-normal text-white transition-opacity hover:opacity-90"
               >
                 {isAr ? "ابدأ تحوّلك" : "Start your transformation"}
@@ -384,7 +384,7 @@ export default function CoachingPage() {
                       ))}
                     </ul>
                     <button
-                      onClick={() => navigate("pricing")}
+                      onClick={() => navigate("memberships")}
                       className={`mt-8 w-full rounded-full px-6 py-3 text-base font-normal transition-opacity hover:opacity-90 ${p.highlight ? "bg-white text-black" : "bg-[#0071e3] text-white"}`}
                     >
                       {isAr ? "ابدأ الآن" : "Get Started"}
@@ -395,7 +395,7 @@ export default function CoachingPage() {
             </div>
             <Reveal delay={400}>
               <div className="mt-12 text-center">
-                <button onClick={() => navigate("pricing")} className="font-normal text-[#0071e3] transition-opacity hover:opacity-70">
+                <button onClick={() => navigate("memberships")} className="font-normal text-[#0071e3] transition-opacity hover:opacity-70">
                   {isAr ? "كل التفاصيل ›" : "See all details ›"}
                 </button>
               </div>
@@ -445,7 +445,7 @@ export default function CoachingPage() {
           <Reveal delay={200}>
             <div className="mt-8 flex flex-wrap items-center justify-center gap-4 md:gap-6">
               <button
-                onClick={() => navigate("pricing")}
+                onClick={() => navigate("memberships")}
                 className="rounded-full bg-[#0071e3] px-7 py-3 text-base font-normal text-white transition-opacity hover:opacity-90"
               >
                 {isAr ? "ابدأ تحوّلي" : "Start my transformation"}

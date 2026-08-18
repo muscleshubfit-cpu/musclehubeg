@@ -10,7 +10,7 @@ const nextConfig: NextConfig = {
   },
   // (Next.js 16 dropped support for `eslint` config in next.config.ts —
   // we now run eslint via `bun run lint` instead.)
-  reactStrictMode: false,
+  reactStrictMode: true,
   outputFileTracingIncludes: {
     "/api/ai/research-topic": ["./.z-ai-config"],
     "/api/ai/generate-image": ["./.z-ai-config"],

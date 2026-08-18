@@ -108,7 +108,7 @@ export default function MacroCalculatorPage() {
 
             <div className="rounded-3xl border border-[#0071e3]/20 bg-[#0071e3]/5 p-6 text-center">
               <p className="text-base font-normal text-[#1d1d1f]">{isAr ? "محتاج خطة وجبات بالماكروز دي؟" : "Need a meal plan with these macros?"}</p>
-              <button onClick={() => navigate("pricing")} className="mt-4 rounded-full bg-[#0071e3] px-6 py-2.5 text-sm font-normal text-white transition-opacity hover:opacity-90">
+              <button onClick={() => navigate("memberships")} className="mt-4 rounded-full bg-[#0071e3] px-6 py-2.5 text-sm font-normal text-white transition-opacity hover:opacity-90">
                 {isAr ? "احصل على خطة مخصصة ›" : "Get a personalized plan ›"}
               </button>
             </div>

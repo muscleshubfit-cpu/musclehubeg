@@ -5,7 +5,6 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 export type View =
  | "landing"
- | "pricing"
  | "memberships"
  | "auth"
  | "checkout"
@@ -46,11 +45,7 @@ function pathForView(view: View, params: Record<string, any> = {}): string {
  return "/";
  case "auth":
  return params.mode ? `/auth?mode=${encodeURIComponent(params.mode)}` : "/auth";
- case "pricing":
- // Legacy view name — always redirect to the new memberships page.
- // (We keep "pricing" in the View union for backward compatibility
- // with existing navigate("pricing") call sites that haven't been
- // migrated yet.)
+ case "memberships":
  return "/memberships";
  case "checkout": {
  const q = new URLSearchParams();
@@ -90,7 +85,7 @@ function viewForPath(pathname: string): View {
  if (pathname.startsWith("/admin/referrals")) return "admin-referrals";
  const clean = pathname.replace(/^\//, "").split("/")[0];
  const known: View[] = [
- "pricing", "memberships", "auth", "checkout", "dashboard", "questionnaires",
+ "memberships", "auth", "checkout", "dashboard", "questionnaires",
  "progress", "plans", "chat", "support", "referral", "blog",
  "about", "contact", "privacy", "terms", "faq",
  ];

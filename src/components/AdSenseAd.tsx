@@ -2,6 +2,9 @@
 
 import { useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
+import { useAuth } from "@/hooks/use-auth";
+import { useMembershipTier } from "@/hooks/use-membership-tier";
+import { getLimits } from "@/lib/memberships";
 
 /**
  * AdSense Ad Component
@@ -62,6 +65,8 @@ export function AdSenseAd({
 }) {
   const adRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname() || "";
+  const { profile } = useAuth();
+  const { tier } = useMembershipTier(profile);
 
   // Publisher ID from env var — falls back to hardcoded value if env
   // isn't set (so the component keeps working during the migration
@@ -69,11 +74,17 @@ export function AdSenseAd({
   const adClient =
     process.env.NEXT_PUBLIC_ADSENSE_CLIENT || "ca-pub-8658364692422583";
 
-  // Suppress ads on authenticated routes
+  // Suppress ads on authenticated routes (AdSense policy)
   const isAdFreeRoute = AD_FREE_ROUTE_PREFIXES.some((prefix) =>
     pathname.startsWith(prefix),
   );
   if (isAdFreeRoute) {
+    return null;
+  }
+
+  // Suppress ads for Pro+ members (adsEnabled = false in their tier limits)
+  const limits = getLimits(tier);
+  if (!limits.adsEnabled) {
     return null;
   }
 

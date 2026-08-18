@@ -142,7 +142,7 @@ export const MEMBERSHIPS: MembershipInfo[] = [
       savedResultsLimit: 200,
       savedResultsExport: true,
       premiumContent: true,
-      adsEnabled: true,
+      adsEnabled: false,
     },
     features: [
       "كل مميزات Premium",
@@ -153,6 +153,7 @@ export const MEMBERSHIPS: MembershipInfo[] = [
       "مخطط الوجبات (8 وجبات، 50 جدول)",
       "200 نتيجة محفوظة + تحميل",
       "محتوى مميز (كورسات، خطط، كتب)",
+      "بدون إعلانات",
     ],
     highlight: true,
     separate: false,
@@ -177,7 +178,7 @@ export const MEMBERSHIPS: MembershipInfo[] = [
       savedResultsLimit: null,
       savedResultsExport: true,
       premiumContent: true,
-      adsEnabled: true,
+      adsEnabled: false,
     },
     features: [
       "خطط تغذية مخصصة من مدرب بشري",
