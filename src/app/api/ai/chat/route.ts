@@ -198,8 +198,23 @@ export async function POST(request: NextRequest) {
         });
 
         if (text && text.length > 10) {
+          // Clean up reasoning artifacts from nemotron models that
+          // sometimes include "Here's a thinking process:" in content
+          let cleanText = text;
+          const thinkingPatterns = [
+            /^Here's a thinking process:?\s*/i,
+            /^Thinking process:?\s*/i,
+            /^<think>[\s\S]*?<\/think>\s*/i,
+            /^<reasoning>[\s\S]*?<\/reasoning>\s*/i,
+          ];
+          for (const pattern of thinkingPatterns) {
+            cleanText = cleanText.replace(pattern, "");
+          }
+          // Also strip leading "**" + numbered thinking steps
+          cleanText = cleanText.replace(/^\*\*\d+\.\s+/m, "").trim();
+
           return NextResponse.json({
-            response: text,
+            response: cleanText,
             links,
             source: `openrouter:${model}`,
           });
