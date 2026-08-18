@@ -19,7 +19,7 @@
 |---|---|---|
 | Next.js | 16.3.0 | App Router, Turbopack |
 | React | 19.2.8 | — |
-| TypeScript | 5.9.3 | `ignoreBuildErrors: true` في next.config.ts |
+| TypeScript | 5.9.3 | Strict mode, 0 errors |
 | Tailwind CSS | 4.3.3 | — |
 | shadcn/ui | كامل | UI Components |
 | Supabase | — | Postgres + Auth + Storage + RLS |
@@ -77,7 +77,7 @@ musclehubeg/
 │   │   └── ...
 │   ├── hooks/                  # use-auth, use-membership-tier, use-nav, use-mobile, use-toast
 │   └── middleware.ts           # المصادقة + اللغة + إعادة التوجيه
-├── supabase/migrations/       # 11 migration files
+├── supabase/migrations/       # 12 migration files
 ├── public/images/              # صور الموقع
 ├── vercel.json                 # Vercel config + Crons + Headers
 ├── PROGRESS.md                 # ⭐ لوحة التحكم الرئيسية — اقرأها أول شيء
@@ -106,7 +106,6 @@ musclehubeg/
 - `src/lib/data.ts` هو طبقة البيانات المركزية — كل القراءة/الكتابة من خلاله
 - يدعم Supabase (إنتاج) + localStorage fallback (تطوير/عرض)
 - **لا تستدعي Supabase مباشرة من المكونات** — استخدم الدوال في data.ts
-- الملف عليه `@ts-nocheck` — هذا معروف ومقبول حالياً
 
 ### 4. الإشعارات
 - `createAdminNotification` في data.ts — **لا تستخدم await معاها** (fire-and-forget)
@@ -141,16 +140,11 @@ musclehubeg/
 ## حالة المشروع الحالية
 
 - **54 ميزة مكتملة 100%** (Feature Freeze — لا تعدلها إلا لإصلاح bug)
-- **~120 ملف كود**, **26 API route**, **40+ صفحة**, **22 جدول DB**
-- **إجراء يدوي واحد متبقي:** تشغيل migration 0011 على Supabase SQL Editor
+- **~120 ملف كود**, **26 API route**, **40+ صفحة**, **23 جدول DB**
+- **إجراء يدوي واحد متبقي:** تشغيل migrations 0011 + 0012 على Supabase SQL Editor
 - **PROGRESS.md** هو الملف المرجعي — يُحدث مع كل تغيير
-
-### مشاكل معروفة (مقبولة حالياً)
-- `@ts-nocheck` على 10 ملفات — مؤجل (Phase 4)
-- `ignoreBuildErrors: true` — مؤجل
-- `supabase/types.ts` قديم (ناقص 9 جداول) — مؤجل
-- `chat_messages` table مش مستخدمة (chat في localStorage بس) — مؤجل
-- `price_egp` field اسمه مضلل (بيوفر USD) — مؤجل
+- **0 أخطاء TypeScript** — كل `@ts-nocheck` محذوفة
+- **كل الـ known issues اتحلت** (types.ts كامل، chat_messages مستخدمة، price_egp → price_usd)
 
 ---
 
@@ -180,7 +174,6 @@ musclehubeg/
 ## ملاحظات مهمة
 
 - الفورمات مش موجودة في المشروع (no tests) — كل اختبار يدوي
-- `src/lib/data.ts` عليه `@ts-nocheck` — لا تحاول إزالته بدون خطة
 - الـ Views في `src/components/views/` هي المكونات الرئيسية (كل صفحة = View واحد)
 - الصفحات في `src/app/` مجرد wrappers رفيعة حول الـ Views
 - الـ i18n system بسيط: `t("key")` يرجع النص حسب اللغة الحالية
