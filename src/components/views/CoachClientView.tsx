@@ -1327,7 +1327,20 @@ function PlanViewerModal({ plan, onClose, onRegenerate }: { plan: any; onClose: 
  // Auto-calc calories when food or amount changes
  if (field === "food" || field === "amount") {
  try {
- const { calcCaloriesForItem } = await import("@/lib/ai-local");
+ // Search our food database (8,830+ foods) for matching food
+ const res = await fetch(`/api/food-search?q=${encodeURIComponent(newContent.meals[mealIdx].items[itemIdx].food || "")}`);
+ if (res.ok) {
+ const data = await res.json();
+ const match = data.results?.[0];
+ if (match) {
+ const grams = parseInt(newContent.meals[mealIdx].items[itemIdx].amount?.replace(/[^0-9]/g, "") || "100") || 100;
+ const factor = grams / 100;
+ newContent.meals[mealIdx].items[itemIdx].calories = Math.round(match.per100g.calories * factor);
+ newContent.meals[mealIdx].items[itemIdx].protein_g = Math.round(match.per100g.protein * factor);
+ newContent.meals[mealIdx].items[itemIdx].carbs_g = Math.round(match.per100g.carbs * factor);
+ newContent.meals[mealIdx].items[itemIdx].fat_g = Math.round(match.per100g.fat * factor);
+ }
+ }
  const item = newContent.meals[mealIdx].items[itemIdx];
  const auto = calcCaloriesForItem(item.food, item.amount);
  if (auto !== null) {
