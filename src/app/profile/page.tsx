@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/hooks/use-auth";
+import { useMembershipTier } from "@/hooks/use-membership-tier";
 import { useNav } from "@/hooks/use-nav";
 import { SiteHeader } from "@/components/SiteHeader";
 import { supabase } from "@/lib/supabase/client";
@@ -39,8 +40,9 @@ export default function ProfilePage() {
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Determine membership tier (default: free)
-  const tier: MembershipTier = (profile as any)?.membership_tier || "free";
+  // Determine membership tier via the useMembershipTier hook
+  // (queries subscriptions table — NOT the missing profile.membership_tier field)
+  const { tier } = useMembershipTier(profile);
   const limits = getLimits(tier);
   const membership = MEMBERSHIPS.find((m) => m.id === tier);
 

@@ -14,10 +14,10 @@ import { fetchBlogForOG } from "@/lib/blog-server";
  *
  * Design:
  *   - Dark gradient background (#1d1d1f → #0071e3)
- *   - MuscleHubFit logo + brand mark top-left
+ *   - MuscleHub logo + brand mark top-left
  *   - Article title centered (auto-fit font size based on length)
  *   - Article description (truncated to 120 chars)
- *   - Site URL "musclehubfit.com" footer
+ *   - Site URL "musclehubeg.vercel.app" footer
  */
 
 export const runtime = "edge";
@@ -31,7 +31,7 @@ export async function GET(
   const lang = (request.nextUrl.searchParams.get("lang") as "en" | "ar") || "en";
 
   // Defaults if post not found
-  let title = "MuscleHubFit — Fitness & Nutrition Platform";
+  let title = "MuscleHub — Fitness & Nutrition Platform";
   let description = "AI-powered fitness & nutrition coaching platform";
 
   try {
@@ -88,7 +88,7 @@ export async function GET(
             M
           </div>
           <div style={{ fontSize: 32, fontWeight: 700, letterSpacing: -0.5 }}>
-            MuscleHubFit
+            MuscleHub
           </div>
         </div>
 
@@ -128,7 +128,7 @@ export async function GET(
             opacity: 0.7,
           }}
         >
-          <div>musclehubfit.com</div>
+          <div>musclehubeg.vercel.app</div>
           <div>{lang === "ar" ? "مدونة MuscleHub" : "MuscleHub Blog"}</div>
         </div>
       </div>
