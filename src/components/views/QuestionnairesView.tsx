@@ -51,19 +51,13 @@ export function QuestionnairesView() {
         setFitness(f);
         setNutritionForm((n?.data as Record<string, any>) ?? {});
         setFitnessForm((f?.data as Record<string, any>) ?? {});
-        // Auto-detect the correct starting step
-        const nStatus = n?.status as string | undefined;
-        const fStatus = f?.status as string | undefined;
-        const nDone = nStatus === "submitted" || nStatus === "approved";
-        const fDone = fStatus === "submitted" || fStatus === "approved";
-        if (nStatus === "needs_info") {
-          setStep(1);
-        } else if (fStatus === "needs_info") {
-          setStep(2);
-        } else if (nDone && fDone) {
-          setStep(3); // Both submitted — show review
-        } else if (nDone) {
-          setStep(2);
+        // Auto-detect starting step: go to first incomplete, or review if both have data
+        const nHas = n?.data && Object.keys(n.data as object).length > 0;
+        const fHas = f?.data && Object.keys(f.data as object).length > 0;
+        if (nHas && fHas) {
+          setStep(3); // Both have data — show review
+        } else if (nHas) {
+          setStep(2); // Nutrition done — go to fitness
         } else {
           setStep(1);
         }
@@ -73,11 +67,11 @@ export function QuestionnairesView() {
     })();
   }, [profile]);
 
-  // Locked status — if either questionnaire is submitted/approved, lock editing
+  // Editing always available — clients can update at any time and re-submit
   const nutritionStatus = nutrition?.status as "draft" | "submitted" | "approved" | "needs_info" | undefined;
   const fitnessStatus = fitness?.status as "draft" | "submitted" | "approved" | "needs_info" | undefined;
-  const nutritionLocked = nutritionStatus === "submitted" || nutritionStatus === "approved";
-  const fitnessLocked = fitnessStatus === "submitted" || fitnessStatus === "approved";
+  const nutritionLocked = false;
+  const fitnessLocked = false;
 
   const saveQuestionnaire = async (type: QType, newStatus: "draft" | "submitted") => {
     if (!profile) return;
