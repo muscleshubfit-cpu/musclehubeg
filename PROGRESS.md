@@ -1,7 +1,7 @@
 # PROGRESS.md — MuscleHub Shared Dashboard
 
-> **آخر تحديث:** 2026-08-18
-> **الحالة:** المرحلة 3 مكتملة — جاهز للمراجعة قبل الانتقال للمرحلة 4
+> **آخر تحديث:** 2026-08-18 (تحديث إصلاحات Code Stability)
+> **الحالة:** المرحلة 3 مكتملة + إصلاحات استقرار الكود — بانتظار تطبيق migration 0011 يدوياً
 > **قاعدة التحكم:** هذا الملف هو لوحة التحكم والتسليم المشتركة. لا ننتقل لأي خطوة قادمة دون تحديث هذا الملف والحصول على الموافقة البشرية.
 
 ---
@@ -138,10 +138,10 @@
 
 | # | المشكلة | الملف | الوصف | الحل المقترح |
 |---|---|---|---|---|
-| B1 | **صفحة البروفايل تعرض Tier = "free" دائماً** | `src/app/profile/page.tsx:43` | `(profile as any)?.membership_tier` يقرأ حقل غير موجود في `Profile` type → دائماً "free" حتى للمشتركين Premium/Pro | استبدال بـ `useMembershipTier(profile)` hook (موجود بالفعل في `SaveResultButton`) |
-| B2 | **تناقض البراند في PDF/OG images** | `src/lib/result-png-export.ts`, `src/app/api/og-image/[slug]/route.tsx` | الـ footer بيكتب "MuscleHubFit — musclehubfit.com" لكن الدومين الفعلي `musclehubeg.vercel.app` | توحيد البراند على اسم واحد + URL واحد في كل الملفات |
-| B3 | **`start` script لا يعمل محلياً** | `package.json:8` | `"start": "bun .next/standalone/server.js"` — لكن `output: "standalone"` غير مُفعّل في `next.config.ts` → الملف غير موجود | تغيير لـ `"start": "next start"` أو تفعيل `output: "standalone"` |
-| B4 | **Migration 0011 لم يُطبّق على الإنتاج** | `supabase/migrations/0011_multi_subscriptions.sql` | الـ `unique(client_id)` constraint لسه موجود → الاشتراكات المتعددة مش هتشتغل | تشغيل الـ migration عبر Supabase SQL Editor أو `/api/admin/run-migration` |
+| B1 | ~~صفحة البروفايل تعرض Tier = "free" دائماً~~ | `src/app/profile/page.tsx` | ✅ **تم الإصلاح** — استبدال بـ `useMembershipTier(profile)` hook | — |
+| B2 | ~~تناقض البراند في PDF/OG images~~ | `src/lib/result-png-export.ts`, `src/app/api/og-image/[slug]/route.tsx` | ✅ **تم الإصلاح** — استبدال MuscleHubFit → MuscleHub + musclehubfit.com → musclehubeg.vercel.app | — |
+| B3 | ~~`start` script لا يعمل محلياً~~ | `package.json` | ✅ **تم الإصلاح** — تغيير لـ `next start` | — |
+| B4 | **Migration 0011 لم يُطبّق على الإنتاج** | `supabase/migrations/0011_multi_subscriptions.sql` | ⚠️ **يتطلب إجراء يدوي** — انسخ SQL من ملف migration والصقه في Supabase SQL Editor: https://supabase.com/dashboard/project/wyopqryzfjifyeyvyxfy/sql/new | تشغيل الـ migration يدوياً |
 
 ### 🟡 أولوية متوسطة (نوعية الكود)
 
@@ -150,18 +150,18 @@
 | B5 | **`@ts-nocheck` على 10 ملفات حرجة** | `data.ts`, `referral.ts`, `blog.ts`, `blog-admin.ts`, `ai-local.ts`, `admin.ts`, `referral-cookie.ts`, + 3 API routes | TypeScript errors تتراكم بصمت | إزالة `@ts-nocheck` + إصلاح الأخطاء تدريجياً |
 | B6 | **`ignoreBuildErrors: true`** | `next.config.ts:9` | يخفي أخطاء TypeScript أثناء الـ build | إزالة الخيار + إصلاح الأخطاء |
 | B7 | **`supabase/types.ts` قديم** | `src/lib/supabase/types.ts` | ناقص 9 جداول من migrations 0002+ (blog_posts, notifications, admin_notifications, saved_results, meal_plans, subscription_requests, referrals, referral_earnings, referral_payouts) | توليد الـ types من Supabase CLI: `npx supabase gen types typescript` |
-| B8 | **`adsEnabled` limit غير مستخدم** | `src/lib/memberships.ts` | الـ field موجود في كل tier لكن `AdSenseAd` بيتحقق من الـ route فقط مش من الـ tier | ربط الـ `adsEnabled` بـ `useMembershipTier` hook في `AdSenseAd` |
+| B8 | ~~`adsEnabled` limit غير مستخدم~~ | `src/lib/memberships.ts`, `src/components/AdSenseAd.tsx` | ✅ **تم الإصلاح** — `AdSenseAd` دلوقتي بيتحقق من `getLimits(tier).adsEnabled` + `adsEnabled: false` لـ Pro/Coaching | — |
 | B9 | **`chat_messages` table غير مستخدم** | `src/lib/evo-chat-context.tsx` | EVO chat history محفوظ في localStorage بس — مش متزامن مع Supabase | مزامنة الـ chat history مع `chat_messages` table للمشتركين |
-| B10 | **كود `speerr@gmail.com` hardcoded** | `src/lib/data.ts:186,209` | auto-bootstrap للكوتش مرتبط بإيميل واحد — لو تغيّر يضيع الوصول | نقل لـ env var `COACH_EMAILS` |
+| B10 | ~~كود `speerr@gmail.com` hardcoded~~ | `src/lib/data.ts` | ✅ **تم الإصلاح** — نقل لـ `COACH_EMAILS` env var (comma-separated) | — |
 
 ### 🟢 أولوية منخفضة (تنظيف)
 
 | # | المشكلة | الملف | الوصف | الحل المقترح |
 |---|---|---|---|---|
-| B11 | **`/api/og/[slug]` legacy route** | `src/app/api/og/[slug]/route.ts` | route قديم مكرر — `/api/og-image/[slug]` هو الحالي | حذف الـ legacy route |
-| B12 | **`/pricing` page لسه موجودة** | `src/app/pricing/page.tsx` | صفحة Starter/Elite القديمة — كل الروابط بتحوّل لـ `/memberships` | حذف الصفحة نهائياً بعد التأكد من مفيش روابط لها |
-| B13 | **`/api/admin/run-migration` endpoint** | `src/app/api/admin/run-migration/route.ts` | endpoint مؤقت لـ migration — لازم يتشال بعد الاستخدام | حذف بعد تطبيق migration 0011 |
-| B14 | **`reactStrictMode: false`** | `next.config.ts:14` | يخفي بعض الـ side-effect bugs في الـ dev | تفعيل + إصلاح أي warnings |
+| B11 | ~~`/api/og/[slug]` legacy route~~ | ✅ **تم الحذف** — استبدال المرجع في BlogArticlePage بـ `/api/og-image/` | — |
+| B12 | ~~`/pricing` page لسه موجودة~~ | ✅ **تم الحذف** — استبدال كل `navigate("pricing")` بـ `navigate("memberships")` + حذف من `View` type | — |
+| B13 | ~~`/api/admin/run-migration` endpoint~~ | ✅ **تم الحذف** — endpoint مؤقت تمت إزالته | — |
+| B14 | ~~`reactStrictMode: false`~~ | ✅ **تم الإصلاح** — `reactStrictMode: true` | — |
 | B15 | **`price_egp` field name** | `subscription_requests` table | الـ field بيوفر USD مش EGP — الاسم مضلل | إعادة تسمية لـ `price_usd` (يتطلب migration) |
 | B16 | **`WeightChart` lazy-loaded but Recharts still in deps** | `package.json` | recharts (~600KB) مثبت لكن lazy-loaded فقط في ProgressView | مقبول — لا حاجة لتغيير |
 | B17 | **Framer Motion animations مُعطّلة** | `src/components/motion.tsx` | Reveal + StaggerGroup + StaggerItem بتعمل render مباشر بدون animation | مقبول كقرار تصميمي — 유جر 직عّلها بسبب اهتزاز |
