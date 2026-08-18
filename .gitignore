@@ -60,3 +60,4 @@ pnpm-lock.yaml
 *.db
 .env*
 .z-ai-config
+.env.production
