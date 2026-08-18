@@ -5,6 +5,12 @@
   "devCommand": "next dev -p 3000",
   "installCommand": "bun install",
   "regions": ["sin1"],
+  "crons": [
+    {
+      "path": "/api/cron/progress-reminder",
+      "schedule": "0 7 * * 0"
+    }
+  ],
   "headers": [
     {
       "source": "/(.*)",
