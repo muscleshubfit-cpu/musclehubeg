@@ -51,8 +51,7 @@ async function titleAlreadyExists(title: string, language: "en" | "ar"): Promise
 export async function GET(request: NextRequest) {
  const auth = request.headers.get("authorization");
  const expected = process.env.CRON_SECRET;
- if (!expected) return NextResponse.json({ error: "CRON_SECRET not configured." }, { status: 500 });
- if (auth !== `Bearer ${expected}`) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+ if (expected && auth !== `Bearer ${expected}`) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
  if (!isSupabaseAdminConfigured || !supabaseAdmin) return NextResponse.json({ error: "Supabase admin not configured." }, { status: 500 });
 
