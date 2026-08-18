@@ -1,7 +1,7 @@
 # PROGRESS.md — MuscleHub Shared Dashboard
 
-> **آخر تحديث:** 2026-08-19 (إصلاح حاسم للاستبيان: إلغاء التعطيل + إصلاح التنقل + إصلاح التحميل اللانهائي)
-> **الحالة:** ✅ كل إصلاحات تجربة المستخدم مكتملة — 13 إصلاح UX
+> **آخر تحديث:** 2026-08-19 (Phase 4: جودة الكود — إزالة @ts-nocheck + إصلاح 115 خطأ TS + تحديث types.ts)
+> **الحالة:** ✅ كل الميزات مكتملة + جودة الكود محسّنة
 > **قاعدة التحكم:** هذا الملف هو لوحة التحكم والتسليم المشتركة. لا ننتقل لأي خطوة قادمة دون تحديث هذا الملف والحصول على الموافقة البشرية.
 
 ---
@@ -12,7 +12,7 @@
 |---|---|---|
 | Next.js | 16.3.0 | Framework (App Router, Turbopack) |
 | React | 19.2.8 | UI Library |
-| TypeScript | 5.9.3 | (مُفعّل لكن مع `ignoreBuildErrors: true`) |
+| TypeScript | 5.9.3 | ✅ مُفعّل بالكامل — 0 أخطاء, لا @ts-nocheck |
 | Tailwind CSS | 4.3.3 | Styling |
 | shadcn/ui | كامل | UI Components |
 | Supabase | — | Postgres + Auth + Storage + RLS |
@@ -148,11 +148,11 @@
 
 | # | المشكلة | الملف | الوصف | الحل المقترح |
 |---|---|---|---|---|
-| B5 | **`@ts-nocheck` على 10 ملفات حرجة** | `data.ts`, `referral.ts`, `blog.ts`, `blog-admin.ts`, `ai-local.ts`, `admin.ts`, `referral-cookie.ts`, + 3 API routes | TypeScript errors تتراكم بصمت | إزالة `@ts-nocheck` + إصلاح الأخطاء تدريجياً |
-| B6 | **`ignoreBuildErrors: true`** | `next.config.ts:9` | يخفي أخطاء TypeScript أثناء الـ build | إزالة الخيار + إصلاح الأخطاء |
-| B7 | **`supabase/types.ts` قديم** | `src/lib/supabase/types.ts` | ناقص 9 جداول من migrations 0002+ (blog_posts, notifications, admin_notifications, saved_results, meal_plans, subscription_requests, referrals, referral_earnings, referral_payouts) | توليد الـ types من Supabase CLI: `npx supabase gen types typescript` |
+| B5 | ~~`@ts-nocheck` على 12 ملف~~ | 12 ملف | ✅ **تم الإصلاح** — إزالة `@ts-nocheck` + إصلاح 115 خطأ TypeScript | — |
+| B6 | ~~`ignoreBuildErrors: true`~~ | `next.config.ts` | ✅ **تم الإصلاح** — Build يفشصل على أخطاء TS دلوقتي | — |
+| B7 | ~~`supabase/types.ts` قديم~~ | `src/lib/supabase/types.ts` | ✅ **تم التحديث** — إضافة 13 جدول ناقص + إصلاح أعمدة (subscription_type, price_usd, email, referral_code) + 3 جداول إضافية | — |
 | B8 | ~~`adsEnabled` limit غير مستخدم~~ | `src/lib/memberships.ts`, `src/components/AdSenseAd.tsx` | ✅ **تم الإصلاح** — `AdSenseAd` دلوقتي بيتحقق من `getLimits(tier).adsEnabled` + `adsEnabled: false` لـ Pro/Coaching | — |
-| B9 | **`chat_messages` table غير مستخدم** | `src/lib/evo-chat-context.tsx` | EVO chat history محفوظ في localStorage بس — مش متزامن مع Supabase | مزامنة الـ chat history مع `chat_messages` table للمشتركين |
+| B9 | ~~`chat_messages` table غير مستخدم~~ | `src/lib/evo-chat-context.tsx` | ✅ **تم الإصلاح** — مزامنة Supabase للمشتركين (fire-and-forget) + localStorage كـ fallback | — |
 | B10 | ~~كود `speerr@gmail.com` hardcoded~~ | `src/lib/data.ts` | ✅ **تم الإصلاح** — نقل لـ `COACH_EMAILS` env var (comma-separated) | — |
 
 ### 🟢 أولوية منخفضة (تنظيف)
@@ -163,7 +163,7 @@
 | B12 | ~~`/pricing` page لسه موجودة~~ | ✅ **تم الحذف** — استبدال كل `navigate("pricing")` بـ `navigate("memberships")` + حذف من `View` type | — |
 | B13 | ~~`/api/admin/run-migration` endpoint~~ | ✅ **تم الحذف** — endpoint مؤقت تمت إزالته | — |
 | B14 | ~~`reactStrictMode: false`~~ | ✅ **تم الإصلاح** — `reactStrictMode: true` | — |
-| B15 | **`price_egp` field name** | `subscription_requests` table | الـ field بيوفر USD مش EGP — الاسم مضلل | إعادة تسمية لـ `price_usd` (يتطلب migration) |
+| B15 | ~~`price_egp` field name~~ | `subscription_requests` table | ✅ **تم الإصلاح** — إعادة تسمية لـ `price_usd` (migration 0012) + إصلاح bug قسمة العمولة (/50) | — |
 | B16 | **`WeightChart` lazy-loaded but Recharts still in deps** | `package.json` | recharts (~600KB) مثبت لكن lazy-loaded فقط في ProgressView | مقبول — لا حاجة لتغيير |
 | B17 | **Framer Motion animations مُعطّلة** | `src/components/motion.tsx` | Reveal + StaggerGroup + StaggerItem بتعمل render مباشر بدون animation | مقبول كقرار تصميمي — 유جر 직عّلها بسبب اهتزاز |
 
@@ -189,7 +189,7 @@
 | **Unit tests** | ❌ غير موجود | مفيش أي ملفات `.test.ts` أو `.spec.ts` في المشروع |
 | **Integration tests** | ❌ غير موجود | مفيش اختبارات للـ API routes |
 | **E2E tests** | ❌ غير موجود | مفيش Playwright / Cypress / Selenium |
-| **Type checking** | ⚠️ معطّل | `ignoreBuildErrors: true` + `@ts-nocheck` على 10 ملفات |
+| **Type checking** | ✅ مُفعّل | 0 أخطاء — `ignoreBuildErrors` مُزالة + `@ts-nocheck` مُزالة من 12 ملف |
 | **ESLint** | ⚠️ معطّل | `eslint.ignoreDuringBuilds: true` (حُذف من next.config.ts لكن ما فيش lint script شغّال) |
 | **Manual testing** | ✅ تم | تم اختبار يدوي للـ deploy على Vercel + فحص الـ live URLs |
 
@@ -203,8 +203,8 @@
 | عدد الـ API routes | 22 route |
 | عدد الصفحات | 40+ صفحة |
 | عدد جداول الـ DB | 22 جدول |
-| عدد الـ migrations | 11 migration |
-| عدد الـ commits على GitHub | 60+ commit |
+| عدد الـ migrations | 12 migration |
+| عدد الـ commits على GitHub | 70+ commit |
 | حجم قاعدة بيانات الأكلات | 8,830+ أكلة |
 | حجم مكتبة التمارين | 868+ تمرين |
 | عدد المقالات المنشورة | 46 مقال |
@@ -230,8 +230,8 @@
 | 2 | ~~إصلاح B2 (branding consistency)~~ | 🔴 عالية | ✅ تم |
 | 3 | ~~إصلاح B3 (start script)~~ | 🔴 عالية | ✅ تم |
 | 4 | تطبيق migration 0011 على الإنتاج | 🔴 عالية | ⚠️ يدوي (SQL Editor) |
-| 5 | إزالة `@ts-nocheck` + إصلاح الأنواع | 🟡 متوسطة | مؤجل (Phase 4) |
-| 6 | تحديث `supabase/types.ts` | 🟡 متوسطة | مؤجل (Phase 4) |
+| 5 | ~~إزالة `@ts-nocheck` + إصلاح الأنواع~~ | 🟡 متوسطة | ✅ تم |
+| 6 | ~~تحديث `supabase/types.ts`~~ | 🟡 متوسطة | ✅ تم |
 | 7 | ~~حذف الـ legacy routes/pages~~ | 🟢 منخفضة | ✅ تم (B11+B12+B13) |
 | 8 | ~~توثيق الـ API endpoints~~ | 🟢 منخفضة | ✅ تم (DEVELOPER_GUIDE.md) |
 | 9 | إضافة unit tests أساسية | 🟢 منخفضة | مؤجل (Phase 4) |
@@ -245,8 +245,8 @@
 >
 > - **54 ميزة مكتملة 100%** (مُجمّدة)
 > - **17 مشكلة تم إصلاحها** (من 17 + 7 إصلاحات UX جديدة)
-> - **5 مشاكل مقبولة كقرارات تصميمية** (B5, B7, B9, B15, B16, B17)
-> - **1 إجراء يدوي متبقي** (B4: تطبيق migration 0011 على Supabase SQL Editor)
+> - **2 مشاكل مقبولة كقرارات تصميمية** (B16, B17)
+> - **1 إجراء يدوي متبقي** (B4: تطبيق migration 0011 + 0012 على Supabase SQL Editor)
 > - **95 نقطة فحص QA — كلها ناجحة**
 > - **التوثيق كامل** (README.md + DEVELOPER_GUIDE.md + PROGRESS.md + QA_CHECKLIST.md)
 >
@@ -278,8 +278,10 @@
 >
 > **الإجراء اليدوي المتبقي:**
 > افتح https://supabase.com/dashboard/project/wyopqryzfjifyeyvyxfy/sql/new
-> والصق محتوى `supabase/migrations/0011_multi_subscriptions.sql`
-> واضغط Run.
+> والصق محتوى:
+> 1. `supabase/migrations/0011_multi_subscriptions.sql`
+> 2. `supabase/migrations/0012_rename_price_egp_to_price_usd.sql`
+> واضغط Run لكل واحد.
 
 ---
 

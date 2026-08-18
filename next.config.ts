@@ -5,8 +5,8 @@ const nextConfig: NextConfig = {
   // output natively and expects the standard .next/ structure. Setting
   // standalone mode breaks Vercel's onBuildComplete step which looks
   // for .next/next-server.js.nft.json at its standard location.
+  // TypeScript strict checks enabled — all @ts-nocheck removed, 0 errors
   typescript: {
-    ignoreBuildErrors: true,
   },
   // (Next.js 16 dropped support for `eslint` config in next.config.ts —
   // we now run eslint via `bun run lint` instead.)

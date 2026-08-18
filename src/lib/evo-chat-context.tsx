@@ -8,16 +8,16 @@ import {
   useEffect,
   type ReactNode,
 } from "react";
+import { supabase, isSupabaseConfigured } from "@/lib/supabase/client";
 
 /**
  * EvoChatContext — manages EVO chat state across all pages.
  *
- * The widget state (open/closed) and chat history persist as the user
- * navigates between pages. Chat history is stored in localStorage for
- * anonymous users (session-based, cleared on browser close).
+ * Chat history is stored in localStorage for anonymous users
+ * (session-based, cleared on browser close).
  *
- * For authenticated subscribers, chat history should be synced to
- * Supabase `chat_messages` table (future enhancement).
+ * For authenticated users, chat history is synced to Supabase
+ * `chat_messages` table for persistence across devices.
  */
 
 export type ChatMessage = {
@@ -44,6 +44,7 @@ export type ChatState = {
 
 const STORAGE_KEY = "mhe:evo-chat";
 const DAILY_LIMIT = 10; // anonymous users
+const MAX_MESSAGES = 20;
 
 type EvoChatContextType = {
   isOpen: boolean;
@@ -66,114 +67,98 @@ function getTodayString(): string {
   return new Date().toISOString().split("T")[0];
 }
 
-// Load state from localStorage
-function loadState(): ChatState {
+// Load state from localStorage (fallback for anonymous)
+function loadLocalState(): ChatState {
   if (typeof window === "undefined") {
-    return {
-      messages: [],
-      isOpen: false,
-      isTyping: false,
-      dailyCount: 0,
-      dailyCountDate: getTodayString(),
-    };
+    return { messages: [], isOpen: false, isTyping: false, dailyCount: 0, dailyCountDate: getTodayString() };
   }
-
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) {
-      return {
-        messages: [],
-        isOpen: false,
-        isTyping: false,
-        dailyCount: 0,
-        dailyCountDate: getTodayString(),
-      };
-    }
-
+    if (!raw) return { messages: [], isOpen: false, isTyping: false, dailyCount: 0, dailyCountDate: getTodayString() };
     const state = JSON.parse(raw) as ChatState;
-
-    // Reset daily count if it's a new day
     const today = getTodayString();
-    if (state.dailyCountDate !== today) {
-      state.dailyCount = 0;
-      state.dailyCountDate = today;
-    }
-
-    // Keep only last 20 messages (session memory for anonymous)
-    if (state.messages.length > 20) {
-      state.messages = state.messages.slice(-20);
-    }
-
-    return {
-      ...state,
-      isTyping: false, // always reset typing on load
-    };
+    if (state.dailyCountDate !== today) { state.dailyCount = 0; state.dailyCountDate = today; }
+    if (state.messages.length > MAX_MESSAGES) state.messages = state.messages.slice(-MAX_MESSAGES);
+    return { ...state, isTyping: false };
   } catch {
-    return {
-      messages: [],
-      isOpen: false,
-      isTyping: false,
-      dailyCount: 0,
-      dailyCountDate: getTodayString(),
-    };
+    return { messages: [], isOpen: false, isTyping: false, dailyCount: 0, dailyCountDate: getTodayString() };
   }
 }
 
 // Save state to localStorage
-function saveState(state: ChatState) {
+function saveLocalState(state: ChatState) {
   if (typeof window === "undefined") return;
   try {
-    // Don't save isTyping or isOpen (transient state)
-    const toSave = {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
       messages: state.messages,
       dailyCount: state.dailyCount,
       dailyCountDate: state.dailyCountDate,
-    };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
-  } catch {
-    // localStorage might be full or disabled
-  }
+    }));
+  } catch { /* localStorage full or disabled */ }
+}
+
+// Convert a DB row to ChatMessage
+function rowToMessage(row: { id: string; role: string; body: string; created_at: string }): ChatMessage {
+  return {
+    id: row.id,
+    role: row.role as "user" | "assistant",
+    content: row.body,
+    timestamp: new Date(row.created_at).getTime(),
+  };
 }
 
 export function EvoChatProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<ChatState>({
-    messages: [],
-    isOpen: false,
-    isTyping: false,
-    dailyCount: 0,
-    dailyCountDate: getTodayString(),
+    messages: [], isOpen: false, isTyping: false, dailyCount: 0, dailyCountDate: getTodayString(),
   });
 
-  // Load from localStorage on mount (client-side only)
+  // Load from Supabase (authenticated) or localStorage (anonymous) on mount
   useEffect(() => {
-    const loaded = loadState();
-    setState(loaded);
+    (async () => {
+      if (isSupabaseConfigured && supabase) {
+        try {
+          const { data: { user } } = await supabase.auth.getUser();
+          if (user) {
+            const { data } = await supabase
+              .from("chat_messages")
+              .select("*")
+              .eq("client_id", user.id)
+              .order("created_at", { ascending: false })
+              .limit(MAX_MESSAGES);
+            if (data && data.length > 0) {
+              const messages = data.reverse().map(rowToMessage);
+              setState((prev) => ({ ...prev, messages }));
+              return; // Don't load from localStorage
+            }
+          }
+        } catch { /* fall through to localStorage */ }
+      }
+      // Anonymous or no Supabase: load from localStorage
+      const loaded = loadLocalState();
+      setState(loaded);
+    })();
   }, []);
 
-  // Save to localStorage whenever messages or dailyCount change
+  // Save to localStorage on every change (for offline/cache)
   useEffect(() => {
-    saveState(state);
+    saveLocalState(state);
   }, [state.messages, state.dailyCount, state.dailyCountDate]);
 
-  const openChat = useCallback(() => {
-    setState((prev) => ({ ...prev, isOpen: true }));
-  }, []);
+  const openChat = useCallback(() => setState((prev) => ({ ...prev, isOpen: true })), []);
+  const closeChat = useCallback(() => setState((prev) => ({ ...prev, isOpen: false })), []);
+  const toggleChat = useCallback(() => setState((prev) => ({ ...prev, isOpen: !prev.isOpen })), []);
 
-  const closeChat = useCallback(() => {
-    setState((prev) => ({ ...prev, isOpen: false }));
-  }, []);
-
-  const toggleChat = useCallback(() => {
-    setState((prev) => ({ ...prev, isOpen: !prev.isOpen }));
-  }, []);
-
-  const clearChat = useCallback(() => {
-    setState((prev) => ({
-      ...prev,
-      messages: [],
-      dailyCount: 0,
-      dailyCountDate: getTodayString(),
-    }));
+  const clearChat = useCallback(async () => {
+    // Delete from Supabase if authenticated
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          await supabase.from("chat_messages").delete().eq("client_id", user.id);
+        }
+      } catch { /* non-blocking */ }
+    }
+    setState((prev) => ({ ...prev, messages: [], dailyCount: 0, dailyCountDate: getTodayString() }));
   }, []);
 
   const dailyLimitReached = state.dailyCount >= DAILY_LIMIT;
@@ -182,7 +167,6 @@ export function EvoChatProvider({ children }: { children: ReactNode }) {
     async (content: string) => {
       if (!content.trim() || dailyLimitReached) return;
 
-      // Add user message
       const userMessage: ChatMessage = {
         id: `msg-${Date.now()}-user`,
         role: "user",
@@ -197,14 +181,29 @@ export function EvoChatProvider({ children }: { children: ReactNode }) {
         dailyCount: prev.dailyCount + 1,
       }));
 
+      // Persist user message to Supabase (fire-and-forget)
+      if (isSupabaseConfigured && supabase) {
+        (async () => {
+          try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) {
+              await supabase.from("chat_messages").insert({
+                client_id: user.id,
+                role: "user",
+                body: content.trim(),
+              });
+            }
+          } catch { /* non-blocking */ }
+        })();
+      }
+
       try {
-        // Call the EVO chat API
         const response = await fetch("/api/ai/chat", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             message: content.trim(),
-            history: state.messages.slice(-10), // send last 10 messages for context
+            history: state.messages.slice(-10),
           }),
         });
 
@@ -223,20 +222,30 @@ export function EvoChatProvider({ children }: { children: ReactNode }) {
           messages: [...prev.messages, assistantMessage],
           isTyping: false,
         }));
+
+        // Persist assistant message to Supabase (fire-and-forget)
+        if (isSupabaseConfigured && supabase) {
+          (async () => {
+            try {
+              const { data: { user } } = await supabase.auth.getUser();
+              if (user) {
+                await supabase.from("chat_messages").insert({
+                  client_id: user.id,
+                  role: "assistant",
+                  body: data.response || "",
+                });
+              }
+            } catch { /* non-blocking */ }
+          })();
+        }
       } catch (error) {
         const errorMessage: ChatMessage = {
           id: `msg-${Date.now()}-error`,
           role: "assistant",
-          content:
-            "عذراً، حصل خطأ في الاتصال. تأكد من الإنترنت وحاول مرة أخرى.",
+          content: "عذراً، حصل خطأ في الاتصال. تأكد من الإنترنت وحاول مرة أخرى.",
           timestamp: Date.now(),
         };
-
-        setState((prev) => ({
-          ...prev,
-          messages: [...prev.messages, errorMessage],
-          isTyping: false,
-        }));
+        setState((prev) => ({ ...prev, messages: [...prev.messages, errorMessage], isTyping: false }));
       }
     },
     [state.messages, dailyLimitReached],
