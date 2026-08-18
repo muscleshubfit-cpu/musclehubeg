@@ -10,9 +10,10 @@ import {
   listSubscriptionRequests,
   getQuestionnaire,
 } from "@/lib/data";
-import { toast } from "sonner";
 import { getTier } from "@/lib/plans";
 import { MEMBERSHIPS } from "@/lib/memberships";
+import { NotificationForm } from "@/components/NotificationForm";
+import { cn } from "@/lib/utils";
 
 type FilterTab =
   | "all"
@@ -58,14 +59,9 @@ export function CoachView() {
 
   // Broadcast notification state
   const [showBroadcast, setShowBroadcast] = useState(false);
-  const [broadcastTitle, setBroadcastTitle] = useState("");
-  const [broadcastBody, setBroadcastBody] = useState("");
   const [broadcastTarget, setBroadcastTarget] = useState<"all" | "selected" | "single">("all");
-  const [broadcastLink, setBroadcastLink] = useState("/dashboard");
-  const [broadcasting, setBroadcasting] = useState(false);
   const [selectedClientIds, setSelectedClientIds] = useState<Set<string>>(new Set());
   const [selectedSingleId, setSelectedSingleId] = useState("");
-  const [activeTemplate, setActiveTemplate] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -215,74 +211,6 @@ export function CoachView() {
     { id: "coaching", labelAr: "كوتشينج", labelEn: "Coaching", count: counts.coaching, color: "#8b5cf6" },
   ];
 
-  // Notification templates
-  const templates = [
-    { id: "questionnaire", icon: "📋", titleAr: "تذكير بملء الاستبيان", titleEn: "Questionnaire reminder", bodyAr: "يرجى ملء استبيان التغذية واللياقة البدنية حتى نتمكن من تجهيز برنامجك المخصص.", bodyEn: "Please fill out the nutrition and fitness questionnaire so we can prepare your personalized program.", link: "/questionnaires" },
-    { id: "plan_updated", icon: "✅", titleAr: "تم تحديث خطتك", titleEn: "Your plan has been updated", bodyAr: "تم تحديث خطتك التدريبية/الغذائية. تفضل بمراجعتها من قسم الخطط.", bodyEn: "Your workout/nutrition plan has been updated. Check it in the Plans section.", link: "/plans" },
-    { id: "followup", icon: "📅", titleAr: "موعد المتابعة", titleEn: "Follow-up reminder", bodyAr: "حان موعد متابعتك الدورية. يرجى تحديث بيانات التقدم ورفع الصور الحديثة.", bodyEn: "It's time for your follow-up. Please update your progress data and upload recent photos.", link: "/progress" },
-    { id: "workout", icon: "💪", titleAr: "تذكير بالتمارين", titleEn: "Workout reminder", bodyAr: "لا تنسَ تمارينك اليوم! الالتزام بالبرنامج هو مفتاح النتائج.", bodyEn: "Don't forget your workout today! Consistency is key to results.", link: "/plans" },
-    { id: "nutrition", icon: "🥗", titleAr: "تذكير بالتغذية", titleEn: "Nutrition reminder", bodyAr: "تذكر متابعة نظامك الغذائي وتسجيل وجباتك في متتبع الوجبات.", bodyEn: "Remember to follow your nutrition plan and log your meals in the meal planner.", link: "/meal-planner" },
-    { id: "payment_reminder", icon: "💳", titleAr: "تذكير بالتجديد", titleEn: "Renewal reminder", bodyAr: "اشتراكك على وشك الانتهاء. تجدد الآن للحفاظ على وصولك لكل الميزات.", bodyEn: "Your subscription is ending soon. Renew now to keep access to all features.", link: "/memberships" },
-  ];
-
-  const applyTemplate = (tplId: string) => {
-    const tpl = templates.find((t) => t.id === tplId);
-    if (!tpl) return;
-    if (activeTemplate === tplId) {
-      // Deselect template
-      setActiveTemplate(null);
-      setBroadcastTitle("");
-      setBroadcastBody("");
-      setBroadcastLink("/dashboard");
-    } else {
-      setActiveTemplate(tplId);
-      setBroadcastTitle(isAr ? tpl.titleAr : tpl.titleEn);
-      setBroadcastBody(isAr ? tpl.bodyAr : tpl.bodyEn);
-      setBroadcastLink(tpl.link);
-    }
-  };
-
-  const sendBroadcast = async () => {
-    if (!broadcastTitle.trim() || !broadcastBody.trim()) return;
-    setBroadcasting(true);
-    try {
-      const payload: any = {
-        target: broadcastTarget,
-        title: broadcastTitle.trim(),
-        body: broadcastBody.trim(),
-        link: broadcastLink,
-      };
-      if (broadcastTarget === "single") payload.userId = selectedSingleId;
-      if (broadcastTarget === "selected") payload.userIds = Array.from(selectedClientIds);
-
-      const res = await fetch("/api/notifications/broadcast", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      const data = await res.json();
-      if (res.ok) {
-        toast.success(
-          isAr
-            ? `تم إرسال الإشعار إلى ${data.sent} عميل ✅`
-            : `Notification sent to ${data.sent} client(s) ✅`,
-        );
-        setShowBroadcast(false);
-        setBroadcastTitle("");
-        setBroadcastBody("");
-        setActiveTemplate(null);
-        setSelectedClientIds(new Set());
-        setSelectedSingleId("");
-      } else {
-        toast.error(data.error || "Failed");
-      }
-    } catch (e: any) {
-      toast.error(e.message);
-    } finally {
-      setBroadcasting(false);
-    }
-  };
-
   const toggleClientSelection = (id: string) => {
     setSelectedClientIds((prev) => {
       const next = new Set(prev);
@@ -299,6 +227,14 @@ export function CoachView() {
   const clearSelection = () => {
     setSelectedClientIds(new Set());
   };
+
+  // Build sendMode for NotificationForm
+  const notifSendMode =
+    broadcastTarget === "all"
+      ? { kind: "all" as const, totalCount: clients.length }
+      : broadcastTarget === "selected"
+        ? { kind: "selected" as const, userIds: Array.from(selectedClientIds) }
+        : { kind: "single" as const, userId: selectedSingleId };
 
   return (
     <div className="space-y-8">
@@ -324,14 +260,9 @@ export function CoachView() {
 
       {/* Broadcast form */}
       {showBroadcast && (
-        <div className="rounded-3xl border border-[#d2d2d7] bg-[#f5f5f7] p-6 space-y-5">
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold">{isAr ? "إرسال إشعار" : "Send notification"}</h3>
-            <button onClick={() => setShowBroadcast(false)} className="text-sm text-[#6e6e73] hover:text-[#1d1d1f]">✕</button>
-          </div>
-
-          {/* Target selector */}
-          <div>
+        <div className="rounded-3xl border border-[#d2d2d7] bg-[#f5f5f7] p-6">
+          {/* Target type buttons */}
+          <div className="mb-5">
             <p className="mb-2 text-xs font-medium uppercase tracking-wide text-[#6e6e73]">
               {isAr ? "المرسل إليه" : "Recipients"}
             </p>
@@ -347,7 +278,7 @@ export function CoachView() {
                 onClick={() => { setBroadcastTarget("selected"); setSelectedSingleId(""); }}
                 className={`rounded-full px-4 py-2 text-xs font-medium transition-all ${broadcastTarget === "selected" ? "bg-[#1d1d1f] text-white" : "bg-white text-[#6e6e73] hover:bg-white/80"}`}
               >
-                {isAr ? "عملاء محددين" : "Selected clients"}
+                {isAr ? "عملاء محددون" : "Selected clients"}
               </button>
               <button
                 onClick={() => { setBroadcastTarget("single"); clearSelection(); }}
@@ -360,7 +291,7 @@ export function CoachView() {
 
           {/* Single client dropdown */}
           {broadcastTarget === "single" && (
-            <div>
+            <div className="mb-5">
               <p className="mb-2 text-xs font-medium uppercase tracking-wide text-[#6e6e73]">
                 {isAr ? "اختر العميل" : "Select client"}
               </p>
@@ -379,9 +310,9 @@ export function CoachView() {
             </div>
           )}
 
-          {/* Selected clients bar */}
+          {/* Selected clients hint */}
           {broadcastTarget === "selected" && (
-            <div>
+            <div className="mb-5">
               <div className="mb-2 flex items-center justify-between">
                 <p className="text-xs font-medium uppercase tracking-wide text-[#6e6e73]">
                   {isAr ? "اختر العملاء من القائمة بالأسفل" : "Select clients from the list below"}
@@ -403,101 +334,25 @@ export function CoachView() {
             </div>
           )}
 
-          {/* Quick templates */}
-          <div>
-            <p className="mb-2 text-xs font-medium uppercase tracking-wide text-[#6e6e73]">
-              {isAr ? "قوالب جاهزة" : "Quick templates"}
-            </p>
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-              {templates.map((tpl) => (
-                <button
-                  key={tpl.id}
-                  onClick={() => applyTemplate(tpl.id)}
-                  className={`rounded-xl border px-3 py-2.5 text-start text-xs transition-all ${
-                    activeTemplate === tpl.id
-                      ? "border-[#0071e3] bg-[#0071e3]/5"
-                      : "border-[#d2d2d7] bg-white hover:bg-white/80"
-                  }`}
-                >
-                  <span className="text-base">{tpl.icon}</span>
-                  <span className="mt-0.5 block font-medium">{isAr ? tpl.titleAr : tpl.titleEn}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Custom message */}
-          <div className={activeTemplate ? "opacity-60" : ""}>
-            <p className="mb-2 text-xs font-medium uppercase tracking-wide text-[#6e6e73]">
-              {isAr ? "رسالة مخصصة" : "Custom message"}
-              {activeTemplate && ` (${isAr ? "عدّل القالب أو اختر آخر" : "edit template or pick another"})`}
-            </p>
-            <input
-              value={broadcastTitle}
-              onChange={(e) => { setBroadcastTitle(e.target.value); setActiveTemplate(null); }}
-              placeholder={isAr ? "عنوان الإشعار" : "Notification title"}
-              className="w-full rounded-xl border border-[#d2d2d7] bg-white px-4 py-2.5 text-sm outline-none focus:border-[#0071e3]"
-            />
-            <textarea
-              value={broadcastBody}
-              onChange={(e) => { setBroadcastBody(e.target.value); setActiveTemplate(null); }}
-              placeholder={isAr ? "نص الإشعار" : "Notification body"}
-              rows={3}
-              className="mt-2 w-full rounded-xl border border-[#d2d2d7] bg-white px-4 py-2.5 text-sm outline-none focus:border-[#0071e3]"
-            />
-          </div>
-
-          {/* Link selector */}
-          <div>
-            <p className="mb-2 text-xs font-medium uppercase tracking-wide text-[#6e6e73]">
-              {isAr ? "رابط الإشعار" : "Notification link"}
-            </p>
-            <select
-              value={broadcastLink}
-              onChange={(e) => setBroadcastLink(e.target.value)}
-              className="w-full rounded-xl border border-[#d2d2d7] bg-white px-4 py-2.5 text-sm outline-none focus:border-[#0071e3]"
-            >
-              <option value="/dashboard">{isAr ? "لوحة التحكم" : "Dashboard"}</option>
-              <option value="/plans">{isAr ? "الخطط" : "Plans"}</option>
-              <option value="/questionnaires">{isAr ? "الاستبيانات" : "Questionnaires"}</option>
-              <option value="/progress">{isAr ? "التقدم" : "Progress"}</option>
-              <option value="/meal-planner">{isAr ? "مخطط الوجبات" : "Meal Planner"}</option>
-              <option value="/memberships">{isAr ? "العضويات" : "Memberships"}</option>
-              <option value="/support">{isAr ? "الدعم" : "Support"}</option>
-            </select>
-          </div>
-
-          {/* Actions */}
-          <div className="flex gap-2">
-            <button
-              onClick={sendBroadcast}
-              disabled={
-                broadcasting ||
-                !broadcastTitle.trim() ||
-                !broadcastBody.trim() ||
-                (broadcastTarget === "single" && !selectedSingleId) ||
-                (broadcastTarget === "selected" && selectedClientIds.size === 0)
-              }
-              className="rounded-full bg-[#0071e3] px-5 py-2.5 text-sm font-normal text-white transition-opacity hover:opacity-90 disabled:opacity-50"
-            >
-              {broadcasting
-                ? "..."
-                : broadcastTarget === "all"
-                  ? isAr ? `إرسال للجميع (${clients.length})` : `Send to all (${clients.length})`
-                  : broadcastTarget === "selected"
-                    ? isAr ? `إرسال لـ ${selectedClientIds.size} عميل` : `Send to ${selectedClientIds.size} client(s)`
-                    : isAr ? "إرسال" : "Send"}
-            </button>
-            <button
-              onClick={() => setShowBroadcast(false)}
-              className="rounded-full border border-[#d2d2d7] bg-white px-5 py-2.5 text-sm font-normal text-[#6e6e73] transition-colors hover:bg-[#f5f5f7]"
-            >
-              {isAr ? "إلغاء" : "Cancel"}
-            </button>
-          </div>
+          {/* Shared notification form */}
+          <NotificationForm
+            lang={lang}
+            sendMode={notifSendMode}
+            showClose
+            onClose={() => setShowBroadcast(false)}
+            visible
+            onSent={() => {
+              setShowBroadcast(false);
+              setSelectedClientIds(new Set());
+              setSelectedSingleId("");
+            }}
+            onSelectAll={selectVisibleClients}
+            onClearSelection={clearSelection}
+          />
         </div>
       )}
 
+      {/* Stats
       {/* Stats — Apple-style large numbers */}
       <div className="grid gap-4 sm:grid-cols-3">
         <div className="rounded-2xl bg-[#f5f5f7] p-6">
