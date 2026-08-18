@@ -1328,13 +1328,13 @@ export async function getSubscriptionForClient(clientId: string) {
  .select("*")
  .eq("client_id", clientId)
  .order("created_at", { ascending: false });
- // Return the highest-priority active sub (coaching > pro > premium > others)
- // but keep backward compat by returning a single object.
+ // Return the highest-priority active sub (pro > coaching > premium > others)
+ // Priority by feature richness, NOT by price.
  const arr = data ?? [];
  if (arr.length === 0) return null;
  const priority = (tier: string) => {
- if (tier === "coaching") return 4;
- if (tier === "pro") return 3;
+ if (tier === "pro") return 4;
+ if (tier === "coaching") return 3;
  if (tier === "premium") return 2;
  if (tier === "elite") return 1;
  return 0;

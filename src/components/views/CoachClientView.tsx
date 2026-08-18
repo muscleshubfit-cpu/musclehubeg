@@ -122,8 +122,8 @@ export function CoachClientView({ clientId }: { clientId: string }) {
  setAllSubs(clientSubs);
  // Set the primary sub (highest priority) for backward compat
  const priority = (tier: string) => {
- if (tier === "coaching") return 4;
- if (tier === "pro") return 3;
+ if (tier === "pro") return 4;
+ if (tier === "coaching") return 3;
  if (tier === "premium") return 2;
  if (tier === "elite") return 1;
  return 0;
@@ -157,8 +157,8 @@ export function CoachClientView({ clientId }: { clientId: string }) {
  setAllSubs(updatedSubs);
  // Update primary sub for overview card
  const priority = (t: string) => {
- if (t === "coaching") return 4;
- if (t === "pro") return 3;
+ if (t === "pro") return 4;
+ if (t === "coaching") return 3;
  if (t === "premium") return 2;
  if (t === "elite") return 1;
  return 0;

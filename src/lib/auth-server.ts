@@ -94,7 +94,8 @@ export async function getAuthUser(
   // Resolve membership tier from subscriptions table.
   // Coaches get "coaching" automatically.
   // Multiple subs per client are allowed (e.g. Coaching + Premium).
-  // We pick the highest-priority active sub: coaching > pro > premium > free.
+  // We pick the tier that gives the MOST features:
+  //   pro (most features) > coaching (EVO + human coach) > premium > free
   let membership_tier: MembershipTier = "free";
   if (profile.role === "coach") {
     membership_tier = "coaching";
@@ -105,11 +106,15 @@ export async function getAuthUser(
       .eq("client_id", user.id)
       .eq("status", "active");
     if (subs && subs.length > 0) {
+      // Priority by feature richness (NOT by price):
+      // Pro has premiumContent + pattern analysis + no ads + 6 plans
+      // Coaching has EVO (3 plans) + human coach but NO premiumContent
+      // Premium has EVO (3 plans) but NO premiumContent
       const priority = (tier: string) => {
-        if (tier === "coaching") return 4;
-        if (tier === "pro") return 3;
-        if (tier === "premium") return 2;
-        if (tier === "elite") return 1;
+        if (tier === "pro") return 4;      // most features
+        if (tier === "coaching") return 3;  // EVO + human coach
+        if (tier === "premium") return 2;   // EVO only
+        if (tier === "elite") return 1;     // legacy
         return 0;
       };
       const activeSubs = subs.filter((s: any) =>
@@ -212,9 +217,11 @@ export async function getAuthUserFromHeaders(): Promise<AuthUser | null> {
       .eq("client_id", user.id)
       .eq("status", "active");
     if (subs && subs.length > 0) {
+      // Priority by feature richness (NOT by price):
+      // Pro > Coaching > Premium > Free
       const priority = (tier: string) => {
-        if (tier === "coaching") return 4;
-        if (tier === "pro") return 3;
+        if (tier === "pro") return 4;
+        if (tier === "coaching") return 3;
         if (tier === "premium") return 2;
         if (tier === "elite") return 1;
         return 0;
