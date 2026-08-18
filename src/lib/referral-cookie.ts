@@ -1,4 +1,3 @@
-// @ts-nocheck
 "use client";
 
 import { REFERRAL_COOKIE_NAME, COOKIE_DURATION_DAYS } from "@/lib/referral";

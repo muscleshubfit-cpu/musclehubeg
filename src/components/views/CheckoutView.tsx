@@ -112,7 +112,7 @@ export function CheckoutView({ tier, months }: { tier: TierId | MembershipTier; 
         whatsapp: whatsapp.trim(),
         plan_tier: tier as string,
         duration_months: months as number,
-        price_egp: plan.price, // field name kept for DB compat, value is USD
+        price_usd: plan.price,
         payment_method: method,
         receipt_path: receiptPath || null,
       });

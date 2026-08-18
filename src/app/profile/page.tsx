@@ -112,7 +112,7 @@ export default function ProfilePage() {
     if (!profile || !supabase) return;
     const { error } = await supabase
       .from("profiles")
-      .update(updates)
+      .update(updates as any)
       .eq("id", profile.id);
     if (error) {
       console.error("[profile] Update failed:", error.message);

@@ -1,5 +1,4 @@
 /// <reference types="next" />
-// @ts-nocheck
 "use client"
 
 import * as React from "react"
@@ -127,6 +126,8 @@ function ChartTooltipContent({
  indicator?: "line" | "dot" | "dashed"
  nameKey?: string
  labelKey?: string
+ payload?: any[]
+ label?: string
  }) {
  const { config } = useChart()
 
@@ -259,9 +260,10 @@ function ChartLegendContent({
  verticalAlign = "bottom",
  nameKey,
 }: React.ComponentProps<"div"> &
- Pick<RechartsPrimitive.LegendProps, "payload" | "verticalAlign"> & {
+ Omit<RechartsPrimitive.LegendProps, "payload"> & {
  hideIcon?: boolean
  nameKey?: string
+ payload?: any[]
  }) {
  const { config } = useChart()
 

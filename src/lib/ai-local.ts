@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Local AI plan generator — no external API needed.
  *
@@ -16,6 +15,7 @@ export type ClientContext = {
  nutrition?: any;
  fitness?: any;
  recent_measurements?: any[];
+ current_plans?: any[];
 };
 
 type WorkoutContent = {
@@ -1053,7 +1053,7 @@ function handleFoodSwapQuestion(text: string, ctx?: ClientContext): string {
  };
 
  // Find matching swap
- let swap = null;
+ let swap: typeof foodSwaps[string] | null = null;
  for (const key of Object.keys(foodSwaps)) {
  const [a, b] = key.split(" ");
  if ((text.includes(a) && text.includes(b)) || text.includes(key)) {
@@ -1112,7 +1112,7 @@ function handleExerciseSwapQuestion(text: string, ctx?: ClientContext): string {
  "عقلة": { from: "عقلة", to: "سحب أمامي / سحب باند", muscle: "ظهر عرضي + بايسبس", sets: 4, reps: "8-12", note: "السحب أمامي أسهل ويسمح بحجم أكبر للمبتدئين." },
  };
 
- let swap = null;
+ let swap: typeof exerciseSwaps[string] | null = null;
  for (const key of Object.keys(exerciseSwaps)) {
  if (text.includes(key)) {
  swap = exerciseSwaps[key];

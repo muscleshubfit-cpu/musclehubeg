@@ -34,17 +34,19 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ skipped: true, reason: "no_topic_in_queue" });
     }
 
+    const qi = queueItem as any;
+
     // Mark as "generating" so step 2 doesn't pick it up again
     await supabaseAdmin
       .from("blog_generation_queue" as any)
       .update({ status: "generating" })
-      .eq("id", queueItem.id);
+      .eq("id", qi.id);
 
     // Generate the article (the slow part — 30-60s on free models)
     const bundle = await generateArticleBundle({
-      topic: queueItem.topic,
-      focusKeyword: queueItem.focus_keyword,
-      category: queueItem.category,
+      topic: qi.topic,
+      focusKeyword: qi.focus_keyword,
+      category: qi.category,
     });
 
     // Save the generated bundle as JSON in the queue
@@ -54,14 +56,14 @@ export async function GET(request: NextRequest) {
         status: "generated",
         article_bundle: JSON.stringify(bundle),
       })
-      .eq("id", queueItem.id);
+      .eq("id", qi.id);
 
     if (updateErr) throw new Error(`Queue update: ${updateErr.message}`);
 
     return NextResponse.json({
       ok: true,
       step: 2,
-      queueId: queueItem.id,
+      queueId: qi.id,
       enTitle: bundle.seo.en.seoTitle,
       arTitle: bundle.seo.ar.seoTitle,
     });

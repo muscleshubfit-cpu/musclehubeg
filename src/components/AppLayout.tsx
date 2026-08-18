@@ -22,7 +22,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
     { to: "plans", label: t("nav.plans"), emoji: "📄" },
     { to: "support", label: t("nav.support"), emoji: "🔧" },
     { to: "referral", label: t("nav.referral"), emoji: "🎁" },
-    { to: "pricing", label: t("nav.pricing"), emoji: "👑" },
+    { to: "memberships", label: t("nav.pricing"), emoji: "👑" },
   ];
   const coachNav: { to: View; label: string; emoji: string }[] = [
     { to: "coach", label: t("nav.clients"), emoji: "👥" },

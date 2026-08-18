@@ -127,7 +127,7 @@ export function CoachPaymentsView() {
                     <p className="mt-1 text-xs font-normal text-[#6e6e73]">{new Date(r.created_at).toLocaleString()}</p>
                   </div>
                   <div className="text-end">
-                    <div className="text-xl font-semibold">${r.price_egp}</div>
+                    <div className="text-xl font-semibold">${r.price_usd}</div>
                     <p className="mt-0.5 text-xs font-normal text-[#6e6e73]">
                       {r.duration_months} {t("admin.duration")}
                     </p>

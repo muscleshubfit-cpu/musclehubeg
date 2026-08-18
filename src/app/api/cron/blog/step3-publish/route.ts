@@ -70,29 +70,31 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ skipped: true, reason: "no_generated_article" });
     }
 
-    const bundle = JSON.parse(queueItem.article_bundle);
-    const safeCategory = normalizeCategory(queueItem.category);
+    const qi = queueItem as any;
+
+    const bundle = JSON.parse(qi.article_bundle);
+    const safeCategory = normalizeCategory(qi.category);
 
     // Check for duplicate titles
     if (await titleAlreadyExists(bundle.seo.en.seoTitle, "en")) {
-      await supabaseAdmin.from("blog_generation_queue" as any).update({ status: "skipped_duplicate" }).eq("id", queueItem.id);
+      await supabaseAdmin.from("blog_generation_queue" as any).update({ status: "skipped_duplicate" }).eq("id", qi.id);
       return NextResponse.json({ skipped: true, reason: "duplicate-en-title", title: bundle.seo.en.seoTitle });
     }
     if (await titleAlreadyExists(bundle.seo.ar.seoTitle, "ar")) {
-      await supabaseAdmin.from("blog_generation_queue" as any).update({ status: "skipped_duplicate" }).eq("id", queueItem.id);
+      await supabaseAdmin.from("blog_generation_queue" as any).update({ status: "skipped_duplicate" }).eq("id", qi.id);
       return NextResponse.json({ skipped: true, reason: "duplicate-ar-title", title: bundle.seo.ar.seoTitle });
     }
 
     const now = new Date().toISOString();
-    const enSlug = await uniqueSlug(slugify(bundle.seo.en.slug || queueItem.focus_keyword), "en");
-    const arSlug = await uniqueSlug(slugify(bundle.seo.ar.slug || bundle.seo.en.slug || queueItem.focus_keyword), "ar");
+    const enSlug = await uniqueSlug(slugify(bundle.seo.en.slug || qi.focus_keyword), "en");
+    const arSlug = await uniqueSlug(slugify(bundle.seo.ar.slug || bundle.seo.en.slug || qi.focus_keyword), "ar");
 
     // Fetch image (Pexels — fast, ~3-5s)
     // Image is stored as a remote URL — Pexels CDN serves optimized images.
     // No local compression needed since images are served from Pexels CDN.
     let imageUrl: string | null = null;
     try {
-      const img = await fetchFeaturedImage(bundle.seo.focusKeyword || queueItem.focus_keyword || queueItem.topic);
+      const img = await fetchFeaturedImage(bundle.seo.focusKeyword || qi.focus_keyword || qi.topic);
       imageUrl = img?.url || null;
     } catch {}
 
@@ -158,13 +160,13 @@ export async function GET(request: NextRequest) {
         en_post_id: enPost?.id,
         ar_post_id: arPost?.id,
       })
-      .eq("id", queueItem.id);
+      .eq("id", qi.id);
 
     return NextResponse.json({
       ok: true,
       step: 3,
-      category: queueItem.category,
-      topic: queueItem.topic,
+      category: qi.category,
+      topic: qi.topic,
       en: { title: enRow.title, slug: enSlug },
       ar: { title: arRow.title, slug: arSlug },
     });

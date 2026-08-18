@@ -34,11 +34,12 @@ export async function GET(request: NextRequest) {
       .single();
 
     if (error) throw new Error(`Queue insert: ${error.message}`);
+    if (!data) throw new Error("Queue insert returned no data");
 
     return NextResponse.json({
       ok: true,
       step: 1,
-      queueId: data.id,
+      queueId: (data as any).id,
       topic: pick.topic,
       focusKeyword: pick.focusKeyword,
       category: safeCategory,

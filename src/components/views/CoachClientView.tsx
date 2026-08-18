@@ -87,7 +87,7 @@ export function CoachClientView({ clientId }: { clientId: string }) {
  const [nutriQ, setNutriQ] = useState<any | null>(null);
  const [fitQ, setFitQ] = useState<any | null>(null);
  const [loading, setLoading] = useState(true);
- const [tab, setTab] = useState<"overview" | "subscription" | "plans" | "ai-plans" | "questionnaires" | "progress">("overview");
+ const [tab, setTab] = useState<"overview" | "subscription" | "plans" | "ai-plans" | "questionnaires" | "progress" | "notifications">("overview");
 
  // Subscription form
  const [tier, setTier] = useState<string>("premium");

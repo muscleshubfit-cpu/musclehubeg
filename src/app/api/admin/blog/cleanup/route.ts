@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { NextRequest, NextResponse } from "next/server";
 import { requireCoach, isAuthConfigured } from "@/lib/auth-server";
 import { supabaseAdmin, isSupabaseAdminConfigured } from "@/lib/supabase/admin";
@@ -195,7 +194,7 @@ export async function POST(request: NextRequest) {
 
     const { error: patchErr } = await supabaseAdmin
       .from("blog_posts")
-      .update(updates)
+      .update(updates as any)
       .eq("id", post.id);
 
     details.push({

@@ -1,4 +1,3 @@
-// @ts-nocheck
 "use client";
 
 import { supabase, isSupabaseConfigured } from "@/lib/supabase/client";
@@ -65,10 +64,12 @@ export async function signUpEmail(
  if (data.user) {
  const profile: Profile = {
  id: data.user.id,
+ email: data.user.email ?? null,
  full_name: fullName,
  phone,
  role: "client",
  avatar_url: null,
+ referral_code: null,
  created_at: new Date().toISOString(),
  };
  // Notify coach about new client
@@ -102,10 +103,12 @@ export async function signUpEmail(
  const profiles = read<Record<string, Profile>>(LS_PROFILES, {});
  profiles[id] = {
  id,
+ email,
  full_name: fullName,
  phone,
  role: "client",
  avatar_url: null,
+ referral_code: null,
  created_at: new Date().toISOString(),
  };
  write(LS_PROFILES, profiles);
@@ -293,18 +296,22 @@ export function seedLocalData() {
  const profiles: Record<string, Profile> = {
  [coachId]: {
  id: coachId,
+ email: "ahmed@coach.app",
  full_name: "MuscleHub Coach",
  phone: "+20 100 000 0000",
  role: "coach",
  avatar_url: null,
+ referral_code: null,
  created_at: new Date().toISOString(),
  },
  [clientId]: {
  id: clientId,
+ email: "client@demo.app",
  full_name: "Demo Client",
  phone: "+20 100 111 1111",
  role: "client",
  avatar_url: null,
+ referral_code: null,
  created_at: new Date().toISOString(),
  },
  };
@@ -847,7 +854,7 @@ export async function listPhotos(userId: string) {
  // Generate signed URLs for each photo
  const withUrls = await Promise.all(
  data.map(async (p: any) => {
- const { data: signed } = await supabase.storage
+ const { data: signed } = await supabase!.storage
  .from("progress-photos")
  .createSignedUrl(p.file_path, 3600);
  return { ...p, url: signed?.signedUrl ?? "" };
@@ -999,7 +1006,7 @@ export async function createAdminNotification(type: string, title: string, body:
 export async function listSubscriptionRequests(status?: string) {
  if (isSupabaseConfigured && supabase) {
  let q = supabase.from("subscription_requests").select("*").order("created_at", { ascending: false });
- if (status && status !== "all") q = q.eq("status", status);
+ if (status && status !== "all") q = q.eq("status", status as "pending" | "approved" | "rejected");
  const { data } = await q;
  return data ?? [];
  }
@@ -1014,7 +1021,7 @@ export async function submitSubscriptionRequest(req: any) {
  await createAdminNotification(
  "payment_request",
  "طلب دفع جديد ",
- `${req.full_name} طلب اشتراك ${req.plan_tier} لمدة ${req.duration_months} شهر — $${req.price_egp}`,
+ `${req.full_name} طلب اشتراك ${req.plan_tier} لمدة ${req.duration_months} شهر — $${req.price_usd}`,
  "coach-payments",
  ).catch(() => {});
  return data;
@@ -1047,7 +1054,7 @@ export async function reviewSubscriptionRequest(id: string, action: "approve" | 
  await createNotification(req.user_id, "subscription_approved", "تم تفعيل اشتراكك!", `تم الموافقة على طلب اشتراكك (${req.plan_tier}) لمدة ${req.duration_months} أشهر.`, "/dashboard");
  // Award referral commission (20% of payment)
  try {
- const paymentAmount = req.price_egp ? Number(req.price_egp) / 50 : 10; // EGP to USD approx
+ const paymentAmount = req.price_usd ? Number(req.price_usd) : 10; // already USD
  await awardCommission(req.user_id, paymentAmount, req.id);
  } catch (e) {
  console.error("[reviewSubscriptionRequest] Commission error:", e);
@@ -1192,7 +1199,7 @@ export async function createReferral(referrerId: string, referredEmail: string) 
  if (isSupabaseConfigured && supabase) {
  const { data, error } = await supabase
  .from("referrals")
- .insert({ referrer_id: referrerId, referred_email: referredEmail })
+ .insert({ referrer_id: referrerId, referred_email: referredEmail, referral_code: "" })
  .select()
  .single();
  if (error) throw new Error(error.message);
@@ -1210,7 +1217,7 @@ export async function listBlogPosts() {
  const { data } = await supabase
  .from("blog_posts")
  .select("*")
- .eq("published", true)
+ .eq("is_published", true)
  .order("published_at", { ascending: false });
  return data ?? [];
  }
@@ -1223,7 +1230,7 @@ export async function getBlogPost(slug: string) {
  .from("blog_posts")
  .select("*")
  .eq("slug", slug)
- .eq("published", true)
+ .eq("is_published", true)
  .maybeSingle();
  return data;
  }

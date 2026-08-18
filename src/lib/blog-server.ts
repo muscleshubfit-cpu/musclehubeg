@@ -17,16 +17,16 @@ export const BLOG_CATEGORIES = [
   { id: "science", en: "Science", ar: "علم" },
 ] as const;
 
-export const VALID_CATEGORY_IDS = new Set(BLOG_CATEGORIES.map((c) => c.id));
+export const VALID_CATEGORY_IDS = new Set<string>(BLOG_CATEGORIES.map((c) => c.id));
 
 /**
  * Normalize a category id to a valid one. Server-safe (no "use client").
  */
-export function normalizeCategory(categoryId: string | undefined | null): string {
+export function normalizeCategory(categoryId: string | undefined | null): typeof BLOG_CATEGORIES[number]["id"] {
   if (!categoryId) return "nutrition";
   const id = categoryId.trim().toLowerCase();
-  if (VALID_CATEGORY_IDS.has(id)) return id;
-  const SYNONYMS: Record<string, string> = {
+  if (VALID_CATEGORY_IDS.has(id)) return id as typeof BLOG_CATEGORIES[number]["id"];
+  const SYNONYMS: Record<string, typeof BLOG_CATEGORIES[number]["id"]> = {
     training: "workout",
     exercise: "workout",
     fitness: "workout",
@@ -43,7 +43,7 @@ export function normalizeCategory(categoryId: string | undefined | null): string
     medical: "science",
     research: "science",
   };
-  return SYNONYMS[id] || "nutrition";
+  return (SYNONYMS[id] as (typeof BLOG_CATEGORIES[number]["id"]) | undefined) || "nutrition";
 }
 
 export type BlogOGData = {
@@ -52,6 +52,7 @@ export type BlogOGData = {
   image: string;
   articleUrl: string;
   locale: "en_US" | "ar_EG";
+  publishedAt?: string | null;
 };
 
 /**

@@ -252,7 +252,7 @@ export function QuestionnairesView() {
   };
 
   const renderField = (
-    f: typeof nutritionFields[number],
+    f: typeof nutritionFields[number] | typeof fitnessFields[number],
     form: Record<string, any>,
     setForm: (updater: (prev: Record<string, any>) => Record<string, any>) => void,
     locked: boolean,
