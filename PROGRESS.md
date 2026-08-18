@@ -1,7 +1,7 @@
 # PROGRESS.md — MuscleHub Shared Dashboard
 
 > **آخر تحديث:** 2026-08-19 (Phase 4: جودة الكود — إزالة @ts-nocheck + إصلاح 115 خطأ TS + تحديث types.ts)
-> **الحالة:** ✅ كل الميزات مكتملة + جودة الكود محسّنة
+> **الحالة:** ✅ كل الميزات مكتملة + كل المشاكل محلولة + جودة الكود محسّنة
 > **قاعدة التحكم:** هذا الملف هو لوحة التحكم والتسليم المشتركة. لا ننتقل لأي خطوة قادمة دون تحديث هذا الملف والحصول على الموافقة البشرية.
 
 ---
@@ -142,7 +142,7 @@
 | B1 | ~~صفحة البروفايل تعرض Tier = "free" دائماً~~ | `src/app/profile/page.tsx` | ✅ **تم الإصلاح** — استبدال بـ `useMembershipTier(profile)` hook | — |
 | B2 | ~~تناقض البراند في PDF/OG images~~ | `src/lib/result-png-export.ts`, `src/app/api/og-image/[slug]/route.tsx` | ✅ **تم الإصلاح** — استبدال MuscleHubFit → MuscleHub + musclehubfit.com → musclehubeg.vercel.app | — |
 | B3 | ~~`start` script لا يعمل محلياً~~ | `package.json` | ✅ **تم الإصلاح** — تغيير لـ `next start` | — |
-| B4 | **Migration 0011 لم يُطبّق على الإنتاج** | `supabase/migrations/0011_multi_subscriptions.sql` | ⚠️ **يتطلب إجراء يدوي** — انسخ SQL من ملف migration والصقه في Supabase SQL Editor: https://supabase.com/dashboard/project/wyopqryzfjifyeyvyxfy/sql/new | تشغيل الـ migration يدوياً |
+| B4 | ~~Migration 0011 + 0012 لم يُطبّق على الإنتاج~~ | `supabase/migrations/` | ✅ **تم التطبيق** — migrations 0011 (multi-subscriptions) + 0012 (price_egp → price_usd) شُغّلت يدوياً على Supabase SQL Editor | — |
 
 ### 🟡 أولوية متوسطة (نوعية الكود)
 
@@ -229,7 +229,7 @@
 | 1 | ~~إصلاح B1 (profile page tier)~~ | 🔴 عالية | ✅ تم |
 | 2 | ~~إصلاح B2 (branding consistency)~~ | 🔴 عالية | ✅ تم |
 | 3 | ~~إصلاح B3 (start script)~~ | 🔴 عالية | ✅ تم |
-| 4 | تطبيق migration 0011 على الإنتاج | 🔴 عالية | ⚠️ يدوي (SQL Editor) |
+| 4 | ~~تطبيق migration 0011 + 0012 على الإنتاج~~ | 🔴 عالية | ✅ تم (SQL Editor)
 | 5 | ~~إزالة `@ts-nocheck` + إصلاح الأنواع~~ | 🟡 متوسطة | ✅ تم |
 | 6 | ~~تحديث `supabase/types.ts`~~ | 🟡 متوسطة | ✅ تم |
 | 7 | ~~حذف الـ legacy routes/pages~~ | 🟢 منخفضة | ✅ تم (B11+B12+B13) |
@@ -246,7 +246,7 @@
 > - **54 ميزة مكتملة 100%** (مُجمّدة)
 > - **17 مشكلة تم إصلاحها** (من 17 + 7 إصلاحات UX جديدة)
 > - **2 مشاكل مقبولة كقرارات تصميمية** (B16, B17)
-> - **1 إجراء يدوي متبقي** (B4: تطبيق migration 0011 + 0012 على Supabase SQL Editor)
+> - **0 إجراءات يدوية متبقية** — كل الـ migrations تم تطبيقها
 > - **95 نقطة فحص QA — كلها ناجحة**
 > - **التوثيق كامل** (README.md + DEVELOPER_GUIDE.md + PROGRESS.md + QA_CHECKLIST.md)
 >
@@ -276,12 +276,7 @@
 > - ✅ تنبيه إكمال الاستبيان للعملاء — تم (عبر نظام البث)
 > - ✅ إعادة حساب السعرات والماكروز تلقائياً عند تحرير الأصناف أو توليد وجبة — تم
 >
-> **الإجراء اليدوي المتبقي:**
-> افتح https://supabase.com/dashboard/project/wyopqryzfjifyeyvyxfy/sql/new
-> والصق محتوى:
-> 1. `supabase/migrations/0011_multi_subscriptions.sql`
-> 2. `supabase/migrations/0012_rename_price_egp_to_price_usd.sql`
-> واضغط Run لكل واحد.
+> **كل الـ migrations تم تطبيقها على قاعدة البيانات.** ✅
 
 ---
 
