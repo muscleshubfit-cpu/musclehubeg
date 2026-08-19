@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev -p 3000 2>&1 | tee dev.log",
-    "build": "node scripts/compress-images.js && next build",
+    "build": "next build",
     "start": "next start",
     "lint": "eslint .",
     "compress-images": "node scripts/compress-images.js"

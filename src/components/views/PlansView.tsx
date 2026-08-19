@@ -49,7 +49,7 @@ export function PlansView() {
  if (!profile) return;
  // Check daily limit first
  if (swapUsage.meal.remaining <= 0) {
- toast.error(`لقد استخدمت كل تبديلات الوجبات لهذا اليوم (${swapUsage.meal.limit}/${swapUsage.meal.limit}). تتجدد غداً.`);
+ toast.error(`${t("plans.swaps.mealExhausted")} (${swapUsage.meal.limit}/${swapUsage.meal.limit})`);
  return;
  }
  setSwapLoading(`meal-${planId}-${mealIndex}`);
@@ -57,7 +57,7 @@ export function PlansView() {
  // Record the swap (checks limit server-side too)
  const swapResult = await recordSwap(profile.id, planId, "meal");
  if (!swapResult.allowed) {
- toast.error(`لقد وصلت للحد الأقصى من تبديلات الوجبات اليوم (${(swapResult.limit || 0)}).`);
+ toast.error(`${t("plans.swaps.mealLimitReached")} (${(swapResult.limit || 0)})`);
  setSwapUsage((prev) => ({ ...prev, meal: { used: swapResult.used, limit: (swapResult.limit || 0), remaining: 0 } }));
  return;
  }
@@ -86,7 +86,7 @@ export function PlansView() {
  const newActive = updatedPlans.find((p) => p.id === planId);
  if (newActive) setActive(newActive);
  }
- toast.success(`تم استبدال الوجبة! متبقي ${(swapResult.limit || 0) - swapResult.used} تبديل اليوم.`);
+ toast.success(`${t("plans.swaps.mealSwapped")} ${(swapResult.limit || 0) - swapResult.used} ${t("plans.swaps.swapsLeftToday")}`);
  } catch (e: any) {
  toast.error(e.message || t("common.error"));
  } finally {
@@ -98,14 +98,14 @@ export function PlansView() {
  if (!profile) return;
  // Check daily limit first
  if (swapUsage.exercise.remaining <= 0) {
- toast.error(`لقد استخدمت كل تبديلات التمارين لهذا اليوم (${swapUsage.exercise.limit}/${swapUsage.exercise.limit}). تتجدد غداً.`);
+ toast.error(`${t("plans.swaps.exerciseExhausted")} (${swapUsage.exercise.limit}/${swapUsage.exercise.limit})`);
  return;
  }
  setSwapLoading(`ex-${planId}-${dayIndex}-${exIndex}`);
  try {
  const swapResult = await recordSwap(profile.id, planId, "exercise");
  if (!swapResult.allowed) {
- toast.error(`لقد وصلت للحد الأقصى من تبديلات التمارين اليوم (${(swapResult.limit || 0)}).`);
+ toast.error(`${t("plans.swaps.exerciseLimitReached")} (${(swapResult.limit || 0)})`);
  setSwapUsage((prev) => ({ ...prev, exercise: { used: swapResult.used, limit: (swapResult.limit || 0), remaining: 0 } }));
  return;
  }
@@ -133,7 +133,7 @@ export function PlansView() {
  const newActive = updatedPlans.find((p) => p.id === planId);
  if (newActive) setActive(newActive);
  }
- toast.success(`تم استبدال التمرين! متبقي ${(swapResult.limit || 0) - swapResult.used} تبديل اليوم.`);
+ toast.success(`${t("plans.swaps.exerciseSwapped")} ${(swapResult.limit || 0) - swapResult.used} ${t("plans.swaps.swapsLeftToday")}`);
  } catch (e: any) {
  toast.error(e.message || t("common.error"));
  } finally {
@@ -312,9 +312,9 @@ export function PlansView() {
 
  {/* Daily swap quota — Apple-style clean */}
  <div className="rounded-2xl bg-[#f5f5f7] px-5 py-4 text-sm font-normal text-[#6e6e73]">
- <span>تبديل الوجبات اليوم: <strong className={swapUsage.meal.remaining > 0 ? "text-[#1d1d1f]" : "text-[#ff3b30]"}>{swapUsage.meal.remaining}</strong>/{swapUsage.meal.limit} متبقي</span>
+ <span>{t("plans.swaps.mealDaily")} <strong className={swapUsage.meal.remaining > 0 ? "text-[#1d1d1f]" : "text-[#ff3b30]"}>{swapUsage.meal.remaining}</strong>/{swapUsage.meal.limit} {t("plans.swaps.remaining")}</span>
  <span className="mx-3 text-[#d2d2d7]">|</span>
- <span>تبديل التمارين اليوم: <strong className={swapUsage.exercise.remaining > 0 ? "text-[#1d1d1f]" : "text-[#ff3b30]"}>{swapUsage.exercise.remaining}</strong>/{swapUsage.exercise.limit} متبقي</span>
+ <span>{t("plans.swaps.exerciseDaily")} <strong className={swapUsage.exercise.remaining > 0 ? "text-[#1d1d1f]" : "text-[#ff3b30]"}>{swapUsage.exercise.remaining}</strong>/{swapUsage.exercise.limit} {t("plans.swaps.remaining")}</span>
  </div>
 
  <Tabs defaultValue="workout">

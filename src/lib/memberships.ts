@@ -46,7 +46,8 @@ export type MembershipInfo = {
   priceMonthly: number | null;
   priceYearly: number | null;
   limits: MembershipLimits;
-  features: string[]; // for display
+  features: string[]; // Arabic display strings (used when isAr)
+  featuresEn: string[]; // English display strings (used when !isAr)
   highlight: boolean;
   separate: boolean; // true for coaching (not a standard tier)
 };
@@ -82,6 +83,15 @@ export const MEMBERSHIPS: MembershipInfo[] = [
       "EVO: 10 رسائل/يوم",
       "مخطط الوجبات (3 وجبات، حفظ 1 جدول)",
       "حفظ 3 نتائج أدوات",
+    ],
+    featuresEn: [
+      "Browse 868+ exercises",
+      "Browse 8,830+ foods",
+      "Browse workout programs",
+      "5 free fitness calculators",
+      "EVO: 10 messages/day",
+      "Meal Planner (3 meals, save 1 plan)",
+      "Save 3 tool results",
     ],
     highlight: false,
     separate: false,
@@ -119,6 +129,17 @@ export const MEMBERSHIPS: MembershipInfo[] = [
       "مخطط الوجبات (6 وجبات، حفظ 10)",
       "حفظ 50 نتيجة + تحميل",
     ],
+    featuresEn: [
+      "All Free features",
+      "EVO: unlimited chat",
+      "EVO: 3 nutrition plans/mo",
+      "EVO: 3 workout plans/mo",
+      "EVO: 3 swaps/week",
+      "EVO: save body data",
+      "EVO: cross-session memory",
+      "Meal Planner (6 meals, save 10)",
+      "Save 50 results + export",
+    ],
     highlight: false,
     separate: false,
   },
@@ -154,6 +175,17 @@ export const MEMBERSHIPS: MembershipInfo[] = [
       "200 نتيجة محفوظة + تحميل",
       "محتوى مميز (كورسات، خطط، كتب)",
       "بدون إعلانات",
+    ],
+    featuresEn: [
+      "All Premium features",
+      "EVO: 6 nutrition plans/mo",
+      "EVO: 6 workout plans/mo",
+      "EVO: 6 swaps/week",
+      "EVO: pattern analysis + prediction",
+      "Meal Planner (8 meals, 50 plans)",
+      "200 saved results + export",
+      "Premium content (courses, plans, books)",
+      "No ads",
     ],
     highlight: true,
     separate: false,
@@ -193,6 +225,19 @@ export const MEMBERSHIPS: MembershipInfo[] = [
       "تبديلات يدوية من المدرب",
       "تذاكر دعم أولوية",
       "تواصل مباشر مع المدرب",
+    ],
+    featuresEn: [
+      "EVO: unlimited chat",
+      "EVO: 3 nutrition plans/mo",
+      "EVO: 3 workout plans/mo",
+      "EVO: 3 swaps/week",
+      "EVO: cross-session memory + body data",
+      "Custom nutrition plans from a human coach",
+      "Workout programs from a human coach",
+      "Personal weekly check-ins",
+      "Manual swaps by the coach",
+      "Priority support tickets",
+      "Direct contact with the coach",
     ],
     highlight: false,
     separate: true,

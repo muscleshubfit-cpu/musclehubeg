@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { useI18n } from "@/lib/i18n";
+import { useI18n, type Lang } from "@/lib/i18n";
 import { SiteHeader } from "@/components/SiteHeader";
 import { getExerciseImages, getFallbackSVG } from "@/lib/exercise-images";
 import {
@@ -15,8 +15,9 @@ import {
   type Level,
 } from "@/lib/exercises";
 
-export default function ExercisesPage() {
-  const { lang } = useI18n();
+export default function ExercisesPage({ lang: langProp }: { lang?: Lang } = {}) {
+  const { lang: ctxLang } = useI18n();
+  const lang = langProp ?? ctxLang;
   const isAr = lang === "ar";
 
   const [category, setCategory] = useState<ExerciseCategory | "all">("all");

@@ -133,7 +133,7 @@ export default function MembershipsPage() {
 
                 {/* Features */}
                 <ul className="mt-6 flex-1 space-y-3">
-                  {tier.features.map((f, j) => (
+                  {(isAr ? tier.features : tier.featuresEn).map((f, j) => (
                     <li key={j} className="flex items-start gap-2.5">
                       <Check className={`mt-0.5 h-4 w-4 shrink-0 ${isPro ? "text-[#0071e3]" : "text-[#34c759]"}`} />
                       <span className="text-sm font-normal">{f}</span>
@@ -224,7 +224,7 @@ export default function MembershipsPage() {
                     : "Human coaching with real coaches and nutrition specialists. Completely separate from memberships."}
                 </p>
                 <ul className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
-                  {coaching.features.map((f, j) => (
+                  {(isAr ? coaching.features : coaching.featuresEn).map((f, j) => (
                     <li key={j} className="flex items-start gap-2">
                       <Check className="mt-0.5 h-4 w-4 shrink-0 text-[#8b5cf6]" />
                       <span className="text-sm font-normal">{f}</span>

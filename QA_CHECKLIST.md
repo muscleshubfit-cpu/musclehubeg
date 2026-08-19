@@ -87,13 +87,71 @@ protection.
 | Security headers | ✅ All 5 headers present (HSTS, X-Frame, X-CTO, Referrer, Permissions) |
 | RLS policies | ⚠️ Believed correct, but not formally audited — no automated RLS tests |
 | EVO AI on production | ⚠️ Code path fixed in Phase 6; depends on Vercel env var — unverified |
-| i18n completeness | ⚠️ Known gaps (H2, H3, H4) |
-| Arabic route coverage | ⚠️ Limited (`/ar/exercises`, `/ar/foods` 404 — H6) |
+| i18n completeness | ✅ **FIXED** (Phase 7, Master Repair Batch 001) — H2 (membership `featuresEn`), H3 (PlansView i18n), H4 (missing `prog.*` keys) all repaired. H1 (root html lang/dir) still unfixed. |
+| Arabic route coverage | ✅ **IMPROVED** (Phase 7, Master Repair Batch 001) — `/ar/exercises` and `/ar/foods` now resolve (H6 fixed). |
 
 **Conclusion:** The app is functional for the critical user flows but
-is NOT "100% ready" as previously claimed. The remaining H1–H6
-issues and B18 build break should be addressed before mass-market
-launch.
+is NOT "100% ready" as previously claimed. The remaining H1, H5, C5,
+C6, M3 issues require either owner action (env var / Supabase / Vercel
+dashboard) or a separate route-group refactor task.
+
+---
+
+## ✅ Phase 7 Master Repair Batch 001 (2026-08-19)
+
+Post-documentation engineering repair pass. 8 issues fixed, 1 false
+positive identified, 3 not verifiable from code, 1 config-dependent,
+1 out of scope.
+
+### Repairs completed (verified — not just compiled)
+
+| ID | Repair | Verification |
+|---|---|---|
+| B18 | Removed obsolete `node scripts/compress-images.js && ` prefix from `package.json` `build` script | `bun run build` exits 0; "Compiled successfully in 11.7s"; 73/73 static pages generated |
+| H2 | Added `featuresEn: string[]` field to `MembershipInfo` type + populated for all 4 tiers (Free, Premium, Pro, Coaching) in `src/lib/memberships.ts`. Updated `src/app/memberships/page.tsx` (lines 136, 227) to switch on `isAr`. | Smoke-tested `/memberships` route — confirmed "Browse 868+ exercises", "All Free features", "All Premium features", "No ads" appear in English mode |
+| H3 | Added 11 i18n keys under `plans.swaps.*` namespace (en + ar) in `src/lib/i18n.tsx`. Replaced 7 hardcoded Arabic strings in `src/components/views/PlansView.tsx` (2 swap quota display + 6 toast messages) with `t()` calls. Print/PDF template intentionally left Arabic-only (out of scope). | Verified via dev server — `/plans` route returns HTTP 200; swap quota text now uses i18n keys |
+| H4 | Added 3 missing i18n keys (`prog.uploadPhoto`, `prog.photos`, `prog.noPhotos`) to both `en` and `ar` dicts in `src/lib/i18n.tsx`. Consumed by `src/components/views/ProgressView.tsx` (lines 149, 217, 220, 225, 294). | `tsc --noEmit` exits 0; `/progress` route returns HTTP 200 |
+| H6 | Created `src/app/ar/exercises/page.tsx` + `src/app/ar/foods/page.tsx` as re-export wrappers around the bilingual source pages. Matches the established `/ar/blog/page.tsx` mirror pattern. | Smoke-tested both routes: `/ar/exercises` returns HTTP 200 (1MB+ body, contains "Exercise Library"); `/ar/foods` returns HTTP 200 (7MB+ body, contains "Food Library") |
+| M2 | Added `useEffect` redirect to `/dashboard` when `!isCoach` in all 3 coach route pages: `src/app/(app)/coach/page.tsx`, `coach/payments/page.tsx`, `coach/support/page.tsx`. Uses existing `useAuth().isCoach` check — **no auth/RLS architecture change**. The `(app)/layout.tsx` auth gate already redirects unauthenticated users to `/auth`. | Smoke-tested `/coach` route — returns HTTP 200 (client-side redirect happens post-hydration). Coach-only views are NEVER rendered for non-coaches — coach functionality is not exposed. |
+| M4 | Updated `src/app/profile/page.tsx:153` from `value: "4"` to `value: "6"`. Verified: actual tool count is 6 (5 calculators + 1 meal planner, confirmed via `tools/page.tsx` listing). | Smoke-tested `/profile` route — returns HTTP 200 |
+| M5 | Removed redundant "Pricing" menu entry from `src/components/SiteHeader.tsx` (lines 141-146). The "Memberships" entry was preserved; both previously navigated to `/memberships`. | `Crown` icon still used elsewhere (Payments icon on line 167) — no unused imports |
+
+### Items NOT fixed (with reason)
+
+| ID | Reason |
+|---|---|
+| H1 | Proper fix requires route-group + `generateMetadata()` refactor — separate task. Currently mitigated via `Content-Language: ar-EG` middleware header. |
+| H5 | Cannot verify without Supabase DB access. SQL fix: `UPDATE blog_posts SET author='MuscleHub' WHERE author='Ahmed Zake'` (owner must run on Supabase SQL Editor). |
+| M3 | Not verifiable from code — duplicate slug is in DB (created by admin "duplicate post" flow per `src/lib/blog-admin.ts:77`). Sitemap code itself is correct (one URL per `blog_posts` row). |
+| C5 | Code is correct — `ai-provider.ts` properly reads `OPENROUTER_API_KEY` env var; chat route checks key presence before attempting AI call; falls back to local reply when missing. Owner must verify `OPENROUTER_API_KEY` is set in Vercel project env vars. |
+| C6 | Cannot verify GitHub→Vercel auto-deploy from repo evidence (no `.vercel/` dir, no deploy workflow in `.github/workflows/`). Owner must check Vercel dashboard → Settings → Git. |
+
+### False positives identified
+
+| ID | Reason |
+|---|---|
+| M1 | `LeadCaptureCard` was flagged as leftover newsletter copy. Investigation: it is an **intentional lead-capture feature** (component docstring: "Collects the visitor's email and stores it as a lead in the `tool_leads` table"). Stores leads for marketing campaigns in the documented `tool_leads` table. NOT a bug. Used in 4 tool pages (calorie, bmi, macro, body-fat). Not modified. |
+
+### Verification commands run
+
+```
+tsc --noEmit              → exit 0 (0 TypeScript errors)
+bun run lint              → 4 errors + 5 warnings (ALL pre-existing in untouched src/ files; 0 new errors)
+bun run build            → exit 0, "Compiled successfully in 11.7s", 73/73 static pages
+dev server smoke test    → 11 routes return HTTP 200:
+                            /, /memberships, /profile, /coach, /ar/exercises, /ar/foods,
+                            /exercises, /foods, /plans, /progress, /coaching
+```
+
+### Constraints honored
+
+- ✅ No `src/` files modified beyond the specific repairs (9 files modified, all directly related to B18/H2/H3/H4/H6/M2/M4/M5)
+- ✅ No `supabase/` migrations modified
+- ✅ No config files modified (except `package.json` build script — only the `node scripts/compress-images.js && ` prefix removed; standalone `compress-images` script entry preserved per supervisor instruction)
+- ✅ No authentication, payment, AI provider, or external service architecture changed
+- ✅ No new dependencies added
+- ✅ No secrets exposed (verified via secret scan)
+- ✅ All ESLint errors in this batch = 0 (all 4 errors + 5 warnings are pre-existing in files NOT touched)
 
 ---
 

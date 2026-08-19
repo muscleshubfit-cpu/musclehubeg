@@ -1,10 +1,20 @@
 "use client";
 
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/use-auth";
 import { CoachSupportView } from "@/components/views/CoachSupportView";
-import { DashboardView } from "@/components/views/DashboardView";
 
 export default function Page() {
  const { isCoach } = useAuth();
- return isCoach ? <CoachSupportView /> : <DashboardView />;
+ const router = useRouter();
+
+ useEffect(() => {
+   if (!isCoach) {
+     router.replace("/dashboard");
+   }
+ }, [isCoach, router]);
+
+ if (!isCoach) return null;
+ return <CoachSupportView />;
 }

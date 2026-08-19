@@ -46,10 +46,10 @@ The reconciled assessment:
 | Critical user flows (auth, checkout, meal plan save, support ticket) | ✅ Verified working in Phase 5 live QA |
 | AI chat (EVO) | ⚠️ Code path fixed in Phase 6, but depends on `OPENROUTER_API_KEY` being set in Vercel env. **Not re-verified post-fix.** |
 | Vercel auto-deploy from `main` | ❓ **Unverified** without Vercel API access — owner must confirm in Vercel dashboard |
-| Local `bun run build` | ❌ **Broken** — `scripts/compress-images.js` referenced in build script does not exist (B18) |
+| Local `bun run build` | ✅ **FIXED** (Phase 7, Master Repair Batch 001) — removed obsolete `node scripts/compress-images.js &&` prefix from `package.json` build script (B18). Now exits 0 with 73/73 static pages. |
 | Production Vercel build | ✅ Works (uses `vercel.json` buildCommand `next build`, which bypasses the missing scripts dir) |
-| Local i18n completeness | ⚠️ Missing keys (H4) and hardcoded Arabic strings (H2, H3) |
-| Arabic route coverage | ⚠️ Only `/ar`, `/ar/blog`, `/ar/blog/[slug]` are mirrored — `/ar/exercises`, `/ar/foods` return 404 (H6) |
+| Local i18n completeness | ✅ **FIXED** (Phase 7, Master Repair Batch 001) — added missing keys H4 (`prog.uploadPhoto`, `prog.photos`, `prog.noPhotos`); moved PlansView hardcoded Arabic strings to i18n H3; added `featuresEn` arrays to memberships H2. H1 (root html lang/dir) still unfixed. |
+| Arabic route coverage | ✅ **IMPROVED** (Phase 7, Master Repair Batch 001) — `/ar/exercises` and `/ar/foods` now resolve (H6 fixed). Available Arabic routes: `/ar`, `/ar/blog`, `/ar/blog/[slug]`, `/ar/exercises`, `/ar/foods`. |
 | Type safety | ✅ 0 errors (`tsc --noEmit` clean — was confirmed in Phase 6 commit log) |
 | Test suite | ❌ No automated tests (unit, integration, E2E) exist |
 | Documentation accuracy | ✅ Reconciled in Phase 7 (this task) |
@@ -68,26 +68,42 @@ verified," the following distinctions are now used:
   (e.g. owner approval, env var config, third-party API access).
 - **Pending** — planned but not started.
 
-### Open items — reconciled priorities
+### Open items — reconciled priorities (updated Phase 7 — Master Repair Batch 001)
 
 | ID | Item | Status | Notes |
 |---|---|---|---|
-| C5 | EVO AI may fall back to local replies if `OPENROUTER_API_KEY` not set in Vercel | Code fixed; config-dependent | Owner must verify Vercel env var |
-| C6 | Vercel auto-deploy from `main` | Unverified | Owner must check Vercel dashboard → Settings → Git |
-| H1 | Root `<html lang="en" dir="ltr">` hardcoded | Verified in `src/app/layout.tsx:29` | Mitigated via `Content-Language` header; proper fix needs route-group refactor |
-| H2 | Membership `features` arrays are Arabic-only | Verified in `src/lib/memberships.ts` | Needs `featuresEn` array |
-| H3 | Hardcoded Arabic in `PlansView` English mode | Verified — `src/components/views/PlansView.tsx` | Needs `t()` from i18n |
-| H4 | Missing i18n keys (`prog.uploadPhoto`, `prog.photos`, `prog.noPhotos`) | Verified — keys absent from `src/lib/i18n.tsx` | Add missing keys |
-| H5 | Some blog posts may still have `author = 'Ahmed Zake'` | Not verifiable without Supabase access | SQL: `UPDATE blog_posts SET author='MuscleHub' WHERE author='Ahmed Zake'` |
-| H6 | `/ar/exercises`, `/ar/foods` return 404 | Verified — `src/app/ar/` only contains `page.tsx`, `layout.tsx`, `blog/*` | Add Arabic mirror pages or redirect |
-| M1 | Newsletter copy in tool pages | Not re-verified in Phase 7 | Grep needed |
-| M2 | Coach routes don't redirect non-coaches | Verified — `src/app/(app)/coach/page.tsx` falls through to `<DashboardView />` | Add redirect to `/dashboard` when `!isCoach` |
-| M3 | Duplicate blog URL in sitemap | Not re-verified in Phase 7 | Needs sitemap inspection |
-| M4 | Profile shows "4 Tools" instead of "6 Tools" | Verified — `src/app/profile/page.tsx:153` | Change `value: "4"` to `value: "6"` |
-| M5 | Redundant "Pricing" nav entry | Verified — `src/components/SiteHeader.tsx:141-153` | Remove or relabel |
-| B18 (new) | `scripts/compress-images.js` referenced but `scripts/` dir missing | Verified via `git ls-tree` | Either restore `scripts/` dir or remove `node scripts/compress-images.js` from `package.json` build script |
-| B16 | Recharts (~600KB) in deps but lazy-loaded | Accepted | Design decision |
-| B17 | Framer Motion animations disabled | Accepted | Design decision |
+| C5 | EVO AI may fall back to local replies if `OPENROUTER_API_KEY` not set in Vercel | **Code correct; config-dependent** — `ai-provider.ts` properly reads env vars, chat route checks `if (process.env.OPENROUTER_API_KEY \|\| process.env.AI_API_KEY)` before attempting AI call | Owner must verify `OPENROUTER_API_KEY` is set in Vercel project env vars |
+| C6 | Vercel auto-deploy from `main` | **NOT VERIFIED** — no `.vercel/` dir in repo, no deploy workflow in `.github/workflows/`, `vercel.json` exists but doesn't reveal GitHub-link status | Owner must check Vercel dashboard → Settings → Git |
+| H1 | Root `<html lang="en" dir="ltr">` hardcoded | **Unfixed** (out of scope for Master Repair Batch 001) | Verified in `src/app/layout.tsx:29`. Mitigated via `Content-Language: ar-EG` header in middleware. Proper fix requires route-group + `generateMetadata()` refactor — separate task. |
+| H2 | Membership `features` arrays are Arabic-only | ✅ **FIXED** — added `featuresEn: string[]` field to `MembershipInfo` type + populated for all 4 tiers (Free, Premium, Pro, Coaching) in `src/lib/memberships.ts`. Updated consumers in `src/app/memberships/page.tsx` (lines 136, 227) to use `isAr ? tier.features : tier.featuresEn`. |
+| H3 | Hardcoded Arabic in `PlansView` English mode | ✅ **FIXED** — added 11 i18n keys under `plans.swaps.*` namespace in both `en` and `ar` dicts in `src/lib/i18n.tsx`. Replaced 7 hardcoded Arabic strings in `src/components/views/PlansView.tsx` (2 swap quota display strings + 6 toast messages) with `t()` calls. The print/PDF template (lines 149-303) intentionally remains Arabic-only — it's a printable plan document for coach-generated plans and is out of scope. |
+| H4 | Missing i18n keys (`prog.uploadPhoto`, `prog.photos`, `prog.noPhotos`) | ✅ **FIXED** — added 3 keys to both `en` and `ar` dicts in `src/lib/i18n.tsx`. Consumed in `src/components/views/ProgressView.tsx` (lines 149, 217, 220, 225, 294). |
+| H5 | Some blog posts may still have `author = 'Ahmed Zake'` | **NOT VERIFIABLE** without Supabase access | Out of scope for Master Repair Batch 001. SQL: `UPDATE blog_posts SET author='MuscleHub' WHERE author='Ahmed Zake'` (owner must run on Supabase SQL Editor) |
+| H6 | `/ar/exercises`, `/ar/foods` return 404 | ✅ **FIXED** — created `src/app/ar/exercises/page.tsx` and `src/app/ar/foods/page.tsx` as re-export wrappers around the existing bilingual source pages. Both URLs now return HTTP 200 with full content (1MB+ and 7MB+ respectively). Matches the established `/ar/blog/page.tsx` mirror pattern. |
+| M1 | Newsletter copy in tool pages | ✅ **FALSE POSITIVE** — `LeadCaptureCard` is an intentional lead-capture feature (component docstring: "Collects the visitor's email and stores it as a lead in the `tool_leads` table"). Not a bug. Used in 4 tool pages (calorie, bmi, macro, body-fat). Not modified. |
+| M2 | Coach routes don't redirect non-coaches | ✅ **FIXED** — added `useEffect` redirect to `/dashboard` when `!isCoach` in all 3 coach route pages: `src/app/(app)/coach/page.tsx`, `coach/payments/page.tsx`, `coach/support/page.tsx`. Uses existing `useAuth().isCoach` check (no auth/RLS architecture change). The `(app)/layout.tsx` auth gate already redirects unauthenticated users to `/auth`. |
+| M3 | Duplicate blog URL in sitemap | **NOT VERIFIABLE** without Supabase access — sitemap code itself is correct (iterates `blog_posts` table, one URL per row). The reported duplicate slug `best-protein-powder-muscle-growth-copy-msn3h2hm` came from a DB-side duplicate created via the admin "duplicate post" flow (`src/lib/blog-admin.ts:77` generates `${original.slug}-copy-${Date.now()}` slugs). Owner should query `SELECT slug, count(*) FROM blog_posts GROUP BY slug HAVING count(*) > 1;` to find and clean duplicates. |
+| M4 | Profile shows "4 Tools" instead of "6 Tools" | ✅ **FIXED** — updated `src/app/profile/page.tsx:153` to display "6" (verified: actual tool count is 6 — 5 calculators + 1 meal planner, confirmed via `tools/page.tsx` listing). |
+| M5 | Redundant "Pricing" nav entry | ✅ **FIXED** — removed the redundant "Pricing" entry from `src/components/SiteHeader.tsx` (lines 141-146). The "Memberships" entry (which used `href="/memberships"`) was preserved; both previously navigated to the same destination. |
+| B18 | `scripts/compress-images.js` referenced but `scripts/` dir missing | ✅ **FIXED** — removed the obsolete `node scripts/compress-images.js && ` prefix from `package.json` `build` script. The standalone `compress-images` script entry is preserved (untouched per supervisor instruction "do not modify unrelated scripts"). `bun run build` now exits 0. Verified: `scripts/` dir was never committed to git history (`git log --all -- scripts/` returns nothing), and `compress-images.js` is not referenced anywhere else in the codebase. |
+| B16 | Recharts (~600KB) in deps but lazy-loaded | Accepted | Design decision — code-split out of initial bundle |
+| B17 | Framer Motion animations disabled | Accepted | Design decision — owner decision to avoid layout jank |
+
+### Master Repair Batch 001 — verification summary (Phase 7, 2026-08-19)
+
+**Repairs completed:** 8 (B18, H2, H3, H4, H6, M2, M4, M5)
+**False positives:** 1 (M1 — `LeadCaptureCard` is intentional)
+**Not verifiable from code:** 3 (H5 — needs Supabase DB; M3 — needs Supabase DB; C6 — needs Vercel dashboard)
+**Config-dependent:** 1 (C5 — code is correct, owner must verify Vercel env var)
+**Out of scope:** 1 (H1 — proper fix requires route-group refactor, separate task)
+
+**Verification commands run:**
+- `tsc --noEmit` → exit 0 (0 TypeScript errors)
+- `bun run lint` → 4 errors + 5 warnings — ALL pre-existing in src/ files NOT touched by this batch (CookieConsent, SaveResultButton, checkout/page, foods/[slug], water-tracker, AdSenseAd, BlogAdminView). 0 new errors introduced.
+- `bun run build` → exit 0, "Compiled successfully in 11.7s", 73/73 static pages (was 71 — added `/ar/exercises` + `/ar/foods`)
+- Smoke-tested 11 routes via local dev server — all returned HTTP 200
+
+
 
 ### Documentation accuracy fixes (this task)
 
@@ -277,21 +293,21 @@ Phase 7 pass:
 | # | المشكلة | الوصف | الحالة |
 |---|---|---|---|
 | H1 | عنصر HTML الجذري dir="ltr" lang="en" على كل الصفحات العربية | `src/app/layout.tsx` hardcoded — يفترض تطبيق `dir="rtl" lang="ar"` على `/ar/*` | ⚠️ **متبقي** — يستلزم refactor لـ route groups أو generateMetadata() |
-| H2 | صفحة /memberships تُظهر features بالعربية فقط حتى في النسخة الإنجليزية | `src/lib/memberships.ts` features array مكتوب بالعربية فقط | ⚠️ **متبقي** — يحتاج `featuresEn` array |
-| H3 | صفحة /plans تحتوي نص عربي مُدمج في النسخة الإنجليزية | "تبديل الوجبات اليوم: 2/2 متبقي" في `src/components/views/PlansView.tsx` | ⚠️ **متبقي** — استخدام `t()` من i18n |
-| H4 | مفاتيح i18n مفقودة | `prog.uploadPhoto`, `prog.photos`, `prog.noPhotos` في `src/lib/i18n.tsx` | ⚠️ **متبقي** — إضافة المفاتيح الناقصة |
+| H2 | صفحة /memberships تُظهر features بالعربية فقط حتى في النسخة الإنجليزية | `src/lib/memberships.ts` features array مكتوب بالعربية فقط | ✅ **تم** (Phase 7, Master Repair Batch 001) — أضفنا `featuresEn` array لكل الـ 4 tiers + تحديث الـ consumers |
+| H3 | صفحة /plans تحتوي نص عربي مُدمج في النسخة الإنجليزية | "تبديل الوجبات اليوم: 2/2 متبقي" في `src/components/views/PlansView.tsx` | ✅ **تم** (Phase 7, Master Repair Batch 001) — نقل 7 نصوص لـ i18n keys + إضافة 11 مفتاح تحت `plans.swaps.*` |
+| H4 | مفاتيح i18n مفقودة | `prog.uploadPhoto`, `prog.photos`, `prog.noPhotos` في `src/lib/i18n.tsx` | ✅ **تم** (Phase 7, Master Repair Batch 001) — إضافة المفاتيح الناقصة لكل من en و ar |
 | H5 | اسم الكاتب "Ahmed Zake" لا يزال يظهر في مقالات المدونة | في `blog_posts.author` field بـ DB | ⚠️ **متبقي** — `UPDATE blog_posts SET author='MuscleHub' WHERE author='Ahmed Zake'` |
-| H6 | /ar/exercises و /ar/foods تُرجع 404 | لا توجد صفحات mirror عربية | ⚠️ **متبقي** — إضافة صفحات redirect أو mirror |
+| H6 | /ar/exercises و /ar/foods تُرجع 404 | لا توجد صفحات mirror عربية | ✅ **تم** (Phase 7, Master Repair Batch 001) — إضافة `src/app/ar/exercises/page.tsx` + `src/app/ar/foods/page.tsx` كـ re-export wrappers |
 
 ### 🟡 مشاكل متوسطة الأولوية (مكتشفة في فحص QA 2026-08-19)
 
 | # | المشكلة | الوصف | الحالة |
 |---|---|---|---|
-| M1 | نشرة بريدية "Subscribe to our newsletter" لا تزال في صفحات الأدوات | رغم PROGRESS.md ذكر إزالتها سابقاً | ⚠️ **متبقي** |
-| M2 | /coach و /coach/payments و /coach/support لا تُعيد توجيه المستخدم العادي | يعرضون محتوى dashboard بدلاً من redirect | ⚠️ **متبقي** |
-| M3 | URL مكرر في sitemap | `/blog/best-protein-powder-muscle-growth-copy-msn3h2hm` | ⚠️ **متبقي** |
-| M4 | عدّاد "4 Tools" في البروفايل خاطئ | يفترض "6 Tools" (5 calculators + meal planner) | ⚠️ **متبقي** |
-| M5 | "Pricing" tab لا يزال في navigation | رغم إعادة التسمية إلى Memberships | ⚠️ **متبقي** |
+| M1 | نشرة بريدية "Subscribe to our newsletter" لا تزال في صفحات الأدوات | رغم PROGRESS.md ذكر إزالتها سابقاً | ✅ **FALSE POSITIVE** (Phase 7) — `LeadCaptureCard` ميزة lead-capture مقصودة، مش bug |
+| M2 | /coach و /coach/payments و /coach/support لا تُعيد توجيه المستخدم العادي | يعرضون محتوى dashboard بدلاً من redirect | ✅ **تم** (Phase 7, Master Repair Batch 001) — إضافة redirect لـ `/dashboard` لما `!isCoach` |
+| M3 | URL مكرر في sitemap | `/blog/best-protein-powder-muscle-growth-copy-msn3h2hm` | ⚠️ **غير قابل للتحقق من الكود** (Phase 7) — السبب DB-side duplicate من admin "duplicate post" flow. يلزم استعلام Supabase لتنظيف |
+| M4 | عدّاد "4 Tools" في البروفايل خاطئ | يفترض "6 Tools" (5 calculators + meal planner) | ✅ **تم** (Phase 7, Master Repair Batch 001) — تحديث القيمة لـ "6" |
+| M5 | "Pricing" tab لا يزال في navigation | رغم إعادة التسمية إلى Memberships | ✅ **تم** (Phase 7, Master Repair Batch 001) — إزالة الـ entry المكرر |
 
 ### 🟡 أولوية متوسطة (نوعية الكود)
 

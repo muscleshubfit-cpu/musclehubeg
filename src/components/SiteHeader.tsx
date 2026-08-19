@@ -138,14 +138,9 @@ export function SiteHeader({ variant = "landing" }: { variant?: "landing" | "app
     href: "/evo",
   });
 
-  // 3. Pricing
-  menu.push({
-    label: isAr ? "الأسعار" : "Pricing",
-    icon: Crown,
-    onClick: () => navigate("memberships"),
-  });
-
-  // 3b. Memberships
+  // 3. Memberships (was previously duplicated as "Pricing" + "Memberships"
+  // both pointing to /memberships — the redundant "Pricing" entry was
+  // removed in Phase 7 to avoid two menu items with the same destination).
   menu.push({
     label: isAr ? "العضويات" : "Memberships",
     icon: Sparkles,
