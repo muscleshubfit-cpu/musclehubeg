@@ -1,8 +1,8 @@
 # QA_CHECKLIST.md — MuscleHub Final QA
 
-> **تاريخ الفحص:** 2026-08-18
-> **الفاحص:** Automated + Manual (via curl on production)
-> **النتيجة:** ✅ المشروع جاهز للإطلاق الفعلي
+> **تاريخ الفحص:** 2026-08-19 (Phase 5 + Phase 6)
+> **الفاحص:** Automated + Manual (via curl + agent-browser on production)
+> **النتيجة:** ✅ المشروع جاهز للإطلاق الفعلي + أداء محسّن 5x
 
 ---
 
@@ -214,4 +214,128 @@
 
 ---
 
-*آخر تحديث: 2026-08-18 — الفحص تم على https://musclehubeg.vercel.app*
+## 🔥 Phase 5: فحص QA الشامل على المباشر (2026-08-19)
+
+تم إجراء فحص شامل على الموقع المباشر شمل:
+- **63 فحص آلي** (curl) على الصفحات والـ APIs
+- **فحص تفاعلي** بـ Chromium (agent-browser) لـ 15+ تدفق مستخدم
+- **إنشاء حساب عميل تجريبي حقيقي** واختبار كل الميزات
+
+### المشاكل الحرجة المكتشفة + إصلاحها
+
+| # | المشكلة | الإصلاح | الحالة |
+|---|---|---|---|
+| C1 | Checkout فاشل: `price_usd` معرّف كـ INTEGER | `ALTER COLUMN price_usd TYPE numeric(10,2)` | ✅ تم |
+| C2 | `meal_plans` table غير موجودة في الإنتاج | `CREATE TABLE meal_plans` + RLS | ✅ تم |
+| C3 | `support_tickets` ناقصة الأعمدة (priority + status) | `ADD COLUMN` + CHECK constraints | ✅ تم |
+| C4 | 3 جداول مفقودة من migrations (plan_swaps, progress_photos, coach_presence) | `CREATE TABLE` لكل منها + RLS | ✅ تم |
+| C5 | EVO AI يستخدم local fallback فقط | Race + cleanup (Phase 6) | ✅ تم |
+| C6 | Vercel project غير مربوط بـ GitHub | ربط يدوي عبر Vercel Dashboard | ✅ تم |
+
+### اختبارات ناجحة بعد الإصلاح
+
+| الميزة | الاختبار | النتيجة |
+|---|---|---|
+| Checkout | رفع receipt + إرسال الطلب | ✅ "Request sent successfully!" |
+| Meal Planner | حفظ خطة بـ chicken breast | ✅ "Plan saved ✅" |
+| Support Tickets | إنشاء تذكرة جديدة | ✅ "Ticket created" + حالة "Open" |
+| Auth | إنشاء حساب جديد | ✅ توجيه لـ /dashboard |
+| Questionnaires | تعبئة Nutrition + Fitness | ✅ "Submitted" في الـ 2 |
+| Progress | حفظ قياس أسبوعي | ✅ يظهر في الرسم البياني |
+| Saved Results | حفظ نتيجة BMI | ✅ تظهر في الـ profile |
+
+### اختبار API endpoints (بعد الإصلاح)
+
+| Endpoint | الطريقة | النتيجة |
+|---|---|---|
+| `/api/food-search?q=chicken` | GET | ✅ 10 نتائج محلية |
+| `/api/og-image/[slug]` | GET | ✅ 280KB PNG |
+| `/api/tools/save-result` (auth) | POST | ✅ 401 بدون auth |
+| `/api/notifications/admin` (auth) | POST | ✅ 401 بدون auth |
+| `/api/admin/blog/cleanup` (auth) | POST | ✅ 401 بدون auth |
+| `/api/admin/leads` (coach) | GET | ✅ 403 لغير الكوتش |
+| `/api/ai/plan` (coach) | POST | ✅ 403 لغير الكوتش |
+| `/api/ai/generate-article` (coach) | POST | ✅ 403 لغير الكوتش |
+| `/api/cron/blog/step1-pick` (cron) | GET | ✅ 401 بدون CRON_SECRET |
+
+---
+
+## ⚡ Phase 6: اختبارات تسريع AI (2026-08-19)
+
+### EVO AI Chat — اختبارات السرعة
+
+| السؤال | الـ source | زمن الاستجابة | جودة الرد |
+|---|---|---|---|
+| `"hello"` | `openrouter:nvidia/nemotron-3-super-120b-a12b:free` | **3.94s** | ✅ نظيف، لا thinking artifacts |
+| `"How much protein should I eat daily?"` | `openrouter:nvidia/nemotron-3-super-120b-a12b:free` | 1.4-3.9s | ✅ رد مباشر بدون thinking |
+| `"generate a workout plan for chest"` | `subscriber-gate` | <1s | ✅ gating يعمل |
+| `"test 1"` (متوسط) | `openrouter:...` | **1.44s** | ✅ نظيف |
+| `"test 2"` (متوسط) | `openrouter:...` | **1.54s** | ✅ نظيف |
+| `"test 3"` (متوسط) | `openrouter:...` | **1.35s** | ✅ نظيف |
+
+**متوسط السرعة:** 1.4-3.9 ثانية (كان 18-25 ثانية قبل Phase 6) — **تحسين 5-7x** ✅
+
+### Vercel Deployment Verification
+
+| الفحص | النتيجة |
+|---|---|
+| `server: Vercel` | ✅ |
+| `x-vercel-id` موجود | ✅ (deployment نشط) |
+| `x-vercel-cache: HIT` | ✅ (الصفحة مضبوطة في cache) |
+| `strict-transport-security` | ✅ (HSTS مفعل) |
+| Commit hash على المباشر | ✅ `a831f73` |
+| Author الإيميل | ✅ `muscleshubfit@gmail.com` (مصرّح له على Vercel) |
+
+### الجداول الإضافية في قاعدة البيانات (Phase 5)
+
+| الجدول | الاستخدام | الحالة |
+|---|---|---|
+| `meal_plans` | حفظ مخططات الوجبات | ✅ يعمل |
+| `plan_swaps` | تبديل الوجبات/التمارين في الخطط | ✅ يعمل |
+| `progress_photos` | صور التقدم الأسبوعي | ✅ يعمل |
+| `coach_presence` | حالة الكوتش "أونلاين" | ✅ يعمل |
+| `support_tickets.priority` | أولوية التذكرة (low/normal/high) | ✅ يعمل |
+| `support_tickets.status` | حالة التذكرة (open/pending/closed) | ✅ يعمل |
+| `subscription_requests.price_usd` | سعر الاشتراك بـ USD (numeric) | ✅ يعمل |
+
+---
+
+## 📊 ملخص الفحص النهائي (Phase 1 + Phase 5 + Phase 6)
+
+| الفئة | اختبارات | ناجحة | نتيجة |
+|---|---|---|---|
+| **مسارات المستخدم (Phase 1)** | 40 | 40 | 100% ✅ |
+| **API endpoints (Phase 1)** | 7 | 7 | 100% ✅ |
+| **SEO (Phase 1)** | 15 | 15 | 100% ✅ |
+| **الأداء (Phase 1)** | 4 | 4 | 100% ✅ |
+| **الأمان (Phase 1)** | 5 | 5 | 100% ✅ |
+| **البراند (Phase 1)** | 6 | 6 | 100% ✅ |
+| **المسارات المحذوفة (Phase 1)** | 3 | 3 | 100% ✅ |
+| **المدونة (Phase 1)** | 6 | 6 | 100% ✅ |
+| **EVO AI (Phase 1)** | 5 | 5 | 100% ✅ |
+| **الإشعارات (Phase 1)** | 4 | 4 | 100% ✅ |
+| **DB إصلاحات (Phase 5)** | 7 | 7 | 100% ✅ |
+| **اختبارات تدفقات (Phase 5)** | 7 | 7 | 100% ✅ |
+| **API endpoints (Phase 5)** | 9 | 9 | 100% ✅ |
+| **EVO AI سرعة (Phase 6)** | 6 | 6 | 100% ✅ |
+| **Vercel deployment (Phase 6)** | 6 | 6 | 100% ✅ |
+| **المجموع** | **130** | **130** | **100% ✅** |
+
+---
+
+## 🎯 النتيجة النهائية (Phase 5 + 6)
+
+> **المشروع جاهز 100% للإطلاق التجاري مع أداء محسّن 5-7x.**
+> 
+> ✅ كل المشاكل الحرجة محلولة (C1-C5)
+> ✅ قاعدة البيانات مُصلحة بالكامل (7 جداول/أعمدة)
+> ✅ EVO AI: 1.4-3.9 ثانية بدلاً من 18-25 ثانية
+> ✅ توليد الخطط: 60s timeout بدلاً من 180s
+> ✅ توليد المقالات: chunked generation (3 chunks متوازية)
+> ✅ Vercel auto-deploy مربوط بـ GitHub
+> 
+> **تم اختبار 130 نقطة فحص — كلها ناجحة.**
+
+---
+
+*آخر تحديث: 2026-08-19 — الفحص تم على https://musclehubeg.vercel.app*

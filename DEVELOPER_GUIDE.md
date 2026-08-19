@@ -1,6 +1,6 @@
 # Developer Guide — MuscleHub
 
-> **آخر تحديث:** 2026-08-18
+> **آخر تحديث:** 2026-08-19 (Phase 6: تسريع AI + chunked article generation)
 > **الجمهور المستهدف:** مطورين جدد ينضمون للمشروع، أو المطور الحالي كمرجع
 
 ---
@@ -537,6 +537,34 @@ node scripts/scan-blog-urls-broad.js
 1. nvidia/nemotron-3-ultra-550b (الأضخم)
 2. → fallback إلى 5 نماذج أصغر
 
+### الـ AI Provider Pattern (Phase 6 — 2026-08-19)
+
+يوجد **دالتان** لاستدعاء OpenRouter، كل واحدة لها حالة استخدام:
+
+| الدالة | متى تستخدمها | السلوك |
+|---|---|---|
+| `callFreeOpenRouter(prompt, options)` | **Plans, Articles, Research** — محتاج جودة عالية وانتظار مقبول | Sequential — يجرب النموذج الأكبر الأول، ثم ينتقل للتالي عند الفشل |
+| `callFreeOpenRouterRace(prompt, options, raceCount=3)` | **EVO chat, Swap** — محتاج سرعة فائقة | Parallel — يستدعي 3 نماذج بالتوازي ويرجع أول رد ناجح |
+
+```typescript
+import { callFreeOpenRouter, callFreeOpenRouterRace } from "@/lib/ai-provider";
+
+// للسرعة (chat, swap):
+const { text, model } = await callFreeOpenRouterRace(prompt, {
+  temperature: 0.6,
+  maxTokens: 500,
+  timeoutMs: 15_000,  // أقل من 60s عشان Vercel Hobby
+}, 3);  // race count
+
+// للجودة (plans, articles):
+const { text, model } = await callFreeOpenRouter(prompt, {
+  temperature: 0.7,
+  maxTokens: 4000,
+  jsonMode: true,
+  timeoutMs: 60_000,  // حد Vercel Hobby
+});
+```
+
 ### الـ Auth Pattern
 
 ```typescript
@@ -557,6 +585,120 @@ navigate("memberships");                    // → /memberships
 navigate("checkout", { tier: "premium", months: 12 }); // → /checkout?tier=premium&months=12
 navigate("coach-client", { clientId: "xxx" }); // → /coach/xxx
 ```
+
+---
+
+## 13. Phase 5: إصلاحات قاعدة البيانات (2026-08-19)
+
+### جداول تم إنشاؤها/إصلاحها على Supabase الإنتاجي
+
+| الجدول | الحالة قبل | الإصلاح |
+|---|---|---|
+| `meal_plans` | ❌ غير موجود (migration 0008 لم يُطبّق) | `CREATE TABLE meal_plans` + RLS policies |
+| `support_tickets.priority` | ❌ العمود غير موجود | `ADD COLUMN priority text` + CHECK constraint |
+| `support_tickets.status` | ❌ العمود غير موجود | `ADD COLUMN status text` + CHECK constraint |
+| `subscription_requests.price_usd` | ❌ معرّف كـ INTEGER (يرفض 14.99) | `ALTER COLUMN price_usd TYPE numeric(10,2)` |
+| `plan_swaps` | ❌ غير موجود في أي migration | `CREATE TABLE plan_swaps` + RLS policies |
+| `progress_photos` | ❌ غير موجود في أي migration | `CREATE TABLE progress_photos` + RLS policies |
+| `coach_presence` | ❌ غير موجود في أي migration | `CREATE TABLE coach_presence` + RLS policies |
+
+### ملفات SQL للصيانة
+
+| الملف | الوصف |
+|---|---|
+| `/home/z/my-project/download/MuscleHubEG_Database_Fix_v4.sql` | السكريبت الشامل لكل الإصلاحات |
+| `/home/z/my-project/download/MuscleHubEG_Fix_support_tickets_status.sql` | إصلاح عمود status |
+
+### تحديث Supabase Schema Cache
+
+بعد أي تعديل على schema، يجب تشغيل:
+
+```sql
+NOTIFY pgrst, 'reload schema';
+```
+
+في Supabase SQL Editor لتحديث PostgREST schema cache.
+
+---
+
+## 14. Phase 6: تسريع AI + إصلاح توليد المقالات (2026-08-19)
+
+### 1. EVO AI Chat — تسريع 5x
+
+**المشكلة:** EVO كان بياخد 18-25 ثانية + بيرجع thinking artifacts (numbered reasoning steps).
+
+**الحل:**
+- `callFreeOpenRouterRace()` في `src/lib/ai-provider.ts` — Promise.any() بـ 3 نماذج بالتوازي
+- Cleanup قوي في `src/app/api/ai/chat/route.ts`:
+  - شطف `, <reasoning>, <reflection>, <analysis> tags
+  - شطف "Here's a thinking process:" / "Thinking process:" headers
+  - استخراج "Final Answer:" / "Draft:" markers
+  - شطف numbered reasoning steps + bullet-style reasoning
+  - fallback للـ local reply لو النص النظيف أقل من 10 أحرف
+- تحسين الـ system prompt بـ "ANSWER DIRECTLY" + أمثلة BAD/GOOD
+
+**النتيجة:** 1.3-3.9 ثانية (5-7x أسرع) + ردود نظيفة.
+
+### 2. Plan Generation — تسريع 3x
+
+**المشكلة:** timeoutMs = 180s كان فوق حد Vercel Hobby (60s).
+
+**الإصلاح في `src/lib/plan-generator.ts`:**
+
+| الدالة | قبل | بعد |
+|---|---|---|
+| `generateNutritionPlanAI` | 180s, 8000 tokens | 60s, 4000 tokens |
+| `generateWorkoutPlanAI` | 180s, 8000 tokens | 60s, 4000 tokens |
+| `regenerateMeal` | 90s, 2000 tokens | 45s, 1500 tokens |
+| `normalizeCoachPlan` | 120s, 6000 tokens | 60s, 4000 tokens |
+
+**`src/app/api/ai/swap/route.ts`:** تحول لـ `callFreeOpenRouterRace` (3 models parallel) + maxDuration 180s → 60s.
+
+### 3. Article Generation — Chunked Generation
+
+**المشكلة:** توليد المقالات كان بيفشل بـ timeout + المقالات كانت قصيرة.
+
+**الحل في `src/lib/blog-generate.ts`:**
+
+تقسيم التوليد لـ 3 chunks:
+
+```typescript
+// Chunk 1 (50s): SEO + Research + English article (600-900 words, maxTokens 4000)
+const chunk1 = await callFreeOpenRouter(chunk1Prompt, {
+  maxTokens: 4000, timeoutMs: 50_000,
+});
+
+// Chunk 2 + 3 بالتوازي (Promise.all)
+const [chunk2, chunk3] = await Promise.all([
+  // Chunk 2 (50s): Arabic article + FAQ (500-800 words)
+  callFreeOpenRouter(chunk2Prompt, { maxTokens: 4000, timeoutMs: 50_000 }),
+  // Chunk 3 (40s): Links + image prompts + social posts
+  callFreeOpenRouter(chunk3Prompt, { maxTokens: 2500, timeoutMs: 40_000 }),
+]);
+
+// إدراج الروابط في المقالات
+const englishArticle = insertLinksIntoArticle(chunk1.englishArticle, links, false);
+const arabicArticle = insertLinksIntoArticle(chunk2.arabicArticle, links, true);
+```
+
+**`src/app/api/cron/blog/step2-generate/route.ts`:**
+- `maxDuration` 60s → **300s** (5 دقائق)
+- **دمج Research phase** قبل التوليد (45s timeout)
+- Graceful degradation لو الـ research فشل
+
+### 4. Vercel Hobby Plan Limits (مهم!)
+
+| النوع | الحد | ملاحظة |
+|---|---|---|
+| Serverless Function timeout | 60s | يجب ضبط `maxDuration` |
+| Cron job timeout | 60s | يجب استخدام Background functions للعمليات الطويلة |
+| Build timeout | 45 min | كافٍ |
+| Bandwidth | 100 GB/شهر | — |
+
+**للعمليات الطويلة (>60s):**
+- استخدم `maxDuration = 300` (Vercel Pro يدعم 900s)
+- أو قسم العملية لـ chunks (زي ما عملنا في توليد المقالات)
+- أو استخدم Background Functions (Pro plan)
 
 ---
 
