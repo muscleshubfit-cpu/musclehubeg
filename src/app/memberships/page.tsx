@@ -1,6 +1,6 @@
 "use client";
 
-import { useI18n } from "@/lib/i18n";
+import { useI18n, type Lang } from "@/lib/i18n";
 import { useAuth } from "@/hooks/use-auth";
 import { SiteHeader } from "@/components/SiteHeader";
 import { ShareButtons } from "@/components/ShareButtons";
@@ -11,8 +11,9 @@ import {
 } from "@/lib/memberships";
 import { Check, X, ShieldCheck, Sparkles } from "lucide-react";
 
-export default function MembershipsPage() {
-  const { lang } = useI18n();
+export default function MembershipsPage({ lang: langProp }: { lang?: Lang } = {}) {
+  const { lang: ctxLang } = useI18n();
+  const lang = langProp ?? ctxLang;
   const isAr = lang === "ar";
   const { profile } = useAuth();
 

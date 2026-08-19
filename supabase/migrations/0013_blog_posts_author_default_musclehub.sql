@@ -1,0 +1,31 @@
+-- =====================================================================
+--  Migration 0013: Change blog_posts.author default to 'MuscleHub'
+--
+--  Phase 7 — Master Verification Batch 002 (2026-08-19)
+--
+--  Context:
+--  Migration 0002 originally set:
+--      author text not null default 'Ahmed Zake'
+--
+--  The application code (BlogEditorView.tsx:38, step3-publish route) and
+--  the admin cleanup endpoint (admin/blog/cleanup) already use
+--  'MuscleHub' as the canonical author. New posts created via the admin
+--  UI explicitly set `author: 'MuscleHub'`, so the DB default is never
+--  hit in normal operation. However, the schema default still leaks the
+--  legacy brand name in any code path that forgets to set `author`
+--  explicitly, and in any direct DB inserts (e.g. ad-hoc SQL inserts
+--  by the owner).
+--
+--  This migration changes ONLY the column default. It does NOT modify
+--  existing rows — those should be cleaned up via a separate
+--  data-migration SQL (see PROGRESS.md H5) if any still contain
+--  'Ahmed Zake'. The default change prevents FUTURE inserts from
+--  inheriting the legacy name.
+--
+--  Idempotent: safe to re-run.
+--  Owner must apply on Supabase SQL Editor (do NOT auto-apply).
+--  After applying, run: NOTIFY pgrst, 'reload schema';
+-- =====================================================================
+
+alter table public.blog_posts
+  alter column author set default 'MuscleHub';
