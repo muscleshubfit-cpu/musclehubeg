@@ -74,7 +74,7 @@ verified," the following distinctions are now used:
 |---|---|---|---|
 | C5 | EVO AI may fall back to local replies if `OPENROUTER_API_KEY` not set in Vercel | ✅ **VERIFIED (code + production env)** — Phase 7 Master Verification Batch 002 verified the AI provider code path: `src/lib/ai-provider.ts` reads `OPENROUTER_API_KEY` (with `AI_API_KEY` fallback); `src/app/api/ai/chat/route.ts:179` checks `if (process.env.OPENROUTER_API_KEY \|\| process.env.AI_API_KEY)` before attempting AI call; falls back to `generateLocalReply()` with `source: "local"` on missing key OR AI failure OR reasoning-artifact cleanup failure. No hardcoded secrets in source. **Post-Push Production Verification (2026-08-19):** Owner confirmed `OPENROUTER_API_KEY` is present in Vercel Production environment with status Ready / enabled. EVO AI is fully operational in production. No further action required. | None — closed. |
 | C6 | Vercel auto-deploy from `main` | ✅ **VERIFIED (production deployment Ready)** — Phase 7 Master Verification Batch 002 could not verify from repo evidence alone (no `.vercel/` dir, GitHub Actions workflow handles blog generation only, `vercel.json` is deployment config). **Post-Push Production Verification (2026-08-19):** Owner confirmed the deployment for commit `ce42795` reached Ready status on Vercel Production. GitHub → Vercel auto-deploy is operational — pushing `ce42795` to `main` triggered a successful production deployment. | None — closed. |
-| H1 | Root `<html lang="en" dir="ltr">` hardcoded | ⚠️ **UNFIXED — REQUIRES ARCHITECTURAL REFACTOR (out of scope)** — Phase 7 Master Verification Batch 002 inspected the Next.js App Router architecture. Confirmed: only the root `app/layout.tsx` can render `<html>` and `<body>` tags. Nested layouts (like `src/app/ar/layout.tsx`) can ONLY render `<div>` wrappers. The current mitigation (RTL `<div dir="rtl" lang="ar">` wrapper + `Content-Language: ar-EG` middleware header) is the maximum achievable WITHOUT a major route-group refactor. The proper fix requires one of: (a) moving all 47 `page.tsx` + 16 layouts under `src/app/[locale]/` with `generateStaticParams` (standard Next.js i18n routing — substantial refactor, high risk to OAuth callback, sitemap, redirects, static gen); (b) replacing the client-side `useI18n()` context with server-side `cookies()`-based locale detection in the root layout (medium risk). Neither is safe to implement in a verification batch. Smoke test confirmed current state: all `/ar/*` routes render `<html lang="en" dir="ltr">` at the root level — the RTL wrapper div handles visual RTL but crawlers see the English root attribute. | **Out of scope for any verification batch.** Requires a dedicated task with explicit supervisor sign-off on the architectural approach. H1 stays open as the only remaining production-readiness blocker. |
+| H1 | Root `<html lang="en" dir="ltr">` hardcoded | ✅ **FIXED — VERIFIED on Production** — Implemented Option B (server-side locale detection via cookies + headers). Commit `78a0e36` (`fix: resolve locale html language and direction`). **Architecture:** (1) `src/middleware.ts` now sets `x-pathname` header + `mhe:locale` cookie on every request (always, even in demo mode); (2) `src/app/layout.tsx` converted to async Server Component that reads `x-pathname` + `mhe:locale` via `cookies()`/`headers()` and renders `<html lang dir>` dynamically; (3) `src/lib/i18n.tsx` retains client-side `useEffect` as fallback for in-page language toggle; (4) `src/app/ar/layout.tsx` retains RTL `<div>` wrapper as defensive safety net. **Precedence enforced:** pathname > cookie > default (verified via stale-cookie tests). **Production verification (2026-08-19):** All 6 routes return correct server-rendered HTML attributes — `/` → `lang="en" dir="ltr"`, `/memberships` → `lang="en" dir="ltr"`, `/ar/exercises` → `lang="ar" dir="rtl"`, `/ar/foods` → `lang="ar" dir="rtl"`, `/ar/memberships` → `lang="ar" dir="rtl"`, `/ar/blog` → `lang="ar" dir="rtl"`. Middleware headers confirmed: `content-language: ar-EG`, `mhe:locale=ar`, `x-pathname: /ar/exercises`. Precedence test passed: `/ar/exercises` with stale `mhe:locale=en` cookie still returns `lang="ar" dir="rtl"`. Auth callback intact: `/auth/callback` redirects to `/` with `lang="en"`. No 500 errors, no redirect loops. | None — closed. |
 | H2 | Membership `features` arrays are Arabic-only | ✅ **FIXED** (Master Repair Batch 001) — added `featuresEn: string[]` field to `MembershipInfo` type + populated for all 4 tiers (Free, Premium, Pro, Coaching) in `src/lib/memberships.ts`. Updated consumers in `src/app/memberships/page.tsx` (lines 136, 227) to use `isAr ? tier.features : tier.featuresEn`. |
 | H3 | Hardcoded Arabic in `PlansView` English mode | ✅ **FIXED** (Master Repair Batch 001) — added 11 i18n keys under `plans.swaps.*` namespace in both `en` and `ar` dicts in `src/lib/i18n.tsx`. Replaced 7 hardcoded Arabic strings in `src/components/views/PlansView.tsx` (2 swap quota display strings + 6 toast messages) with `t()` calls. The print/PDF template (lines 149-303) intentionally remains Arabic-only — it's a printable plan document for coach-generated plans and is out of scope. |
 | H4 | Missing i18n keys (`prog.uploadPhoto`, `prog.photos`, `prog.noPhotos`) | ✅ **FIXED** (Master Repair Batch 001) — added 3 keys to both `en` and `ar` dicts in `src/lib/i18n.tsx`. Consumed in `src/components/views/ProgressView.tsx` (lines 149, 217, 220, 225, 294). |
@@ -99,7 +99,7 @@ verified," the following distinctions are now used:
 - ✅ **C6 — VERIFIED via production deployment Ready** — GitHub → Vercel auto-deploy confirmed operational: pushing `ce42795` to `main` triggered a successful production deployment (Ready status). Verified by owner, not by repo evidence alone.
 - ✅ **H5 — FULLY FIXED (schema + data)** — Migration `0013_blog_posts_author_default_musclehub.sql` shipped (changes column default to `'MuscleHub'`). Owner applied migration `0013` to production Supabase and ran the data-cleanup `UPDATE` — exactly **46 rows** updated from `'Ahmed Zake'` to `'MuscleHub'`. No remaining H5-related data cleanup.
 - ✅ **M3 — VERIFIED — NO DUPLICATES EXIST** — `(slug, language)` unique index intact. Owner ran read-only verification query on production Supabase — **returned no rows**. No duplicate slugs exist within any language.
-- ⚠️ **H1 — UNFIXED, REQUIRES ARCHITECTURAL REFACTOR (out of scope)** — Proper fix requires route-group refactor (move 47 pages + 16 layouts under `src/app/[locale]/`) or replacing client-side `useI18n()` with server-side `cookies()`-based detection. Neither is safe to implement in a verification batch. Out of scope. Mitigation (RTL wrapper div + `Content-Language: ar-EG` header) preserved. **This is now the only remaining production-readiness blocker.**
+- ✅ **H1 — FIXED, VERIFIED on Production** — Implemented Option B (server-side locale detection). Commit `78a0e36`. All 6 routes return correct server-rendered `<html lang dir>`. Precedence test passed (pathname > cookie > default). Auth callback intact. **All production-readiness blockers are now CLOSED.**
 
 ---
 
@@ -135,14 +135,15 @@ After pushing commit `ce427956a042e0599e47429a8f00bf80785034e8` (short: `ce42795
 | C6 | NOT VERIFIED — REQUIRES OWNER ACTION | ✅ **VERIFIED (production deployment Ready)** — closed | Owner confirmed `ce42795` deployment reached Ready status. |
 | H5 | PARTIALLY FIXED — REQUIRES OWNER ACTION for data cleanup | ✅ **FULLY FIXED (schema + data)** — closed | Migration `0013` applied; 46 rows cleaned up. |
 | M3 | NOT VERIFIED — REQUIRES OWNER ACTION (read-only query) | ✅ **VERIFIED — NO DUPLICATES EXIST** — closed | Read-only query returned 0 rows; unique index intact. |
-| H1 | UNFIXED — REQUIRES ARCHITECTURAL REFACTOR (out of scope) | ⚠️ **STILL UNFIXED — REQUIRES ARCHITECTURAL REFACTOR (out of scope)** | Not actionable in any verification batch — needs dedicated task with supervisor sign-off on architectural approach. |
+| H1 | UNFIXED — REQUIRES ARCHITECTURAL REFACTOR (out of scope) | ✅ **FIXED — VERIFIED on Production** — closed | Implemented Option B (server-side locale detection via cookies + headers). Commit `78a0e36`. All 6 routes return correct server-rendered `<html lang dir>`. Precedence test passed (pathname > cookie > default). Auth callback intact. |
 
-### Remaining open items (post-push)
+### Remaining open items (post-H1 closure)
 
 | ID | Reason it remains open |
 |---|---|
-| H1 | Root `<html lang="en" dir="ltr">` is hardcoded in `src/app/layout.tsx:29`. Proper fix requires either: (a) moving all 47 `page.tsx` + 16 layouts under `src/app/[locale]/` with `generateStaticParams` (standard Next.js i18n routing — substantial refactor, high risk to OAuth callback, sitemap, redirects, static gen); or (b) replacing the client-side `useI18n()` context with server-side `cookies()`-based locale detection in the root layout (medium risk). Neither is safe to implement in a verification batch. Should be its own dedicated task with explicit supervisor sign-off on the architectural approach. |
 | Pre-existing ESLint errors | 4 errors + 5 warnings in 7 untouched `src/` files (CookieConsent, SaveResultButton, checkout/page, foods/[slug], water-tracker, AdSenseAd, BlogAdminView). These do not affect production builds (Next.js 16 dropped ESLint from build config — runs via `bun run lint` only). Tech-debt cleanup task, separate from any verification batch. |
+
+**All previously-open production-readiness items (C5, C6, H1, H2, H3, H4, H5, H6, M1, M2, M3, M4, M5, B18, B002-NEW) are now CLOSED.**
 
 ---
 
@@ -642,17 +643,17 @@ Phase 7 pass:
 
 ## 🎯 النتيجة النهائية (مُحدَّثة Post-Push Production Verification 2026-08-19)
 
-> **المشروع في مرحلة الإنتاج الكامل (Production-Ready) — جميع المشاكل الحرجة مُغلقة ما عدا H1.**
+> **المشروع في مرحلة الإنتاج الكامل (Production-Ready) — جميع المشاكل الحرجة مُغلقة. ✅ H1 مغلق.**
 >
 > - **54 ميزة مكتملة 100%** (مُجمّدة)
 > - **17 مشكلة تم إصلاحها سابقاً** (Phase 1-4) — مفصّلة في الجداول أعلاه (B1–B17)
 > - **4 مشاكل حرجة تم إصلاحها في Phase 5** (Checkout + meal_plans + support_tickets + 3 جداول مفقودة)
-> - **0 مشاكل حرجة متبقية** — ~~C5 (EVO AI)~~ و ~~C6 (Vercel auto-deploy)~~ تم إغلاقهم Post-Push Production Verification (انظر قسم "Post-Push Production Verification" أعلاه)
-> - **1 مشكلة عالية الأولوية متبقية** — H1 فقط (root `<html lang dir>` hardcoded — يتطلب architectural refactor منفصل). ~~H2, H3, H4, H6~~ تم إصلاحهم في Master Repair Batch 001. ~~H5~~ تم إصلاحها بالكامل Post-Push.
-> - **0 مشاكل متوسطة الأولوية متبقية** — ~~M1~~ (false positive), ~~M2, M4, M5~~ تم إصلاحهم في Batch 001. ~~M3~~ تم التحقق منها Post-Push (لا توجد تكرارات).
+> - **0 مشاكل حرجة متبقية** — ~~C5 (EVO AI)~~، ~~C6 (Vercel auto-deploy)~~، ~~H1 (root html lang/dir)~~ جميعها مُغلقة. **مشروع 100% Production-Ready.**
+> - **0 مشاكل عالية الأولوية متبقية** — ~~H1, H2, H3, H4, H5, H6~~ جميعها مُغلقة.
+> - **0 مشاكل متوسطة الأولوية متبقية** — ~~M1~~ (false positive), ~~M2, M3, M4, M5~~ جميعها مُغلقة.
 > - **1 build/tooling issue تم إصلاحه** — ~~B18~~ (local build broken) تم إصلاحه في Batch 001.
 > - **2 مشاكل مقبولة كقرارات تصميمية** (B16: Recharts lazy-loaded, B17: Framer Motion disabled)
-> - **95 نقطة فحص QA سابقة ناجحة** + **فحص Phase 5 شامل (63 صفحة + 9 API endpoints + 12 تدفق مستخدم)** — *(Note: this line originally said "22 API"; reconciled to 9 in Phase 7 — that's the count actually hit by curl in Phase 5. The total route count is 28 — see Reconciled Status at the top.)*
+> - **95 نقطة فحص QA سابقة ناجحة** + **فحص Phase 5 شامل (63 صفحة + 9 API endpoints + 12 تدفق مستخدم)**
 > - **التوثيق كامل ومُحدَّث** (README.md + DEVELOPER_GUIDE.md + PROGRESS.md + QA_CHECKLIST.md + AGENTS.md + PROJECT_CONTEXT.md + SECURITY.md + LICENSE)
 > - **سكريبتات SQL للإصلاح محفوظة**: `MuscleHubEG_Database_Fix_v4.sql` + `MuscleHubEG_Fix_support_tickets_status.sql`
 > - **تقرير QA الشامل محفوظ**: `MuscleHubEG_QA_Report.docx/pdf`
@@ -662,9 +663,9 @@ Phase 7 pass:
 > - ✅ **M3**: Owner شغّل read-only query — رجع 0 صفوف (لا تكرارات)
 > - ✅ **C5**: Owner أكد أن `OPENROUTER_API_KEY` موجود في Vercel Production (Ready)
 > - ✅ **C6**: Owner أكد أن deployment الخاص بـ `ce42795` وصل Ready — auto-deploy يعمل
+> - ✅ **H1**: Agent نفّذ Option B (commit `78a0e36`) + Production verified — كل `/ar/*` routes تعرض `<html lang="ar" dir="rtl">`، كل English routes تعرض `<html lang="en" dir="ltr">`. Precedence test passed (pathname > cookie > default). Auth callback intact.
 >
-> ### المتبقي الوحيد (Open)
-> - ⚠️ **H1**: root `<html lang="en" dir="ltr">` hardcoded — يتطلب architectural refactor منفصل مع supervisor sign-off
+> ### المتبقي (tech-debt فقط — لا يؤثر على الإنتاج)
 > - ⚠️ **Pre-existing ESLint errors**: 4 أخطاء + 5 تحذيرات في 7 ملفات `src/` لم تُلمَس (tech-debt منفصل، لا يؤثر على الإنتاج)
 >
 > ### إصلاحات UX المنجزة (جديدة)
