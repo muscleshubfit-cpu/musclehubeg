@@ -72,17 +72,17 @@ verified," the following distinctions are now used:
 
 | ID | Item | Status | Notes |
 |---|---|---|---|
-| C5 | EVO AI may fall back to local replies if `OPENROUTER_API_KEY` not set in Vercel | **VERIFIED (code); CONFIGURATION-DEPENDENT (env)** — Phase 7 Master Verification Batch 002 re-inspected the complete AI provider path: `src/lib/ai-provider.ts` reads `OPENROUTER_API_KEY` (with `AI_API_KEY` fallback); `src/app/api/ai/chat/route.ts:179` checks `if (process.env.OPENROUTER_API_KEY \|\| process.env.AI_API_KEY)` before attempting AI call; falls back to `generateLocalReply()` with `source: "local"` on missing key OR AI failure OR reasoning-artifact cleanup failure. No hardcoded secrets found in source. Response shape includes `source: "openrouter:<model>"` / `"local"` / `"subscriber-gate"` for client-side debugging. **Application operates safely without the key** — local rule-based fallback is functional. | Owner must verify `OPENROUTER_API_KEY` is set in Vercel project env vars. |
-| C6 | Vercel auto-deploy from `main` | **NOT VERIFIED — REQUIRES OWNER ACTION** — Phase 7 Master Verification Batch 002 confirmed: no `.vercel/` dir in repo, GitHub Actions workflow (`.github/workflows/generate-blog-post.yml`) handles only blog post generation (not deployment), `vercel.json` is deployment config only (no project-link metadata), no Vercel API integration available to agent. | Owner must check Vercel dashboard → Settings → Git → Production Branch + confirm latest deployment matches `f0f3a41`. |
-| H1 | Root `<html lang="en" dir="ltr">` hardcoded | **UNFIXED — REQUIRES ARCHITECTURAL REFACTOR** — Phase 7 Master Verification Batch 002 inspected the Next.js App Router architecture. Confirmed: only the root `app/layout.tsx` can render `<html>` and `<body>` tags. Nested layouts (like `src/app/ar/layout.tsx`) can ONLY render `<div>` wrappers. The current mitigation (RTL `<div dir="rtl" lang="ar">` wrapper + `Content-Language: ar-EG` middleware header) is the maximum achievable WITHOUT a major route-group refactor. The proper fix requires one of: (a) moving all 47 `page.tsx` + 16 layouts under `src/app/[locale]/` with `generateStaticParams` (standard Next.js i18n routing — substantial refactor, high risk to OAuth callback, sitemap, redirects, static gen); (b) replacing the client-side `useI18n()` context with server-side `cookies()`-based locale detection in the root layout (medium risk). Neither is safe to implement in a verification batch. Smoke test confirmed current state: all `/ar/*` routes render `<html lang="en" dir="ltr">` at the root level — the RTL wrapper div handles visual RTL but crawlers see the English root attribute. | **Out of scope for verification batch.** Should be its own dedicated task with explicit supervisor sign-off on the architectural approach. H1 stays open. |
+| C5 | EVO AI may fall back to local replies if `OPENROUTER_API_KEY` not set in Vercel | ✅ **VERIFIED (code + production env)** — Phase 7 Master Verification Batch 002 verified the AI provider code path: `src/lib/ai-provider.ts` reads `OPENROUTER_API_KEY` (with `AI_API_KEY` fallback); `src/app/api/ai/chat/route.ts:179` checks `if (process.env.OPENROUTER_API_KEY \|\| process.env.AI_API_KEY)` before attempting AI call; falls back to `generateLocalReply()` with `source: "local"` on missing key OR AI failure OR reasoning-artifact cleanup failure. No hardcoded secrets in source. **Post-Push Production Verification (2026-08-19):** Owner confirmed `OPENROUTER_API_KEY` is present in Vercel Production environment with status Ready / enabled. EVO AI is fully operational in production. No further action required. | None — closed. |
+| C6 | Vercel auto-deploy from `main` | ✅ **VERIFIED (production deployment Ready)** — Phase 7 Master Verification Batch 002 could not verify from repo evidence alone (no `.vercel/` dir, GitHub Actions workflow handles blog generation only, `vercel.json` is deployment config). **Post-Push Production Verification (2026-08-19):** Owner confirmed the deployment for commit `ce42795` reached Ready status on Vercel Production. GitHub → Vercel auto-deploy is operational — pushing `ce42795` to `main` triggered a successful production deployment. | None — closed. |
+| H1 | Root `<html lang="en" dir="ltr">` hardcoded | ⚠️ **UNFIXED — REQUIRES ARCHITECTURAL REFACTOR (out of scope)** — Phase 7 Master Verification Batch 002 inspected the Next.js App Router architecture. Confirmed: only the root `app/layout.tsx` can render `<html>` and `<body>` tags. Nested layouts (like `src/app/ar/layout.tsx`) can ONLY render `<div>` wrappers. The current mitigation (RTL `<div dir="rtl" lang="ar">` wrapper + `Content-Language: ar-EG` middleware header) is the maximum achievable WITHOUT a major route-group refactor. The proper fix requires one of: (a) moving all 47 `page.tsx` + 16 layouts under `src/app/[locale]/` with `generateStaticParams` (standard Next.js i18n routing — substantial refactor, high risk to OAuth callback, sitemap, redirects, static gen); (b) replacing the client-side `useI18n()` context with server-side `cookies()`-based locale detection in the root layout (medium risk). Neither is safe to implement in a verification batch. Smoke test confirmed current state: all `/ar/*` routes render `<html lang="en" dir="ltr">` at the root level — the RTL wrapper div handles visual RTL but crawlers see the English root attribute. | **Out of scope for any verification batch.** Requires a dedicated task with explicit supervisor sign-off on the architectural approach. H1 stays open as the only remaining production-readiness blocker. |
 | H2 | Membership `features` arrays are Arabic-only | ✅ **FIXED** (Master Repair Batch 001) — added `featuresEn: string[]` field to `MembershipInfo` type + populated for all 4 tiers (Free, Premium, Pro, Coaching) in `src/lib/memberships.ts`. Updated consumers in `src/app/memberships/page.tsx` (lines 136, 227) to use `isAr ? tier.features : tier.featuresEn`. |
 | H3 | Hardcoded Arabic in `PlansView` English mode | ✅ **FIXED** (Master Repair Batch 001) — added 11 i18n keys under `plans.swaps.*` namespace in both `en` and `ar` dicts in `src/lib/i18n.tsx`. Replaced 7 hardcoded Arabic strings in `src/components/views/PlansView.tsx` (2 swap quota display strings + 6 toast messages) with `t()` calls. The print/PDF template (lines 149-303) intentionally remains Arabic-only — it's a printable plan document for coach-generated plans and is out of scope. |
 | H4 | Missing i18n keys (`prog.uploadPhoto`, `prog.photos`, `prog.noPhotos`) | ✅ **FIXED** (Master Repair Batch 001) — added 3 keys to both `en` and `ar` dicts in `src/lib/i18n.tsx`. Consumed in `src/components/views/ProgressView.tsx` (lines 149, 217, 220, 225, 294). |
-| H5 | Some blog posts may still have `author = 'Ahmed Zake'` | **PARTIALLY FIXED — REQUIRES OWNER ACTION for data cleanup** — Phase 7 Master Verification Batch 002 discovered the root cause: migration `0002_blog_posts_and_is_coach_grant.sql:36` sets `author text not null default 'Ahmed Zake'`. Application code already overrides this (`BlogEditorView.tsx:38` sets `author: 'MuscleHub'`; `step3-publish/route.ts:117` sets `author: 'MuscleHub'`). Created migration `0013_blog_posts_author_default_musclehub.sql` that changes ONLY the column default to `'MuscleHub'` — idempotent, non-destructive (doesn't touch existing rows). This prevents FUTURE inserts from inheriting the legacy name. **Existing rows with `author = 'Ahmed Zake'` still require a separate data-cleanup SQL** (owner must run on Supabase SQL Editor): `UPDATE blog_posts SET author='MuscleHub' WHERE author='Ahmed Zake';` Could not verify whether existing rows still contain the legacy name — no DB access available. | Owner must apply migration `0013` to production Supabase + run the `UPDATE` cleanup SQL. |
+| H5 | Some blog posts may still have `author = 'Ahmed Zake'` | ✅ **FULLY FIXED (schema + data)** — Phase 7 Master Verification Batch 002 discovered the root cause: migration `0002_blog_posts_and_is_coach_grant.sql:36` set `author text not null default 'Ahmed Zake'`. Shipped migration `0013_blog_posts_author_default_musclehub.sql` that changes the column default to `'MuscleHub'` (idempotent, non-destructive). **Post-Push Production Verification (2026-08-19):** Owner applied migration `0013` to production Supabase — `blog_posts.author` default is now `'MuscleHub'`. Owner then ran the data-cleanup SQL `UPDATE blog_posts SET author='MuscleHub' WHERE author='Ahmed Zake';` — exactly **46 rows** were updated from `'Ahmed Zake'` to `'MuscleHub'`. The operation succeeded. No remaining H5-related data cleanup is needed — the legacy author name has been purged from both schema default and existing rows. | None — closed. |
 | H6 | `/ar/exercises`, `/ar/foods` return 404 | ✅ **FIXED** (Master Repair Batch 001, revised) — created `src/app/ar/exercises/page.tsx` and `src/app/ar/foods/page.tsx`. Revised to pass `lang="ar"` prop to source pages so Arabic renders regardless of localStorage state (matches established `/ar/blog/page.tsx` → `<BlogListPage lang="ar" />` pattern). Smoke test confirmed: `/ar/exercises` renders "مكتبة التمارين", `/ar/foods` renders "مكتبة الأكلات" with no localStorage. |
 | M1 | Newsletter copy in tool pages | ✅ **FALSE POSITIVE** (Master Repair Batch 001) — `LeadCaptureCard` is an intentional lead-capture feature (component docstring: "Collects the visitor's email and stores it as a lead in the `tool_leads` table"). Not a bug. Used in 4 tool pages (calorie, bmi, macro, body-fat). Not modified. |
 | M2 | Coach routes don't redirect non-coaches | ✅ **FIXED** (Master Repair Batch 001) — added `useEffect` redirect to `/dashboard` when `!isCoach` in all 3 coach route pages: `src/app/(app)/coach/page.tsx`, `coach/payments/page.tsx`, `coach/support/page.tsx`. Uses existing `useAuth().isCoach` check (no auth/RLS architecture change). The `(app)/layout.tsx` auth gate already redirects unauthenticated users to `/auth`. |
-| M3 | Duplicate blog URL in sitemap | **NOT VERIFIED — REQUIRES OWNER ACTION** — Phase 7 Master Verification Batch 002 confirmed: schema has `(slug, language)` unique index (`blog_posts_slug_language_uidx`, migration `0002:47-48`) so duplicate slugs within the SAME language are impossible at the DB level. The reported duplicate `best-protein-powder-muscle-growth-copy-msn3h2hm` was likely either: (a) a `-copy-` suffixed slug from the admin "duplicate post" flow (`src/lib/blog-admin.ts:77` generates `${original.slug}-copy-${Date.now().toString(36)}` — technically a unique slug, just confusingly named), or (b) EN + AR posts sharing the same slug (allowed by design — see migration comment "so EN and AR can each have /best-workout", they generate different URLs `/blog/foo` vs `/ar/blog/foo`). Sitemap code itself is correct (one URL per `blog_posts` row, no dedup needed given the unique constraint). Could not verify whether actual duplicate rows exist — no DB access available. | Owner should run read-only query on Supabase to find any actual duplicates: `SELECT slug, language, count(*) FROM blog_posts GROUP BY slug, language HAVING count(*) > 1;` (should return 0 rows if the unique index is intact). |
+| M3 | Duplicate blog URL in sitemap | ✅ **VERIFIED — NO DUPLICATES EXIST** — Phase 7 Master Verification Batch 002 confirmed: schema has `(slug, language)` unique index (`blog_posts_slug_language_uidx`, migration `0002:47-48`) so duplicate slugs within the SAME language are impossible at the DB level. The originally-reported `best-protein-powder-muscle-growth-copy-msn3h2hm` was a `-copy-` suffixed slug from the admin "duplicate post" flow (`src/lib/blog-admin.ts:77`) — technically a unique slug, not an actual duplicate. Sitemap code is correct (one URL per `blog_posts` row). **Post-Push Production Verification (2026-08-19):** Owner ran the read-only verification query `SELECT slug, language, count(*) FROM blog_posts GROUP BY slug, language HAVING count(*) > 1;` on production Supabase — **returned no rows**. This confirms the `(slug, language)` unique index is intact and no actual duplicate slugs exist within any language. M3 is conclusively resolved. | None — closed. |
 | M4 | Profile shows "4 Tools" instead of "6 Tools" | ✅ **FIXED** (Master Repair Batch 001) — updated `src/app/profile/page.tsx:153` to display "6" (verified: actual tool count is 6 — 5 calculators + 1 meal planner, confirmed via `tools/page.tsx` listing). |
 | M5 | Redundant "Pricing" nav entry | ✅ **FIXED** (Master Repair Batch 001) — removed the redundant "Pricing" entry from `src/components/SiteHeader.tsx` (lines 141-146). The "Memberships" entry (which used `href="/memberships"`) was preserved; both previously navigated to the same destination. |
 | B18 | `scripts/compress-images.js` referenced but `scripts/` dir missing | ✅ **FIXED** (Master Repair Batch 001) — removed the obsolete `node scripts/compress-images.js && ` prefix from `package.json` `build` script. The standalone `compress-images` script entry is preserved (untouched per supervisor instruction "do not modify unrelated scripts"). `bun run build` now exits 0. Verified: `scripts/` dir was never committed to git history (`git log --all -- scripts/` returns nothing), and `compress-images.js` is not referenced anywhere else in the codebase. |
@@ -94,12 +94,193 @@ verified," the following distinctions are now used:
 
 **Scope:** Re-verify the 5 remaining items from Master Repair Batch 001 (C5, C6, H5, M3, H1) against the current repository state at HEAD `f0f3a41`. Targeted remediation only if safe.
 
-**Verification results:**
-- ✅ **C5 — VERIFIED (code), CONFIGURATION-DEPENDENT (env)** — AI provider code path is correct and safe. Application operates gracefully without `OPENROUTER_API_KEY` (local rule-based fallback). Owner must verify env var is set in Vercel.
-- ⚠️ **C6 — NOT VERIFIED, REQUIRES OWNER ACTION** — No repo-side evidence of Vercel↔GitHub link. Owner must check Vercel dashboard.
-- ✅ **H5 — PARTIALLY FIXED** — Created migration `0013_blog_posts_author_default_musclehub.sql` to fix the schema default (root cause). Existing data cleanup requires separate owner-run SQL. Could not verify data state (no DB access).
-- ⚠️ **M3 — NOT VERIFIED, REQUIRES OWNER ACTION** — Sitemap code is correct. `(slug, language)` unique index prevents duplicates within a language. Reported "duplicate" was likely a `-copy-` suffixed slug from the duplicate-post flow (technically unique) or EN/AR variants of the same slug (allowed by design, generates different URLs). Owner should run read-only query to confirm.
-- ⚠️ **H1 — UNFIXED, REQUIRES ARCHITECTURAL REFACTOR** — Proper fix requires route-group refactor (move 47 pages + 16 layouts under `src/app/[locale]/`) or replacing client-side `useI18n()` with server-side `cookies()`-based detection. Neither is safe to implement in a verification batch. Out of scope. Mitigation (RTL wrapper div + `Content-Language: ar-EG` header) preserved.
+**Verification results (initial code-level pass — see "Post-Push Production Verification" below for production-side confirmation):**
+- ✅ **C5 — VERIFIED (code); production env confirmed by owner** — AI provider code path is correct and safe. Application operates gracefully without `OPENROUTER_API_KEY` (local rule-based fallback). Owner subsequently verified `OPENROUTER_API_KEY` is present in Vercel Production environment (Ready/enabled).
+- ✅ **C6 — VERIFIED via production deployment Ready** — GitHub → Vercel auto-deploy confirmed operational: pushing `ce42795` to `main` triggered a successful production deployment (Ready status). Verified by owner, not by repo evidence alone.
+- ✅ **H5 — FULLY FIXED (schema + data)** — Migration `0013_blog_posts_author_default_musclehub.sql` shipped (changes column default to `'MuscleHub'`). Owner applied migration `0013` to production Supabase and ran the data-cleanup `UPDATE` — exactly **46 rows** updated from `'Ahmed Zake'` to `'MuscleHub'`. No remaining H5-related data cleanup.
+- ✅ **M3 — VERIFIED — NO DUPLICATES EXIST** — `(slug, language)` unique index intact. Owner ran read-only verification query on production Supabase — **returned no rows**. No duplicate slugs exist within any language.
+- ⚠️ **H1 — UNFIXED, REQUIRES ARCHITECTURAL REFACTOR (out of scope)** — Proper fix requires route-group refactor (move 47 pages + 16 layouts under `src/app/[locale]/`) or replacing client-side `useI18n()` with server-side `cookies()`-based detection. Neither is safe to implement in a verification batch. Out of scope. Mitigation (RTL wrapper div + `Content-Language: ar-EG` header) preserved. **This is now the only remaining production-readiness blocker.**
+
+---
+
+## ✅ Post-Push Production Verification (2026-08-19)
+
+After pushing commit `ce427956a042e0599e47429a8f00bf80785034e8` (short: `ce42795`) to `origin/main`, the owner (Ahmed) performed production-side verification of the 5 items that required access beyond what the agent could verify from the repository alone. All 4 of the previously "REQUIRES OWNER ACTION" items are now CLOSED. H1 remains the only open production-readiness item.
+
+**Date:** 2026-08-19
+**GitHub commit:** `ce42795` (pushed to `main`, in sync with `origin/main`)
+**Live site:** https://musclehubeg.vercel.app
+
+### Supabase production actions (executed by owner)
+
+| Action | Result | Status |
+|---|---|---|
+| Applied migration `0013_blog_posts_author_default_musclehub.sql` to production Supabase | `blog_posts.author` column default changed from `'Ahmed Zake'` to `'MuscleHub'` | ✅ Success |
+| Ran `UPDATE blog_posts SET author='MuscleHub' WHERE author='Ahmed Zake';` on production Supabase SQL Editor | Exactly **46 rows** updated from `'Ahmed Zake'` to `'MuscleHub'` | ✅ Success |
+| Ran `SELECT slug, language, count(*) FROM blog_posts GROUP BY slug, language HAVING count(*) > 1;` (read-only M3 verification query) | **No rows returned** — no duplicate slugs exist within any language | ✅ Pass |
+
+### Vercel production verification (executed by owner)
+
+| Check | Result | Status |
+|---|---|---|
+| `OPENROUTER_API_KEY` present in Vercel project env vars (Production environment) | Key is present, status Ready / enabled (value not exposed per SECURITY.md) | ✅ Pass |
+| Latest production deployment matches commit `ce42795` | Deployment reached Ready status on Vercel Production | ✅ Pass |
+| GitHub → Vercel auto-deploy operational | Push of `ce42795` to `main` triggered a successful production deployment | ✅ Pass |
+
+### Verification results summary
+
+| ID | Initial status (Batch 002 code-level) | Post-Push status | Resolution |
+|---|---|---|---|
+| C5 | VERIFIED (code), CONFIGURATION-DEPENDENT (env) | ✅ **VERIFIED (code + production env)** — closed | Owner confirmed `OPENROUTER_API_KEY` is set in Vercel Production. |
+| C6 | NOT VERIFIED — REQUIRES OWNER ACTION | ✅ **VERIFIED (production deployment Ready)** — closed | Owner confirmed `ce42795` deployment reached Ready status. |
+| H5 | PARTIALLY FIXED — REQUIRES OWNER ACTION for data cleanup | ✅ **FULLY FIXED (schema + data)** — closed | Migration `0013` applied; 46 rows cleaned up. |
+| M3 | NOT VERIFIED — REQUIRES OWNER ACTION (read-only query) | ✅ **VERIFIED — NO DUPLICATES EXIST** — closed | Read-only query returned 0 rows; unique index intact. |
+| H1 | UNFIXED — REQUIRES ARCHITECTURAL REFACTOR (out of scope) | ⚠️ **STILL UNFIXED — REQUIRES ARCHITECTURAL REFACTOR (out of scope)** | Not actionable in any verification batch — needs dedicated task with supervisor sign-off on architectural approach. |
+
+### Remaining open items (post-push)
+
+| ID | Reason it remains open |
+|---|---|
+| H1 | Root `<html lang="en" dir="ltr">` is hardcoded in `src/app/layout.tsx:29`. Proper fix requires either: (a) moving all 47 `page.tsx` + 16 layouts under `src/app/[locale]/` with `generateStaticParams` (standard Next.js i18n routing — substantial refactor, high risk to OAuth callback, sitemap, redirects, static gen); or (b) replacing the client-side `useI18n()` context with server-side `cookies()`-based locale detection in the root layout (medium risk). Neither is safe to implement in a verification batch. Should be its own dedicated task with explicit supervisor sign-off on the architectural approach. |
+| Pre-existing ESLint errors | 4 errors + 5 warnings in 7 untouched `src/` files (CookieConsent, SaveResultButton, checkout/page, foods/[slug], water-tracker, AdSenseAd, BlogAdminView). These do not affect production builds (Next.js 16 dropped ESLint from build config — runs via `bun run lint` only). Tech-debt cleanup task, separate from any verification batch. |
+
+---
+
+## 📜 Project History & Phase Timeline (reconciled 2026-08-19)
+
+This section consolidates the project's full development history as evidenced by Git commits (`git log --oneline --all`). It fills a documentation gap identified during the Phase 7 Full Documentation Audit — earlier versions of `PROGRESS.md` referenced "Phase 1-4" and "17 bugs fixed" but never enumerated what those phases contained.
+
+**Project lifespan:** `2026-08-02` (initial commit `d5355d4`) → `2026-08-19` (HEAD `ce42795`). Total: ~17 days, ~180 commits.
+
+### Phase 0 — Initial Scaffolding & Auth (2026-08-02 → 2026-08-06)
+
+Initial commit `d5355d4` (2026-08-02) scaffolded the Next.js + Tailwind + shadcn/ui project. Subsequent commits established:
+- Vercel + Supabase deploy config (`37e26a2`)
+- Google OAuth (PKCE flow) with cookie-based session middleware (`618f764`, `d35dfbd`, `d442670`, `1c85092`, `da3c59d`)
+- Server-side OAuth callback route handler
+- RLS recursion fix for profile queries (`f909c38`)
+
+### Phase 1 — Core Feature Build (2026-08-06 → 2026-08-10)
+
+The bulk of the application was built in this phase. Major commits (newest first in Git log, oldest is at the bottom):
+- **Landing page redesigns**: Apple-style sticky scroll (`b5154d2`), Liquid Glass visual overhaul (`6f7b7a0`), 14-section dark premium homepage (`f230b19`)
+- **AI Coach (EVO)**: Floating widget on all pages (`6d13727`), standalone EVO page (`3d83620`), smart AI coach with memory (`cae2807`), AI-powered plan generation + chat (`f17c37a`)
+- **Blog CMS**: Multilingual blog system (`40a1924`), admin dashboard + editor (`3278d2a`), 3-step generation pipeline (`2d6c67a`)
+- **Referral & commission system**: 20% commission, payouts, admin (`c7ce0a2`)
+- **Coach dashboard**: Client segmentation + filter tabs (`e5a3eef`), membership tiers in coach view (`ce664ea`)
+- **Memberships**: 4-tier system (Free/Premium/Pro/Coaching), checkout flow, PDF export (`26f7399`)
+- **Multi-subscription**: Coaching + Premium can coexist (`e9a572e`, `d10b44a`)
+- **Tools hub**: Calorie/BMI/Macro/Body-fat calculators + Water tracker (`9a81540`, `69c9cc7`, `fe5283f`)
+- **Food library**: 8,750 foods imported from USDA (`c4b2022`, total: 8,830)
+- **Exercise library**: 547 exercises from free-exercise-db MIT-licensed (`c92ff4c`)
+- **SEO infrastructure**: Sitemap, robots.txt, JSON-LD structured data (`6c3ffc4`)
+- **PWA + Cookie Consent + AdSense** integration
+
+### Phase 2 — Bug Fix Sprint B1–B17 (2026-08-10 → 2026-08-15)
+
+The "17 bugs fixed in Phase 1-4" referenced in legacy PROGRESS sections. Verified via commit `4fbab5f` ("fix: B8+B10+B11+B12+B13+B14 — code stability cleanup") and `776d2fb` ("fix: B1+B2+B3 — profile tier, branding, start script"):
+
+| ID | Bug | Fix commit |
+|---|---|---|
+| B1 | Profile page shows Tier="free" always | `776d2fb` (replaced with `useMembershipTier(profile)` hook) |
+| B2 | Branding inconsistency (MuscleHubFit vs MuscleHub) | `776d2fb` |
+| B3 | `start` script doesn't work locally | `776d2fb` (changed to `next start`) |
+| B4 | Migration 0011 + 0012 not applied to production | `01c17ed` (manually applied on Supabase SQL Editor) |
+| B5–B10 | `@ts-nocheck` on 12 files, `ignoreBuildErrors`, stale types, unused `adsEnabled`, `chat_messages` unused, hardcoded `speerr@gmail.com` | `4fbab5f`, `c024f78` (Phase 4 code quality) |
+| B11–B13 | Legacy `/api/og/[slug]`, `/pricing` page, `/api/admin/run-migration` | `4fbab5f` (deleted) |
+| B14 | `reactStrictMode: false` | `4fbab5f` (set to `true`) |
+| B15 | `price_egp` field name | `c329f51` (renamed to `price_usd`, migration 0012) |
+| B16–B17 | Recharts bundle size, Framer Motion animations | Accepted as design decisions (not fixed — documented in B16/B17 rows above) |
+
+Additional Phase 2 fixes (not in B-series numbering):
+- Coach tier separation from memberships (`85e8c80`, `ef1c25b`)
+- Tier priority correction: Pro > Coaching > Premium > Free (`39fd4ee`)
+- Notification system bugs (`47afc11`)
+- Scroll-to-top removal + scroll animations removed (`ca0b155`)
+- CoachView crash fix (React Hooks order violation) (`64d57d5`)
+
+### Phase 3 — Notification + Questionnaire Overhaul (2026-08-15 → 2026-08-17)
+
+- Weekly progress reminder cron notification (`4de5eab`)
+- Shared `NotificationForm` component + unified templates (`00efbab`)
+- Admin broadcast notifications + questionnaire completion push (`a81b738`)
+- Questionnaire: edit anytime feature (`03158ef`)
+- Questionnaire: infinite loading + locked nav fix (`fc32626`)
+
+### Phase 4 — Code Quality Refactor (2026-08-17 → 2026-08-18)
+
+Single commit `c024f78` ("refactor: Phase 4 code quality — 6 tasks in one"):
+- Removed `@ts-nocheck` from all 12 files
+- Fixed 115 TypeScript errors
+- Removed `ignoreBuildErrors: true`
+- Updated `supabase/types.ts` (13 missing tables + column fixes)
+- Made `AdSenseAd` respect `getLimits(tier).adsEnabled`
+- Moved hardcoded coach email to `COACH_EMAILS` env var
+
+### Phase 5 — Production QA & Critical DB Fixes (2026-08-19)
+
+Commit `c329f51` ("chore: resolve all known issues + create combined migration script") + SQL applied directly on Supabase SQL Editor:
+
+| ID | Critical issue | Resolution |
+|---|---|---|
+| C1 | Checkout fails: `price_usd` was INTEGER (rejected 14.99) | `ALTER COLUMN price_usd TYPE numeric(10,2)` |
+| C2 | `meal_plans` table missing in production (migration 0008 not applied) | `CREATE TABLE meal_plans` + RLS |
+| C3 | `support_tickets` missing `priority` + `status` columns | `ADD COLUMN` + CHECK constraints |
+| C4 | 3 tables missing from migrations (`plan_swaps`, `progress_photos`, `coach_presence`) | `CREATE TABLE` for each + RLS |
+| C5 (initial) | EVO AI uses local fallback only | Fixed in Phase 6 (race + cleanup) — re-verified Post-Push |
+| C6 (initial) | Vercel project not connected to GitHub | Re-verified Post-Push |
+
+SQL fix scripts preserved at `/home/z/my-project/download/MuscleHubEG_Database_Fix_v4.sql` + `MuscleHubEG_Fix_support_tickets_status.sql`.
+
+### Phase 6 — AI Speed Optimization (2026-08-19)
+
+Commit `a831f73` ("Phase 6: تسريع AI + إصلاح توليد المقالات chunked"):
+- **EVO AI Chat**: `callFreeOpenRouterRace()` (Promise.any, 3 models parallel) — 18-25s → 1.4-3.9s (5-7x faster)
+- **Plan generation**: timeoutMs 180s → 60s, maxTokens 8000 → 4000
+- **Swap (meal + exercise)**: switched to `callFreeOpenRouterRace`, timeout 90s → 30s
+- **Article generation**: chunked into 3 parallel chunks (English article + Arabic article + links/images/social) — no more timeouts
+- **Cron blog step2**: maxDuration 60s → 300s
+
+### Phase 7 — Documentation + Governance + Repair (2026-08-19)
+
+Four sub-phases, all in commits `a6259e1`, `f0f3a41`, `ce42795`:
+
+**Phase 7a — MH-DOC-001 Documentation Hardening** (commit `a6259e1`):
+- Created `AGENTS.md`, `PROJECT_CONTEXT.md`, `SECURITY.md`, `LICENSE`
+- Reconciled `README.md`, `PROGRESS.md`, `DEVELOPER_GUIDE.md`, `QA_CHECKLIST.md` against actual source code
+- Discovered and documented 14 documentation discrepancies
+
+**Phase 7b — Master Repair Batch 001** (commit `f0f3a41`):
+- B18: removed obsolete `scripts/compress-images.js` prefix from build script
+- H2: added `featuresEn` arrays to memberships (English features in EN mode)
+- H3: moved 7 hardcoded Arabic strings in PlansView to i18n
+- H4: added missing `prog.uploadPhoto`, `prog.photos`, `prog.noPhotos` keys
+- H6: created `/ar/exercises` + `/ar/foods` mirror pages with `lang="ar"` prop
+- M2: coach routes redirect non-coaches to `/dashboard`
+- M4: profile stat card "4 Tools" → "6 Tools"
+- M5: removed redundant "Pricing" nav entry
+- M1: identified as false positive (`LeadCaptureCard` is intentional)
+
+**Phase 7c — Master Verification Batch 002** (commit `ce42795`, same commit after amend):
+- C5: verified AI provider code path (correct + safe)
+- C6: could not verify from repo evidence alone (deferred to Post-Push)
+- H5: created migration `0013_blog_posts_author_default_musclehub.sql` (schema default fix)
+- M3: confirmed `(slug, language)` unique index prevents duplicates
+- H1: confirmed out of scope (requires architectural refactor)
+- B002-NEW: created `/ar/memberships` mirror page (discovered during smoke test)
+
+**Phase 7d — Post-Push Production Verification** (executed by owner after `ce42795` push):
+- H5: applied migration `0013` to production Supabase + ran `UPDATE` on 46 rows
+- M3: ran read-only duplicate query — returned 0 rows
+- C5: confirmed `OPENROUTER_API_KEY` present in Vercel Production (Ready)
+- C6: confirmed `ce42795` deployment reached Ready status — auto-deploy operational
+
+### Post-Phase 7 — Open Items (sole remaining)
+
+Only **H1** (root `<html lang dir>` refactor) remains open, plus pre-existing ESLint errors as tech-debt. All other items across Phases 1-7 are CLOSED.
+
+---
+
 
 **New finding (not previously documented):**
 - ✅ `/ar/memberships` initially returned 404 (no Arabic mirror route existed). Discovered during smoke test. **FIXED in the same batch (amended commit)** — created `src/app/ar/memberships/page.tsx` (Arabic mirror wrapper passing `lang="ar"` to `MembershipsPage`). Added optional `lang?: Lang` prop to `MembershipsPage` in `src/app/memberships/page.tsx` using the same override pattern as H6 (`ExercisesPage`, `FoodsPage`). When no `lang` prop is passed, source page behaves exactly as before. Smoke test confirmed: `/ar/memberships` returns HTTP 200 with 8/8 Arabic UI markers (عضويات MuscleHub, شهري, سنوي, الأكثر شعبية, مقارنة العضويات, سياسة الاسترداد, مجاني للأبد, etc.) and 0 English markers, regardless of localStorage state.
@@ -317,8 +498,8 @@ Phase 7 pass:
 | C2 | ~~meal_plans table غير موجودة في الإنتاج~~ | "Failed to save" عند حفظ مخطط وجبات + خطأ "Could not find the table 'public.meal_plans' in the schema cache" | ✅ **تم الإصلاح** — `CREATE TABLE meal_plans` (+ RLS policies). تم اختبار حفظ خطة بنجاح |
 | C3 | ~~support_tickets ناقصة الأعمدة~~ | عمودا `priority` و `status` غير موجودين + ticket_priority/ticket_status enums غير مُعرّفة | ✅ **تم الإصلاح** — `ADD COLUMN priority text` + `ADD COLUMN status text` + CHECK constraints + types. تم اختبار إنشاء تذكرة بنجاح |
 | C4 | ~~3 جداول مفقودة من migrations~~ | `plan_swaps`, `progress_photos`, `coach_presence` مستخدمة في `src/lib/data.ts` لكنها غير مُعرّفة في أي migration | ✅ **تم الإصلاح** — `CREATE TABLE` لكل الجداول الثلاثة + RLS policies |
-| C5 | ~~EVO AI يستخدم local fallback فقط~~ | `source: "local"` بدلاً من `source: "openrouter:MODEL_NAME"` — ردود غير منطقية | ✅ **تم الإصلاح** (Phase 6) — `OPENROUTER_API_KEY` كان مهيأ لكن النماذج بترجع thinking artifacts. أضفنا `callFreeOpenRouterRace` (Promise.any) + cleanup قوي للـ thinking patterns |
-| C6 | Vercel project غير مربوط بـ GitHub | التغييرات في `main` branch لا تُنشر تلقائياً | ⚠️ **متبقي** — Vercel Dashboard → Project Settings → Git → Connect Repository |
+| C5 | ~~EVO AI يستخدم local fallback فقط~~ | `source: "local"` بدلاً من `source: "openrouter:MODEL_NAME"` — ردود غير منطقية | ✅ **تم الإصلاح** (Phase 6) — `OPENROUTER_API_KEY` كان مهيأ لكن النماذج بترجع thinking artifacts. أضفنا `callFreeOpenRouterRace` (Promise.any) + cleanup قوي للـ thinking patterns. **Post-Push Production Verification (2026-08-19):** Owner أكد أن `OPENROUTER_API_KEY` موجود في Vercel Production (Ready). مغلق. |
+| C6 | Vercel project غير مربوط بـ GitHub | التغييرات في `main` branch لا تُنشر تلقائياً | ✅ **تم الإصلاح** (Post-Push Production Verification 2026-08-19) — Owner أكد أن deployment الخاص بـ `ce42795` وصل لحالة Ready. GitHub → Vercel auto-deploy شغّال. مغلق. |
 
 ### 🟠 مشاكل عالية الأولوية (مكتشفة في فحص QA 2026-08-19)
 
@@ -328,7 +509,7 @@ Phase 7 pass:
 | H2 | صفحة /memberships تُظهر features بالعربية فقط حتى في النسخة الإنجليزية | `src/lib/memberships.ts` features array مكتوب بالعربية فقط | ✅ **تم** (Phase 7, Master Repair Batch 001) — أضفنا `featuresEn` array لكل الـ 4 tiers + تحديث الـ consumers |
 | H3 | صفحة /plans تحتوي نص عربي مُدمج في النسخة الإنجليزية | "تبديل الوجبات اليوم: 2/2 متبقي" في `src/components/views/PlansView.tsx` | ✅ **تم** (Phase 7, Master Repair Batch 001) — نقل 7 نصوص لـ i18n keys + إضافة 11 مفتاح تحت `plans.swaps.*` |
 | H4 | مفاتيح i18n مفقودة | `prog.uploadPhoto`, `prog.photos`, `prog.noPhotos` في `src/lib/i18n.tsx` | ✅ **تم** (Phase 7, Master Repair Batch 001) — إضافة المفاتيح الناقصة لكل من en و ar |
-| H5 | اسم الكاتب "Ahmed Zake" لا يزال يظهر في مقالات المدونة | في `blog_posts.author` field بـ DB | 🔶 **جزئياً** (Phase 7, Master Verification Batch 002) — migration `0013` بتغيّر الـ column default لـ `'MuscleHub'` (root cause fix). تنظيف البيانات الموجودة يحتاج SQL منفصل من الـ owner |
+| H5 | اسم الكاتب "Ahmed Zake" لا يزال يظهر في مقالات المدونة | في `blog_posts.author` field بـ DB | ✅ **تم بالكامل** (Post-Push Production Verification 2026-08-19) — Owner طبّق migration `0013` على Supabase (الـ default دلوقتي `'MuscleHub'`) + شغّل `UPDATE blog_posts SET author='MuscleHub' WHERE author='Ahmed Zake';` — **46 سجل** تم تحديثهم. العملية نجحت. مغلق. |
 | H6 | /ar/exercises و /ar/foods تُرجع 404 | لا توجد صفحات mirror عربية | ✅ **تم** (Phase 7, Master Repair Batch 001) — إضافة `src/app/ar/exercises/page.tsx` + `src/app/ar/foods/page.tsx` كـ re-export wrappers |
 
 ### 🟡 مشاكل متوسطة الأولوية (مكتشفة في فحص QA 2026-08-19)
@@ -337,7 +518,7 @@ Phase 7 pass:
 |---|---|---|---|
 | M1 | نشرة بريدية "Subscribe to our newsletter" لا تزال في صفحات الأدوات | رغم PROGRESS.md ذكر إزالتها سابقاً | ✅ **FALSE POSITIVE** (Phase 7) — `LeadCaptureCard` ميزة lead-capture مقصودة، مش bug |
 | M2 | /coach و /coach/payments و /coach/support لا تُعيد توجيه المستخدم العادي | يعرضون محتوى dashboard بدلاً من redirect | ✅ **تم** (Phase 7, Master Repair Batch 001) — إضافة redirect لـ `/dashboard` لما `!isCoach` |
-| M3 | URL مكرر في sitemap | `/blog/best-protein-powder-muscle-growth-copy-msn3h2hm` | 🔶 **غير قابل للتحقق من الكود** (Phase 7, Master Verification Batch 002) — أكدنا أن schema فيها `(slug, language)` unique index، فالتكرار في نفس اللغة مستحيل. السبب المرجّح: `-copy-` suffix من admin duplicate-post flow، أو EN + AR بنفس slug (مسموح تصميمياً). يلزم استعلام Supabase read-only للتأكد: `SELECT slug, language, count(*) FROM blog_posts GROUP BY slug, language HAVING count(*) > 1;` |
+| M3 | URL مكرر في sitemap | `/blog/best-protein-powder-muscle-growth-copy-msn3h2hm` | ✅ **تم التحقق — لا توجد تكرارات** (Post-Push Production Verification 2026-08-19) — Owner شغّل `SELECT slug, language, count(*) FROM blog_posts GROUP BY slug, language HAVING count(*) > 1;` على Supabase — **لم يرجع أي صفوف**. الـ `(slug, language)` unique index سليم. السبب الأصلي كان `-copy-` suffix من duplicate-post flow (slug فريد تقنياً). مغلق. |
 | M4 | عدّاد "4 Tools" في البروفايل خاطئ | يفترض "6 Tools" (5 calculators + meal planner) | ✅ **تم** (Phase 7, Master Repair Batch 001) — تحديث القيمة لـ "6" |
 | M5 | "Pricing" tab لا يزال في navigation | رغم إعادة التسمية إلى Memberships | ✅ **تم** (Phase 7, Master Repair Batch 001) — إزالة الـ entry المكرر |
 
@@ -459,20 +640,32 @@ Phase 7 pass:
 
 ---
 
-## 🎯 النتيجة النهائية
+## 🎯 النتيجة النهائية (مُحدَّثة Post-Push Production Verification 2026-08-19)
 
-> **المشروع في مرحلة ما بعد إصلاح المشاكل الحرجة.**
+> **المشروع في مرحلة الإنتاج الكامل (Production-Ready) — جميع المشاكل الحرجة مُغلقة ما عدا H1.**
 >
 > - **54 ميزة مكتملة 100%** (مُجمّدة)
-> - **17 مشكلة تم إصلاحها سابقاً** (Phase 1-4)
+> - **17 مشكلة تم إصلاحها سابقاً** (Phase 1-4) — مفصّلة في الجداول أعلاه (B1–B17)
 > - **4 مشاكل حرجة تم إصلاحها في Phase 5** (Checkout + meal_plans + support_tickets + 3 جداول مفقودة)
-> - **2 مشاكل حرجة متبقية** (EVO AI + Vercel auto-deploy)
-> - **6 مشاكل عالية الأولوية متبقية** (RTL + i18n + branding)
-> - **2 مشاكل مقبولة كقرارات تصميمية** (B16, B17)
+> - **0 مشاكل حرجة متبقية** — ~~C5 (EVO AI)~~ و ~~C6 (Vercel auto-deploy)~~ تم إغلاقهم Post-Push Production Verification (انظر قسم "Post-Push Production Verification" أعلاه)
+> - **1 مشكلة عالية الأولوية متبقية** — H1 فقط (root `<html lang dir>` hardcoded — يتطلب architectural refactor منفصل). ~~H2, H3, H4, H6~~ تم إصلاحهم في Master Repair Batch 001. ~~H5~~ تم إصلاحها بالكامل Post-Push.
+> - **0 مشاكل متوسطة الأولوية متبقية** — ~~M1~~ (false positive), ~~M2, M4, M5~~ تم إصلاحهم في Batch 001. ~~M3~~ تم التحقق منها Post-Push (لا توجد تكرارات).
+> - **1 build/tooling issue تم إصلاحه** — ~~B18~~ (local build broken) تم إصلاحه في Batch 001.
+> - **2 مشاكل مقبولة كقرارات تصميمية** (B16: Recharts lazy-loaded, B17: Framer Motion disabled)
 > - **95 نقطة فحص QA سابقة ناجحة** + **فحص Phase 5 شامل (63 صفحة + 9 API endpoints + 12 تدفق مستخدم)** — *(Note: this line originally said "22 API"; reconciled to 9 in Phase 7 — that's the count actually hit by curl in Phase 5. The total route count is 28 — see Reconciled Status at the top.)*
-> - **التوثيق كامل** (README.md + DEVELOPER_GUIDE.md + PROGRESS.md + QA_CHECKLIST.md)
+> - **التوثيق كامل ومُحدَّث** (README.md + DEVELOPER_GUIDE.md + PROGRESS.md + QA_CHECKLIST.md + AGENTS.md + PROJECT_CONTEXT.md + SECURITY.md + LICENSE)
 > - **سكريبتات SQL للإصلاح محفوظة**: `MuscleHubEG_Database_Fix_v4.sql` + `MuscleHubEG_Fix_support_tickets_status.sql`
 > - **تقرير QA الشامل محفوظ**: `MuscleHubEG_QA_Report.docx/pdf`
+>
+> ### الإجراءات المكتملة Post-Push (2026-08-19)
+> - ✅ **H5**: Owner طبّق migration `0013` على Supabase + شغّل `UPDATE` على 46 سجل
+> - ✅ **M3**: Owner شغّل read-only query — رجع 0 صفوف (لا تكرارات)
+> - ✅ **C5**: Owner أكد أن `OPENROUTER_API_KEY` موجود في Vercel Production (Ready)
+> - ✅ **C6**: Owner أكد أن deployment الخاص بـ `ce42795` وصل Ready — auto-deploy يعمل
+>
+> ### المتبقي الوحيد (Open)
+> - ⚠️ **H1**: root `<html lang="en" dir="ltr">` hardcoded — يتطلب architectural refactor منفصل مع supervisor sign-off
+> - ⚠️ **Pre-existing ESLint errors**: 4 أخطاء + 5 تحذيرات في 7 ملفات `src/` لم تُلمَس (tech-debt منفصل، لا يؤثر على الإنتاج)
 >
 > ### إصلاحات UX المنجزة (جديدة)
 > - ✅ صور التمارين: صورتين أعلى الوصف (بدل جانبه) — في PlansView + CoachClientView
