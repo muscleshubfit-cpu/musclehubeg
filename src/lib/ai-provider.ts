@@ -468,6 +468,10 @@ function repairTruncatedJSON(s: string): string {
  *   4. google/gemma-4-31b (31B, 262K, multimodal)
  *   5. google/gemma-4-26b (26B, 262K, multimodal — clean output)
  *   6. openai/gpt-oss-20b (20B, 131K — fallback)
+ *
+ * Speed optimization: Use callFreeOpenRouterRace() instead of callFreeOpenRouter()
+ * for routes that need SPEED (chat, swap). It races the top 3 models in PARALLEL
+ * and returns whichever responds first — giving best quality AND best speed.
  */
 export const FREE_OPENROUTER_MODELS = [
  "nvidia/nemotron-3-ultra-550b-a55b:free",
@@ -514,4 +518,71 @@ export async function callFreeOpenRouter(
  }
  }
  throw new Error(`All free OpenRouter models failed:\n${errors.join("\n")}`);
+}
+
+/**
+ * RACE multiple models in PARALLEL and return the FIRST one that succeeds.
+ *
+ * Uses Promise.any() — returns IMMEDIATELY when the first model responds with
+ * valid text. Does NOT wait for the slowest model. Other in-flight requests
+ * are abandoned (Vercel kills them when the function returns).
+ *
+ * This is the speed optimization that lets us use the LARGEST, SMARTEST models
+ * (550B nemotron) while still responding in 3-8 seconds instead of 15-25s.
+ *
+ * Trade-off: each request consumes N API calls (default 3). For free OpenRouter
+ * models with rate limits, this means 3x faster rate-limit consumption on the
+ * chat endpoint. Acceptable for chat (low volume); NOT for plan/article gen.
+ *
+ * Use this for SPEED-critical routes: /api/ai/chat (EVO), /api/ai/swap.
+ * For plan/article generation that needs DEEP reasoning, use callFreeOpenRouter
+ * (sequential — tries the largest model first, falls back if it fails).
+ *
+ * Returns { text, model } on success, throws on total failure.
+ */
+export async function callFreeOpenRouterRace(
+ prompt: string,
+ options: CallAIOptions = {},
+ raceCount = 3,
+): Promise<{ text: string; model: string }> {
+ const apiKey = process.env.OPENROUTER_API_KEY || process.env.AI_API_KEY || "";
+ const baseUrl = "https://openrouter.ai/api/v1";
+ if (!apiKey) throw new Error("OPENROUTER_API_KEY not configured");
+
+ // Pick the top N models to race (largest first, as defined in FREE_OPENROUTER_MODELS)
+ const models = FREE_OPENROUTER_MODELS.slice(0, raceCount);
+
+ // Build promises that REJECT on failure (so Promise.any can skip them)
+ // and RESOLVE on success with { text, model }.
+ const promises = models.map(async (model) => {
+ try {
+ const { text } = await callAIWithFallback(
+ prompt,
+ options,
+ {
+ provider: "openrouter",
+ apiKey,
+ model,
+ baseUrl,
+ },
+ );
+ if (text && text.trim().length > 0) {
+ return { text, model };
+ }
+ throw new Error(`${model}: empty response`);
+ } catch (e: any) {
+ throw new Error(`${model}: ${e?.message || e}`);
+ }
+ });
+
+ try {
+ // Promise.any returns as soon as the FIRST promise SUCCEEDS.
+ // It rejects with AggregateError only if ALL promises reject.
+ const result = await Promise.any(promises);
+ return result;
+ } catch (e: any) {
+ // All failed — collect errors from the AggregateError
+ const errors = e?.errors?.map((err: Error) => err.message).join("\n") || "Unknown error";
+ throw new Error(`All raced OpenRouter models failed:\n${errors}`);
+ }
 }

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { callFreeOpenRouter } from "@/lib/ai-provider";
+import { callFreeOpenRouterRace } from "@/lib/ai-provider";
 import { generateChatReply } from "@/lib/ai-local";
 import { listPlans, listProgress, getQuestionnaire, getSubscriptionForClient } from "@/lib/data";
 import { getTier } from "@/lib/plans";
@@ -191,27 +191,98 @@ export async function POST(request: NextRequest) {
           .join("\n\n");
         const fullPrompt = `${systemPrompt}\n\n${chatPrompt}\n\nAssistant:`;
 
-        const { text, model } = await callFreeOpenRouter(fullPrompt, {
+        const { text, model } = await callFreeOpenRouterRace(fullPrompt, {
           temperature: 0.6,
           maxTokens: 500,
           timeoutMs: 15_000,
-        });
+        }, 3);
 
         if (text && text.length > 10) {
+          // ─────────────────────────────────────────────────────────────
           // Clean up reasoning artifacts from nemotron models that
-          // sometimes include "Here's a thinking process:" in content
+          // sometimes include "thinking process" content in the response.
+          // ─────────────────────────────────────────────────────────────
           let cleanText = text;
-          const thinkingPatterns = [
-            /^Here's a thinking process:?\s*/i,
-            /^Thinking process:?\s*/i,
-            /^<think>[\s\S]*?<\/think>\s*/i,
-            /^<reasoning>[\s\S]*?<\/reasoning>\s*/i,
-          ];
-          for (const pattern of thinkingPatterns) {
-            cleanText = cleanText.replace(pattern, "");
+
+          // 1. Strip <think>...</think>, <reasoning>...</reasoning>,
+          //    <reflection>...</reflection>, <analysis>...</analysis> blocks
+          cleanText = cleanText
+            .replace(/<think>[\s\S]*?<\/think>\s*/gi, "")
+            .replace(/<reasoning>[\s\S]*?<\/reasoning>\s*/gi, "")
+            .replace(/<reflection>[\s\S]*?<\/reflection>\s*/gi, "")
+            .replace(/<analysis>[\s\S]*?<\/analysis>\s*/gi, "");
+
+          // 2. Strip "Here's a thinking process:" / "Thinking process:" headers
+          cleanText = cleanText
+            .replace(/^Here's a thinking process:?\s*/i, "")
+            .replace(/^Thinking process:?\s*/i, "")
+            .replace(/^Step-by-step thinking:?\s*/i, "")
+            .replace(/^Reasoning:?\s*/i, "")
+            .replace(/^Let me think about this:?\s*/i, "");
+
+          // 3. Try to extract the final answer if the model wrote reasoning
+          //    steps followed by a "Final Answer:" / "Draft:" / "Response:" marker.
+          const finalAnswerMatch = cleanText.match(
+            /(?:Final Answer|Final answer|Formulate Response|Draft|Response):?\s*:?\s*\n?\s*"([^"]+)"/i,
+          );
+          if (finalAnswerMatch && finalAnswerMatch[1]) {
+            cleanText = finalAnswerMatch[1].trim();
+          } else {
+            // 4. Strip numbered reasoning steps at the start.
+            //    Pattern: "1. **Word...**\n2. **Word...**\n3. ..." — keep only
+            //    content AFTER the last numbered step.
+            const lines = cleanText.split("\n");
+            let answerStartIdx = 0;
+            let foundNumberedStep = false;
+            for (let i = 0; i < lines.length; i++) {
+              const line = lines[i].trim();
+              if (!line) continue;
+              // Detect numbered reasoning step: "1. **Analyze...**" or "1. Analyze..."
+              if (/^\d+\.\s+\*\*?[A-Z]/.test(line)) {
+                foundNumberedStep = true;
+                answerStartIdx = i + 1;
+                continue;
+              }
+              // Detect bullet-style reasoning: "- Analyze..." or "**Analyze...**"
+              if (/^[-*]\s+\*\*?[A-Z]/.test(line) || /^\*\*?[A-Z][a-z]+\s*\*?\*?:\s/.test(line)) {
+                foundNumberedStep = true;
+                answerStartIdx = i + 1;
+                continue;
+              }
+              // First non-reasoning line that's long enough — start of the answer
+              if (foundNumberedStep && line.length > 20 && !/^(step|draft|formulate|analyze|strategy|determine|response):/i.test(line)) {
+                answerStartIdx = i;
+                break;
+              }
+            }
+            if (answerStartIdx > 0) {
+              cleanText = lines.slice(answerStartIdx).join("\n").trim();
+            }
           }
-          // Also strip leading "**" + numbered thinking steps
+
+          // 5. Strip leading "**" + numbered thinking steps (legacy cleanup)
           cleanText = cleanText.replace(/^\*\*\d+\.\s+/m, "").trim();
+
+          // 6. Strip wrapping quotes (model wrote: "answer here")
+          cleanText = cleanText.replace(/^"([^"]+)"$/, "$1").trim();
+
+          // 7. Final validation: if cleaned text is too short or still looks
+          //    like reasoning, fall back to the local rule-based reply.
+          if (cleanText.length < 10 || /^\s*\d+\.\s+\*\*?[A-Z]/.test(cleanText)) {
+            console.warn("[api/ai/chat] Cleaned text still looks like reasoning, using local fallback");
+            const localReply = generateLocalReply(
+              message,
+              clientContext,
+              platformResults,
+              foodNutrition,
+              blogResults,
+            );
+            return NextResponse.json({
+              response: localReply,
+              links,
+              source: "local",
+            });
+          }
 
           return NextResponse.json({
             response: cleanText,
@@ -379,7 +450,7 @@ ${subscriberContext}${platformContext}${nutritionContext}${blogContext}
 
 CRITICAL RULES:
 - Reply in the SAME language as the question (Arabic or English).
-- Keep responses VERY short (3-5 lines max).
+- Keep responses VERY short (3-5 lines max, ideally 1-3 sentences).
 - If the question is about an exercise/food/program/tool found in search results, mention its name and a brief answer.
 - Do NOT write URLs or paths in the text — links appear automatically below.
 - Do NOT say "see the link below" — links appear on their own.
@@ -389,7 +460,17 @@ CRITICAL RULES:
 - If the user is a subscriber, use their personal data in responses.
 - Do NOT invent numbers not in search results.
 - Do NOT give medical advice.
-- For general questions, answer with general fitness/nutrition knowledge without mentioning links.`;
+- For general questions, answer with general fitness/nutrition knowledge without mentioning links.
+
+CRITICAL — OUTPUT FORMAT (read carefully):
+- ANSWER DIRECTLY. Do NOT explain your reasoning process.
+- Do NOT include "Step 1:", "Step 2:", "Analyze:", "Strategy:", "Draft:", "Formulate:", or any meta-commentary.
+- Do NOT include numbered thinking steps like "1. **Analyze...** 2. **Determine...** 3. **Formulate...**".
+- Do NOT wrap your answer in quotes.
+- Do NOT say "Here is the answer:" or "Sure!" or "Of course!" — just give the answer.
+- Imagine you are typing in a chat — give the final answer IMMEDIATELY, as if you already know it.
+- BAD: "1. **Analyze User Input:** The user is asking...\n2. **Determine Strategy:** I should...\n3. **Formulate Response:** Hello!"
+- GOOD: "Hello! I'm EVO, your fitness assistant. How can I help you today?"`;
 }
 
 /**

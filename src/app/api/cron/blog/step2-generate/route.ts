@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { generateArticleBundle } from "@/lib/blog-generate";
 import { supabaseAdmin, isSupabaseAdminConfigured } from "@/lib/supabase/admin";
+import { callFreeOpenRouter, parseJSON } from "@/lib/ai-provider";
 
-export const maxDuration = 60;
+export const maxDuration = 300; // 5 min — chunked generation needs headroom
 
 /**
  * Step 2: Generate article (the slow AI call).
@@ -42,11 +43,62 @@ export async function GET(request: NextRequest) {
       .update({ status: "generating" })
       .eq("id", qi.id);
 
-    // Generate the article (the slow part — 30-60s on free models)
+    // ───────────────────────────────────────────────────────────────
+    // Research phase (NEW — Phase 6, 2026-08-19):
+    // Run topic research BEFORE article generation so the AI has context.
+    // Uses a single OpenRouter call with 60s timeout — fits Vercel Hobby.
+    // If research fails, we still generate the article without research context.
+    // ───────────────────────────────────────────────────────────────
+    let research: any = null;
+    try {
+      console.log("[blog/step2] Starting research phase");
+      const researchPrompt = `You are an expert SEO/GEO content strategist. Research the topic "${qi.focus_keyword || qi.topic}" for a fitness & nutrition coaching blog (MuscleHub, Egypt-focused, Arabic + English audience).
+
+Based on your knowledge of search trends, Google search behavior, and AI answer engine patterns, provide:
+
+1. TOP_ARTICLES: The top 5 article angles currently ranking for this topic (title + brief description of what they cover).
+2. RELATED_QUESTIONS: 8-10 questions people actually search for related to this topic (like Answer The Public would show).
+3. TRENDING_KEYWORDS: 10-15 related keywords and subtopics that are trending or have high search volume.
+4. SEARCH_INTENT: Is the primary search intent informational, commercial, or transactional? What does the searcher really want?
+
+Return STRICT JSON only:
+{
+  "topArticles": [{"title": "...", "description": "..."}],
+  "relatedQuestions": ["question 1", "..."],
+  "trendingKeywords": ["keyword 1", "..."],
+  "searchIntent": "informational|commercial|transactional",
+  "searcherGoal": "what the searcher really wants to achieve"
+}`;
+
+      const { text: researchRaw } = await callFreeOpenRouter(
+        researchPrompt,
+        {
+          systemPrompt: "You are an expert SEO strategist. Return JSON only.",
+          temperature: 0.5,
+          maxTokens: 2000,
+          jsonMode: true,
+          timeoutMs: 45_000,
+        },
+      );
+      research = parseJSON<any>(researchRaw);
+      console.log("[blog/step2] Research done:", {
+        questions: research?.relatedQuestions?.length || 0,
+        keywords: research?.trendingKeywords?.length || 0,
+      });
+    } catch (researchErr: any) {
+      console.warn("[blog/step2] Research failed (continuing without):", researchErr?.message);
+      // Continue without research — article generation handles missing research gracefully
+    }
+
+    // ───────────────────────────────────────────────────────────────
+    // Generate the article (chunked — 3 sequential AI calls, ~100s total)
+    // ───────────────────────────────────────────────────────────────
+    console.log("[blog/step2] Starting article generation (chunked)");
     const bundle = await generateArticleBundle({
       topic: qi.topic,
       focusKeyword: qi.focus_keyword,
       category: qi.category,
+      research,
     });
 
     // Save the generated bundle as JSON in the queue

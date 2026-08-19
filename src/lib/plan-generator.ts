@@ -153,9 +153,9 @@ export async function generateNutritionPlanAI(
  {
  systemPrompt: NUTRITION_SYSTEM_PROMPT,
  temperature: 0.7,
- maxTokens: 8000,
+ maxTokens: 4000,
  jsonMode: true,
- timeoutMs: 180_000, // 3 min — long plans can be slow on free models
+ timeoutMs: 60_000, // 1 min — Vercel hobby plan limit
  },
  {
  provider: "openrouter" as AIProvider,
@@ -213,9 +213,9 @@ export async function generateWorkoutPlanAI(
  {
  systemPrompt: WORKOUT_SYSTEM_PROMPT,
  temperature: 0.7,
- maxTokens: 8000,
+ maxTokens: 4000,
  jsonMode: true,
- timeoutMs: 180_000,
+ timeoutMs: 60_000, // 1 min — Vercel hobby plan limit
  },
  {
  provider: "openrouter" as AIProvider,
@@ -304,9 +304,9 @@ ${coachNote ? `تعليمات الكوتش: ${coachNote}` : ""}
  {
  systemPrompt: NUTRITION_SYSTEM_PROMPT,
  temperature: 0.8,
- maxTokens: 2000,
+ maxTokens: 1500,
  jsonMode: true,
- timeoutMs: 90_000,
+ timeoutMs: 45_000,
  },
  {
  provider: "openrouter" as AIProvider,
@@ -849,9 +849,9 @@ ${planType === "nutrition"
  {
  systemPrompt: "أنت مساعد ذكي لتحويل نصوص الخطط إلى JSON منظم. أعد JSON صالح فقط.",
  temperature: 0.3, // low temp for faithful extraction
- maxTokens: 6000,
+ maxTokens: 4000,
  jsonMode: true,
- timeoutMs: 120_000,
+ timeoutMs: 60_000,
  },
  {
  provider: "openrouter" as AIProvider,

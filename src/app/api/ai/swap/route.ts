@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { callFreeOpenRouter, parseJSON } from "@/lib/ai-provider";
+import { callFreeOpenRouterRace, parseJSON } from "@/lib/ai-provider";
 import { requireUser, isAuthConfigured } from "@/lib/auth-server";
 
 /**
@@ -15,7 +15,7 @@ import { requireUser, isAuthConfigured } from "@/lib/auth-server";
  * accounting is taken from the verified session, NOT the body — so a
  * logged-in client can't swap on behalf of another user.
  */
-export const maxDuration = 180;
+export const maxDuration = 60;
 
 export async function POST(request: NextRequest) {
  try {
@@ -60,16 +60,16 @@ ${note ? `طلب العميل: ${note}` : ""}
 
  // Try OpenRouter free models (shared helper handles the iteration)
  try {
- const { text, model } = await callFreeOpenRouter(
+ const { text, model } = await callFreeOpenRouterRace(
  prompt,
  {
  systemPrompt: "أنت أخصائي تغذية محترف. أعد JSON صالح فقط.",
  temperature: 0.7,
- maxTokens: 2000,
+ maxTokens: 1500,
  jsonMode: true,
- timeoutMs: 90_000,
- },
- );
+ timeoutMs: 30_000,
+ }, 3,
+);
  const replacement = parseJSON<any>(text);
  if (replacement && replacement.items) {
  return NextResponse.json({ replacement, source: `openrouter:${model}` });
@@ -99,16 +99,16 @@ ${note ? `طلب العميل: ${note}` : ""}
 }`;
 
  try {
- const { text, model } = await callFreeOpenRouter(
+ const { text, model } = await callFreeOpenRouterRace(
  prompt,
  {
  systemPrompt: "أنت مدرب لياقة محترف. أعد JSON صالح فقط.",
  temperature: 0.7,
- maxTokens: 1000,
+ maxTokens: 800,
  jsonMode: true,
- timeoutMs: 60_000,
- },
- );
+ timeoutMs: 30_000,
+ }, 3,
+);
  const replacement = parseJSON<any>(text);
  if (replacement && replacement.name) {
  return NextResponse.json({ replacement, source: `openrouter:${model}` });

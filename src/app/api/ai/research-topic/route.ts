@@ -13,7 +13,7 @@ import { requireCoach, isAuthConfigured } from "@/lib/auth-server";
  * POST /api/ai/research-topic
  * Body: { topic: string, focusKeyword?: string }
  */
-export const maxDuration = 60;
+export const maxDuration = 60; // Vercel hobby plan limit — research is single call
 
 export async function POST(request: NextRequest) {
   try {
