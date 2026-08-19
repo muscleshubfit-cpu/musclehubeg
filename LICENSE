@@ -1,0 +1,171 @@
+MUSCLEHUBEG — PROPRIETARY SOFTWARE LICENSE
+
+Effective Date: 2026-08-19
+Copyright Holder: muscleshubfit@gmail.com (the "Owner")
+Project: MuscleHubEG (publicly branded "MuscleHub")
+Repository: https://github.com/muscleshubfit-cpu/musclehubeg
+
+----------------------------------------------------------------------
+
+1. PROPRIETARY RIGHTS — ALL RIGHTS RESERVED
+
+   This software and its associated source code, documentation,
+   database schema, AI prompts, blog content, exercise dataset
+   curation, food database curation, UI design, brand name "MuscleHub"
+   and "MuscleHubEG", the EVO coach persona, and all marketing copy
+   (collectively, the "Software") are the proprietary and confidential
+   property of the Owner.
+
+   The Software is protected by international copyright law and
+   international treaty provisions. All rights, title, and interest
+   in and to the Software — including without limitation all copyright,
+   patent, trademark, trade secret, and other intellectual property
+   rights — are expressly reserved to the Owner.
+
+----------------------------------------------------------------------
+
+2. PUBLIC REPOSITORY DOES NOT GRANT A LICENSE
+
+   The Owner has chosen to publish the Software's source code in a
+   public Git repository at the URL listed above for the purposes of:
+
+     (a) Development collaboration with AI agents and human contributors
+         explicitly authorized by the Owner;
+     (b) Transparency and auditing of the Software's behavior;
+     (c) Educational reference for the development community.
+
+   The public availability of the source code does NOT constitute a
+   grant of any license or right to use, copy, modify, merge, publish,
+   distribute, sublicense, sell, or deploy the Software for any purpose
+   other than as expressly authorized in writing by the Owner.
+
+   The Software is NOT open source. No license is granted under any
+   open-source license, including but not limited to the MIT License,
+   Apache License, GNU General Public License, BSD License, or Mozilla
+   Public License.
+
+----------------------------------------------------------------------
+
+3. PERMITTED USES
+
+   The following uses are permitted WITHOUT explicit written
+   authorization, subject to the conditions in §4 below:
+
+   (a) Reading, studying, and discussing the source code for
+       educational or evaluative purposes;
+   (b) Submitting issues, pull requests, or patches back to the
+       original repository, which the Owner may accept or reject at
+       its sole discretion;
+   (c) Operating a single, personal, non-commercial development copy
+       of the Software for the sole purpose of contributing back to
+       the original project.
+
+----------------------------------------------------------------------
+
+4. PROHIBITED USES
+
+   The following are expressly prohibited without prior written
+   authorization from the Owner:
+
+   (a) Deploying the Software in any production environment, including
+       for commercial purposes, without the Owner's express consent;
+   (b) Operating a competing service, product, or platform based on
+       the Software;
+   (c) Removing, altering, or obscuring any copyright, trademark, or
+       proprietary notices in the Software;
+   (d) Redistributing the Software, in whole or in part, in source or
+       binary form, including via fork, mirror, package registry
+       publication, or bundled distribution;
+   (e) Using the Software's brand name "MuscleHub", "MuscleHubEG",
+       "EVO", or any confusingly similar mark to identify, market, or
+       promote any product or service other than the original project;
+   (f) Reverse engineering, decompiling, or disassembling any compiled
+       or obfuscated portions of the Software;
+   (g) Using the Software to train, fine-tune, or evaluate automated
+       code-generation models (including but not limited to large
+       language models) intended for redistribution or commercial use,
+       without the Owner's prior written consent;
+   (h) Any use that violates applicable law or the rights of any
+       third party.
+
+----------------------------------------------------------------------
+
+5. CONTRIBUTIONS
+
+   Any contribution (pull request, patch, issue comment, or other
+   form of submission) you make to the Software is granted to the
+   Owner under a non-exclusive, worldwide, royalty-free, perpetual,
+   irrevocable, sublicensable, transferable license to use, reproduce,
+   modify, distribute, and exploit the contribution in any form,
+   including for commercial purposes. The Owner retains the right to
+   relicense the Software at any time without notice.
+
+----------------------------------------------------------------------
+
+6. THIRD-PARTY MATERIALS
+
+   The Software incorporates third-party open-source components and
+   datasets, including but not limited to:
+
+   - The Next.js, React, Tailwind CSS, shadcn/ui, Supabase, and other
+     dependencies listed in `package.json`. These retain their
+     original licenses.
+   - The `yuhonas` exercise dataset (MIT-licensed), attribution
+     preserved in `src/lib/exercises.ts`.
+
+   Nothing in this License affects the licenses of those third-party
+   materials. To the extent that any third-party license requires
+   attribution or notice, such attribution or notice is preserved in
+   the relevant source files.
+
+----------------------------------------------------------------------
+
+7. NO WARRANTY
+
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+   EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+   MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND
+   NON-INFRINGEMENT. THE OWNER DOES NOT WARRANT THAT THE SOFTWARE
+   WILL FUNCTION WITHOUT ERROR, WILL BE FREE OF VULNERABILITIES, OR
+   WILL MEET YOUR REQUIREMENTS.
+
+----------------------------------------------------------------------
+
+8. LIMITATION OF LIABILITY
+
+   IN NO EVENT SHALL THE OWNER BE LIABLE FOR ANY INDIRECT,
+   INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, OR ANY
+   LOSS OF PROFITS, DATA, OR BUSINESS INTERRUPTION, ARISING OUT OF OR
+   IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+   THE SOFTWARE, EVEN IF THE OWNER HAS BEEN ADVISED OF THE POSSIBILITY
+   OF SUCH DAMAGE.
+
+----------------------------------------------------------------------
+
+9. ENFORCEMENT
+
+   Any unauthorized use of the Software constitutes a breach of this
+   License and an infringement of the Owner's intellectual property
+   rights. The Owner reserves the right to take any legal action
+   available under applicable law to enforce this License and protect
+   its rights.
+
+----------------------------------------------------------------------
+
+10. CHANGES TO THIS LICENSE
+
+    The Owner may modify this License at any time by updating the
+    `LICENSE` file in the repository. The effective date above
+    indicates when this version took effect. Any use of the Software
+    after the updated License is published constitutes acceptance of
+    the updated terms.
+
+----------------------------------------------------------------------
+
+For permission requests, questions, or to report unauthorized use,
+contact:
+
+  Owner: muscleshubfit@gmail.com
+  Project: https://github.com/muscleshubfit-cpu/musclehubeg
+
+----------------------------------------------------------------------

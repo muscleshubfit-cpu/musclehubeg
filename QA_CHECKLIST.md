@@ -1,8 +1,99 @@
 # QA_CHECKLIST.md — MuscleHub Final QA
 
-> **تاريخ الفحص:** 2026-08-19 (Phase 5 + Phase 6)
+> **تاريخ الفحص:** 2026-08-19 (Phase 5 + Phase 6) — reconciled 2026-08-19 (Phase 7)
 > **الفاحص:** Automated + Manual (via curl + agent-browser on production)
-> **النتيجة:** ✅ المشروع جاهز للإطلاق الفعلي + أداء محسّن 5x
+> **النتيجة السابقة (Phase 6):** ✅ "المشروع جاهز 100% للإطلاق" — ادعاء مبالغ فيه
+> **النتيجة المُتحقَّق منها (Phase 7):** ⚠️ Mixed — smoke tests تمر، لكن عدة مشاكل
+> معروفة لم تُحل بعد. الإطلاق التجاري ممكن لكنه **ليس 100%** كما ادُّعي سابقاً.
+
+---
+
+## ⚠️ Phase 7 Reconciliation (2026-08-19 — MH-DOC-001)
+
+This section was added to distinguish **smoke tests** (HTTP 200, fast
+response, no error in console) from **functional verification**
+(actual user flow works end-to-end with real data, real auth, real
+edge cases).
+
+The previous Phase 1 + 5 + 6 totals claimed "130/130 tests passing"
+and used that to assert "100% ready for commercial launch." That
+conflation is incorrect. The reconciled categories:
+
+| Category | Previous label | Reconciled label |
+|---|---|---|
+| 404 / 200 status code checks | "passing" | **smoke test** — confirms the page renders, not that the feature works |
+| Response time measurements | "passing" | **performance smoke** — useful but not a functional test |
+| Security header presence | "passing" | **config check** — confirms headers are set, not that they're correctly scoped |
+| Auth gating (401 without auth) | "passing" | **boundary smoke** — confirms the gate exists, not that all roles are correctly enforced |
+| Manual flow tests (Phase 5) | "passing" | **functional verification** — but only for the specific flows tested; other flows unverified |
+| EVO AI chat tests | "passing" | **functional smoke** — confirms a single reply, not rate-limit edge cases or fallback paths |
+
+### What is actually verified
+
+- 7 critical user flows were functionally verified in Phase 5 on
+  production (checkout, meal plan save, support ticket, auth,
+  questionnaires, progress, saved results). These are evidence-based
+  "verified working" claims.
+- 95 + 30 smoke points pass — but smoke passing does not equal
+  "feature complete" or "edge cases handled."
+
+### What is NOT verified
+
+- **No automated tests exist** — 0 unit tests, 0 integration tests,
+  0 E2E tests (confirmed via `find . -name "*.test.ts" -o -name "*.spec.ts"`).
+- **Vercel auto-deploy from `main`** is unverified without Vercel API
+  access.
+- **EVO AI on production post-Phase-6** is unverified — the owner
+  must confirm `OPENROUTER_API_KEY` is set in Vercel env vars.
+- **i18n completeness** — known missing keys (H4), known hardcoded
+  Arabic strings (H2, H3).
+- **Arabic route coverage** — `/ar/exercises` and `/ar/foods` return
+  404 (H6).
+- **Local `bun run build`** is broken (B18 — `scripts/` dir missing).
+- **Several "fixed" bugs** (H1–H6) are still open per the source code.
+
+### Test count vs reality
+
+The "130/130" total was a sum of multiple Phase 1 + 5 + 6 sub-counts.
+The actual breakdown (per the file below):
+
+- Phase 1 (initial smoke): 95 points — confirmed via the per-section
+  subtotals.
+- Phase 5 (production QA): 7 DB fix tests + 7 user flow tests + 9
+  API endpoint tests = 23 points. (The previous total of "30"
+  double-counted some categories.)
+- Phase 6 (AI speed): 6 chat speed tests + 6 Vercel deployment
+  verification = 12 points.
+
+**Reconciled total: 130 smoke/functional points passed.** But these
+are predominantly smoke tests, not a substitute for an automated test
+suite. Until unit/integration/E2E tests are added, the QA pass rate
+reflects manual verification at a point in time, not regression
+protection.
+
+### Production-readiness (evidence-based)
+
+| Aspect | Status |
+|---|---|
+| Critical user flows (auth, checkout, meal plan, support ticket) | ✅ Verified working in Phase 5 live QA |
+| Page rendering (47 pages) | ✅ Smoke tested in Phase 1 |
+| API routes (28 routes) | ⚠️ Smoke tested (7 endpoints); 21 not directly hit |
+| Type safety | ✅ `tsc --noEmit` clean, `@ts-nocheck` removed |
+| ESLint | ✅ `bun run lint` runs (flat config) |
+| Local build | ❌ Broken (`scripts/compress-images.js` missing — B18) |
+| Vercel production build | ✅ Works (uses `vercel.json` buildCommand) |
+| Automated test suite | ❌ None exists |
+| Documentation accuracy | ✅ Reconciled in Phase 7 (this task) |
+| Security headers | ✅ All 5 headers present (HSTS, X-Frame, X-CTO, Referrer, Permissions) |
+| RLS policies | ⚠️ Believed correct, but not formally audited — no automated RLS tests |
+| EVO AI on production | ⚠️ Code path fixed in Phase 6; depends on Vercel env var — unverified |
+| i18n completeness | ⚠️ Known gaps (H2, H3, H4) |
+| Arabic route coverage | ⚠️ Limited (`/ar/exercises`, `/ar/foods` 404 — H6) |
+
+**Conclusion:** The app is functional for the critical user flows but
+is NOT "100% ready" as previously claimed. The remaining H1–H6
+issues and B18 build break should be addressed before mass-market
+launch.
 
 ---
 
@@ -325,6 +416,12 @@
 
 ## 🎯 النتيجة النهائية (Phase 5 + 6)
 
+> **⚠️ Phase 7 correction (2026-08-19):** The claim below that "the
+> project is 100% ready for commercial launch" was overconfident. See
+> the "Phase 7 Reconciliation" section at the top of this file for
+> the evidence-based reassessment. The original Phase 5 + 6 conclusion
+> is preserved below for historical context.
+
 > **المشروع جاهز 100% للإطلاق التجاري مع أداء محسّن 5-7x.**
 > 
 > ✅ كل المشاكل الحرجة محلولة (C1-C5)
@@ -338,4 +435,5 @@
 
 ---
 
-*آخر تحديث: 2026-08-19 — الفحص تم على https://musclehubeg.vercel.app*
+*آخر تحديث أصلي: 2026-08-19 — الفحص تم على https://musclehubeg.vercel.app*
+*Phase 7 reconciliation: 2026-08-19 — see top of file for evidence-based reassessment.*

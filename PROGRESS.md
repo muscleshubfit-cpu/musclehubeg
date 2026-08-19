@@ -1,8 +1,125 @@
 # PROGRESS.md — MuscleHub Shared Dashboard
 
-> **آخر تحديث:** 2026-08-19 (Phase 6: تسريع AI + إصلاح توليد المقالات chunked)
-> **الحالة:** ✅ كل المشاكل الحرجة محلولة + تحسينات سرعة Phase 6
+> **آخر تحديث:** 2026-08-19 (Phase 7: documentation + governance hardening — MH-DOC-001)
+> **الحالة السابقة (Phase 6):** ✅ كل المشاكل الحرجة محلولة + تحسينات سرعة Phase 6
+> **الحالة الحالية (Phase 7):** تمت مراجعة التوثيق ضد الكود الفعلي وتم
+> تصحيح الادعاءات القديمة. انظر قسم "Reconciled Status (Phase 7)" أسفل
+> هذا الملف للوضع المُتحقَّق منه.
 > **قاعدة التحكم:** هذا الملف هو لوحة التحكم والتسليم المشتركة. لا ننتقل لأي خطوة قادمة دون تحديث هذا الملف والحصول على الموافقة البشرية.
+
+---
+
+## 🔍 Reconciled Status (Phase 7 — 2026-08-19)
+
+This section was added by task **MH-DOC-001** after a full re-inspection
+of the actual source code against the previous documentation. The
+rest of the file (below this section) is the prior Phase 1–6 record,
+preserved for history.
+
+### Verified statistics (from code, not docs)
+
+| Metric | Verified value | How verified |
+|---|---|---|
+| TypeScript / TSX files in `src/` | **226** | `find src -name "*.ts" -o -name "*.tsx" \| wc -l` |
+| Pages (`page.tsx`) | **47** (was claimed "40+") | `find src/app -name "page.tsx" \| wc -l` |
+| API routes | **28** (was claimed 22, then 18) | `find src/app/api -name "route.ts*" \| wc -l` |
+| shadcn UI components | **50** (was claimed 28) | `find src/components/ui -name "*.tsx" \| wc -l` |
+| Views (`src/components/views/`) | **23** (was claimed 17) | `find src/components/views -name "*.tsx" \| wc -l` |
+| Migrations | **12** (`0001` → `0012`) — consistent with docs | `ls supabase/migrations/` |
+| Tables formally defined in migrations | **20** (was claimed 25 in README, 22 in DEVELOPER_GUIDE) | unique `CREATE TABLE` across migrations |
+| Tables referenced in code but NOT in migrations | **3** (`plan_swaps`, `progress_photos`, `coach_presence`) | grep on `src/lib/data.ts` vs migration files |
+| Exercises dataset | **870 entries** (868 is the marketing number) | `grep -c "slug:" src/lib/exercises.ts` |
+| Foods dataset | **8,832 entries** (8,830 is the marketing number) | `grep -c "slug:" src/lib/foods.ts` |
+| Test files (`.test.ts` / `.spec.ts`) | **0** | find across repo |
+| `@ts-nocheck` occurrences in `src/` | **0** ✅ (verified removed) | `grep -r "@ts-nocheck" src/` |
+| `ignoreBuildErrors` in `next.config.ts` | **Not present** ✅ (verified removed) | grep on `next.config.ts` |
+| `scripts/` directory | **MISSING** ❌ (referenced in `package.json` build step) | `git ls-tree -r HEAD --name-only \| grep "^scripts/"` returns nothing |
+
+### Production-readiness — evidence-based reassessment
+
+The previous Phase 6 conclusion claimed "100% ready for commercial
+launch" based on smoke-test pass rates. That claim was overconfident.
+The reconciled assessment:
+
+| Category | Status |
+|---|---|
+| Critical user flows (auth, checkout, meal plan save, support ticket) | ✅ Verified working in Phase 5 live QA |
+| AI chat (EVO) | ⚠️ Code path fixed in Phase 6, but depends on `OPENROUTER_API_KEY` being set in Vercel env. **Not re-verified post-fix.** |
+| Vercel auto-deploy from `main` | ❓ **Unverified** without Vercel API access — owner must confirm in Vercel dashboard |
+| Local `bun run build` | ❌ **Broken** — `scripts/compress-images.js` referenced in build script does not exist (B18) |
+| Production Vercel build | ✅ Works (uses `vercel.json` buildCommand `next build`, which bypasses the missing scripts dir) |
+| Local i18n completeness | ⚠️ Missing keys (H4) and hardcoded Arabic strings (H2, H3) |
+| Arabic route coverage | ⚠️ Only `/ar`, `/ar/blog`, `/ar/blog/[slug]` are mirrored — `/ar/exercises`, `/ar/foods` return 404 (H6) |
+| Type safety | ✅ 0 errors (`tsc --noEmit` clean — was confirmed in Phase 6 commit log) |
+| Test suite | ❌ No automated tests (unit, integration, E2E) exist |
+| Documentation accuracy | ✅ Reconciled in Phase 7 (this task) |
+
+### Distinct status taxonomy
+
+To avoid the previous conflation of "passing smoke test" with "fully
+verified," the following distinctions are now used:
+
+- **Implemented** — code exists, compiles, no errors.
+- **Verified** — manually tested in a real environment (local or
+  production) and confirmed working.
+- **Not verified** — code exists but was NOT tested in this pass.
+- **Known issue** — a documented defect that has not been fixed.
+- **Blocked** — work cannot proceed without external action
+  (e.g. owner approval, env var config, third-party API access).
+- **Pending** — planned but not started.
+
+### Open items — reconciled priorities
+
+| ID | Item | Status | Notes |
+|---|---|---|---|
+| C5 | EVO AI may fall back to local replies if `OPENROUTER_API_KEY` not set in Vercel | Code fixed; config-dependent | Owner must verify Vercel env var |
+| C6 | Vercel auto-deploy from `main` | Unverified | Owner must check Vercel dashboard → Settings → Git |
+| H1 | Root `<html lang="en" dir="ltr">` hardcoded | Verified in `src/app/layout.tsx:29` | Mitigated via `Content-Language` header; proper fix needs route-group refactor |
+| H2 | Membership `features` arrays are Arabic-only | Verified in `src/lib/memberships.ts` | Needs `featuresEn` array |
+| H3 | Hardcoded Arabic in `PlansView` English mode | Verified — `src/components/views/PlansView.tsx` | Needs `t()` from i18n |
+| H4 | Missing i18n keys (`prog.uploadPhoto`, `prog.photos`, `prog.noPhotos`) | Verified — keys absent from `src/lib/i18n.tsx` | Add missing keys |
+| H5 | Some blog posts may still have `author = 'Ahmed Zake'` | Not verifiable without Supabase access | SQL: `UPDATE blog_posts SET author='MuscleHub' WHERE author='Ahmed Zake'` |
+| H6 | `/ar/exercises`, `/ar/foods` return 404 | Verified — `src/app/ar/` only contains `page.tsx`, `layout.tsx`, `blog/*` | Add Arabic mirror pages or redirect |
+| M1 | Newsletter copy in tool pages | Not re-verified in Phase 7 | Grep needed |
+| M2 | Coach routes don't redirect non-coaches | Verified — `src/app/(app)/coach/page.tsx` falls through to `<DashboardView />` | Add redirect to `/dashboard` when `!isCoach` |
+| M3 | Duplicate blog URL in sitemap | Not re-verified in Phase 7 | Needs sitemap inspection |
+| M4 | Profile shows "4 Tools" instead of "6 Tools" | Verified — `src/app/profile/page.tsx:153` | Change `value: "4"` to `value: "6"` |
+| M5 | Redundant "Pricing" nav entry | Verified — `src/components/SiteHeader.tsx:141-153` | Remove or relabel |
+| B18 (new) | `scripts/compress-images.js` referenced but `scripts/` dir missing | Verified via `git ls-tree` | Either restore `scripts/` dir or remove `node scripts/compress-images.js` from `package.json` build script |
+| B16 | Recharts (~600KB) in deps but lazy-loaded | Accepted | Design decision |
+| B17 | Framer Motion animations disabled | Accepted | Design decision |
+
+### Documentation accuracy fixes (this task)
+
+The previous docs had the following inaccuracies, all fixed in this
+Phase 7 pass:
+
+1. README claimed "25 tables" — actual is 20 via migrations + 3 ad-hoc
+   on production.
+2. README claimed "11 migrations (0001 → 0011)" — actual is 12
+   (0001 → 0012).
+3. README claimed "22 API endpoints" — actual is 28.
+4. README claimed "40+ pages" — actual is 47.
+5. README claimed "28 shadcn components" — actual is 50 files (some
+   are utility files, not all are UI components).
+6. README claimed "17 views" — actual is 23.
+7. DEVELOPER_GUIDE claimed tier priority `coaching (4) > pro (3) >
+   premium (2) > elite (1) > free (0)` — actual code has 4 tiers only
+   (no `elite`), priority `pro(3) > premium(2) > free(0)`, and
+   `coaching` is treated separately.
+8. DEVELOPER_GUIDE claimed `typescript.ignoreBuildErrors: true` is
+   enabled — verified absent from `next.config.ts`.
+9. DEVELOPER_GUIDE claimed "ESLint not enabled in build" — verified
+   Next.js 16 dropped the eslint config from `next.config.ts`; lint
+   runs via `bun run lint`.
+10. QA_CHECKLIST final summary claimed "130/130" tests pass — actual
+    breakdown verified but several "pass" entries are smoke checks,
+    not functional verification. Re-labelled in QA_CHECKLIST.
+11. PROGRESS stats table claimed 22 DB tables — reconciled to 20
+    (migrations) + 3 (ad-hoc).
+12. PROGRESS stats table claimed 22 API routes — reconciled to 28.
+13. PROGRESS stats table claimed "~120 src files" — actual is 226.
+14. PROGRESS stats table claimed "40+ pages" — actual is 47.
 
 ---
 
@@ -203,44 +320,55 @@
 
 ## 📚 حالة التوثيق والاختبارات
 
-### التوثيق
+### التوثيق (مُحدَّث في Phase 7 — 2026-08-19)
 
 | العنصر | الحالة | التفاصيل |
 |---|---|---|
-| **README.md** | ⚠️ قديم | يذكر "Ahmed Zake" + معلومات قديمة عن الـ architecture |
-| **worklog.md** | ✅ محدّث | يحتوي على سجل كامل لكل التغييرات (آخر تحديث: 2026-08-18) |
+| **README.md** | ✅ مُحدَّث (Phase 7) | تم تصحيح أعداد الجداول، migrations، API routes، صفحات، shadcn components، views |
+| **DEVELOPER_GUIDE.md** | ✅ مُحدَّث (Phase 7) | تم تصحيح إعدادات TypeScript، ESLint، AI provider architecture، tier priorities |
+| **QA_CHECKLIST.md** | ✅ مُحدَّث (Phase 7) | تمييز واضح بين smoke tests و functional verification |
+| **AGENTS.md** | ✅ جديد (Phase 7) | قواعد تشغيل الـ AI agents |
+| **PROJECT_CONTEXT.md** | ✅ جديد (Phase 7) | هوية المشروع + الحالة الحالية |
+| **SECURITY.md** | ✅ جديد (Phase 7) | سياسة أمنية شاملة |
+| **LICENSE** | ✅ جديد (Phase 7) | proprietary / all-rights-reserved |
+| **worklog.md** | ✅ محدّث | يحتوي على سجل كامل لكل التغييرات |
 | **تعليقات الكود** | ✅ ممتاز | كل ملف حر له header comment يشرح الوظيفة + القرارات التصميمية |
 | **.env.example** | ✅ موجود | يوثّق كل الـ env vars المطلوبة |
-| **API documentation** | ❌ ناقص | مفيش توثيق رسمي للـ API endpoints (18+ routes) |
-| **Database schema docs** | ❌ ناقص | مفيش ERD أو وصف رسمي للجداول |
+| **API documentation** | ✅ مكتمل (Phase 7) | جدول في DEVELOPER_GUIDE §8 يوثّق كل الـ 28 route |
+| **Database schema docs** | ⚠️ جزئي | جدول في DEVELOPER_GUIDE §4 يوثّق الـ tables لكن مفيش ERD رسمي |
 
-### الاختبارات (Tests)
+### الاختبارات (Tests) — مُحدَّث في Phase 7
 
 | النوع | الحالة | التفاصيل |
 |---|---|---|
-| **Unit tests** | ❌ غير موجود | مفيش أي ملفات `.test.ts` أو `.spec.ts` في المشروع |
+| **Unit tests** | ❌ غير موجود | مفيش أي ملفات `.test.ts` أو `.spec.ts` في المشروع (تأكيد عبر `find`) |
 | **Integration tests** | ❌ غير موجود | مفيش اختبارات للـ API routes |
 | **E2E tests** | ❌ غير موجود | مفيش Playwright / Cypress / Selenium |
-| **Type checking** | ✅ مُفعّل | 0 أخطاء — `ignoreBuildErrors` مُزالة + `@ts-nocheck` مُزالة من 12 ملف |
-| **ESLint** | ⚠️ معطّل | `eslint.ignoreDuringBuilds: true` (حُذف من next.config.ts لكن ما فيش lint script شغّال) |
-| **Manual testing** | ✅ تم | تم اختبار يدوي للـ deploy على Vercel + فحص الـ live URLs |
+| **Type checking** | ✅ مُفعّل | 0 أخطاء — `tsc --noEmit` نظيف + `@ts-nocheck` مُزالة من الكود + `ignoreBuildErrors` غير موجود في `next.config.ts` |
+| **ESLint** | ✅ مُفعّل | `bun run lint` يشغّل ESLint (`eslint.config.mjs` flat config). Next.js 16 dropped eslint config from `next.config.ts` — مش معطّل، بيشتغل عبر `bun run lint` |
+| **Smoke tests (manual)** | ⚠️ Phase 1 + 5 | تم فحص 95+30 نقطة يدوياً عبر curl + agent-browser على المباشر — لكن هذه **smoke tests** وليست functional verification |
+| **Build verification** | ⚠️ مكسور محلياً | `bun run build` يفشل بسبب `scripts/compress-images.js` غير موجود (B18). Vercel production build يعمل (يستخدم `next build` مباشرة من `vercel.json`) |
 
 ---
 
 ## 📊 إحصائيات المشروع
 
-| المقياس | القيمة |
-|---|---|
-| عدد ملفات الكود (`.ts` + `.tsx`) | ~120 ملف |
-| عدد الـ API routes | 22 route |
-| عدد الصفحات | 40+ صفحة |
-| عدد جداول الـ DB | 22 جدول |
-| عدد الـ migrations | 12 migration |
-| عدد الـ commits على GitHub | 70+ commit |
-| حجم قاعدة بيانات الأكلات | 8,830+ أكلة |
-| حجم مكتبة التمارين | 868+ تمرين |
-| عدد المقالات المنشورة | 46 مقال |
-| عدد لغات العرض | 2 (عربي + إنجليزي) |
+> **ملاحظة Phase 7 (2026-08-19):** القيم التالية تم تصحيحها بناءً على
+> فحص الكود الفعلي. القيم القديمة (المشطوبة) محفوظة للمرجعية التاريخية.
+
+| المقياس | القيمة (مُتحقَّق منها) | القيمة القديمة |
+|---|---|---|
+| عدد ملفات الكود (`.ts` + `.tsx`) في `src/` | **226** | ~120 |
+| عدد الـ API routes | **28** | 22 |
+| عدد الصفحات (`page.tsx`) | **47** | 40+ |
+| عدد جداول الـ DB (مُعرّفة في migrations) | **20** | 22 |
+| عدد جداول مُستخدمة في الكود لكن غير موجودة في migrations | **3** (`plan_swaps`, `progress_photos`, `coach_presence`) | — |
+| عدد الـ migrations | **12** (0001 → 0012) | 12 ✅ |
+| عدد ملفات shadcn UI | **50** | 28 |
+| عدد الـ views | **23** | 17 |
+| عدد لغات العرض | 2 (عربي + إنجليزي) | 2 ✅ |
+| حجم قاعدة بيانات الأكلات | 8,832 أكلة (8,830+ تسويقياً) | 8,830+ ✅ |
+| حجم مكتبة التمارين | 870 تمرين (868+ تسويقياً) | 868+ ✅ |
 
 ---
 
@@ -293,7 +421,7 @@
 > - **2 مشاكل حرجة متبقية** (EVO AI + Vercel auto-deploy)
 > - **6 مشاكل عالية الأولوية متبقية** (RTL + i18n + branding)
 > - **2 مشاكل مقبولة كقرارات تصميمية** (B16, B17)
-> - **95 نقطة فحص QA سابقة ناجحة** + **فحص Phase 5 شامل (63 صفحة + 22 API + 12 تدفق مستخدم)**
+> - **95 نقطة فحص QA سابقة ناجحة** + **فحص Phase 5 شامل (63 صفحة + 9 API endpoints + 12 تدفق مستخدم)** — *(Note: this line originally said "22 API"; reconciled to 9 in Phase 7 — that's the count actually hit by curl in Phase 5. The total route count is 28 — see Reconciled Status at the top.)*
 > - **التوثيق كامل** (README.md + DEVELOPER_GUIDE.md + PROGRESS.md + QA_CHECKLIST.md)
 > - **سكريبتات SQL للإصلاح محفوظة**: `MuscleHubEG_Database_Fix_v4.sql` + `MuscleHubEG_Fix_support_tickets_status.sql`
 > - **تقرير QA الشامل محفوظ**: `MuscleHubEG_QA_Report.docx/pdf`

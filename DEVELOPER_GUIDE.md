@@ -1,7 +1,11 @@
 # Developer Guide — MuscleHub
 
-> **آخر تحديث:** 2026-08-19 (Phase 6: تسريع AI + chunked article generation)
+> **آخر تحديث:** 2026-08-19 (Phase 7: documentation + governance hardening — MH-DOC-001)
 > **الجمهور المستهدف:** مطورين جدد ينضمون للمشروع، أو المطور الحالي كمرجع
+> **Note (Phase 7):** Several stale claims in this file were reconciled
+> against the actual source code. Look for `> **Phase 7 correction:**`
+> notes inline. See also `PROJECT_CONTEXT.md` for the reconciled
+> repository statistics.
 
 ---
 
@@ -83,9 +87,18 @@ bun start        # يشغل نسخة الإنتاج محلياً
 bun run lint     # ESLint
 ```
 
-> ⚠️ ملاحظة: `typescript.ignoreBuildErrors: true` مفعّل في `next.config.ts`.
-> هذا يعني أن أخطاء TypeScript لا توقف الـ build. يجب تشغيل `npx tsc --noEmit`
-> يدوياً لفحص الأنواع.
+> **Phase 7 correction (2026-08-19):** The previous claim that
+> `typescript.ignoreBuildErrors: true` is set in `next.config.ts` is
+> **incorrect**. Verified by reading `next.config.ts` — the property
+> is NOT present. TypeScript strict checks are enabled, all
+> `@ts-nocheck` pragmas have been removed, and `tsc --noEmit` is
+> clean (0 errors).
+>
+> The previous claim that ESLint is "disabled" is also incorrect.
+> Next.js 16 dropped the `eslint` config block from `next.config.ts`
+> entirely (the inline comment in `next.config.ts` documents this).
+> ESLint runs via the `bun run lint` script using the flat config
+> in `eslint.config.mjs` (next core-web-vitals + typescript presets).
 
 ---
 
@@ -110,7 +123,7 @@ src/
 │   │   ├── leads/              # Leads من الأدوات
 │   │   ├── saved-results/      # نتائج محفوظة لكل المستخدمين
 │   │   └── referrals/           # إدارة الإحالات
-│   ├── api/                     # API Routes (22 endpoint)
+│   ├── api/                     # API Routes (28 endpoints — see §8)
 │   │   ├── ai/                  # AI endpoints (chat, plan, swap, generate)
 │   │   ├── admin/               # Admin endpoints (blog cleanup, leads, saved-results)
 │   │   ├── tools/               # Tool endpoints (save-result, save-meal-plan, lead)
@@ -219,7 +232,21 @@ src/
 
 ## 4. قاعدة البيانات + RLS
 
-### الجداول (22 جدول)
+### الجداول (20 جدول مُعرّفة في migrations + 3 مُستخدمة في الكود بدون migration)
+
+> **Phase 7 correction (2026-08-19):** The previous count of "22 tables"
+> was inaccurate. The actual state:
+> - **20 tables** are formally defined via `CREATE TABLE` in
+>   migrations `0001` → `0012`.
+> - **3 additional tables** (`plan_swaps`, `progress_photos`,
+>   `coach_presence`) are referenced in `src/lib/data.ts` and were
+>   created ad-hoc on the production database during Phase 5 via
+>   Supabase SQL Editor. They are NOT in any migration file — this
+>   is technical debt that should be back-filled as migrations
+>   `0013_*`, `0014_*`, `0015_*`.
+>
+> The 20 migration-defined tables are listed below. The 3 ad-hoc
+> tables follow in a separate sub-section.
 
 | الجدول | RLS Policy |
 |---|---|
@@ -250,6 +277,22 @@ src/
 
 - `is_coach()` — SECURITY DEFINER function تتحقق من `role = 'coach'` (يستخدم في RLS policies)
 
+### Tables used in code but NOT in migrations (Phase 5 ad-hoc)
+
+> These were created on the production database via Supabase SQL
+> Editor during Phase 5. SQL scripts are preserved at:
+> `/home/z/my-project/download/MuscleHubEG_Database_Fix_v4.sql`
+> and referenced in `PROGRESS.md` Phase 5 section.
+
+| Table | Purpose |
+|---|---|
+| `plan_swaps` | Daily swap usage tracking (used by PlansView) |
+| `progress_photos` | Progress photo references (used by ProgressView) |
+| `coach_presence` | Coach online status |
+
+> **Action item:** Back-fill these as migration files so a fresh
+> Supabase project can be set up from migrations alone.
+
 ### Storage Buckets
 
 - `questionnaire-photos` — صور الاستبيانات
@@ -274,11 +317,23 @@ User → /auth (email/password أو Google OAuth)
 ### حل الـ Tier
 
 ```
-Client-side:  useMembershipTier(profile) → queries subscriptions table → picks highest priority
-Server-side:  requireUser(request) → queries subscriptions table → picks highest priority
+Client-side:  useMembershipTier(profile) → queries subscriptions table → picks highest priority membership
+Server-side:  requireUser(request) → queries subscriptions table → picks highest priority membership
 
-Priority: coaching (4) > pro (3) > premium (2) > elite (1) > free (0)
+Membership priority (verified from src/lib/auth-server.ts):
+  pro (3) > premium (2) > free (0)
+
+Coaching is treated SEPARATELY — it is NOT a higher membership tier.
+It grants EVO access equivalent to Premium, but does not upgrade
+the membership_tier field.
 ```
+
+> **Phase 7 correction (2026-08-19):** The previous claim of
+> `coaching (4) > pro (3) > premium (2) > elite (1) > free (0)` is
+> **incorrect**. There is NO `elite` tier in the actual implementation
+> (verified by reading `src/lib/memberships.ts` and
+> `src/lib/auth-server.ts`). The `MembershipTier` type is
+> `"free" | "premium" | "pro" | "coaching"` — four tiers only.
 
 ### العضويات (4 مستويات)
 
@@ -351,30 +406,43 @@ GitHub Actions (every 2 hours)
 
 ## 8. API Routes Reference
 
+> **Phase 7 correction (2026-08-19):** The previous doc listed 22
+> API routes. The actual count (verified by
+> `find src/app/api -name "route.ts*"`) is **28 routes**. The table
+> below has been updated to include all 28.
+
 | Route | Method | Auth | الوظيفة |
 |---|---|---|---|
 | `/api/ai/chat` | POST | Optional | EVO AI chat (anonymous allowed) |
 | `/api/ai/generate-article` | POST | Coach | Manual blog article generation |
+| `/api/ai/generate-image` | POST | Coach | Generate image for blog article |
 | `/api/ai/plan` | POST | Coach | Generate nutrition/workout plan |
-| `/api/ai/swap` | POST | User | Swap meal/exercise in plan |
 | `/api/ai/pick-topic` | POST | Coach | Pick blog topic |
-| `/api/ai/research-topic` | POST | Coach | Research blog topic |
 | `/api/ai/regenerate-meal` | POST | User | Regenerate meal in plan |
+| `/api/ai/research-topic` | POST | Coach | Research blog topic |
+| `/api/ai/swap` | POST | User | Swap meal/exercise in plan |
 | `/api/admin/blog/cleanup` | POST | Coach/Cron | Fix garbled text in articles |
 | `/api/admin/leads` | GET/PATCH | Coach | View + update tool leads |
 | `/api/admin/saved-results` | GET | Coach | View all saved results |
-| `/api/notifications/admin` | POST | User | Create admin notification |
-| `/api/tools/save-result` | POST | User | Save tool result |
-| `/api/tools/saved-results` | GET/DELETE | User | List/delete saved results |
-| `/api/tools/save-meal-plan` | POST | User | Save meal plan |
-| `/api/tools/saved-meal-plans` | GET/DELETE | User | List/delete meal plans |
-| `/api/tools/lead` | POST | Public | Capture lead from tool |
-| `/api/food-search` | GET | Public | Search foods (local + Open Food Facts) |
-| `/api/og-image/[slug]` | GET | Public | Dynamic OG image (edge runtime) |
+| `/api/blog/fetch-images` | POST | Coach | Fetch images for blog article |
 | `/api/cron/blog/step1-pick` | GET | Cron | Pick blog topic |
 | `/api/cron/blog/step2-generate` | GET | Cron | Generate article |
 | `/api/cron/blog/step3-publish` | GET | Cron | Publish article |
+| `/api/cron/generate-blog-post` | GET | Cron | Legacy single-step blog generation |
+| `/api/cron/progress-reminder` | GET | Cron | Weekly progress reminder (Vercel Cron — Sun 07:00 UTC) |
 | `/api/exercise-image` | GET | Public | Proxy exercise images |
+| `/api/food-search` | GET | Public | Search foods (local + Open Food Facts) |
+| `/api/notifications/admin` | POST | User | Create admin notification (service_role bypass) |
+| `/api/notifications/broadcast` | POST | Coach | Broadcast notification to multiple users |
+| `/api/og-image/[slug]` | GET | Public | Dynamic OG image (edge runtime) |
+| `/api/plans/normalize` | POST | Coach | Normalize coach-pasted plan text → structured JSON |
+| `/api/tools/lead` | POST | Public | Capture lead from tool |
+| `/api/tools/save-meal-plan` | POST | User | Save meal plan |
+| `/api/tools/save-result` | POST | User | Save tool result |
+| `/api/tools/saved-meal-plans` | GET/DELETE | User | List/delete meal plans |
+| `/api/tools/saved-results` | GET/DELETE | User | List/delete saved results |
+
+**Total: 28 routes** (verified via `find src/app/api -name "route.ts*" | wc -l`).
 
 ---
 
@@ -463,16 +531,18 @@ GitHub Actions (every 2 hours)
 
 ## 11. الاختبار + الصيانة
 
-### الحالة الحالية
+### الحالة الحالية (Phase 7 correction — 2026-08-19)
 
 | النوع | الحالة |
 |---|---|
 | Unit tests | ❌ غير موجود |
 | Integration tests | ❌ غير موجود |
 | E2E tests | ❌ غير موجود |
-| Type checking | ⚠️ معطّل (`ignoreBuildErrors: true`) |
-| ESLint | ⚠️ غير مُفعّل في الـ build |
-| Manual testing | ✅ تم عبر فحص الـ live URLs |
+| Type checking | ✅ مُفعّل (0 errors — `tsc --noEmit` clean, `@ts-nocheck` removed, `ignoreBuildErrors` NOT in `next.config.ts`) |
+| ESLint | ✅ مُفعّل عبر `bun run lint` (Next.js 16 dropped eslint config from `next.config.ts`; runs via `eslint.config.mjs` flat config) |
+| Smoke tests (manual) | ⚠️ Phase 1 + Phase 5 — 95 + 30 نقطة تم فحصها يدوياً عبر curl + agent-browser. هذه **smoke tests** وليست functional verification |
+| Build (local) | ⚠️ مكسور — `bun run build` يفشل بسبب `scripts/compress-images.js` غير موجود (B18) |
+| Build (Vercel production) | ✅ يعمل (يستخدم `vercel.json` buildCommand `next build`) |
 
 ### أوامر مفيدة للصيانة
 
@@ -536,6 +606,15 @@ node scripts/scan-blog-urls-broad.js
 مبدأ موحد في كل الموقع: `callFreeOpenRouter` يجرب النماذج بالترتيب من الأكبر للأصغر:
 1. nvidia/nemotron-3-ultra-550b (الأضخم)
 2. → fallback إلى 5 نماذج أصغر
+
+> **Phase 7 note (2026-08-19):** `src/lib/ai-provider.ts` supports
+> SIX providers, not just OpenRouter: openrouter, openai, gemini,
+> anthropic, groq, deepseek. Switching providers is a config change
+> (env var or in-app AI Settings page) — no code changes required.
+> The default is `openrouter`. Provider-specific quirks (Anthropic
+> and Gemini don't support `response_format`, some reasoning models
+> put text in `reasoning_details` instead of `content`) are handled
+> in `callAI()`.
 
 ### الـ AI Provider Pattern (Phase 6 — 2026-08-19)
 
