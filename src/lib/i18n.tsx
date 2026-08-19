@@ -797,9 +797,25 @@ export function I18nProvider({ children }: { children: ReactNode }) {
  }, []);
 
  useEffect(() => {
- const dir = lang === "ar" ? "rtl" : "ltr";
- document.documentElement.lang = lang;
- document.documentElement.dir = dir;
+   // H1 fix (Option B): this `useEffect` is intentionally RETAINED as a
+   // client-side fallback. The server-side root layout now sets
+   // `<html lang dir>` based on the `x-pathname` header + `mhe:locale`
+   // cookie (see `src/app/layout.tsx` `resolveLocale()`), so the initial
+   // server-rendered HTML already has correct attributes — no flash on
+   // first paint. However, when the user toggles the language via the
+   // in-page `LanguageToggle` component (calling `setLang()` below) the
+   // change must reflect immediately without a full page reload. This
+   // `useEffect` mutates `document.documentElement` to keep the HTML
+   // attributes in sync with the client-side `lang` state.
+   //
+   // The `suppressHydrationWarning` on `<html>` in `RootLayout` is
+   // required because the server may render `<html lang="en">` while
+   // the client `useEffect` may set it to `<html lang="ar">` based on
+   // `localStorage["mhe:lang"]`. This is the expected, intentional
+   // behavior for client-side language switching.
+   const dir = lang === "ar" ? "rtl" : "ltr";
+   document.documentElement.lang = lang;
+   document.documentElement.dir = dir;
  }, [lang]);
 
  const setLang = useCallback((l: Lang) => {

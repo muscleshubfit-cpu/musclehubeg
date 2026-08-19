@@ -19,54 +19,95 @@ import { createServerClient } from "@supabase/ssr";
  * This middleware also refreshes expired sessions on every request.
  */
 export async function middleware(request: NextRequest) {
- const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
- const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
- // If Supabase isn't configured, skip middleware (demo mode).
- if (!supabaseUrl || !supabaseAnonKey) {
- return NextResponse.next();
- }
+  // ──────────────────────────────────────────────────────────────────
+  // H1 fix (Option B): Locale detection — ALWAYS runs, even in demo
+  // mode (when Supabase env vars are not set). This is critical because
+  // the root layout (`src/app/layout.tsx`) depends on the `x-pathname`
+  // header + `mhe:locale` cookie to render `<html lang dir>` correctly.
+  //
+  // Precedence (enforced in the root layout, NOT here):
+  //   1. URL pathname (`/ar/...` → `ar`) — always wins
+  //   2. `mhe:locale` cookie (fallback for non-`/ar` routes)
+  //   3. Default `en`
+  //
+  // The cookie is always set to match the current pathname so that:
+  //   - `/ar/*` requests always get `mhe:locale=ar` (cookie can NOT override)
+  //   - English requests get `mhe:locale=en` (resets any stale `ar` cookie)
+  // ──────────────────────────────────────────────────────────────────
+  const pathname = request.nextUrl.pathname;
+  const isArabic = pathname.startsWith("/ar");
 
- let response = NextResponse.next({
- request: {
- headers: request.headers,
- },
- });
+  let response = NextResponse.next({
+    request: {
+      headers: request.headers,
+    },
+  });
 
- const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
- cookies: {
- getAll() {
- return request.cookies.getAll();
- },
- setAll(cookiesToSet) {
- cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
- response = NextResponse.next({
- request: {
- headers: request.headers,
- },
- });
- cookiesToSet.forEach(({ name, value, options }) =>
- response.cookies.set(name, value, options),
- );
- },
- },
- });
+  // Content-Language header — additional crawler signal (kept from
+  // original implementation, now always set even in demo mode).
+  response.headers.set("Content-Language", isArabic ? "ar-EG" : "en-US");
 
- // Refresh the session (this also sets the cookies via setAll above).
- // IMPORTANT: do not run any code between createServerClient and
- // supabase.auth.getUser — the session refresh depends on this ordering.
- await supabase.auth.getUser();
+  // Expose the pathname to the root layout via a custom header. The
+  // root layout cannot receive `params` (it's the parent of all routes,
+  // not a dynamic segment), so `headers().get('x-pathname')` is the
+  // cleanest server-side way to know which URL the user requested.
+  response.headers.set("x-pathname", pathname);
 
- // Set Content-Language header so search engines + browsers know which
- // language is being served. This is a workaround for Next.js App Router's
- // inability to dynamically change the root <html lang> attribute (it's
- // hardcoded in src/app/layout.tsx). The header helps crawlers infer the
- // correct language for /ar/* routes.
- const pathname = request.nextUrl.pathname;
- const isArabic = pathname.startsWith("/ar");
- response.headers.set("Content-Language", isArabic ? "ar-EG" : "en-US");
+  // Write a `mhe:locale` cookie on every request so the root layout can
+  // read it via `cookies()` as a fallback when the pathname doesn't
+  // determine the locale.
+  response.cookies.set("mhe:locale", isArabic ? "ar" : "en", {
+    path: "/",
+    sameSite: "lax",
+    maxAge: 60 * 60 * 24 * 365, // 1 year — survives browser restarts
+  });
 
- return response;
+  // If Supabase isn't configured, skip session refresh (demo mode).
+  // The locale headers/cookies above are already set — return now.
+  if (!supabaseUrl || !supabaseAnonKey) {
+    return response;
+  }
+
+  const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
+    cookies: {
+      getAll() {
+        return request.cookies.getAll();
+      },
+      setAll(cookiesToSet) {
+        cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
+        response = NextResponse.next({
+          request: {
+            headers: request.headers,
+          },
+        });
+        // Re-apply locale headers/cookies on the new response object
+        // (the `setAll` callback creates a new `NextResponse` that
+        // replaces the original, so we must re-set our locale headers
+        // on it to avoid losing them).
+        const isAr = pathname.startsWith("/ar");
+        response.headers.set("Content-Language", isAr ? "ar-EG" : "en-US");
+        response.headers.set("x-pathname", pathname);
+        response.cookies.set("mhe:locale", isAr ? "ar" : "en", {
+          path: "/",
+          sameSite: "lax",
+          maxAge: 60 * 60 * 24 * 365,
+        });
+        cookiesToSet.forEach(({ name, value, options }) =>
+          response.cookies.set(name, value, options),
+        );
+      },
+    },
+  });
+
+  // Refresh the session (this also sets the cookies via setAll above).
+  // IMPORTANT: do not run any code between createServerClient and
+  // supabase.auth.getUser — the session refresh depends on this ordering.
+  await supabase.auth.getUser();
+
+  return response;
 }
 
 export const config = {
