@@ -276,9 +276,9 @@ Four sub-phases, all in commits `a6259e1`, `f0f3a41`, `ce42795`:
 - C5: confirmed `OPENROUTER_API_KEY` present in Vercel Production (Ready)
 - C6: confirmed `ce42795` deployment reached Ready status — auto-deploy operational
 
-### Post-Phase 7 — Open Items (sole remaining)
+### Post-Phase 7 — Open Items (post-H1 closure)
 
-Only **H1** (root `<html lang dir>` refactor) remains open, plus pre-existing ESLint errors as tech-debt. All other items across Phases 1-7 are CLOSED.
+**All previously-open production-readiness items (C5, C6, H1, H2, H3, H4, H5, H6, M1, M2, M3, M4, M5, B18, B002-NEW) are now CLOSED.** The only remaining item is pre-existing ESLint errors as tech-debt (does not affect production).
 
 ---
 
@@ -506,7 +506,7 @@ Phase 7 pass:
 
 | # | المشكلة | الوصف | الحالة |
 |---|---|---|---|
-| H1 | عنصر HTML الجذري dir="ltr" lang="en" على كل الصفحات العربية | `src/app/layout.tsx` hardcoded — يفترض تطبيق `dir="rtl" lang="ar"` على `/ar/*` | ⚠️ **متبقي** — يستلزم refactor لـ route groups أو generateMetadata() |
+| H1 | عنصر HTML الجذري dir="ltr" lang="en" على كل الصفحات العربية | `src/app/layout.tsx` hardcoded — يفترض تطبيق `dir="rtl" lang="ar"` على `/ar/*` | ✅ **تم** (Phase 7, H1 Closure 2026-08-19) — Option B (server-side locale detection). Commit `78a0e36` (`fix: resolve locale html language and direction`) + توثيق الإغلاق في `f9cf3b9`. Production verified: كل `/ar/*` routes تعرض `<html lang="ar" dir="rtl">`، English routes تعرض `<html lang="en" dir="ltr">`. Precedence test passed (pathname > cookie > default). Auth callback intact. مغلق. |
 | H2 | صفحة /memberships تُظهر features بالعربية فقط حتى في النسخة الإنجليزية | `src/lib/memberships.ts` features array مكتوب بالعربية فقط | ✅ **تم** (Phase 7, Master Repair Batch 001) — أضفنا `featuresEn` array لكل الـ 4 tiers + تحديث الـ consumers |
 | H3 | صفحة /plans تحتوي نص عربي مُدمج في النسخة الإنجليزية | "تبديل الوجبات اليوم: 2/2 متبقي" في `src/components/views/PlansView.tsx` | ✅ **تم** (Phase 7, Master Repair Batch 001) — نقل 7 نصوص لـ i18n keys + إضافة 11 مفتاح تحت `plans.swaps.*` |
 | H4 | مفاتيح i18n مفقودة | `prog.uploadPhoto`, `prog.photos`, `prog.noPhotos` في `src/lib/i18n.tsx` | ✅ **تم** (Phase 7, Master Repair Batch 001) — إضافة المفاتيح الناقصة لكل من en و ar |
