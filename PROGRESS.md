@@ -1139,3 +1139,161 @@ implemented.
 - [ ] Owner + technical reviewer approve the engine design (prose, no code).
 - [ ] BLOG-EXTERNAL-RESEARCH-001 is production-verified.
 - [ ] Owner explicitly authorizes touching the current pipeline.
+
+---
+
+## BLOG-PIPELINE-RESILIENCE-002 — Step 1 Controlled Retry + 10-Minute Handoff
+
+**Status:** ✅ IMPLEMENTED (workflow-only) — Committed and pushed to `origin/main`.
+**Date:** 2026-08-21
+**Task ID:** `BLOG-PIPELINE-RESILIENCE-002`
+**Task type:** Pipeline resilience — Step 1 retry policy + Step 1 → Step 2a stabilization handoff.
+**Scope of change:** GitHub Actions workflow + documentation only. **No code change.** No route change. No migration. No DB schema change.
+
+### Problem solved
+
+OpenRouter's free-tier shared pool (`limit_source: upstream_provider_shared_pool`)
+periodically rate-limits `google/gemma-4-26b-a4b-it:free` (the first model
+`pickSmartTopic()` tries). When this happens, Step 1 returns HTTP 500 with
+`All AI providers failed`, the GitHub Actions job exits 1, and **all downstream
+steps (2a, 2b, 2c, 2d, 3) are skipped** because none of them have `if:` conditions.
+The pipeline produces zero articles during rate-limit windows. Previous
+`workflow_dispatch` attempts (run IDs 32400785053, 32401351084, 32401567314,
+32408759439) all failed at Step 1 due to OpenRouter 429.
+
+### Solution — orchestration-level controlled retry (handles OpenRouter 429)
+
+Added a controlled retry loop INSIDE the "Step 1 — Pick topic" step's bash
+script (orchestration level, NOT inside the Vercel function). The Vercel
+function `src/app/api/cron/blog/step1-pick/route.ts` is unchanged — it still
+performs a single attempt per invocation. The workflow now invokes it up to 3
+times with a graduated backoff:
+
+```
+Attempt 1 (immediate)
+   ↓ HTTP ≥ 400 (e.g. OpenRouter 429)
+   Wait 5 minutes  (300s sleep at GitHub Actions level — no OpenRouter spam)
+Attempt 2
+   ↓ HTTP ≥ 400
+   Wait 10 minutes (600s sleep)
+Attempt 3
+   ↓ HTTP ≥ 400
+   STOP — Step 1 fails finally → exit 1 → Step 2a+ are SKIPPED
+```
+
+On any successful attempt, the loop breaks immediately and proceeds to the
+handoff step.
+
+- **Retry handles OpenRouter 429** — this is the sole mechanism for dealing
+  with transient OpenRouter rate-limiting.
+- No retry inside the Vercel function.
+- No retry for Steps 2a / 2b / 2c / 2d / 3 — those remain single-shot.
+- No OpenRouter spam (max 3 invocations of `pickSmartTopic` per workflow run,
+  separated by 5m + 10m).
+- No infinite retry (hard cap at 3).
+- No artificial queue item created (Step 1 still inserts the row only on
+  success — Step 2a consumes whatever Step 1 actually wrote).
+
+### Solution — 10-minute stabilization handoff buffer
+
+Replaced the previous "Wait 5 seconds" step (between Step 1 and Step 2a) with
+a "Wait 10 minutes" step. This buffer:
+
+- Runs at the **GitHub Actions orchestration level** (NOT inside any Vercel
+  function — Vercel Hobby's 60s cap is never touched).
+- Only runs **after Step 1 succeeds** (because Step 1 failure exits the job).
+- Is a **stabilization / handoff buffer between Step 1 completion and Step 2a
+  start**. It is NOT for OpenRouter.
+
+**Important clarification (corrected from initial draft):**
+
+- The 10-minute handoff is NOT meant to give OpenRouter time to recover. Step 2a
+  does NOT use OpenRouter — Step 2a uses **external web search via Z.ai**
+  (`generateExternalResearch()` in `src/lib/blog-generate.ts:446-590`, which
+  makes ZERO OpenRouter/LLM calls).
+- OpenRouter 429 handling is the sole responsibility of the **Step 1 retry
+  loop** described above, NOT this 10-minute buffer.
+- Step 2a is fully independent of OpenRouter and uses Z.ai `web_search` only.
+
+### Pipeline shape (post-change)
+
+```
+Step 1 — Pick topic (3 attempts max, 5m + 10m backoff — handles OpenRouter 429)
+   ↓ on success only
+Wait 10 minutes — stabilization handoff buffer (orchestration-level sleep, NOT inside Vercel)
+   ↓
+Step 2a — External Research (Z.ai web_search, 3 parallel queries, 8s timeout each, NO LLM, NO OpenRouter)
+   ↓
+Wait 5 seconds
+   ↓
+Step 2b — English article + SEO (callFreeOpenRouterLimited, maxModels=2)
+   ↓
+Wait 5 seconds
+   ↓
+Step 2c — Arabic article + FAQ (callFreeOpenRouterLimited, maxModels=2)
+   ↓
+Wait 5 seconds
+   ↓
+Step 2d — Links + images + social (callFreeOpenRouterLimited, maxModels=2)
+   ↓
+Wait 5 seconds
+   ↓
+Step 3 — Publish
+```
+
+### What was NOT changed (preserved)
+
+- ❌ `src/app/api/cron/blog/step1-pick/route.ts` — unchanged (single attempt per invocation)
+- ❌ `src/app/api/cron/blog/step2a-research/route.ts` — unchanged
+- ❌ `src/app/api/cron/blog/step2b-en-article/route.ts` — unchanged
+- ❌ `src/app/api/cron/blog/step2c-ar-article/route.ts` — unchanged
+- ❌ `src/app/api/cron/blog/step2d-links/route.ts` — unchanged
+- ❌ `src/app/api/cron/blog/step3-publish/route.ts` — unchanged
+- ❌ `src/lib/blog-generate.ts` — unchanged (including `generateExternalResearch()`)
+- ❌ `src/lib/ai-provider.ts` — unchanged (including `callFreeOpenRouterLimited()`)
+- ❌ `pickSmartTopic()` logic — unchanged
+- ❌ AI providers — unchanged
+- ❌ No new LLM models added
+- ❌ No new routes created
+- ❌ No new migrations created
+- ❌ No DB schema changes
+- ❌ Step 2a does NOT gain any retry logic — it remains single-shot
+- ❌ Step 2a does NOT gain any OpenRouter fallback — it remains Z.ai `web_search` only
+- ❌ BLOG-MULTILANG-ENGINE-001 — UNCHANGED (still FUTURE / BACKLOG ONLY)
+
+### Step 2a independence (re-confirmed)
+
+Step 2a is fully decoupled from OpenRouter:
+- Uses Z.ai `web_search` API (`https://internal-api.z.ai/v1/functions/invoke`)
+- 3 queries in parallel via `Promise.all`
+- 8s timeout per query via `AbortSignal.timeout(8_000)`
+- Zero LLM calls inside `generateExternalResearch()` (verified by code inspection)
+- Stores real search results (URLs, hosts, titles, snippets) in `article_bundle.research`
+- Filters `reddit.com`, `quora.com`, `pinterest.com`, `facebook.com`
+- Deduplicates by normalized URL
+- No fallback to LLM pseudo-research
+
+### Worst-case timing budget
+
+| Scenario | Total time | Within `timeout-minutes: 35`? |
+|---|---|---|
+| A. Step 1 fails all 3 attempts → no Step 2a | 17.8 min | ✅ |
+| B. Step 1 succeeds @ attempt 1 → full pipeline | 15.8 min | ✅ |
+| C. Step 1 succeeds @ attempt 3 → full pipeline (WORST) | 32.7 min | ✅ (margin 2.3 min) |
+
+`timeout-minutes` was increased from 15 → 35 to accommodate Scenario C.
+
+### Verification performed (local — no production runtime test)
+
+- ✅ YAML syntax validated via `python3 -c "import yaml; yaml.safe_load(...)"`
+- ✅ Bash syntax of the retry loop validated via `bash -n`
+- ✅ Retry simulation (3 failure scenarios): correct 3-attempt cap, correct 5m+10m backoff labels, correct exit-1 behavior, Step 2a correctly skipped
+- ✅ Retry simulation (success-on-attempt-2): breaks immediately, no extra wait
+- ✅ No `continue-on-error` on any step (confirmed via YAML parse)
+- ✅ No `if:` condition on any step (confirmed via YAML parse)
+- ✅ Pipeline order verified: Step 1 retry → 10-min handoff → Step 2a → 2b → 2c → 2d → Step 3
+- ✅ Step 2a description in workflow mentions "NO LLM, NO OpenRouter"
+- ✅ Worst-case timing (Scenario C) fits within `timeout-minutes: 35`
+- ✅ No code change (only `.github/workflows/generate-blog-post.yml` modified)
+- ✅ `git diff --check` — no whitespace errors
+- ⏸️ Production runtime verification NOT performed (per task §7 — avoid consuming OpenRouter quota without need)

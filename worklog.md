@@ -1748,3 +1748,48 @@ Stage Summary:
 - No code, no migration, no pipeline change, no commit, no push.
 - Working tree: PROGRESS.md and worklog.md modified only (unstaged). HEAD remains at `12e8719`, in sync with origin/main.
 - This worklog entry uses Task ID `DOC-FUTURE-MULTILANG-001` (the documentation-only session). The future implementation, when opened, will use its own Task ID per the preconditions recorded in PROGRESS.md.
+
+---
+Task ID: BLOG-PIPELINE-RESILIENCE-002
+Agent: main (super-z)
+Task: Add orchestration-level controlled retry to Step 1 (3 attempts max, 5m + 10m backoff) and a 10-minute stabilization handoff buffer between Step 1 success and Step 2a. NO code change. NO route change. NO migration. NO Step 2a/2b/2c/2d/3 modification. NO Multi-Language Engine implementation. Committed and pushed to origin/main.
+
+Work Log:
+- Pre-flight: Discovered that local HEAD (`4149062`) was 5 commits behind `origin/main` (`758567a`) due to a working-directory reset that occurred between sessions. All previously-pushed work (commits `3994aeb`, `cb3342d`, `9c163a7`, `12e8719`, `758567a` — covering BLOG-PIPELINE-REDESIGN-001 Phase 1, BLOG-EXTERNAL-RESEARCH-001 implementation, and BLOG-MULTILANG-ENGINE-001 future task documentation) was confirmed present on `origin/main` but missing locally.
+- Stashed the in-progress workflow change, ran `git pull --ff-only origin main` to fast-forward local to `758567a`, then `git stash pop` to restore the workflow change. Verified: local HEAD now `758567a`, in sync with `origin/main`. BLOG-MULTILANG-ENGINE-001 / BLOG-EXTERNAL-RESEARCH-001 / BLOG-PIPELINE-REDESIGN-001 sections confirmed present in PROGRESS.md (10 matches).
+- Re-applied the workflow change to `.github/workflows/generate-blog-post.yml`:
+  • `timeout-minutes`: 15 → 35 (to accommodate worst-case Scenario C: 32.7 min).
+  • Step "Step 1 — Pick topic" → renamed to "Step 1 — Pick topic (controlled retry, max 3 attempts)" with orchestration-level bash retry loop (MAX_ATTEMPTS=3, 5m backoff after attempt 1, 10m backoff after attempt 2, immediate `break` on success, `exit 1` on final failure).
+  • Step "Wait 5 seconds" (between Step 1 and Step 2a) → renamed to "Wait 10 minutes — Step 1 → Step 2a stabilization handoff" with `sleep 600`. Comment block in workflow explicitly states this is NOT for OpenRouter — Step 2a uses Z.ai external web search.
+  • Step "Step 2a — Research" echo line updated to mention "EXTERNAL web search (z-ai web_search, 3 parallel queries, 8s timeout each, NO LLM, NO OpenRouter)".
+  • All other steps (2b, 2c, 2d, 3) and the 5-second sleeps between them: UNCHANGED.
+- Confirmed `src/app/api/cron/blog/step1-pick/route.ts` inserts the queue row AFTER `pickSmartTopic()` succeeds (line 21 → line 24), so Step 1 retry must happen at orchestration level (NOT inside the Vercel function) — verified by re-reading the route.
+- Confirmed `generateExternalResearch()` in `src/lib/blog-generate.ts:446-590` makes ZERO OpenRouter/LLM calls — uses Z.ai `web_search` only, 3 parallel queries via `Promise.all`, 8s timeout each via `AbortSignal.timeout(8_000)`. Therefore Step 2a is fully decoupled from OpenRouter. The 10-minute handoff is NOT for OpenRouter; it is a stabilization buffer between Step 1 completion and Step 2a start. OpenRouter 429 handling is the sole responsibility of the Step 1 retry loop.
+- Verification performed (local only — no production runtime test):
+  • YAML syntax: `python3 -c "import yaml; yaml.safe_load(...)"` → OK (parses cleanly, 11 steps, timeout-minutes=35).
+  • Bash syntax of the retry script: `bash -n` → OK (no syntax errors).
+  • Retry simulation 1 (3 failures): correct 3-attempt cap, correct 5m+10m backoff labels, exit 1 on final failure, no fourth attempt.
+  • Retry simulation 2 (success on attempt 2): breaks immediately after success, no extra wait, no third attempt.
+  • Failure propagation check: NO `continue-on-error` and NO `if:` condition on ANY step (verified via YAML parse). Step 1 `exit 1` correctly skips handoff + Step 2a + all downstream.
+  • Pipeline order check (top to bottom): Step 1 retry → 10-min handoff → Step 2a → 5s → Step 2b → 5s → Step 2c → 5s → Step 2d → 5s → Step 3.
+  • Timing budget check: Scenario A (Step 1 fails ×3) = 17.8 min; Scenario B (Step 1 ok @1) = 15.8 min; Scenario C (Step 1 ok @3, WORST) = 32.7 min — fits within timeout-minutes=35 (margin 2.3 min).
+  • `git diff --check` → no whitespace errors.
+- Did NOT modify any code under `src/`. Confirmed via `git status --porcelain src/ supabase/` → 0 lines.
+- Did NOT create any migration under `supabase/migrations/`.
+- Did NOT create any new route.
+- Did NOT modify Step 2a / 2b / 2c / 2d / 3 routes.
+- Did NOT modify `pickSmartTopic()`, `generateExternalResearch()`, or `callFreeOpenRouterLimited()`.
+- Did NOT add new AI models.
+- Did NOT add an LLM pseudo-research fallback to Step 2a — Step 2a remains Z.ai `web_search` only.
+- Did NOT touch BLOG-MULTILANG-ENGINE-001 — it remains FUTURE / BACKLOG ONLY.
+- Did NOT perform production runtime verification (per task §7 — avoid consuming OpenRouter quota without need).
+- Updated `PROGRESS.md`: appended new section "BLOG-PIPELINE-RESILIENCE-002 — Step 1 Controlled Retry + 10-Minute Handoff" after the BLOG-MULTILANG-ENGINE-001 section. Section explicitly clarifies: the 10-minute handoff is a stabilization buffer between Step 1 and Step 2a, NOT for OpenRouter; OpenRouter 429 handling is the sole responsibility of the Step 1 retry loop; Step 2a uses Z.ai external web search and is fully independent of OpenRouter.
+
+Stage Summary:
+- `.github/workflows/generate-blog-post.yml` modified: Step 1 gains 3-attempt orchestration-level retry (5m + 10m backoff, immediate break on success, exit 1 on final failure), Step 1 → Step 2a handoff increased from 5s to 10 minutes (orchestration-level stabilization buffer, NOT inside Vercel, NOT for OpenRouter), `timeout-minutes` increased from 15 to 35 to accommodate worst-case Scenario C (32.7 min).
+- No code change, no route change, no migration, no DB schema change, no new routes, no new migrations, no AI provider change.
+- Step 2a/2b/2c/2d/3 routes are UNCHANGED. `generateExternalResearch()` is UNCHANGED and remains Z.ai `web_search` only (3 parallel queries, 8s timeout each, zero LLM calls).
+- BLOG-MULTILANG-ENGINE-001 untouched — still FUTURE / BACKLOG ONLY.
+- Verification: YAML syntax OK, bash syntax OK, retry simulation OK (3-failure and success-on-attempt-2 cases), failure propagation OK (no continue-on-error, no if:), pipeline order OK, timing budget OK (worst case 32.7 min ≤ 35 min), `git diff --check` OK.
+- Pre-flight resolved: local was 5 commits behind origin/main (`4149062` vs `758567a`); performed `git pull --ff-only` to sync; no rebase conflicts; BLOG-MULTILANG-ENGINE-001 docs confirmed present from prior push.
+- Commit + push to follow with message: `ci: add Step 1 controlled retry + 10-minute Step 2a handoff`.

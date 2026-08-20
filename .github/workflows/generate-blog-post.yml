@@ -8,29 +8,82 @@ on:
 jobs:
   generate:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 35
     steps:
-      - name: Step 1 — Pick topic
+      # ============================================================
+      # Step 1 — Pick topic (with CONTROLLED RETRY, max 3 attempts)
+      #   - Attempt 1: immediate
+      #   - On failure: wait 5 minutes, then Attempt 2
+      #   - On failure: wait 10 minutes, then Attempt 3
+      #   - On final failure: exit 1 → job stops, Step 2a+ are SKIPPED
+      #   - On any success: break immediately, proceed to handoff
+      # Retry lives at the GitHub Actions orchestration level. The
+      # Vercel function (src/app/api/cron/blog/step1-pick/route.ts)
+      # is unchanged — it performs a single attempt per invocation.
+      # No retry loop exists inside the Vercel function.
+      # The retry handles transient OpenRouter 429 (shared upstream
+      # pool rate-limit) without spamming the provider.
+      # ============================================================
+      - name: Step 1 — Pick topic (controlled retry, max 3 attempts)
         run: |
-          echo "=== Step 1: Picking topic ==="
-          HTTP_CODE=$(curl --silent --show-error --max-time 55 -o /tmp/step1.json -w "%{http_code}" \
-            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
-            "${{ vars.SITE_URL }}/api/cron/blog/step1-pick")
-          echo "HTTP status: $HTTP_CODE"
-          cat /tmp/step1.json
-          echo ""
-          if [ "$HTTP_CODE" -ge 400 ]; then
-            echo "❌ Step 1 failed"
+          echo "=== Step 1: Picking topic (controlled retry: max 3 attempts, 5m + 10m backoff) ==="
+          MAX_ATTEMPTS=3
+          attempt=1
+          while [ "$attempt" -le "$MAX_ATTEMPTS" ]; do
+            echo "--- Step 1 attempt $attempt / $MAX_ATTEMPTS ---"
+            HTTP_CODE=$(curl --silent --show-error --max-time 55 -o /tmp/step1.json -w "%{http_code}" \
+              -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+              "${{ vars.SITE_URL }}/api/cron/blog/step1-pick")
+            echo "HTTP status: $HTTP_CODE"
+            cat /tmp/step1.json
+            echo ""
+            if [ "$HTTP_CODE" -lt 400 ]; then
+              echo "✓ Step 1 SUCCEEDED on attempt $attempt — stopping retry, queue item inserted"
+              break
+            fi
+            echo "❌ Step 1 FAILED on attempt $attempt (HTTP $HTTP_CODE)"
+            if [ "$attempt" -lt "$MAX_ATTEMPTS" ]; then
+              if [ "$attempt" -eq 1 ]; then
+                WAIT_SECONDS=300
+                WAIT_LABEL="5 minutes"
+              else
+                WAIT_SECONDS=600
+                WAIT_LABEL="10 minutes"
+              fi
+              echo "↻ Waiting ${WAIT_LABEL} before retrying (backoff) — avoiding OpenRouter spam"
+              sleep "$WAIT_SECONDS"
+            fi
+            attempt=$((attempt + 1))
+          done
+          if [ "$attempt" -gt "$MAX_ATTEMPTS" ]; then
+            echo "❌ Step 1 FAILED after $MAX_ATTEMPTS attempts — Step 2a will NOT run (no queue item to consume)"
             exit 1
           fi
-          echo "✓ Step 1 done"
 
-      - name: Wait 5 seconds
-        run: sleep 5
+      # ============================================================
+      # Handoff — 10-minute stabilization buffer between Step 1
+      # success and Step 2a. Runs at the GitHub Actions orchestration
+      # level (NOT inside any Vercel function — Vercel Hobby's 60s cap
+      # is never touched). Only runs if Step 1 succeeded (because Step
+      # 1 failure exits the job).
+      #
+      # Purpose of this buffer: a stabilization/handoff window between
+      # the end of Step 1 (topic picked) and the start of Step 2a
+      # (external research). It is NOT for OpenRouter — Step 2a does
+      # NOT use OpenRouter. OpenRouter 429 handling is the
+      # responsibility of the Step 1 retry loop above, not this
+      # buffer. Step 2a uses external web search via Z.ai only.
+      # ============================================================
+      - name: Wait 10 minutes — Step 1 → Step 2a stabilization handoff
+        run: |
+          echo "=== Handoff: waiting 10 minutes before Step 2a (orchestration-level sleep, NOT inside Vercel) ==="
+          echo "Purpose: stabilization buffer between Step 1 success and Step 2a start. Step 2a uses Z.ai external web search (NOT OpenRouter). OpenRouter 429 is handled by the Step 1 retry loop above."
+          sleep 600
+          echo "✓ 10-minute handoff buffer elapsed — proceeding to Step 2a"
 
       - name: Step 2a — Research
         run: |
-          echo "=== Step 2a: Researching topic ==="
+          echo "=== Step 2a: Researching topic via EXTERNAL web search (z-ai web_search, 3 parallel queries, 8s timeout each, NO LLM, NO OpenRouter) ==="
           HTTP_CODE=$(curl --silent --show-error --max-time 55 -o /tmp/step2a.json -w "%{http_code}" \
             -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
             "${{ vars.SITE_URL }}/api/cron/blog/step2a-research")
