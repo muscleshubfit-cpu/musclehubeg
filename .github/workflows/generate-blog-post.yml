@@ -1,4 +1,4 @@
-name: Auto-generate blog post (3-step pipeline)
+name: Auto-generate blog post (multi-step pipeline)
 
 on:
   schedule:
@@ -8,7 +8,7 @@ on:
 jobs:
   generate:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - name: Step 1 — Pick topic
         run: |
@@ -28,20 +28,74 @@ jobs:
       - name: Wait 5 seconds
         run: sleep 5
 
-      - name: Step 2 — Generate article
+      - name: Step 2a — Research
         run: |
-          echo "=== Step 2: Generating article ==="
-          HTTP_CODE=$(curl --silent --show-error --max-time 55 -o /tmp/step2.json -w "%{http_code}" \
+          echo "=== Step 2a: Researching topic ==="
+          HTTP_CODE=$(curl --silent --show-error --max-time 55 -o /tmp/step2a.json -w "%{http_code}" \
             -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
-            "${{ vars.SITE_URL }}/api/cron/blog/step2-generate")
+            "${{ vars.SITE_URL }}/api/cron/blog/step2a-research")
           echo "HTTP status: $HTTP_CODE"
-          cat /tmp/step2.json
+          cat /tmp/step2a.json
           echo ""
           if [ "$HTTP_CODE" -ge 400 ]; then
-            echo "❌ Step 2 failed"
+            echo "❌ Step 2a failed"
             exit 1
           fi
-          echo "✓ Step 2 done"
+          echo "✓ Step 2a done"
+
+      - name: Wait 5 seconds
+        run: sleep 5
+
+      - name: Step 2b — English article + SEO
+        run: |
+          echo "=== Step 2b: Generating English article + SEO ==="
+          HTTP_CODE=$(curl --silent --show-error --max-time 55 -o /tmp/step2b.json -w "%{http_code}" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            "${{ vars.SITE_URL }}/api/cron/blog/step2b-en-article")
+          echo "HTTP status: $HTTP_CODE"
+          cat /tmp/step2b.json
+          echo ""
+          if [ "$HTTP_CODE" -ge 400 ]; then
+            echo "❌ Step 2b failed"
+            exit 1
+          fi
+          echo "✓ Step 2b done"
+
+      - name: Wait 5 seconds
+        run: sleep 5
+
+      - name: Step 2c — Arabic article + FAQ
+        run: |
+          echo "=== Step 2c: Generating Arabic article + FAQ ==="
+          HTTP_CODE=$(curl --silent --show-error --max-time 55 -o /tmp/step2c.json -w "%{http_code}" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            "${{ vars.SITE_URL }}/api/cron/blog/step2c-ar-article")
+          echo "HTTP status: $HTTP_CODE"
+          cat /tmp/step2c.json
+          echo ""
+          if [ "$HTTP_CODE" -ge 400 ]; then
+            echo "❌ Step 2c failed"
+            exit 1
+          fi
+          echo "✓ Step 2c done"
+
+      - name: Wait 5 seconds
+        run: sleep 5
+
+      - name: Step 2d — Links + images + social
+        run: |
+          echo "=== Step 2d: Generating links + images + social ==="
+          HTTP_CODE=$(curl --silent --show-error --max-time 55 -o /tmp/step2d.json -w "%{http_code}" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            "${{ vars.SITE_URL }}/api/cron/blog/step2d-links")
+          echo "HTTP status: $HTTP_CODE"
+          cat /tmp/step2d.json
+          echo ""
+          if [ "$HTTP_CODE" -ge 400 ]; then
+            echo "❌ Step 2d failed"
+            exit 1
+          fi
+          echo "✓ Step 2d done"
 
       - name: Wait 5 seconds
         run: sleep 5
