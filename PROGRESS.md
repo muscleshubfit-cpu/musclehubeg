@@ -948,3 +948,56 @@ Fallback behavior (trying 2nd model) is verified by code inspection only.
 ### Phase 2 Status
 
 **NOT STARTED** — Article Brief step is deferred until Phase 1 is fully verified.
+
+---
+
+## BLOG-EXTERNAL-RESEARCH-001 — Implementation Report
+
+**Status:** IMPLEMENTED — Awaiting production runtime verification (Step 1 rate-limited)
+**Date:** 2026-08-20
+**Code commit:** `9c163a7` — `feat: restore external web search in blog pipeline step2a`
+
+### What was done
+
+Replaced LLM-generated pseudo-research with REAL external web search via z-ai web_search API.
+
+- `generateResearch()` (LLM prompt) → `generateExternalResearch()` (real web search)
+- Step 2a now performs ONLY: web search → normalize → dedup → store → exit (NO LLM)
+- 3 queries run IN PARALLEL (Promise.all), 8s timeout each
+- Results contain REAL URLs, hosts, titles, snippets from actual web pages
+- Fixed field name mismatch: `trendingAngles` vs `trendingKeywords`
+- Fixed prompt text: "from live web search" → "from external web search"
+
+### Architecture
+
+```
+Step 2a = ISOLATED external research stage (no LLM, no article generation)
+Step 2b = article generation consuming stored research (unchanged)
+```
+
+### Timeout budget
+
+3 queries × 8s (parallel) = 8s + post-processing ~2s + DB ~4s = ~14s (within 60s cap)
+
+### Local verification
+
+- tsc: 0 errors ✅
+- ESLint: 0 errors ✅
+- build: 78/78 pages ✅
+- generateExternalResearch contains 0 LLM calls (verified) ✅
+- Promise.all for parallel execution (verified) ✅
+- 8_000ms timeout per query (verified) ✅
+
+### Production verification
+
+- Vercel deployment: ✅ Ready (route responds 401)
+- workflow_dispatch: Triggered 3 times
+- **All 3 runs failed at Step 1 (pickSmartTopic)** — OpenRouter free models rate-limited (429)
+- Step 2a was NEVER REACHED — the failure is upstream of our changes
+- The rate limiting is TRANSIENT — not related to external search implementation
+
+### Remaining verification
+
+- [ ] Successful production run when OpenRouter rate limits clear
+- [ ] Verify article_bundle.research contains real URLs
+- [ ] Verify EN article references real sources
