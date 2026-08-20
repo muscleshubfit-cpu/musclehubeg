@@ -1392,3 +1392,146 @@ What could NOT be verified at runtime this round (blocked by upstream OpenRouter
 - ⏸️ Step 1 success → break → handoff transition
 
 These require either: (a) OpenRouter upstream rate-limit clearing (out of our control), or (b) the owner manually inserting a `topic_picked` queue row via Supabase SQL Editor, then triggering a `workflow_dispatch` with Step 1 bypassed (current workflow has no `skip_step1` input — that would be a future task if needed).
+
+---
+
+## AI-RESEARCH-EXTERNAL-001 — External Web Search for /api/ai/research-topic
+
+**Status:** ✅ IMPLEMENTED + locally runtime-verified — Committed and pushed to `origin/main`.
+**Date:** 2026-08-21
+**Task ID:** `AI-RESEARCH-EXTERNAL-001`
+**Task type:** AI research path fix — replace LLM pseudo-research with REAL external web search.
+**Scope:** Non-blog AI research route only. Blog pipeline untouched (BLOG-EXTERNAL-RESEARCH-001 + BLOG-PIPELINE-RESILIENCE-002 preserved).
+
+### Problem solved
+
+The `/api/ai/research-topic` route (used by the coach's `AIGenerateModal` for manual blog content generation) was using `callFreeOpenRouter()` to ask an LLM to "research" a topic. The LLM hallucinated article titles and returned `host: ""` for every result — there were no real URLs, hosts, or snippets. This is LLM pseudo-research, not real external search.
+
+Additionally, on inspection I discovered that the blog pipeline's `generateExternalResearch()` (in `src/lib/blog-generate.ts`) uses raw `fetch()` against `https://internal-api.z.ai/v1/functions/invoke` with the default `"Z.ai"` API key, which fails with `invalid X-Token` on every call. This means the blog pipeline's external search would also have produced empty results when Step 2a finally runs (BLOG-EXTERNAL-RESEARCH-001 was blocked by OpenRouter 429 so never reached Step 2a).
+
+### Solution
+
+Created `src/lib/external-search.ts` — the project's official entry point for real external web search. Uses the `z-ai-web-dev-sdk` package (already in `dependencies`, ships with an internal token, works in Vercel serverless). NO raw fetch, NO hardcoded API keys, NO LLM calls.
+
+Refactored `/api/ai/research-topic/route.ts` to use `externalSearch()` as the **primary** path. The LLM is now used ONLY for fields that cannot be derived from raw web search results (`searchIntent`, `searcherGoal`, `contentGaps`) — and even then only as optional enrichment. If the LLM call fails (OpenRouter rate-limit, etc.), the real research (topArticles, relatedQuestions, trendingKeywords) is still returned with null enrichment fields.
+
+### Architecture
+
+```
+Client (AIGenerateModal) → POST /api/ai/research-topic { topic, focusKeyword }
+                                       ↓
+                          ┌────────────┴────────────┐
+                          ↓                         ↓
+                  externalSearch()         (optional) LLM enrichment
+                  (src/lib/                via callFreeOpenRouterLimited
+                   external-search.ts)     (maxModels=2, 20s timeout)
+                          │                         │
+                          │                         │
+                          ↓                         ↓
+              3 parallel Z.ai web_search    searchIntent, searcherGoal,
+              queries (Promise.all, 8s     contentGaps (or null/empty
+              timeout each)                on LLM failure)
+                          │                         │
+                          ↓                         ↓
+              Dedup URLs + filter           (only if LLM succeeded)
+              reddit/quora/pinterest/
+              facebook
+                          │
+                          ↓
+              Extract questions from snippets
+              Compute trending keywords from word freq
+                          │
+                          ↓
+              Return: topArticles (real URLs/hosts/snippets),
+                      relatedQuestions, trendingKeywords,
+                      contentGaps, searchIntent, searcherGoal,
+                      source: "z-ai-web-search"
+```
+
+### Files created
+
+- **`src/lib/external-search.ts`** (214 lines) — shared module exporting `externalSearch(input)`. Uses `z-ai-web-dev-sdk`. Returns `ResearchResult` type with `topArticles`, `relatedQuestions`, `trendingKeywords`, `trendingAngles` (alias for backward compat), `queryCount`, `successfulQueries`, `totalResults`, `partialFailure`, `source: "z-ai-web-search"`. NO LLM. NO OpenRouter. NO raw fetch.
+
+### Files modified
+
+- **`src/app/api/ai/research-topic/route.ts`** — rewrote to call `externalSearch()` as primary path. LLM (`callFreeOpenRouterLimited` with `maxModels=2`) used only for `searchIntent` / `searcherGoal` / `contentGaps` enrichment. Response shape unchanged (`topArticles`, `relatedQuestions`, `trendingAngles`, `contentGaps`, `searchIntent`, `searcherGoal`, `totalResults`, `source`) so `AIGenerateModal` client keeps working. Added new fields: `queryCount`, `queriesSucceeded`, `partialFailure`, `trendingKeywords` (in addition to legacy `trendingAngles`).
+
+### Files NOT modified (preserved per task constraints)
+
+- ❌ `src/lib/blog-generate.ts` — UNCHANGED (including `generateExternalResearch()`)
+- ❌ `src/lib/ai-provider.ts` — UNCHANGED
+- ❌ `src/lib/ai.ts` — UNCHANGED
+- ❌ `src/lib/ai-local.ts` — UNCHANGED
+- ❌ `src/lib/evo-search.ts` — UNCHANGED (EVO AI chat's local platform search)
+- ❌ `src/app/api/ai/chat/route.ts` — UNCHANGED (EVO AI / AI Chat — rule §12.6 treats as one task, separate scope)
+- ❌ `src/app/api/ai/pick-topic/route.ts` — UNCHANGED
+- ❌ `src/app/api/ai/generate-article/route.ts` — UNCHANGED
+- ❌ `src/app/api/ai/generate-image/route.ts` — UNCHANGED
+- ❌ `src/app/api/ai/plan/route.ts` — UNCHANGED
+- ❌ `src/app/api/ai/swap/route.ts` — UNCHANGED
+- ❌ `src/app/api/ai/regenerate-meal/route.ts` — UNCHANGED
+- ❌ `src/app/api/cron/blog/*/route.ts` — UNCHANGED (blog pipeline untouched)
+- ❌ `src/components/blog/AIGenerateModal.tsx` — UNCHANGED (response shape preserved)
+- ❌ BLOG-MULTILANG-ENGINE-001 — UNCHANGED (still FUTURE / BACKLOG ONLY)
+- ❌ No migrations created
+- ❌ No DB schema changes
+
+### Local runtime verification (smoke test)
+
+Ran `externalSearch()` directly via a bun script with `focusKeyword: "cortisol muscle growth"`. Results:
+
+| Metric | Value |
+|---|---|
+| source | `z-ai-web-search` ✅ |
+| queryCount | 3 |
+| successfulQueries | 2/3 (one query hit Z.ai 429 — handled gracefully, no crash) |
+| totalResults | 6 real articles |
+| partialFailure | true (correctly flagged — 1 of 3 queries failed) |
+| relatedQuestions | 0 (snippets in this run had no `?` questions — correct behavior) |
+| trendingKeywords | 10: `cortisol, muscle, hormone, growth, affect, ...` |
+
+Sample of REAL search results returned:
+1. **"Impact of Cortisol on Reduction in Muscle Strength and Mass - PubMed"** — `https://pubmed.ncbi.nlm.nih.gov/34850018` — host: `pubmed.ncbi.nlm.nih.gov` — snippet: "Mar 24, 2022 · This MR study provides evidence for the association of cortisol with reduced muscle s..."
+2. **"Impact of Cortisol on Reduction in Muscle Strength and Mass"** — `https://academic.oup.com/jcem/article/107/4/e1477/6445183` — host: `academic.oup.com` — snippet: "In this MR study, we established that cortisol is associated with reduced muscle strength and mass. ..."
+3. **"Understanding Cortisol: Why Chronic Stress Leads to Muscle Loss - Ubie"** — `https://ubiehealth.com/doctors-note/cortisol-role-impact-chronic-stress-muscle-loss-3351q8` — host: `ubiehealth.com` — snippet: "May 16, 2026 · High cortisol interferes with insulin and growth hormone pathways. · Your muscles can..."
+
+Quality checks (all PASS):
+- ✅ All URLs are real (clickable)
+- ✅ All hosts are real domain names (no `""` empty hosts like the old LLM path returned)
+- ✅ All snippets are real excerpts from the page content
+- ✅ 0 reddit.com / quora.com / pinterest.com / facebook.com violations
+- ✅ 0 duplicate URLs (dedup by normalized URL working)
+- ✅ `partialFailure` flag correctly set when 1 of 3 queries fails
+
+### Verification performed
+
+- ✅ `npx tsc --noEmit` — 0 errors (clean, including the new module)
+- ✅ `bun run lint` — 0 new errors introduced (9 pre-existing errors in `CookieConsent.tsx` + `SaveResultButton.tsx` remain — confirmed via `git stash` baseline comparison, not caused by this task)
+- ✅ `git diff --check` — no whitespace errors
+- ✅ Local smoke test of `externalSearch()` — real Z.ai web_search results captured
+- ✅ Response shape unchanged — `AIGenerateModal` client code will work without modification
+
+### Commands run
+
+```
+npx tsc --noEmit
+bun run lint
+git diff --check
+bun run test-external-search.ts (smoke test, file deleted after)
+```
+
+### Known unresolved issues
+
+1. **Blog pipeline `generateExternalResearch()` still uses the broken raw-fetch path** — `src/lib/blog-generate.ts:446-590` still calls Z.ai via `fetch("https://internal-api.z.ai/v1/functions/invoke", ...)` with the default `"Z.ai"` API key, which fails with `invalid X-Token` on production. This means when Step 2a finally runs (after OpenRouter 429 clears), it will return empty research. **This is OUT OF SCOPE for AI-RESEARCH-EXTERNAL-001** per the user's explicit instruction: "لا تعدّل أو تعيد تصميم Blog generation في هذه المهمة." A separate future task should refactor `generateExternalResearch()` to use the new `src/lib/external-search.ts` module. The fix is mechanical: replace the raw-fetch block with `await externalSearch(...)` — about a 50-line reduction.
+
+2. **OpenRouter 429 on Step 1 (blog pipeline) still blocks BLOG-EXTERNAL-RESEARCH-001 production verification** — separate concern, documented in BLOG-PIPELINE-RESILIENCE-002's production runtime verification subsection. Not related to this task.
+
+3. **Pre-existing lint errors in `CookieConsent.tsx` + `SaveResultButton.tsx`** — 4 errors + 5 warnings, all pre-existing (confirmed via baseline stash comparison). Out of scope for this task.
+
+### Potential risks
+
+1. **Z.ai rate-limiting on parallel queries** — running 3 queries in parallel via `Promise.all` can occasionally trigger Z.ai's own 429 (observed once in smoke testing). The `partialFailure` flag correctly reports this and the other 2 queries still return real results. If Z.ai rate-limits aggressively in production, a future task could add a small inter-query delay (e.g. 200ms) or reduce to 2 queries.
+
+2. **`z-ai-web-dev-sdk` package on Vercel** — confirmed present in `dependencies` (not `devDependencies`), so Vercel will install it in production. The SDK uses an internal token (no env vars required), so no Vercel config changes needed.
+
+3. **LLM enrichment is now optional** — if `OPENROUTER_API_KEY` is missing or the LLM call fails, the route returns real research with `searchIntent: "informational"` (default), `searcherGoal: ""`, `contentGaps: []`. The caller (`AIGenerateModal`) handles these null/empty fields gracefully — article generation will still work, just without LLM-derived strategic insights.

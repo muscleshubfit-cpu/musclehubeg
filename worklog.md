@@ -1863,3 +1863,32 @@ Stage Summary:
 - No conflicts with PROJECT_CONTEXT.md or older AGENTS.md sections.
 - Files changed: `AGENTS.md` (new §12 section) + `worklog.md` (this entry).
 - Commit + push to follow with message: `docs: adopt project workflow rules as binding policy`.
+
+---
+Task ID: AI-RESEARCH-EXTERNAL-001
+Agent: main (super-z)
+Task: First task of the remaining AI fixes system (excluding Blog). Fix the AI external-search loop: External Search → collect results/sources → extract useful titles/info → store in the approved project location → expose to the next stage. Use existing AI provider + architecture as the official entry point. Do NOT modify or redesign Blog generation. Do NOT touch BLOG-MULTILANG-ENGINE-001 (still FUTURE/BACKLOG ONLY). IMPLEMENT → VALIDATE → DOCUMENT → COMMIT → PUSH per AGENTS.md §12.2.
+
+Work Log:
+- Inspected actual state: `src/lib/ai-provider.ts`, all 8 routes under `src/app/api/ai/*`, `src/lib/evo-search.ts`, `src/lib/ai.ts`, `src/lib/blog-generate.ts` (read-only inspection for context — not modified). Cross-checked `PROJECT_CONTEXT.md`, `PROGRESS.md`, `AGENTS.md`, `QA_CHECKLIST.md`, `worklog.md`.
+- Identified the gap: `/api/ai/research-topic/route.ts` was using `callFreeOpenRouter()` to ask an LLM to "research" a topic — pure LLM pseudo-research, hallucinated titles, `host: ""` for every result, no real URLs/snippets. This is the broken AI external-search loop the user asked to fix.
+- Discovered secondary issue (out of scope, documented as known issue): `src/lib/blog-generate.ts:446-590` (`generateExternalResearch()`) uses raw `fetch()` against `https://internal-api.z.ai/v1/functions/invoke` with the default `"Z.ai"` API key — which I tested and confirmed fails with `invalid X-Token`. The blog pipeline's external search would also return empty results when Step 2a finally runs. NOT FIXED in this task (user constraint: "لا تعدّل أو تعيد تصميم Blog generation في هذه المهمة"). Documented as Known Unresolved Issue #1.
+- Verified `z-ai-web-dev-sdk` package is in `dependencies` (not `devDependencies`) — will deploy to Vercel. Tested the SDK directly via `bun run` script: real results returned (PubMed, academic.oup.com, ubiehealth.com, etc. with real URLs + hosts + snippets). SDK uses internal token, no env vars or API keys required.
+- Created `src/lib/external-search.ts` (214 lines) — the project's official entry point for real external web search. Exports `externalSearch(input)` returning a `ResearchResult` shape. Runs 3 parallel queries via `Promise.all` with 8s timeout each. Dedup by normalized URL. Filters reddit/quora/pinterest/facebook. Extracts questions from snippets. Computes trending keywords from word frequency. ZERO LLM calls. ZERO OpenRouter. Uses `z-ai-web-dev-sdk` (not raw fetch).
+- Refactored `src/app/api/ai/research-topic/route.ts` — calls `externalSearch()` as the primary path. LLM (`callFreeOpenRouterLimited` with `maxModels=2`, 20s timeout, Vercel-safe per BLOG-PIPELINE-REDESIGN-001 Phase 1) used ONLY for `searchIntent` / `searcherGoal` / `contentGaps` enrichment — fields that cannot be derived from raw web search results. If LLM call fails, real research still returned with null enrichment fields. Response shape preserved (topArticles, relatedQuestions, trendingAngles, contentGaps, searchIntent, searcherGoal, totalResults, source) so `AIGenerateModal` client code works unchanged. Added new fields: queryCount, queriesSucceeded, partialFailure, trendingKeywords (in addition to legacy trendingAngles alias).
+- Did NOT modify: blog pipeline (step1/step2a/step2b/step2c/step2d/step3 routes), `blog-generate.ts`, `ai-provider.ts`, `ai.ts`, `ai-local.ts`, `evo-search.ts`, EVO AI chat route, pick-topic route, generate-article route, generate-image route, plan/swap/regenerate-meal routes, AIGenerateModal.tsx, BLOG-MULTILANG-ENGINE-001. No migrations, no DB schema changes.
+- Verification:
+  • `npx tsc --noEmit` → 0 errors ✅ (including new module + refactored route)
+  • `bun run lint` → 9 pre-existing problems (4 errors + 5 warnings) — confirmed via `git stash` baseline comparison that NONE were introduced by this task. All pre-existing errors are in `CookieConsent.tsx` + `SaveResultButton.tsx` (untouched by this task).
+  • `git diff --check` → no whitespace errors ✅
+  • Local smoke test of `externalSearch()` with `focusKeyword: "cortisol muscle growth"`: real results from pubmed.ncbi.nlm.nih.gov, academic.oup.com, ubiehealth.com, medichecks.com, nutri-plus.de. 6 real articles, 0 reddit/quora/pinterest/facebook violations, 0 duplicate URLs, `partialFailure: true` (1 of 3 queries hit Z.ai 429 — handled gracefully, no crash, other 2 queries returned real data).
+- Did NOT touch BLOG-MULTILANG-ENGINE-001 — still FUTURE / BACKLOG ONLY.
+- Updated `PROGRESS.md`: appended new section "AI-RESEARCH-EXTERNAL-001 — External Web Search for /api/ai/research-topic" after the BLOG-PIPELINE-RESILIENCE-002 section. Includes: problem solved, solution, architecture diagram, files created, files modified, files NOT modified (preserved), local runtime verification table with sample real results, quality checks (all PASS), verification performed, commands run, known unresolved issues (3 items), potential risks (3 items).
+
+Stage Summary:
+- Created `src/lib/external-search.ts` (new, 214 lines) — project's official entry point for real external web search via `z-ai-web-dev-sdk`. NO LLM, NO OpenRouter, NO raw fetch, NO hardcoded API keys.
+- Refactored `src/app/api/ai/research-topic/route.ts` — primary path is now real external web search; LLM used only for optional enrichment of `searchIntent`/`searcherGoal`/`contentGaps`.
+- Local runtime verification PASSED — real Z.ai web_search results captured (PubMed, academic.oup.com, ubiehealth.com URLs with real hosts + snippets), 0 reddit/quora/pinterest/facebook violations, 0 duplicate URLs.
+- `tsc --noEmit` 0 errors. `bun run lint` 0 new errors (9 pre-existing, confirmed via stash baseline).
+- No blog pipeline code touched. BLOG-MULTILANG-ENGINE-001 still FUTURE/BACKLOG ONLY.
+- Commit + push to follow with message: `feat: replace LLM pseudo-research with real external web search in /api/ai/research-topic`.
