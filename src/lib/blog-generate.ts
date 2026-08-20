@@ -424,3 +424,337 @@ export async function generateArticleBundle(
     source: "openrouter:chunked",
   };
 }
+
+/* ========================================================================= */
+/* P0-1: SPLIT FUNCTIONS — each is one AI call, callable from a separate      */
+/* cron route. Each saves its result to the queue's article_bundle JSONB.    */
+/* The original generateArticleBundle() above is kept for backward compat.    */
+/* ========================================================================= */
+
+/**
+ * Step 2a: Research.
+ * Single AI call. Returns research JSON (top articles, related questions,
+ * trending keywords, search intent).
+ */
+export async function generateResearch(
+  input: { topic?: string; focusKeyword?: string; category?: string },
+): Promise<{ research: any; source: string }> {
+  const researchPrompt = `You are an expert SEO/GEO content strategist. Research the topic "${input.focusKeyword || input.topic}" for a fitness & nutrition coaching blog (MuscleHub, Egypt-focused, Arabic + English audience).
+
+Based on your knowledge of search trends, Google search behavior, and AI answer engine patterns, provide:
+
+1. TOP_ARTICLES: The top 5 article angles currently ranking for this topic (title + brief description of what they cover).
+2. RELATED_QUESTIONS: 8-10 questions people actually search for related to this topic (like Answer The Public would show).
+3. TRENDING_KEYWORDS: 10-15 related keywords and subtopics that are trending or have high search volume.
+4. SEARCH_INTENT: Is the primary search intent informational, commercial, or transactional? What does the searcher really want?
+
+Return STRICT JSON only:
+{
+  "topArticles": [{"title": "...", "description": "..."}],
+  "relatedQuestions": ["question 1", "..."],
+  "trendingKeywords": ["keyword 1", "..."],
+  "searchIntent": "informational|commercial|transactional",
+  "searcherGoal": "what the searcher really wants to achieve"
+}`;
+
+  const { text, model } = await callFreeOpenRouter(
+    researchPrompt,
+    {
+      systemPrompt: "You are an expert SEO strategist. Return JSON only.",
+      temperature: 0.5,
+      maxTokens: 2000,
+      jsonMode: true,
+      timeoutMs: 55_000,
+    },
+  );
+  const research = parseJSON<any>(text);
+  if (!research) throw new Error("Research returned invalid JSON");
+  console.log(`[blog-generate] Research done (model: ${model})`);
+  return { research, source: `openrouter:${model}` };
+}
+
+/**
+ * Step 2b: SEO data + English article.
+ * Single AI call. Takes research as input. Returns SEO block + English article.
+ * maxTokens increased from 4000 to 8000 to prevent truncation (P0-2 fix).
+ */
+export async function generateEnglishArticle(
+  input: { topic?: string; focusKeyword?: string; category?: string },
+  research: any,
+): Promise<{ seo: any; englishArticle: string; source: string }> {
+  const { text, model } = await callFreeOpenRouter(
+    chunk1Prompt(input, research),
+    {
+      systemPrompt: ARTICLE_SYSTEM_PROMPT,
+      temperature: 0.7,
+      maxTokens: 8_000,
+      jsonMode: true,
+      timeoutMs: 55_000,
+    },
+  );
+  const parsed = parseJSON<any>(text);
+  if (!parsed || !parsed.englishArticle || !parsed.seo) {
+    throw new Error("English article chunk returned invalid data — missing seo or englishArticle");
+  }
+  console.log(`[blog-generate] EN article done (model: ${model}, words: ${parsed.englishArticle.split(/\s+/).length})`);
+  return { seo: parsed.seo, englishArticle: parsed.englishArticle, source: `openrouter:${model}` };
+}
+
+/**
+ * Step 2c: Arabic article + FAQ.
+ * Single AI call. Takes SEO + English article as input (EN article improves
+ * coherence — the AR writer can match structure and depth).
+ * maxTokens increased from 4000 to 8000 to prevent truncation.
+ */
+export async function generateArabicArticle(
+  input: { topic?: string; focusKeyword?: string; category?: string },
+  seo: any,
+  englishArticle: string,
+): Promise<{ arabicArticle: string; faq: any[]; faqAr: any[]; source: string }> {
+  const enTitle = seo?.en?.seoTitle || input.topic || "";
+  const arTitle = seo?.ar?.seoTitle || "";
+  const focusKw = seo?.focusKeyword || input.focusKeyword || "";
+
+  // Truncate English article to ~2000 words to keep prompt size manageable
+  const enExcerpt = englishArticle.split(/\s+/).slice(0, 2000).join(" ");
+
+  const prompt = `Generate PART 2 of a blog article bundle for MuscleHub.
+
+CONTEXT FROM PART 1:
+ - English title: "${enTitle}"
+ - Arabic title: "${arTitle}"
+ - Focus keyword: "${focusKw}"
+
+ENGLISH ARTICLE (for reference — match its structure, depth, and topic coverage):
+${enExcerpt}
+
+STEP 4 — ARABIC ARTICLE (LOCALIZED, NOT TRANSLATED, Markdown, 500-800 words):
+ - Adapt the angle for an Egyptian / Gulf Arabic-speaking audience.
+ - Use culturally relevant examples (Egyptian foods, local gym culture, prayer-time scheduling, etc.).
+ - Write in Modern Standard Arabic with a friendly, motivating tone.
+ - Do NOT translate English idioms literally — rewrite for Arabic readers.
+ - Same SEO structure as English (H2/H3, table, key takeaways, CTA sections).
+ - Match the English article's depth and coverage — cover the same sub-topics.
+ - Include the focus keyword (transliterated or Arabic equivalent) naturally.
+ - CRITICAL: The ENTIRE Arabic article MUST be 100% in Arabic. This includes:
+   * All headings (H2, H3) — Arabic only, no English words
+   * All paragraphs — Arabic only
+   * All table headers and cell content — Arabic only
+   * The FAQ questions and answers — Arabic only
+   * The CTA section — Arabic only
+   * The "Key Takeaways" section — Arabic only
+   * Source citations — write the source name in Arabic (e.g. "وفقاً لدراسة في المجلة الدولية للتغذية الرياضية")
+   * Scientific terms — transliterate to Arabic or explain in Arabic (e.g. "معدل الأيض الأساسي (BMR)")
+   * Do NOT write any English sentence, phrase, or heading in the Arabic article
+
+STEP 5 — FAQ (3-5 Q&As, SEPARATE for each language):
+ - Questions people ask on Google + AI assistants about this topic.
+ - Answers 40-80 words each, concise and quotable.
+ - English FAQ: questions and answers in English.
+ - Arabic FAQ: questions and answers in Arabic ONLY — no English words.
+ - Return FAQ as: [{ "question": "English Q", "answer": "English A" }, ...]
+   The system will use these for the English article. For the Arabic article,
+   include a separate "faq_ar" field with Arabic-only Q&A.
+
+Return STRICT JSON with this shape:
+{
+  "arabicArticle": "markdown string",
+  "faq": [{ "question": "string", "answer": "string" }],
+  "faq_ar": [{ "question": "string (Arabic)", "answer": "string (Arabic)" }]
+}
+
+Return ONLY the JSON. No commentary, no markdown fences.`;
+
+  const { text, model } = await callFreeOpenRouter(
+    prompt,
+    {
+      systemPrompt: ARTICLE_SYSTEM_PROMPT,
+      temperature: 0.7,
+      maxTokens: 8_000,
+      jsonMode: true,
+      timeoutMs: 55_000,
+    },
+  );
+  const parsed = parseJSON<any>(text);
+  if (!parsed || !parsed.arabicArticle) {
+    throw new Error("Arabic article chunk returned invalid data — missing arabicArticle");
+  }
+  console.log(`[blog-generate] AR article done (model: ${model}, has FAQ: ${!!parsed.faq?.length})`);
+  return {
+    arabicArticle: parsed.arabicArticle,
+    faq: Array.isArray(parsed.faq) ? parsed.faq : [],
+    faqAr: Array.isArray(parsed.faq_ar) ? parsed.faq_ar : [],
+    source: `openrouter:${model}`,
+  };
+}
+
+/**
+ * Step 2d: Internal/external links + image prompts + social posts.
+ * Single AI call. Takes SEO + both articles as input (improves link anchor
+ * text matching — P1-6 fix from audit).
+ */
+export async function generateLinksAndSocial(
+  input: { topic?: string; focusKeyword?: string },
+  seo: any,
+  englishArticle: string,
+  arabicArticle: string,
+): Promise<{
+  internalLinks: any[];
+  externalLinks: any[];
+  imagePrompts: any;
+  socialPosts: any;
+  estimatedReadingTime: number;
+  source: string;
+}> {
+  const enTitle = seo?.en?.seoTitle || input.topic || "";
+  const arTitle = seo?.ar?.seoTitle || "";
+  const focusKw = seo?.focusKeyword || input.focusKeyword || "";
+
+  // Extract first 500 words of each article for link matching context
+  const enExcerpt = englishArticle.split(/\s+/).slice(0, 500).join(" ");
+  const arExcerpt = arabicArticle.split(/\s+/).slice(0, 500).join(" ");
+
+  const prompt = `Generate PART 3 of a blog article bundle for MuscleHub.
+
+CONTEXT:
+ - English title: "${enTitle}"
+ - Arabic title: "${arTitle}"
+ - Focus keyword: "${focusKw}"
+
+ENGLISH ARTICLE EXCERPT (for matching anchor text):
+${enExcerpt}
+
+ARABIC ARTICLE EXCERPT (for matching anchor text):
+${arExcerpt}
+
+STEP 6 — LINK SUGGESTIONS (MUST be included in both articles):
+ - internalLinks: 3-5 suggested internal links to other MuscleHub blog posts.
+   Each: { slug, anchorText, reason, anchorTextAr }
+   IMPORTANT: Choose anchorText that actually appears in the article excerpts above.
+   The anchorText is English; anchorTextAr is the Arabic version of the anchor text.
+ - externalLinks: 3-5 authoritative external references (NIH, WHO, Examine.com, ACE, ISSN, Mayo Clinic).
+   Each: { url, anchorText, reason, anchorTextAr }
+   IMPORTANT: Choose anchorText that actually appears in the article excerpts above.
+
+STEP 7 — IMAGE PROMPTS (English, for AI image generators):
+ - featuredImage, facebookImage, openGraphImage
+ - Each prompt: ultra-realistic, premium fitness style, dramatic lighting, blue & gold accent palette, NO text overlay, high CTR.
+ - Vary composition between the three (different angles / subjects).
+
+STEP 8 — SOCIAL MEDIA POSTS:
+ - facebook, linkedin, instagram, x
+ - Each post: strong hook (first line), 2-3 supporting lines, engagement question, CTA, 3-6 hashtags.
+ - Add a final line: "Registration link in the first comment " (English) or "رابط التسجيل في أول تعليق " (Arabic).
+ - X post must be ≤ 280 chars.
+
+STEP 9 — estimatedReadingTime (integer minutes, based on English article word count @ 200 wpm).
+
+Return STRICT JSON with this shape:
+{
+  "internalLinks": [{ "slug": "string", "anchorText": "string", "reason": "string", "anchorTextAr": "string" }],
+  "externalLinks": [{ "url": "string", "anchorText": "string", "reason": "string", "anchorTextAr": "string" }],
+  "imagePrompts": {
+    "featuredImage": "string",
+    "facebookImage": "string",
+    "openGraphImage": "string"
+  },
+  "socialPosts": {
+    "facebook": "string",
+    "linkedin": "string",
+    "instagram": "string",
+    "x": "string"
+  },
+  "estimatedReadingTime": 7
+}
+
+Return ONLY the JSON. No commentary, no markdown fences.`;
+
+  const { text, model } = await callFreeOpenRouter(
+    prompt,
+    {
+      systemPrompt: ARTICLE_SYSTEM_PROMPT,
+      temperature: 0.7,
+      maxTokens: 2_500,
+      jsonMode: true,
+      timeoutMs: 55_000,
+    },
+  );
+  const parsed = parseJSON<any>(text);
+  if (!parsed) throw new Error("Links + social chunk returned invalid JSON");
+
+  const wordCount = englishArticle.split(/\s+/).length;
+  const estimatedReadingTime =
+    typeof parsed.estimatedReadingTime === "number"
+      ? parsed.estimatedReadingTime
+      : Math.max(1, Math.ceil(wordCount / 200));
+
+  console.log(`[blog-generate] Links + social done (model: ${model}, links: ${parsed.internalLinks?.length || 0})`);
+  return {
+    internalLinks: Array.isArray(parsed.internalLinks) ? parsed.internalLinks : [],
+    externalLinks: Array.isArray(parsed.externalLinks) ? parsed.externalLinks : [],
+    imagePrompts: parsed.imagePrompts || { featuredImage: "", facebookImage: "", openGraphImage: "" },
+    socialPosts: parsed.socialPosts || { facebook: "", linkedin: "", instagram: "", x: "" },
+    estimatedReadingTime,
+    source: `openrouter:${model}`,
+  };
+}
+
+/**
+ * Helper: build the final ArticleBundle from individual step results.
+ * Used by step3-publish to assemble the complete bundle from queue data.
+ */
+export function buildFinalBundle(parts: {
+  research: any;
+  seo: any;
+  englishArticle: string;
+  arabicArticle: string;
+  faq: any[];
+  faqAr: any[];
+  internalLinks: any[];
+  externalLinks: any[];
+  imagePrompts: any;
+  socialPosts: any;
+  estimatedReadingTime: number;
+}): ArticleBundle {
+  const emptySeo: SeoBlock = { seoTitle: "", metaTitle: "", metaDescription: "", slug: "" };
+  const buildSeo = (block: any): SeoBlock => ({
+    seoTitle: block?.seoTitle || "",
+    metaTitle: block?.metaTitle || block?.seoTitle || "",
+    metaDescription: block?.metaDescription || "",
+    slug: block?.slug || "",
+  });
+
+  // Insert links into both articles
+  const englishArticle = insertLinksIntoArticle(
+    parts.englishArticle || "",
+    parts.internalLinks,
+    parts.externalLinks,
+    false,
+  );
+  const arabicArticle = insertLinksIntoArticle(
+    parts.arabicArticle || "",
+    parts.internalLinks,
+    parts.externalLinks,
+    true,
+  );
+
+  return {
+    research: parts.research || null,
+    seo: {
+      focusKeyword: parts.seo?.focusKeyword || "",
+      secondaryKeywords: Array.isArray(parts.seo?.secondaryKeywords) ? parts.seo.secondaryKeywords : [],
+      en: parts.seo?.en ? buildSeo(parts.seo.en) : emptySeo,
+      ar: parts.seo?.ar ? buildSeo(parts.seo.ar) : emptySeo,
+    },
+    englishArticle,
+    arabicArticle,
+    faq: parts.faq || [],
+    faqAr: parts.faqAr || [],
+    internalLinks: parts.internalLinks || [],
+    externalLinks: parts.externalLinks || [],
+    imagePrompts: parts.imagePrompts || { featuredImage: "", facebookImage: "", openGraphImage: "" },
+    socialPosts: parts.socialPosts || { facebook: "", linkedin: "", instagram: "", x: "" },
+    estimatedReadingTime: parts.estimatedReadingTime || 1,
+    source: "openrouter:multi-step",
+  };
+}
