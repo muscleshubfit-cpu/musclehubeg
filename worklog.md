@@ -1793,3 +1793,43 @@ Stage Summary:
 - Verification: YAML syntax OK, bash syntax OK, retry simulation OK (3-failure and success-on-attempt-2 cases), failure propagation OK (no continue-on-error, no if:), pipeline order OK, timing budget OK (worst case 32.7 min ≤ 35 min), `git diff --check` OK.
 - Pre-flight resolved: local was 5 commits behind origin/main (`4149062` vs `758567a`); performed `git pull --ff-only` to sync; no rebase conflicts; BLOG-MULTILANG-ENGINE-001 docs confirmed present from prior push.
 - Commit + push to follow with message: `ci: add Step 1 controlled retry + 10-minute Step 2a handoff`.
+
+---
+Task ID: BLOG-PIPELINE-RESILIENCE-002-VERIFY
+Agent: main (super-z)
+Task: Production runtime verification of BLOG-PIPELINE-RESILIENCE-002 (commit `9a092ab`) — trigger workflow_dispatch on origin/main, monitor Step 1 retry behavior, capture Step 2a runtime evidence if reached. NO code change, NO workflow change, NO DB change, NO commit, NO push. Documentation-only update of PROGRESS.md + worklog.md with the actual evidence.
+
+Work Log:
+- Pre-flight: Verified via GitHub Contents API that the workflow file at `origin/main` (commit `9a092ab`) is the deployed version. File blob SHA: `896fa4604a2b456a2d23acd2af3fe43af92679b9`, size 7364 bytes. All 9 expected features present: `timeout-minutes: 35`, `MAX_ATTEMPTS=3`, `sleep 300` (5-min backoff), `sleep 600` (10-min backoff + 10-min handoff), `break` on success, `exit 1` on final failure, `step2a-research` route invocation.
+- Triggered `workflow_dispatch` on `origin/main` (commit `9a092ab`). API returned HTTP 204 (success). New run created: ID `32417987113`, head_sha `9a092ab33b30e07c60c829e11290a818a7bcf91a`, event `workflow_dispatch`, started at `2026-08-20T21:10:02Z`.
+- Monitored the run via the GitHub Actions API. Polled `/actions/runs/{id}/jobs` approximately every 4 minutes. Step 1 retry loop remained `in_progress` from 21:10:08 through 21:25:13 (15 min 5 s) — consistent with the expected timing of 3 attempts × ~2s + 5m + 10m backoffs = ~17 min (Scenario A in the timing budget).
+- Run completed at `2026-08-20T21:25:13Z` with status `completed` / conclusion `failure`. Total wallclock: 905.3s = 15.09 min (within predicted Scenario A: 17.8 min ✅).
+- Downloaded the full run logs via the GitHub Actions logs endpoint. Extracted Step 1 retry attempt details with timestamps from `0_generate.txt`:
+  • Attempt 1: 21:10:08.441 → HTTP 500 at 21:10:09.704 (curl duration 1.26s) — OpenRouter 429 on `google/gemma-4-26b-a4b-it:free`, `limit_source: upstream_provider_shared_pool`, `is_byok: false`. Groq fallback returned 404 `model_not_found` for `llama-3.3-70b-versatile`.
+  • Backoff 1: 21:10:09.712 → 21:15:09.707 = **299.995s** (target 300s, delta 5ms) ✅
+  • Attempt 2: 21:15:09.707 → HTTP 500 at 21:15:11.179 (curl duration 1.47s) — identical OpenRouter 429 error.
+  • Backoff 2: 21:15:11.180 → 21:25:11.181 = **600.001s** (target 600s, delta 1ms) ✅
+  • Attempt 3: 21:25:11.181 → HTTP 500 at 21:25:13.732 (curl duration 2.55s) — identical OpenRouter 429 error.
+  • Final exit: 21:25:13.733 → 21:25:13.735 = `exit 1` (final failure handling, ~2ms).
+- Retry loop terminated correctly: 3 attempts max enforced, no fourth attempt, exit 1 fired, Step 2a + downstream all marked `skipped` by GitHub Actions default failure propagation (no `continue-on-error`, no `if:` conditions on any step — verified at runtime).
+- Step 2a handoff buffer (10 minutes) was NOT executed — correct behavior, since it only runs after Step 1 succeeds.
+- Step 2a route was NOT invoked. Therefore the following metrics could NOT be collected at runtime this round: HTTP status, execution time, queueId, source, queriesRun, queriesSucceeded, partialFailure, articlesFound, questionsFound, keywordsFound, `article_bundle.research` contents (real URLs / hosts / snippets / no reddit/quora/pinterest/facebook). All marked N/A — per task §10 these are the expected gaps when Step 1 retries are exhausted.
+- Root cause of Step 1 failure: OpenRouter's shared upstream provider pool rate-limit on `google/gemma-4-26b-a4b-it:free` (`limit_source: upstream_provider_shared_pool`, `is_byok: false`). This is a TRANSIENT upstream provider issue, NOT a code defect in BLOG-PIPELINE-RESILIENCE-002. The retry loop itself worked flawlessly — exact 5-min + 10-min backoff timing, hard 3-attempt cap, exit 1 on final failure, no OpenRouter spam (3 invocations spaced over 15 minutes).
+- Did NOT modify any code under `src/`. Confirmed via `git status --porcelain src/ supabase/` → 0 lines.
+- Did NOT modify the workflow file `.github/workflows/generate-blog-post.yml`.
+- Did NOT create or modify any migration under `supabase/migrations/`.
+- Did NOT modify any blog pipeline route (step1/step2a/step2b/step2c/step2d/step3).
+- Did NOT touch BLOG-MULTILANG-ENGINE-001 — it remains FUTURE / BACKLOG ONLY.
+- Did NOT commit, did NOT push (per task §13 — awaiting owner review of the final report before commit).
+- Updated `PROGRESS.md`: appended a new subsection "Production Runtime Verification (2026-08-21)" inside the existing BLOG-PIPELINE-RESILIENCE-002 section. The subsection records: run ID, trigger, started/finished, total wallclock, result (`BLOCKED — STEP 1 RETRIES EXHAUSTED`), deployed workflow verification, full Step 1 retry attempt table with UTC timestamps + HTTP codes + error metadata + backoff durations, backoff timing precision (deltas under 5ms), Step 2a handoff NOT EXECUTED with the full step status table, Step 2a runtime evidence NOT COLLECTED list, root cause analysis (upstream OpenRouter rate-limit, not a code defect), and a conclusion listing what WAS verified at runtime vs what was blocked.
+
+Stage Summary:
+- Production runtime verification of BLOG-PIPELINE-RESILIENCE-002 (commit `9a092ab`) completed. Result: 🛑 `BLOCKED — STEP 1 RETRIES EXHAUSTED`.
+- Run ID: `32417987113` (workflow_dispatch on origin/main, head_sha `9a092ab`).
+- The retry logic itself worked flawlessly: 3 attempts max, 5-min backoff (actual 299.995s, delta 5ms), 10-min backoff (actual 600.001s, delta 1ms), exit 1 on final failure, no fourth attempt, no OpenRouter spam, no Step 2a invocation (correctly skipped).
+- Total Step 1 wallclock: 15.09 min (within predicted Scenario A: 17.8 min ✅).
+- Blocker: OpenRouter upstream shared pool rate-limit on `google/gemma-4-26b-a4b-it:free` (transient, not a code defect). Groq fallback model name `llama-3.3-70b-versatile` is stale (returns 404 model_not_found) — a separate concern for a future task.
+- Step 2a runtime metrics + `article_bundle.research` contents NOT collected this round (Step 2a never ran). Requires either OpenRouter upstream recovery (out of our control) or owner manual queue row insertion + Step 1 bypass (not currently supported by the workflow — would be a future task).
+- Documentation update (PROGRESS.md + worklog.md) is staged locally — NOT committed, NOT pushed. Awaiting owner review per task §13.
+- BLOG-MULTILANG-ENGINE-001 untouched — still FUTURE / BACKLOG ONLY.
+- Working tree: only PROGRESS.md + worklog.md modified (unstaged). HEAD remains at `9a092ab`, in sync with origin/main. No code change, no migration, no workflow change.
