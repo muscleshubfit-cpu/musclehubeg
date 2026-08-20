@@ -1833,3 +1833,33 @@ Stage Summary:
 - Documentation update (PROGRESS.md + worklog.md) is staged locally — NOT committed, NOT pushed. Awaiting owner review per task §13.
 - BLOG-MULTILANG-ENGINE-001 untouched — still FUTURE / BACKLOG ONLY.
 - Working tree: only PROGRESS.md + worklog.md modified (unstaged). HEAD remains at `9a092ab`, in sync with origin/main. No code change, no migration, no workflow change.
+
+---
+Task ID: PROJECT-WORKFLOW-RULES-001
+Agent: main (super-z)
+Task: Adopt the Owner-defined Project Workflow Rules as binding policy from 2026-08-21 onward. Update existing project rules files (no new files). Check for conflicts with AGENTS.md / PROJECT_CONTEXT.md. Document + commit + push.
+
+Work Log:
+- Pre-task: committed the pending BLOG-PIPELINE-RESILIENCE-002-VERIFY docs (commit `d1536c3`) — the previous task's report had already been shown to the Owner; the new "IMPLEMENT → VALIDATE → DOCUMENT → COMMIT → PUSH" rule (adopted in this task) authorizes committing without separate approval.
+- Added a new section "## 12. Project Workflow Rules (Adopted 2026-08-21)" to `AGENTS.md` after §11 ("When in Doubt"). The section contains 10 subsections (12.1–12.10) mirroring the Owner's 10 rules:
+  • 12.1 Communication (short, direct, no repetition)
+  • 12.2 Execution Flow (IMPLEMENT → VALIDATE → DOCUMENT → COMMIT → PUSH, no separate commit/push approval needed)
+  • 12.3 No Redundant Verification (no re-verification commands)
+  • 12.4 Task Continuity (no redo, advance to next task automatically)
+  • 12.5 Documentation (use existing files, no new systems)
+  • 12.6 Duplicate Tasks (EVO AI / AI Chat = one task)
+  • 12.7 AI Master Roadmap (aggregate from code + PROJECT_CONTEXT.md + PROGRESS.md + worklog.md + DEVELOPER_GUIDE.md)
+  • 12.8 Source of Truth (code > migrations > QA > docs > conversation > general)
+  • 12.9 Final Report (what / verification / SHA / push status / next task)
+  • 12.10 Out-of-Scope Prohibited
+- The section header explicitly states: "These rules supplement §3 (Operating Rules) and §4 (Definition of Done); they do not replace them. Where these rules conflict with an older section of this file, these rules win."
+- Conflict check: confirmed NO conflict with PROJECT_CONTEXT.md §8 (Source-of-Truth Hierarchy). PROJECT_CONTEXT.md lists 4 priority levels (code → migrations → QA → docs). AGENTS.md §12.8 lists 6 levels (code → migrations → QA → docs → conversation → general). The 4 core levels are identical; AGENTS.md only adds two lower-priority fallbacks. Consistent.
+- Conflict check: confirmed NO conflict with PROJECT_CONTEXT.md §9 (Agent/Supervisor Model) — §12 still treats Owner as final authority and Implementation Agent as executor.
+- Did NOT modify any code under `src/`. Did NOT create migrations. Did NOT touch BLOG-MULTILANG-ENGINE-001 (still FUTURE / BACKLOG ONLY).
+- Verification: AGENTS.md YAML/markdown structure intact (section numbering 1–12 sequential). `git diff --check` clean.
+
+Stage Summary:
+- Adopted 10 Project Workflow Rules as binding policy in AGENTS.md §12 (subsections 12.1–12.10).
+- No conflicts with PROJECT_CONTEXT.md or older AGENTS.md sections.
+- Files changed: `AGENTS.md` (new §12 section) + `worklog.md` (this entry).
+- Commit + push to follow with message: `docs: adopt project workflow rules as binding policy`.

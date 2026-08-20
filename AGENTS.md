@@ -307,3 +307,109 @@ Potential risks:
 - **Document assumptions.** If you assumed something the task did not
   state, write it in the final report under "Potential risks" or
   "Implementation findings" so the reviewer can challenge it.
+
+---
+
+## 12. Project Workflow Rules (Adopted 2026-08-21)
+
+> **Status:** Active binding policy — applies to every task from
+> 2026-08-21 onward. Cannot be changed except by explicit Owner
+> directive. These rules supplement §3 (Operating Rules) and §4
+> (Definition of Done); they do not replace them. Where these rules
+> conflict with an older section of this file, these rules win.
+
+### 12.1 Communication
+
+- Reports must be short and direct.
+- Do not repeat explanations or steps already executed.
+- Do not expand scope beyond the current task or reopen finished
+  tasks without a reason.
+- Only stop and ask the Owner when there is genuine ambiguity.
+
+### 12.2 Execution Flow
+
+Every task executes in this order inside the same task:
+
+```
+IMPLEMENT → VALIDATE → DOCUMENT → COMMIT → PUSH
+```
+
+Do NOT wait for a separate instruction to validate, document, commit,
+or push — unless the Owner explicitly asked to skip one of these steps
+(for example, "show me the report before commit").
+
+### 12.3 No Redundant Verification
+
+- Do not create a separate command to re-verify what was already
+  verified.
+- Verification results belong in the task's own report.
+- After a task succeeds, move directly to the next task.
+
+### 12.4 Task Continuity
+
+- Do not redo completed steps.
+- Preserve the current task's state.
+- When multiple tasks are queued, advance automatically to the next
+  one after the current one completes.
+- Do not start a new task from memory or guessing — use the project's
+  actual state (code, migrations, docs, worklog).
+
+### 12.5 Documentation
+
+- Document every completed task while executing it.
+- Use the existing documentation files (`PROGRESS.md`, `worklog.md`,
+  `AGENTS.md`, `PROJECT_CONTEXT.md`, `DEVELOPER_GUIDE.md`,
+  `SECURITY.md`, `QA_CHECKLIST.md`, `README.md`).
+- Do not create a new documentation system if the existing one
+  suffices.
+- At the end of a large body of work, one comprehensive documentation
+  review pass is allowed to fix gaps or conflicts.
+
+### 12.6 Duplicate Tasks
+
+- Treat **EVO AI** and **AI Chat** as ONE task: `EVO AI / AI Chat`.
+- Do not record the same function as two tasks under different names.
+- Before adding any task, check whether an equivalent task already
+  exists in the project.
+
+### 12.7 AI Master Roadmap
+
+- When building an AI task list, aggregate from: actual source code,
+  `PROJECT_CONTEXT.md`, `PROGRESS.md`, `worklog.md`,
+  `DEVELOPER_GUIDE.md`, and conversations/context as needed.
+- Classify each task as: `COMPLETED` / `IN PROGRESS` / `DEFERRED` /
+  `NOT STARTED`.
+- Do NOT start implementation merely because a missing task was
+  discovered — stick to the task the Owner assigns.
+
+### 12.8 Source of Truth
+
+Priority (highest wins):
+
+1. Actual Code & Config (`src/**`, `next.config.ts`, `tsconfig.json`,
+   `package.json`, `vercel.json`)
+2. Database / Migrations (`supabase/migrations/*.sql`)
+3. QA Evidence (`QA_CHECKLIST.md`, manual smoke tests in commit
+   messages)
+4. Project Documentation (`README.md`, `DEVELOPER_GUIDE.md`,
+   `PROGRESS.md`, `AGENTS.md`, `PROJECT_CONTEXT.md`, `SECURITY.md`)
+5. Conversation Context
+6. General Knowledge
+
+If documentation conflicts with code, **code wins**.
+
+### 12.9 Final Report
+
+After every task, deliver a brief report containing only:
+
+- What was done
+- Verification result
+- Commit SHA
+- Push status
+- Next task
+
+### 12.10 Out-of-Scope Prohibited
+
+- Do not add steps or improvements outside the current task's scope.
+- Do not wait for a new instruction to validate / document / commit /
+  push after task completion, unless the Owner asked otherwise.
