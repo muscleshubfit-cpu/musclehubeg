@@ -1711,3 +1711,40 @@ Stage Summary:
 - Temporary bypass token reverted — endpoint is back to coach-auth-or-CRON_SECRET only.
 - Article generation pipeline confirmed working: OPENROUTER_API_KEY is valid, nvidia/nemotron-3-ultra-550b (the largest model in the unified iterator) responds correctly, no AI Settings override to break things.
 - All 3 pushes deployed automatically via Vercel GitHub integration — no manual deploy needed.
+
+---
+Task ID: DOC-FUTURE-MULTILANG-001
+Agent: main (super-z)
+Task: Document the approved future architectural task MULTI-LANGUAGE CONTENT ENGINE in the existing project documentation system. NO code change, NO migration, NO pipeline change, NO commit, NO push, NO implementation. Backlog documentation only.
+
+Work Log:
+- Read PROJECT_CONTEXT.md, PROGRESS.md, AGENTS.md, worklog.md before any edit, to preserve the existing Task ID convention (BLOG-<SCOPE>-NNN) and the existing documentation style (status block + structured subsections used by BLOG-PIPELINE-REDESIGN-001 and BLOG-EXTERNAL-RESEARCH-001).
+- Verified working tree was clean (HEAD = `12e8719` docs commit, in sync with origin/main) before starting.
+- Selected Task ID `BLOG-MULTILANG-ENGINE-001` for the future task itself, matching the existing `BLOG-<SCOPE>-NNN` convention used by BLOG-PIPELINE-REDESIGN-001 and BLOG-EXTERNAL-RESEARCH-001.
+- Selected Task ID `DOC-FUTURE-MULTILANG-001` for this worklog entry (documentation-only session).
+- Appended a new section to PROGRESS.md (after the BLOG-EXTERNAL-RESEARCH-001 section) titled "BLOG-MULTILANG-ENGINE-001 — Future Architectural Task (BACKLOG ONLY)". The section contains:
+  • Status: FUTURE / BACKLOG ONLY — NOT SCHEDULED FOR IMPLEMENTATION
+  • Explicit "DO NOT IMPLEMENT NOW" notice block.
+  • Goal statement (independent content engines per language; AR is NOT a translation of EN).
+  • Approved scope (4 items: per-language engines, AR independence, per-language ownership of SEO / Search Intent / Content Angle / Content Structure / Article Generation, shareable Research Foundation).
+  • Target architectural diagram (External Research → EN Engine + AR Engine → EN Article + AR Article).
+  • Current "translation" diagram that the future task will replace.
+  • Non-goals (do NOT replace Step 2a; do NOT change the current pipeline; no third language initially; do NOT remove /ar/* mirror routes or i18n provider).
+  • Preconditions (dedicated Task ID; design review per AGENTS.md §3.4; BLOG-EXTERNAL-RESEARCH-001 production-verified; Vercel Hobby 60s timeout re-evaluation; supabase migration via owner per AGENTS.md §3.3/§6).
+  • Current pipeline block (Step 1 → 2a → 2b → 2c → 2d → 3) marked UNCHANGED — must remain operational.
+  • Verification checklist for THIS documentation entry.
+  • Owner sign-off checklist to move the task from BACKLOG → IN PROGRESS.
+- Did NOT create a new documentation file (used the existing PROGRESS.md, per the user instruction "لا تكرر أو تنشئ ملفات توثيق جديدة إذا كانت البنية الحالية توفر مكانًا مناسبًا").
+- Did NOT modify any code file under src/.
+- Did NOT create any migration under supabase/migrations/.
+- Did NOT modify the GitHub Actions workflow (.github/workflows/generate-blog-post.yml).
+- Did NOT modify any blog pipeline route (step1 / step2a / step2b / step2c / step2d / step3).
+- Did NOT run `git add`, `git commit`, or `git push`. Working tree changes remain unstaged.
+- Confirmed git status after edits: only PROGRESS.md + worklog.md modified; src/, supabase/, .github/ untouched.
+
+Stage Summary:
+- Future architectural task MULTI-LANGUAGE CONTENT ENGINE recorded in PROGRESS.md under Task ID `BLOG-MULTILANG-ENGINE-001`, marked FUTURE / BACKLOG ONLY.
+- The current blog pipeline (Step 1 → 2a → 2b → 2c → 2d → 3) is UNCHANGED and remains operational. Step 2c still consumes the EN article (translation shape) — this will only change when a dedicated implementation task is opened, designed, and approved.
+- No code, no migration, no pipeline change, no commit, no push.
+- Working tree: PROGRESS.md and worklog.md modified only (unstaged). HEAD remains at `12e8719`, in sync with origin/main.
+- This worklog entry uses Task ID `DOC-FUTURE-MULTILANG-001` (the documentation-only session). The future implementation, when opened, will use its own Task ID per the preconditions recorded in PROGRESS.md.

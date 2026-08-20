@@ -1001,3 +1001,141 @@ Step 2b = article generation consuming stored research (unchanged)
 - [ ] Successful production run when OpenRouter rate limits clear
 - [ ] Verify article_bundle.research contains real URLs
 - [ ] Verify EN article references real sources
+
+---
+
+## BLOG-MULTILANG-ENGINE-001 — Future Architectural Task (BACKLOG ONLY)
+
+**Status:** FUTURE / BACKLOG ONLY — NOT SCHEDULED FOR IMPLEMENTATION
+**Date recorded:** 2026-08-21
+**Origin:** Approved during the BLOG-EXTERNAL-RESEARCH-001 architectural review.
+**Code commit:** NONE (documentation-only — no code change, no migration, no pipeline change)
+**Task type:** Future architectural task (deferred until a separate task is opened and its design is approved by the project owner).
+
+> ⚠️ **DO NOT IMPLEMENT NOW.**
+> This entry exists ONLY to record an approved future direction.
+> The currently-running blog pipeline (Step 1 → 2a → 2b → 2c → 2d → 3) must
+> remain UNCHANGED until this task is formally opened, its design is reviewed
+> by the owner + technical reviewer, and a dedicated implementation task ID is
+> approved. No agent may begin implementation under this entry.
+
+### Goal
+
+Transform blog content production from a single-source-with-translation model
+(English article → Arabic translation) into **independent content engines per
+language**, where Arabic is a first-class output of its own engine rather than
+a translation of the English article.
+
+### Approved scope (future — when the task is opened)
+
+1. Create an **independent content engine per language** (EN engine + AR engine
+   as the initial pair; the design should be extensible to additional languages
+   without re-architecting).
+2. The **Arabic engine must NOT depend on the English article as input** and
+   must NOT be treated as a translation of the English version. AR generation
+   is its own independent content-production path.
+3. Each language engine owns its own:
+   - **SEO** (title, meta description, slug, keywords, SERP targeting)
+   - **Search Intent** (the user need the article answers, scoped to that language's audience)
+   - **Content Angle** (the editorial framing / hook)
+   - **Content Structure** (section organization, heading hierarchy, FAQ shape)
+   - **Article Generation** (independent LLM call with its own brief, not a translation call)
+4. The **Research Foundation** (the scientific / factual basis gathered from
+   external web search — i.e. the output of the current Step 2a) MAY be shared
+   across languages, since the underlying science is language-agnostic. The
+   content built on top of that foundation is independent per language.
+
+### Architectural principle (future target)
+
+```
+        External Research
+              ↓
+       ┌──────┴──────┐
+       ↓             ↓
+   EN Engine      AR Engine
+       ↓             ↓
+   EN Article     AR Article
+```
+
+This is the target shape. The current pipeline shape (below) is the
+**translation** shape and is what this future task will replace:
+
+```
+   EN Article
+       ↓
+  Translation
+       ↓
+   AR Article
+```
+
+### Non-goals (explicit — these are NOT in scope for this future task)
+
+- ❌ Replacing the current Step 2a external research stage (the research
+  foundation is shared, not replaced).
+- ❌ Changing the current Step 1 → 2a → 2b → 2c → 2d → 3 pipeline shape until
+  this task is formally opened and its redesign is approved.
+- ❌ Adding a third language (e.g. French) as part of the initial work — the
+  design must be *extensible* to it, but the initial implementation stays
+  EN + AR.
+- ❌ Removing the Arabic locale mirror routes (`/ar/*`) or the existing i18n
+  context provider.
+
+### Preconditions (must be true before implementation begins)
+
+1. A **new dedicated Task ID** is opened (not this one) and approved by the
+   project owner.
+2. The **design** (engine interface, shared-research contract, queue state
+  shape, prompt architecture) is drafted in prose and reviewed by the owner
+  + technical reviewer per `AGENTS.md` §3.4 (Do Not Invent Architecture).
+3. **BLOG-EXTERNAL-RESEARCH-001** is production-verified (Step 1 rate-limit
+   clears, a real run produces `article_bundle.research.topArticles` with real
+   URLs that Step 2b consumes). The multi-language engine depends on a stable
+   shared research foundation.
+4. The **Vercel Hobby 60s timeout budget** per step is re-evaluated for the new
+   per-language engine calls — each language engine is an additional AI call
+   and must fit within the per-step cap (likely requires keeping the
+   `callFreeOpenRouterLimited(maxModels=2)` discipline from
+   BLOG-PIPELINE-REDESIGN-001 Phase 1).
+5. A **supabase migration** (if needed for the new per-language article storage
+   shape) is written as an idempotent `supabase/migrations/NNNN_*.sql` file and
+   applied by the owner via the SQL Editor — NOT by the agent (per
+   `AGENTS.md` §3.3 and §6).
+
+### Current pipeline (UNCHANGED — must remain operational)
+
+```
+Step 1  → pickSmartTopic
+Step 2a → External Research (z-ai web search — BLOG-EXTERNAL-RESEARCH-001)
+Step 2b → EN Article generation (consumes research)
+Step 2c → AR Article generation (currently consumes EN article — translation shape)
+Step 2d → Links / Images / Social
+Step 3  → Publish
+```
+
+This pipeline is the **current production pipeline** and is NOT modified by
+this future task entry. Step 2c continues to consume the English article
+until BLOG-MULTILANG-ENGINE-001 is formally opened, designed, approved, and
+implemented.
+
+### Verification performed for THIS documentation entry
+
+- [x] Read `PROJECT_CONTEXT.md`, `PROGRESS.md`, `AGENTS.md`, `worklog.md`
+      before adding this entry (to preserve the existing Task ID convention
+      and documentation style).
+- [x] Used the existing `BLOG-<SCOPE>-NNN` Task ID convention
+      (`BLOG-MULTILANG-ENGINE-001`).
+- [x] Added the entry as a new section in `PROGRESS.md` (the project's
+      feature/bug tracker) — did NOT create a new documentation file.
+- [x] Recorded the documentation-only session in `worklog.md` under a
+      dedicated Task ID.
+- [x] **No code changed.** No migration created. No pipeline step modified.
+- [x] **No commit, no push.** Working tree changes are limited to the two
+      documentation files (`PROGRESS.md`, `worklog.md`) and are NOT committed.
+
+### Owner sign-off required to move this from BACKLOG → IN PROGRESS
+
+- [ ] Owner opens a dedicated implementation Task ID (e.g.
+      `BLOG-MULTILANG-ENGINE-002` or `MULTILANG-IMPL-001`).
+- [ ] Owner + technical reviewer approve the engine design (prose, no code).
+- [ ] BLOG-EXTERNAL-RESEARCH-001 is production-verified.
+- [ ] Owner explicitly authorizes touching the current pipeline.
