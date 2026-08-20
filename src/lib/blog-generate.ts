@@ -57,15 +57,15 @@ const chunk1Prompt = (input: {
 }, research?: any) => {
   const researchBlock = research ? `
 
-STEP 0 — RESEARCH DATA (from live web search — use this to inform your article):
+STEP 0 — RESEARCH DATA (from external web search — use this to inform your article):
 Top-ranking articles on this topic:
-${(research.topArticles || []).slice(0, 5).map((a: any, i: number) => `  ${i + 1}. "${a.title}" (${a.host})\n     ${a.snippet}`).join("\n")}
+${(research.topArticles || []).slice(0, 5).map((a: any, i: number) => `  ${i + 1}. "${a.title}" (${a.host || a.url || "?"})\n     ${a.snippet || ""}`).join("\n")}
 
 Related questions people are asking (address these in your article + FAQ):
 ${(research.relatedQuestions || []).slice(0, 8).map((q: string, i: number) => `  ${i + 1}. ${q}`).join("\n")}
 
 Trending keywords related to this topic:
-${(research.trendingAngles || []).slice(0, 8).join(", ")}
+${(research.trendingAngles || research.trendingKeywords || []).slice(0, 8).join(", ")}
 
 Use this research data to:
 - Match the search intent revealed by the top-ranking articles
@@ -432,46 +432,161 @@ export async function generateArticleBundle(
 /* ========================================================================= */
 
 /**
- * Step 2a: Research.
- * Single AI call. Returns research JSON (top articles, related questions,
- * trending keywords, search intent).
+ * Step 2a: External Web Research.
+ * Performs REAL external web search via z-ai web_search API.
+ * Does NOT call any LLM. Does NOT generate pseudo-research.
+ *
+ * Runs 3 search queries IN PARALLEL (Promise.all), each with 8s timeout.
+ * Post-processes: deduplicates by URL, filters low-value sources,
+ * extracts questions from snippets, computes trending keywords.
+ *
+ * Returns { research, source } where research contains REAL URLs, hosts,
+ * snippets from actual web search results.
  */
-export async function generateResearch(
+export async function generateExternalResearch(
   input: { topic?: string; focusKeyword?: string; category?: string },
 ): Promise<{ research: any; source: string }> {
-  const researchPrompt = `You are an expert SEO/GEO content strategist. Research the topic "${input.focusKeyword || input.topic}" for a fitness & nutrition coaching blog (MuscleHub, Egypt-focused, Arabic + English audience).
+  const searchTerm = input.focusKeyword || input.topic || "";
+  if (!searchTerm) {
+    return { research: { topArticles: [], relatedQuestions: [], trendingKeywords: [], source: "empty-search-term" }, source: "empty" };
+  }
 
-Based on your knowledge of search trends, Google search behavior, and AI answer engine patterns, provide:
+  const zaiBaseUrl = process.env.ZAI_BASE_URL || "https://internal-api.z.ai/v1";
+  const zaiApiKey = process.env.ZAI_API_KEY || "Z.ai";
+  const zaiChatId = process.env.ZAI_CHAT_ID || "";
+  const zaiUserId = process.env.ZAI_USER_ID || "";
+  const zaiToken = process.env.ZAI_TOKEN || "";
 
-1. TOP_ARTICLES: The top 5 article angles currently ranking for this topic (title + brief description of what they cover).
-2. RELATED_QUESTIONS: 8-10 questions people actually search for related to this topic (like Answer The Public would show).
-3. TRENDING_KEYWORDS: 10-15 related keywords and subtopics that are trending or have high search volume.
-4. SEARCH_INTENT: Is the primary search intent informational, commercial, or transactional? What does the searcher really want?
+  // Build 3 search queries for different angles
+  const searchQueries = [
+    searchTerm,                    // main topic
+    `${searchTerm} vs`,            // comparison angles
+    `how to ${searchTerm}`,       // how-to angle
+  ];
 
-Return STRICT JSON only:
-{
-  "topArticles": [{"title": "...", "description": "..."}],
-  "relatedQuestions": ["question 1", "..."],
-  "trendingKeywords": ["keyword 1", "..."],
-  "searchIntent": "informational|commercial|transactional",
-  "searcherGoal": "what the searcher really wants to achieve"
-}`;
+  console.log(`[blog-generate] Starting external web search for "${searchTerm}" (${searchQueries.length} queries in parallel)`);
 
-  const { text, model } = await callFreeOpenRouterLimited(
-    researchPrompt,
-    {
-      systemPrompt: "You are an expert SEO strategist. Return JSON only.",
-      temperature: 0.5,
-      maxTokens: 2000,
-      jsonMode: true,
-      timeoutMs: 20_000,
-    },
-    2,
+  // Run ALL queries IN PARALLEL — 8s timeout each
+  const searchResults = await Promise.all(
+    searchQueries.map(async (query, idx) => {
+      try {
+        const res = await fetch(`${zaiBaseUrl}/functions/invoke`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${zaiApiKey}`,
+            "X-Z-AI-From": "Z",
+            ...(zaiChatId ? { "X-Chat-Id": zaiChatId } : {}),
+            ...(zaiUserId ? { "X-User-Id": zaiUserId } : {}),
+            ...(zaiToken ? { "X-Token": zaiToken } : {}),
+          },
+          body: JSON.stringify({
+            function_name: "web_search",
+            arguments: { query, num: 5 },
+          }),
+          signal: AbortSignal.timeout(8_000),
+        });
+        if (!res.ok) {
+          const errText = await res.text().catch(() => "");
+          console.error(`[blog-generate] web_search query ${idx + 1} ("${query}") failed: ${res.status} ${errText.slice(0, 200)}`);
+          return [];
+        }
+        const data = await res.json();
+        const results = data?.result || data || [];
+        console.log(`[blog-generate] web_search query ${idx + 1} ("${query}"): ${results.length} results`);
+        return Array.isArray(results) ? results : [];
+      } catch (e: any) {
+        console.error(`[blog-generate] web_search query ${idx + 1} ("${query}") error: ${e?.name}: ${e?.message}`);
+        return [];
+      }
+    }),
   );
-  const research = parseJSON<any>(text);
-  if (!research) throw new Error("Research returned invalid JSON");
-  console.log(`[blog-generate] Research done (model: ${model})`);
-  return { research, source: `openrouter:${model}` };
+
+  // Post-process results
+  const allSnippets: string[] = [];
+  const relatedQuestions: string[] = [];
+  const topArticles: any[] = [];
+  const seenUrls = new Set<string>();
+  let successfulQueries = 0;
+
+  const lowValueSources = ["reddit.com", "quora.com", "pinterest.com", "facebook.com"];
+
+  for (const results of searchResults) {
+    if (results.length > 0) successfulQueries++;
+    for (const item of results) {
+      const url = item.url || "";
+      const host = item.host_name || item.host || "";
+      const title = item.name || item.title || "";
+      const snippet = (item.snippet || "").slice(0, 200);
+
+      // Deduplicate by normalized URL
+      const normalizedUrl = url.toLowerCase().replace(/\/$/, "").replace(/https?:\/\//, "");
+      if (!normalizedUrl || seenUrls.has(normalizedUrl)) continue;
+      seenUrls.add(normalizedUrl);
+
+      // Filter low-value sources
+      if (lowValueSources.some((src) => host.toLowerCase().includes(src))) continue;
+
+      allSnippets.push(snippet);
+
+      topArticles.push({
+        title,
+        url,
+        host,
+        snippet,
+      });
+
+      // Extract questions from snippets
+      const questionMatches = snippet.match(/\b(what|how|why|when|where|can|should|does|is|are|do)\s+[^.?!]+\?/gi);
+      if (questionMatches) {
+        for (const q of questionMatches) {
+          const trimmed = q.trim();
+          if (trimmed.length > 15 && trimmed.length < 120 && !relatedQuestions.includes(trimmed)) {
+            relatedQuestions.push(trimmed);
+          }
+        }
+      }
+    }
+  }
+
+  // Compute trending keywords from snippet word frequency
+  const wordFreq: Record<string, number> = {};
+  const stopWords = new Set(["about", "which", "their", "would", "could", "should", "other", "these", "those", "there", "where", "when", "what", "while", "from", "with", "that", "this", "they", "have", "been", "will", "your", "also", "more", "than", "into", "only", "most", "some", "such", "very", "just", "like", "make", "made", "well"]);
+  for (const snippet of allSnippets) {
+    const words = snippet.toLowerCase().split(/\s+/);
+    for (const word of words) {
+      const clean = word.replace(/[^a-z]/g, "");
+      if (clean.length > 4 && !stopWords.has(clean)) {
+        wordFreq[clean] = (wordFreq[clean] || 0) + 1;
+      }
+    }
+  }
+  const trendingKeywords = Object.entries(wordFreq)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 10)
+    .map(([word]) => word);
+
+  const totalResults = topArticles.length;
+  const partialFailure = successfulQueries < searchQueries.length;
+
+  const research = {
+    topArticles: topArticles.slice(0, 10),
+    relatedQuestions: relatedQuestions.slice(0, 15),
+    trendingKeywords,
+    // Also include trendingAngles alias for chunk1Prompt compatibility
+    trendingAngles: trendingKeywords,
+    searchIntent: null,  // Not determined by web search — left for LLM in step 2b
+    searcherGoal: null,
+    source: "z-ai-web-search",
+    queryCount: searchQueries.length,
+    successfulQueries,
+    totalResults,
+    partialFailure,
+  };
+
+  console.log(`[blog-generate] External research done: ${totalResults} articles, ${relatedQuestions.length} questions, ${trendingKeywords.length} keywords (queries: ${successfulQueries}/${searchQueries.length} succeeded${partialFailure ? ", PARTIAL FAILURE" : ""})`);
+
+  return { research, source: "z-ai-web-search" };
 }
 
 /**

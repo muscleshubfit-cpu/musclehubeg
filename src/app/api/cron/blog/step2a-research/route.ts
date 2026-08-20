@@ -1,14 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
-import { generateResearch } from "@/lib/blog-generate";
+import { generateExternalResearch } from "@/lib/blog-generate";
 import { supabaseAdmin, isSupabaseAdminConfigured } from "@/lib/supabase/admin";
 
 export const maxDuration = 60;
 
 /**
- * Step 2a: Research.
- * Reads the latest "topic_picked" item from the queue, runs a single AI
- * research call, saves the result to article_bundle, and sets status to
- * "research_done".
+ * Step 2a: External Web Research (ISOLATED STAGE).
+ *
+ * Reads the latest "topic_picked" item from the queue, performs REAL
+ * external web search via z-ai web_search API, saves the results to
+ * article_bundle, and sets status to "research_done".
+ *
+ * This step does NOT call any LLM. It does NOT generate pseudo-research.
+ * It does NOT share execution with Step 2b (article generation).
+ * It performs ONLY: web search → normalize → deduplicate → store → exit.
  *
  * GET /api/cron/blog/step2a-research
  */
@@ -43,7 +48,8 @@ export async function GET(request: NextRequest) {
       .update({ status: "researching" })
       .eq("id", qi.id);
 
-    const { research, source } = await generateResearch({
+    // Perform REAL external web search (no LLM involved)
+    const { research, source } = await generateExternalResearch({
       topic: qi.topic,
       focusKeyword: qi.focus_keyword,
       category: qi.category,
@@ -66,8 +72,12 @@ export async function GET(request: NextRequest) {
       ok: true,
       step: "2a",
       queueId: qi.id,
+      articlesFound: research?.totalResults || 0,
       questionsFound: research?.relatedQuestions?.length || 0,
       keywordsFound: research?.trendingKeywords?.length || 0,
+      queriesRun: research?.queryCount || 0,
+      queriesSucceeded: research?.successfulQueries || 0,
+      partialFailure: research?.partialFailure || false,
       source,
     });
   } catch (e: any) {
