@@ -25,7 +25,7 @@
  * ─────────────────────────────────────────────────────────────────────────
  */
 
-import { callFreeOpenRouter, parseJSON } from "@/lib/ai-provider";
+import { callFreeOpenRouter, callFreeOpenRouterLimited, parseJSON } from "@/lib/ai-provider";
 
 export const ARTICLE_SYSTEM_PROMPT = `You are the MuscleHub AI Content Assistant — an expert SEO content strategist and copywriter for a premium online nutrition & fitness coaching platform (MuscleHub, musclehubeg.vercel.app).
 
@@ -457,15 +457,16 @@ Return STRICT JSON only:
   "searcherGoal": "what the searcher really wants to achieve"
 }`;
 
-  const { text, model } = await callFreeOpenRouter(
+  const { text, model } = await callFreeOpenRouterLimited(
     researchPrompt,
     {
       systemPrompt: "You are an expert SEO strategist. Return JSON only.",
       temperature: 0.5,
       maxTokens: 2000,
       jsonMode: true,
-      timeoutMs: 55_000,
+      timeoutMs: 20_000,
     },
+    2,
   );
   const research = parseJSON<any>(text);
   if (!research) throw new Error("Research returned invalid JSON");
@@ -482,15 +483,16 @@ export async function generateEnglishArticle(
   input: { topic?: string; focusKeyword?: string; category?: string },
   research: any,
 ): Promise<{ seo: any; englishArticle: string; source: string }> {
-  const { text, model } = await callFreeOpenRouter(
+  const { text, model } = await callFreeOpenRouterLimited(
     chunk1Prompt(input, research),
     {
       systemPrompt: ARTICLE_SYSTEM_PROMPT,
       temperature: 0.7,
       maxTokens: 8_000,
       jsonMode: true,
-      timeoutMs: 55_000,
+      timeoutMs: 25_000,
     },
+    2,
   );
   const parsed = parseJSON<any>(text);
   if (!parsed || !parsed.englishArticle || !parsed.seo) {
@@ -565,15 +567,16 @@ Return STRICT JSON with this shape:
 
 Return ONLY the JSON. No commentary, no markdown fences.`;
 
-  const { text, model } = await callFreeOpenRouter(
+  const { text, model } = await callFreeOpenRouterLimited(
     prompt,
     {
       systemPrompt: ARTICLE_SYSTEM_PROMPT,
       temperature: 0.7,
       maxTokens: 8_000,
       jsonMode: true,
-      timeoutMs: 55_000,
+      timeoutMs: 25_000,
     },
+    2,
   );
   const parsed = parseJSON<any>(text);
   if (!parsed || !parsed.arabicArticle) {
@@ -669,15 +672,16 @@ Return STRICT JSON with this shape:
 
 Return ONLY the JSON. No commentary, no markdown fences.`;
 
-  const { text, model } = await callFreeOpenRouter(
+  const { text, model } = await callFreeOpenRouterLimited(
     prompt,
     {
       systemPrompt: ARTICLE_SYSTEM_PROMPT,
       temperature: 0.7,
       maxTokens: 2_500,
       jsonMode: true,
-      timeoutMs: 55_000,
+      timeoutMs: 20_000,
     },
+    2,
   );
   const parsed = parseJSON<any>(text);
   if (!parsed) throw new Error("Links + social chunk returned invalid JSON");

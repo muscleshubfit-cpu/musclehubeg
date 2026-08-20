@@ -521,6 +521,56 @@ export async function callFreeOpenRouter(
 }
 
 /**
+ * Try at most `maxModels` free OpenRouter models in SEQUENTIAL order
+ * (largest/smartest first), returning the first non-empty response.
+ *
+ * This is a Vercel Hobby-safe variant of callFreeOpenRouter(). The original
+ * tries all 6 models with the caller's timeoutMs — if each model takes the
+ * full timeout, the total can be 6 × 55s = 330s, far exceeding the 60s
+ * Vercel Hobby cap.
+ *
+ * This function caps the total attempt budget by:
+ *   1. Limiting the number of models tried (default 2).
+ *   2. The caller is expected to pass a per-model timeoutMs that fits
+ *      within the Vercel budget: e.g. maxModels=2 × timeoutMs=20s = 40s
+ *      worst case, leaving 20s margin for function overhead.
+ *
+ * Returns { text, model } on success, throws on total failure.
+ */
+export async function callFreeOpenRouterLimited(
+ prompt: string,
+ options: CallAIOptions = {},
+ maxModels = 2,
+): Promise<{ text: string; model: string }> {
+ const apiKey = process.env.OPENROUTER_API_KEY || process.env.AI_API_KEY || "";
+ const baseUrl = "https://openrouter.ai/api/v1";
+ if (!apiKey) throw new Error("OPENROUTER_API_KEY not configured");
+
+ const models = FREE_OPENROUTER_MODELS.slice(0, maxModels);
+ const errors: string[] = [];
+ for (const model of models) {
+ try {
+ const { text } = await callAIWithFallback(
+ prompt,
+ options,
+ {
+ provider: "openrouter",
+ apiKey,
+ model,
+ baseUrl,
+ },
+ );
+ if (text && text.trim().length > 0) {
+ return { text, model };
+ }
+ } catch (e: any) {
+ errors.push(`${model}: ${e?.message || e}`);
+ }
+ }
+ throw new Error(`All ${models.length} limited free OpenRouter models failed:\n${errors.join("\n")}`);
+}
+
+/**
  * RACE multiple models in PARALLEL and return the FIRST one that succeeds.
  *
  * Uses Promise.any() — returns IMMEDIATELY when the first model responds with
