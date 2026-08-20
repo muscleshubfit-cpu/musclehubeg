@@ -806,3 +806,54 @@ Phase 7 pass:
 ---
 
 > **ملاحظة:** هذا الملف يتم تحديثه مع كل تغيير في المشروع. آخر نسخة موجودة دائماً على GitHub: `https://github.com/muscleshubfit-cpu/musclehubeg/blob/main/PROGRESS.md`
+
+---
+
+## P0-1: Blog Generation Multi-Step Split — Verification Status
+
+**Implemented:** 2026-08-20
+**Code commit:** `aae0385` — `feat: split blog generation into free vercel-safe steps`
+**Workflow commit:** `90b41c9` — `ci: update github actions workflow for multi-step blog generation`
+
+### What was done
+
+Split the blog step2 (which was mathematically impossible on Vercel Hobby — 185s of AI calls in a single 60s-capped function) into 4 separate cron routes, each making exactly ONE AI call within 60s.
+
+New routes:
+- `/api/cron/blog/step2a-research` — research (maxTokens=2000, timeout=55s)
+- `/api/cron/blog/step2b-en-article` — SEO + English article (maxTokens=8000, timeout=55s)
+- `/api/cron/blog/step2c-ar-article` — Arabic article + FAQ (maxTokens=8000, timeout=55s)
+- `/api/cron/blog/step2d-links` — links + images + social (maxTokens=2500, timeout=55s)
+
+Quality improvements:
+- EN + AR article maxTokens doubled: 4000 → 8000 (prevents truncation)
+- AR article receives EN article text for coherence
+- Links step receives both article texts for anchor matching
+- Each step persisted to DB (survives failures, partial recovery)
+
+### Verification checklist
+
+- [x] Code committed and pushed: `aae0385` (code) + `90b41c9` (workflow)
+- [x] Vercel Production deployed: all 4 new routes respond HTTP 401 (exist, auth-gated)
+- [x] GitHub Actions workflow file updated on GitHub (6 steps, verified via API)
+- [x] Old step2-generate route preserved (backward compat, HTTP 401)
+- [x] step1-pick + step3-publish still work (HTTP 401)
+- [x] tsc --noEmit: 0 errors
+- [x] ESLint: all modified files clean
+- [x] bun run build: 78/78 pages (4 new routes appear as dynamic ƒ)
+- [x] Last GitHub Actions run (11:02 UTC, used OLD 3-step workflow) — Step 1 succeeded (picked topic, inserted queue item), Step 2 failed as expected (old step2-generate timeout on Hobby)
+- [ ] Workflow dispatch test: PAT lacks `actions: write` scope — cannot trigger manually. Next scheduled cron at 14:00 UTC will use the NEW 6-step workflow.
+- [ ] Full pipeline test: the 14:00 UTC cron run should pick up the existing `topic_picked` queue item and process it through all 6 steps.
+- [ ] Verify article_bundle contains all fields after pipeline completion.
+- [ ] Verify Arabic article coherence with English article.
+- [ ] Verify links inserted in both articles.
+- [ ] Verify final publication in blog_posts table.
+- [ ] Review article quality (length, depth, uniqueness).
+- [ ] After verification, update P0-1 status to VERIFIED/CLOSED.
+
+### Follow-up tasks (after P0-1 verification completes)
+
+- [ ] Remove old `step2-generate` route after confirming new pipeline works reliably.
+- [ ] Apply P0-2: revert nutrition plan maxTokens from 4000 to 8000.
+- [ ] Apply P0-3: revert workout plan maxTokens from 4000 to 8000.
+- [ ] Apply P1-P3 fixes from AI Audit (validation, allergens, word count checks, etc.).
