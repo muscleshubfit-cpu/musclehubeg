@@ -1794,3 +1794,138 @@ This also unifies the search path: both the blog pipeline (Step 2a) and the manu
 ### Render status
 
 **DEFERRED** per task constraint. No Render integration code in this task. The Render backend repo (`muscleshubfit-cpu/Render`) exists as a skeleton (commit `14e87fa`) with placeholder workload routes — ready for future migration when the owner opens MH-AI-ARCH-002 task #5 or #6.
+
+---
+
+## MH-AI-NEXT-004 — Step 2b Research Quality Gate + Slug Latin-Only Enforcement
+
+**Status:** ✅ IMPLEMENTED + locally verified — Committed and pushed to `origin/main`.
+**Date:** 2026-08-21
+**Task ID:** `MH-AI-NEXT-004`
+**Task type:** Blog pipeline resilience hardening — fail-fast on empty research, defense-in-depth on Arabic slug validation. No article generation changes. No OpenRouter dependency. No Render.
+**Scope:** `src/app/api/cron/blog/step2b-en-article/route.ts` + `src/app/api/cron/blog/step3-publish/route.ts` only.
+
+### Why this task
+
+After MH-AI-BLOG-003 (commit `cf50052`) fixed the broken external-search path (Step 2a now produces real research via `externalSearch()`), I audited the remaining gaps in the blog pipeline that could still cause silent failures. Two were found that don't depend on OpenRouter and don't touch article generation:
+
+1. **Step 2b silently proceeded with empty research** — if Step 2a produced `topArticles: []` + `relatedQuestions: []` + `trendingKeywords: []` (e.g. Z.ai completely down, all 3 parallel queries failed), Step 2b would call `generateEnglishArticle(input, null)` and silently generate an article without sources. No fail-fast, no clear `failed:empty_research` status for the owner to investigate.
+
+2. **`slugify()` in `step3-publish` didn't enforce Latin-only slugs** — used `\w` regex which matches Unicode word chars by default in JavaScript (meaning Arabic chars pass through). The chunk1Prompt instructs the LLM to produce Latin-only slugs even for Arabic posts, but LLMs sometimes disobey. Without enforcement, an Arabic slug like `كورتيزول-والعضلات` would be silently URL-encoded by Supabase into `%D9%83%D9%88%D8%B1%D8%AA%D9%8A%D8%B2%D9%88%D9%84-...` which works technically but breaks SEO + social sharing.
+
+Both fixes are defense-in-depth — they catch failure modes that would otherwise produce silently-broken output.
+
+### Fixes applied
+
+#### Fix 1: Step 2b research quality gate
+
+**File:** `src/app/api/cron/blog/step2b-en-article/route.ts`
+
+Added a research quality gate AFTER the queue read and BEFORE marking the row as `generating_en`. The gate checks:
+
+```ts
+const isEmptyResearch =
+  !research ||
+  ((research.topArticles || []).length === 0 &&
+    (research.relatedQuestions || []).length === 0 &&
+    (research.trendingKeywords || []).length === 0 &&
+    (research.trendingAngles || []).length === 0);
+```
+
+If `isEmptyResearch` is true:
+- The queue row is marked `status: "failed"` with `error_message: "step2b: empty_research — Step 2a produced 0 topArticles + 0 relatedQuestions + 0 trendingKeywords. Investigate Step 2a (Z.ai may be down or all 3 queries failed)."`.
+- The route returns HTTP 422 with `{ ok: false, skipped: true, reason: "empty_research", message: "..." }`.
+- The article generation AI call is NOT made (saving OpenRouter quota).
+- The queue row is preserved (not deleted) so the owner can inspect what Step 2a actually wrote to `article_bundle.research`.
+
+A `partialFailure: true` flag with non-empty `topArticles` is OK (1 of 3 Z.ai queries failed but 2 succeeded — we have data). The gate only fires when ALL three fields are empty (i.e. nothing usable was extracted from the web search).
+
+Also added a `researchUsed` summary to the success response: `{ topArticles, relatedQuestions, trendingKeywords, partialFailure }` — useful for debugging via GitHub Actions logs.
+
+#### Fix 2: `slugify()` Latin-only enforcement
+
+**File:** `src/app/api/cron/blog/step3-publish/route.ts`
+
+Updated `slugify()` to strip ALL non-ASCII characters (Arabic, CJK, emoji, etc.) before applying the existing word/hyphen normalization. The ASCII range is `0x00-0x7F` (128 chars).
+
+```ts
+function slugify(input: string): string {
+  return input
+    .toLowerCase()
+    .trim()
+    .replace(/[^\x00-\x7F]/g, "")   // ← NEW: strip all non-ASCII
+    .replace(/[^\w\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-+|-+$/g, "")        // ← NEW: trim leading/trailing hyphens
+    .slice(0, 80);
+}
+```
+
+If the result is empty (the LLM produced an all-Arabic slug), the existing call-site fallback chain handles it: `bundle.seo.ar.slug || bundle.seo.en.slug || qi.focus_keyword`. If all three are empty (extremely unlikely), the `uniqueSlug()` function falls back to `post-${Date.now()}`.
+
+Also fixed a latent bug in `uniqueSlug()`: the retry path used `base` (which could be the empty original slug) for the random suffix, producing slugs like `-abc123`. Now uses `effectiveBase = base || slug` (the fallback slug) for retry suffixes too.
+
+### Local smoke test (slugify)
+
+Verified the new `slugify()` against 8 test cases including the critical Arabic-stripping case:
+
+| Input | Output | Pass |
+|---|---|---|
+| `cortisol-and-muscle-growth` | `cortisol-and-muscle-growth` | ✅ |
+| `Cortisol & Muscle Growth!` | `cortisol-muscle-growth` | ✅ |
+| `كورتيزول-والعضلات` (all-Arabic) | `""` (empty → caller falls back) | ✅ |
+| `cortisol-كورتيزول-growth` (mixed) | `cortisol-growth` (Arabic stripped, Latin kept) | ✅ |
+| `  multiple   spaces  ` | `multiple-spaces` | ✅ |
+| `--leading-and-trailing--` | `leading-and-trailing` | ✅ |
+| `emoji-test-🚀-here` | `emoji-test-here` | ✅ |
+| `"a" × 100` (length test) | `"a" × 80` (cap enforced) | ✅ |
+
+Result: 8/8 passed.
+
+### Verification performed
+
+| Check | Result |
+|---|---|
+| `npx tsc --noEmit` | ✅ 0 errors |
+| `bun run lint` | ✅ 0 new errors (9 pre-existing in untouched files: `CookieConsent.tsx`, `SaveResultButton.tsx`, `BlogAdminView.tsx`, `checkout/page.tsx`, `foods/[slug]/page.tsx`, `water-tracker/page.tsx`, `AdSenseAd.tsx`) |
+| `bun run build` | ✅ 0 errors (all 78 pages built) |
+| `git diff --check` | ✅ No whitespace errors |
+| Local smoke test of `slugify()` (8 cases) | ✅ 8/8 passed |
+| Production runtime verification | ⏸️ NOT performed — Step 1 is still blocked by OpenRouter upstream 429 (per BLOG-PIPELINE-RESILIENCE-002 § Production Runtime Verification). Step 2b cannot be exercised until either OpenRouter recovers or owner manually inserts a `topic_picked` queue row + bypasses Step 1. |
+
+### Files modified
+
+- `src/app/api/cron/blog/step2b-en-article/route.ts` — added research quality gate (fail-fast on empty research), added `researchUsed` summary to success response.
+- `src/app/api/cron/blog/step3-publish/route.ts` — `slugify()` now strips non-ASCII (Latin-only enforcement), trims leading/trailing hyphens; `uniqueSlug()` retry path now uses `effectiveBase` instead of empty `base`.
+- `PROGRESS.md` — this section.
+- `worklog.md` — Task ID `MH-AI-NEXT-004` worklog entry.
+
+### Files NOT modified (preserved per task constraints)
+
+- ❌ `src/lib/blog-generate.ts` — UNCHANGED (article generation code — out of scope)
+- ❌ `src/lib/blog-topics.ts` — UNCHANGED (already fixed in MH-AI-BLOG-003)
+- ❌ `src/lib/external-search.ts` — UNCHANGED (already fixed in MH-AI-BLOG-003)
+- ❌ `src/app/api/cron/blog/step1-pick/route.ts` — UNCHANGED (already fixed in MH-AI-BLOG-003 via `pickSmartTopic`)
+- ❌ `src/app/api/cron/blog/step2a-research/route.ts` — UNCHANGED (already fixed in MH-AI-BLOG-003 via `generateExternalResearch` delegation)
+- ❌ `src/app/api/cron/blog/step2c-ar-article/route.ts`, `step2d-links/route.ts` — UNCHANGED (out of scope — article generation)
+- ❌ `src/app/sitemap.ts` — UNCHANGED (M3 already closed — `(slug, language)` unique index verified)
+- ❌ BLOG-MULTILANG-ENGINE-001 — UNCHANGED (still FUTURE / BACKLOG ONLY)
+- ❌ Render integration — UNCHANGED (deferred)
+
+### Known unresolved issues
+
+1. **OpenRouter 429 on Step 1 still blocks production runtime verification** — same as BLOG-PIPELINE-RESILIENCE-002. The fix here (Fix 1 — Step 2b research quality gate) means that IF Step 1 succeeds AND Step 2a produces empty research, Step 2b will now fail-fast with a clear `empty_research` error instead of silently generating a poor article. This is observability + correctness improvement that helps when OpenRouter recovers.
+
+2. **Step 2c / Step 2d don't have the same quality gate** — Step 2c (AR article) doesn't validate that `bundle.englishArticle` is non-empty before generating the AR article. Step 2d (links) doesn't validate that `bundle.englishArticle` + `bundle.arabicArticle` are both non-empty. These are out of scope per the "no article generation changes" constraint — adding gates there would touch the article generation flow. A future task could add similar quality gates to Step 2c/2d if needed.
+
+3. **Render migration still deferred** — per task constraint. The MH-AI-ARCH-002 future task list (items #5–#18) remains NOT STARTED.
+
+### What this task does NOT do
+
+- ❌ Does NOT add a retry mechanism to Step 2a when research is empty (could be a future enhancement — retry Z.ai queries with backoff before giving up).
+- ❌ Does NOT add a fallback to LLM pseudo-research when Z.ai is down (intentionally — Step 2a is explicitly "no LLM" per BLOG-EXTERNAL-RESEARCH-001 design).
+- ❌ Does NOT touch Step 2c/2d (out of article-generation scope).
+- ❌ Does NOT change the workflow retry policy (BLOG-PIPELINE-RESILIENCE-002 is the owner of that).
+- ❌ Does NOT add Render integration (deferred).
+- ❌ Does NOT implement BLOG-MULTILANG-ENGINE-001 (still FUTURE / BACKLOG ONLY).

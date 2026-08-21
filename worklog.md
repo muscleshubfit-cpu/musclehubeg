@@ -1971,3 +1971,40 @@ Stage Summary:
 **Render status:** DEFERRED per task constraint. No Render integration code in this task. The Render backend repo (`muscleshubfit-cpu/Render`) exists as a skeleton (commit `14e87fa`) — ready for future migration when owner opens MH-AI-ARCH-002 task #5 or #6.
 
 **No source code modified in this finalization step.** Only `worklog.md` appended. Previous commit `cf50052` content unchanged.
+
+---
+Task ID: MH-AI-NEXT-004
+Agent: main (super-z)
+Task: Find the next completable AI/Blog task that doesn't depend on OpenRouter production verification, doesn't touch article generation, doesn't start Render, doesn't redo MH-AI-BLOG-003, doesn't start BLOG-MULTILANG-ENGINE-001 unless proven necessary. IMPLEMENT → VALIDATE → DOCUMENT → COMMIT → PUSH per AGENTS.md §12.2.
+
+Work Log:
+- Pre-flight: read recent commits (`b45798f` worklog append, `cf50052` MH-AI-BLOG-003 fixes, `5ac079e` AI-RESEARCH-EXTERNAL-001, `ee06d5f` workflow rules). Confirmed local HEAD = origin/main = `b45798f`.
+- Audited remaining gaps in topic/research/SEO/multilingual/terminology/validation/dup prevention/persistence/admin/error-handling/logging/resilience (per task brief §5). Identified two real gaps that:
+  • Don't depend on OpenRouter (can be implemented + tested now)
+  • Don't touch article generation (Step 2b's gate is BEFORE the AI call, Step 3's slugify is AFTER)
+  • Don't redo any MH-AI-BLOG-003 fix (different files: step2b route + step3-publish route)
+  • Don't implement BLOG-MULTILANG-ENGINE-001 (still FUTURE / BACKLOG ONLY)
+- Gap 1: Step 2b silently proceeded with empty research. If Step 2a produced 0 topArticles + 0 relatedQuestions + 0 trendingKeywords (Z.ai down, all 3 queries failed), Step 2b called `generateEnglishArticle(input, null)` and silently generated a poor article. No fail-fast.
+- Gap 2: `slugify()` in step3-publish used `\w` regex (matches Unicode by default in JS). The chunk1Prompt instructs the LLM to produce Latin-only slugs even for AR posts, but LLMs sometimes disobey. Without enforcement, an Arabic slug would be silently URL-encoded by Supabase → `%D9%83%D9%88%D8%B1...` (works but breaks SEO + social sharing).
+- Applied 2 fixes:
+  • **Fix 1** (`src/app/api/cron/blog/step2b-en-article/route.ts`): added research quality gate after queue read, before marking `generating_en`. Gate checks: `!research || (topArticles + relatedQuestions + trendingKeywords + trendingAngles all empty)`. If empty: mark queue `failed:empty_research` with clear error_message, return HTTP 422, do NOT make the AI call (saves OpenRouter quota). Added `researchUsed` summary to success response for debugging. `partialFailure: true` with non-empty topArticles still passes the gate (1 of 3 Z.ai queries failed but 2 succeeded — we have data).
+  • **Fix 2** (`src/app/api/cron/blog/step3-publish/route.ts`): `slugify()` now strips ALL non-ASCII chars via `/[^\x00-\x7F]/g` before existing normalization. Also added `/^-+|-+$/g` trim for leading/trailing hyphens. Fixed latent bug in `uniqueSlug()` retry path: was using `base` (could be empty) for the random suffix, producing slugs like `-abc123`. Now uses `effectiveBase = base || slug` (the fallback slug) for retry suffixes too.
+- Did NOT touch: article generation (`generateArticleBundle`, Step 2b/2c/2d bodies, `AIGenerateModal`), Step 2c/2d routes (out of article-generation scope — quality gates there would touch article flow), `blog-topics.ts`, `external-search.ts`, `blog-generate.ts`, Step 1 route, sitemap, BLOG-MULTILANG-ENGINE-001, Render.
+- Verification performed:
+  • `npx tsc --noEmit` → 0 errors (including modified files)
+  • `bun run lint` → 9 pre-existing problems (in `CookieConsent.tsx`, `SaveResultButton.tsx`, `BlogAdminView.tsx`, `checkout/page.tsx`, `foods/[slug]/page.tsx`, `water-tracker/page.tsx`, `AdSenseAd.tsx` — all untouched). 0 new errors introduced by this task.
+  • `bun run build` → 0 errors (all 78 pages built)
+  • `git diff --check` → no whitespace errors
+  • Local smoke test of new `slugify()` against 8 test cases (cortisol-and-muscle-growth, "Cortisol & Muscle Growth!", all-Arabic, mixed Arabic+Latin, multiple-spaces, leading/trailing hyphens, emoji, length cap) → 8/8 passed. Critical Arabic-stripping case verified: `كورتيزول-والعضلات` → `""` (empty → caller falls back to `qi.focus_keyword`).
+  • Production runtime verification of Step 2b quality gate NOT performed — blocked by upstream OpenRouter 429 (BLOG-PIPELINE-RESILIENCE-002). When OpenRouter recovers + Step 1 succeeds + Step 2a produces real research, the gate will let it through. If Step 2a ever returns empty (Z.ai down), the gate will catch it cleanly.
+- Did NOT touch BLOG-MULTILANG-ENGINE-001 — still FUTURE / BACKLOG ONLY.
+- Did NOT implement any Render integration — Render is deferred per task constraint.
+- Updated `PROGRESS.md`: appended new section "MH-AI-NEXT-004 — Step 2b Research Quality Gate + Slug Latin-Only Enforcement" with why-this-task rationale, both fix descriptions (with code snippets), 8-case smoke test table, verification table, files modified, files NOT modified, known unresolved issues, what this task does NOT do.
+
+Stage Summary:
+- 2 fixes applied (Step 2b research quality gate + slugify Latin-only enforcement + uniqueSlug retry bug fix). All compile, lint clean, build clean.
+- Local smoke test confirmed new slugify strips Arabic/CJK/emoji correctly (8/8 test cases pass).
+- No article generation code touched. No BLOG-MULTILANG-ENGINE-001 changes. No Render integration (deferred).
+- Production runtime verification of Step 2b gate still blocked by upstream OpenRouter 429 — but the gate is observability + correctness improvement that will help when OpenRouter recovers (catches Step 2a empty-research failures cleanly instead of silently generating poor articles).
+- Files modified: `src/app/api/cron/blog/step2b-en-article/route.ts`, `src/app/api/cron/blog/step3-publish/route.ts`, `PROGRESS.md`, `worklog.md`.
+- Commit + push to follow with message: `fix: add Step 2b research quality gate + slug Latin-only enforcement`.

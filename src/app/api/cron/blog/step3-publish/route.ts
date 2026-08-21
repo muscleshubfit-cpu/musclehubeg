@@ -6,13 +6,48 @@ import { buildFinalBundle, type ArticleBundle } from "@/lib/blog-generate";
 
 export const maxDuration = 60;
 
+/**
+ * Slugify a string into a URL-safe, Latin-only slug.
+ *
+ * Defense-in-depth: the chunk1Prompt explicitly instructs the LLM to
+ * produce Latin-only slugs even for Arabic posts (because Arabic URLs
+ * break sharing/encoding). But LLMs sometimes disobey. This function
+ * strips any non-ASCII characters (including Arabic) from the slug —
+ * if the result is empty (the LLM produced an all-Arabic slug), the
+ * caller falls back to `qi.focus_keyword` (which is always Latin)
+ * via `bundle.seo.en.slug || qi.focus_keyword` in the existing call.
+ *
+ * Without this enforcement, an Arabic slug would be silently URL-
+ * encoded by Supabase (e.g. `كورتيزول` → `%D9%83%D9%88%D8%B1%D8%...`)
+ * which works technically but produces unreadable URLs that break
+ * SEO + social sharing.
+ */
 function slugify(input: string): string {
-  return input.toLowerCase().trim().replace(/[^\w\s-]/g, "").replace(/\s+/g, "-").replace(/-+/g, "-").slice(0, 80);
+  return input
+    .toLowerCase()
+    .trim()
+    // Strip ALL non-ASCII characters (Arabic, CJK, emoji, etc.)
+    // ASCII range is 0x00-0x7F (128 chars).
+    .replace(/[^\x00-\x7F]/g, "")
+    // Remove non-word, non-space, non-hyphen characters
+    .replace(/[^\w\s-]/g, "")
+    // Collapse whitespace → single hyphen
+    .replace(/\s+/g, "-")
+    // Collapse consecutive hyphens
+    .replace(/-+/g, "-")
+    // Trim leading/trailing hyphens
+    .replace(/^-+|-+$/g, "")
+    // Cap at 80 chars
+    .slice(0, 80);
 }
 
 async function uniqueSlug(base: string, language: "en" | "ar"): Promise<string> {
   if (!supabaseAdmin) return base;
+  // If `base` is empty (e.g. AR slug was all-Arabic and got stripped by
+  // slugify), generate a date-based fallback. Otherwise the empty string
+  // would propagate through the retry loop and produce empty slugs.
   let slug = base || `post-${Date.now()}`;
+  const effectiveBase = base || slug; // use the fallback for retry suffixes too
   let attempt = 0;
   while (attempt < 5) {
     const { data } = await supabaseAdmin
@@ -23,9 +58,9 @@ async function uniqueSlug(base: string, language: "en" | "ar"): Promise<string> 
       .maybeSingle();
     if (!data) return slug;
     attempt += 1;
-    slug = `${base}-${Math.random().toString(36).slice(2, 6)}`;
+    slug = `${effectiveBase}-${Math.random().toString(36).slice(2, 6)}`;
   }
-  return `${base}-${Date.now()}`;
+  return `${effectiveBase}-${Date.now()}`;
 }
 
 async function titleAlreadyExists(title: string, language: "en" | "ar"): Promise<boolean> {
