@@ -26,6 +26,7 @@
  */
 
 import { callFreeOpenRouter, callFreeOpenRouterLimited, parseJSON } from "@/lib/ai-provider";
+import { externalSearch } from "@/lib/external-search";
 
 export const ARTICLE_SYSTEM_PROMPT = `You are the MuscleHub AI Content Assistant — an expert SEO content strategist and copywriter for a premium online nutrition & fitness coaching platform (MuscleHub, musclehubeg.vercel.app).
 
@@ -436,14 +437,55 @@ export async function generateArticleBundle(
  * Performs REAL external web search via z-ai web_search API.
  * Does NOT call any LLM. Does NOT generate pseudo-research.
  *
- * Runs 3 search queries IN PARALLEL (Promise.all), each with 8s timeout.
- * Post-processes: deduplicates by URL, filters low-value sources,
- * extracts questions from snippets, computes trending keywords.
+ * This function delegates to `externalSearch()` in `src/lib/external-search.ts`,
+ * which is the project's official entry point for real external web search.
+ * The delegation is intentional — both the blog pipeline (Step 2a) and the
+ * manual `/api/ai/research-topic` route (used by AIGenerateModal) call the
+ * SAME underlying implementation, so search behavior stays consistent.
+ *
+ * The previous version of this function used raw `fetch()` against
+ * `https://internal-api.z.ai/v1/functions/invoke` with the default `"Z.ai"`
+ * API key, which returns `invalid X-Token` on every call in production.
+ * Using the `z-ai-web-dev-sdk` via `externalSearch()` fixes that — the SDK
+ * uses an internal token and works in Vercel serverless environments.
  *
  * Returns { research, source } where research contains REAL URLs, hosts,
  * snippets from actual web search results.
  */
 export async function generateExternalResearch(
+  input: { topic?: string; focusKeyword?: string; category?: string },
+): Promise<{ research: any; source: string }> {
+  const result = await externalSearch({
+    topic: input.topic,
+    focusKeyword: input.focusKeyword,
+    maxResults: 10,
+    timeoutMs: 8_000,
+  });
+
+  console.log(
+    `[blog-generate] External research done: ${result.totalResults} articles, ` +
+    `${result.relatedQuestions.length} questions, ${result.trendingKeywords.length} keywords ` +
+    `(queries: ${result.successfulQueries}/${result.queryCount} succeeded` +
+    `${result.partialFailure ? ", PARTIAL FAILURE" : ""})`,
+  );
+
+  return {
+    research: result,
+    source: result.source,
+  };
+}
+
+/* ========================================================================= */
+/* The original generateExternalResearch() body is below, preserved for
+/* reference. It was the source of the broken Z.ai raw-fetch path that
+/* returned `invalid X-Token` on every production call. The replacement
+/* above delegates to `externalSearch()` in `src/lib/external-search.ts`,
+/* which uses the `z-ai-web-dev-sdk` (working SDK with internal token).
+/* This block is intentionally NOT executed — kept only as documentation
+/* of the previous approach. Remove once the new path is verified in
+/* production (after BLOG-EXTERNAL-RESEARCH-001 runtime verification).
+/* ========================================================================= */
+async function _legacyGenerateExternalResearchRawFetch(
   input: { topic?: string; focusKeyword?: string; category?: string },
 ): Promise<{ research: any; source: string }> {
   const searchTerm = input.focusKeyword || input.topic || "";

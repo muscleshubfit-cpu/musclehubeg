@@ -1,6 +1,6 @@
 # PROJECT_CONTEXT.md — MuscleHubEG
 
-> **Last updated:** 2026-08-19
+> **Last updated:** 2026-08-21 (MH-AI-ARCH-002 — AI architecture direction)
 > **Audience:** Any AI agent or human contributor starting work on
 > MuscleHubEG. Read this BEFORE touching code.
 > **Companion files:** `AGENTS.md` (operating rules), `SECURITY.md`
@@ -298,3 +298,120 @@ operating rules.
 - **Feature / bug tracker:** `PROGRESS.md`
 - **QA evidence:** `QA_CHECKLIST.md`
 - **Change log (per-agent worklog):** `worklog.md`
+
+---
+
+## 11. AI Architecture Direction — Approved 2026-08-21 (MH-AI-ARCH-002)
+
+> **Status:** APPROVED ARCHITECTURE DIRECTION — **NOT YET
+> IMPLEMENTED.** This section records the owner's binding
+> architectural decisions for the AI subsystem. No code has been
+> written against this direction yet. Each decision listed below
+> carries an explicit implementation status marker. The current
+> production AI architecture (Vercel-only, OpenRouter free tier,
+> EVO chat + blog pipeline + plan generation on the same Next.js
+> app) continues to run unchanged until the future Render Backend
+> is built, tested, and verified as a replacement. See
+> `PROGRESS.md` § "MH-AI-ARCH-002 — Future Architecture Direction"
+> for the full ordered task list.
+
+### 11.1 The Three-Layer Architecture Principle
+
+The project's AI subsystem will move from the current single-layer
+model (everything on Vercel) to a three-layer model:
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│  Layer 1 — EVO (conversational experience)                   │
+│  Fast, interactive, user-facing. Lives on Vercel.            │
+│  Does NOT do heavy AI execution.                            │
+└──────────────────────────────────────────────────────────────┘
+                             ↓ (orchestration only)
+┌──────────────────────────────────────────────────────────────┐
+│  Layer 2 — Vercel (fast application layer)                    │
+│  Next.js frontend, EVO chat widget, light API orchestration,  │
+│  receiving + persisting Render results.                      │
+└──────────────────────────────────────────────────────────────┘
+                             ↓ (delegates heavy work)
+┌──────────────────────────────────────────────────────────────┐
+│  Layer 3 — Render (heavy AI execution layer)                │
+│  Long-running AI jobs: blog pipeline, nutrition plans,       │
+│  training plans, regeneration / modification, future heavy  │
+│  AI features. No user-facing UI.                             │
+└──────────────────────────────────────────────────────────────┘
+```
+
+**Architecture principle (one line):**
+
+> **EVO = conversational experience. Vercel = fast application layer.
+> Render = heavy AI execution layer.**
+
+### 11.2 Approved decisions (NOT yet implemented — by number)
+
+| # | Decision | Status |
+|---|---|---|
+| 1 | **EVO stays fast, chat-only.** EVO does NOT generate nutrition plans, training plans, or any heavy AI output. EVO does NOT wait on long AI operations. EVO is NOT the execution surface for long-running operations. | Direction approved — current code already conforms (EVO uses `callFreeOpenRouterRace()` 15s timeout, no plan generation). No change needed for this decision. |
+| 2 | **Dedicated plan-generation surface.** A separate page/interface will be created for generating client plans (Nutrition Plans, Training Plans, Regeneration / Modification). The surface records + persists generation results, supports later review, and is usable by both client and admin (with permissions to be defined at implementation time). It does NOT depend on EVO being open. | Direction approved — NOT implemented. Future task. |
+| 3 | **Render Backend for heavy operations.** A dedicated Render Backend (separate repository) will host all heavy / long-running AI operations that do not fit Vercel's 60s Hobby cap: full Blog AI generation, Blog-related external research, nutrition plan generation, training plan generation, plan regeneration / modification, and any future long-running or computationally expensive AI operation. | Direction approved — NOT implemented. Render Backend repository does not exist yet. |
+| 4 | **Vercel stays the fast layer.** Vercel continues to host the Next.js frontend, EVO chat, fast operations, light API orchestration, and receiving/persisting Render results. | Direction approved — current code already conforms. No change to Vercel's role. |
+| 5 | **Future AI features are classified before placement.** Any new AI feature is classified FIRST before being added to Vercel or Render: `fast/interactive → Vercel`, `heavy/long-running → Render`, `hybrid → Vercel as orchestrator + Render for heavy execution`. | Direction approved — process rule. Applies to all future AI features. |
+| 6 | **Blog stays separate from EVO.** Blog AI remains a separate subsystem from EVO. The target Blog pipeline shape (on Render): `Topic → Research → Generation → Translation → Smart terminology / content audit → Enrichment → Save / Publish`. | Direction approved — partial implementation exists on Vercel (BLOG-EXTERNAL-RESEARCH-001 + BLOG-PIPELINE-RESILIENCE-002). Future task: migrate to Render. |
+| 7 | **Architecture Principle (the one-liner).** `EVO = conversational experience. Vercel = fast application layer. Render = heavy AI execution layer.` | Direction approved — binding policy from 2026-08-21. |
+| 8 | **Current Blog pipeline is NOT removed.** The current Vercel-based Blog pipeline (Step 1 → 2a → 2b → 2c → 2d → 3) is preserved and continues to run until the Render Backend replacement is built, tested, and verified. | Direction approved — current code already conforms. No removal in this task. |
+
+### 11.3 What is NOT happening now (explicit non-goals for MH-AI-ARCH-002)
+
+This task is **documentation and direction only**. The following are
+NOT done under MH-AI-ARCH-002:
+
+- ❌ Render Backend repository is NOT created.
+- ❌ No code is moved from Vercel to Render.
+- ❌ No API contract between Vercel and Render is written (designed at
+     implementation time of the future task).
+- ❌ No Vercel route is removed.
+- ❌ No Blog pipeline route is removed.
+- ❌ No EVO code is changed.
+- ❌ No plan-generation code is changed.
+- ❌ No new database migrations.
+- ❌ No new dependencies added.
+- ❌ No production deployment changes.
+
+### 11.4 Why the change is needed
+
+The current architecture places all AI work on Vercel Hobby. This has
+produced several concrete problems documented in `PROGRESS.md`:
+
+1. **Vercel Hobby 60s function cap** forced the blog pipeline to be
+   split into 6 separate cron steps (BLOG-PIPELINE-REDESIGN-001 +
+   P0-1) just to fit under the limit. Each step is fragile — any
+   upstream OpenRouter rate-limit hits the whole pipeline (see
+   BLOG-PIPELINE-RESILIENCE-002 production runtime verification: 3
+   retry attempts, all failed, 15-minute Step 1 budget consumed).
+2. **External research path was discovered broken** —
+   `generateExternalResearch()` in `src/lib/blog-generate.ts:446-590`
+   uses raw `fetch()` against `https://internal-api.z.ai/v1/functions/invoke`
+   with the default `"Z.ai"` API key, which returns `invalid X-Token`
+   on every call. Documented as Known Unresolved Issue #1 in
+   `AI-RESEARCH-EXTERNAL-001` (PROGRESS.md). A Render Backend would
+   not have the 60s cap and could use the `z-ai-web-dev-sdk` directly.
+3. **Plan generation (nutrition + training) currently runs in a
+   single Vercel function** with `maxDuration=60`. Long generations
+   are at risk of timeout. Moving to Render removes this constraint.
+4. **EVO is currently coupled to plan generation** via the
+   subscriber-gating regex in `src/app/api/ai/chat/route.ts` —
+   messages matching plan-generation patterns gate the user to
+   `/memberships`. This is correct today (EVO blocks plan requests),
+   but a dedicated plan-generation surface will let EVO hand off to
+   Render cleanly instead of being a gate.
+
+### 11.5 Source-of-truth note
+
+Per AGENTS.md §12.8 (Source of Truth), the actual code is the
+source of truth — not this section. Until the Render Backend is
+implemented and the code is migrated, the **current** AI
+architecture remains the Vercel-only single-layer model described
+in §4 above. This §11 records the future direction; it does not
+change the current code.
+
+The ordered task list that will execute this direction is in
+`PROGRESS.md` § "MH-AI-ARCH-002 — Future Architecture Direction".

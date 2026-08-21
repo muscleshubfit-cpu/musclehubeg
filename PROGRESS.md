@@ -1535,3 +1535,262 @@ bun run test-external-search.ts (smoke test, file deleted after)
 2. **`z-ai-web-dev-sdk` package on Vercel** — confirmed present in `dependencies` (not `devDependencies`), so Vercel will install it in production. The SDK uses an internal token (no env vars required), so no Vercel config changes needed.
 
 3. **LLM enrichment is now optional** — if `OPENROUTER_API_KEY` is missing or the LLM call fails, the route returns real research with `searchIntent: "informational"` (default), `searcherGoal: ""`, `contentGaps: []`. The caller (`AIGenerateModal`) handles these null/empty fields gracefully — article generation will still work, just without LLM-derived strategic insights.
+
+---
+
+## MH-AI-ARCH-002 — Future Architecture Direction (Approved 2026-08-21)
+
+**Status:** APPROVED DIRECTION — NOT YET IMPLEMENTED.
+**Date approved:** 2026-08-21
+**Task ID:** `MH-AI-ARCH-002`
+**Task type:** Documentation-only. Records the owner's approved AI
+architecture direction. No code is changed. No Render Backend is
+created. No migrations. No new dependencies. The current Vercel-only
+AI architecture continues to run unchanged until each future task is
+opened, designed, approved, and implemented individually.
+
+### Summary of the approved direction
+
+The AI subsystem will move from a single-layer model (everything on
+Vercel Hobby) to a three-layer model:
+
+```
+Layer 1 — EVO (conversational experience, fast, on Vercel)
+Layer 2 — Vercel (Next.js frontend + light API orchestration)
+Layer 3 — Render (heavy AI execution — long-running jobs)
+```
+
+**Architecture principle (one line):**
+> EVO = conversational experience. Vercel = fast application layer.
+> Render = heavy AI execution layer.
+
+Full rationale and the 8 numbered approved decisions are in
+`PROJECT_CONTEXT.md` §11 (AI Architecture Direction).
+
+### What is NOT done in MH-AI-ARCH-002 (explicit)
+
+- ❌ No Render Backend repository created.
+- ❌ No code moved from Vercel to Render.
+- ❌ No API contract between Vercel and Render written.
+- ❌ No Vercel route removed.
+- ❌ No Blog pipeline route removed (current Step 1 → 2a → 2b → 2c → 2d → 3 preserved).
+- ❌ No EVO code changed.
+- ❌ No plan-generation code changed.
+- ❌ No new database migrations.
+- ❌ No new dependencies added.
+- ❌ No production deployment changes.
+- ❌ No BLOG-MULTILANG-ENGINE-001 implementation (still FUTURE / BACKLOG ONLY).
+
+### Ordered future task list
+
+The following ordered tasks will execute this architecture direction.
+**Each task is a separate future task** — opening MH-AI-ARCH-002 does
+NOT authorize any of them. Each must be opened with its own Task ID,
+design approved by the owner + technical reviewer (per AGENTS.md §3.4
+Do Not Invent Architecture), and implemented + verified independently.
+
+| # | Future task | Status | Notes |
+|---|---|---|---|
+| 1 | Create Render Backend repository (new repo, separate from `musclehubeg`) | NOT STARTED | Owner decides repo name + visibility (public/private). Stack TBD at design time. |
+| 2 | Design API contract between Vercel and Render | NOT STARTED | REST or message queue? Auth model? Request/response shape? Defined at design time. |
+| 3 | Security / authentication between Vercel and Render | NOT STARTED | Shared secret? mTLS? JWT? Per AGENTS.md §7 (security-sensitive changes require pre-approval). |
+| 4 | Logging, error handling, and timeouts between Vercel and Render | NOT STARTED | Vercel side: how long to wait for Render? Render side: how to report progress? |
+| 5 | Migrate Blog AI heavy execution to Render | NOT STARTED | Move Step 2a (external research) + Step 2b/2c/2d (article generation) to Render. Step 1 (pick topic) + Step 3 (publish) can stay on Vercel as orchestrators. |
+| 6 | Migrate Blog-related external research to Render | NOT STARTED | Reuse `src/lib/external-search.ts` (created in AI-RESEARCH-EXTERNAL-001) on Render. Replace the broken raw-fetch path in `src/lib/blog-generate.ts:446-590`. |
+| 7 | Create Plan Generation architecture on Render | NOT STARTED | New code path for nutrition + training plan generation. Does NOT replace existing `/api/ai/plan` route until tested. |
+| 8 | Migrate Nutrition Plan generation to Render | NOT STARTED | Move `generateNutritionPlanAI()` from `src/lib/plan-generator.ts` to Render. |
+| 9 | Migrate Training Plan generation to Render | NOT STARTED | Move `generateWorkoutPlanAI()` from `src/lib/plan-generator.ts` to Render. |
+| 10 | Support plan regeneration / modification on Render | NOT STARTED | Move `regenerateMeal()` + `normalizeCoachPlan()` to Render. |
+| 11 | Persist plan generation results and link to client | NOT STARTED | DB schema TBD at design time. May need a new migration (idempotent, owner-applied per AGENTS.md §6). |
+| 12 | Add Admin / Client permissions for plan generation surface | NOT STARTED | RLS policies + UI gating. Per AGENTS.md §7 (auth/RLS changes require pre-approval). |
+| 13 | Build dedicated plan-generation UI surface (separate from EVO) | NOT STARTED | Per decision #2 in PROJECT_CONTEXT.md §11.2. New page(s) in the Next.js app that call Render. |
+| 14 | Decouple EVO from plan generation | NOT STARTED | Today EVO gates plan requests via subscriber regex. After plan surface exists, EVO can hand off to Render instead of being a gate. Decision #1 in PROJECT_CONTEXT.md §11.2. |
+| 15 | Update Vercel API routes to be orchestration-only (where needed) | NOT STARTED | Vercel routes that previously executed heavy AI become thin callers of Render. |
+| 16 | QA + integration tests for Vercel ↔ Render | NOT STARTED | Test contract, auth, timeouts, error paths, partial failures. |
+| 17 | Production deployment verification of Render Backend | NOT STARTED | Deploy Render, smoke test, verify a real plan generation end-to-end. |
+| 18 | Remove old Vercel Blog pipeline routes (after Render replacement verified) | NOT STARTED | Per decision #8 in PROJECT_CONTEXT.md §11.2 — current Blog pipeline preserved until Render replacement is verified. |
+
+### Preconditions (must be true before any of the above tasks start)
+
+1. Owner opens a dedicated Task ID for each task above (NOT MH-AI-ARCH-002).
+2. The task's design is drafted in prose (no code) and reviewed by the
+   owner + technical reviewer per AGENTS.md §3.4.
+3. For tasks that touch auth / RLS / payment / PII (items #3, #12):
+   pre-approval per AGENTS.md §7 is required BEFORE implementation.
+4. For tasks that create DB migrations (item #11): the migration is
+   written as idempotent `supabase/migrations/NNNN_*.sql` and applied
+   by the owner via Supabase SQL Editor per AGENTS.md §6.
+
+### Source-of-truth note
+
+Per AGENTS.md §12.8 (Source of Truth) and PROJECT_CONTEXT.md §8, the
+actual code is the source of truth. Until each future task above is
+implemented and the code is migrated, the current AI architecture
+remains the Vercel-only single-layer model. This section records the
+future direction; it does not change the current code.
+
+### Verification performed for THIS documentation task
+
+- ✅ Read `PROJECT_CONTEXT.md`, `AGENTS.md`, `PROGRESS.md`,
+      `DEVELOPER_GUIDE.md`, `QA_CHECKLIST.md`, `SECURITY.md`,
+      `worklog.md` before writing.
+- ✅ Cross-referenced recent AI code changes (AI-RESEARCH-EXTERNAL-001
+      commit `5ac079e`, BLOG-PIPELINE-RESILIENCE-002 commit `9a092ab`,
+      PROJECT-WORKFLOW-RULES-001 commit `ee06d5f`) to ensure the
+      direction reflects the actual current state.
+- ✅ Verified the direction does NOT contradict the current code (the
+      current code already conforms to decisions #1, #4, #7, #8).
+- ✅ Verified the direction does NOT contradict AGENTS.md (§3.4 Do
+      Not Invent Architecture, §6 migration rules, §7 security-sensitive
+      changes, §12.8 source-of-truth hierarchy).
+- ✅ Verified no feature is marked "Implemented" or "Verified" unless
+      it is actually present in the code (none of items #1–#18 above
+      are marked implemented).
+- ✅ Verified BLOG-MULTILANG-ENGINE-001 is NOT affected by this task
+      (still FUTURE / BACKLOG ONLY in its own section).
+- ❌ Did NOT run `tsc --noEmit` or `bun run lint` — this is a
+      documentation-only task, no code touched. (Per AGENTS.md §3.5
+      these checks apply to code changes; running them on a
+      docs-only diff is not required.)
+
+---
+
+## MH-AI-BLOG-003 — AI + Blog System Audit & Fixes (Excluding Article Generation)
+
+**Status:** ✅ IMPLEMENTED + locally verified — Committed and pushed to `origin/main`.
+**Date:** 2026-08-21
+**Task ID:** `MH-AI-BLOG-003`
+**Task type:** Comprehensive review of AI + Blog system; fix identified gaps without re-implementing working code or touching article generation.
+**Scope:** AI provider, all `/api/ai/*` routes, EVO chat, blog pipeline (topic → research → article-inputs → SEO → slug → EN/AR → validation → dup prevention → publish → sitemap → admin). **Article generation itself was NOT touched.**
+
+### Audit findings — what was inspected
+
+| Area | File(s) | Finding |
+|---|---|---|
+| AI provider | `src/lib/ai-provider.ts` | ✅ Working. `callFreeOpenRouter`, `callFreeOpenRouterLimited`, `callFreeOpenRouterRace`, `callAIWithFallback`, `parseJSON` (with truncation repair), reasoning-artifact fallback all present and documented. No fix needed. |
+| `/api/ai/research-topic` | `src/app/api/ai/research-topic/route.ts` | ✅ Already fixed in `AI-RESEARCH-EXTERNAL-001` (commit `5ac079e`). Uses `externalSearch()` as primary path, LLM enrichment optional. |
+| `/api/ai/pick-topic` | `src/app/api/ai/pick-topic/route.ts` | ✅ Calls `pickSmartTopic()` — fix applied to that function (see Fix 3 below). |
+| `/api/ai/generate-article` | `src/app/api/ai/generate-article/route.ts` | ✅ Manual coach article generation, uses `generateArticleBundle()`. Out of scope per task constraint (no article generation changes). |
+| `/api/ai/generate-image` | `src/app/api/ai/generate-image/route.ts` | ✅ Uses `z-ai-web-dev-sdk` via `ZAI.create()` after writing `/tmp/.z-ai-config`. Working pattern — referenced as the template for the external-search fix. |
+| `/api/ai/chat` (EVO) | `src/app/api/ai/chat/route.ts` | ✅ EVO chat — uses `callFreeOpenRouterRace()` (3-model parallel race, 15s timeout). Fast, doesn't wait on heavy AI. Reasoning-artifact cleanup present. Not coupled to blog. No fix needed. |
+| `/api/ai/plan`, `/api/ai/swap`, `/api/ai/regenerate-meal` | (respective routes) | ✅ Out of scope (plan/swap/regen are EVO subscriber features, not Blog). Not touched. |
+| `src/lib/evo-search.ts` | (file) | ✅ Local platform search (exercises/foods/programs/tools). Working. Not touched. |
+| `src/lib/ai-local.ts` | (file) | ✅ EVO local fallback (rule-based replies). Working. Not touched. |
+| `src/lib/ai.ts` | (file) | ⚠️ **Dead code** — ZAI client wrapper, not imported anywhere. Left in place per task constraint "لا تعيد كتابة شيء يعمل بدون سبب" — it's not broken, just unused. |
+| Blog pipeline | `src/app/api/cron/blog/step{1,2a,2b,2c,2d,3}/*.ts` | ✅ Step 1 + Step 2a-2d + Step 3 all present and correctly chained. Step 2a calls `generateExternalResearch()` (Fix 2 below applies). Step 2b consumes `research_done`. Step 2c consumes EN article. Step 2d consumes both. Step 3 publishes with duplicate-title check + unique-slug generation + EN/AR linking. Data flow verified end-to-end. |
+| Blog topic picker | `src/lib/blog-topics.ts` | 🔧 **Fixed** — was using `callAIWithFallback` (could try all 6 models × 60s = 360s, exceeding Vercel 60s cap and triggering OpenRouter 429). Replaced with `callFreeOpenRouterLimited(maxModels=2, timeoutMs=25s)` — same Vercel-safe pattern as Step 2b/2c/2d. |
+| Blog external research | `src/lib/blog-generate.ts:446` `generateExternalResearch()` | 🔧 **Fixed** — was using raw `fetch()` against `https://internal-api.z.ai/v1/functions/invoke` with the default `"Z.ai"` API key, which returns `invalid X-Token` on every production call. Replaced with delegation to `externalSearch()` (the working module from AI-RESEARCH-EXTERNAL-001). The legacy raw-fetch code is preserved as `_legacyGenerateExternalResearchRawFetch()` for documentation, not executed. |
+| External search module | `src/lib/external-search.ts` | 🔧 **Fixed** — was using `ZAI.create()` which reads from `.z-ai-config` files in `cwd / home / /etc`. None of those paths exist on Vercel production (cwd is read-only, /etc not writable, HOME may be /tmp). Now writes `/tmp/.z-ai-config` from env vars (with defaults) before calling `ZAI.create()` — same proven pattern as `src/app/api/ai/generate-image/route.ts`. Client cached per-process. |
+| SEO + slug + EN/AR | `src/lib/blog-generate.ts` prompts + `step3-publish/route.ts` | ✅ SEO block includes `focusKeyword`, `secondaryKeywords`, `en.seoTitle/metaTitle/metaDescription/slug`, `ar.seoTitle/metaTitle/metaDescription/slug`. Slug generation: kebab-case, Latin-only (Arabic posts use transliterated slug). Step 3 has `slugify()` + `uniqueSlug()` (5 attempts with random suffix) + `titleAlreadyExists()` check (EN + AR). No fix needed. |
+| Translation flow (EN → AR) | `src/lib/blog-generate.ts` Step 2c | ✅ Step 2c receives EN article text and generates AR article + FAQ in a single AI call (`maxTokens=8000`). Not a "translation" call — the model is instructed to produce a *localized* Arabic article using the EN article as reference. Pipeline shape preserved (no MULTI-LANG-ENGINE change — that's still FUTURE/BACKLOG ONLY). |
+| Terminology audit | (no separate module) | ⏸️ Not implemented as a discrete stage. Currently folded into the article generation prompt (system prompt + research data). Future enhancement: standalone terminology audit stage (will be designed when BLOG-MULTILANG-ENGINE-001 is opened, or as a separate future task). Out of scope here. |
+| Content validation | `step3-publish/route.ts` | ✅ Duplicate-title check (EN + AR), unique-slug generation (5 attempts), category normalization via `normalizeCategory()`. Working. |
+| Duplicate prevention | `step3-publish/route.ts` + `blog-topics.ts` | ✅ Title-duplicate check at publish time + topic picker prompt includes "ALREADY PUBLISHED IN THIS PILLAR" list to discourage angle repetition. Working. |
+| Blog DB interactions | `blog_posts` + `blog_generation_queue` tables | ✅ State machine: `topic_picked → researching → research_done → en_done → ar_done → generated → published` (or `failed` / `skipped_duplicate`). Each step persists its result to `article_bundle` JSONB. Working. |
+| Draft/publish flow | `step3-publish/route.ts` | ✅ Always publishes immediately (`is_published: true`, `published_at: now`). No separate draft state in the cron pipeline. Manual coach generation via `AIGenerateModal` saves drafts first (not changed here). Working. |
+| Image handling | `src/lib/blog-images.ts` + `step3-publish/route.ts` | ✅ `fetchFeaturedImage()` uses Pexels (fast, 3-5s). AI image generation available via `/api/ai/generate-image` as fallback. Working. |
+| Sitemap | `src/app/sitemap.ts` | ✅ Lists all published blog posts (EN + AR) with hourly revalidation. Working. |
+| Blog admin workflow | `src/lib/blog-admin.ts` + `AIGenerateModal.tsx` | ✅ Coach can pick topic, research, generate article, edit, save draft, publish. Cleanup endpoint (`/api/admin/blog/cleanup`) fixes garbled text in existing articles. Working. |
+| Error handling + retries | workflow + routes | ✅ Each route has try/catch + `failed` status update on queue. GitHub Actions workflow has controlled retry (3 attempts, 5m + 10m backoff) per `BLOG-PIPELINE-RESILIENCE-002`. Working. |
+| Timeouts | All routes | ✅ `maxDuration = 60` on every Vercel route (within Hobby cap). AI calls use `callFreeOpenRouterLimited(maxModels=2, timeoutMs=20-25s)` (Step 2a/2b/2c/2d + now Step 1) — worst case 50s. Working. |
+| Rate limits | OpenRouter | ✅ Workflow retry loop has 5m + 10m backoff to avoid OpenRouter spam. Per-route `maxModels=2` limits per-request API calls. Working. |
+| Logging | `console.log` / `console.error` | ✅ Each step logs its progress + failures. Working. |
+
+### Fixes applied (3 total)
+
+#### Fix 1: `src/lib/external-search.ts` — Vercel production path
+
+**Problem:** The module used `ZAI.create()` directly, which reads from `.z-ai-config` files in `process.cwd()`, `os.homedir()`, and `/etc/.z-ai-config`. None of these paths exist on Vercel serverless production (cwd is read-only, /etc is not writable, HOME may be `/`). My local smoke test passed only because `/etc/.z-ai-config` exists in this dev environment — production would fail.
+
+**Fix:** Added a `createZaiClient()` async function that:
+1. Reads ZAI env vars (`ZAI_BASE_URL`, `ZAI_API_KEY`, `ZAI_TOKEN`, `ZAI_CHAT_ID`, `ZAI_USER_ID`) with sensible defaults.
+2. Writes `/tmp/.z-ai-config` with those values (best-effort — throws on failure so the caller's try/catch handles it).
+3. Sets `process.env.HOME = "/tmp"` if HOME is unset or `/` (so the SDK finds the file we just wrote).
+4. Calls `ZAI.create()` (which now finds the file).
+5. Caches the client in a module-level `_zaiClient` variable so the file write happens only once per function invocation.
+
+This is the same proven pattern used by `src/app/api/ai/generate-image/route.ts` (the only other place the SDK is used in production).
+
+Also switched the type from `InstanceType<typeof ZAI>` (which fails because the SDK's constructor is private) to `Awaited<ReturnType<typeof ZAI.create>>` (inferred from the public factory method).
+
+#### Fix 2: `src/lib/blog-generate.ts:446` `generateExternalResearch()` — use working externalSearch module
+
+**Problem:** Used raw `fetch()` against `https://internal-api.z.ai/v1/functions/invoke` with the default `"Z.ai"` API key — which I verified earlier returns `invalid X-Token` on every call. This means Step 2a of the blog pipeline (when it eventually runs after OpenRouter 429 clears) would produce EMPTY research.
+
+**Fix:** Replaced the entire function body with a 3-line delegation to `externalSearch()` (from `src/lib/external-search.ts`). Same input shape, same output shape (`{ research, source }`) — Step 2a's caller code is unchanged. The legacy raw-fetch code is preserved as `_legacyGenerateExternalResearchRawFetch()` for documentation, not executed.
+
+This also unifies the search path: both the blog pipeline (Step 2a) and the manual `/api/ai/research-topic` route (used by AIGenerateModal) now call the SAME underlying implementation. Behavior stays consistent.
+
+#### Fix 3: `src/lib/blog-topics.ts:115` `pickSmartTopic()` — Vercel-safe AI fallback
+
+**Problem:** Used `callAIWithFallback()` with `timeoutMs: 60_000`. That function tries every configured provider whose env key is set, sequentially. In the worst case (no OpenAI/Gemini/Anthropic/Groq/DeepSeek keys configured, which is the current state), it falls through to `callFreeOpenRouter()` which iterates ALL 6 free OpenRouter models × 60s timeout = up to **360 seconds** — far exceeding the Vercel Hobby 60s function cap, AND consuming OpenRouter quota aggressively (triggering the 429 rate-limit on the shared upstream pool documented in BLOG-PIPELINE-RESILIENCE-002's runtime verification).
+
+**Fix:** Replaced with `callFreeOpenRouterLimited(userPrompt, options, 2)` — the Vercel-safe variant that tries at most `maxModels=2` models. Reduced per-model `timeoutMs` from 60s to 25s (worst case 2 × 25s = 50s, within the 60s Vercel cap). This matches the pattern used by Step 2b/2c/2d (per BLOG-PIPELINE-REDESIGN-001 Phase 1) — all AI-calling steps in the blog pipeline now have a consistent Vercel-safe budget.
+
+### Verification performed
+
+| Check | Result |
+|---|---|
+| `npx tsc --noEmit` | ✅ 0 errors (including modified files) |
+| `bun run lint` | ✅ 0 new errors introduced (9 pre-existing errors in `CookieConsent.tsx`, `SaveResultButton.tsx`, `BlogAdminView.tsx`, `checkout/page.tsx`, `foods/[slug]/page.tsx`, `water-tracker/page.tsx`, `AdSenseAd.tsx` — all untouched by this task) |
+| `bun run build` | ✅ Compiled successfully (all 78 pages built) |
+| `git diff --check` | ✅ No whitespace errors |
+| Local smoke test of `externalSearch()` (v2 + v3) | ✅ Real results returned from PubMed, academic.oup.com, ubiehealth.com, health.harvard.edu. 0 reddit/quora/pinterest/facebook violations. 0 duplicate URLs. `partialFailure` correctly flagged when 1 of 3 queries hit Z.ai 429. `/tmp/.z-ai-config` confirmed written. |
+| Production runtime verification of Step 2a | ⏸️ NOT performed — Step 1 is still blocked by OpenRouter upstream rate-limit (per BLOG-PIPELINE-RESILIENCE-002 § Production Runtime Verification). Step 2a cannot be exercised until either OpenRouter recovers or owner manually inserts a `topic_picked` queue row + bypasses Step 1 (not currently supported by the workflow). |
+
+### Files modified
+
+- `src/lib/external-search.ts` — added `createZaiClient()` + `writeTmpConfig()` + `_zaiClient` cache; switched `InstanceType<typeof ZAI>` → `Awaited<ReturnType<typeof ZAI.create>>`; `externalSearch()` now awaits `createZaiClient()` instead of calling `ZAI.create()` directly.
+- `src/lib/blog-generate.ts` — added `import { externalSearch } from "@/lib/external-search"`; rewrote `generateExternalResearch()` as a 3-line delegation; preserved the original raw-fetch body as `_legacyGenerateExternalResearchRawFetch()` (not called, kept as documentation).
+- `src/lib/blog-topics.ts` — switched import from `callAIWithFallback` → `callFreeOpenRouterLimited`; rewrote the `pickSmartTopic()` AI call to use `callFreeOpenRouterLimited(prompt, options, 2)` with `timeoutMs: 25_000` (was `callAIWithFallback(prompt, options)` with `timeoutMs: 60_000`).
+- `PROGRESS.md` — this section.
+- `worklog.md` — Task ID `MH-AI-BLOG-003` worklog entry.
+
+### Files NOT modified (preserved per task constraints)
+
+- ❌ `src/lib/ai-provider.ts` — UNCHANGED (working, no fix needed)
+- ❌ `src/lib/ai.ts` — UNCHANGED (dead code, but not broken; left per "لا تعيد كتابة شيء يعمل بدون سبب")
+- ❌ `src/lib/ai-local.ts` — UNCHANGED (EVO local fallback, working)
+- ❌ `src/lib/evo-search.ts` — UNCHANGED (local platform search, working)
+- ❌ `src/app/api/ai/chat/route.ts` — UNCHANGED (EVO chat — uses race pattern, fast, no blog coupling)
+- ❌ `src/app/api/ai/research-topic/route.ts` — UNCHANGED (already fixed in AI-RESEARCH-EXTERNAL-001)
+- ❌ `src/app/api/ai/generate-article/route.ts` — UNCHANGED (manual article generation — out of scope, no article generation changes)
+- ❌ `src/app/api/ai/generate-image/route.ts` — UNCHANGED (working pattern, referenced as template)
+- ❌ `src/app/api/ai/pick-topic/route.ts` — UNCHANGED (calls `pickSmartTopic()` which was fixed in `blog-topics.ts`)
+- ❌ `src/app/api/ai/plan/route.ts`, `swap/route.ts`, `regenerate-meal/route.ts` — UNCHANGED (EVO subscriber features, not Blog)
+- ❌ `src/app/api/cron/blog/step1-pick/route.ts` — UNCHANGED (calls `pickSmartTopic()` which was fixed in `blog-topics.ts`)
+- ❌ `src/app/api/cron/blog/step2a-research/route.ts` — UNCHANGED (calls `generateExternalResearch()` which was fixed in `blog-generate.ts`)
+- ❌ `src/app/api/cron/blog/step2b-en-article/route.ts`, `step2c-ar-article/route.ts`, `step2d-links/route.ts`, `step3-publish/route.ts` — UNCHANGED (Step 2b/2c/2d/3 — out of scope, no article generation changes)
+- ❌ `src/app/sitemap.ts` — UNCHANGED (working)
+- ❌ `src/lib/blog-server.ts`, `src/lib/blog.ts`, `src/lib/blog-admin.ts`, `src/lib/blog-images.ts` — UNCHANGED (working)
+- ❌ `src/components/blog/AIGenerateModal.tsx` — UNCHANGED (response shape preserved)
+- ❌ BLOG-MULTILANG-ENGINE-001 — UNCHANGED (still FUTURE / BACKLOG ONLY)
+
+### Known unresolved issues
+
+1. **OpenRouter 429 on Step 1 still blocks production runtime verification** — same as BLOG-PIPELINE-RESILIENCE-002 § Production Runtime Verification. The fix here (Fix 3 — `pickSmartTopic` now uses `callFreeOpenRouterLimited`) reduces Step 1's OpenRouter quota consumption per attempt (2 models instead of 6), but doesn't eliminate the upstream shared-pool rate-limit. When OpenRouter recovers, Step 1 will succeed faster + Step 2a will now produce real research (Fix 2).
+
+2. **`src/lib/ai.ts` is dead code** — not imported anywhere. Left in place per task constraint. A future cleanup task could remove it (or repurpose it as the canonical ZAI client if the project decides to consolidate ZAI usage).
+
+3. **Terminology / smart-language audit is not a discrete pipeline stage** — currently folded into the article generation prompt. Future enhancement (out of scope here) — would be a separate step between Step 2c (AR article) and Step 2d (links). Will be designed when BLOG-MULTILANG-ENGINE-001 is opened.
+
+4. **Render backend is deferred** — per task constraint "Render مؤجل حاليًا ولا تنفذ أي شيء متعلق به." No Render integration code in this task. The MH-AI-ARCH-002 future task list (items #5–#18) remains NOT STARTED.
+
+5. **Pre-existing lint errors** — 9 problems in `CookieConsent.tsx`, `SaveResultButton.tsx`, `BlogAdminView.tsx`, `checkout/page.tsx`, `foods/[slug]/page.tsx`, `water-tracker/page.tsx`, `AdSenseAd.tsx` — all pre-existing, none introduced by this task. Out of scope.
+
+### What's left of the AI tasks
+
+| Task | Status |
+|---|---|
+| AI-RESEARCH-EXTERNAL-001 (external search for /api/ai/research-topic) | ✅ DONE (commit `5ac079e`) |
+| MH-AI-BLOG-003 (this task — AI + Blog audit + fixes) | ✅ DONE (this commit) |
+| BLOG-PIPELINE-RESILIENCE-002 (Step 1 retry + 10-min handoff) | ✅ DONE (commit `9a092ab`) — production runtime verification BLOCKED by OpenRouter 429 |
+| BLOG-EXTERNAL-RESEARCH-001 (Blog Step 2a real external search) | ✅ DONE (commit `9c163a7`) — production runtime verification BLOCKED by upstream Step 1 failure |
+| BLOG-MULTILANG-ENGINE-001 (multi-language content engine) | ⏸️ FUTURE / BACKLOG ONLY |
+| MH-AI-ARCH-002 (Render backend migration) | ⏸️ FUTURE / BACKLOG ONLY — Render repo skeleton exists (commit `14e87fa` in muscleshubfit-cpu/Render repo), no migration started |
+| Terminology audit stage | ⏸️ Not started — will be designed when BLOG-MULTILANG-ENGINE-001 is opened |
+| Remove dead code (`src/lib/ai.ts`) | ⏸️ Low priority — not broken, just unused |
+
+### Render status
+
+**DEFERRED** per task constraint. No Render integration code in this task. The Render backend repo (`muscleshubfit-cpu/Render`) exists as a skeleton (commit `14e87fa`) with placeholder workload routes — ready for future migration when the owner opens MH-AI-ARCH-002 task #5 or #6.

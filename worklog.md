@@ -1892,3 +1892,44 @@ Stage Summary:
 - `tsc --noEmit` 0 errors. `bun run lint` 0 new errors (9 pre-existing, confirmed via stash baseline).
 - No blog pipeline code touched. BLOG-MULTILANG-ENGINE-001 still FUTURE/BACKLOG ONLY.
 - Commit + push to follow with message: `feat: replace LLM pseudo-research with real external web search in /api/ai/research-topic`.
+
+---
+Task ID: MH-AI-BLOG-003
+Agent: main (super-z)
+Task: Comprehensive review of AI + Blog system; fix identified gaps without re-implementing working code or touching article generation. Render is deferred — no Render integration. Per AGENTS.md §12.2: IMPLEMENT → VALIDATE → DOCUMENT → COMMIT → PUSH.
+
+Work Log:
+- Pre-flight: synced local with origin/main (was at `5ac079e`, in sync). Confirmed uncommitted MH-AI-ARCH-002 docs (PROJECT_CONTEXT.md §11 + PROGRESS.md § MH-AI-ARCH-002 — 235 lines across 2 files) from previous task. Will commit those alongside this task's changes (the architecture direction docs inform the current audit).
+- Inspected actual code state of all AI + Blog components (per AGENTS.md §12.8: source-of-truth = code first, docs second):
+  • `src/lib/ai-provider.ts` (639 lines) — fully inspected. `callFreeOpenRouter`, `callFreeOpenRouterLimited`, `callFreeOpenRouterRace`, `callAIWithFallback`, `parseJSON` (with truncation repair), reasoning-artifact fallback. All working, no fix needed.
+  • All 8 routes under `src/app/api/ai/*` — inspected. chat, generate-article, generate-image, pick-topic, plan, regenerate-meal, research-topic, swap. `research-topic` already fixed in AI-RESEARCH-EXTERNAL-001 (commit `5ac079e`). Others working.
+  • `src/app/api/cron/blog/step{1,2a,2b,2c,2d,3}/*.ts` — inspected. State machine: `topic_picked → researching → research_done → en_done → ar_done → generated → published`. Each step persists to `article_bundle` JSONB. Step 3 has duplicate-title check + unique-slug generation + EN/AR linking. Working.
+  • `src/lib/blog-topics.ts` — inspected. Found Fix 3 (uses `callAIWithFallback` with 60s timeout → can take 360s worst case).
+  • `src/lib/blog-generate.ts:446` `generateExternalResearch()` — inspected. Found Fix 2 (uses raw `fetch()` with broken `"Z.ai"` API key).
+  • `src/lib/external-search.ts` (created in AI-RESEARCH-EXTERNAL-001) — inspected. Found Fix 1 (uses `ZAI.create()` which reads from `.z-ai-config` files that don't exist on Vercel prod).
+  • `src/app/sitemap.ts`, `src/lib/blog-server.ts`, `src/lib/blog-admin.ts`, `src/lib/blog-images.ts` — inspected. All working.
+  • `src/lib/ai.ts` — confirmed dead code (not imported anywhere). Left in place per task constraint "لا تعيد كتابة شيء يعمل بدون سبب".
+- Identified 3 fixes; no architectural changes; no re-implementation of working code:
+  • **Fix 1** (`src/lib/external-search.ts`): replace `ZAI.create()` direct call with `createZaiClient()` async wrapper that writes `/tmp/.z-ai-config` from env vars first. Same pattern as `src/app/api/ai/generate-image/route.ts`. Caches client per-process via `_zaiClient` module-level variable. Switched type from `InstanceType<typeof ZAI>` (private constructor — TS error) to `Awaited<ReturnType<typeof ZAI.create>>` (inferred from public factory).
+  • **Fix 2** (`src/lib/blog-generate.ts:446`): replace `generateExternalResearch()` raw-fetch body (broken — `invalid X-Token`) with 3-line delegation to `externalSearch()` from `src/lib/external-search.ts`. Same input/output shape — caller code unchanged. Legacy raw-fetch code preserved as `_legacyGenerateExternalResearchRawFetch()` (not executed, kept as documentation).
+  • **Fix 3** (`src/lib/blog-topics.ts:115`): replace `callAIWithFallback(prompt, {timeoutMs: 60_000})` with `callFreeOpenRouterLimited(prompt, {timeoutMs: 25_000}, 2)`. Matches the Vercel-safe pattern from BLOG-PIPELINE-REDESIGN-001 Phase 1 (used by Step 2b/2c/2d). All AI-calling steps in the blog pipeline now have a consistent budget (max 2 models × 25s = 50s worst case).
+- Did NOT touch: article generation (`generateArticleBundle`, Step 2b/2c/2d bodies, `AIGenerateModal`), EVO chat (race pattern, fast, no blog coupling), AI provider, plan/swap/regenerate-meal routes, sitemap, blog admin, blog-server, blog-images, blog-admin. All preserved per task constraints.
+- Did NOT touch BLOG-MULTILANG-ENGINE-001 — still FUTURE / BACKLOG ONLY.
+- Did NOT implement any Render integration — Render is deferred per task constraint.
+- Verification performed:
+  • `npx tsc --noEmit` → 0 errors (including modified files)
+  • `bun run lint` → 9 pre-existing problems (in `CookieConsent.tsx`, `SaveResultButton.tsx`, `BlogAdminView.tsx`, `checkout/page.tsx`, `foods/[slug]/page.tsx`, `water-tracker/page.tsx`, `AdSenseAd.tsx` — all untouched). 0 new errors introduced by this task.
+  • `bun run build` → 0 errors (all 78 pages built)
+  • `git diff --check` → no whitespace errors
+  • Local smoke test of `externalSearch()` (v2 + v3 — confirmed real results from pubmed.ncbi.nlm.nih.gov, academic.oup.com, ubiehealth.com, health.harvard.edu with real URLs/hosts/snippets; 0 reddit/quora/pinterest/facebook violations; 0 duplicate URLs; `partialFailure` correctly flagged when 1 of 3 Z.ai queries hit 429; `/tmp/.z-ai-config` confirmed written)
+  • Production runtime verification of Step 2a NOT performed — blocked by upstream OpenRouter 429 (BLOG-PIPELINE-RESILIENCE-002 § Production Runtime Verification).
+- Updated `PROGRESS.md`: appended new section "MH-AI-BLOG-003 — AI + Blog System Audit & Fixes (Excluding Article Generation)" with full audit findings table (18+ areas inspected), 3 fix descriptions (problem/fix for each), verification table, files modified, files NOT modified, known unresolved issues, "what's left of AI tasks" status table, Render status (DEFERRED).
+- Also committing the previously-uncommitted MH-AI-ARCH-002 docs (PROJECT_CONTEXT.md §11 + PROGRESS.md § MH-AI-ARCH-002 future task list) from the earlier documentation-only task — they were left uncommitted due to tool timeouts but are now bundled in this single commit per AGENTS.md §12.2 (IMPLEMENT → VALIDATE → DOCUMENT → COMMIT → PUSH).
+
+Stage Summary:
+- 3 fixes applied (external-search Vercel production path, blog-generate delegation to externalSearch, blog-topics Vercel-safe fallback). All compile, lint clean, build clean.
+- Local smoke test confirmed real Z.ai web_search results returned (PubMed, academic.oup.com, ubiehealth.com, health.harvard.edu) with `/tmp/.z-ai-config` write working — Vercel production path now ready.
+- No article generation code touched. No BLOG-MULTILANG-ENGINE-001 changes. No Render integration (deferred).
+- Production runtime verification of the full blog pipeline still blocked by upstream OpenRouter 429 — but when it recovers, Step 1 will use less quota (2 models instead of 6) and Step 2a will now produce real research (was returning empty due to broken Z.ai raw-fetch path).
+- Files modified: `src/lib/external-search.ts`, `src/lib/blog-generate.ts`, `src/lib/blog-topics.ts`, `PROGRESS.md`, `worklog.md`, `PROJECT_CONTEXT.md` (the last from MH-AI-ARCH-002 docs commit).
+- Commit + push to follow with message: `fix: repair AI + Blog pipeline (Vercel-safe topic picker, working external search, /tmp/.z-ai-config write) + adopt MH-AI-ARCH-002 architecture direction docs`.

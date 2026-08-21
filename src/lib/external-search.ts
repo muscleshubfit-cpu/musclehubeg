@@ -49,6 +49,29 @@
  */
 
 import ZAI from "z-ai-web-dev-sdk";
+import { writeFile, mkdir } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
+/**
+ * Inferred type of the ZAI client instance returned by `ZAI.create()`.
+ * We use type inference (not `ZAIClient`) because the
+ * SDK's ZAI class has a private constructor — `InstanceType` can't
+ * see through private constructors.
+ */
+type ZAIClient = Awaited<ReturnType<typeof ZAI.create>>;
+
+/**
+ * Cached ZAI client — created once per process, reused across requests.
+ * The SDK reads from `.z-ai-config` files in cwd / home / /etc, so we
+ * write `/tmp/.z-ai-config` first (see `createZaiClient`) and then
+ * call `ZAI.create()`.
+ *
+ * On Vercel serverless, each function invocation is a fresh process,
+ * so this cache doesn't survive across requests — but within a single
+ * function call, multiple queries share the same client.
+ */
+let _zaiClient: ZAIClient | null = null;
 
 export type ExternalSearchArticle = {
   title: string;
@@ -136,6 +159,61 @@ function normalizeUrl(url: string): string {
     .replace(/https?:\/\//, "");
 }
 
+/**
+ * Create a ZAI SDK client instance using env-var-provided config.
+ *
+ * The SDK's `ZAI.create()` reads from `.z-ai-config` files in
+ * `process.cwd()`, `os.homedir()`, and `/etc/.z-ai-config`. None of
+ * these paths are guaranteed to exist on Vercel serverless production
+ * (process.cwd() is read-only, /etc is not writable, HOME may be /tmp).
+ *
+ * Solution: write `/tmp/.z-ai-config` with env-var-provided config
+ * (with sensible defaults), then call `ZAI.create()`. This is the
+ * same pattern used by `src/app/api/ai/generate-image/route.ts`.
+ *
+ * The client is cached per-process (see `_zaiClient` above) so the
+ * file write happens only once per function invocation.
+ */
+async function createZaiClient(): Promise<ZAIClient> {
+  if (_zaiClient) return _zaiClient;
+
+  const config = {
+    baseUrl: process.env.ZAI_BASE_URL || "https://internal-api.z.ai/v1",
+    apiKey: process.env.ZAI_API_KEY || "Z.ai",
+    chatId: process.env.ZAI_CHAT_ID || "",
+    token: process.env.ZAI_TOKEN || "",
+    userId: process.env.ZAI_USER_ID || "",
+  };
+
+  // Write a /tmp/.z-ai-config so `ZAI.create()` finds it. Best-effort —
+  // if /tmp is read-only (rare on Vercel), the call below will throw
+  // and the caller's try/catch handles it.
+  await writeTmpConfig(config);
+
+  // Some Vercel runtimes set HOME=/ or leave it unset, which causes
+  // `os.homedir()` to return `/` (read-only). The SDK checks `cwd`,
+  // `home`, and `/etc/.z-ai-config` — but on Vercel, /tmp is writable
+  // and is the only safe path. Setting HOME=/tmp makes the SDK find
+  // the file we just wrote there.
+  if (!process.env.HOME || process.env.HOME === "/") {
+    process.env.HOME = "/tmp";
+  }
+
+  _zaiClient = await ZAI.create();
+  return _zaiClient;
+}
+
+async function writeTmpConfig(config: Record<string, string>): Promise<void> {
+  try {
+    const tmpDir = tmpdir();
+    await mkdir(tmpDir, { recursive: true });
+    await writeFile(join(tmpDir, ".z-ai-config"), JSON.stringify(config), { mode: 0o600 });
+  } catch (e: any) {
+    console.error(`[external-search] Failed to write /tmp/.z-ai-config: ${e?.message || e}`);
+    throw e;
+  }
+}
+
 function buildSearchQueries(topic: string, focusKeyword?: string): string[] {
   const base = (focusKeyword || topic || "").trim();
   if (!base) return [];
@@ -180,7 +258,7 @@ function computeTrendingKeywords(snippets: string[]): string[] {
  * what to do with partial failures).
  */
 async function runSingleQuery(
-  zai: Awaited<ReturnType<typeof ZAI.create>>,
+  zai: ZAIClient,
   query: string,
   num: number,
   timeoutMs: number,
@@ -236,7 +314,13 @@ export async function externalSearch(
   }
 
   // Create the ZAI client once, share across all parallel queries.
-  const zai = await ZAI.create();
+  // The SDK's `ZAI.create()` reads from `.z-ai-config` files in
+  // `process.cwd()`, `os.homedir()`, and `/etc/.z-ai-config`. None of
+  // these paths are guaranteed to exist on Vercel serverless production
+  // (process.cwd() is read-only, /etc is not writable, HOME may be /tmp).
+  // `createZaiClient()` writes `/tmp/.z-ai-config` with env-var-provided
+  // config (with sensible defaults) before calling `ZAI.create()`.
+  const zai = await createZaiClient();
 
   // Run ALL queries in parallel — total wallclock ~= slowest query,
   // not sum of all. Each query is independently fault-tolerant.

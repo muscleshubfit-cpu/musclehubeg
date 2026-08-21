@@ -1,4 +1,4 @@
-import { callAIWithFallback, parseJSON } from "@/lib/ai-provider";
+import { callFreeOpenRouterLimited, parseJSON } from "@/lib/ai-provider";
 import { supabaseAdmin, isSupabaseAdminConfigured } from "@/lib/supabase/admin";
 
 /**
@@ -112,13 +112,26 @@ ${samePillar.length ? samePillar.map((t, i) => `${i + 1}. ${t.title} (kw: ${t.fo
 
 Pick the single best next topic now, strictly within the "${category}" pillar.`;
 
- const { text: raw } = await callAIWithFallback(userPrompt, {
+ // Use callFreeOpenRouterLimited (Vercel Hobby-safe — max 2 models, 25s
+ // timeout each, worst case 50s) instead of callAIWithFallback (which
+ // could try all 6 models × 60s = 360s, far exceeding the Vercel Hobby
+ // 60s function cap and triggering OpenRouter 429 rate-limits on the
+ // shared upstream pool).
+ //
+ // This is the same pattern used by Step 2b/2c/2d (per BLOG-PIPELINE-
+ // REDESIGN-001 Phase 1) so all AI-calling steps in the blog pipeline
+ // have a consistent Vercel-safe budget.
+ const { text: raw } = await callFreeOpenRouterLimited(
+ userPrompt,
+ {
  systemPrompt: TOPIC_SYSTEM_PROMPT,
  temperature: 0.9,
  maxTokens: 500,
  jsonMode: true,
- timeoutMs: 60_000,
- });
+ timeoutMs: 25_000,
+ },
+ 2, // maxModels=2 — worst case 2 × 25s = 50s, within the 60s Vercel cap.
+ );
 
  const parsed = parseJSON<any>(raw);
  if (!parsed?.topic || !parsed?.focusKeyword) {
