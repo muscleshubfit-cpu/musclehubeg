@@ -296,21 +296,22 @@ async function runSingleQuery(
     return { results: [], error: null };
   } catch (e: any) {
     const errorMsg = e?.message || String(e);
-    // TEMP DIAGNOSTIC: extract Node.js fetch error details (cause chain)
     const cause = e?.cause;
+    const diag = {
+      name: e?.name || null,
+      message: e?.message || null,
+      causeType: cause?.constructor?.name || null,
+      causeCode: cause?.code || null,
+      causeErrno: cause?.errno || null,
+      causeSyscall: cause?.syscall || null,
+      causeHostname: cause?.hostname || null,
+      causeMessage: cause?.message || null,
+    };
     console.error(
       `[external-search] web_search failed for "${query}": ${errorMsg}`,
+      JSON.stringify(diag),
     );
-    console.error(
-      `[external-search] DIAGNOSTIC: name=${e?.name} message=${e?.message} ` +
-      `cause.type=${cause?.constructor?.name} ` +
-      `cause.code=${cause?.code} ` +
-      `cause.errno=${cause?.errno} ` +
-      `cause.syscall=${cause?.syscall} ` +
-      `cause.hostname=${cause?.hostname} ` +
-      `cause.message=${cause?.message}`,
-    );
-    return { results: [], error: errorMsg };
+    return { results: [], error: `${errorMsg} | DIAG: ${JSON.stringify(diag)}` };
   }
 }
 
