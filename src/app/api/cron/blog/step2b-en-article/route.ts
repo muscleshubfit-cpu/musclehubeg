@@ -135,7 +135,7 @@ export async function GET(request: NextRequest) {
       console.error("[blog/step2b-en-article] Research is empty — failing fast instead of generating a poor article without sources");
       const updateErr = await updateQueueItem(qi.id, {
         status: "failed",
-        error_message: "step2b: empty_research — Step 2a produced 0 topArticles + 0 relatedQuestions + 0 trendingKeywords. Investigate Step 2a (Z.ai may be down or all 3 queries failed).",
+        error_message: `step2b: empty_research — Step 2a produced 0 topArticles + 0 relatedQuestions + 0 trendingKeywords. Investigate Step 2a (Z.ai may be down or all 3 queries failed).${research?.firstError ? ` Z.ai error: ${research.firstError}` : ""}`,
       });
       if (updateErr) console.error(`[blog/step2b-en-article] Failed to mark queue as failed: ${updateErr}`);
       return NextResponse.json(

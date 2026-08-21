@@ -174,6 +174,7 @@ export async function GET(request: NextRequest) {
       queriesSucceeded: research?.successfulQueries || 0,
       partialFailure: research?.partialFailure || false,
       source,
+      firstError: research?.firstError || null,
     });
   } catch (e: any) {
     console.error("[blog/step2a-research] Error:", e?.message || e);

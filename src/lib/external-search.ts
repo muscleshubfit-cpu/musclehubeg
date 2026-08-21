@@ -93,6 +93,18 @@ export type ResearchResult = {
   successfulQueries: number;
   totalResults: number;
   partialFailure: boolean;
+  /**
+   * First error encountered (if any). Surfaced so the caller can
+   * distinguish between "Z.ai returned 0 results for this query"
+   * (no error — the search just found nothing) and "Z.ai auth failed"
+   * (error — the token is missing/misconfigured).
+   *
+   * Without this field, auth/config errors are silently converted
+   * to queriesSucceeded: 0 + partialFailure: true, which is
+   * indistinguishable from "Z.ai found 0 results" — making debugging
+   * impossible. See MH-ZAI-PROD-008 root cause.
+   */
+  firstError: string | null;
 };
 
 export type ExternalSearchInput = {
@@ -253,16 +265,18 @@ function computeTrendingKeywords(snippets: string[]): string[] {
 
 /**
  * Run a single web_search query via the z-ai-web-dev-sdk.
- * Returns raw results or [] on any error (including the SDK's own
- * 429 / timeout handling — we don't propagate, the caller decides
- * what to do with partial failures).
+ * Returns an object with results + optional error message.
+ *
+ * On error (auth failure, timeout, 429, network), returns
+ * `{ results: [], error: "<message>" }` so the caller can
+ * distinguish "Z.ai found 0 results" from "Z.ai auth failed".
  */
 async function runSingleQuery(
   zai: ZAIClient,
   query: string,
   num: number,
   timeoutMs: number,
-): Promise<any[]> {
+): Promise<{ results: any[]; error: string | null }> {
   try {
     const result = await Promise.race([
       zai.functions.invoke("web_search", { query, num }),
@@ -273,21 +287,19 @@ async function runSingleQuery(
         ),
       ),
     ]);
-    // The SDK returns an array of results. Some future SDK versions
-    // might wrap results in { result: [...] } or { results: [...] } —
-    // handle both shapes defensively.
-    if (Array.isArray(result)) return result as any[];
+    if (Array.isArray(result)) return { results: result as any[], error: null };
     if (result && typeof result === "object") {
       const r = result as any;
-      if (Array.isArray(r.result)) return r.result;
-      if (Array.isArray(r.results)) return r.results;
+      if (Array.isArray(r.result)) return { results: r.result, error: null };
+      if (Array.isArray(r.results)) return { results: r.results, error: null };
     }
-    return [];
+    return { results: [], error: null };
   } catch (e: any) {
+    const errorMsg = e?.message || String(e);
     console.error(
-      `[external-search] web_search failed for "${query}": ${e?.message || e}`,
+      `[external-search] web_search failed for "${query}": ${errorMsg}`,
     );
-    return [];
+    return { results: [], error: errorMsg };
   }
 }
 
@@ -335,9 +347,13 @@ export async function externalSearch(
   const relatedQuestions: string[] = [];
   const topArticles: ExternalSearchArticle[] = [];
   let successfulQueries = 0;
+  let firstError: string | null = null;
 
-  for (const results of searchResults) {
+  for (const { results, error } of searchResults) {
     if (results.length > 0) successfulQueries++;
+    if (error && !firstError) {
+      firstError = error; // capture the FIRST error for observability
+    }
     for (const item of results) {
       const url = item.url || "";
       const host = item.host_name || item.host || "";
@@ -382,6 +398,7 @@ export async function externalSearch(
     successfulQueries,
     totalResults: topArticles.length,
     partialFailure,
+    firstError,
   };
 }
 
@@ -399,5 +416,6 @@ function emptyResult(): ResearchResult {
     successfulQueries: 0,
     totalResults: 0,
     partialFailure: false,
+    firstError: null,
   };
 }
