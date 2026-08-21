@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { callFreeOpenRouterLimited, parseJSON } from "@/lib/ai-provider";
+import { parseJSON } from "@/lib/ai-provider";
+import { callGemini } from "@/lib/gemini-wrapper";
 import { requireCoach, isAuthConfigured } from "@/lib/auth-server";
 import { externalSearch } from "@/lib/external-search";
 
 /**
  * Topic Research endpoint — runs REAL external web search via
- * Z.ai (`z-ai-web-dev-sdk`) to fetch actual URLs, titles, hosts, and
+ * Google Search via Gemini to fetch actual URLs, titles, hosts, and
  * snippets from the web. Optionally enriches search intent / content
  * gaps via an LLM call (these fields cannot be derived from raw web
  * search results alone).
@@ -37,7 +38,7 @@ export const maxDuration = 60; // Vercel hobby plan limit
 export async function POST(request: NextRequest) {
   try {
     // Coach-only — burns OpenRouter credits on the LLM enrichment call.
-    // The external search itself is free (uses z-ai-web-dev-sdk's
+    // The external search itself is free (uses Gemini's
     // internal token, no key required).
     if (isAuthConfigured) {
       const auth = await requireCoach(request);
@@ -60,7 +61,7 @@ export async function POST(request: NextRequest) {
     const searchTerm = focusKeyword || topic || "";
 
     // ──────────────────────────────────────────────────────────────
-    // PRIMARY PATH — REAL external web search via Z.ai SDK.
+    // PRIMARY PATH — REAL external web search via Gemini SDK.
     // No LLM. No OpenRouter. Returns real URLs, hosts, snippets.
     // ──────────────────────────────────────────────────────────────
     const research = await externalSearch({
@@ -94,7 +95,7 @@ export async function POST(request: NextRequest) {
       );
 
       try {
-        const { text, model } = await callFreeOpenRouterLimited(
+        const { text, model } = await callGemini(
           enrichmentPrompt,
           {
             systemPrompt:

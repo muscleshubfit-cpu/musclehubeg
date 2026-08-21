@@ -25,7 +25,8 @@
  * ─────────────────────────────────────────────────────────────────────────
  */
 
-import { callFreeOpenRouter, callFreeOpenRouterLimited, parseJSON } from "@/lib/ai-provider";
+import { parseJSON } from "@/lib/ai-provider";
+import { callGemini } from "@/lib/gemini-wrapper";
 import { externalSearch } from "@/lib/external-search";
 
 export const ARTICLE_SYSTEM_PROMPT = `You are the MuscleHub AI Content Assistant — an expert SEO content strategist and copywriter for a premium online nutrition & fitness coaching platform (MuscleHub, musclehubeg.vercel.app).
@@ -305,7 +306,7 @@ export async function generateArticleBundle(
   // ───────────────────────────────────────────────────────────────────
   let chunk1: any = null;
   try {
-    const { text: raw1, model: model1 } = await callFreeOpenRouter(
+    const { text: raw1, model: model1 } = await callGemini(
       chunk1Prompt(input, input.research),
       {
         systemPrompt: ARTICLE_SYSTEM_PROMPT,
@@ -329,7 +330,7 @@ export async function generateArticleBundle(
   // ───────────────────────────────────────────────────────────────────
   // CHUNK 2: Arabic Article + FAQ (in parallel with Chunk 3)
   // ───────────────────────────────────────────────────────────────────
-  const chunk2Promise = callFreeOpenRouter(
+  const chunk2Promise = callGemini(
     chunk2Prompt(input, chunk1.seo),
     {
       systemPrompt: ARTICLE_SYSTEM_PROMPT,
@@ -350,7 +351,7 @@ export async function generateArticleBundle(
   // ───────────────────────────────────────────────────────────────────
   // CHUNK 3: Links + Image Prompts + Social Posts
   // ───────────────────────────────────────────────────────────────────
-  const chunk3Promise = callFreeOpenRouter(
+  const chunk3Promise = callGemini(
     chunk3Prompt(input, chunk1.seo),
     {
       systemPrompt: ARTICLE_SYSTEM_PROMPT,
@@ -422,15 +423,14 @@ export async function generateArticleBundle(
     imagePrompts: chunk3?.imagePrompts || { featuredImage: "", facebookImage: "", openGraphImage: "" },
     socialPosts: chunk3?.socialPosts || { facebook: "", linkedin: "", instagram: "", x: "" },
     estimatedReadingTime,
-    source: "openrouter:chunked",
+    source: "gemini:chunked",
   };
 }
 
-/* ========================================================================= */
 /* P0-1: SPLIT FUNCTIONS — each is one AI call, callable from a separate      */
 /* cron route. Each saves its result to the queue's article_bundle JSONB.    */
 /* The original generateArticleBundle() above is kept for backward compat.    */
-/* ========================================================================= */
+
 
 /**
  * Step 2a: External Web Research.
@@ -444,7 +444,7 @@ export async function generateArticleBundle(
  * SAME underlying implementation, so search behavior stays consistent.
  *
  * The previous version of this function used raw `fetch()` against
- * `https://internal-api.z.ai/v1/functions/invoke` with the default `"Z.ai"`
+ * `https://internal-api.z.ai/v1/functions/invoke` with the default `"Gemini"`
  * API key, which returns `invalid X-Token` on every call in production.
  * Using the `z-ai-web-dev-sdk` via `externalSearch()` fixes that — the SDK
  * uses an internal token and works in Vercel serverless environments.
@@ -475,247 +475,45 @@ export async function generateExternalResearch(
   };
 }
 
-/* ========================================================================= */
-/* The original generateExternalResearch() body is below, preserved for
-/* reference. It was the source of the broken Z.ai raw-fetch path that
-/* returned `invalid X-Token` on every production call. The replacement
-/* above delegates to `externalSearch()` in `src/lib/external-search.ts`,
-/* which uses the `z-ai-web-dev-sdk` (working SDK with internal token).
-/* This block is intentionally NOT executed — kept only as documentation
-/* of the previous approach. Remove once the new path is verified in
-/* production (after BLOG-EXTERNAL-RESEARCH-001 runtime verification).
-/* ========================================================================= */
-async function _legacyGenerateExternalResearchRawFetch(
-  input: { topic?: string; focusKeyword?: string; category?: string },
-): Promise<{ research: any; source: string }> {
-  const searchTerm = input.focusKeyword || input.topic || "";
-  if (!searchTerm) {
-    return { research: { topArticles: [], relatedQuestions: [], trendingKeywords: [], source: "empty-search-term" }, source: "empty" };
-  }
 
-  const zaiBaseUrl = process.env.ZAI_BASE_URL || "https://internal-api.z.ai/v1";
-  const zaiApiKey = process.env.ZAI_API_KEY || "Z.ai";
-  const zaiChatId = process.env.ZAI_CHAT_ID || "";
-  const zaiUserId = process.env.ZAI_USER_ID || "";
-  const zaiToken = process.env.ZAI_TOKEN || "";
-
-  // Build 3 search queries for different angles
-  const searchQueries = [
-    searchTerm,                    // main topic
-    `${searchTerm} vs`,            // comparison angles
-    `how to ${searchTerm}`,       // how-to angle
-  ];
-
-  console.log(`[blog-generate] Starting external web search for "${searchTerm}" (${searchQueries.length} queries in parallel)`);
-
-  // Run ALL queries IN PARALLEL — 8s timeout each
-  const searchResults = await Promise.all(
-    searchQueries.map(async (query, idx) => {
-      try {
-        const res = await fetch(`${zaiBaseUrl}/functions/invoke`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${zaiApiKey}`,
-            "X-Z-AI-From": "Z",
-            ...(zaiChatId ? { "X-Chat-Id": zaiChatId } : {}),
-            ...(zaiUserId ? { "X-User-Id": zaiUserId } : {}),
-            ...(zaiToken ? { "X-Token": zaiToken } : {}),
-          },
-          body: JSON.stringify({
-            function_name: "web_search",
-            arguments: { query, num: 5 },
-          }),
-          signal: AbortSignal.timeout(8_000),
-        });
-        if (!res.ok) {
-          const errText = await res.text().catch(() => "");
-          console.error(`[blog-generate] web_search query ${idx + 1} ("${query}") failed: ${res.status} ${errText.slice(0, 200)}`);
-          return [];
-        }
-        const data = await res.json();
-        const results = data?.result || data || [];
-        console.log(`[blog-generate] web_search query ${idx + 1} ("${query}"): ${results.length} results`);
-        return Array.isArray(results) ? results : [];
-      } catch (e: any) {
-        console.error(`[blog-generate] web_search query ${idx + 1} ("${query}") error: ${e?.name}: ${e?.message}`);
-        return [];
-      }
-    }),
-  );
-
-  // Post-process results
-  const allSnippets: string[] = [];
-  const relatedQuestions: string[] = [];
-  const topArticles: any[] = [];
-  const seenUrls = new Set<string>();
-  let successfulQueries = 0;
-
-  const lowValueSources = ["reddit.com", "quora.com", "pinterest.com", "facebook.com"];
-
-  for (const results of searchResults) {
-    if (results.length > 0) successfulQueries++;
-    for (const item of results) {
-      const url = item.url || "";
-      const host = item.host_name || item.host || "";
-      const title = item.name || item.title || "";
-      const snippet = (item.snippet || "").slice(0, 200);
-
-      // Deduplicate by normalized URL
-      const normalizedUrl = url.toLowerCase().replace(/\/$/, "").replace(/https?:\/\//, "");
-      if (!normalizedUrl || seenUrls.has(normalizedUrl)) continue;
-      seenUrls.add(normalizedUrl);
-
-      // Filter low-value sources
-      if (lowValueSources.some((src) => host.toLowerCase().includes(src))) continue;
-
-      allSnippets.push(snippet);
-
-      topArticles.push({
-        title,
-        url,
-        host,
-        snippet,
-      });
-
-      // Extract questions from snippets
-      const questionMatches = snippet.match(/\b(what|how|why|when|where|can|should|does|is|are|do)\s+[^.?!]+\?/gi);
-      if (questionMatches) {
-        for (const q of questionMatches) {
-          const trimmed = q.trim();
-          if (trimmed.length > 15 && trimmed.length < 120 && !relatedQuestions.includes(trimmed)) {
-            relatedQuestions.push(trimmed);
-          }
-        }
-      }
-    }
-  }
-
-  // Compute trending keywords from snippet word frequency
-  const wordFreq: Record<string, number> = {};
-  const stopWords = new Set(["about", "which", "their", "would", "could", "should", "other", "these", "those", "there", "where", "when", "what", "while", "from", "with", "that", "this", "they", "have", "been", "will", "your", "also", "more", "than", "into", "only", "most", "some", "such", "very", "just", "like", "make", "made", "well"]);
-  for (const snippet of allSnippets) {
-    const words = snippet.toLowerCase().split(/\s+/);
-    for (const word of words) {
-      const clean = word.replace(/[^a-z]/g, "");
-      if (clean.length > 4 && !stopWords.has(clean)) {
-        wordFreq[clean] = (wordFreq[clean] || 0) + 1;
-      }
-    }
-  }
-  const trendingKeywords = Object.entries(wordFreq)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 10)
-    .map(([word]) => word);
-
-  const totalResults = topArticles.length;
-  const partialFailure = successfulQueries < searchQueries.length;
-
-  const research = {
-    topArticles: topArticles.slice(0, 10),
-    relatedQuestions: relatedQuestions.slice(0, 15),
-    trendingKeywords,
-    // Also include trendingAngles alias for chunk1Prompt compatibility
-    trendingAngles: trendingKeywords,
-    searchIntent: null,  // Not determined by web search — left for LLM in step 2b
-    searcherGoal: null,
-    source: "z-ai-web-search",
-    queryCount: searchQueries.length,
-    successfulQueries,
-    totalResults,
-    partialFailure,
-  };
-
-  console.log(`[blog-generate] External research done: ${totalResults} articles, ${relatedQuestions.length} questions, ${trendingKeywords.length} keywords (queries: ${successfulQueries}/${searchQueries.length} succeeded${partialFailure ? ", PARTIAL FAILURE" : ""})`);
-
-  return { research, source: "z-ai-web-search" };
-}
-
-/**
- * Step 2b: SEO data + English article.
- * Single AI call. Takes research as input. Returns SEO block + English article.
- * maxTokens increased from 4000 to 8000 to prevent truncation (P0-2 fix).
- */
 export async function generateEnglishArticle(
   input: { topic?: string; focusKeyword?: string; category?: string },
-  research: any,
+  research?: any,
 ): Promise<{ seo: any; englishArticle: string; source: string }> {
-  const { text, model } = await callFreeOpenRouterLimited(
-    chunk1Prompt(input, research),
+  const prompt = chunk1Prompt(input, research);
+  const { text, model } = await callGemini(
+    prompt,
     {
       systemPrompt: ARTICLE_SYSTEM_PROMPT,
       temperature: 0.7,
       maxTokens: 8_000,
       jsonMode: true,
       timeoutMs: 25_000,
-    },
-    2,
+    }
   );
   const parsed = parseJSON<any>(text);
   if (!parsed || !parsed.englishArticle || !parsed.seo) {
-    throw new Error("English article chunk returned invalid data — missing seo or englishArticle");
+    throw new Error("English article chunk returned invalid data — missing englishArticle or seo");
   }
-  console.log(`[blog-generate] EN article done (model: ${model}, words: ${parsed.englishArticle.split(/\s+/).length})`);
-  return { seo: parsed.seo, englishArticle: parsed.englishArticle, source: `openrouter:${model}` };
+  return {
+    seo: parsed.seo,
+    englishArticle: parsed.englishArticle,
+    source: `gemini:${model}`,
+  };
 }
 
-/**
- * Step 2c: Arabic article + FAQ.
- * Single AI call. Takes SEO + English article as input (EN article improves
- * coherence — the AR writer can match structure and depth).
- * maxTokens increased from 4000 to 8000 to prevent truncation.
- */
 export async function generateArabicArticle(
   input: { topic?: string; focusKeyword?: string; category?: string },
   seo: any,
-  englishArticle: string,
+  englishArticle?: string,
 ): Promise<{ arabicArticle: string; faq: any[]; faqAr: any[]; source: string }> {
-  const enTitle = seo?.en?.seoTitle || input.topic || "";
-  const arTitle = seo?.ar?.seoTitle || "";
-  const focusKw = seo?.focusKeyword || input.focusKeyword || "";
-
-  // Truncate English article to ~2000 words to keep prompt size manageable
-  const enExcerpt = englishArticle.split(/\s+/).slice(0, 2000).join(" ");
-
   const prompt = `Generate PART 2 of a blog article bundle for MuscleHub.
-
-CONTEXT FROM PART 1:
- - English title: "${enTitle}"
- - Arabic title: "${arTitle}"
- - Focus keyword: "${focusKw}"
-
-ENGLISH ARTICLE (for reference — match its structure, depth, and topic coverage):
-${enExcerpt}
-
-STEP 4 — ARABIC ARTICLE (LOCALIZED, NOT TRANSLATED, Markdown, 500-800 words):
- - Adapt the angle for an Egyptian / Gulf Arabic-speaking audience.
- - Use culturally relevant examples (Egyptian foods, local gym culture, prayer-time scheduling, etc.).
- - Write in Modern Standard Arabic with a friendly, motivating tone.
- - Do NOT translate English idioms literally — rewrite for Arabic readers.
- - Same SEO structure as English (H2/H3, table, key takeaways, CTA sections).
- - Match the English article's depth and coverage — cover the same sub-topics.
- - Include the focus keyword (transliterated or Arabic equivalent) naturally.
- - CRITICAL: The ENTIRE Arabic article MUST be 100% in Arabic. This includes:
-   * All headings (H2, H3) — Arabic only, no English words
-   * All paragraphs — Arabic only
-   * All table headers and cell content — Arabic only
-   * The FAQ questions and answers — Arabic only
-   * The CTA section — Arabic only
-   * The "Key Takeaways" section — Arabic only
-   * Source citations — write the source name in Arabic (e.g. "وفقاً لدراسة في المجلة الدولية للتغذية الرياضية")
-   * Scientific terms — transliterate to Arabic or explain in Arabic (e.g. "معدل الأيض الأساسي (BMR)")
-   * Do NOT write any English sentence, phrase, or heading in the Arabic article
-
-STEP 5 — FAQ (3-5 Q&As, SEPARATE for each language):
- - Questions people ask on Google + AI assistants about this topic.
- - Answers 40-80 words each, concise and quotable.
- - English FAQ: questions and answers in English.
- - Arabic FAQ: questions and answers in Arabic ONLY — no English words.
- - Return FAQ as: [{ "question": "English Q", "answer": "English A" }, ...]
-   The system will use these for the English article. For the Arabic article,
-   include a separate "faq_ar" field with Arabic-only Q&A.
-
-Return STRICT JSON with this shape:
+CONTEXT:
+ - Focus keyword: "${seo?.focusKeyword || input.focusKeyword || ""}"
+ - Arabic title: "${seo?.ar?.seoTitle || ""}"
+STEP 4 — ARABIC ARTICLE & FAQ:
+Write the Arabic article.
+Return STRICT JSON:
 {
   "arabicArticle": "markdown string",
   "faq": [{ "question": "string", "answer": "string" }],
@@ -724,7 +522,7 @@ Return STRICT JSON with this shape:
 
 Return ONLY the JSON. No commentary, no markdown fences.`;
 
-  const { text, model } = await callFreeOpenRouterLimited(
+  const { text, model } = await callGemini(
     prompt,
     {
       systemPrompt: ARTICLE_SYSTEM_PROMPT,
@@ -744,7 +542,7 @@ Return ONLY the JSON. No commentary, no markdown fences.`;
     arabicArticle: parsed.arabicArticle,
     faq: Array.isArray(parsed.faq) ? parsed.faq : [],
     faqAr: Array.isArray(parsed.faq_ar) ? parsed.faq_ar : [],
-    source: `openrouter:${model}`,
+    source: `gemini:${model}`,
   };
 }
 
@@ -829,7 +627,7 @@ Return STRICT JSON with this shape:
 
 Return ONLY the JSON. No commentary, no markdown fences.`;
 
-  const { text, model } = await callFreeOpenRouterLimited(
+  const { text, model } = await callGemini(
     prompt,
     {
       systemPrompt: ARTICLE_SYSTEM_PROMPT,
@@ -856,7 +654,7 @@ Return ONLY the JSON. No commentary, no markdown fences.`;
     imagePrompts: parsed.imagePrompts || { featuredImage: "", facebookImage: "", openGraphImage: "" },
     socialPosts: parsed.socialPosts || { facebook: "", linkedin: "", instagram: "", x: "" },
     estimatedReadingTime,
-    source: `openrouter:${model}`,
+    source: `gemini:${model}`,
   };
 }
 
@@ -916,6 +714,6 @@ export function buildFinalBundle(parts: {
     imagePrompts: parts.imagePrompts || { featuredImage: "", facebookImage: "", openGraphImage: "" },
     socialPosts: parts.socialPosts || { facebook: "", linkedin: "", instagram: "", x: "" },
     estimatedReadingTime: parts.estimatedReadingTime || 1,
-    source: "openrouter:multi-step",
+    source: "gemini:multi-step",
   };
 }

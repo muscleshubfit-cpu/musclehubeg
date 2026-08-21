@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { generateArticleBundle } from "@/lib/blog-generate";
 import { supabaseAdmin, isSupabaseAdminConfigured } from "@/lib/supabase/admin";
-import { callFreeOpenRouter, parseJSON } from "@/lib/ai-provider";
+import { parseJSON } from "@/lib/ai-provider";
+import { callGemini } from "@/lib/gemini-wrapper";
 
 export const maxDuration = 300; // 5 min — chunked generation needs headroom
 
@@ -70,7 +71,7 @@ Return STRICT JSON only:
   "searcherGoal": "what the searcher really wants to achieve"
 }`;
 
-      const { text: researchRaw } = await callFreeOpenRouter(
+      const { text: researchRaw } = await callGemini(
         researchPrompt,
         {
           systemPrompt: "You are an expert SEO strategist. Return JSON only.",

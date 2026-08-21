@@ -113,7 +113,7 @@ export async function GET(request: NextRequest) {
     // ────────────────────────────────────────────────────────────────
     // RESEARCH QUALITY GATE
     // ────────────────────────────────────────────────────────────────
-    // If Step 2a produced empty research (Z.ai down, all 3 queries
+    // If Step 2a produced empty research (Google Search down, all 3 queries
     // failed, or the research field is missing entirely), fail-fast
     // instead of silently generating a poor article without sources.
     //
@@ -122,7 +122,7 @@ export async function GET(request: NextRequest) {
     // was extracted from the web search.
     //
     // A `partialFailure: true` flag with non-empty topArticles is OK
-    // (1 of 3 Z.ai queries failed but 2 succeeded — we have data).
+    // (1 of 3 Google Search queries failed but 2 succeeded — we have data).
     const research = bundle.research;
     const isEmptyResearch =
       !research ||
@@ -135,7 +135,7 @@ export async function GET(request: NextRequest) {
       console.error("[blog/step2b-en-article] Research is empty — failing fast instead of generating a poor article without sources");
       const updateErr = await updateQueueItem(qi.id, {
         status: "failed",
-        error_message: `step2b: empty_research — Step 2a produced 0 topArticles + 0 relatedQuestions + 0 trendingKeywords. Investigate Step 2a (Z.ai may be down or all 3 queries failed).${research?.firstError ? ` Z.ai error: ${research.firstError}` : ""}`,
+        error_message: `step2b: empty_research — Step 2a produced 0 topArticles + 0 relatedQuestions + 0 trendingKeywords. Investigate Step 2a (Google Search may be down or all 3 queries failed).${research?.firstError ? ` Google Search error: ${research.firstError}` : ""}`,
       });
       if (updateErr) console.error(`[blog/step2b-en-article] Failed to mark queue as failed: ${updateErr}`);
       return NextResponse.json(

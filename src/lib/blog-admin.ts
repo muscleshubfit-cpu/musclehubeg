@@ -33,18 +33,34 @@ export type AdminBlogPost = {
 
 export async function adminListPosts(lang?: "en" | "ar"): Promise<AdminBlogPost[]> {
  if (!isSupabaseConfigured || !supabase) return [];
- let q = supabase.from("blog_posts" as any).select("*").order("created_at", { ascending: false });
- if (lang) q = q.eq("language", lang);
- const { data, error } = await q;
- if (error) throw new Error(error.message);
- return (data ?? []) as unknown as AdminBlogPost[];
+ try {
+  let q = supabase.from("blog_posts" as any).select("*").order("created_at", { ascending: false });
+  if (lang) q = q.eq("language", lang);
+  const { data, error } = await q;
+  if (error) {
+   console.warn("[blog-admin] adminListPosts notice:", error.message || error);
+   return [];
+  }
+  return (data ?? []) as unknown as AdminBlogPost[];
+ } catch (e: any) {
+  console.warn("[blog-admin] adminListPosts fetch notice:", e?.message || e);
+  return [];
+ }
 }
 
 export async function adminGetPost(id: string): Promise<AdminBlogPost | null> {
  if (!isSupabaseConfigured || !supabase) return null;
- const { data, error } = await supabase.from("blog_posts" as any).select("*").eq("id", id).maybeSingle();
- if (error) throw new Error(error.message);
- return (data as unknown as AdminBlogPost) || null;
+ try {
+  const { data, error } = await supabase.from("blog_posts" as any).select("*").eq("id", id).maybeSingle();
+  if (error) {
+   console.warn("[blog-admin] adminGetPost notice:", error.message || error);
+   return null;
+  }
+  return (data as unknown as AdminBlogPost) || null;
+ } catch (e: any) {
+  console.warn("[blog-admin] adminGetPost fetch notice:", e?.message || e);
+  return null;
+ }
 }
 
 export async function adminCreatePost(post: Partial<AdminBlogPost>): Promise<AdminBlogPost> {
@@ -85,22 +101,26 @@ export async function adminDuplicatePost(id: string): Promise<AdminBlogPost | nu
 
 export async function getBlogStats() {
  if (!isSupabaseConfigured || !supabase) {
- return { total: 0, published: 0, drafts: 0, en: 0, ar: 0, scheduled: 0, recent: [] };
+  return { total: 0, published: 0, drafts: 0, en: 0, ar: 0, scheduled: 0, recent: [] };
  }
- const { data, error } = await supabase.from("blog_posts" as any).select("*").order("created_at", { ascending: false });
- if (error || !data) return { total: 0, published: 0, drafts: 0, en: 0, ar: 0, scheduled: 0, recent: [] };
+ try {
+  const { data, error } = await supabase.from("blog_posts" as any).select("*").order("created_at", { ascending: false });
+  if (error || !data) return { total: 0, published: 0, drafts: 0, en: 0, ar: 0, scheduled: 0, recent: [] };
 
- const posts = data as unknown as AdminBlogPost[];
- const now = new Date().toISOString();
- return {
- total: posts.length,
- published: posts.filter((p) => p.is_published).length,
- drafts: posts.filter((p) => !p.is_published).length,
- en: posts.filter((p) => p.language === "en").length,
- ar: posts.filter((p) => p.language === "ar").length,
- scheduled: posts.filter((p) => p.is_published && p.published_at && p.published_at > now).length,
- recent: posts.slice(0, 5),
- };
+  const posts = data as unknown as AdminBlogPost[];
+  const now = new Date().toISOString();
+  return {
+   total: posts.length,
+   published: posts.filter((p) => p.is_published).length,
+   drafts: posts.filter((p) => !p.is_published).length,
+   en: posts.filter((p) => p.language === "en").length,
+   ar: posts.filter((p) => p.language === "ar").length,
+   scheduled: posts.filter((p) => p.is_published && p.published_at && p.published_at > now).length,
+   recent: posts.slice(0, 5),
+  };
+ } catch {
+  return { total: 0, published: 0, drafts: 0, en: 0, ar: 0, scheduled: 0, recent: [] };
+ }
 }
 
 // ---- AI Tools ----

@@ -1,23 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireCoach, isAuthConfigured } from "@/lib/auth-server";
+import { GoogleGenAI } from "@google/genai";
 
-/**
- * AI Image Generation endpoint — generates an image from a text prompt
- * using the z-ai-web-dev-sdk (free, no external API key needed).
- *
- * GET /api/ai/generate-image?prompt=...
- *
- * Returns: { url: string } — a data URL (base64-encoded PNG) that can be
- * used directly in <img src="..."> or saved to Supabase Storage.
- *
- * Used as a fallback for blog featured images when no stock photo matches.
- */
 export const maxDuration = 60;
 
 export async function GET(request: NextRequest) {
-  // Coach-only — used by the blog editor. Even though it doesn't cost
-  // OpenRouter credits, it does invoke the z-ai-web-dev-sdk which is
-  // rate-limited; don't leave it open.
   if (isAuthConfigured) {
     const auth = await requireCoach(request);
     if (auth instanceof Response) return auth;
@@ -31,42 +18,32 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    // Ensure the .z-ai-config file exists on Vercel. The SDK looks for it in
-    // process.cwd() and /tmp — on Vercel serverless, process.cwd() is
-    // read-only, so we only write to /tmp (which is writable).
-    const fs = await import("fs");
-    const path = await import("path");
+    const apiKey = process.env.GEMINI_API_KEY || process.env.AI_API_KEY;
+    if (!apiKey) {
+      throw new Error("GEMINI_API_KEY not configured.");
+    }
 
-    const configContent = JSON.stringify({
-      baseUrl: process.env.ZAI_BASE_URL || "https://internal-api.z.ai/v1",
-      apiKey: process.env.ZAI_API_KEY || "Z.ai",
-      chatId: process.env.ZAI_CHAT_ID || "",
-      token: process.env.ZAI_TOKEN || "",
-      userId: process.env.ZAI_USER_ID || "",
-    });
-
-    const tmpConfig = path.join("/tmp", ".z-ai-config");
-    try {
-      fs.writeFileSync(tmpConfig, configContent);
-      if (!process.env.HOME || process.env.HOME === "/") process.env.HOME = "/tmp";
-    } catch {}
-
-    const ZAI = (await import("z-ai-web-dev-sdk")).default;
-    const zai = await ZAI.create();
-
-    const response = await zai.images.generations.create({
+    const ai = new GoogleGenAI({ apiKey });
+    
+    // Generate image using Gemini Imagen model
+    const response = await ai.models.generateImages({
+      model: "imagen-3.0-generate-002",
       prompt: prompt,
-      size: "1024x1024",
+      config: {
+        numberOfImages: 1,
+        outputMimeType: "image/png",
+        aspectRatio: "1:1"
+      }
     });
 
-    const imageBase64 = response.data[0]?.base64;
-    if (!imageBase64) {
+    const base64Image = response.generatedImages?.[0]?.image?.imageBytes;
+
+    if (!base64Image) {
       return NextResponse.json({ error: "AI returned no image" }, { status: 500 });
     }
 
-    // Return as a data URL (base64-encoded PNG) — can be used directly in <img src>
-    const dataUrl = `data:image/png;base64,${imageBase64}`;
-
+    const dataUrl = `data:image/png;base64,${base64Image}`;
+    
     return NextResponse.json({
       url: dataUrl,
       prompt: prompt,

@@ -8,13 +8,17 @@ const nextConfig: NextConfig = {
   // TypeScript strict checks enabled — all @ts-nocheck removed, 0 errors
   typescript: {
   },
+  // Allow dev origins for cloud preview environment
+  allowedDevOrigins: [
+    "*.run.app",
+    "*.googleusercontent.com",
+    "ais-dev-ye7h33vm5ffgyr4lhgmnmh-108459420502.europe-west3.run.app",
+    "ais-pre-ye7h33vm5ffgyr4lhgmnmh-108459420502.europe-west3.run.app",
+    "localhost:3000",
+  ],
   // (Next.js 16 dropped support for `eslint` config in next.config.ts —
   // we now run eslint via `bun run lint` instead.)
   reactStrictMode: true,
-  outputFileTracingIncludes: {
-    "/api/ai/research-topic": ["./.z-ai-config"],
-    "/api/ai/generate-image": ["./.z-ai-config"],
-  },
   // Image optimization
   images: {
     formats: ["image/avif", "image/webp"],

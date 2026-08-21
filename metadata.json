@@ -1,0 +1,6 @@
+{
+  "name": "MuscleHub",
+  "description": "AI-powered fitness & nutrition platform combining EVO AI engine with custom exercises, workout programs, and meal planning.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -11,6 +11,7 @@ import type { Metadata, Viewport } from "next";
  * exercises, programs, tools, food library, blog.
  */
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://musclehubeg.vercel.app'),
   title: "MuscleHub — Comprehensive Sports Platform | Exercises, Programs, Calculators & Nutrition",
   description:
     "MuscleHub is a comprehensive sports platform: 547+ exercise library, ready workout programs, free fitness calculators (calories, BMI, macros), food database with nutrition info, fitness blog, and online coaching with nutrition specialists.",

@@ -74,26 +74,17 @@ export function AdSenseAd({
   const adClient =
     process.env.NEXT_PUBLIC_ADSENSE_CLIENT || "ca-pub-8658364692422583";
 
-  // Suppress ads on authenticated routes (AdSense policy)
   const isAdFreeRoute = AD_FREE_ROUTE_PREFIXES.some((prefix) =>
     pathname.startsWith(prefix),
   );
-  if (isAdFreeRoute) {
-    return null;
-  }
-
-  // Suppress ads for Pro+ members (adsEnabled = false in their tier limits)
   const limits = getLimits(tier);
-  if (!limits.adsEnabled) {
-    return null;
-  }
-
-  // Suppress if env var explicitly not set
-  if (!process.env.NEXT_PUBLIC_ADSENSE_CLIENT) {
-    return null;
-  }
+  const shouldRenderAd =
+    !isAdFreeRoute &&
+    limits.adsEnabled &&
+    Boolean(process.env.NEXT_PUBLIC_ADSENSE_CLIENT);
 
   useEffect(() => {
+    if (!shouldRenderAd) return;
     try {
       if (typeof window !== "undefined") {
         (window.adsbygoogle = window.adsbygoogle || []).push({});
@@ -101,7 +92,11 @@ export function AdSenseAd({
     } catch (e) {
       // AdSense not loaded yet — silently fail
     }
-  }, []);
+  }, [shouldRenderAd]);
+
+  if (!shouldRenderAd) {
+    return null;
+  }
 
   return (
     <div ref={adRef} className={`my-8 ${className}`}>

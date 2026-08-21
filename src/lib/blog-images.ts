@@ -100,14 +100,14 @@ async function searchPixabay(query: string): Promise<SourcedImage> {
 
 /**
  * Generate an image using the AI image generation endpoint.
- * Uses the z-ai-web-dev-sdk's image generation (free, no API key needed).
+ * Uses the Gemini Imagen's image generation (free, no API key needed).
  */
 async function generateAIImage(query: string): Promise<SourcedImage> {
   if (!query.trim()) return null;
 
   try {
     // Call our own /api/ai/generate-image endpoint which uses the
-    // z-ai-web-dev-sdk to generate an image from a text prompt.
+    // Gemini Imagen to generate an image from a text prompt.
     const prompt = `Premium fitness blog image: ${query}. Ultra realistic, professional lighting, high quality, no text overlay.`;
     const res = await fetch(
       `${process.env.NEXT_PUBLIC_APP_URL || "https://musclehubeg.vercel.app"}/api/ai/generate-image?prompt=${encodeURIComponent(prompt)}`,

@@ -1214,25 +1214,33 @@ export async function createReferral(referrerId: string, referredEmail: string) 
 
 export async function listBlogPosts() {
  if (isSupabaseConfigured && supabase) {
- const { data } = await supabase
- .from("blog_posts")
- .select("*")
- .eq("is_published", true)
- .order("published_at", { ascending: false });
- return data ?? [];
+  try {
+   const { data } = await supabase
+   .from("blog_posts")
+   .select("*")
+   .eq("is_published", true)
+   .order("published_at", { ascending: false });
+   return data ?? [];
+  } catch {
+   return [];
+  }
  }
  return [];
 }
 
 export async function getBlogPost(slug: string) {
  if (isSupabaseConfigured && supabase) {
- const { data } = await supabase
- .from("blog_posts")
- .select("*")
- .eq("slug", slug)
- .eq("is_published", true)
- .maybeSingle();
- return data;
+  try {
+   const { data } = await supabase
+   .from("blog_posts")
+   .select("*")
+   .eq("slug", slug)
+   .eq("is_published", true)
+   .maybeSingle();
+   return data;
+  } catch {
+   return null;
+  }
  }
  return null;
 }

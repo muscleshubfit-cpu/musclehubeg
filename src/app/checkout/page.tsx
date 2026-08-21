@@ -33,28 +33,17 @@ function CheckoutPageInner() {
   useEffect(() => {
     if (!loading && !profile) {
       router.replace(authHref);
+    } else if (!loading && !isValid) {
+      router.replace("/memberships");
     }
-  }, [loading, profile, router, authHref]);
+  }, [loading, profile, isValid, router, authHref]);
 
-  if (loading) {
+  if (loading || !profile || !isValid) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
       </div>
     );
-  }
-
-  if (!profile) {
-    // Will be redirected by the effect above
-    return null;
-  }
-
-  if (!isValid) {
-    // Invalid tier → bounce to memberships
-    if (typeof window !== "undefined") {
-      window.location.href = "/memberships";
-    }
-    return null;
   }
 
   return <CheckoutView tier={tierParam as any} months={months} />;

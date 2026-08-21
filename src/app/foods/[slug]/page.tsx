@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useParams } from "next/navigation";
 import { useI18n } from "@/lib/i18n";
 import { SiteHeader } from "@/components/SiteHeader";
@@ -41,9 +41,9 @@ export default function FoodDetailPage() {
   }>({ macro: "calories", value: "" });
 
   // Re-sync when food changes (e.g. user navigates to a different food)
-  useMemo(() => {
+  useEffect(() => {
     if (food) setGrams(food.defaultGrams);
-  }, [food?.slug]);
+  }, [food?.slug, food?.defaultGrams]);
 
   if (!food) {
     return (

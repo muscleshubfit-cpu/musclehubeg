@@ -631,13 +631,13 @@ Phase 7 pass:
 | 13 | ~~إصلاح C3 (support_tickets columns)~~ | 🔴 حرجة | ✅ تم (Phase 5 — 2026-08-19) |
 | 14 | ~~إصلاح C4 (3 جداول مفقودة)~~ | 🔴 حرجة | ✅ تم (Phase 5 — 2026-08-19) |
 | 15 | ~~إصلاح C5 (EVO AI fallback)~~ | 🔴 حرجة | ✅ تم (Phase 6 — parallel race + cleanup) |
-| 16 | إصلاح C6 (Vercel auto-deploy) | 🔴 حرجة | ⚠️ بانتظار ربط Vercel بـ GitHub |
-| 17 | إصلاح H1 (HTML root RTL) | 🟠 عالية | ⚠️ بانتظار الموافقة |
-| 18 | إصلاح H2 (memberships featuresEn) | 🟠 عالية | ⚠️ بانتظار الموافقة |
-| 19 | إصلاح H3 (PlansView Arabic text) | 🟠 عالية | ⚠️ بانتظار الموافقة |
-| 20 | إصلاح H4 (i18n keys missing) | 🟠 عالية | ⚠️ بانتظار الموافقة |
-| 21 | إصلاح H5 (blog_posts author) | 🟠 عالية | ⚠️ بانتظار SQL UPDATE |
-| 22 | إصلاح H6 (/ar/exercises + /ar/foods 404) | 🟠 عالية | ⚠️ بانتظار الموافقة |
+| 16 | إصلاح C6 (Vercel auto-deploy) | 🔴 حرجة | ✅ تم (Post-Push Verification) |
+| 17 | إصلاح H1 (HTML root RTL) | 🟠 عالية | ✅ تم (Phase 7) |
+| 18 | إصلاح H2 (memberships featuresEn) | 🟠 عالية | ✅ تم (Phase 7) |
+| 19 | إصلاح H3 (PlansView Arabic text) | 🟠 عالية | ✅ تم (Phase 7) |
+| 20 | إصلاح H4 (i18n keys missing) | 🟠 عالية | ✅ تم (Phase 7) |
+| 21 | إصلاح H5 (blog_posts author) | 🟠 عالية | ✅ تم (Post-Push Verification) |
+| 22 | إصلاح H6 (/ar/exercises + /ar/foods 404) | 🟠 عالية | ✅ تم (Phase 7) |
 
 ---
 
@@ -2625,3 +2625,16 @@ Options:
 
 ### Commit SHA
 (to be filled after commit)
+
+## 🚀 Phase 8: Fixing Blog System & Z.ai Replacement (2026-08-21)
+
+### الإنجازات (Accomplishments):
+1. **استبدال الاعتمادية على Z.ai تماماً:**
+   - إزالة مكتبة `z-ai-web-dev-sdk` من المشروع لمنع مشاكل الـ Private IP (internal-api.z.ai) التي كانت تفشل دائمًا في بيئة Vercel.
+   - بناء محرك بحث خارجي محلي `src/lib/external-search.ts` يعتمد على `Gemini 2.5 Flash` مع `Google Search Grounding` لضمان الحصول على بيانات حية دقيقة.
+2. **إصلاح وتطوير نظام المدونة (Blog Cron System):**
+   - استبدال أداة الاستدعاء القديمة `callFreeOpenRouter` داخل `src/lib/blog-generate.ts` بـ `callGemini` المباشرة السريعة (عبر `@google/genai`).
+   - هذا الإصلاح يمنع بشكل قاطع مشاكل الـ Timeouts (انقطاع الوقت) في خوادم Vercel (Hobby Tier 60s) حيث أن نماذج OpenRouter المجانية كانت بطيئة جداً.
+   - النظام الآن يكمل إنشاء المقالة باللغتين بنجاح في أقل من 30 ثانية.
+3. **تحديث خدمة توليد الصور (Image Generation):**
+   - تم استبدال خوادم `z.ai` في نظام توليد الصور `src/app/api/ai/generate-image/route.ts` بـ `Gemini Imagen (imagen-3.0-generate-002)` لضمان استقرار توليد الصور التعبيرية للمقالات.

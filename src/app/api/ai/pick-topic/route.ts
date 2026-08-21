@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json().catch(() => ({}));
-    const pick = await pickSmartTopic();
+    const pick = await pickSmartTopic(body?.category);
     return NextResponse.json(pick);
   } catch (e: any) {
     console.error("[pick-topic] Error:", e?.message || e);

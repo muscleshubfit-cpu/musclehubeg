@@ -15,6 +15,20 @@ import { useState, useEffect } from "react";
 const CONSENT_KEY = "mhe_cookie_consent";
 const CONSENT_DURATION = 365 * 24 * 60 * 60 * 1000; // 365 days
 
+function updateConsent(granted: boolean) {
+  try {
+    // @ts-ignore — gtag is loaded by AdSense/GA
+    window.gtag = window.gtag || [];
+    // @ts-ignore
+    window.gtag("consent", "update", {
+      ad_storage: granted ? "granted" : "denied",
+      ad_user_data: granted ? "granted" : "denied",
+      ad_personalization: granted ? "granted" : "denied",
+      analytics_storage: granted ? "granted" : "denied",
+    });
+  } catch {}
+}
+
 export function CookieConsent() {
   const [show, setShow] = useState(false);
   const [lang, setLang] = useState<"ar" | "en">("ar");
@@ -41,20 +55,6 @@ export function CookieConsent() {
     // No valid consent — show banner
     setShow(true);
   }, []);
-
-  const updateConsent = (granted: boolean) => {
-    try {
-      // @ts-ignore — gtag is loaded by AdSense/GA
-      window.gtag = window.gtag || [];
-      // @ts-ignore
-      window.gtag("consent", "update", {
-        ad_storage: granted ? "granted" : "denied",
-        ad_user_data: granted ? "granted" : "denied",
-        ad_personalization: granted ? "granted" : "denied",
-        analytics_storage: granted ? "granted" : "denied",
-      });
-    } catch {}
-  };
 
   const handleAccept = () => {
     const data = { granted: true, timestamp: Date.now() };

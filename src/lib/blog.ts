@@ -79,84 +79,113 @@ export function getCategoryLabel(categoryId: string, lang: "en" | "ar"): string 
 
 export async function listBlogPosts(lang: "en" | "ar", category?: string, search?: string): Promise<BlogPost[]> {
  if (!isSupabaseConfigured || !supabase) return [];
- let query = supabase
- .from("blog_posts")
- .select("*")
- .eq("is_published", true)
- .eq("language", lang)
- .order("published_at", { ascending: false });
+ try {
+  let query = supabase
+  .from("blog_posts")
+  .select("*")
+  .eq("is_published", true)
+  .eq("language", lang)
+  .order("published_at", { ascending: false });
 
- if (category && category !== "all") {
- query = query.eq("category", category);
+  if (category && category !== "all") {
+  query = query.eq("category", category);
+  }
+
+  const { data, error } = await query;
+  if (error) {
+  console.warn("[blog] listBlogPosts notice:", error.message || error);
+  return [];
+  }
+
+  let posts = (data ?? []) as BlogPost[];
+
+  // Client-side search (Supabase text search requires pg_trgm)
+  if (search && search.trim()) {
+  const q = search.toLowerCase().trim();
+  posts = posts.filter((p) => {
+  const haystack = [
+  p.title,
+  p.excerpt || "",
+  p.focus_keyword || "",
+  ...(p.keywords || []),
+  ...(p.tags || []),
+  p.category,
+  ].join(" ").toLowerCase();
+  return haystack.includes(q);
+  });
+  }
+
+  return posts;
+ } catch (e: any) {
+  console.warn("[blog] listBlogPosts fetch notice:", e?.message || e);
+  return [];
  }
-
- const { data, error } = await query;
- if (error) {
- console.error("[blog] listBlogPosts error:", error);
- return [];
- }
-
- let posts = (data ?? []) as BlogPost[];
-
- // Client-side search (Supabase text search requires pg_trgm)
- if (search && search.trim()) {
- const q = search.toLowerCase().trim();
- posts = posts.filter((p) => {
- const haystack = [
- p.title,
- p.excerpt || "",
- p.focus_keyword || "",
- ...(p.keywords || []),
- ...(p.tags || []),
- p.category,
- ].join(" ").toLowerCase();
- return haystack.includes(q);
- });
- }
-
- return posts;
 }
 
 export async function getBlogPost(lang: "en" | "ar", slug: string): Promise<BlogPost | null> {
  if (!isSupabaseConfigured || !supabase) return null;
- const { data, error } = await supabase
- .from("blog_posts")
- .select("*")
- .eq("language", lang)
- .eq("slug", slug)
- .eq("is_published", true)
- .maybeSingle();
+ try {
+  const { data, error } = await supabase
+  .from("blog_posts")
+  .select("*")
+  .eq("language", lang)
+  .eq("slug", slug)
+  .eq("is_published", true)
+  .maybeSingle();
 
- if (error) {
- console.error("[blog] getBlogPost error:", error);
- return null;
+  if (error) {
+  console.warn("[blog] getBlogPost notice:", error.message || error);
+  return null;
+  }
+  return (data as BlogPost) || null;
+ } catch (e: any) {
+  console.warn("[blog] getBlogPost fetch notice:", e?.message || e);
+  return null;
  }
- return (data as BlogPost) || null;
 }
 
 export async function getRelatedPosts(post: BlogPost, limit = 3): Promise<BlogPost[]> {
  if (!isSupabaseConfigured || !supabase) return [];
- const { data } = await supabase
- .from("blog_posts")
- .select("*")
- .eq("is_published", true)
- .eq("language", post.language)
- .eq("category", post.category)
- .neq("id", post.id)
- .limit(limit);
+ try {
+  const { data, error } = await supabase
+  .from("blog_posts")
+  .select("*")
+  .eq("is_published", true)
+  .eq("language", post.language)
+  .eq("category", post.category)
+  .neq("id", post.id)
+  .limit(limit);
 
- return (data ?? []) as BlogPost[];
+  if (error) {
+  console.warn("[blog] getRelatedPosts notice:", error.message || error);
+  return [];
+  }
+  return (data ?? []) as BlogPost[];
+ } catch (e: any) {
+  console.warn("[blog] getRelatedPosts fetch notice:", e?.message || e);
+  return [];
+ }
 }
 
 export async function getLinkedPost(post: BlogPost): Promise<BlogPost | null> {
  if (!post.linked_post_id || !isSupabaseConfigured || !supabase) return null;
- const { data } = await supabase
- .from("blog_posts")
- .select("*")
- .eq("id", post.linked_post_id)
- .eq("is_published", true)
- .maybeSingle();
- return (data as BlogPost) || null;
+ try {
+  const { data, error } = await supabase
+  .from("blog_posts")
+  .select("*")
+  .eq("id", post.linked_post_id)
+  .eq("is_published", true)
+  .maybeSingle();
+
+  if (error) {
+  console.warn("[blog] getLinkedPost notice:", error.message || error);
+  return null;
+  }
+  return (data as BlogPost) || null;
+ } catch (e: any) {
+  console.warn("[blog] getLinkedPost fetch notice:", e?.message || e);
+  return null;
+ }
 }
 
 /** Parse markdown content into headings for Table of Contents */

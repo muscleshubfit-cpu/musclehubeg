@@ -1,4 +1,5 @@
-import { callFreeOpenRouterLimited, parseJSON } from "@/lib/ai-provider";
+import { parseJSON } from "@/lib/ai-provider";
+import { callGemini } from "@/lib/gemini-wrapper";
 import { supabaseAdmin, isSupabaseAdminConfigured } from "@/lib/supabase/admin";
 
 /**
@@ -91,57 +92,62 @@ export function pickRotationCategory(recent: { category: string }[]): Pillar {
  return ranked[0];
 }
 
-export async function pickSmartTopic(): Promise<TopicPick> {
- const recent = await getRecentPosts();
- const category = pickRotationCategory(recent);
+export async function pickSmartTopic(preferredCategory?: string): Promise<TopicPick> {
+  const recent = await getRecentPosts();
+  const category: Pillar =
+    preferredCategory && (CONTENT_PILLARS as readonly string[]).includes(preferredCategory)
+      ? (preferredCategory as Pillar)
+      : pickRotationCategory(recent);
 
- const now = new Date();
- const monthLabel = now.toLocaleString("en-US", { month: "long", year: "numeric" });
+  const now = new Date();
+  const monthLabel = now.toLocaleString("en-US", { month: "long", year: "numeric" });
 
- // Only show already-published posts from the SAME pillar as strict
- // no-repeat examples — posts from other pillars aren't relevant angle
- // competition, and showing too long a mixed list dilutes the prompt.
- const samePillar = recent.filter((p) => p.category === category);
+  const samePillar = recent.filter((p) => p.category === category);
+  const otherRecent = recent.filter((p) => p.category !== category).slice(0, 15);
 
- const userPrompt = `Current date context: ${monthLabel}.
+  const userPrompt = `Current date context: ${monthLabel}.
 
-ASSIGNED CONTENT PILLAR (mandatory, chosen by rotation — do not deviate): ${category}
+ASSIGNED CONTENT PILLAR: ${category}
 
-ALREADY PUBLISHED IN THIS PILLAR (do not repeat or closely duplicate any of these):
-${samePillar.length ? samePillar.map((t, i) => `${i + 1}. ${t.title} (kw: ${t.focusKeyword || "n/a"})`).join("\n") : "(none yet — this is the first post in this pillar)"}
+RECENTLY PUBLISHED POSTS IN THIS PILLAR (MANDATORY: DO NOT duplicate, reword, or cover the same core topic/advice as any of these):
+${samePillar.length ? samePillar.map((t, i) => `${i + 1}. "${t.title}" (Focus keyword: ${t.focusKeyword || "none"})`).join("\n") : "(none yet in this pillar)"}
 
-Pick the single best next topic now, strictly within the "${category}" pillar.`;
+RECENT POSTS IN OTHER PILLARS (for overall site topic awareness):
+${otherRecent.length ? otherRecent.map((t, i) => `• "${t.title}" [${t.category}]`).join("\n") : "(none)"}
 
- // Use callFreeOpenRouterLimited (Vercel Hobby-safe — max 2 models, 25s
- // timeout each, worst case 50s) instead of callAIWithFallback (which
- // could try all 6 models × 60s = 360s, far exceeding the Vercel Hobby
- // 60s function cap and triggering OpenRouter 429 rate-limits on the
- // shared upstream pool).
- //
- // This is the same pattern used by Step 2b/2c/2d (per BLOG-PIPELINE-
- // REDESIGN-001 Phase 1) so all AI-calling steps in the blog pipeline
- // have a consistent Vercel-safe budget.
- const { text: raw } = await callFreeOpenRouterLimited(
- userPrompt,
- {
- systemPrompt: TOPIC_SYSTEM_PROMPT,
- temperature: 0.9,
- maxTokens: 500,
- jsonMode: true,
- timeoutMs: 25_000,
- },
- 2, // maxModels=2 — worst case 2 × 25s = 50s, within the 60s Vercel cap.
- );
+CRITICAL DIVERSITY & NO-REPETITION INSTRUCTIONS:
+1. Ensure the selected topic provides a FRESH, UNMET search angle within "${category}".
+2. Explore diverse content archetypes:
+   - Deep-dive biomechanics or scientific myth-busting
+   - Exact practical step-by-step routines or meal prep strategies
+   - Specific target demographics (beginners, busy professionals, athletes, women, post-injury recovery)
+   - Comparative analysis (X vs Y, Protocol A vs Protocol B)
+   - Timely metabolic/seasonal health strategies
+3. The focus keyword must be distinct and have high search intent.
 
- const parsed = parseJSON<any>(raw);
- if (!parsed?.topic || !parsed?.focusKeyword) {
- throw new Error("Topic picker returned an invalid response.");
- }
+Pick the single best, unique topic now strictly within the "${category}" pillar.`;
 
- return {
- topic: String(parsed.topic),
- focusKeyword: String(parsed.focusKeyword),
- category,
- rationale: String(parsed.rationale || ""),
- };
+  const { text: raw } = await callGemini(
+    userPrompt,
+    {
+      systemPrompt: TOPIC_SYSTEM_PROMPT,
+      temperature: 0.85,
+      maxTokens: 600,
+      jsonMode: true,
+      timeoutMs: 30_000,
+    },
+    2,
+  );
+
+  const parsed = parseJSON<any>(raw);
+  if (!parsed?.topic || !parsed?.focusKeyword) {
+    throw new Error("Topic picker returned an invalid response.");
+  }
+
+  return {
+    topic: String(parsed.topic),
+    focusKeyword: String(parsed.focusKeyword),
+    category,
+    rationale: String(parsed.rationale || ""),
+  };
 }
