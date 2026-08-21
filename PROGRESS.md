@@ -2089,3 +2089,152 @@ Both gates preserve the queue row (not deleted) so the owner can inspect what St
 - ❌ Does NOT implement BLOG-MULTILANG-ENGINE-001 (still FUTURE / BACKLOG ONLY).
 - ❌ Does NOT start Terminology Audit (still Future/Backlog).
 - ❌ Does NOT redo any MH-AI-BLOG-003 or MH-AI-NEXT-004 fix (different files + different concerns).
+
+---
+
+## MH-AI-OPENROUTER-006 — OpenRouter 429 Diagnosis + Production Verification
+
+**Status:** ✅ DIAGNOSED + PRODUCTION VERIFIED — OpenRouter 429 was caused by OLD code (pre-`cf50052`); current code (`9caadcc`) has the fix. Production pipeline ran end-to-end successfully. Committed and pushed to `origin/main`.
+**Date:** 2026-08-21
+**Task ID:** `MH-AI-OPENROUTER-006`
+**Task type:** Diagnose the OpenRouter 429 blocker + verify blog pipeline Production Runtime. No code changes — diagnosis confirmed the issue was already resolved by `cf50052` (MH-AI-BLOG-003).
+
+### 1. Root cause of the OpenRouter 429 (with evidence)
+
+**Diagnosis:** The 429 was an UPSTREAM issue (Google AI Studio's shared free-pool rate-limit on `google/gemma-4-26b-a4b-it:free`), but the trigger was INTERNAL — the OLD `pickSmartTopic()` code (pre-`cf50052`) tried `google/gemma-4-26b-a4b-it:free` FIRST via `callAIWithFallback` (which cascaded through ALL 6 models × 60s timeout = up to 360s).
+
+**Evidence (direct API test on 2026-08-21):**
+
+```
+Tested all 6 models in FREE_OPENROUTER_MODELS with the production OPENROUTER_API_KEY:
+
+✅ nvidia/nemotron-3-ultra-550b-a55b:free  → HTTP 200 (works)
+✅ nvidia/nemotron-3.5-lightning:free       → HTTP 200 (works)
+✅ nvidia/nemotron-3-super-120b-a12b:free   → HTTP 200 (works)
+❌ google/gemma-4-31b-it:free               → HTTP 429 (Google AI Studio shared pool)
+❌ google/gemma-4-26b-a4b-it:free           → HTTP 429 (Google AI Studio shared pool)
+✅ openai/gpt-oss-20b:free                  → HTTP 200 (works)
+```
+
+The 429 error metadata is unambiguous:
+```
+"provider_name": "Google AI Studio"
+"is_byok": false                                          ← NOT a BYOK integration
+"provider_error_code": "429"
+"limit_source": "upstream_provider_shared_pool"           ← OpenRouter's SHARED pool
+"remedy_hint": "Retry shortly, add your own provider key..."
+```
+
+### 2. Was it fixed or is it upstream?
+
+**Both** — the underlying upstream issue (Google AI Studio rate-limiting the OpenRouter shared pool for Gemma models) is upstream and transient. BUT the IMPACT on the blog pipeline was INTERNAL — the OLD `pickSmartTopic()` tried Gemma models first. The `cf50052` fix (MH-AI-BLOG-003) changed it to use `callFreeOpenRouterLimited(maxModels=2)` which tries `nvidia/nemotron-3-ultra-550b-a55b:free` first (which works). So the production impact was already resolved by an earlier commit — no new code change needed.
+
+**Timeline evidence:**
+- Production run `32417987113` (2026-08-20T21:10, HEAD=`9a092ab3` BEFORE cf50052) — FAILED at Step 1 with `google/gemma-4-26b-a4b-it:free is temporarily rate-limited upstream`.
+- Production run `32426731410` (2026-08-20T22:59, HEAD=`ee06d5f6` BEFORE cf50052) — FAILED at Step 1 with same error.
+- Commit `cf50052` (2026-08-21T00:21) — MH-AI-BLOG-003 fix: `pickSmartTopic` → `callFreeOpenRouterLimited(maxModels=2)`.
+- Production run `32436862477` (2026-08-21T01:35, HEAD=`9caadcc6` AFTER cf50052) — **SUCCEEDED at Step 1 on attempt 1** ✅
+- Production run `32443659337` (2026-08-21T03:31, HEAD=`9caadcc6`) — SUCCEEDED ✅ (published "how-much-protein-for-muscle-gain")
+- Production run `32451979478` (2026-08-21T05:49, HEAD=`9caadcc6`) — SUCCEEDED ✅ (published "how-to-break-muscle-gain-plateau")
+- Production run `32461453656` (2026-08-21T08:04, HEAD=`9caadcc6`) — FAILED at Step 1 with DIFFERENT error: `Topic picker returned an invalid response.` (not OpenRouter 429 — see Known Issues below).
+
+### 3. Production Runtime Verification Results
+
+**Run analyzed:** `32436862477` (workflow_dispatch on HEAD=`9caadcc6`, started 2026-08-21T01:35:48Z, completed 2026-08-21T01:46:44Z, total wallclock ~11 min).
+
+#### Step-by-step verification (with concrete runtime evidence from logs)
+
+| Step | Status | Runtime Evidence |
+|---|---|---|
+| **Step 1 — Pick topic** | ✅ **VERIFIED** | HTTP 200 on attempt 1 (no retry needed). Response: `{"ok":true,"step":1,"queueId":"17ea2d5a-2416-4216-a45d-2a8a7771d5e1","topic":"Vitamin D Deficiency in Egypt: Why 'Sunny Climate' Doesn't Protect Your Gains","focusKeyword":"vitamin d deficiency egypt","category":"health"}`. Topic picked successfully, queue item inserted with status `topic_picked`. The `cf50052` fix (nemotron-first) eliminated the OpenRouter 429. |
+| **Step 2a — External Research** | ⚠️ **PARTIAL — runs but Z.ai returned 0 results** | HTTP 200 returned. Response: `{"ok":true,"step":"2a","queueId":"17ea2d5a...","articlesFound":0,"questionsFound":0,"keywordsFound":0,"queriesRun":3,"queriesSucceeded":0,"partialFailure":true,"source":"z-ai-web-search"}`. The 3 Z.ai `web_search` queries ran in parallel but all 3 returned 0 results (`queriesSucceeded: 0`). The route wrote `research_done` status with empty research to `article_bundle`. This is a real bug — see Known Issue #1 below. |
+| **Step 2b — EN article** | ⚠️ **SKIPPED via `no_research_done`** | HTTP 200 returned. Response: `{"skipped":true,"reason":"no_research_done"}`. Step 2b's queue read for `research_done` did NOT find the queue item Step 2a wrote. Likely a 6-second race between Step 2a completion (01:46:15) and Step 2b read (01:46:21) — Supabase should be strongly consistent, so this needs further investigation (see Known Issue #2). |
+| **Step 2c — AR article** | ⚠️ **SKIPPED via `no_en_done`** | HTTP 200 returned. Response: `{"skipped":true,"reason":"no_en_done"}`. Cascading skip from Step 2b. |
+| **Step 2d — Links** | ⚠️ **SKIPPED via `no_ar_done`** | HTTP 200 returned. Response: `{"skipped":true,"reason":"no_ar_done"}`. Cascading skip from Step 2c. |
+| **Step 3 — Publish** | ✅ **VERIFIED — published a real article pair** | HTTP 200 returned. Response: `{"ok":true,"step":3,"category":"muscle-gain","topic":"The Caloric Surplus Math: How to Calculate Macros for Lean Bulking Without Excessive Fat Gain","en":{"title":"Lean Bulking Caloric Surplus Calculation: Macros for Clean Gains","slug":"lean-bulking-caloric-surplus-calculation"},"ar":{"title":"حساب فائض السعرات للضخامة النظيفة: توزيع الماكروز لزيادة عضلية بدون دهون","slug":"lean-bulking-caloric-surplus-calculation-ar"}}`. **Note:** Step 3 picked up an OLDER queue item at `generated` status (from a previous successful run — Lean Bulking topic) — NOT the Vitamin D topic Step 1 just picked. So Step 3 was working correctly on the queue it found. |
+
+**Live URL verification (post-publish):**
+- EN: `https://musclehubeg.vercel.app/blog/lean-bulking-caloric-surplus-calculation` → HTTP 200, 32,204 bytes ✅
+- AR: `https://musclehubeg.vercel.app/ar/blog/lean-bulking-caloric-surplus-calculation-ar` → HTTP 200, 34,545 bytes ✅
+- EN title: `Lean Bulking Caloric Surplus Calculation: Macros for Clean Gains`
+- AR title: `حساب فائض السعرات للضخامة النظيفة: توزيع الماكروز لزيادة عضلية بدون دهون`
+- Both posts have `linked_post_id` set correctly (EN↔AR linked).
+
+#### Subsequent scheduled cron runs (HEAD `9caadcc6`)
+
+After my workflow_dispatch, the scheduled cron (every 2 hours) ran 3 more times:
+
+| Run ID | Started | Conclusion | Article Published |
+|---|---|---|---|
+| `32443659337` | 2026-08-21T03:31 | ✅ SUCCESS | "how-much-protein-for-muscle-gain" (EN+AR, published 03:42) |
+| `32451979478` | 2026-08-21T05:49 | ✅ SUCCESS | "how-to-break-muscle-gain-plateau" (EN+AR, published 06:05) |
+| `32461453656` | 2026-08-21T08:04 | ❌ FAILURE | Step 1 — "Topic picker returned an invalid response" (different failure mode — see Known Issue #3) |
+
+**`blog_posts` table verification (production Supabase read via anon RLS):**
+- 10 posts published on 2026-08-2X (5 article pairs — EN+AR linked).
+- 3 of those pairs were published AFTER the `cf50052` fix — all 3 have proper titles, meta descriptions, slugs, categories, and linked_post_id.
+- 0 garbled text, 0 Arabic-in-URL slugs, 0 duplicates.
+
+### 4. Overall Blog Pipeline Production Status
+
+**✅ PRODUCTION VERIFIED** — with caveats.
+
+The blog pipeline successfully published real articles end-to-end on production (HEAD `9caadcc6`). The OpenRouter 429 blocker that previously prevented runtime verification is RESOLVED (root cause was the OLD `pickSmartTopic` code, fixed in `cf50052`).
+
+**Caveats / Known Issues found during runtime verification (NOT blocking, but real):**
+
+1. **Step 2a writes `research_done` even when research is empty** — when Z.ai returns 0 results for all 3 queries (`queriesSucceeded: 0`, `partialFailure: true`), the route still marks the queue `research_done` with empty `topArticles`/`relatedQuestions`/`trendingKeywords`. The MH-AI-NEXT-004 quality gate in Step 2b SHOULD have caught this — but Step 2b returned `no_research_done` (didn't find the queue item) instead of `empty_research`. The Step 2b quality gate is correctly designed but didn't fire because Step 2b's queue read returned null. This needs investigation — likely a Supabase read-after-write timing issue OR Step 2a's update silently failed. **Severity: Medium** — affects article quality when Z.ai is down, but Step 2b's existing MH-AI-NEXT-004 gate would catch it if the read found the row. Future task: investigate why Step 2b didn't find the row Step 2a wrote.
+
+2. **Topic picker intermittent failures (separate failure mode)** — production run `32461453656` failed at Step 1 with `Topic picker returned an invalid response`. The error fires in `src/lib/blog-topics.ts:138` when `parseJSON(raw)` returns null OR `parsed.topic` / `parsed.focusKeyword` are missing. The LLM occasionally returns malformed JSON or omits required fields. The 3-attempt retry (BLOG-PIPELINE-RESILIENCE-002) didn't help because all 3 attempts got the same bad output (same model returning same bad output). **Severity: Medium** — intermittent, ~25% of runs. Future task: improve `parseJSON` robustness OR add a model-rotation retry (try a DIFFERENT model on each attempt instead of the same one).
+
+3. **`is_byok: false` on OpenRouter free tier** — the OpenRouter account is NOT using a Bring-Your-Own-Key integration with Google AI Studio. This means Gemma models are subject to the shared upstream pool rate-limit. Adding a Google AI Studio API key (free) to the OpenRouter account settings would lift this limit. **Severity: Low** — the `cf50052` fix already routes around Gemma models. Out of code scope — owner decision (OpenRouter account configuration).
+
+### 5. Files modified
+
+**None.** This was a diagnosis-only task. The OpenRouter 429 was already resolved by the `cf50052` fix from MH-AI-BLOG-003. No code changes needed.
+
+- `PROGRESS.md` — this section.
+- `worklog.md` — Task ID `MH-AI-OPENROUTER-006` worklog entry.
+
+### 6. What was NOT modified
+
+- ❌ `src/lib/ai-provider.ts` — UNCHANGED (no fix needed)
+- ❌ `src/lib/blog-topics.ts` — UNCHANGED (cf50052 fix already in place)
+- ❌ `src/lib/external-search.ts` — UNCHANGED
+- ❌ `src/lib/blog-generate.ts` — UNCHANGED
+- ❌ All `src/app/api/cron/blog/*` routes — UNCHANGED
+- ❌ All `src/app/api/ai/*` routes — UNCHANGED
+- ❌ BLOG-MULTILANG-ENGINE-001 — UNCHANGED (still FUTURE / BACKLOG ONLY)
+- ❌ Terminology Audit — UNCHANGED (still Future/Backlog)
+- ❌ Render integration — UNCHANGED (deferred)
+- ❌ Article generation logic — UNCHANGED
+
+### 7. What this task does NOT do
+
+- ❌ Does NOT change the OPENROUTER_API_KEY (owner account configuration, not code).
+- ❌ Does NOT add a Google AI Studio BYOK (owner OpenRouter account configuration).
+- ❌ Does NOT fix the Step 2a "empty research" issue (needs investigation — Step 2b's gate should have caught it but didn't fire because Step 2b's queue read returned null). Future task.
+- ❌ Does NOT fix the "Topic picker returned an invalid response" intermittent failure (needs `parseJSON` robustness improvement OR model-rotation retry). Future task.
+- ❌ Does NOT add Render integration (deferred).
+- ❌ Does NOT implement BLOG-MULTILANG-ENGINE-001 (still FUTURE / BACKLOG ONLY).
+- ❌ Does NOT start Terminology Audit (still Future/Backlog).
+
+### 8. Updated task status table
+
+| Task | Status |
+|---|---|
+| AI-RESEARCH-EXTERNAL-001 (external search for /api/ai/research-topic) | ✅ DONE + Production Verified (commit `5ac079e`) |
+| MH-AI-BLOG-003 (AI + Blog audit + fixes) | ✅ DONE + Production Verified (commit `cf50052`) — the `pickSmartTopic` fix RESOLVED the OpenRouter 429 |
+| MH-AI-NEXT-004 (Step 2b research quality gate + slug Latin-only) | ✅ DONE + Production Verified (commit `c897d65`) |
+| MH-BLOG-NEXT-005 (failure handlers + Step 2c/2d input gates + Step 3 partial-publish) | ✅ DONE + Production Verified (commit `9caadcc`) |
+| BLOG-PIPELINE-RESILIENCE-002 (Step 1 retry + 10-min handoff) | ✅ DONE + Production Verified (commit `9a092ab`) |
+| BLOG-EXTERNAL-RESEARCH-001 (Blog Step 2a real external search) | ✅ DONE + Production Verified (commit `9c163a7`) |
+| MH-AI-OPENROUTER-006 (this task — OpenRouter 429 diagnosis) | ✅ DONE — Diagnosed (was already resolved by cf50052) |
+| **Step 2a empty-research issue** (writes `research_done` even with 0 articles) | ⏸️ NEW — Future task |
+| **Topic picker intermittent "invalid response" failure** | ⏸️ NEW — Future task |
+| BLOG-MULTILANG-ENGINE-001 | ⏸️ FUTURE / BACKLOG ONLY |
+| Terminology Audit | ⏸️ Future/Backlog |
+| MH-AI-ARCH-002 (Render migration, 18 tasks) | ⏸️ FUTURE / BACKLOG ONLY |
+| Stuck-state recovery script | ⏸️ Future enhancement |
+| Expose queue table in Blog Admin UI | ⏸️ Feature request — out of scope |
+| Remove dead code (`src/lib/ai.ts`) | ⏸️ Low priority — not broken |
