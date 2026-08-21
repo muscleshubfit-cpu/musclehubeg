@@ -1933,3 +1933,41 @@ Stage Summary:
 - Production runtime verification of the full blog pipeline still blocked by upstream OpenRouter 429 — but when it recovers, Step 1 will use less quota (2 models instead of 6) and Step 2a will now produce real research (was returning empty due to broken Z.ai raw-fetch path).
 - Files modified: `src/lib/external-search.ts`, `src/lib/blog-generate.ts`, `src/lib/blog-topics.ts`, `PROGRESS.md`, `worklog.md`, `PROJECT_CONTEXT.md` (the last from MH-AI-ARCH-002 docs commit).
 - Commit + push to follow with message: `fix: repair AI + Blog pipeline (Vercel-safe topic picker, working external search, /tmp/.z-ai-config write) + adopt MH-AI-ARCH-002 architecture direction docs`.
+
+### Finalization (post-commit + push — recorded from final report)
+
+**Commit SHA:** `cf500523518c70705597e2a016fc15087294e612` (short: `cf50052`)
+**Commit message:** `fix: repair AI + Blog pipeline + adopt MH-AI-ARCH-002 architecture direction`
+**Push status:** ✅ SUCCESS — pushed to `origin/main` (fast-forward `5ac079e..cf50052`). Local HEAD = origin/main = `cf50052`. Working tree clean.
+**Files in commit (6):** `PROGRESS.md`, `PROJECT_CONTEXT.md`, `src/lib/blog-generate.ts`, `src/lib/blog-topics.ts`, `src/lib/external-search.ts`, `worklog.md` — 566 insertions, 10 deletions.
+
+**Final test results (verified pre-commit):**
+- ✅ `npx tsc --noEmit` — 0 errors
+- ✅ `bun run lint` — 0 new errors (9 pre-existing in untouched files: `CookieConsent.tsx`, `SaveResultButton.tsx`, `BlogAdminView.tsx`, `checkout/page.tsx`, `foods/[slug]/page.tsx`, `water-tracker/page.tsx`, `AdSenseAd.tsx`)
+- ✅ `bun run build` — 0 errors (all 78 pages built)
+- ✅ `git diff --check` — no whitespace errors
+- ✅ Local smoke test of `externalSearch()` — real results from pubmed.ncbi.nlm.nih.gov, academic.oup.com, ubiehealth.com, health.harvard.edu; 0 reddit/quora/pinterest/facebook; 0 duplicate URLs; `/tmp/.z-ai-config` confirmed written
+- ⏸️ Production runtime verification of Step 2a — BLOCKED (upstream OpenRouter 429, per BLOG-PIPELINE-RESILIENCE-002 § Production Runtime Verification)
+
+**Blog audit scope (no article generation touched):** 18+ areas inspected — AI provider, all 8 `/api/ai/*` routes, EVO chat, blog pipeline (step1/2a/2b/2c/2d/3), topic picker, external research, SEO + slug + EN/AR, terminology (folded into prompt, no separate stage), content validation, dup prevention, blog DB state machine, draft/publish, image handling, sitemap, admin workflow, error handling + retries, timeouts, rate limits, logging.
+
+**3 fixes applied:**
+1. `src/lib/external-search.ts` — `createZaiClient()` writes `/tmp/.z-ai-config` from env vars before calling `ZAI.create()` (Vercel production path).
+2. `src/lib/blog-generate.ts:446` — `generateExternalResearch()` now delegates to `externalSearch()` (was broken raw-fetch returning `invalid X-Token`).
+3. `src/lib/blog-topics.ts:115` — `pickSmartTopic()` uses `callFreeOpenRouterLimited(maxModels=2, timeoutMs=25s)` (was `callAIWithFallback` with 60s timeout, could take 360s).
+
+**Blocked production verification:** OpenRouter upstream shared-pool 429 still blocks the full blog pipeline runtime test. When it recovers, Step 1 will consume less quota (2 models instead of 6) and Step 2a will now produce real research (was returning empty due to broken Z.ai raw-fetch path).
+
+**Remaining tasks:**
+| Task | Status |
+|---|---|
+| BLOG-PIPELINE-RESILIENCE-002 production verification | ⏸️ BLOCKED by OpenRouter 429 |
+| BLOG-EXTERNAL-RESEARCH-001 production verification | ⏸️ BLOCKED by upstream Step 1 failure |
+| BLOG-MULTILANG-ENGINE-001 | ⏸️ FUTURE / BACKLOG ONLY |
+| MH-AI-ARCH-002 (Render migration, 18 tasks) | ⏸️ FUTURE / BACKLOG ONLY |
+| Terminology audit stage | ⏸️ Not started — designed when BLOG-MULTILANG-ENGINE-001 opens |
+| Remove dead code (`src/lib/ai.ts`) | ⏸️ Low priority — not broken |
+
+**Render status:** DEFERRED per task constraint. No Render integration code in this task. The Render backend repo (`muscleshubfit-cpu/Render`) exists as a skeleton (commit `14e87fa`) — ready for future migration when owner opens MH-AI-ARCH-002 task #5 or #6.
+
+**No source code modified in this finalization step.** Only `worklog.md` appended. Previous commit `cf50052` content unchanged.
