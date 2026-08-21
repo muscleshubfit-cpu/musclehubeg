@@ -2427,3 +2427,135 @@ Removed `generated_at: new Date().toISOString()` from the UPDATE (line 71). The 
 - ❌ Does NOT start Terminology Audit (still Future/Backlog).
 - ❌ Does NOT replace Z.ai external search with LLM (preserved per user instruction).
 - ❌ Does NOT add arbitrary delays (the 5-second inter-step sleeps were REMOVED — they were a workaround for the global-status-lookup race, which is now fixed by queueId threading).
+
+---
+
+## MH-ZAI-PROD-008 — Z.ai Production web_search Failure Diagnosis
+
+**Status:** ✅ DIAGNOSED + observability fix applied — Committed and pushed to `origin/main`.
+**Date:** 2026-08-21
+**Task ID:** `MH-ZAI-PROD-008`
+**Task type:** Diagnosis-first investigation of Z.ai production failure. Fix = observability improvement (surface the actual Z.ai error). Architecture unchanged. Owner action required (set Vercel env var).
+
+### 1. Proven root cause
+
+**`ZAI_TOKEN` env var is NOT set on Vercel production.**
+
+The `z-ai-web-dev-sdk`'s `invokeFunction` method sends the `X-Token` header **ONLY IF** the `token` config field is non-empty (SDK source: `if (token) { headers['X-Token'] = token; }`). On Vercel production:
+- `ZAI_TOKEN` is not configured as an env var → defaults to `""` (empty string).
+- The `/tmp/.z-ai-config` file written by `createZaiClient()` contains `token: ""`.
+- `ZAI.create()` succeeds (the config file EXISTS, just with empty values).
+- `zai.functions.invoke("web_search", ...)` sends the request WITHOUT `X-Token` header.
+- Z.ai API returns `HTTP 401: {"error":"missing X-Token header"}`.
+- The SDK throws `Function invoke failed with status 401: {"error":"missing X-Token header"}`.
+- Our `runSingleQuery` caught this error and silently returned `[]` → `queriesSucceeded: 0` → `partialFailure: true` → `empty_research`.
+
+The actual Z.ai error was **invisible** in the workflow logs — it was silently converted to `queriesSucceeded: 0`.
+
+### 2. Evidence
+
+**Isolated local test (simulating production config — no token):**
+```
+Config: { baseUrl: "https://internal-api.z.ai/v1", apiKey: "Z.ai", chatId: "", token: "", userId: "" }
+Result: ZAI.create() succeeded
+        zai.functions.invoke("web_search", ...) FAILED:
+        Function invoke failed with status 401: {"error":"missing X-Token header"}
+```
+
+**Local /etc/.z-ai-config (the one that makes local work):**
+```
+baseUrl: https://internal-api.z.ai/v1
+apiKey: Z.ai
+chatId: chat-89b4794d-dc62-4c95-9c74-ee2a4b463e35
+token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9... (243 chars JWT)
+userId: 5bc241ce-c9fb-408a-93ab-60f9aefd2bec
+```
+
+**Git history .env (purged at commit 36c066b) — NO ZAI_ vars were ever committed.**
+
+**.env.example — NO ZAI_ vars documented before this fix.**
+
+### 3. Local vs Production comparison
+
+| Aspect | Local | Vercel Production |
+|---|---|---|
+| Config source | `/etc/.z-ai-config` (real JWT token) | `/tmp/.z-ai-config` (written from env vars — `ZAI_TOKEN` not set → empty) |
+| `token` field | Real JWT (243 chars) | `""` (empty) |
+| `X-Token` header sent | ✅ Yes | ❌ No (SDK skips empty token) |
+| Z.ai response | HTTP 200 (real results) | HTTP 401 `{"error":"missing X-Token header"}` |
+| `runSingleQuery` result | `[]` with error → but error was silently swallowed | Same |
+| Visible in workflow logs | N/A | `queriesSucceeded: 0` (no error message visible) |
+
+### 4. Exact files/configuration inspected
+
+- `src/lib/external-search.ts` — `createZaiClient()`, `writeTmpConfig()`, `runSingleQuery()`, `externalSearch()`
+- `src/app/api/ai/generate-image/route.ts` — same `/tmp/.z-ai-config` pattern
+- `node_modules/z-ai-web-dev-sdk/dist/index.js` — `loadConfig()`, `invokeFunction()`, `ZAI.create()`
+- `/etc/.z-ai-config` (local dev config — has real token)
+- `.env.example` — no ZAI_ vars documented (before this fix)
+- Git history (commit `36c066b^:.env`) — no ZAI_ vars ever committed
+- Production Vercel env vars — cannot directly inspect (no Vercel API token in scope), but inference: `ZAI_TOKEN` not set → token defaults to `""` → `X-Token` header not sent → 401
+
+### 5. Code changes applied
+
+**Fix = observability improvement (NOT architecture change):**
+
+1. **`src/lib/external-search.ts`** — `runSingleQuery` now returns `{ results: any[], error: string | null }` instead of just `any[]`. `externalSearch()` collects the FIRST error message across all 3 parallel queries and includes it as `firstError` in the `ResearchResult`. The error is still caught (no crash), but it's now VISIBLE.
+
+2. **`src/app/api/cron/blog/step2a-research/route.ts`** — response now includes `firstError: research?.firstError || null`. This will be visible in the GitHub Actions workflow logs.
+
+3. **`src/app/api/cron/blog/step2b-en-article/route.ts`** — the `empty_research` error_message now appends `Z.ai error: ${research.firstError}` if present. This makes the queue item's `error_message` field show the actual Z.ai failure (e.g. `Z.ai error: Function invoke failed with status 401: {"error":"missing X-Token header"}`).
+
+4. **`.env.example`** — documents `ZAI_TOKEN`, `ZAI_CHAT_ID`, `ZAI_USER_ID` as REQUIRED for Blog external research, with instructions on how to obtain the token.
+
+### 6. What was NOT changed
+
+- ❌ Z.ai external research design — preserved (Z.ai web_search, 3 parallel queries, 8s timeout, no LLM, no OpenRouter)
+- ❌ Empty-research quality gate — preserved (Step 2b still fails fast on empty research)
+- ❌ No retries added
+- ❌ No replacement of Z.ai
+- ❌ No article generation changes
+- ❌ No topic picker changes
+- ❌ No Render, no Multilingual, no Terminology Audit
+
+### 7. Tests performed
+
+- `npx tsc --noEmit` → 0 errors ✅
+- `bun run lint` → 0 new errors (9 pre-existing) ✅
+- `bun run build` → 0 errors ✅
+- `git diff --check` → clean ✅
+- Local smoke test: `firstError` correctly surfaced as `Function invoke failed with status 429: ...` (1 of 3 queries hit Z.ai rate-limit locally; 2 succeeded with 6 real results) ✅
+
+### 8. Production verification result
+
+**NOT yet Production Verified for Z.ai web_search** — the observability fix makes the error VISIBLE, but the actual fix (setting `ZAI_TOKEN` on Vercel) requires **owner action**:
+
+> **ACTION REQUIRED BY OWNER:**
+> 1. Obtain the Z.ai token from the local `/etc/.z-ai-config` file (the `token` field — a JWT starting with `eyJ...`).
+> 2. Go to Vercel → Project → Settings → Environment Variables.
+> 3. Add `ZAI_TOKEN` with the JWT value.
+> 4. Optionally add `ZAI_CHAT_ID` and `ZAI_USER_ID` (from the same `/etc/.z-ai-config` file).
+> 5. Redeploy (Vercel picks up new env vars on the next deployment).
+> 6. Trigger a `workflow_dispatch` to verify Z.ai web_search now returns real results.
+
+### 9. Commit SHA
+`2ef8394d2cd3a24d5f18a5f9dfbe5aa76dd65ea8` (short: `2ef8394`)
+
+### 10. Push status
+✅ Pushed to `origin/main` (fast-forward `086a432..2ef8394`). Local HEAD = origin/main = `2ef8394`.
+
+### 11. Remaining risks/issues
+
+1. **ZAI_TOKEN not set on Vercel** — the root cause. Owner must set it manually. Without it, all production Z.ai web_search calls will return HTTP 401.
+
+2. **Token expiry** — the Z.ai JWT token may expire at some point. If it does, production will start failing again with the same 401 error. The `firstError` field will now make this immediately visible.
+
+3. **Topic picker intermittent failures** — separate concern (MH-AI-OPENROUTER-006 Known Issue #2). Not addressed here.
+
+### 12. Is Z.ai Production now Production Verified?
+
+**❌ NO — Z.ai production is NOT yet Production Verified.**
+
+The observability fix makes the error VISIBLE, but the actual fix (setting `ZAI_TOKEN` on Vercel) requires owner action. After the owner sets the env var + triggers a new workflow_dispatch, the `firstError` field will either be `null` (success) or show a different error (if the token is expired/invalid).
+
+The queue handoff fix (MH-QUEUE-HANDOFF-007) IS Production Verified — the queueId threading works correctly. The remaining blocker is the Z.ai token configuration.
