@@ -27,6 +27,9 @@ export async function GET(request: NextRequest) {
   if (!isSupabaseAdminConfigured || !supabaseAdmin)
     return NextResponse.json({ error: "Supabase admin not configured." }, { status: 500 });
 
+  // Track queue item ID for the catch handler (qi is declared inside try).
+  let qiId: string | null = null;
+
   try {
     const { data: queueItem, error: qErr } = await supabaseAdmin
       .from("blog_generation_queue" as any)
@@ -42,6 +45,7 @@ export async function GET(request: NextRequest) {
     }
 
     const qi = queueItem as any;
+    qiId = qi.id;
     const bundle = qi.article_bundle ? JSON.parse(qi.article_bundle) : {};
 
     // ────────────────────────────────────────────────────────────────
@@ -133,12 +137,17 @@ export async function GET(request: NextRequest) {
     });
   } catch (e: any) {
     console.error("[blog/step2b-en-article] Error:", e?.message || e);
-    try {
-      await supabaseAdmin
-        .from("blog_generation_queue" as any)
-        .update({ status: "failed", error_message: `step2b: ${e?.message || "Unknown"}` })
-        .eq("status", "generating_en");
-    } catch {}
+    // Mark THIS queue item as failed (not any item in "generating_en"
+    // state — that would be a race condition across concurrent
+    // invocations and could mark an unrelated queue item failed).
+    if (qiId) {
+      try {
+        await supabaseAdmin
+          .from("blog_generation_queue" as any)
+          .update({ status: "failed", error_message: `step2b: ${e?.message || "Unknown"}` })
+          .eq("id", qiId);
+      } catch {}
+    }
     return NextResponse.json({ error: e?.message || "Failed" }, { status: 500 });
   }
 }

@@ -23,6 +23,9 @@ export async function GET(request: NextRequest) {
   if (!isSupabaseAdminConfigured || !supabaseAdmin)
     return NextResponse.json({ error: "Supabase admin not configured." }, { status: 500 });
 
+  // Track queue item ID for the catch handler (qi is declared inside try).
+  let qiId: string | null = null;
+
   try {
     const { data: queueItem, error: qErr } = await supabaseAdmin
       .from("blog_generation_queue" as any)
@@ -38,7 +41,43 @@ export async function GET(request: NextRequest) {
     }
 
     const qi = queueItem as any;
+    qiId = qi.id;
     const bundle = qi.article_bundle ? JSON.parse(qi.article_bundle) : {};
+
+    // ────────────────────────────────────────────────────────────────
+    // INPUT VALIDATION — fail-fast if Step 2b/2c outputs are missing
+    // ────────────────────────────────────────────────────────────────
+    // Step 2d needs both the SEO block + English article (from Step 2b)
+    // AND the Arabic article (from Step 2c) to generate links with
+    // correct anchor text matching both languages. If any is missing,
+    // fail-fast instead of silently generating incomplete links.
+    if (
+      !bundle.seo ||
+      !bundle.englishArticle ||
+      bundle.englishArticle.trim().length === 0 ||
+      !bundle.arabicArticle ||
+      bundle.arabicArticle.trim().length === 0
+    ) {
+      console.error("[blog/step2d-links] Missing Step 2b/2c output (seo, englishArticle, or arabicArticle) — failing fast");
+      await supabaseAdmin
+        .from("blog_generation_queue" as any)
+        .update({
+          status: "failed",
+          error_message: "step2d: missing_prior_output — bundle.seo, bundle.englishArticle, or bundle.arabicArticle is missing/empty. Investigate Step 2b/2c.",
+        })
+        .eq("id", qiId);
+      return NextResponse.json(
+        {
+          ok: false,
+          step: "2d",
+          queueId: qiId,
+          skipped: true,
+          reason: "missing_prior_output",
+          message: "Step 2b/2c's output is missing. Failing fast instead of generating incomplete links.",
+        },
+        { status: 422 },
+      );
+    }
 
     // Mark as generating links
     await supabaseAdmin
@@ -86,12 +125,17 @@ export async function GET(request: NextRequest) {
     });
   } catch (e: any) {
     console.error("[blog/step2d-links] Error:", e?.message || e);
-    try {
-      await supabaseAdmin
-        .from("blog_generation_queue" as any)
-        .update({ status: "failed", error_message: `step2d: ${e?.message || "Unknown"}` })
-        .eq("status", "generating_links");
-    } catch {}
+    // Mark THIS queue item as failed (not any item in "generating_links"
+    // state — that would be a race condition across concurrent
+    // invocations and could mark an unrelated queue item failed).
+    if (qiId) {
+      try {
+        await supabaseAdmin
+          .from("blog_generation_queue" as any)
+          .update({ status: "failed", error_message: `step2d: ${e?.message || "Unknown"}` })
+          .eq("id", qiId);
+      } catch {}
+    }
     return NextResponse.json({ error: e?.message || "Failed" }, { status: 500 });
   }
 }

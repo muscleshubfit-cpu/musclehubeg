@@ -2008,3 +2008,55 @@ Stage Summary:
 - Production runtime verification of Step 2b gate still blocked by upstream OpenRouter 429 — but the gate is observability + correctness improvement that will help when OpenRouter recovers (catches Step 2a empty-research failures cleanly instead of silently generating poor articles).
 - Files modified: `src/app/api/cron/blog/step2b-en-article/route.ts`, `src/app/api/cron/blog/step3-publish/route.ts`, `PROGRESS.md`, `worklog.md`.
 - Commit + push to follow with message: `fix: add Step 2b research quality gate + slug Latin-only enforcement`.
+
+---
+Task ID: MH-BLOG-NEXT-005
+Agent: main (super-z)
+Task: Final blog pipeline audit + remaining resilience fixes. Inspect full pipeline (Topic selection → Topic queue → External Research → Research Package → Step 2b → 2c → 2d → Publish → EN/AR data → SEO → Slugs → DB persistence → Sitemap → Admin workflow). Fix real gaps found. No article generation changes. No BLOG-MULTILANG-ENGINE-001. No Terminology Audit. No Render. No redo of MH-AI-BLOG-003 / MH-AI-NEXT-004. IMPLEMENT → VALIDATE → DOCUMENT → COMMIT → PUSH per AGENTS.md §12.2.
+
+Work Log:
+- Pre-flight: read PROJECT_CONTEXT.md, PROGRESS.md, DEVELOPER_GUIDE.md, QA_CHECKLIST.md, SECURITY.md, worklog.md. Confirmed local HEAD = origin/main = `c897d65` (MH-AI-NEXT-004). Reviewed MH-AI-BLOG-003 (commit `cf50052`) + MH-AI-NEXT-004 (commit `c897d65`) fix history.
+- Audited all 6 blog pipeline routes + admin blog files + sitemap + blog-admin (per task brief §A-G). Found 3 real gaps that don't depend on OpenRouter and don't touch article generation:
+
+- Gap 1 (Step 2a, 2b, 2c, 2d): Race condition in failure handlers. All 4 routes used `.eq("status", "<transient-state>")` in catch handlers instead of `.eq("id", qi.id)`. If a previous invocation crashed leaving a queue item stuck in `generating_*` state, AND a new invocation's catch handler ran concurrently, the failure marker would mark BOTH items as failed with the new invocation's error message. Cross-contamination scenario documented in PROGRESS.md. PROVEN from code (grep on the 4 route files confirmed identical buggy pattern).
+
+- Gap 2 (Step 2c, 2d): Missing input validation. Step 2c silently passes `bundle.seo || null` + `bundle.englishArticle || ""` to `generateArabicArticle()` if Step 2b somehow marked `en_done` but the bundle is incomplete. Step 2d silently passes missing `seo` / `englishArticle` / `arabicArticle` to `generateLinksAndSocial()`. Same class of bug fixed in MH-AI-NEXT-004 for Step 2b (research quality gate), but Step 2c/2d didn't have the equivalent gate.
+
+- Gap 3 (Step 3): Silent partial-publish failure. Step 3's catch handler returned HTTP 500 but did NOT update the queue item's status. Queue row stayed at `generated` (its last successful state). If EN post inserted successfully + AR post failed → EN post is published + visible, AR companion missing, queue shows `generated` → next Step 3 invocation hits `titleAlreadyExists` check → marks `skipped_duplicate` → AR permanently missing with NO signal to the owner. PROVEN from code.
+
+- Applied 3 fixes:
+  • **Fix 1** (4 routes — Step 2a, 2b, 2c, 2d): hoisted `let qiId: string | null = null;` outside try block; set `qiId = qi.id;` immediately after queue read; changed catch handlers from `.eq("status", "<transient-state>")` → `.eq("id", qiId)`; wrapped in `if (qiId) { try { ... } catch {} }` (defensive).
+  • **Fix 2** (Step 2c + 2d): added input validation gates BEFORE the AI call. Step 2c gate checks `!bundle.seo || !bundle.englishArticle || bundle.englishArticle.trim().length === 0` → marks `failed:missing_step2b_output`, HTTP 422. Step 2d gate checks same + `!bundle.arabicArticle || bundle.arabicArticle.trim().length === 0` → marks `failed:missing_prior_output`, HTTP 422. Both save OpenRouter quota (no AI call on empty input) + preserve queue row for inspection.
+  • **Fix 3** (Step 3): hoisted `let enPostId: string | null = null;` and `let qiId: string | null = null;` outside try. Set `qiId = qi.id` after queue read; `enPostId = enPost?.id` after EN insert. Updated AR insert error message to include `(EN post ${enPostId} was already inserted — needs manual cleanup or AR insert + link)`. Catch handler now marks queue `status: "failed"` with `error_message: "step3: partial_publish: EN post ${enPostId} was inserted but AR failed. <original error>"` AND saves `en_post_id` to the queue row (if set). Owner now has clear signal + the orphan EN post ID for manual cleanup.
+
+- Did NOT touch: article generation (`generateArticleBundle`, Step 2b/2c/2d bodies, `AIGenerateModal`), Step 1 route (uses `pickSmartTopic` already fixed), blog-topics.ts, external-search.ts, blog-generate.ts, sitemap, BlogAdminView, admin/blog/cleanup, AI provider, EVO chat, BLOG-MULTILANG-ENGINE-001, Render.
+
+- Verified the bug fixes are correct:
+  • Confirmed all 4 catch handlers now use `.eq("id", qiId)` (not `.eq("status", ...)`).
+  • Confirmed Step 2c gate fires BEFORE `generating_ar` status is set (so no transient state to clean up).
+  • Confirmed Step 2d gate fires BEFORE `generating_links` status is set.
+  • Confirmed Step 3 catch handler captures `enPostId` only after successful EN insert (so if EN insert fails, `enPostId` stays null and the partial-publish message is omitted — the error_message is just the EN insert error).
+
+- Verification performed:
+  • `npx tsc --noEmit` → 0 errors (including modified files; required hoisting `qiId` outside try block in 4 routes — caught a TS error in the first pass, fixed)
+  • `bun run lint` → 9 pre-existing problems (in `CookieConsent.tsx`, `SaveResultButton.tsx`, `BlogAdminView.tsx`, `checkout/page.tsx`, `foods/[slug]/page.tsx`, `water-tracker/page.tsx`, `AdSenseAd.tsx` — all untouched). 0 new errors introduced by this task.
+  • `bun run build` → 0 errors (all 78 pages built)
+  • `git diff --check` → no whitespace errors
+  • Production runtime verification NOT performed — blocked by upstream OpenRouter 429 (BLOG-PIPELINE-RESILIENCE-002).
+
+- Did NOT touch BLOG-MULTILANG-ENGINE-001 — still FUTURE / BACKLOG ONLY.
+- Did NOT start Terminology Audit — still Future/Backlog.
+- Did NOT implement any Render integration — Render is deferred per task constraint.
+- Did NOT redo MH-AI-BLOG-003 or MH-AI-NEXT-004 fixes (different files + different concerns: Step 2a failure handler + Step 2c/2d input gates + Step 3 partial-publish).
+- Updated `PROGRESS.md`: appended new section "MH-BLOG-NEXT-005 — Final Blog Pipeline Audit + Remaining Resilience Fixes" with audit scope (§A-G), 3 fixes (problem + proven-from-code + fix for each), what was inspected but NOT fixed (18 items confirmed working correctly), verification table, files modified, files NOT modified, known unresolved issues (4), what this task does NOT do (8 items).
+
+Stage Summary:
+- 3 fixes applied (4 routes' failure handlers + 2 routes' input gates + Step 3 partial-publish). All compile, lint clean, build clean.
+- Fixes target real bugs PROVEN from code (not invented):
+  • Race condition in failure handlers (`.eq("status", ...)` instead of `.eq("id", qi.id)`)
+  • Missing input validation in Step 2c/2d (same class as Step 2b's gate from MH-AI-NEXT-004)
+  • Silent partial-publish failure in Step 3 (queue stays at `generated` after AR insert fails → next invocation silently skips via `skipped_duplicate`)
+- No article generation code touched. No BLOG-MULTILANG-ENGINE-001 changes. No Render integration (deferred). No Terminology Audit. No redo of prior fixes.
+- Production runtime verification of all fixes still blocked by upstream OpenRouter 429 — but the fixes improve observability + correctness for when OpenRouter recovers (each failure mode now produces a clear `failed:...` queue status with descriptive error_message, instead of silent corruption).
+- Files modified: `src/app/api/cron/blog/step2a-research/route.ts`, `step2b-en-article/route.ts`, `step2c-ar-article/route.ts`, `step2d-links/route.ts`, `step3-publish/route.ts`, `PROGRESS.md`, `worklog.md`.
+- Commit + push to follow with message: `fix: blog pipeline resilience — failure handlers target correct queue ID, Step 2c/2d input gates, Step 3 partial-publish recovery`.

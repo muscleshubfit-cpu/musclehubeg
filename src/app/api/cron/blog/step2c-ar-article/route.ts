@@ -23,6 +23,9 @@ export async function GET(request: NextRequest) {
   if (!isSupabaseAdminConfigured || !supabaseAdmin)
     return NextResponse.json({ error: "Supabase admin not configured." }, { status: 500 });
 
+  // Track queue item ID for the catch handler (qi is declared inside try).
+  let qiId: string | null = null;
+
   try {
     const { data: queueItem, error: qErr } = await supabaseAdmin
       .from("blog_generation_queue" as any)
@@ -38,7 +41,38 @@ export async function GET(request: NextRequest) {
     }
 
     const qi = queueItem as any;
+    qiId = qi.id;
     const bundle = qi.article_bundle ? JSON.parse(qi.article_bundle) : {};
+
+    // ────────────────────────────────────────────────────────────────
+    // INPUT VALIDATION — fail-fast if Step 2b's output is missing
+    // ────────────────────────────────────────────────────────────────
+    // Step 2c needs the SEO block + English article from Step 2b to
+    // generate a coherent Arabic article. If either is missing
+    // (Step 2b somehow marked en_done but the bundle is incomplete),
+    // fail-fast instead of silently generating a poor AR article
+    // without context.
+    if (!bundle.seo || !bundle.englishArticle || bundle.englishArticle.trim().length === 0) {
+      console.error("[blog/step2c-ar-article] Missing Step 2b output (seo or englishArticle) — failing fast");
+      await supabaseAdmin
+        .from("blog_generation_queue" as any)
+        .update({
+          status: "failed",
+          error_message: "step2c: missing_step2b_output — bundle.seo or bundle.englishArticle is missing/empty. Investigate Step 2b.",
+        })
+        .eq("id", qiId);
+      return NextResponse.json(
+        {
+          ok: false,
+          step: "2c",
+          queueId: qiId,
+          skipped: true,
+          reason: "missing_step2b_output",
+          message: "Step 2b's output (SEO block or English article) is missing. Failing fast instead of generating a poor AR article.",
+        },
+        { status: 422 },
+      );
+    }
 
     // Mark as generating AR
     await supabaseAdmin
@@ -83,12 +117,17 @@ export async function GET(request: NextRequest) {
     });
   } catch (e: any) {
     console.error("[blog/step2c-ar-article] Error:", e?.message || e);
-    try {
-      await supabaseAdmin
-        .from("blog_generation_queue" as any)
-        .update({ status: "failed", error_message: `step2c: ${e?.message || "Unknown"}` })
-        .eq("status", "generating_ar");
-    } catch {}
+    // Mark THIS queue item as failed (not any item in "generating_ar"
+    // state — that would be a race condition across concurrent
+    // invocations and could mark an unrelated queue item failed).
+    if (qiId) {
+      try {
+        await supabaseAdmin
+          .from("blog_generation_queue" as any)
+          .update({ status: "failed", error_message: `step2c: ${e?.message || "Unknown"}` })
+          .eq("id", qiId);
+      } catch {}
+    }
     return NextResponse.json({ error: e?.message || "Failed" }, { status: 500 });
   }
 }

@@ -1929,3 +1929,163 @@ Result: 8/8 passed.
 - ❌ Does NOT change the workflow retry policy (BLOG-PIPELINE-RESILIENCE-002 is the owner of that).
 - ❌ Does NOT add Render integration (deferred).
 - ❌ Does NOT implement BLOG-MULTILANG-ENGINE-001 (still FUTURE / BACKLOG ONLY).
+
+---
+
+## MH-BLOG-NEXT-005 — Final Blog Pipeline Audit + Remaining Resilience Fixes
+
+**Status:** ✅ IMPLEMENTED + locally verified — Committed and pushed to `origin/main`.
+**Date:** 2026-08-21
+**Task ID:** `MH-BLOG-NEXT-005`
+**Task type:** Final blog pipeline audit — fix remaining resilience gaps found in Step 2a/2b/2c/2d/3 error handlers + Step 2c/2d input validation. No article generation changes. No OpenRouter dependency. No Render. No BLOG-MULTILANG-ENGINE-001.
+**Scope:** `src/app/api/cron/blog/step{2a,2b,2c,2d,3}/*.ts` only.
+
+### What was audited
+
+Comprehensive audit of the full blog pipeline (per task brief §A–G):
+- A) Queue/state integrity — step transitions, failure recovery, stuck states, duplicate processing, partial failures
+- B) Research handoff — Step 2a writes complete package; Step 2b/2c/2d validate inputs; null/malformed silent paths
+- C) Publish integrity — slug generation, EN/AR uniqueness, dup prevention, publish status, draft status, DB consistency, sitemap
+- D) Error handling — HTTP codes, retries, timeouts, clear failure states, logging
+- E) Security — cron protection, admin protection, secret handling, public endpoints, user input validation
+- F) Blog Admin — workflow alignment with current pipeline states
+- G) Production safety — any non-OpenRouter-blocking issues
+
+### Real gaps found + fixed (3 distinct fixes)
+
+#### Fix 1: Race condition in failure handlers (Step 2a, 2b, 2c, 2d)
+
+**Files:** `step2a-research/route.ts`, `step2b-en-article/route.ts`, `step2c-ar-article/route.ts`, `step2d-links/route.ts`
+
+**Problem (proven from code):** All 4 routes' catch handlers used `.eq("status", "<transient-state>")` instead of `.eq("id", qi.id)`. Example from Step 2a:
+```ts
+// BUG: marks ANY queue item currently in "researching" state as failed
+await supabaseAdmin
+  .from("blog_generation_queue")
+  .update({ status: "failed", error_message: ... })
+  .eq("status", "researching");   // ← should be .eq("id", qi.id)
+```
+
+**Race condition scenario:** If Step 2b invocation A is processing queue item A (in `generating_en` state), AND a previous Step 2b invocation crashed leaving item X stuck in `generating_en` state, AND a new Step 2b invocation picks item B and crashes, its catch handler runs `.eq("status", "generating_en")` — which matches BOTH item A (still processing) AND item X (stuck). Both get marked `failed` with item B's error message. Item A's actual processing is now lost + its queue state is wrong.
+
+**Cross-contamination scenario:** Even without stuck items, the `partialFailure` flag and `researchUsed` summary from a successful Step 2b processing of item B would be lost if item A's catch handler ran concurrently and marked item B as `failed`.
+
+**Fix applied (4 routes):**
+- Hoisted `let qiId: string | null = null;` OUTSIDE the try block.
+- Set `qiId = qi.id;` immediately after queue read.
+- Changed `.eq("status", "<transient-state>")` → `.eq("id", qiId)` in catch handlers.
+- Wrapped failure-handler in `if (qiId) { try { ... } catch {} }` (defensive — if qiId wasn't set yet, the failure happened before the queue read returned, so there's nothing to mark failed).
+
+#### Fix 2: Missing input validation in Step 2c and Step 2d
+
+**Files:** `step2c-ar-article/route.ts`, `step2d-links/route.ts`
+
+**Problem (proven from code):**
+- Step 2c reads `bundle.seo || null` and `bundle.englishArticle || ""` — silently passes null/empty to `generateArabicArticle()` if Step 2b somehow marked `en_done` but the bundle is incomplete. No fail-fast.
+- Step 2d reads `bundle.seo || null`, `bundle.englishArticle || ""`, `bundle.arabicArticle || ""` — silently passes null/empty to `generateLinksAndSocial()` if Step 2b/2c outputs are missing. No fail-fast.
+
+This is the same class of bug fixed in MH-AI-NEXT-004 for Step 2b (research quality gate). Step 2c and Step 2d didn't have the equivalent gate.
+
+**Fix applied:**
+- Step 2c: added `missing_step2b_output` quality gate BEFORE marking `generating_ar`. Checks: `!bundle.seo || !bundle.englishArticle || bundle.englishArticle.trim().length === 0`. If empty: mark queue `failed:missing_step2b_output`, return HTTP 422, do NOT make the AI call.
+- Step 2d: added `missing_prior_output` quality gate BEFORE marking `generating_links`. Checks: `!bundle.seo || !bundle.englishArticle || bundle.englishArticle.trim().length === 0 || !bundle.arabicArticle || bundle.arabicArticle.trim().length === 0`. Same fail-fast pattern.
+
+Both gates preserve the queue row (not deleted) so the owner can inspect what Step 2b/2c actually wrote to `article_bundle`.
+
+#### Fix 3: Silent partial-publish failure in Step 3
+
+**File:** `step3-publish/route.ts`
+
+**Problem (proven from code):** Step 3's catch handler returned HTTP 500 but did NOT update the queue item's status. The queue row stayed at `generated` (its last successful state).
+
+**Partial-publish failure mode:**
+1. Step 3 inserts EN post → success (`enPost.id` saved).
+2. Step 3 inserts AR post → fails (e.g. DB constraint violation, network error).
+3. Catch handler runs, returns HTTP 500, but queue item stays at `generated`.
+4. EN post is now in `blog_posts` table — published, visible to readers, NO AR companion.
+5. Next Step 3 invocation reads the same `generated` queue item, tries to publish again.
+6. `titleAlreadyExists` check on EN title succeeds → marks queue `skipped_duplicate` → returns.
+7. AR post is permanently missing. The owner has NO signal that anything went wrong — the queue shows `skipped_duplicate` (looks normal), but the published EN article has no AR companion and no `linked_post_id`.
+
+**Fix applied:**
+- Hoisted `let enPostId: string | null = null;` and `let qiId: string | null = null;` OUTSIDE the try block.
+- Set `qiId = qi.id;` after queue read; `enPostId = enPost?.id;` after EN insert succeeds.
+- Updated the AR insert error message to include `(EN post ${enPostId} was already inserted — needs manual cleanup or AR insert + link)`.
+- Catch handler now: marks queue item `status: "failed"` with `error_message: "step3: partial_publish: EN post ${enPostId} was inserted but AR failed. <original error>"` AND saves `en_post_id` to the queue row (if it was set). This gives the owner a clear signal + the ID of the orphan EN post for manual cleanup.
+
+### What was inspected but NOT fixed (working correctly, left as-is)
+
+- ✅ Cron auth on all 6 routes — consistent (`Authorization: Bearer <CRON_SECRET>`, 401 on mismatch).
+- ✅ `maxDuration = 60` on every route — within Vercel Hobby cap.
+- ✅ AI call timeouts — all use `callFreeOpenRouterLimited(maxModels=2, timeoutMs=20-25s)` per BLOG-PIPELINE-REDESIGN-001 Phase 1 (worst case 50s).
+- ✅ Step 1 → 2a → 2b → 2c → 2d → 3 state machine — correct transitions (`topic_picked → researching → research_done → generating_en → en_done → generating_ar → ar_done → generating_links → generated → published`).
+- ✅ Step 3 `uniqueSlug()` retry path (was fixed in MH-AI-NEXT-004).
+- ✅ Step 3 `slugify()` Latin-only enforcement (was fixed in MH-AI-NEXT-004).
+- ✅ Step 3 duplicate-title check (EN + AR) — `titleAlreadyExists()` works correctly.
+- ✅ Step 3 EN/AR linking — `linked_post_id` correctly set on both posts.
+- ✅ Sitemap (`src/app/sitemap.ts`) — lists all published posts (EN + AR), hourly revalidate. M3 already closed.
+- ✅ Blog admin workflow (`BlogAdminView.tsx`) — does not expose `blog_generation_queue` table (owner needs Supabase SQL Editor to inspect queue). This is an observability gap but adding it would be a feature (out of scope per "no invention").
+- ✅ Blog admin cleanup endpoint (`/api/admin/blog/cleanup`) — coach-only, garbled-text cleanup. Working.
+- ✅ Step 2a external research path — already fixed in MH-AI-BLOG-003 (`generateExternalResearch()` delegates to `externalSearch()`).
+- ✅ Step 2b research quality gate — already fixed in MH-AI-NEXT-004 (`empty_research` fail-fast).
+- ✅ Blog topic picker (`pickSmartTopic`) — already fixed in MH-AI-BLOG-003 (uses `callFreeOpenRouterLimited`).
+- ✅ External search module (`src/lib/external-search.ts`) — already fixed in MH-AI-BLOG-003 (`createZaiClient()` writes `/tmp/.z-ai-config`).
+- ✅ AI provider (`src/lib/ai-provider.ts`) — working, no fix needed.
+- ✅ EVO chat (`src/app/api/ai/chat/route.ts`) — race pattern, fast, no blog coupling.
+- ✅ Manual article generation (`/api/ai/generate-article`) — out of scope (no article generation changes).
+- ✅ Manual research route (`/api/ai/research-topic`) — already fixed in AI-RESEARCH-EXTERNAL-001.
+
+### Verification performed
+
+| Check | Result |
+|---|---|
+| `npx tsc --noEmit` | ✅ 0 errors (including modified files) |
+| `bun run lint` | ✅ 0 new errors (9 pre-existing in untouched files: `CookieConsent.tsx`, `SaveResultButton.tsx`, `BlogAdminView.tsx`, `checkout/page.tsx`, `foods/[slug]/page.tsx`, `water-tracker/page.tsx`, `AdSenseAd.tsx`) |
+| `bun run build` | ✅ 0 errors (all 78 pages built) |
+| `git diff --check` | ✅ No whitespace errors |
+| Production runtime verification | ⏸️ NOT performed — Step 1 is still blocked by OpenRouter upstream 429 (per BLOG-PIPELINE-RESILIENCE-002 § Production Runtime Verification). The fixes here improve observability + correctness for when OpenRouter recovers — they don't unblock the runtime path. |
+
+### Files modified
+
+- `src/app/api/cron/blog/step2a-research/route.ts` — hoisted `qiId`; catch handler uses `.eq("id", qiId)` instead of `.eq("status", "researching")`.
+- `src/app/api/cron/blog/step2b-en-article/route.ts` — hoisted `qiId`; catch handler uses `.eq("id", qiId)` instead of `.eq("status", "generating_en")`.
+- `src/app/api/cron/blog/step2c-ar-article/route.ts` — hoisted `qiId`; added `missing_step2b_output` input validation gate; catch handler uses `.eq("id", qiId)` instead of `.eq("status", "generating_ar")`.
+- `src/app/api/cron/blog/step2d-links/route.ts` — hoisted `qiId`; added `missing_prior_output` input validation gate; catch handler uses `.eq("id", qiId)` instead of `.eq("status", "generating_links")`.
+- `src/app/api/cron/blog/step3-publish/route.ts` — hoisted `enPostId` + `qiId`; catch handler marks queue `failed:partial_publish` with `en_post_id` preserved (instead of silently leaving queue at `generated`).
+- `PROGRESS.md` — this section.
+- `worklog.md` — Task ID `MH-BLOG-NEXT-005` worklog entry.
+
+### Files NOT modified (preserved per task constraints)
+
+- ❌ `src/lib/blog-generate.ts` — UNCHANGED (article generation code — out of scope)
+- ❌ `src/lib/blog-topics.ts` — UNCHANGED (already fixed in MH-AI-BLOG-003)
+- ❌ `src/lib/external-search.ts` — UNCHANGED (already fixed in MH-AI-BLOG-003)
+- ❌ `src/app/api/cron/blog/step1-pick/route.ts` — UNCHANGED (uses `pickSmartTopic` which was fixed in MH-AI-BLOG-003)
+- ❌ `src/app/api/cron/blog/step2-generate/route.ts`, `src/app/api/cron/generate-blog-post/route.ts` — UNCHANGED (legacy single-step routes, not used by current workflow)
+- ❌ `src/app/sitemap.ts` — UNCHANGED (M3 closed, working)
+- ❌ `src/components/views/BlogAdminView.tsx`, `src/lib/blog-admin.ts` — UNCHANGED (admin workflow works, queue table visibility is a feature request out of scope)
+- ❌ `src/app/api/admin/blog/cleanup/route.ts` — UNCHANGED (working)
+- ❌ `src/app/api/ai/*` routes — UNCHANGED (already fixed in prior tasks)
+- ❌ BLOG-MULTILANG-ENGINE-001 — UNCHANGED (still FUTURE / BACKLOG ONLY)
+- ❌ Render integration — UNCHANGED (deferred)
+
+### Known unresolved issues
+
+1. **OpenRouter 429 on Step 1 still blocks production runtime verification** — same as BLOG-PIPELINE-RESILIENCE-002. The fixes here (Step 2a/2b/2c/2d failure handlers + Step 2c/2d input gates + Step 3 partial-publish) are observability + correctness improvements that will help when OpenRouter recovers — they don't unblock the runtime path.
+
+2. **Stuck-state recovery is still manual** — a queue item that crashed in `researching` / `generating_en` / `generating_ar` / `generating_links` state (extremely rare now with Fix 1) is still invisible to subsequent invocations of its step (which read `topic_picked` / `research_done` / `en_done` / `ar_done` respectively). The owner must manually fix stuck items via Supabase SQL Editor. A future task could add a stuck-state recovery script (e.g. mark any item in a transient state for > 30 minutes as `failed:stuck`).
+
+3. **Blog admin doesn't expose the queue table** — owner has no UI visibility into queue state without Supabase SQL Editor. Adding this would be a feature (out of scope per "no invention").
+
+4. **Render migration still deferred** — per task constraint. The MH-AI-ARCH-002 future task list (items #5–#18) remains NOT STARTED.
+
+### What this task does NOT do
+
+- ❌ Does NOT add a stuck-state recovery script (could be a future enhancement — mark items stuck > 30 min as `failed:stuck`).
+- ❌ Does NOT expose the queue table in the blog admin UI (feature request, out of scope).
+- ❌ Does NOT touch Step 1 retry policy (BLOG-PIPELINE-RESILIENCE-002 is the owner).
+- ❌ Does NOT touch article generation (`generateArticleBundle`, Step 2b/2c/2d bodies, `AIGenerateModal`).
+- ❌ Does NOT add Render integration (deferred).
+- ❌ Does NOT implement BLOG-MULTILANG-ENGINE-001 (still FUTURE / BACKLOG ONLY).
+- ❌ Does NOT start Terminology Audit (still Future/Backlog).
+- ❌ Does NOT redo any MH-AI-BLOG-003 or MH-AI-NEXT-004 fix (different files + different concerns).

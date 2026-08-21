@@ -81,6 +81,15 @@ async function titleAlreadyExists(title: string, language: "en" | "ar"): Promise
  * Reads the latest "generated" item from the queue, fetches a featured
  * image (Pexels), checks for duplicates, and inserts both EN + AR posts.
  *
+ * Partial-publish recovery: if the EN post inserts successfully but the
+ * AR post insert (or any subsequent step) fails, the catch handler
+ * marks the queue item `failed:partial_publish` with the en_post_id
+ * preserved in the error_message. Without this, the queue item would
+ * stay at `generated` status — the next Step 3 invocation would re-read
+ * it, hit the `titleAlreadyExists` check on the EN title, and silently
+ * skip (marking the queue `skipped_duplicate`) — leaving the AR post
+ * permanently missing with no signal to the owner.
+ *
  * GET /api/cron/blog/step3-publish
  */
 export async function GET(request: NextRequest) {
@@ -90,6 +99,13 @@ export async function GET(request: NextRequest) {
 
   if (!isSupabaseAdminConfigured || !supabaseAdmin)
     return NextResponse.json({ error: "Supabase admin not configured." }, { status: 500 });
+
+  // Track partial-publish state for the catch handler. If enPost is
+  // set but arPost is not, we know the EN post was inserted and the
+  // AR post failed — needs manual cleanup (delete the orphan EN post
+  // or manually insert the AR post + link).
+  let enPostId: string | null = null;
+  let qiId: string | null = null;
 
   try {
     // Get the latest generated article
@@ -107,6 +123,7 @@ export async function GET(request: NextRequest) {
     }
 
     const qi = queueItem as any;
+    qiId = qi.id;
 
     const rawBundle = JSON.parse(qi.article_bundle);
 
@@ -200,13 +217,14 @@ export async function GET(request: NextRequest) {
       .select()
       .single() as any;
     if (enErr) throw new Error(`EN insert: ${enErr.message}`);
+    enPostId = (enPost as any)?.id || null;
 
     const { data: arPost, error: arErr } = await supabaseAdmin
       .from("blog_posts" as any)
       .insert(arRow)
       .select()
       .single() as any;
-    if (arErr) throw new Error(`AR insert: ${arErr.message}`);
+    if (arErr) throw new Error(`AR insert: ${arErr.message} (EN post ${enPostId} was already inserted — needs manual cleanup or AR insert + link).`);
 
     // Link the two posts
     if (enPost && arPost) {
@@ -234,6 +252,23 @@ export async function GET(request: NextRequest) {
     });
   } catch (e: any) {
     console.error("[blog/step3-publish] Error:", e?.message || e);
+    // Mark THIS queue item as failed (not silently leave it at "generated").
+    // If enPostId is set, the EN post was inserted but the AR post failed —
+    // include enPostId in the error_message so the owner can find the
+    // orphan EN post and either delete it or manually insert + link the AR post.
+    if (qiId) {
+      try {
+        const partial = enPostId ? `partial_publish: EN post ${enPostId} was inserted but AR failed. ` : "";
+        await supabaseAdmin
+          .from("blog_generation_queue" as any)
+          .update({
+            status: "failed",
+            error_message: `step3: ${partial}${e?.message || "Unknown"}`,
+            ...(enPostId ? { en_post_id: enPostId } : {}),
+          })
+          .eq("id", qiId);
+      } catch {}
+    }
     return NextResponse.json({ error: e?.message || "Failed" }, { status: 500 });
   }
 }
