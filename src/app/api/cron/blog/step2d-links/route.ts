@@ -1,18 +1,32 @@
 import { NextRequest, NextResponse } from "next/server";
 import { generateLinksAndSocial } from "@/lib/blog-generate";
-import { supabaseAdmin, isSupabaseAdminConfigured } from "@/lib/supabase/admin";
+import {
+  getQueueIdParam,
+  fetchQueueItem,
+  validateQueueStatus,
+  updateQueueItem,
+  markQueueItemFailed,
+  type QueueItem,
+} from "@/lib/blog-queue";
+import { isSupabaseAdminConfigured } from "@/lib/supabase/admin";
 
 export const maxDuration = 60;
 
 /**
  * Step 2d: Internal/external links + image prompts + social posts.
- * Reads the latest "ar_done" item, generates links + images + social in a
- * single AI call, saves to article_bundle, sets status to "generated".
+ *
+ * Reads the queue item identified by `?queueId=<uuid>` (passed from
+ * Step 2c's response, which got it from Step 1), generates links +
+ * images + social in a single AI call, saves to article_bundle, sets
+ * status to "generated".
  *
  * The links generator receives both article texts for anchor matching
  * (P1-6 fix).
  *
- * GET /api/cron/blog/step2d-links
+ * Queue-item threading (MH-QUEUE-HANDOFF-007): queueId is REQUIRED.
+ * UPDATE error checking: all UPDATEs go through `updateQueueItem()`.
+ *
+ * GET /api/cron/blog/step2d-links?queueId=<uuid>
  */
 export async function GET(request: NextRequest) {
   const auth = request.headers.get("authorization");
@@ -20,37 +34,46 @@ export async function GET(request: NextRequest) {
   if (expected && auth !== `Bearer ${expected}`)
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  if (!isSupabaseAdminConfigured || !supabaseAdmin)
+  if (!isSupabaseAdminConfigured)
     return NextResponse.json({ error: "Supabase admin not configured." }, { status: 500 });
 
-  // Track queue item ID for the catch handler (qi is declared inside try).
-  let qiId: string | null = null;
+  const queueId = getQueueIdParam(request);
+  if (!queueId) {
+    return NextResponse.json(
+      { error: "Missing queueId query parameter", message: "Step 2d requires ?queueId=<uuid> from Step 2c's response." },
+      { status: 400 },
+    );
+  }
+
+  let qi: QueueItem | null = null;
 
   try {
-    const { data: queueItem, error: qErr } = await supabaseAdmin
-      .from("blog_generation_queue" as any)
-      .select("*")
-      .eq("status", "ar_done")
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
+    const { data, error: fetchErr } = await fetchQueueItem(queueId);
+    if (fetchErr) throw new Error(fetchErr);
+    if (!data) {
+      return NextResponse.json(
+        { ok: false, step: "2d", queueId, skipped: true, reason: "queue_item_not_found", message: `Queue item ${queueId} does not exist.` },
+        { status: 404 },
+      );
+    }
+    qi = data;
 
-    if (qErr) throw new Error(`Queue read: ${qErr.message}`);
-    if (!queueItem) {
-      return NextResponse.json({ skipped: true, reason: "no_ar_done" });
+    const statusErr = validateQueueStatus(qi, "ar_done");
+    if (statusErr) {
+      if (qi.status === "generated") {
+        return NextResponse.json({ ok: true, step: "2d", queueId: qi.id, idempotent: true, message: `Queue item ${qi.id} is already generated.` });
+      }
+      return NextResponse.json(
+        { ok: false, step: "2d", queueId: qi.id, skipped: true, reason: "wrong_status", actual_status: qi.status, expected_status: "ar_done", message: statusErr },
+        { status: 409 },
+      );
     }
 
-    const qi = queueItem as any;
-    qiId = qi.id;
     const bundle = qi.article_bundle ? JSON.parse(qi.article_bundle) : {};
 
     // ────────────────────────────────────────────────────────────────
     // INPUT VALIDATION — fail-fast if Step 2b/2c outputs are missing
     // ────────────────────────────────────────────────────────────────
-    // Step 2d needs both the SEO block + English article (from Step 2b)
-    // AND the Arabic article (from Step 2c) to generate links with
-    // correct anchor text matching both languages. If any is missing,
-    // fail-fast instead of silently generating incomplete links.
     if (
       !bundle.seo ||
       !bundle.englishArticle ||
@@ -58,61 +81,33 @@ export async function GET(request: NextRequest) {
       !bundle.arabicArticle ||
       bundle.arabicArticle.trim().length === 0
     ) {
-      console.error("[blog/step2d-links] Missing Step 2b/2c output (seo, englishArticle, or arabicArticle) — failing fast");
-      await supabaseAdmin
-        .from("blog_generation_queue" as any)
-        .update({
-          status: "failed",
-          error_message: "step2d: missing_prior_output — bundle.seo, bundle.englishArticle, or bundle.arabicArticle is missing/empty. Investigate Step 2b/2c.",
-        })
-        .eq("id", qiId);
+      console.error("[blog/step2d-links] Missing Step 2b/2c output — failing fast");
+      const updateErr = await updateQueueItem(qi.id, {
+        status: "failed",
+        error_message: "step2d: missing_prior_output — bundle.seo, bundle.englishArticle, or bundle.arabicArticle is missing/empty. Investigate Step 2b/2c.",
+      });
+      if (updateErr) console.error(`[blog/step2d-links] Failed to mark queue as failed: ${updateErr}`);
       return NextResponse.json(
-        {
-          ok: false,
-          step: "2d",
-          queueId: qiId,
-          skipped: true,
-          reason: "missing_prior_output",
-          message: "Step 2b/2c's output is missing. Failing fast instead of generating incomplete links.",
-        },
+        { ok: false, step: "2d", queueId: qi.id, skipped: true, reason: "missing_prior_output", message: "Step 2b/2c's output is missing. Failing fast." },
         { status: 422 },
       );
     }
 
     // Mark as generating links
-    await supabaseAdmin
-      .from("blog_generation_queue" as any)
-      .update({ status: "generating_links" })
-      .eq("id", qi.id);
+    const researchingErr = await updateQueueItem(qi.id, { status: "generating_links" });
+    if (researchingErr) throw new Error(researchingErr);
 
     const { internalLinks, externalLinks, imagePrompts, socialPosts, estimatedReadingTime, source } =
       await generateLinksAndSocial(
-        {
-          topic: qi.topic,
-          focusKeyword: qi.focus_keyword,
-        },
+        { topic: qi.topic, focusKeyword: qi.focus_keyword },
         bundle.seo || null,
         bundle.englishArticle || "",
         bundle.arabicArticle || "",
       );
 
-    // Save links + images + social into bundle — bundle is now complete
-    const updatedBundle = JSON.stringify({
-      ...bundle,
-      internalLinks,
-      externalLinks,
-      imagePrompts,
-      socialPosts,
-      estimatedReadingTime,
-    });
-
-    await supabaseAdmin
-      .from("blog_generation_queue" as any)
-      .update({
-        status: "generated",
-        article_bundle: updatedBundle,
-      })
-      .eq("id", qi.id);
+    const updatedBundle = JSON.stringify({ ...bundle, internalLinks, externalLinks, imagePrompts, socialPosts, estimatedReadingTime });
+    const updateErr = await updateQueueItem(qi.id, { status: "generated", article_bundle: updatedBundle });
+    if (updateErr) throw new Error(updateErr);
 
     return NextResponse.json({
       ok: true,
@@ -125,16 +120,8 @@ export async function GET(request: NextRequest) {
     });
   } catch (e: any) {
     console.error("[blog/step2d-links] Error:", e?.message || e);
-    // Mark THIS queue item as failed (not any item in "generating_links"
-    // state — that would be a race condition across concurrent
-    // invocations and could mark an unrelated queue item failed).
-    if (qiId) {
-      try {
-        await supabaseAdmin
-          .from("blog_generation_queue" as any)
-          .update({ status: "failed", error_message: `step2d: ${e?.message || "Unknown"}` })
-          .eq("id", qiId);
-      } catch {}
+    if (queueId) {
+      await markQueueItemFailed(queueId, `step2d: ${e?.message || "Unknown"}`);
     }
     return NextResponse.json({ error: e?.message || "Failed" }, { status: 500 });
   }

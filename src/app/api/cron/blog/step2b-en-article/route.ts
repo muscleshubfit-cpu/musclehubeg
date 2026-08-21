@@ -1,14 +1,36 @@
 import { NextRequest, NextResponse } from "next/server";
 import { generateEnglishArticle } from "@/lib/blog-generate";
-import { supabaseAdmin, isSupabaseAdminConfigured } from "@/lib/supabase/admin";
+import {
+  getQueueIdParam,
+  fetchQueueItem,
+  validateQueueStatus,
+  updateQueueItem,
+  markQueueItemFailed,
+  type QueueItem,
+} from "@/lib/blog-queue";
+import { isSupabaseAdminConfigured } from "@/lib/supabase/admin";
 
 export const maxDuration = 60;
 
 /**
  * Step 2b: SEO data + English article.
- * Reads the latest "research_done" item, generates SEO + EN article in a
- * single AI call (maxTokens=8000), saves to article_bundle, sets status
- * to "en_done".
+ *
+ * Reads the queue item identified by `?queueId=<uuid>` (passed from
+ * Step 2a's response, which got it from Step 1), generates SEO + EN
+ * article in a single AI call (maxTokens=8000), saves to
+ * article_bundle, sets status to "en_done".
+ *
+ * Queue-item threading (MH-QUEUE-HANDOFF-007):
+ *   The queueId is REQUIRED as a query parameter. The previous code
+ *   queried `eq("status", "research_done")` + `order created_at desc`
+ *   + `limit 1` — this could pick a DIFFERENT queue item than the one
+ *   Step 2a processed (e.g. an older stuck item). Now we query by
+ *   exact id, which guarantees we process the same item across the
+ *   whole pipeline.
+ *
+ * UPDATE error checking (MH-QUEUE-HANDOFF-007):
+ *   All UPDATEs go through `updateQueueItem()` which captures the
+ *   response's error field and throws if the UPDATE fails.
  *
  * Quality gate: if the research data from Step 2a is missing or empty
  * (topArticles + relatedQuestions + trendingKeywords all empty), this
@@ -16,7 +38,7 @@ export const maxDuration = 60;
  * silently generating a poor article without sources. The queue row
  * is preserved (not deleted) so the owner can inspect what happened.
  *
- * GET /api/cron/blog/step2b-en-article
+ * GET /api/cron/blog/step2b-en-article?queueId=<uuid>
  */
 export async function GET(request: NextRequest) {
   const auth = request.headers.get("authorization");
@@ -24,28 +46,68 @@ export async function GET(request: NextRequest) {
   if (expected && auth !== `Bearer ${expected}`)
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  if (!isSupabaseAdminConfigured || !supabaseAdmin)
+  if (!isSupabaseAdminConfigured)
     return NextResponse.json({ error: "Supabase admin not configured." }, { status: 500 });
 
-  // Track queue item ID for the catch handler (qi is declared inside try).
-  let qiId: string | null = null;
+  const queueId = getQueueIdParam(request);
+  if (!queueId) {
+    return NextResponse.json(
+      {
+        error: "Missing queueId query parameter",
+        message: "Step 2b requires ?queueId=<uuid> from Step 2a's response.",
+      },
+      { status: 400 },
+    );
+  }
+
+  let qi: QueueItem | null = null;
 
   try {
-    const { data: queueItem, error: qErr } = await supabaseAdmin
-      .from("blog_generation_queue" as any)
-      .select("*")
-      .eq("status", "research_done")
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
+    const { data, error: fetchErr } = await fetchQueueItem(queueId);
+    if (fetchErr) throw new Error(fetchErr);
+    if (!data) {
+      return NextResponse.json(
+        {
+          ok: false,
+          step: "2b",
+          queueId,
+          skipped: true,
+          reason: "queue_item_not_found",
+          message: `Queue item ${queueId} does not exist.`,
+        },
+        { status: 404 },
+      );
+    }
+    qi = data;
 
-    if (qErr) throw new Error(`Queue read: ${qErr.message}`);
-    if (!queueItem) {
-      return NextResponse.json({ skipped: true, reason: "no_research_done" });
+    // Validate the queue item is in the EXPECTED status.
+    const statusErr = validateQueueStatus(qi, "research_done");
+    if (statusErr) {
+      // If already en_done, this is a re-run — return idempotent success.
+      if (qi.status === "en_done") {
+        return NextResponse.json({
+          ok: true,
+          step: "2b",
+          queueId: qi.id,
+          idempotent: true,
+          message: `Queue item ${qi.id} is already en_done. Skipping re-generation.`,
+        });
+      }
+      return NextResponse.json(
+        {
+          ok: false,
+          step: "2b",
+          queueId: qi.id,
+          skipped: true,
+          reason: "wrong_status",
+          actual_status: qi.status,
+          expected_status: "research_done",
+          message: statusErr,
+        },
+        { status: 409 },
+      );
     }
 
-    const qi = queueItem as any;
-    qiId = qi.id;
     const bundle = qi.article_bundle ? JSON.parse(qi.article_bundle) : {};
 
     // ────────────────────────────────────────────────────────────────
@@ -71,13 +133,11 @@ export async function GET(request: NextRequest) {
 
     if (isEmptyResearch) {
       console.error("[blog/step2b-en-article] Research is empty — failing fast instead of generating a poor article without sources");
-      await supabaseAdmin
-        .from("blog_generation_queue" as any)
-        .update({
-          status: "failed",
-          error_message: "step2b: empty_research — Step 2a produced 0 topArticles + 0 relatedQuestions + 0 trendingKeywords. Investigate Step 2a (Z.ai may be down or all 3 queries failed).",
-        })
-        .eq("id", qi.id);
+      const updateErr = await updateQueueItem(qi.id, {
+        status: "failed",
+        error_message: "step2b: empty_research — Step 2a produced 0 topArticles + 0 relatedQuestions + 0 trendingKeywords. Investigate Step 2a (Z.ai may be down or all 3 queries failed).",
+      });
+      if (updateErr) console.error(`[blog/step2b-en-article] Failed to mark queue as failed: ${updateErr}`);
       return NextResponse.json(
         {
           ok: false,
@@ -92,10 +152,8 @@ export async function GET(request: NextRequest) {
     }
 
     // Mark as generating EN
-    await supabaseAdmin
-      .from("blog_generation_queue" as any)
-      .update({ status: "generating_en" })
-      .eq("id", qi.id);
+    const researchingErr = await updateQueueItem(qi.id, { status: "generating_en" });
+    if (researchingErr) throw new Error(researchingErr);
 
     const { seo, englishArticle, source } = await generateEnglishArticle(
       {
@@ -113,13 +171,11 @@ export async function GET(request: NextRequest) {
       englishArticle,
     });
 
-    await supabaseAdmin
-      .from("blog_generation_queue" as any)
-      .update({
-        status: "en_done",
-        article_bundle: updatedBundle,
-      })
-      .eq("id", qi.id);
+    const updateErr = await updateQueueItem(qi.id, {
+      status: "en_done",
+      article_bundle: updatedBundle,
+    });
+    if (updateErr) throw new Error(updateErr);
 
     return NextResponse.json({
       ok: true,
@@ -137,16 +193,8 @@ export async function GET(request: NextRequest) {
     });
   } catch (e: any) {
     console.error("[blog/step2b-en-article] Error:", e?.message || e);
-    // Mark THIS queue item as failed (not any item in "generating_en"
-    // state — that would be a race condition across concurrent
-    // invocations and could mark an unrelated queue item failed).
-    if (qiId) {
-      try {
-        await supabaseAdmin
-          .from("blog_generation_queue" as any)
-          .update({ status: "failed", error_message: `step2b: ${e?.message || "Unknown"}` })
-          .eq("id", qiId);
-      } catch {}
+    if (queueId) {
+      await markQueueItemFailed(queueId, `step2b: ${e?.message || "Unknown"}`);
     }
     return NextResponse.json({ error: e?.message || "Failed" }, { status: 500 });
   }

@@ -3,6 +3,14 @@ import { fetchFeaturedImage } from "@/lib/blog-images";
 import { supabaseAdmin, isSupabaseAdminConfigured } from "@/lib/supabase/admin";
 import { normalizeCategory } from "@/lib/blog-server";
 import { buildFinalBundle, type ArticleBundle } from "@/lib/blog-generate";
+import {
+  getQueueIdParam,
+  fetchQueueItem,
+  validateQueueStatus,
+  updateQueueItem,
+  markQueueItemFailed,
+  type QueueItem,
+} from "@/lib/blog-queue";
 
 export const maxDuration = 60;
 
@@ -16,38 +24,23 @@ export const maxDuration = 60;
  * if the result is empty (the LLM produced an all-Arabic slug), the
  * caller falls back to `qi.focus_keyword` (which is always Latin)
  * via `bundle.seo.en.slug || qi.focus_keyword` in the existing call.
- *
- * Without this enforcement, an Arabic slug would be silently URL-
- * encoded by Supabase (e.g. `كورتيزول` → `%D9%83%D9%88%D8%B1%D8%...`)
- * which works technically but produces unreadable URLs that break
- * SEO + social sharing.
  */
 function slugify(input: string): string {
   return input
     .toLowerCase()
     .trim()
-    // Strip ALL non-ASCII characters (Arabic, CJK, emoji, etc.)
-    // ASCII range is 0x00-0x7F (128 chars).
     .replace(/[^\x00-\x7F]/g, "")
-    // Remove non-word, non-space, non-hyphen characters
     .replace(/[^\w\s-]/g, "")
-    // Collapse whitespace → single hyphen
     .replace(/\s+/g, "-")
-    // Collapse consecutive hyphens
     .replace(/-+/g, "-")
-    // Trim leading/trailing hyphens
     .replace(/^-+|-+$/g, "")
-    // Cap at 80 chars
     .slice(0, 80);
 }
 
 async function uniqueSlug(base: string, language: "en" | "ar"): Promise<string> {
   if (!supabaseAdmin) return base;
-  // If `base` is empty (e.g. AR slug was all-Arabic and got stripped by
-  // slugify), generate a date-based fallback. Otherwise the empty string
-  // would propagate through the retry loop and produce empty slugs.
   let slug = base || `post-${Date.now()}`;
-  const effectiveBase = base || slug; // use the fallback for retry suffixes too
+  const effectiveBase = base || slug;
   let attempt = 0;
   while (attempt < 5) {
     const { data } = await supabaseAdmin
@@ -78,19 +71,20 @@ async function titleAlreadyExists(title: string, language: "en" | "ar"): Promise
 
 /**
  * Step 3: Publish.
- * Reads the latest "generated" item from the queue, fetches a featured
+ *
+ * Reads the queue item identified by `?queueId=<uuid>` (passed from
+ * Step 2d's response, which got it from Step 1), fetches a featured
  * image (Pexels), checks for duplicates, and inserts both EN + AR posts.
+ *
+ * Queue-item threading (MH-QUEUE-HANDOFF-007): queueId is REQUIRED.
+ * UPDATE error checking: all UPDATEs go through `updateQueueItem()`.
  *
  * Partial-publish recovery: if the EN post inserts successfully but the
  * AR post insert (or any subsequent step) fails, the catch handler
  * marks the queue item `failed:partial_publish` with the en_post_id
- * preserved in the error_message. Without this, the queue item would
- * stay at `generated` status — the next Step 3 invocation would re-read
- * it, hit the `titleAlreadyExists` check on the EN title, and silently
- * skip (marking the queue `skipped_duplicate`) — leaving the AR post
- * permanently missing with no signal to the owner.
+ * preserved in the error_message.
  *
- * GET /api/cron/blog/step3-publish
+ * GET /api/cron/blog/step3-publish?queueId=<uuid>
  */
 export async function GET(request: NextRequest) {
   const auth = request.headers.get("authorization");
@@ -100,41 +94,45 @@ export async function GET(request: NextRequest) {
   if (!isSupabaseAdminConfigured || !supabaseAdmin)
     return NextResponse.json({ error: "Supabase admin not configured." }, { status: 500 });
 
-  // Track partial-publish state for the catch handler. If enPost is
-  // set but arPost is not, we know the EN post was inserted and the
-  // AR post failed — needs manual cleanup (delete the orphan EN post
-  // or manually insert the AR post + link).
+  const queueId = getQueueIdParam(request);
+  if (!queueId) {
+    return NextResponse.json(
+      { error: "Missing queueId query parameter", message: "Step 3 requires ?queueId=<uuid> from Step 2d's response." },
+      { status: 400 },
+    );
+  }
+
+  // Track partial-publish state for the catch handler.
   let enPostId: string | null = null;
-  let qiId: string | null = null;
+  let qi: QueueItem | null = null;
 
   try {
-    // Get the latest generated article
-    const { data: queueItem, error: qErr } = await supabaseAdmin
-      .from("blog_generation_queue" as any)
-      .select("*")
-      .eq("status", "generated")
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
+    const { data, error: fetchErr } = await fetchQueueItem(queueId);
+    if (fetchErr) throw new Error(fetchErr);
+    if (!data) {
+      return NextResponse.json(
+        { ok: false, step: 3, queueId, skipped: true, reason: "queue_item_not_found", message: `Queue item ${queueId} does not exist.` },
+        { status: 404 },
+      );
+    }
+    qi = data;
 
-    if (qErr) throw new Error(`Queue read: ${qErr.message}`);
-    if (!queueItem) {
-      return NextResponse.json({ skipped: true, reason: "no_generated_article" });
+    const statusErr = validateQueueStatus(qi, "generated");
+    if (statusErr) {
+      if (qi.status === "published") {
+        return NextResponse.json({ ok: true, step: 3, queueId: qi.id, idempotent: true, message: `Queue item ${qi.id} is already published.` });
+      }
+      return NextResponse.json(
+        { ok: false, step: 3, queueId: qi.id, skipped: true, reason: "wrong_status", actual_status: qi.status, expected_status: "generated", message: statusErr },
+        { status: 409 },
+      );
     }
 
-    const qi = queueItem as any;
-    qiId = qi.id;
+    const rawBundle = JSON.parse(qi.article_bundle || "{}");
 
-    const rawBundle = JSON.parse(qi.article_bundle);
-
-    // If the bundle was generated by the new multi-step pipeline,
-    // it has individual fields (research, seo, englishArticle, etc.)
-    // that need to be assembled via buildFinalBundle (which inserts links).
-    // If it was generated by the old single-call generateArticleBundle(),
-    // it already has the final shape with links inserted.
+    // Assemble the bundle via buildFinalBundle (which inserts links).
     let bundle: ArticleBundle;
     if (rawBundle.source === "openrouter:multi-step" || (!rawBundle.englishArticle && rawBundle.research !== undefined)) {
-      // New multi-step format: assemble via buildFinalBundle
       bundle = buildFinalBundle({
         research: rawBundle.research,
         seo: rawBundle.seo,
@@ -149,18 +147,19 @@ export async function GET(request: NextRequest) {
         estimatedReadingTime: rawBundle.estimatedReadingTime || 1,
       });
     } else {
-      // Old format: already has links inserted, use as-is
       bundle = rawBundle as ArticleBundle;
     }
     const safeCategory = normalizeCategory(qi.category);
 
     // Check for duplicate titles
     if (await titleAlreadyExists(bundle.seo.en.seoTitle, "en")) {
-      await supabaseAdmin.from("blog_generation_queue" as any).update({ status: "skipped_duplicate" }).eq("id", qi.id);
+      const dupErr = await updateQueueItem(qi.id, { status: "skipped_duplicate", error_message: `step3: duplicate-en-title "${bundle.seo.en.seoTitle}"` });
+      if (dupErr) console.error(`[blog/step3-publish] Failed to mark skipped_duplicate: ${dupErr}`);
       return NextResponse.json({ skipped: true, reason: "duplicate-en-title", title: bundle.seo.en.seoTitle });
     }
     if (await titleAlreadyExists(bundle.seo.ar.seoTitle, "ar")) {
-      await supabaseAdmin.from("blog_generation_queue" as any).update({ status: "skipped_duplicate" }).eq("id", qi.id);
+      const dupErr = await updateQueueItem(qi.id, { status: "skipped_duplicate", error_message: `step3: duplicate-ar-title "${bundle.seo.ar.seoTitle}"` });
+      if (dupErr) console.error(`[blog/step3-publish] Failed to mark skipped_duplicate: ${dupErr}`);
       return NextResponse.json({ skipped: true, reason: "duplicate-ar-title", title: bundle.seo.ar.seoTitle });
     }
 
@@ -169,15 +168,12 @@ export async function GET(request: NextRequest) {
     const arSlug = await uniqueSlug(slugify(bundle.seo.ar.slug || bundle.seo.en.slug || qi.focus_keyword), "ar");
 
     // Fetch image (Pexels — fast, ~3-5s)
-    // Image is stored as a remote URL — Pexels CDN serves optimized images.
-    // No local compression needed since images are served from Pexels CDN.
     let imageUrl: string | null = null;
     try {
       const img = await fetchFeaturedImage(bundle.seo.focusKeyword || qi.focus_keyword || qi.topic);
       imageUrl = img?.url || null;
     } catch {}
 
-    // Insert EN post
     const enRow = {
       language: "en",
       title: bundle.seo.en.seoTitle,
@@ -233,18 +229,17 @@ export async function GET(request: NextRequest) {
     }
 
     // Mark queue item as published
-    await supabaseAdmin
-      .from("blog_generation_queue" as any)
-      .update({
-        status: "published",
-        en_post_id: enPost?.id,
-        ar_post_id: arPost?.id,
-      })
-      .eq("id", qi.id);
+    const updateErr = await updateQueueItem(qi.id, {
+      status: "published",
+      en_post_id: enPost?.id,
+      ar_post_id: arPost?.id,
+    });
+    if (updateErr) throw new Error(updateErr);
 
     return NextResponse.json({
       ok: true,
       step: 3,
+      queueId: qi.id,
       category: qi.category,
       topic: qi.topic,
       en: { title: enRow.title, slug: enSlug },
@@ -252,22 +247,9 @@ export async function GET(request: NextRequest) {
     });
   } catch (e: any) {
     console.error("[blog/step3-publish] Error:", e?.message || e);
-    // Mark THIS queue item as failed (not silently leave it at "generated").
-    // If enPostId is set, the EN post was inserted but the AR post failed —
-    // include enPostId in the error_message so the owner can find the
-    // orphan EN post and either delete it or manually insert + link the AR post.
-    if (qiId) {
-      try {
-        const partial = enPostId ? `partial_publish: EN post ${enPostId} was inserted but AR failed. ` : "";
-        await supabaseAdmin
-          .from("blog_generation_queue" as any)
-          .update({
-            status: "failed",
-            error_message: `step3: ${partial}${e?.message || "Unknown"}`,
-            ...(enPostId ? { en_post_id: enPostId } : {}),
-          })
-          .eq("id", qiId);
-      } catch {}
+    if (queueId) {
+      const partial = enPostId ? `partial_publish: EN post ${enPostId} was inserted but AR failed. ` : "";
+      await markQueueItemFailed(queueId, `step3: ${partial}${e?.message || "Unknown"}`);
     }
     return NextResponse.json({ error: e?.message || "Failed" }, { status: 500 });
   }

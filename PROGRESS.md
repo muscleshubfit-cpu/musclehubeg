@@ -2238,3 +2238,192 @@ The blog pipeline successfully published real articles end-to-end on production 
 | Stuck-state recovery script | ⏸️ Future enhancement |
 | Expose queue table in Blog Admin UI | ⏸️ Feature request — out of scope |
 | Remove dead code (`src/lib/ai.ts`) | ⏸️ Low priority — not broken |
+
+---
+
+## MH-QUEUE-HANDOFF-007 — Step 2a → Step 2b Queue Handoff Fix
+
+**Status:** ✅ IMPLEMENTED + locally verified — Committed and pushed to `origin/main`.
+**Date:** 2026-08-21
+**Task ID:** `MH-QUEUE-HANDOFF-007`
+**Task type:** Blog pipeline queue-item identity fix — thread exact `queueId` from Step 1 → Step 2a → 2b → 2c → 2d → 3 instead of querying by status. Fix silent UPDATE failures. No article generation changes. No OpenRouter dependency.
+
+### 1. Proven root cause (with evidence)
+
+**Two distinct code defects caused the Step 2a → Step 2b handoff failure observed in run `32436862477`.**
+
+#### Root cause #1: Step 2a wrote to a non-existent column (`generated_at`)
+
+**Evidence (direct database query, 2026-08-21):**
+
+```
+$ curl -s -H "apikey: $ANON_KEY" \
+  "https://wyopqryzfjifyeyvyxfy.supabase.co/rest/v1/blog_generation_queue?id=eq.17ea2d5a-2416-4216-a45d-2a8a7771d5e1&select=id,status,topic,error_message,created_at,generated_at"
+
+HTTP: 400
+{"code":"42703","details":null,"hint":null,"message":"column blog_generation_queue.generated_at does not exist"}
+```
+
+PostgreSQL error code `42703` = `undefined_column`. The database engine itself reports the column doesn't exist.
+
+**Migration `0005_blog_generation_queue.sql` declares `generated_at` (line 13):**
+```sql
+create table if not exists public.blog_generation_queue (
+  id uuid primary key default gen_random_uuid(),
+  ...
+  generated_at timestamptz,    -- ← declared in migration, MISSING in production
+);
+```
+
+No `ALTER TABLE` migration ever dropped it. The production table was likely created manually (or by an earlier ad-hoc SQL Editor script) with a different schema than the migration file declares.
+
+**Step 2a's UPDATE wrote to this non-existent column (line 71):**
+```ts
+await supabaseAdmin
+  .from("blog_generation_queue" as any)
+  .update({
+    status: "research_done",
+    article_bundle: updatedBundle,
+    generated_at: new Date().toISOString(),  // ← column doesn't exist in prod
+  })
+  .eq("id", qi.id);
+```
+
+Supabase's PostgREST returns HTTP 400 with `column does not exist`. The Supabase JS client doesn't throw on HTTP 400 — the promise resolves. The code didn't capture the response's `error` field, so it silently continued and returned HTTP 200 with `ok: true`.
+
+**Result**: The UPDATE never happened. The queue item stayed at `researching` status. Step 2a returned `{"ok":true,"step":"2a","queueId":"17ea2d5a..."}` claiming success — but the queue row was NOT actually updated.
+
+#### Root cause #2: All steps query queue globally by status (not by exact id)
+
+**Evidence (code inspection):**
+
+Step 2b (and Step 2c/2d/3) query the queue like this:
+```ts
+const { data: queueItem } = await supabaseAdmin
+  .from("blog_generation_queue")
+  .select("*")
+  .eq("status", "research_done")           // ← global status filter
+  .order("created_at", { ascending: false }) // ← latest by created_at
+  .limit(1)
+  .maybeSingle();
+```
+
+This means Step 2b picks the LATEST queue item with `status: "research_done"` — NOT necessarily the one Step 1 produced + Step 2a processed.
+
+**Runtime evidence (run `32436862477` logs):**
+
+| Time (UTC) | Event |
+|---|---|
+| 01:36:04.012 | Step 1 returned `queueId: "17ea2d5a-2416-4216-a45d-2a8a7771d5e1"` (Vitamin D topic) |
+| 01:46:15.712 | Step 2a returned `{"ok":true,"step":"2a","queueId":"17ea2d5a...","articlesFound":0,"queriesSucceeded":0,"partialFailure":true}` — claimed success but UPDATE silently failed (column `generated_at` doesn't exist) |
+| 01:46:21.506 | Step 2b returned `{"skipped":true,"reason":"no_research_done"}` — found ZERO items at `research_done` status (Step 2a's UPDATE never happened) |
+| 01:46:42.956 | Step 3 returned `{"ok":true,"step":3,"topic":"The Caloric Surplus Math..."}` — picked up an OLDER queue item at `generated` status (Lean Bulking topic from a previous run, NOT the Vitamin D item Step 1 just produced) |
+
+**This proves the queue item identity was NOT preserved across the pipeline.** Step 3 consumed a different (older) queue item than the one Step 1 produced + Step 2a processed.
+
+### 2. Fix applied (3 changes)
+
+#### Fix A: Thread exact `queueId` from Step 1 → all subsequent steps
+
+**File:** `.github/workflows/generate-blog-post.yml`
+
+The workflow now:
+1. Captures `queueId` from Step 1's JSON response via `python3 -c "import json; ..."`.
+2. Writes it to `GITHUB_ENV` as `QUEUE_ID` (available to all subsequent steps in the same job).
+3. Passes it as `?queueId=$QUEUE_ID` query parameter to Step 2a, 2b, 2c, 2d, 3.
+4. Each step's curl URL includes `?queueId=$QUEUE_ID`.
+5. Removed the 5-second inter-step sleeps (no longer needed — the queueId threading makes the steps deterministic; the previous sleeps were a workaround for the global-status-lookup race).
+
+#### Fix B: New helper module `src/lib/blog-queue.ts` + each route uses it
+
+**File:** `src/lib/blog-queue.ts` (new)
+
+Exports 5 helper functions:
+- `getQueueIdParam(request)` — reads `?queueId=` from URL, returns null if missing.
+- `fetchQueueItem(queueId)` — fetches queue row by EXACT id (not by status).
+- `validateQueueStatus(qi, expected)` — defensive check that the queue row is in the expected status; returns clear error message if not.
+- `updateQueueItem(queueId, updates)` — performs UPDATE AND CAPTURES THE ERROR. Returns null on success, error string on failure. The previous code did `await supabaseAdmin...update(...)` without capturing the response — silent failure.
+- `markQueueItemFailed(queueId, errorMessage)` — best-effort failure marker (used in catch blocks).
+
+#### Fix C: Step 2a removes the `generated_at` write
+
+**File:** `src/app/api/cron/blog/step2a-research/route.ts`
+
+Removed `generated_at: new Date().toISOString()` from the UPDATE (line 71). The column doesn't exist in production, and the field isn't read anywhere in the codebase. All UPDATEs now go through `updateQueueItem()` which captures the error and throws if the UPDATE fails.
+
+### 3. Exact behavior now guaranteed
+
+1. **Step 1** inserts a queue row + returns its `queueId` in the JSON response. The workflow captures this `queueId` and threads it to every subsequent step.
+
+2. **Step 2a** receives `?queueId=<uuid>`, fetches the EXACT queue row by id, validates it's at `topic_picked` status, marks it `researching`, runs external search, marks it `research_done`. If the UPDATE fails (e.g. column doesn't exist), the error is captured + thrown + the queue is marked `failed:step2a: <error>`.
+
+3. **Step 2b** receives `?queueId=<uuid>` (same id as Step 2a), fetches the EXACT queue row, validates it's at `research_done` status (if not — clear error: "Queue item X is in status Y but step expects research_done"). Runs the research quality gate (MH-AI-NEXT-004). Generates EN article. Marks `en_done`.
+
+4. **Step 2c** receives `?queueId=<uuid>` (same id), validates `en_done`, runs input validation (MH-BLOG-NEXT-005), generates AR article, marks `ar_done`.
+
+5. **Step 2d** receives `?queueId=<uuid>` (same id), validates `ar_done`, runs input validation, generates links, marks `generated`.
+
+6. **Step 3** receives `?queueId=<uuid>` (same id), validates `generated`, publishes EN+AR posts, marks `published`.
+
+**The pipeline NEVER silently continues with a different/older queue item.** Each step queries `eq("id", queueId)` — if the queueId doesn't match, the step returns HTTP 404 (`queue_item_not_found`) or HTTP 409 (`wrong_status`). The previous code's global-status-lookup pattern is gone.
+
+**Empty research is still blocked** — Step 2b's MH-AI-NEXT-004 quality gate is preserved. It now runs AFTER the queue-item-identity check, so it always fires on the correct queue row.
+
+**External research design preserved** — Step 2a still uses `generateExternalResearch()` which delegates to `externalSearch()` (Z.ai `web_search`, 3 parallel queries, 8s timeout each, no LLM, no OpenRouter). No change to the external research design.
+
+### 4. Verification performed
+
+| Check | Result |
+|---|---|
+| `npx tsc --noEmit` | ✅ 0 errors (including new `blog-queue.ts` module + all 5 modified routes) |
+| `bun run lint` | ✅ 0 new errors (9 pre-existing in untouched files: `CookieConsent.tsx`, `SaveResultButton.tsx`, `BlogAdminView.tsx`, `checkout/page.tsx`, `foods/[slug]/page.tsx`, `water-tracker/page.tsx`, `AdSenseAd.tsx`) |
+| `bun run build` | ✅ 0 errors (all 78 pages built) |
+| `git diff --check` | ✅ No whitespace errors |
+| Local smoke test (queueId extraction, 5 cases) | ✅ 5/5 passed — queueId correctly extracted from URL, null on missing, trim on whitespace, exact id threaded from workflow env |
+| Production runtime verification | ⏸️ NOT performed in this task — needs a new workflow_dispatch on the new HEAD to verify the queueId threading end-to-end. The fix is structurally correct (each step queries by exact id), but runtime verification requires OpenRouter to be available for Step 1. |
+
+### 5. Files modified
+
+- **`src/lib/blog-queue.ts`** (NEW, 132 lines) — queue helper module: `getQueueIdParam`, `fetchQueueItem`, `validateQueueStatus`, `updateQueueItem`, `markQueueItemFailed`, `QueueItem` type.
+- **`src/app/api/cron/blog/step2a-research/route.ts`** — requires `?queueId=`; fetches by exact id; validates `topic_picked` status; removed `generated_at` write; all UPDATEs go through `updateQueueItem()`; idempotent re-run handling for `research_done`/`researching`/`failed` statuses.
+- **`src/app/api/cron/blog/step2b-en-article/route.ts`** — requires `?queueId=`; fetches by exact id; validates `research_done` status; preserves MH-AI-NEXT-004 research quality gate; all UPDATEs go through `updateQueueItem()`.
+- **`src/app/api/cron/blog/step2c-ar-article/route.ts`** — requires `?queueId=`; fetches by exact id; validates `en_done` status; preserves MH-BLOG-NEXT-005 input validation; all UPDATEs go through `updateQueueItem()`.
+- **`src/app/api/cron/blog/step2d-links/route.ts`** — requires `?queueId=`; fetches by exact id; validates `ar_done` status; preserves MH-BLOG-NEXT-005 input validation; all UPDATEs go through `updateQueueItem()`.
+- **`src/app/api/cron/blog/step3-publish/route.ts`** — requires `?queueId=`; fetches by exact id; validates `generated` status; preserves MH-BLOG-NEXT-005 partial-publish recovery; all UPDATEs go through `updateQueueItem()`.
+- **`.github/workflows/generate-blog-post.yml`** — captures `queueId` from Step 1's JSON response via Python; writes to `GITHUB_ENV` as `QUEUE_ID`; passes `?queueId=$QUEUE_ID` to Step 2a/2b/2c/2d/3; removed 5-second inter-step sleeps (no longer needed).
+- **`PROGRESS.md`** — this section.
+- **`worklog.md`** — Task ID `MH-QUEUE-HANDOFF-007` worklog entry.
+
+### 6. Files NOT modified
+
+- ❌ `src/app/api/cron/blog/step1-pick/route.ts` — UNCHANGED (already returns `queueId` in JSON response at line 42)
+- ❌ `src/lib/blog-generate.ts` — UNCHANGED (article generation logic — out of scope)
+- ❌ `src/lib/blog-topics.ts` — UNCHANGED (topic picker — separate task per user instruction)
+- ❌ `src/lib/external-search.ts` — UNCHANGED (Z.ai external search — preserved per user instruction)
+- ❌ `src/lib/ai-provider.ts` — UNCHANGED
+- ❌ `src/app/api/cron/blog/step2-generate/route.ts`, `src/app/api/cron/generate-blog-post/route.ts` — UNCHANGED (legacy single-step routes, not used by current workflow)
+- ❌ `src/app/sitemap.ts` — UNCHANGED
+- ❌ All `src/app/api/ai/*` routes — UNCHANGED
+- ❌ BLOG-MULTILANG-ENGINE-001 — UNCHANGED (still FUTURE / BACKLOG ONLY)
+- ❌ Terminology Audit — UNCHANGED (still Future/Backlog)
+- ❌ Render integration — UNCHANGED (deferred)
+- ❌ Article generation logic — UNCHANGED
+
+### 7. Known unresolved issues
+
+1. **Production schema mismatch (`generated_at` column)** — the migration file declares `generated_at` but production doesn't have it. The fix here REMOVES the write (so the code works regardless of whether the column exists). A future task could either (a) add the column via a new migration, OR (b) update the migration file to match production. Neither is blocking — the code now works with the current production schema.
+
+2. **Production runtime verification pending** — the fix is structurally correct but needs a new workflow_dispatch to verify end-to-end. The next scheduled cron (every 2 hours) will exercise it automatically.
+
+3. **Topic picker intermittent "invalid response" failure** (separate concern, documented in MH-AI-OPENROUTER-006) — NOT addressed here per user instruction "Do not modify the Topic Picker issue in this task."
+
+### 8. What this task does NOT do
+
+- ❌ Does NOT add a migration to create the `generated_at` column (not needed — the write is removed; the column isn't read anywhere).
+- ❌ Does NOT fix the topic picker "invalid response" failure (separate task per user instruction).
+- ❌ Does NOT touch article generation logic.
+- ❌ Does NOT add Render integration (deferred).
+- ❌ Does NOT implement BLOG-MULTILANG-ENGINE-001 (still FUTURE / BACKLOG ONLY).
+- ❌ Does NOT start Terminology Audit (still Future/Backlog).
+- ❌ Does NOT replace Z.ai external search with LLM (preserved per user instruction).
+- ❌ Does NOT add arbitrary delays (the 5-second inter-step sleeps were REMOVED — they were a workaround for the global-status-lookup race, which is now fixed by queueId threading).

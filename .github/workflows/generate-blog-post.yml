@@ -16,19 +16,15 @@ jobs:
       #   - On failure: wait 5 minutes, then Attempt 2
       #   - On failure: wait 10 minutes, then Attempt 3
       #   - On final failure: exit 1 → job stops, Step 2a+ are SKIPPED
-      #   - On any success: break immediately, proceed to handoff
-      # Retry lives at the GitHub Actions orchestration level. The
-      # Vercel function (src/app/api/cron/blog/step1-pick/route.ts)
-      # is unchanged — it performs a single attempt per invocation.
-      # No retry loop exists inside the Vercel function.
-      # The retry handles transient OpenRouter 429 (shared upstream
-      # pool rate-limit) without spamming the provider.
+      #   - On any success: capture queueId from JSON response,
+      #     write to GITHUB_ENV so subsequent steps can use it.
       # ============================================================
       - name: Step 1 — Pick topic (controlled retry, max 3 attempts)
         run: |
           echo "=== Step 1: Picking topic (controlled retry: max 3 attempts, 5m + 10m backoff) ==="
           MAX_ATTEMPTS=3
           attempt=1
+          QUEUE_ID=""
           while [ "$attempt" -le "$MAX_ATTEMPTS" ]; do
             echo "--- Step 1 attempt $attempt / $MAX_ATTEMPTS ---"
             HTTP_CODE=$(curl --silent --show-error --max-time 55 -o /tmp/step1.json -w "%{http_code}" \
@@ -39,6 +35,19 @@ jobs:
             echo ""
             if [ "$HTTP_CODE" -lt 400 ]; then
               echo "✓ Step 1 SUCCEEDED on attempt $attempt — stopping retry, queue item inserted"
+              # Extract queueId from JSON response and export to GITHUB_ENV
+              # so subsequent steps can pass it as ?queueId=<uuid>.
+              # This is the MH-QUEUE-HANDOFF-007 fix: thread the EXACT
+              # queue item id through the whole pipeline (Step 2a → 2b →
+              # 2c → 2d → 3) so no step can accidentally consume a
+              # different/older queue item.
+              QUEUE_ID=$(python3 -c "import json; d=json.load(open('/tmp/step1.json')); print(d.get('queueId',''))" 2>/dev/null || echo "")
+              if [ -z "$QUEUE_ID" ]; then
+                echo "❌ Step 1 returned HTTP $HTTP_CODE but no queueId in response — aborting"
+                exit 1
+              fi
+              echo "QUEUE_ID=$QUEUE_ID" >> "$GITHUB_ENV"
+              echo "✓ Captured queueId: $QUEUE_ID"
               break
             fi
             echo "❌ Step 1 FAILED on attempt $attempt (HTTP $HTTP_CODE)"
@@ -84,9 +93,10 @@ jobs:
       - name: Step 2a — Research
         run: |
           echo "=== Step 2a: Researching topic via EXTERNAL web search (z-ai web_search, 3 parallel queries, 8s timeout each, NO LLM, NO OpenRouter) ==="
+          echo "Processing queueId: $QUEUE_ID"
           HTTP_CODE=$(curl --silent --show-error --max-time 55 -o /tmp/step2a.json -w "%{http_code}" \
             -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
-            "${{ vars.SITE_URL }}/api/cron/blog/step2a-research")
+            "${{ vars.SITE_URL }}/api/cron/blog/step2a-research?queueId=$QUEUE_ID")
           echo "HTTP status: $HTTP_CODE"
           cat /tmp/step2a.json
           echo ""
@@ -96,15 +106,13 @@ jobs:
           fi
           echo "✓ Step 2a done"
 
-      - name: Wait 5 seconds
-        run: sleep 5
-
       - name: Step 2b — English article + SEO
         run: |
           echo "=== Step 2b: Generating English article + SEO ==="
+          echo "Processing queueId: $QUEUE_ID"
           HTTP_CODE=$(curl --silent --show-error --max-time 55 -o /tmp/step2b.json -w "%{http_code}" \
             -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
-            "${{ vars.SITE_URL }}/api/cron/blog/step2b-en-article")
+            "${{ vars.SITE_URL }}/api/cron/blog/step2b-en-article?queueId=$QUEUE_ID")
           echo "HTTP status: $HTTP_CODE"
           cat /tmp/step2b.json
           echo ""
@@ -114,15 +122,13 @@ jobs:
           fi
           echo "✓ Step 2b done"
 
-      - name: Wait 5 seconds
-        run: sleep 5
-
       - name: Step 2c — Arabic article + FAQ
         run: |
           echo "=== Step 2c: Generating Arabic article + FAQ ==="
+          echo "Processing queueId: $QUEUE_ID"
           HTTP_CODE=$(curl --silent --show-error --max-time 55 -o /tmp/step2c.json -w "%{http_code}" \
             -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
-            "${{ vars.SITE_URL }}/api/cron/blog/step2c-ar-article")
+            "${{ vars.SITE_URL }}/api/cron/blog/step2c-ar-article?queueId=$QUEUE_ID")
           echo "HTTP status: $HTTP_CODE"
           cat /tmp/step2c.json
           echo ""
@@ -132,15 +138,13 @@ jobs:
           fi
           echo "✓ Step 2c done"
 
-      - name: Wait 5 seconds
-        run: sleep 5
-
       - name: Step 2d — Links + images + social
         run: |
           echo "=== Step 2d: Generating links + images + social ==="
+          echo "Processing queueId: $QUEUE_ID"
           HTTP_CODE=$(curl --silent --show-error --max-time 55 -o /tmp/step2d.json -w "%{http_code}" \
             -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
-            "${{ vars.SITE_URL }}/api/cron/blog/step2d-links")
+            "${{ vars.SITE_URL }}/api/cron/blog/step2d-links?queueId=$QUEUE_ID")
           echo "HTTP status: $HTTP_CODE"
           cat /tmp/step2d.json
           echo ""
@@ -150,15 +154,13 @@ jobs:
           fi
           echo "✓ Step 2d done"
 
-      - name: Wait 5 seconds
-        run: sleep 5
-
       - name: Step 3 — Publish
         run: |
           echo "=== Step 3: Publishing ==="
+          echo "Processing queueId: $QUEUE_ID"
           HTTP_CODE=$(curl --silent --show-error --max-time 55 -o /tmp/step3.json -w "%{http_code}" \
             -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
-            "${{ vars.SITE_URL }}/api/cron/blog/step3-publish")
+            "${{ vars.SITE_URL }}/api/cron/blog/step3-publish?queueId=$QUEUE_ID")
           echo "HTTP status: $HTTP_CODE"
           cat /tmp/step3.json
           echo ""

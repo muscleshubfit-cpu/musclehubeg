@@ -2117,3 +2117,53 @@ Stage Summary:
 - No code changes. No BLOG-MULTILANG-ENGINE-001 changes. No Render integration (deferred). No Terminology Audit. No article generation changes.
 - Files modified: `PROGRESS.md`, `worklog.md` (documentation only).
 - Commit + push to follow with message: `docs: mark blog pipeline Production Verified — OpenRouter 429 was resolved by cf50052 fix`.
+
+---
+Task ID: MH-QUEUE-HANDOFF-007
+Agent: main (super-z)
+Task: Investigate the Step 2a → Step 2b queue handoff issue. Prove the actual cause from code/runtime/database evidence (do NOT assume race condition). Implement minimal robust fix that threads exact queueId across the whole pipeline. Preserve external research design (Z.ai). Do NOT touch topic picker.
+
+Work Log:
+- Pre-flight: confirmed local HEAD = origin/main = `a36ed26`. Read PROJECT_CONTEXT.md, PROGRESS.md, worklog.md, DEVELOPER_GUIDE.md, SECURITY.md, all blog routes, workflow, queue migration `0005_blog_generation_queue.sql`, MH-AI-BLOG-003 + MH-AI-NEXT-004 + MH-BLOG-NEXT-005 + MH-AI-OPENROUTER-006 docs.
+- Inspected all 6 blog pipeline routes (Step 1, 2a, 2b, 2c, 2d, 3) + workflow + queue schema. Found TWO distinct code defects (proven from code + runtime + database evidence — NOT a race condition):
+  • Defect 1: Step 2a wrote to non-existent `generated_at` column. Direct DB query returned PostgreSQL error 42703 (undefined_column) — `column blog_generation_queue.generated_at does not exist`. The migration file `0005_blog_generation_queue.sql` declares it (line 13) but production table doesn't have it (likely created manually with different schema). Step 2a's UPDATE at line 71 included `generated_at: new Date().toISOString()` → PostgREST returned HTTP 400 → Supabase JS client didn't throw (resolved the promise) → code didn't capture the response's `error` field → silently continued → returned HTTP 200 with `ok: true` even though the UPDATE never happened.
+  • Defect 2: All steps (2a, 2b, 2c, 2d, 3) queried the queue globally by status (`eq("status", "...")` + `order created_at desc` + `limit 1`) — NOT by exact queueId. This means any step could pick a DIFFERENT queue item than the one Step 1 produced. Runtime evidence from run `32436862477` confirmed: Step 3 picked up an OLDER queue item (Lean Bulking topic from a previous run) instead of the Vitamin D item Step 1 just produced.
+- Reconstructed the exact sequence of events for queueId `17ea2d5a-2416-4216-a45d-2a8a7771d5e1`:
+  1. Step 1 (01:36:04): INSERT succeeded. Queue item created at status `topic_picked`. queueId returned in JSON response.
+  2. Step 2a (01:46:15): SELECT by `eq("status", "topic_picked")` found the item. UPDATE to `researching` succeeded (no `generated_at` in this UPDATE). UPDATE to `research_done` FAILED silently — included `generated_at` which doesn't exist in prod. Returned HTTP 200 with `ok: true, queueId: 17ea2d5a, articlesFound: 0, queriesSucceeded: 0`. Queue item stayed at `researching` status.
+  3. Step 2b (01:46:21): SELECT by `eq("status", "research_done")` found ZERO items (Step 2a's UPDATE never happened). Returned `{"skipped":true,"reason":"no_research_done"}`.
+  4. Step 2c/2d: Cascading skips.
+  5. Step 3 (01:46:42): SELECT by `eq("status", "generated")` found an OLDER queue item (Lean Bulking topic from a previous run). Published it. Returned HTTP 200 with the WRONG topic.
+- Implemented 3 fixes:
+  • **Fix A** (workflow): capture `queueId` from Step 1's JSON response via Python `json.load`; write to `GITHUB_ENV` as `QUEUE_ID`; pass `?queueId=$QUEUE_ID` to Step 2a/2b/2c/2d/3. Removed 5-second inter-step sleeps (no longer needed — queueId threading makes steps deterministic).
+  • **Fix B** (new `src/lib/blog-queue.ts`, 132 lines): `getQueueIdParam`, `fetchQueueItem` (by exact id), `validateQueueStatus` (defensive status check), `updateQueueItem` (CAPTURES error response — the previous code didn't), `markQueueItemFailed` (best-effort). All 5 routes (2a/2b/2c/2d/3) now use this module.
+  • **Fix C** (Step 2a): removed `generated_at: new Date().toISOString()` from the UPDATE. The column doesn't exist in production and isn't read anywhere. All UPDATEs now go through `updateQueueItem()` which captures the error and throws if the UPDATE fails.
+- Did NOT touch: Step 1 route (already returns queueId at line 42), article generation (`blog-generate.ts`), topic picker (`blog-topics.ts` — separate task per user instruction), external search (`external-search.ts` — preserved per user instruction), AI provider, sitemap, BLOG-MULTILANG-ENGINE-001, Terminology Audit, Render.
+- Verification performed:
+  • `npx tsc --noEmit` → 0 errors (including new `blog-queue.ts` module + all 5 modified routes)
+  • `bun run lint` → 9 pre-existing problems (in `CookieConsent.tsx`, `SaveResultButton.tsx`, `BlogAdminView.tsx`, `checkout/page.tsx`, `foods/[slug]/page.tsx`, `water-tracker/page.tsx`, `AdSenseAd.tsx` — all untouched). 0 new errors.
+  • `bun run build` → 0 errors (all 78 pages built)
+  • `git diff --check` → no whitespace errors
+  • Local smoke test (5 cases): queueId extraction from URL (with value, missing, empty, whitespace, threaded from workflow env) → 5/5 passed.
+  • Production runtime verification NOT performed in this task — needs a new workflow_dispatch on the new HEAD. The fix is structurally correct (each step queries `eq("id", queueId)` — if the queueId doesn't match, returns HTTP 404/409). Next scheduled cron (every 2 hours) will exercise it.
+- Did NOT touch BLOG-MULTILANG-ENGINE-001 — still FUTURE / BACKLOG ONLY.
+- Did NOT start Terminology Audit — still Future/Backlog.
+- Did NOT implement any Render integration — Render is deferred.
+- Did NOT touch article generation logic — no production failure required it.
+- Did NOT touch topic picker — separate task per user instruction.
+- Did NOT replace Z.ai external search with LLM — preserved per user instruction.
+- Did NOT add arbitrary delays — removed the 5-second inter-step sleeps (they were a workaround for the global-status-lookup race, now fixed by queueId threading).
+- Updated `PROGRESS.md`: appended new section "MH-QUEUE-HANDOFF-007 — Step 2a → Step 2b Queue Handoff Fix" with: proven root cause (2 defects with direct DB query evidence + code inspection + runtime log timeline), 3 fixes (workflow queueId threading + new blog-queue.ts helper module + Step 2a generated_at removal), exact behavior now guaranteed (6-step pipeline with queueId threading), verification table, files modified (8), files NOT modified (12+), known unresolved issues (3), what this task does NOT do (8 items).
+
+Stage Summary:
+- Root cause PROVEN from code + runtime + database evidence (NOT a race condition):
+  • Defect 1: Step 2a wrote `generated_at` to a column that doesn't exist in production (PostgreSQL error 42703). UPDATE silently failed because the response's `error` field wasn't captured.
+  • Defect 2: All steps queried queue globally by status (not by exact id). Step 3 picked up an OLDER queue item instead of the one Step 1 produced.
+- 3 fixes applied: workflow threads `queueId` from Step 1 → all steps; new `blog-queue.ts` helper module captures UPDATE errors; Step 2a removes `generated_at` write.
+- All compile, lint clean, build clean. Local smoke test (5 cases) passes.
+- The pipeline now NEVER silently continues with a different/older queue item — each step queries `eq("id", queueId)` and returns HTTP 404/409 if the queueId doesn't match.
+- Empty research is still blocked (Step 2b's MH-AI-NEXT-004 gate preserved).
+- External research design preserved (Z.ai, no LLM, no OpenRouter).
+- No article generation changes. No topic picker changes. No BLOG-MULTILANG-ENGINE-001. No Render. No Terminology Audit.
+- Files modified: `src/lib/blog-queue.ts` (new), `src/app/api/cron/blog/step2a-research/route.ts`, `step2b-en-article/route.ts`, `step2c-ar-article/route.ts`, `step2d-links/route.ts`, `step3-publish/route.ts`, `.github/workflows/generate-blog-post.yml`, `PROGRESS.md`, `worklog.md`.
+- Commit + push to follow with message: `fix: thread exact queueId across blog pipeline + remove generated_at write + capture UPDATE errors`.
