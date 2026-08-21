@@ -297,21 +297,13 @@ async function runSingleQuery(
   } catch (e: any) {
     const errorMsg = e?.message || String(e);
     const cause = e?.cause;
-    const diag = {
-      name: e?.name || null,
-      message: e?.message || null,
-      causeType: cause?.constructor?.name || null,
-      causeCode: cause?.code || null,
-      causeErrno: cause?.errno || null,
-      causeSyscall: cause?.syscall || null,
-      causeHostname: cause?.hostname || null,
-      causeMessage: cause?.message || null,
-    };
+    const causeInfo = cause
+      ? ` (cause: ${cause?.code || cause?.constructor?.name || "unknown"} — ${cause?.message || "no message"})`
+      : "";
     console.error(
-      `[external-search] web_search failed for "${query}": ${errorMsg}`,
-      JSON.stringify(diag),
+      `[external-search] web_search failed for "${query}": ${errorMsg}${causeInfo}`,
     );
-    return { results: [], error: `${errorMsg} | DIAG: ${JSON.stringify(diag)}` };
+    return { results: [], error: `${errorMsg}${causeInfo}` };
   }
 }
 

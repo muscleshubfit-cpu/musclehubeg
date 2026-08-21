@@ -2195,3 +2195,32 @@ Stage Summary:
 - Fix: observability improvement (firstError field surfaces the actual Z.ai error in workflow logs + Step 2b error_message). .env.example documents ZAI_TOKEN as required.
 - Z.ai Production is NOT yet Production Verified — requires owner to set ZAI_TOKEN on Vercel + trigger a new workflow_dispatch.
 - Commit: `2ef8394`.
+
+---
+Task ID: MH-ZAI-FETCH-009
+Agent: main (super-z)
+Task: Diagnose the exact cause of `fetch failed` error in Z.ai production web_search. Add temporary diagnostic logging, capture the error cause chain, then remove the diagnostic and document the proven root cause.
+
+Work Log:
+- Added temporary diagnostic logging to `runSingleQuery` catch block: extracted `error.name`, `error.message`, `error.cause.constructor.name`, `error.cause.code`, `error.cause.errno`, `error.cause.syscall`, `error.cause.hostname`, `error.cause.message`. First attempt used `console.error` only — not visible in GitHub Actions logs (Vercel runtime logs are inaccessible via API). Second attempt surfaced the diagnostic info in the `firstError` field of the HTTP JSON response — visible in GitHub Actions workflow logs.
+- Triggered production workflow_dispatch (run `32490724607`). Step 1 succeeded after retries. Step 2a completed with `firstError: "fetch failed | DIAG: {...}"`.
+- DIAGNOSTIC OUTPUT captured from production:
+  - `error.name`: `TypeError`
+  - `error.message`: `fetch failed`
+  - `error.cause.constructor.name`: `ConnectTimeoutError`
+  - `error.cause.code`: `UND_ERR_CONNECT_TIMEOUT`
+  - `error.cause.errno`: `null`
+  - `error.cause.syscall`: `null`
+  - `error.cause.hostname`: `null`
+  - `error.cause.message`: `Connect Timeout Error (attempted addresses: 172.25.136.213:443, 172.25.150.234:443, timeout: 10000ms)`
+- ROOT CAUSE: `internal-api.z.ai` resolves to private IP addresses (`172.25.136.213`, `172.25.150.234`) in the `172.25.x.x` private range. Vercel's public serverless infrastructure cannot reach these private IPs. The Node.js fetch (via Undici) has its own internal 10s connect timeout — `UND_ERR_CONNECT_TIMEOUT` fires before our 20s application timeout. This is why increasing the timeout from 8s to 20s didn't help — the fetch itself fails at 10s with a connect timeout, not a response timeout.
+- Cleaned up temporary diagnostic logging. Now permanently surfaces concise cause info in `firstError` (format: `fetch failed (cause: UND_ERR_CONNECT_TIMEOUT — Connect Timeout Error...)`).
+- Updated PROGRESS.md with full diagnostic evidence + analysis + recommended fix options.
+- No code fix applied (networking issue outside application scope). The fix requires either a public Z.ai API endpoint, a different search provider, or running the pipeline on a network that can reach Z.ai's private IPs (Render backend per MH-AI-ARCH-002).
+
+Stage Summary:
+- ROOT CAUSE PROVEN: `ConnectTimeoutError` / `UND_ERR_CONNECT_TIMEOUT` — Vercel serverless cannot TCP-connect to `internal-api.z.ai` (resolves to private IPs `172.25.x.x`) within Node.js Undici's 10s connect timeout.
+- The 20s application timeout fix (commit `6914d82`) was correct but insufficient — the fetch fails at the TCP connect stage (10s), before any HTTP response could be received.
+- Z.ai's `internal-api.z.ai` endpoint is designed for internal/local use — it resolves to private IPs unreachable from public cloud infrastructure.
+- Recommended fix: use a public web search API, OR move the blog pipeline to Render (which could run on a network with access to Z.ai's internal IPs), OR ask Z.ai for a public API endpoint.
+- Commit: (to be filled)

@@ -2559,3 +2559,69 @@ userId: 5bc241ce-c9fb-408a-93ab-60f9aefd2bec
 The observability fix makes the error VISIBLE, but the actual fix (setting `ZAI_TOKEN` on Vercel) requires owner action. After the owner sets the env var + triggers a new workflow_dispatch, the `firstError` field will either be `null` (success) or show a different error (if the token is expired/invalid).
 
 The queue handoff fix (MH-QUEUE-HANDOFF-007) IS Production Verified — the queueId threading works correctly. The remaining blocker is the Z.ai token configuration.
+
+---
+
+## MH-ZAI-FETCH-009 — Z.ai Production `fetch failed` Root Cause
+
+**Status:** ✅ ROOT CAUSE PROVEN — documented. No code fix applied (networking issue outside application scope).
+**Date:** 2026-08-21
+**Task ID:** `MH-ZAI-FETCH-009`
+
+### Root cause
+
+**`ConnectTimeoutError` — Vercel serverless cannot establish a TCP connection to `internal-api.z.ai` within Node.js's default 10-second `connect` timeout.**
+
+### Evidence (from production run `32490724607`, Step 2a response)
+
+```
+firstError: "fetch failed | DIAG: {
+  \"name\": \"TypeError\",
+  \"message\": \"fetch failed\",
+  \"causeType\": \"ConnectTimeoutError\",
+  \"causeCode\": \"UND_ERR_CONNECT_TIMEOUT\",
+  \"causeErrno\": null,
+  \"causeSyscall\": null,
+  \"causeHostname\": null,
+  \"causeMessage\": \"Connect Timeout Error (attempted addresses: 172.25.136.213:443, 172.25.150.234:443, timeout: 10000ms)\"
+}"
+```
+
+### Breakdown
+
+| Field | Value | Meaning |
+|---|---|---|
+| `error.name` | `TypeError` | Node.js `fetch()` threw a TypeError (standard for undici fetch failures) |
+| `error.message` | `fetch failed` | Generic fetch failure message |
+| `error.cause.constructor.name` | `ConnectTimeoutError` | **Undici's ConnectTimeoutError** — TCP connection could not be established within the timeout |
+| `error.cause.code` | `UND_ERR_CONNECT_TIMEOUT` | **Undici-specific error code** — connect timeout |
+| `error.cause.message` | `Connect Timeout Error (attempted addresses: 172.25.136.213:443, 172.25.150.234:443, timeout: 10000ms)` | Two IP addresses were tried (DNS resolved `internal-api.z.ai` to 2 IPs), both failed to connect within 10s |
+
+### Analysis
+
+1. **DNS resolves correctly** — `internal-api.z.ai` resolves to `172.25.136.213` and `172.25.150.234` (private/internal IP addresses).
+2. **TCP connection fails** — Vercel serverless cannot reach these IPs on port 443 within 10s.
+3. **The IPs are private/internal** (`172.25.x.x` range) — these are NOT public internet IPs. `internal-api.z.ai` resolves to private IPs that are only reachable from within the Z.ai internal network (or the local dev machine which has `/etc/.z-ai-config` with a token that was issued from the Z.ai platform).
+4. **This explains why it works locally but not on Vercel** — the local machine is on the same network (or has a route to `172.25.x.x`), but Vercel's serverless (in `sin1` / `eastus2`) cannot reach private IPs.
+
+### Why our 20s timeout didn't help
+
+The Node.js `fetch()` (via Undici) has its OWN internal `connect` timeout of 10s. This is NOT our application-level `Promise.race` timeout (20s). The `fetch()` itself fails at 10s with `UND_ERR_CONNECT_TIMEOUT` before our 20s timeout even fires.
+
+### Recommended fix
+
+**`internal-api.z.ai` resolves to private IP addresses (`172.25.x.x`) that are unreachable from Vercel's public serverless infrastructure.** This is a Z.ai platform architecture issue — the API endpoint is designed for internal/local use, not public internet access.
+
+Options:
+1. **Ask Z.ai for a public API endpoint** — one that resolves to public IPs reachable from Vercel.
+2. **Use a different web search provider** that has a public API (e.g. SerpApi, Bing Search API, Google Custom Search). This would require changing the search implementation.
+3. **Run the blog pipeline locally** (or on a server with access to Z.ai's internal network) instead of on Vercel. This aligns with the MH-AI-ARCH-002 Render backend direction — Render could run on a network that CAN reach `internal-api.z.ai`.
+
+### Files modified
+
+- `src/lib/external-search.ts` — cleaned up temporary diagnostic logging; now permanently surfaces `cause` info in `firstError` (concise format: `fetch failed (cause: UND_ERR_CONNECT_TIMEOUT — Connect Timeout Error...)`)
+- `PROGRESS.md` — this section.
+- `worklog.md` — Task ID `MH-ZAI-FETCH-009` worklog entry.
+
+### Commit SHA
+(to be filled after commit)
