@@ -1,5 +1,5 @@
 import { GoogleGenAI } from "@google/genai";
-import { parseJSON } from "@/lib/ai-provider";
+import { callAIWithFallback } from "@/lib/ai-provider";
 
 export async function callGemini(
   prompt: string,
@@ -9,28 +9,74 @@ export async function callGemini(
     maxTokens?: number;
     jsonMode?: boolean;
     timeoutMs?: number;
-  } = {}, ...args: any[]
+  } = {},
+  ...args: any[]
 ): Promise<{ text: string; model: string }> {
-  const apiKey = process.env.GEMINI_API_KEY || process.env.AI_API_KEY;
-  if (!apiKey) throw new Error("GEMINI_API_KEY not configured");
+  const geminiKey =
+    process.env.GEMINI_API_KEY ||
+    process.env.GOOGLE_API_KEY ||
+    process.env.GOOGLE_GENAI_API_KEY ||
+    process.env.AI_API_KEY;
 
-  const ai = new GoogleGenAI({ apiKey });
-  const model = "gemini-2.5-flash";
+  if (geminiKey && geminiKey.startsWith("AIzaSy")) {
+    try {
+      const ai = new GoogleGenAI({ apiKey: geminiKey });
+      const model = "gemini-2.5-flash";
 
-  const response = await ai.models.generateContent({
-    model,
-    contents: prompt,
-    config: {
-      systemInstruction: options.systemPrompt,
-      temperature: options.temperature ?? 0.7,
-      maxOutputTokens: options.maxTokens ?? 8192,
-      responseMimeType: options.jsonMode ? "application/json" : "text/plain",
+      const response = await ai.models.generateContent({
+        model,
+        contents: prompt,
+        config: {
+          systemInstruction: options.systemPrompt,
+          temperature: options.temperature ?? 0.7,
+          maxOutputTokens: options.maxTokens ?? 8192,
+          responseMimeType: options.jsonMode ? "application/json" : "text/plain",
+        },
+      });
+
+      if (response.text) {
+        return { text: response.text, model };
+      }
+    } catch (err: any) {
+      console.warn("[gemini-wrapper] GoogleGenAI SDK notice, trying AI fallback:", err?.message || err);
     }
-  });
+  } else if (geminiKey && !geminiKey.startsWith("sk-")) {
+    try {
+      const ai = new GoogleGenAI({ apiKey: geminiKey });
+      const model = "gemini-2.5-flash";
 
-  if (!response.text) {
-    throw new Error("Gemini returned empty response.");
+      const response = await ai.models.generateContent({
+        model,
+        contents: prompt,
+        config: {
+          systemInstruction: options.systemPrompt,
+          temperature: options.temperature ?? 0.7,
+          maxOutputTokens: options.maxTokens ?? 8192,
+          responseMimeType: options.jsonMode ? "application/json" : "text/plain",
+        },
+      });
+
+      if (response.text) {
+        return { text: response.text, model };
+      }
+    } catch (err: any) {
+      console.warn("[gemini-wrapper] GoogleGenAI SDK notice, trying AI fallback:", err?.message || err);
+    }
   }
 
-  return { text: response.text, model };
+  // Fallback to universal AI providers (OpenRouter, Groq, OpenAI, DeepSeek, Anthropic)
+  try {
+    const result = await callAIWithFallback(prompt, {
+      systemPrompt: options.systemPrompt,
+      temperature: options.temperature,
+      maxTokens: options.maxTokens,
+      jsonMode: options.jsonMode,
+      timeoutMs: options.timeoutMs,
+    });
+    return { text: result.text, model: `${result.provider}:${result.model}` };
+  } catch (fallbackErr: any) {
+    console.error("[gemini-wrapper] All providers failed:", fallbackErr?.message);
+    throw new Error(fallbackErr?.message || "AI generation failed");
+  }
 }
+

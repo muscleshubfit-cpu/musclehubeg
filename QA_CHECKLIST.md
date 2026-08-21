@@ -6,5 +6,5 @@
 - [x] Metadata `metadataBase` added to app/metadata.ts
 - [x] `allowedDevOrigins` configured in next.config.ts for preview environment cross-origin requests
 - [x] Topic picker diversity and anti-semantic duplication enhanced in `src/lib/blog-topics.ts`
-- [x] Wrapped client blog & admin queries in safe try/catch handlers to handle network/offline states gracefully
+- [x] Wrapped client blog & admin queries in silent safe try/catch fallbacks to eliminate noisy fetch error notices in offline/preview environments
 

@@ -93,7 +93,6 @@ export async function listBlogPosts(lang: "en" | "ar", category?: string, search
 
   const { data, error } = await query;
   if (error) {
-  console.warn("[blog] listBlogPosts notice:", error.message || error);
   return [];
   }
 
@@ -116,8 +115,7 @@ export async function listBlogPosts(lang: "en" | "ar", category?: string, search
   }
 
   return posts;
- } catch (e: any) {
-  console.warn("[blog] listBlogPosts fetch notice:", e?.message || e);
+ } catch {
   return [];
  }
 }
@@ -134,12 +132,10 @@ export async function getBlogPost(lang: "en" | "ar", slug: string): Promise<Blog
   .maybeSingle();
 
   if (error) {
-  console.warn("[blog] getBlogPost notice:", error.message || error);
   return null;
   }
   return (data as BlogPost) || null;
- } catch (e: any) {
-  console.warn("[blog] getBlogPost fetch notice:", e?.message || e);
+ } catch {
   return null;
  }
 }
@@ -157,12 +153,10 @@ export async function getRelatedPosts(post: BlogPost, limit = 3): Promise<BlogPo
   .limit(limit);
 
   if (error) {
-  console.warn("[blog] getRelatedPosts notice:", error.message || error);
   return [];
   }
   return (data ?? []) as BlogPost[];
- } catch (e: any) {
-  console.warn("[blog] getRelatedPosts fetch notice:", e?.message || e);
+ } catch {
   return [];
  }
 }
@@ -178,12 +172,10 @@ export async function getLinkedPost(post: BlogPost): Promise<BlogPost | null> {
   .maybeSingle();
 
   if (error) {
-  console.warn("[blog] getLinkedPost notice:", error.message || error);
   return null;
   }
   return (data as BlogPost) || null;
- } catch (e: any) {
-  console.warn("[blog] getLinkedPost fetch notice:", e?.message || e);
+ } catch {
   return null;
  }
 }

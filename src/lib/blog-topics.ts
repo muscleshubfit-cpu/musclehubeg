@@ -92,6 +92,161 @@ export function pickRotationCategory(recent: { category: string }[]): Pillar {
  return ranked[0];
 }
 
+const CURATED_TOPIC_FALLBACKS: Record<
+  Pillar,
+  Array<{ topic: string; focusKeyword: string; rationale: string }>
+> = {
+  nutrition: [
+    {
+      topic: "High-Protein Egyptian Breakfasts: 5 Traditional Meals Optimized for Muscle Growth",
+      focusKeyword: "high protein Egyptian breakfast",
+      rationale: "High regional search volume with high practical utility for Middle Eastern fitness enthusiasts.",
+    },
+    {
+      topic: "Carb Cycling for Fat Loss: Complete Guide with Macro Breakdown and Meal Timing",
+      focusKeyword: "carb cycling for fat loss",
+      rationale: "Targeting intermediate trainees looking for evidence-based fat loss strategies beyond simple calorie deficits.",
+    },
+    {
+      topic: "Plant-Based Protein vs Whey: Muscle Protein Synthesis and Digestion Rates Compared",
+      focusKeyword: "plant protein vs whey",
+      rationale: "Addresses growing search queries around vegan vs dairy protein efficacy for hypertrophy.",
+    },
+    {
+      topic: "Intermittent Fasting and Muscle Retention: What the Latest Science Says",
+      focusKeyword: "intermittent fasting muscle retention",
+      rationale: "Evergreen interest topic with strong intent regarding preserving lean mass during fasting.",
+    },
+  ],
+  workout: [
+    {
+      topic: "Dumbbell-Only Upper Body Hypertrophy Routine: Full 4-Day Home Split",
+      focusKeyword: "dumbbell upper body workout",
+      rationale: "Extremely popular search intent for home gym and limited-equipment workouts.",
+    },
+    {
+      topic: "How to Overcome a Bench Press Plateau: Biomechanics and Accessory Protocol",
+      focusKeyword: "increase bench press strength",
+      rationale: "High intent from lifters seeking actionable periodization and form fixes.",
+    },
+    {
+      topic: "RPE vs Percentage-Based Training: Which Auto-Regulation Method Builds More Muscle?",
+      focusKeyword: "RPE vs percentage training",
+      rationale: "Appeals to serious lifters seeking advanced programming and fatigue management insights.",
+    },
+    {
+      topic: "Fixing Forward Head Posture and Rounded Shoulders for Lifters: 10-Minute Mobility Routine",
+      focusKeyword: "rounded shoulders posture fix lifters",
+      rationale: "High search volume addressing common desk posture issues exacerbated by gym training.",
+    },
+  ],
+  supplements: [
+    {
+      topic: "Creatine Monohydrate: Loading vs Daily 5g Protocol & Timing with Carbs",
+      focusKeyword: "creatine monohydrate loading vs daily",
+      rationale: "Number one researched fitness supplement with constant search intent around dosing protocols.",
+    },
+    {
+      topic: "Ashwagandha (KSM-66) for Cortisol and Strength: What Clinical Trials Actually Show",
+      focusKeyword: "ashwagandha benefits bodybuilding cortisol",
+      rationale: "Trending supplement keyword with high interest in stress management and hormonal balance.",
+    },
+    {
+      topic: "Electrolytes and Intra-Workout Hydration: Do You Really Need BCAAs or Salt?",
+      focusKeyword: "intra workout electrolytes benefits",
+      rationale: "Educational comparison answering search queries about workout hydration and fatigue prevention.",
+    },
+  ],
+  "weight-loss": [
+    {
+      topic: "The Ultimate Guide to Beating Metabolic Adaptation During a Long Calorie Deficit",
+      focusKeyword: "metabolic adaptation weight loss fix",
+      rationale: "Answers crucial questions for dieters hitting frustrating fat loss plateaus.",
+    },
+    {
+      topic: "How to Lose Fat Without Counting Calories: Visual Portion Guides & Satiety Index",
+      focusKeyword: "fat loss without tracking calories",
+      rationale: "High conversion topic for beginners and busy individuals seeking sustainable weight management.",
+    },
+    {
+      topic: "NEAT (Non-Exercise Activity Thermogenesis): The Secret to Effortless Fat Burning",
+      focusKeyword: "increase NEAT for fat loss",
+      rationale: "Evidence-backed lifestyle strategy that consistently attracts high readership and shareability.",
+    },
+  ],
+  "muscle-gain": [
+    {
+      topic: "Hardgainer Nutrition Blueprint: How to Eat 3500+ Clean Calories Without Bloating",
+      focusKeyword: "hardgainer clean bulking diet",
+      rationale: "High demand among skinny beginners struggling with appetite and digestive comfort.",
+    },
+    {
+      topic: "Mechanical Tension vs Metabolic Stress: What Drives Hypertrophy the Most?",
+      focusKeyword: "mechanical tension vs metabolic stress",
+      rationale: "Scientific deep dive that establishes E-E-A-T authority and AI answer citations.",
+    },
+    {
+      topic: "Optimal Training Volume: How Many Sets Per Muscle Group Per Week?",
+      focusKeyword: "optimal weekly sets per muscle",
+      rationale: "Core programming question with high recurring search interest.",
+    },
+  ],
+  health: [
+    {
+      topic: "Sleep Hygiene for Athletes: How Deep Sleep Affects Testosterone and Recovery",
+      focusKeyword: "sleep hygiene athletic recovery testosterone",
+      rationale: "Increasing focus on wellness, sleep tracking, and holistic athletic longevity.",
+    },
+    {
+      topic: "Managing Blood Pressure and Heart Health While Lifting Heavy Weights",
+      focusKeyword: "weightlifting blood pressure heart health",
+      rationale: "Crucial health topic addressing cardiovascular safety and resistance training benefits.",
+    },
+  ],
+  recipes: [
+    {
+      topic: "5 High-Protein Egyptian Meals Under 500 Calories (Koshari & Fava Bean Hacks)",
+      focusKeyword: "high protein Egyptian healthy recipes",
+      rationale: "Strong regional appeal providing localized culinary adaptations for fitness goals.",
+    },
+    {
+      topic: "Homemade High-Protein Meal Prep Bowls: 4 Balanced Lunches in 45 Minutes",
+      focusKeyword: "quick high protein meal prep bowls",
+      rationale: "Practical, actionable guide targeting busy professionals searching for meal planning ideas.",
+    },
+  ],
+  science: [
+    {
+      topic: "The Science of Muscle SORENESS (DOMS): Does Muscle Soreness Mean Growth?",
+      focusKeyword: "does muscle soreness mean growth DOMS",
+      rationale: "Debunks one of the most common fitness myths with peer-reviewed physiology.",
+    },
+    {
+      topic: "Anabolic Window Myth vs Reality: Nutrient Timing for Strength & Hypertrophy",
+      focusKeyword: "anabolic window nutrient timing science",
+      rationale: "Consistently searched fitness query requiring clear, authoritative consensus.",
+    },
+  ],
+};
+
+function getFallbackTopic(category: Pillar, recent: { title: string; focusKeyword: string }[]): TopicPick {
+  const list = CURATED_TOPIC_FALLBACKS[category] || CURATED_TOPIC_FALLBACKS.nutrition;
+  const recentLower = recent.map((r) => (r.title + " " + r.focusKeyword).toLowerCase());
+
+  // Find one that hasn't been recently published
+  const unused = list.find(
+    (item) => !recentLower.some((t) => t.includes(item.focusKeyword.toLowerCase())),
+  );
+
+  const selected = unused || list[Math.floor(Math.random() * list.length)];
+  return {
+    topic: selected.topic,
+    focusKeyword: selected.focusKeyword,
+    category,
+    rationale: selected.rationale,
+  };
+}
+
 export async function pickSmartTopic(preferredCategory?: string): Promise<TopicPick> {
   const recent = await getRecentPosts();
   const category: Pillar =
@@ -127,27 +282,32 @@ CRITICAL DIVERSITY & NO-REPETITION INSTRUCTIONS:
 
 Pick the single best, unique topic now strictly within the "${category}" pillar.`;
 
-  const { text: raw } = await callGemini(
-    userPrompt,
-    {
-      systemPrompt: TOPIC_SYSTEM_PROMPT,
-      temperature: 0.85,
-      maxTokens: 600,
-      jsonMode: true,
-      timeoutMs: 30_000,
-    },
-    2,
-  );
+  try {
+    const { text: raw } = await callGemini(
+      userPrompt,
+      {
+        systemPrompt: TOPIC_SYSTEM_PROMPT,
+        temperature: 0.85,
+        maxTokens: 600,
+        jsonMode: true,
+        timeoutMs: 30_000,
+      },
+      2,
+    );
 
-  const parsed = parseJSON<any>(raw);
-  if (!parsed?.topic || !parsed?.focusKeyword) {
-    throw new Error("Topic picker returned an invalid response.");
+    const parsed = parseJSON<any>(raw);
+    if (parsed?.topic && parsed?.focusKeyword) {
+      return {
+        topic: String(parsed.topic),
+        focusKeyword: String(parsed.focusKeyword),
+        category,
+        rationale: String(parsed.rationale || ""),
+      };
+    }
+  } catch (err: any) {
+    console.warn("[blog-topics] AI topic pick notice, using smart curated fallback:", err?.message || err);
   }
 
-  return {
-    topic: String(parsed.topic),
-    focusKeyword: String(parsed.focusKeyword),
-    category,
-    rationale: String(parsed.rationale || ""),
-  };
+  // Graceful fallback to guaranteed valid topic
+  return getFallbackTopic(category, recent);
 }

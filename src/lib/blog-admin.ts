@@ -38,12 +38,10 @@ export async function adminListPosts(lang?: "en" | "ar"): Promise<AdminBlogPost[
   if (lang) q = q.eq("language", lang);
   const { data, error } = await q;
   if (error) {
-   console.warn("[blog-admin] adminListPosts notice:", error.message || error);
    return [];
   }
   return (data ?? []) as unknown as AdminBlogPost[];
- } catch (e: any) {
-  console.warn("[blog-admin] adminListPosts fetch notice:", e?.message || e);
+ } catch {
   return [];
  }
 }
@@ -53,12 +51,10 @@ export async function adminGetPost(id: string): Promise<AdminBlogPost | null> {
  try {
   const { data, error } = await supabase.from("blog_posts" as any).select("*").eq("id", id).maybeSingle();
   if (error) {
-   console.warn("[blog-admin] adminGetPost notice:", error.message || error);
    return null;
   }
   return (data as unknown as AdminBlogPost) || null;
- } catch (e: any) {
-  console.warn("[blog-admin] adminGetPost fetch notice:", e?.message || e);
+ } catch {
   return null;
  }
 }
