@@ -459,7 +459,7 @@ export async function generateExternalResearch(
     topic: input.topic,
     focusKeyword: input.focusKeyword,
     maxResults: 10,
-    timeoutMs: 8_000,
+    timeoutMs: 20_000,
   });
 
   console.log(
