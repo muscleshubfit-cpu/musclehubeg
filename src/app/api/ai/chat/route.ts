@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { callFreeOpenRouterRace } from "@/lib/ai-provider";
+import { callGemini } from "@/lib/gemini-wrapper";
 import { generateChatReply } from "@/lib/ai-local";
 import { listPlans, listProgress, getQuestionnaire, getSubscriptionForClient } from "@/lib/data";
 import { getTier } from "@/lib/plans";
@@ -175,22 +176,45 @@ export async function POST(request: NextRequest) {
       blogResults,
     );
 
-    // 7. Try OpenRouter AI (if configured)
+    const messages = [
+      ...history.slice(-10).map((m: any) => ({
+        role: m.role,
+        content: m.content,
+      })),
+      { role: "user", content: message },
+    ];
+
+    const chatPrompt = messages
+      .map((m) => `${m.role === "user" ? "User" : "Assistant"}: ${m.content}`)
+      .join("\n\n");
+    const fullPrompt = `${systemPrompt}\n\n${chatPrompt}\n\nAssistant:`;
+
+    // 7. Try Gemini first (fastest, cleanest responses)
+    try {
+      const { text: geminiReply, model: geminiModel } = await callGemini(
+        fullPrompt,
+        {
+          temperature: 0.7,
+          maxTokens: 1000,
+          timeoutMs: 15_000,
+        },
+        2,
+      );
+
+      if (geminiReply && geminiReply.trim().length > 5) {
+        return NextResponse.json({
+          response: geminiReply.trim(),
+          links,
+          source: `gemini:${geminiModel}`,
+        });
+      }
+    } catch (gErr: any) {
+      console.warn("[api/ai/chat] Gemini notice, falling back to OpenRouter/local:", gErr?.message);
+    }
+
+    // 8. Try OpenRouter AI (if configured)
     if (process.env.OPENROUTER_API_KEY || process.env.AI_API_KEY) {
       try {
-        const messages = [
-          ...history.slice(-10).map((m: any) => ({
-            role: m.role,
-            content: m.content,
-          })),
-          { role: "user", content: message },
-        ];
-
-        const chatPrompt = messages
-          .map((m) => `${m.role === "user" ? "User" : "Assistant"}: ${m.content}`)
-          .join("\n\n");
-        const fullPrompt = `${systemPrompt}\n\n${chatPrompt}\n\nAssistant:`;
-
         const { text, model } = await callFreeOpenRouterRace(fullPrompt, {
           temperature: 0.6,
           maxTokens: 500,

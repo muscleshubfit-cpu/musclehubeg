@@ -21,11 +21,17 @@
  * breaks for the coach.
  */
 
-import { callAIWithFallback, parseJSON, FREE_OPENROUTER_MODELS, type AIProvider } from "@/lib/ai-provider";
 import {
- generateNutritionPlan,
- generateWorkoutPlan,
- type ClientContext,
+  callAIWithFallback,
+  parseJSON,
+  FREE_OPENROUTER_MODELS,
+  type AIProvider,
+} from "@/lib/ai-provider";
+import { callGeminiJSON, getGeminiApiKey } from "@/lib/gemini-wrapper";
+import {
+  generateNutritionPlan,
+  generateWorkoutPlan,
+  type ClientContext,
 } from "@/lib/ai-local";
 import { EXERCISES } from "@/lib/exercises";
 
@@ -34,218 +40,264 @@ import { EXERCISES } from "@/lib/exercises";
 // blog generation, and all other AI calls.
 const OPENROUTER_FREE_MODELS = FREE_OPENROUTER_MODELS;
 
-// OpenRouter API key (from env). We read it directly so plans always use
-// OpenRouter even if the user changed the default provider in AI Settings.
-const OPENROUTER_KEY = process.env.OPENROUTER_API_KEY || process.env.AI_API_KEY || "";
+// Unified API key fallback sequence (GEMINI_API_KEY -> GOOGLE_API_KEY -> GOOGLE_GENAI_API_KEY -> AI_API_KEY -> OPENROUTER_API_KEY)
+const OPENROUTER_KEY = getGeminiApiKey();
 const OPENROUTER_BASE = "https://openrouter.ai/api/v1";
 
 export type PlanOverrides = {
- targetCalories?: number;
- macros?: { protein_g: number; carbs_g: number; fat_g: number };
- foods?: string[]; // preferred foods to include
- mealsCount?: number; // override meals-per-day
- notes?: string; // free-text instructions from the coach
+  targetCalories?: number;
+  macros?: { protein_g: number; carbs_g: number; fat_g: number };
+  foods?: string[]; // preferred foods to include
+  mealsCount?: number; // override meals-per-day
+  notes?: string; // free-text instructions from the coach
 };
 
 export type NutritionPlanContent = {
- overview: string;
- data_analysis?: {
- gender?: string;
- weight?: string;
- height?: string;
- age?: string;
- neck?: string;
- waist?: string;
- hip?: string;
- activity?: string;
- health?: string;
- body_fat_pct?: string;
- fat_mass?: string;
- lean_mass?: string;
- bmr?: number;
- tdee?: number;
- };
- daily_calories: number;
- macros: {
- protein_g: number;
- carbs_g: number;
- fat_g: number;
- protein_cal?: number;
- carbs_cal?: number;
- fat_cal?: number;
- };
- supplements?: Array<{
- name: string;
- dose: string;
- timing: string;
- purpose: string;
- }>;
- health_notes?: string[]; // specific recommendations (e.g. iron for anemia)
- water_target?: string; // e.g. "2.5 - 3 لتر يومياً"
- meals: Array<{
- name: string;
- time?: string; // e.g. "بعد الاستيقاظ" or "قبل النوم بـ 45 دقيقة"
- items: Array<{
- food: string;
- amount: string;
- calories: number;
- protein_g?: number;
- alternatives?: string; // "أو 180 جم سمك مشوي / 150 جم لحم أحمر"
- }>;
- total_calories?: number;
- total_protein_g?: number;
- notes?: string;
- }>;
- // Original simple-format meals are kept for backwards compat with the
- // existing PlanViewerModal. The new fields (data_analysis, supplements,
- // health_notes, water_target, alternatives, totals) are optional.
+  overview: string;
+  data_analysis?: {
+    gender?: string;
+    weight?: string;
+    height?: string;
+    age?: string;
+    neck?: string;
+    waist?: string;
+    hip?: string;
+    activity?: string;
+    health?: string;
+    body_fat_pct?: string;
+    fat_mass?: string;
+    lean_mass?: string;
+    bmr?: number;
+    tdee?: number;
+  };
+  daily_calories: number;
+  macros: {
+    protein_g: number;
+    carbs_g: number;
+    fat_g: number;
+    protein_cal?: number;
+    carbs_cal?: number;
+    fat_cal?: number;
+  };
+  supplements?: Array<{
+    name: string;
+    dose: string;
+    timing: string;
+    purpose: string;
+  }>;
+  health_notes?: string[]; // specific recommendations (e.g. iron for anemia)
+  water_target?: string; // e.g. "2.5 - 3 لتر يومياً"
+  meals: Array<{
+    name: string;
+    time?: string; // e.g. "بعد الاستيقاظ" or "قبل النوم بـ 45 دقيقة"
+    items: Array<{
+      food: string;
+      amount: string;
+      calories: number;
+      protein_g?: number;
+      alternatives?: string; // "أو 180 جم سمك مشوي / 150 جم لحم أحمر"
+    }>;
+    total_calories?: number;
+    total_protein_g?: number;
+    notes?: string;
+  }>;
+  // Original simple-format meals are kept for backwards compat with the
+  // existing PlanViewerModal. The new fields (data_analysis, supplements,
+  // health_notes, water_target, alternatives, totals) are optional.
 };
 
 export type WorkoutPlanContent = {
- overview: string;
- days: Array<{
- day: string;
- focus: string;
- isRest?: boolean;
- exercises: Array<{
- name: string;
- sets: number;
- reps: string;
- rest: string;
- notes: string;
- image?: string;
- exerciseSlug?: string; // links to our exercise library
- }>;
- }>;
- // New optional fields for the richer format
- weekly_volume?: string; // e.g. "20 مجموعة أسبوعياً، 8 تمارين رئيسية"
- progression?: string; // how to progress week-over-week
+  overview: string;
+  days: Array<{
+    day: string;
+    focus: string;
+    isRest?: boolean;
+    exercises: Array<{
+      name: string;
+      sets: number;
+      reps: string;
+      rest: string;
+      notes: string;
+      image?: string;
+      exerciseSlug?: string; // links to our exercise library
+    }>;
+  }>;
+  // New optional fields for the richer format
+  weekly_volume?: string; // e.g. "20 مجموعة أسبوعياً، 8 تمارين رئيسية"
+  progression?: string; // how to progress week-over-week
 };
 
 export type GeneratePlanResult = {
- title: string;
- content: NutritionPlanContent | WorkoutPlanContent;
- source: string; // which model served the request
+  title: string;
+  content: NutritionPlanContent | WorkoutPlanContent;
+  source: string; // which model served the request
 };
 
 /**
  * Generate a nutrition plan via OpenRouter AI, with fallback to local.
  */
 export async function generateNutritionPlanAI(
- ctx: ClientContext,
- overrides?: PlanOverrides,
+  ctx: ClientContext,
+  overrides?: PlanOverrides,
 ): Promise<GeneratePlanResult> {
- const name = ctx.name || "العميل";
- // Add a randomization seed to the prompt so each generation produces
- // different meal/exercise choices even for the same client.
- const seed = Math.floor(Math.random() * 1000000);
- const prompt = `${buildNutritionPrompt(ctx, name, overrides)}
+  const name = ctx.name || "العميل";
+  // Add a randomization seed to the prompt so each generation produces
+  // different meal/exercise choices even for the same client.
+  const seed = Math.floor(Math.random() * 1000000);
+  const prompt = `${buildNutritionPrompt(ctx, name, overrides)}
 
 ملاحظة: كل توليد يجب أن ينتج خطة مختلفة. استخدم تنويع ${seed} لاختيار أصناف جديدة.`;
 
- try {
- // Try each free OpenRouter model in order until one returns valid JSON.
- for (const model of OPENROUTER_FREE_MODELS) {
- if (!OPENROUTER_KEY) break;
- try {
- const { text } = await callAIWithFallback(
- prompt,
- {
- systemPrompt: NUTRITION_SYSTEM_PROMPT,
- temperature: 0.7,
- maxTokens: 4000,
- jsonMode: true,
- timeoutMs: 60_000, // 1 min — Vercel hobby plan limit
- },
- {
- provider: "openrouter" as AIProvider,
- apiKey: OPENROUTER_KEY,
- model,
- baseUrl: OPENROUTER_BASE,
- },
- );
- const parsed = parseJSON<NutritionPlanContent>(text);
- if (parsed && parsed.meals && parsed.meals.length > 0) {
- return {
- title: `خطة تغذية - ${name}`,
- content: normalizeNutritionPlan(parsed, overrides),
- source: `openrouter:${model}`,
- };
- }
- } catch (e: any) {
- console.error(`[plan-generator] OpenRouter ${model} failed:`, e?.message);
- // try next model
- }
- }
- } catch (e: any) {
- console.error("[plan-generator] All OpenRouter models failed:", e?.message);
- }
+  try {
+    // 1. Try Google Gemini first (fast, smart, robust JSON)
+    try {
+      const { data: geminiData, model: geminiModel } =
+        await callGeminiJSON<NutritionPlanContent>(prompt, {
+          systemPrompt: NUTRITION_SYSTEM_PROMPT,
+          temperature: 0.7,
+          maxTokens: 4000,
+          timeoutMs: 45_000,
+        });
+      if (geminiData && geminiData.meals && geminiData.meals.length > 0) {
+        return {
+          title: `خطة تغذية - ${name}`,
+          content: normalizeNutritionPlan(geminiData, overrides),
+          source: `gemini:${geminiModel}`,
+        };
+      }
+    } catch (gErr: any) {
+      console.warn("[plan-generator] Gemini generation notice, trying fallbacks:", gErr?.message);
+    }
 
- // Fallback: local rule-based generator
- const local = generateNutritionPlan(ctx);
- return {
- title: `خطة تغذية - ${name}`,
- content: normalizeNutritionPlan(local, overrides),
- source: "local-fallback",
- };
+    // Try each free OpenRouter model in order until one returns valid JSON.
+    for (const model of OPENROUTER_FREE_MODELS) {
+      if (!OPENROUTER_KEY) break;
+      try {
+        const { text } = await callAIWithFallback(
+          prompt,
+          {
+            systemPrompt: NUTRITION_SYSTEM_PROMPT,
+            temperature: 0.7,
+            maxTokens: 4000,
+            jsonMode: true,
+            timeoutMs: 60_000, // 1 min — Vercel hobby plan limit
+          },
+          {
+            provider: "openrouter" as AIProvider,
+            apiKey: OPENROUTER_KEY,
+            model,
+            baseUrl: OPENROUTER_BASE,
+          },
+        );
+        const parsed = parseJSON<NutritionPlanContent>(text);
+        if (parsed && parsed.meals && parsed.meals.length > 0) {
+          return {
+            title: `خطة تغذية - ${name}`,
+            content: normalizeNutritionPlan(parsed, overrides),
+            source: `openrouter:${model}`,
+          };
+        }
+      } catch (e: any) {
+        console.error(
+          `[plan-generator] OpenRouter ${model} failed:`,
+          e?.message,
+        );
+        // try next model
+      }
+    }
+  } catch (e: any) {
+    console.error("[plan-generator] All OpenRouter models failed:", e?.message);
+  }
+
+  // Fallback: local rule-based generator
+  const local = generateNutritionPlan(ctx);
+  return {
+    title: `خطة تغذية - ${name}`,
+    content: normalizeNutritionPlan(local, overrides),
+    source: "local-fallback",
+  };
 }
 
 /**
  * Generate a workout plan via OpenRouter AI, with fallback to local.
  */
 export async function generateWorkoutPlanAI(
- ctx: ClientContext,
- overrides?: PlanOverrides,
+  ctx: ClientContext,
+  overrides?: PlanOverrides,
 ): Promise<GeneratePlanResult> {
- const name = ctx.name || "العميل";
- // Randomization seed for variety
- const seed = Math.floor(Math.random() * 1000000);
- const prompt = `${buildWorkoutPrompt(ctx, name, overrides)}
+  const name = ctx.name || "العميل";
+  // Randomization seed for variety
+  const seed = Math.floor(Math.random() * 1000000);
+  const prompt = `${buildWorkoutPrompt(ctx, name, overrides)}
 
 ملاحظة: كل توليد يجب أن ينتج برنامج مختلف. استخدم تنويع ${seed} لاختيار تمارين جديدة.`;
 
- try {
- for (const model of OPENROUTER_FREE_MODELS) {
- if (!OPENROUTER_KEY) break;
- try {
- const { text } = await callAIWithFallback(
- prompt,
- {
- systemPrompt: WORKOUT_SYSTEM_PROMPT,
- temperature: 0.7,
- maxTokens: 4000,
- jsonMode: true,
- timeoutMs: 60_000, // 1 min — Vercel hobby plan limit
- },
- {
- provider: "openrouter" as AIProvider,
- apiKey: OPENROUTER_KEY,
- model,
- baseUrl: OPENROUTER_BASE,
- },
- );
- const parsed = parseJSON<WorkoutPlanContent>(text);
- if (parsed && parsed.days && parsed.days.length > 0) {
- return {
- title: `برنامج تمارين - ${name}`,
- content: normalizeWorkoutPlan(parsed),
- source: `openrouter:${model}`,
- };
- }
- } catch (e: any) {
- console.error(`[plan-generator] OpenRouter ${model} failed:`, e?.message);
- }
- }
- } catch (e: any) {
- console.error("[plan-generator] All OpenRouter models failed:", e?.message);
- }
+  try {
+    // 1. Try Google Gemini first
+    try {
+      const { data: geminiData, model: geminiModel } =
+        await callGeminiJSON<WorkoutPlanContent>(prompt, {
+          systemPrompt: WORKOUT_SYSTEM_PROMPT,
+          temperature: 0.7,
+          maxTokens: 4000,
+          timeoutMs: 45_000,
+        });
+      if (geminiData && geminiData.days && geminiData.days.length > 0) {
+        return {
+          title: `برنامج تمارين - ${name}`,
+          content: normalizeWorkoutPlan(geminiData),
+          source: `gemini:${geminiModel}`,
+        };
+      }
+    } catch (gErr: any) {
+      console.warn("[plan-generator] Gemini workout notice, trying fallbacks:", gErr?.message);
+    }
 
- const local = generateWorkoutPlan(ctx);
- return {
- title: `برنامج تمارين - ${name}`,
- content: normalizeWorkoutPlan(local),
- source: "local-fallback",
- };
+    // 2. Try OpenRouter free models
+    for (const model of OPENROUTER_FREE_MODELS) {
+      if (!OPENROUTER_KEY) break;
+      try {
+        const { text } = await callAIWithFallback(
+          prompt,
+          {
+            systemPrompt: WORKOUT_SYSTEM_PROMPT,
+            temperature: 0.7,
+            maxTokens: 4000,
+            jsonMode: true,
+            timeoutMs: 60_000, // 1 min — Vercel hobby plan limit
+          },
+          {
+            provider: "openrouter" as AIProvider,
+            apiKey: OPENROUTER_KEY,
+            model,
+            baseUrl: OPENROUTER_BASE,
+          },
+        );
+        const parsed = parseJSON<WorkoutPlanContent>(text);
+        if (parsed && parsed.days && parsed.days.length > 0) {
+          return {
+            title: `برنامج تمارين - ${name}`,
+            content: normalizeWorkoutPlan(parsed),
+            source: `openrouter:${model}`,
+          };
+        }
+      } catch (e: any) {
+        console.error(
+          `[plan-generator] OpenRouter ${model} failed:`,
+          e?.message,
+        );
+      }
+    }
+  } catch (e: any) {
+    console.error("[plan-generator] All OpenRouter models failed:", e?.message);
+  }
+
+  const local = generateWorkoutPlan(ctx);
+  return {
+    title: `برنامج تمارين - ${name}`,
+    content: normalizeWorkoutPlan(local),
+    source: "local-fallback",
+  };
 }
 
 /**
@@ -256,19 +308,27 @@ export async function generateWorkoutPlanAI(
  * original, but different foods.
  */
 export async function regenerateMeal(
- meal: { name?: string; items?: Array<{ food: string; amount: string; calories: number }>; notes?: string },
- targetCalories?: number,
- clientContext?: ClientContext,
- coachNote?: string,
+  meal: {
+    name?: string;
+    items?: Array<{ food: string; amount: string; calories: number }>;
+    notes?: string;
+  },
+  targetCalories?: number,
+  clientContext?: ClientContext,
+  coachNote?: string,
 ): Promise<{ meal: any; source: string }> {
- const totalCals =
- targetCalories ||
- (meal.items || []).reduce((s, i) => s + (i.calories || 0), 0);
+  const totalCals =
+    targetCalories ||
+    (meal.items || []).reduce((s, i) => s + (i.calories || 0), 0);
 
- const prompt = `أنت أخصائي تغذية محترف. أعد توليد وجبة بديلة بنفس السعرات (${totalCals} سعرة) ونفس نسب الماكروز قدر الإمكان.
+  const prompt = `أنت أخصائي تغذية محترف. أعد توليد وجبة بديلة بنفس السعرات (${totalCals} سعرة) ونفس نسب الماكروز قدر الإمكان.
 
-${clientContext ? `بيانات العميل (راعِ الحساسية والأطعمة غير المحببة):
-${JSON.stringify({ ...clientContext, name: undefined }, null, 2)}` : ""}
+${
+  clientContext
+    ? `بيانات العميل (راعِ الحساسية والأطعمة غير المحببة):
+${JSON.stringify({ ...clientContext, name: undefined }, null, 2)}`
+    : ""
+}
 
 الوجبة الحالية (لاحظ تنوع الأصناف وابتعد عن التكرار):
 ${JSON.stringify(meal, null, 2)}
@@ -295,40 +355,63 @@ ${coachNote ? `تعليمات الكوتش: ${coachNote}` : ""}
 
 تأكد أن مجموع سعرات الأصناف يساوي تقريباً ${totalCals}. استخدم أصناف عربية/مصرية متنوعة. لا تكرر نفس الأصناف الموجودة في الوجبة الحالية.`;
 
- try {
- for (const model of OPENROUTER_FREE_MODELS) {
- if (!OPENROUTER_KEY) break;
- try {
- const { text } = await callAIWithFallback(
- prompt,
- {
- systemPrompt: NUTRITION_SYSTEM_PROMPT,
- temperature: 0.8,
- maxTokens: 1500,
- jsonMode: true,
- timeoutMs: 45_000,
- },
- {
- provider: "openrouter" as AIProvider,
- apiKey: OPENROUTER_KEY,
- model,
- baseUrl: OPENROUTER_BASE,
- },
- );
- const parsed = parseJSON<any>(text);
- if (parsed && parsed.items && parsed.items.length > 0) {
- return { meal: parsed, source: `openrouter:${model}` };
- }
- } catch (e: any) {
- console.error(`[regenerate-meal] OpenRouter ${model} failed:`, e?.message);
- }
- }
- } catch (e: any) {
- console.error("[regenerate-meal] All OpenRouter models failed:", e?.message);
- }
+  try {
+    // 1. Try Gemini first
+    try {
+      const { data: geminiMeal, model: geminiModel } =
+        await callGeminiJSON<any>(prompt, {
+          systemPrompt: NUTRITION_SYSTEM_PROMPT,
+          temperature: 0.8,
+          maxTokens: 1500,
+          timeoutMs: 30_000,
+        });
+      if (geminiMeal && geminiMeal.items && geminiMeal.items.length > 0) {
+        return { meal: geminiMeal, source: `gemini:${geminiModel}` };
+      }
+    } catch (gErr: any) {
+      console.warn("[regenerate-meal] Gemini notice, trying fallbacks:", gErr?.message);
+    }
 
- // Fallback: return the original meal unchanged (the caller can show an error)
- throw new Error("تعذّر إعادة توليد الوجبة. حاول مرة أخرى.");
+    // 2. Try OpenRouter models
+    for (const model of OPENROUTER_FREE_MODELS) {
+      if (!OPENROUTER_KEY) break;
+      try {
+        const { text } = await callAIWithFallback(
+          prompt,
+          {
+            systemPrompt: NUTRITION_SYSTEM_PROMPT,
+            temperature: 0.8,
+            maxTokens: 1500,
+            jsonMode: true,
+            timeoutMs: 45_000,
+          },
+          {
+            provider: "openrouter" as AIProvider,
+            apiKey: OPENROUTER_KEY,
+            model,
+            baseUrl: OPENROUTER_BASE,
+          },
+        );
+        const parsed = parseJSON<any>(text);
+        if (parsed && parsed.items && parsed.items.length > 0) {
+          return { meal: parsed, source: `openrouter:${model}` };
+        }
+      } catch (e: any) {
+        console.error(
+          `[regenerate-meal] OpenRouter ${model} failed:`,
+          e?.message,
+        );
+      }
+    }
+  } catch (e: any) {
+    console.error(
+      "[regenerate-meal] All OpenRouter models failed:",
+      e?.message,
+    );
+  }
+
+  // Fallback: return the original meal unchanged (the caller can show an error)
+  throw new Error("تعذّر إعادة توليد الوجبة. حاول مرة أخرى.");
 }
 
 /* ----------------------------- Prompts ----------------------------- */
@@ -400,38 +483,42 @@ const NUTRITION_SYSTEM_PROMPT = `أنت أخصائي تغذية رياضية م�
 - اذكر ${"بدائل (alternatives)"} لكل صنف رئيسي.
 - تأكد أن مجموع ${"total_calories"} لكل وجبة يقترب من ${"daily_calories"} الموزّع.`;
 
-function buildNutritionPrompt(ctx: ClientContext, name: string, overrides?: PlanOverrides): string {
- const nutrition = ctx.nutrition || {};
- const fitness = ctx.fitness || {};
- const measurements = ctx.recent_measurements?.[0] || {};
+function buildNutritionPrompt(
+  ctx: ClientContext,
+  name: string,
+  overrides?: PlanOverrides,
+): string {
+  const nutrition = ctx.nutrition || {};
+  const fitness = ctx.fitness || {};
+  const measurements = ctx.recent_measurements?.[0] || {};
 
- const weight = nutrition.weight || measurements.weight || "80";
- const height = nutrition.height || "175";
- const age = nutrition.age || "25";
- const target = nutrition.target || nutrition.target_weight || weight;
- const goal = fitness.goal || "general fitness";
- const activity = fitness.activity || "moderate";
- const meals = overrides?.mealsCount || nutrition.meals || "4";
- const diet = nutrition.diet || "balanced";
- const allergies = nutrition.allergies || "";
- const disliked = nutrition.disliked || "";
- const gender = nutrition.gender || "male";
- const neck = nutrition.neck || "";
- const waist = nutrition.waist || measurements.waist || "";
- const hip = nutrition.hip || "";
- const health = nutrition.health || nutrition.medical_conditions || "";
+  const weight = nutrition.weight || measurements.weight || "80";
+  const height = nutrition.height || "175";
+  const age = nutrition.age || "25";
+  const target = nutrition.target || nutrition.target_weight || weight;
+  const goal = fitness.goal || "general fitness";
+  const activity = fitness.activity || "moderate";
+  const meals = overrides?.mealsCount || nutrition.meals || "4";
+  const diet = nutrition.diet || "balanced";
+  const allergies = nutrition.allergies || "";
+  const disliked = nutrition.disliked || "";
+  const gender = nutrition.gender || "male";
+  const neck = nutrition.neck || "";
+  const waist = nutrition.waist || measurements.waist || "";
+  const hip = nutrition.hip || "";
+  const health = nutrition.health || nutrition.medical_conditions || "";
 
- const overridesText = overrides
- ? `
+  const overridesText = overrides
+    ? `
  تعليمات خاصة من الكوتش (يجب الالتزام بها):
 ${overrides.targetCalories ? `- السعرات المستهدفة اليومية: ${overrides.targetCalories} سعرة` : ""}
 ${overrides.macros ? `- الماكروز المطلوبة: بروتين ${overrides.macros.protein_g}جم / كارب ${overrides.macros.carbs_g}جم / دهون ${overrides.macros.fat_g}جم` : ""}
 ${overrides.foods && overrides.foods.length > 0 ? `- الأطعمة المطلوب تضمينها: ${overrides.foods.join("، ")}` : ""}
 ${overrides.notes ? `- ملاحظات إضافية: ${overrides.notes}` : ""}
 `
- : "";
+    : "";
 
- return `صمّم خطة تغذية يومية مخصصة باللغة العربية لعميل اسمه ${name}.
+  return `صمّم خطة تغذية يومية مخصصة باللغة العربية لعميل اسمه ${name}.
 
  بيانات العميل الأساسية:
 - الجنس: ${gender}
@@ -500,58 +587,67 @@ const WORKOUT_SYSTEM_PROMPT = `أنت مدرب لياقة محترف يعمل ف
  ]
 }`;
 
-function buildWorkoutPrompt(ctx: ClientContext, name: string, overrides?: PlanOverrides): string {
- const fitness = ctx.fitness || {};
- const nutrition = ctx.nutrition || {};
+function buildWorkoutPrompt(
+  ctx: ClientContext,
+  name: string,
+  overrides?: PlanOverrides,
+): string {
+  const fitness = ctx.fitness || {};
+  const nutrition = ctx.nutrition || {};
 
- const goal = fitness.goal || "general fitness";
- const days = overrides?.mealsCount || fitness.days || "4"; // mealsCount reused as daysPerWeek
- const location = fitness.location || "gym";
- const experience = fitness.experience || "intermediate";
- const injuries = fitness.injuries || "";
- const weight = nutrition.weight || "80";
- const gender = nutrition.gender || "male";
- const weightNum = parseFloat(weight) || 80;
- const isHeavy = weightNum > 100; // heavy clients need joint-friendly exercises
- const isBeginner = experience.toLowerCase().includes("beginner") || experience.toLowerCase().includes("مبتدئ");
- const isHome = (location || "").toLowerCase().includes("home") || (location || "").includes("منزل");
+  const goal = fitness.goal || "general fitness";
+  const days = overrides?.mealsCount || fitness.days || "4"; // mealsCount reused as daysPerWeek
+  const location = fitness.location || "gym";
+  const experience = fitness.experience || "intermediate";
+  const injuries = fitness.injuries || "";
+  const weight = nutrition.weight || "80";
+  const gender = nutrition.gender || "male";
+  const weightNum = parseFloat(weight) || 80;
+  const isHeavy = weightNum > 100; // heavy clients need joint-friendly exercises
+  const isBeginner =
+    experience.toLowerCase().includes("beginner") ||
+    experience.toLowerCase().includes("مبتدئ");
+  const isHome =
+    (location || "").toLowerCase().includes("home") ||
+    (location || "").includes("منزل");
 
- // Determine the split based on days/week — ensures full-body coverage
- const daysNum = parseInt(days) || 4;
- let splitDescription = "";
- if (daysNum <= 2) {
- splitDescription = `تقسيم: ${daysNum} يوم = كامل الجسم في كل يوم تدريب. كل يوم يجب أن يشمل:
+  // Determine the split based on days/week — ensures full-body coverage
+  const daysNum = parseInt(days) || 4;
+  let splitDescription = "";
+  if (daysNum <= 2) {
+    splitDescription = `تقسيم: ${daysNum} يوم = كامل الجسم في كل يوم تدريب. كل يوم يجب أن يشمل:
 - تمرين كبير للجزء السفلي (سكوات أو ديدليفت روماني)
 - تمرين دفع للصدر/الأكتاف (بنش بريس أو ضغط كتف)
 - تمرين سحب للظهر (تجديف أو سحب أمامي)
 - تمرين للكور (بلانك أو كرنش)`;
- } else if (daysNum === 3) {
- splitDescription = `تقسيم: 3 أيام = كامل الجسم (Full Body A/B/C). كل يوم تدريب يجب أن يشمل:
+  } else if (daysNum === 3) {
+    splitDescription = `تقسيم: 3 أيام = كامل الجسم (Full Body A/B/C). كل يوم تدريب يجب أن يشمل:
 - تمرين كبير سفلي (سكوات / ديدليفت / فرنت سكوات)
 - تمرين دفع علوي (بنش بريس / ضغط كتف / بنش مائل)
 - تمرين سحب (تجديف / سحب أمامي / هايبراكستينشن)
 - تمرين مساعد للذراعين أو الكور
 نوّع التمارين بين الأيام الثلاثة لتغطية كل عضلات الجسم.`;
- } else if (daysNum === 4) {
- splitDescription = `تقسيم: 4 أيام = Upper/Lower Split (أعلى/أسفل الجسم):
+  } else if (daysNum === 4) {
+    splitDescription = `تقسيم: 4 أيام = Upper/Lower Split (أعلى/أسفل الجسم):
 - اليوم 1: أعلى الجسم (صدر + ظهر + أكتاف + ذراعين)
 - اليوم 2: أسفل الجسم (أرجل + كور)
 - اليوم 3: أعلى الجسم (تمارين مختلفة عن اليوم 1)
 - اليوم 4: أسفل الجسم (تمارين مختلفة عن اليوم 2)
 هذا التقسيم يضمن تغطية كاملة لكل الجسم خلال الأسبوع.`;
- } else {
- splitDescription = `تقسيم: ${daysNum} أيام = Push/Pull/Legs/Upper/Lower:
+  } else {
+    splitDescription = `تقسيم: ${daysNum} أيام = Push/Pull/Legs/Upper/Lower:
 - يوم Push (صدر + أكتاف + ترايسبس)
 - يوم Pull (ظهر + بايسبس)
 - يوم Legs (أرجل + كور)
 - يوم Upper (أعلى الجسم كاملاً)
 - يوم Lower (أسفل الجسم كاملاً)
 نوّع التمارين بين الأيام لتغطية كل عضلات الجسم.`;
- }
+  }
 
- // Safety rules for beginners + heavy clients
- const safetyRules = isBeginner || isHeavy
- ? `
+  // Safety rules for beginners + heavy clients
+  const safetyRules =
+    isBeginner || isHeavy
+      ? `
 
  قواعد أمان مهمة (العميل ${isBeginner ? "مبتدئ" : ""} ${isHeavy ? "وزنه كبير" : ""}):
 - ممنوع: عقلة (Pull-ups) — صعبة جداً للمبتدئين وأصحاب الوزن الكبير. استخدم سحب أمامي (Lat Pulldown) بدلاً منها.
@@ -562,13 +658,13 @@ function buildWorkoutPrompt(ctx: ClientContext, name: string, overrides?: PlanOv
 - استخدم: أوزان أخف + تكرارات أعلى (12-15 بدلاً من 6-8).
 - ركّز على التقنية الصحيحة قبل زيادة الوزن.
 - تمارين الكور مهمة جداً لحماية الظهر (بلانك، كرنش، bird dog).`
- : "";
+      : "";
 
- const overridesText = overrides?.notes
- ? `\n تعليمات خاصة من الكوتش: ${overrides.notes}\n`
- : "";
+  const overridesText = overrides?.notes
+    ? `\n تعليمات خاصة من الكوتش: ${overrides.notes}\n`
+    : "";
 
- return `صمّم برنامج تمارين أسبوعي مخصص باللغة العربية لعميل اسمه ${name}.
+  return `صمّم برنامج تمارين أسبوعي مخصص باللغة العربية لعميل اسمه ${name}.
 
  بيانات العميل:
 - الجنس: ${gender}
@@ -612,84 +708,81 @@ ${splitDescription}${safetyRules}
  * Normalize a nutrition plan to ensure all required fields exist and
  * totals are computed correctly. Applies coach overrides if provided.
  */
-function normalizeNutritionPlan(plan: any, overrides?: PlanOverrides): NutritionPlanContent {
- const meals = (plan.meals || []).map((m: any) => {
- const items = (m.items || []).map((it: any) => ({
- food: it.food || "",
- amount: it.amount || "",
- calories: typeof it.calories === "number" ? it.calories : 0,
- protein_g: it.protein_g,
- alternatives: it.alternatives,
- }));
- const total_calories =
- typeof m.total_calories === "number"
- ? m.total_calories
- : items.reduce((s: number, i: any) => s + (i.calories || 0), 0);
- const total_protein_g =
- typeof m.total_protein_g === "number"
- ? m.total_protein_g
- : items.reduce((s: number, i: any) => s + (i.protein_g || 0), 0);
- return {
- name: m.name || "وجبة",
- time: m.time,
- items,
- total_calories,
- total_protein_g,
- notes: m.notes,
- };
- });
+function normalizeNutritionPlan(
+  plan: any,
+  overrides?: PlanOverrides,
+): NutritionPlanContent {
+  const meals = (plan.meals || []).map((m: any) => {
+    const items = (m.items || []).map((it: any) => ({
+      food: it.food || "",
+      amount: it.amount || "",
+      calories: typeof it.calories === "number" ? it.calories : 0,
+      protein_g: it.protein_g,
+      alternatives: it.alternatives,
+    }));
+    const total_calories =
+      typeof m.total_calories === "number"
+        ? m.total_calories
+        : items.reduce((s: number, i: any) => s + (i.calories || 0), 0);
+    const total_protein_g =
+      typeof m.total_protein_g === "number"
+        ? m.total_protein_g
+        : items.reduce((s: number, i: any) => s + (i.protein_g || 0), 0);
+    return {
+      name: m.name || "وجبة",
+      time: m.time,
+      items,
+      total_calories,
+      total_protein_g,
+      notes: m.notes,
+    };
+  });
 
- return {
- overview: plan.overview || "",
- data_analysis: plan.data_analysis,
- daily_calories:
- overrides?.targetCalories ||
- (typeof plan.daily_calories === "number" ? plan.daily_calories : 0),
- macros: {
- protein_g:
- overrides?.macros?.protein_g ||
- (plan.macros?.protein_g ?? 0),
- carbs_g:
- overrides?.macros?.carbs_g ||
- (plan.macros?.carbs_g ?? 0),
- fat_g:
- overrides?.macros?.fat_g ||
- (plan.macros?.fat_g ?? 0),
- protein_cal: plan.macros?.protein_cal,
- carbs_cal: plan.macros?.carbs_cal,
- fat_cal: plan.macros?.fat_cal,
- },
- supplements: plan.supplements,
- health_notes: plan.health_notes,
- water_target: plan.water_target,
- meals,
- };
+  return {
+    overview: plan.overview || "",
+    data_analysis: plan.data_analysis,
+    daily_calories:
+      overrides?.targetCalories ||
+      (typeof plan.daily_calories === "number" ? plan.daily_calories : 0),
+    macros: {
+      protein_g: overrides?.macros?.protein_g || (plan.macros?.protein_g ?? 0),
+      carbs_g: overrides?.macros?.carbs_g || (plan.macros?.carbs_g ?? 0),
+      fat_g: overrides?.macros?.fat_g || (plan.macros?.fat_g ?? 0),
+      protein_cal: plan.macros?.protein_cal,
+      carbs_cal: plan.macros?.carbs_cal,
+      fat_cal: plan.macros?.fat_cal,
+    },
+    supplements: plan.supplements,
+    health_notes: plan.health_notes,
+    water_target: plan.water_target,
+    meals,
+  };
 }
 
 function normalizeWorkoutPlan(plan: any): WorkoutPlanContent {
- return {
- overview: plan.overview || "",
- weekly_volume: plan.weekly_volume,
- progression: plan.progression,
- days: (plan.days || []).map((d: any) => ({
- day: d.day || "",
- focus: d.focus || "",
- isRest: !!d.isRest,
- exercises: (d.exercises || []).map((ex: any) => {
- const name = ex.name || "";
- const matched = findExerciseInLibrary(name);
- return {
- name: matched ? matched.nameEn : name,
- sets: typeof ex.sets === "number" ? ex.sets : parseInt(ex.sets) || 0,
- reps: ex.reps || "",
- rest: ex.rest || "",
- notes: ex.notes || "",
- image: matched ? getExerciseImageFromLibrary(matched) : ex.image,
- exerciseSlug: matched ? matched.slug : undefined,
- };
- }),
- })),
- };
+  return {
+    overview: plan.overview || "",
+    weekly_volume: plan.weekly_volume,
+    progression: plan.progression,
+    days: (plan.days || []).map((d: any) => ({
+      day: d.day || "",
+      focus: d.focus || "",
+      isRest: !!d.isRest,
+      exercises: (d.exercises || []).map((ex: any) => {
+        const name = ex.name || "";
+        const matched = findExerciseInLibrary(name);
+        return {
+          name: matched ? matched.nameEn : name,
+          sets: typeof ex.sets === "number" ? ex.sets : parseInt(ex.sets) || 0,
+          reps: ex.reps || "",
+          rest: ex.rest || "",
+          notes: ex.notes || "",
+          image: matched ? getExerciseImageFromLibrary(matched) : ex.image,
+          exerciseSlug: matched ? matched.slug : undefined,
+        };
+      }),
+    })),
+  };
 }
 
 /**
@@ -698,65 +791,69 @@ function normalizeWorkoutPlan(plan: any): WorkoutPlanContent {
  * to our 547-exercise library.
  */
 function findExerciseInLibrary(name: string): any | null {
- if (!name) return null;
- const q = name.toLowerCase().trim();
+  if (!name) return null;
+  const q = name.toLowerCase().trim();
 
- // Direct name match
- let match = EXERCISES.find((e) => e.nameEn.toLowerCase() === q);
- if (match) return match;
+  // Direct name match
+  let match = EXERCISES.find((e) => e.nameEn.toLowerCase() === q);
+  if (match) return match;
 
- // Partial name match
- match = EXERCISES.find(
- (e) => e.nameEn.toLowerCase().includes(q) || q.includes(e.nameEn.toLowerCase()),
- );
- if (match) return match;
+  // Partial name match
+  match = EXERCISES.find(
+    (e) =>
+      e.nameEn.toLowerCase().includes(q) || q.includes(e.nameEn.toLowerCase()),
+  );
+  if (match) return match;
 
- // Arabic keyword matching
- const arabicMap: Array<{ keywords: string[]; enName: string }> = [
- { keywords: ["بنش بريس", "bench press"], enName: "Bench Press" },
- { keywords: ["سكوات", "squat"], enName: "Barbell Squat" },
- { keywords: ["ديدليفت", "deadlift"], enName: "Deadlift" },
- { keywords: ["عقلة", "pull-up", "pull up"], enName: "Pull-Up" },
- { keywords: ["ضغط أرضي", "push-up", "push up"], enName: "Push-Up" },
- { keywords: ["بلانك", "plank"], enName: "Plank" },
- { keywords: ["كرنش", "crunch"], enName: "Crunches" },
- { keywords: ["لانجز", "lunge"], enName: "Lunges" },
- { keywords: ["بايسبس", "bicep", "curl"], enName: "Dumbbell Bicep Curl" },
- { keywords: ["ترايسبس", "tricep", "pushdown"], enName: "Triceps Pushdown" },
- { keywords: ["كتف", "shoulder", "press"], enName: "Dumbbell Shoulder Press" },
- { keywords: ["تجديف", "row"], enName: "Bent Over Row" },
- { keywords: ["هيب ثرست", "hip thrust"], enName: "Barbell Hip Thrust" },
- { keywords: ["كاف", "calf"], enName: "Standing Calf Raises" },
- { keywords: ["ليج بريس", "leg press"], enName: "Leg Press" },
- { keywords: ["ليج كيرل", "leg curl"], enName: "Lying Leg Curls" },
- { keywords: ["ليج اكستنشن", "leg extension"], enName: "Leg Extensions" },
- ];
+  // Arabic keyword matching
+  const arabicMap: Array<{ keywords: string[]; enName: string }> = [
+    { keywords: ["بنش بريس", "bench press"], enName: "Bench Press" },
+    { keywords: ["سكوات", "squat"], enName: "Barbell Squat" },
+    { keywords: ["ديدليفت", "deadlift"], enName: "Deadlift" },
+    { keywords: ["عقلة", "pull-up", "pull up"], enName: "Pull-Up" },
+    { keywords: ["ضغط أرضي", "push-up", "push up"], enName: "Push-Up" },
+    { keywords: ["بلانك", "plank"], enName: "Plank" },
+    { keywords: ["كرنش", "crunch"], enName: "Crunches" },
+    { keywords: ["لانجز", "lunge"], enName: "Lunges" },
+    { keywords: ["بايسبس", "bicep", "curl"], enName: "Dumbbell Bicep Curl" },
+    { keywords: ["ترايسبس", "tricep", "pushdown"], enName: "Triceps Pushdown" },
+    {
+      keywords: ["كتف", "shoulder", "press"],
+      enName: "Dumbbell Shoulder Press",
+    },
+    { keywords: ["تجديف", "row"], enName: "Bent Over Row" },
+    { keywords: ["هيب ثرست", "hip thrust"], enName: "Barbell Hip Thrust" },
+    { keywords: ["كاف", "calf"], enName: "Standing Calf Raises" },
+    { keywords: ["ليج بريس", "leg press"], enName: "Leg Press" },
+    { keywords: ["ليج كيرل", "leg curl"], enName: "Lying Leg Curls" },
+    { keywords: ["ليج اكستنشن", "leg extension"], enName: "Leg Extensions" },
+  ];
 
- for (const { keywords, enName } of arabicMap) {
- for (const kw of keywords) {
- if (q.includes(kw.toLowerCase())) {
- match = EXERCISES.find((e) => e.nameEn === enName);
- if (match) return match;
- // Fuzzy: find any exercise whose name contains the English keyword
- match = EXERCISES.find((e) =>
- e.nameEn.toLowerCase().includes(kw.toLowerCase()),
- );
- if (match) return match;
- }
- }
- }
+  for (const { keywords, enName } of arabicMap) {
+    for (const kw of keywords) {
+      if (q.includes(kw.toLowerCase())) {
+        match = EXERCISES.find((e) => e.nameEn === enName);
+        if (match) return match;
+        // Fuzzy: find any exercise whose name contains the English keyword
+        match = EXERCISES.find((e) =>
+          e.nameEn.toLowerCase().includes(kw.toLowerCase()),
+        );
+        if (match) return match;
+      }
+    }
+  }
 
- return null;
+  return null;
 }
 
 /**
  * Get the first image URL from an exercise in our library.
  */
 function getExerciseImageFromLibrary(exercise: any): string | undefined {
- if (!exercise || !exercise.imageKey) return undefined;
- const images = exercise.imageKey.split(",").filter(Boolean);
- if (images.length === 0) return undefined;
- return `https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/${images[0].trim()}`;
+  if (!exercise || !exercise.imageKey) return undefined;
+  const images = exercise.imageKey.split(",").filter(Boolean);
+  if (images.length === 0) return undefined;
+  return `https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/${images[0].trim()}`;
 }
 
 /* ----------------- Coach-pasted plan normalizer ----------------- */
@@ -771,28 +868,28 @@ function getExerciseImageFromLibrary(exercise: any): string | undefined {
  * regenerate-meal button.
  */
 export async function normalizeCoachPlanText(
- rawText: string,
- planType: "nutrition" | "workout",
+  rawText: string,
+  planType: "nutrition" | "workout",
 ): Promise<{ content: any; source: string }> {
- if (!rawText || !rawText.trim()) {
- return { content: null, source: "empty" };
- }
+  if (!rawText || !rawText.trim()) {
+    return { content: null, source: "empty" };
+  }
 
- // If it's already valid JSON, just normalize it.
- if (rawText.trim().startsWith("{") || rawText.trim().startsWith("[")) {
- try {
- const parsed = JSON.parse(rawText);
- const normalized =
- planType === "nutrition"
- ? normalizeNutritionPlan(parsed)
- : normalizeWorkoutPlan(parsed);
- return { content: normalized, source: "json-direct" };
- } catch {
- // fall through to AI parsing
- }
- }
+  // If it's already valid JSON, just normalize it.
+  if (rawText.trim().startsWith("{") || rawText.trim().startsWith("[")) {
+    try {
+      const parsed = JSON.parse(rawText);
+      const normalized =
+        planType === "nutrition"
+          ? normalizeNutritionPlan(parsed)
+          : normalizeWorkoutPlan(parsed);
+      return { content: normalized, source: "json-direct" };
+    } catch {
+      // fall through to AI parsing
+    }
+  }
 
- const prompt = `أنت مساعد ذكي في منصة MuscleHub. مهمتك: تحويل نص خطة ${planType === "nutrition" ? "تغذية" : "تمارين"} حر (مكتوبة يدوياً أو منسوخة من PDF) إلى JSON منظم قابل للتعديل.
+  const prompt = `أنت مساعد ذكي في منصة MuscleHub. مهمتك: تحويل نص خطة ${planType === "nutrition" ? "تغذية" : "تمارين"} حر (مكتوبة يدوياً أو منسوخة من PDF) إلى JSON منظم قابل للتعديل.
 
 النص الأصلي:
 """
@@ -800,8 +897,9 @@ ${rawText.slice(0, 8000)}
 """
 
 استخرج كل المعلومات من النص وحوّلها إلى JSON بالتنسيق التالي:
-${planType === "nutrition"
- ? `{
+${
+  planType === "nutrition"
+    ? `{
  "overview": "نظرة عامة من النص",
  "data_analysis": { "weight": "...", "height": "...", ... },
  "daily_calories": 1400,
@@ -820,7 +918,7 @@ ${planType === "nutrition"
  }
  ]
 }`
- : `{
+    : `{
  "overview": "نظرة عامة",
  "days": [
  {
@@ -832,7 +930,8 @@ ${planType === "nutrition"
  ]
  }
  ]
-}`}
+}`
+}
 
 قواعد:
 - إذا لم تجد قيمة لحق ما، اتركه فارغاً أو 0 — لا تخترع أرقاماً.
@@ -840,59 +939,63 @@ ${planType === "nutrition"
 - حافظ على أسماء الأصناف والكميات كما هي في النص الأصلي.
 - أعد JSON صالح فقط (بدون نص إضافي، بدون أسوار markdown).`;
 
- try {
- for (const model of OPENROUTER_FREE_MODELS) {
- if (!OPENROUTER_KEY) break;
- try {
- const { text } = await callAIWithFallback(
- prompt,
- {
- systemPrompt: "أنت مساعد ذكي لتحويل نصوص الخطط إلى JSON منظم. أعد JSON صالح فقط.",
- temperature: 0.3, // low temp for faithful extraction
- maxTokens: 4000,
- jsonMode: true,
- timeoutMs: 60_000,
- },
- {
- provider: "openrouter" as AIProvider,
- apiKey: OPENROUTER_KEY,
- model,
- baseUrl: OPENROUTER_BASE,
- },
- );
- const parsed = parseJSON<any>(text);
- if (parsed && (parsed.meals || parsed.days)) {
- const normalized =
- planType === "nutrition"
- ? normalizeNutritionPlan(parsed)
- : normalizeWorkoutPlan(parsed);
- return { content: normalized, source: `openrouter:${model}` };
- }
- } catch (e: any) {
- console.error(`[normalize-coach-plan] OpenRouter ${model} failed:`, e?.message);
- }
- }
- } catch (e: any) {
- console.error("[normalize-coach-plan] All models failed:", e?.message);
- }
+  try {
+    for (const model of OPENROUTER_FREE_MODELS) {
+      if (!OPENROUTER_KEY) break;
+      try {
+        const { text } = await callAIWithFallback(
+          prompt,
+          {
+            systemPrompt:
+              "أنت مساعد ذكي لتحويل نصوص الخطط إلى JSON منظم. أعد JSON صالح فقط.",
+            temperature: 0.3, // low temp for faithful extraction
+            maxTokens: 4000,
+            jsonMode: true,
+            timeoutMs: 60_000,
+          },
+          {
+            provider: "openrouter" as AIProvider,
+            apiKey: OPENROUTER_KEY,
+            model,
+            baseUrl: OPENROUTER_BASE,
+          },
+        );
+        const parsed = parseJSON<any>(text);
+        if (parsed && (parsed.meals || parsed.days)) {
+          const normalized =
+            planType === "nutrition"
+              ? normalizeNutritionPlan(parsed)
+              : normalizeWorkoutPlan(parsed);
+          return { content: normalized, source: `openrouter:${model}` };
+        }
+      } catch (e: any) {
+        console.error(
+          `[normalize-coach-plan] OpenRouter ${model} failed:`,
+          e?.message,
+        );
+      }
+    }
+  } catch (e: any) {
+    console.error("[normalize-coach-plan] All models failed:", e?.message);
+  }
 
- // Last-resort fallback: wrap the raw text in a minimal structure
- if (planType === "nutrition") {
- return {
- content: normalizeNutritionPlan({
- overview: rawText.slice(0, 500),
- daily_calories: 0,
- macros: { protein_g: 0, carbs_g: 0, fat_g: 0 },
- meals: [],
- }),
- source: "raw-text-fallback",
- };
- }
- return {
- content: normalizeWorkoutPlan({
- overview: rawText.slice(0, 500),
- days: [],
- }),
- source: "raw-text-fallback",
- };
+  // Last-resort fallback: wrap the raw text in a minimal structure
+  if (planType === "nutrition") {
+    return {
+      content: normalizeNutritionPlan({
+        overview: rawText.slice(0, 500),
+        daily_calories: 0,
+        macros: { protein_g: 0, carbs_g: 0, fat_g: 0 },
+        meals: [],
+      }),
+      source: "raw-text-fallback",
+    };
+  }
+  return {
+    content: normalizeWorkoutPlan({
+      overview: rawText.slice(0, 500),
+      days: [],
+    }),
+    source: "raw-text-fallback",
+  };
 }

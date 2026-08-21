@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { callFreeOpenRouterRace, parseJSON } from "@/lib/ai-provider";
+import { callGeminiJSON } from "@/lib/gemini-wrapper";
 import { requireUser, isAuthConfigured } from "@/lib/auth-server";
 
 /**
  * Swap a meal or exercise for an alternative.
- * Uses OpenRouter's best free models, with local fallback.
+ * Uses Gemini first, with OpenRouter's best free models and local fallback.
  *
  * POST /api/ai/swap
  * Body: { type, item, clientContext, note }
@@ -18,30 +19,37 @@ import { requireUser, isAuthConfigured } from "@/lib/auth-server";
 export const maxDuration = 60;
 
 export async function POST(request: NextRequest) {
- try {
- // Any logged-in user — both coach and clients use swaps.
- if (isAuthConfigured) {
- const auth = await requireUser(request);
- if (auth instanceof Response) return auth;
- }
+  try {
+    // Any logged-in user — both coach and clients use swaps.
+    if (isAuthConfigured) {
+      const auth = await requireUser(request);
+      if (auth instanceof Response) return auth;
+    }
 
- const body = await request.json();
- const { type, item, clientContext, note } = body;
+    const body = await request.json();
+    const { type, item, clientContext, note } = body;
 
- if (!type || !item) {
- return NextResponse.json({ error: "Missing type or item" }, { status: 400 });
- }
+    if (!type || !item) {
+      return NextResponse.json(
+        { error: "Missing type or item" },
+        { status: 400 },
+      );
+    }
 
- if (type === "meal") {
- const targetCalories = (item.items || []).reduce(
- (s: number, i: any) => s + (i.calories || 0),
- 0,
- );
+    if (type === "meal") {
+      const targetCalories = (item.items || []).reduce(
+        (s: number, i: any) => s + (i.calories || 0),
+        0,
+      );
 
- const prompt = `أنت أخصائي تغذية. استبدل الوجبة التالية بوجبة بديلة مكافئة بنفس السعرات تقريباً (${targetCalories} سعرة) ونفس نسب الماكروز قدر الإمكان.
+      const prompt = `أنت أخصائي تغذية. استبدل الوجبة التالية بوجبة بديلة مكافئة بنفس السعرات تقريباً (${targetCalories} سعرة) ونفس نسب الماكروز قدر الإمكان.
 
-${clientContext ? `بيانات العميل (راعِ الحساسية والأطعمة غير المحببة):
-${JSON.stringify(clientContext, null, 2)}` : ""}
+${
+  clientContext
+    ? `بيانات العميل (راعِ الحساسية والأطعمة غير المحببة):
+${JSON.stringify(clientContext, null, 2)}`
+    : ""
+}
 
 الوجبة الحالية:
 ${JSON.stringify(item, null, 2)}
@@ -58,30 +66,59 @@ ${note ? `طلب العميل: ${note}` : ""}
  "notes": "ملاحظة قصيرة"
 }`;
 
- // Try OpenRouter free models (shared helper handles the iteration)
- try {
- const { text, model } = await callFreeOpenRouterRace(
- prompt,
- {
- systemPrompt: "أنت أخصائي تغذية محترف. أعد JSON صالح فقط.",
- temperature: 0.7,
- maxTokens: 1500,
- jsonMode: true,
- timeoutMs: 30_000,
- }, 3,
-);
- const replacement = parseJSON<any>(text);
- if (replacement && replacement.items) {
- return NextResponse.json({ replacement, source: `openrouter:${model}` });
- }
- } catch (e: any) {
- console.error("[api/ai/swap] meal OpenRouter failed:", e?.message);
- }
- } else if (type === "exercise") {
- const prompt = `أنت مدرب لياقة. استبدل التمرين التالي بتمرين بديل يستهدف نفس العضلة (${item.focus || "غير محدد"}) بنفس الحجم والشدة.
+      // 1. Try Gemini first
+      try {
+        const { data: geminiMeal, model: geminiModel } = await callGeminiJSON<any>(
+          prompt,
+          {
+            systemPrompt: "أنت أخصائي تغذية محترف. أعد JSON صالح فقط.",
+            temperature: 0.7,
+            maxTokens: 1500,
+            timeoutMs: 25_000,
+          },
+        );
+        if (geminiMeal && geminiMeal.items && geminiMeal.items.length > 0) {
+          return NextResponse.json({
+            replacement: geminiMeal,
+            source: `gemini:${geminiModel}`,
+          });
+        }
+      } catch (gErr: any) {
+        console.warn("[api/ai/swap] Gemini meal notice, trying OpenRouter fallback:", gErr?.message);
+      }
 
-${clientContext ? `بيانات العميل (راعِ المعدات والإصابات):
-${JSON.stringify(clientContext, null, 2)}` : ""}
+      // 2. Try OpenRouter free models (shared helper handles the iteration)
+      try {
+        const { text, model } = await callFreeOpenRouterRace(
+          prompt,
+          {
+            systemPrompt: "أنت أخصائي تغذية محترف. أعد JSON صالح فقط.",
+            temperature: 0.7,
+            maxTokens: 1500,
+            jsonMode: true,
+            timeoutMs: 30_000,
+          },
+          3,
+        );
+        const replacement = parseJSON<any>(text);
+        if (replacement && replacement.items) {
+          return NextResponse.json({
+            replacement,
+            source: `openrouter:${model}`,
+          });
+        }
+      } catch (e: any) {
+        console.error("[api/ai/swap] meal OpenRouter failed:", e?.message);
+      }
+    } else if (type === "exercise") {
+      const prompt = `أنت مدرب لياقة. استبدل التمرين التالي بتمرين بديل يستهدف نفس العضلة (${item.focus || "غير محدد"}) بنفس الحجم والشدة.
+
+${
+  clientContext
+    ? `بيانات العميل (راعِ المعدات والإصابات):
+${JSON.stringify(clientContext, null, 2)}`
+    : ""
+}
 
 التمرين الحالي:
 ${JSON.stringify(item, null, 2)}
@@ -98,58 +135,84 @@ ${note ? `طلب العميل: ${note}` : ""}
  "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/..."
 }`;
 
- try {
- const { text, model } = await callFreeOpenRouterRace(
- prompt,
- {
- systemPrompt: "أنت مدرب لياقة محترف. أعد JSON صالح فقط.",
- temperature: 0.7,
- maxTokens: 800,
- jsonMode: true,
- timeoutMs: 30_000,
- }, 3,
-);
- const replacement = parseJSON<any>(text);
- if (replacement && replacement.name) {
- return NextResponse.json({ replacement, source: `openrouter:${model}` });
- }
- } catch (e: any) {
- console.error("[api/ai/swap] exercise OpenRouter failed:", e?.message);
- }
- }
+      // 1. Try Gemini first
+      try {
+        const { data: geminiEx, model: geminiModel } = await callGeminiJSON<any>(
+          prompt,
+          {
+            systemPrompt: "أنت مدرب لياقة محترف. أعد JSON صالح فقط.",
+            temperature: 0.7,
+            maxTokens: 800,
+            timeoutMs: 25_000,
+          },
+        );
+        if (geminiEx && geminiEx.name) {
+          return NextResponse.json({
+            replacement: geminiEx,
+            source: `gemini:${geminiModel}`,
+          });
+        }
+      } catch (gErr: any) {
+        console.warn("[api/ai/swap] Gemini exercise notice, trying OpenRouter fallback:", gErr?.message);
+      }
 
- // Fallback: simple local replacement
- if (type === "meal") {
- return NextResponse.json({
- replacement: {
- name: "وجبة بديلة",
- items: [
- { food: "صدر دجاج مشوي", amount: "150 جم", calories: 165 },
- { food: "أرز بسمتي", amount: "100 جم", calories: 130 },
- { food: "سلطة خضار", amount: "طبق", calories: 50 },
- { food: "زيت زيتون", amount: "1 ملعقة", calories: 120 },
- ],
- notes: "وجبة متوازنة",
- },
- source: "local-fallback",
- });
- } else {
- return NextResponse.json({
- replacement: {
- name: "تمرين بديل",
- sets: item.sets || 3,
- reps: item.reps || "10-12",
- rest: item.rest || "90 ثانية",
- notes: "تمرين يستهدف نفس العضلة",
- },
- source: "local-fallback",
- });
- }
- } catch (e: any) {
- console.error("[api/ai/swap] Error:", e?.message || e);
- return NextResponse.json(
- { error: e?.message || "Internal server error" },
- { status: 500 },
- );
- }
+      // 2. Try OpenRouter free models
+      try {
+        const { text, model } = await callFreeOpenRouterRace(
+          prompt,
+          {
+            systemPrompt: "أنت مدرب لياقة محترف. أعد JSON صالح فقط.",
+            temperature: 0.7,
+            maxTokens: 800,
+            jsonMode: true,
+            timeoutMs: 30_000,
+          },
+          3,
+        );
+        const replacement = parseJSON<any>(text);
+        if (replacement && replacement.name) {
+          return NextResponse.json({
+            replacement,
+            source: `openrouter:${model}`,
+          });
+        }
+      } catch (e: any) {
+        console.error("[api/ai/swap] exercise OpenRouter failed:", e?.message);
+      }
+    }
+
+    // Fallback: simple local replacement
+    if (type === "meal") {
+      return NextResponse.json({
+        replacement: {
+          name: "وجبة بديلة",
+          items: [
+            { food: "صدر دجاج مشوي", amount: "150 جم", calories: 165 },
+            { food: "أرز بسمتي", amount: "100 جم", calories: 130 },
+            { food: "سلطة خضار", amount: "طبق", calories: 50 },
+            { food: "زيت زيتون", amount: "1 ملعقة", calories: 120 },
+          ],
+          notes: "وجبة متوازنة",
+        },
+        source: "local-fallback",
+      });
+    } else {
+      return NextResponse.json({
+        replacement: {
+          name: "تمرين بديل",
+          sets: item.sets || 3,
+          reps: item.reps || "10-12",
+          rest: item.rest || "90 ثانية",
+          notes: "تمرين يستهدف نفس العضلة",
+        },
+        source: "local-fallback",
+      });
+    }
+  } catch (e: any) {
+    console.error("[api/ai/swap] Error:", e?.message || e);
+    return NextResponse.json(
+      { error: e?.message || "Internal server error" },
+      { status: 500 },
+    );
+  }
 }

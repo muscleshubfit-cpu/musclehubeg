@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { parseJSON } from "@/lib/ai-provider";
-import { callGemini } from "@/lib/gemini-wrapper";
+import { callGemini, getGeminiApiKey } from "@/lib/gemini-wrapper";
 import { requireCoach, isAuthConfigured } from "@/lib/auth-server";
 import { externalSearch } from "@/lib/external-search";
 
@@ -82,9 +82,7 @@ export async function POST(request: NextRequest) {
     let searcherGoal: string | null = null;
     let contentGaps: string[] = [];
 
-    const canCallLLM = Boolean(
-      process.env.OPENROUTER_API_KEY || process.env.AI_API_KEY,
-    );
+    const canCallLLM = Boolean(getGeminiApiKey());
 
     if (canCallLLM && research.totalResults > 0) {
       const enrichmentPrompt = buildEnrichmentPrompt(

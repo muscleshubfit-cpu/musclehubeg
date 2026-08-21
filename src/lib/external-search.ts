@@ -1,4 +1,5 @@
 import { GoogleGenAI } from "@google/genai";
+import { getGeminiApiKey } from "@/lib/gemini-wrapper";
 
 export type ExternalSearchArticle = {
   title: string;
@@ -78,7 +79,7 @@ export async function externalSearch(
   }
 
   try {
-    const apiKey = process.env.GEMINI_API_KEY || process.env.AI_API_KEY || process.env.OPENAI_API_KEY;
+    const apiKey = getGeminiApiKey();
     if (!apiKey) {
       throw new Error("GEMINI_API_KEY is not configured.");
     }
