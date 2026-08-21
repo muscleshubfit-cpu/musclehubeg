@@ -296,8 +296,19 @@ async function runSingleQuery(
     return { results: [], error: null };
   } catch (e: any) {
     const errorMsg = e?.message || String(e);
+    // TEMP DIAGNOSTIC: extract Node.js fetch error details (cause chain)
+    const cause = e?.cause;
     console.error(
       `[external-search] web_search failed for "${query}": ${errorMsg}`,
+    );
+    console.error(
+      `[external-search] DIAGNOSTIC: name=${e?.name} message=${e?.message} ` +
+      `cause.type=${cause?.constructor?.name} ` +
+      `cause.code=${cause?.code} ` +
+      `cause.errno=${cause?.errno} ` +
+      `cause.syscall=${cause?.syscall} ` +
+      `cause.hostname=${cause?.hostname} ` +
+      `cause.message=${cause?.message}`,
     );
     return { results: [], error: errorMsg };
   }
