@@ -98,7 +98,7 @@ export async function adminCreatePost(
   if (!client) throw new Error("Supabase client unavailable");
 
   const now = new Date().toISOString();
-  const payload = {
+  const payload: Record<string, any> = {
     language: post.language || "ar",
     title: post.title || "مقال جديد",
     slug: post.slug || `post-${Date.now()}`,
@@ -118,10 +118,13 @@ export async function adminCreatePost(
     published_at: post.is_published ? now : null,
     created_at: now,
     updated_at: now,
-    source: post.source || "manual",
     faq_json: post.faq_json || [],
     schema_json: post.schema_json || {},
   };
+
+  if (post.source) {
+    payload.source = post.source;
+  }
 
   const { data, error } = await (client as any)
     .from("blog_posts")
@@ -130,8 +133,21 @@ export async function adminCreatePost(
     .single();
 
   if (error) {
-    console.error("[adminCreatePost] Error:", error);
-    throw new Error(error.message);
+    console.error("[adminCreatePost] Primary insert error:", error);
+    if ("source" in payload) {
+      delete payload.source;
+      const retryRes = await (client as any)
+        .from("blog_posts")
+        .insert([payload])
+        .select()
+        .single();
+      if (!retryRes.error) {
+        return retryRes.data as unknown as AdminBlogPost;
+      }
+      console.error("[adminCreatePost] Retry insert error:", retryRes.error);
+      throw new Error(retryRes.error.message || "فشل إنشاء المقال");
+    }
+    throw new Error(error.message || "فشل إنشاء المقال");
   }
   return data as unknown as AdminBlogPost;
 }
@@ -143,10 +159,14 @@ export async function adminUpdatePost(
   const client = typeof window === "undefined" ? supabaseAdmin : supabaseClient;
   if (!client) throw new Error("Supabase client unavailable");
 
-  const payload = {
+  const payload: Record<string, any> = {
     ...updates,
     updated_at: new Date().toISOString(),
   };
+
+  if (payload.source === undefined) {
+    delete payload.source;
+  }
 
   const { data, error } = await (client as any)
     .from("blog_posts")
@@ -156,8 +176,22 @@ export async function adminUpdatePost(
     .single();
 
   if (error) {
-    console.error("[adminUpdatePost] Error:", error);
-    throw new Error(error.message);
+    console.error("[adminUpdatePost] Primary update error:", error);
+    if ("source" in payload) {
+      delete payload.source;
+      const retryRes = await (client as any)
+        .from("blog_posts")
+        .update(payload)
+        .eq("id", id)
+        .select()
+        .single();
+      if (!retryRes.error) {
+        return retryRes.data as unknown as AdminBlogPost;
+      }
+      console.error("[adminUpdatePost] Retry update error:", retryRes.error);
+      throw new Error(retryRes.error.message || "فشل تحديث المقال");
+    }
+    throw new Error(error.message || "فشل تحديث المقال");
   }
   return data as unknown as AdminBlogPost;
 }
