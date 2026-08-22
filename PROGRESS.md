@@ -2720,3 +2720,66 @@ Options:
 - [x] Step3-publish builds enRow and arRow independently — NO spread
 - [x] Old queue bundles still work (buildFinalBundle falls back to shared fields)
 - [x] linked_post_id preserved as DB linking only
+
+---
+
+## SEO + AdSense Fixes — COMPLETED (2026-08-22)
+
+### What was fixed
+
+**1. ads.txt (P0)**
+- Created `public/ads.txt` with content: `google.com, pub-8658364692422583, DIRECT, f08c47fec0942fa0`
+- Updated `next.config.ts` headers() to include `ads.txt` in the same Cache-Control group as `robots.txt` and `sitemap.xml`.
+- Production: HTTP 200, content-type: text/plain, exact content match.
+
+**2. Private pages noindex (P1)**
+- Refactored `(app)/layout.tsx` and `admin/layout.tsx` (both were client components and could not export metadata) into:
+  - Server-component `layout.tsx` (owns `metadata: { robots: { index: false, follow: false } }`)
+  - Client-component gate (`auth-gate.tsx` / `admin-gate.tsx`) rendered as the body
+- Routes now emitting `noindex, nofollow`:
+  - `/dashboard`, `/plans`, `/progress`, `/chat`, `/support`, `/referral`, `/coach/*`, `/questionnaires` (via `(app)/layout.tsx`)
+  - `/admin/*` (via `admin/layout.tsx`)
+  - `/profile` (via `profile/layout.tsx` — added to existing metadata)
+  - `/checkout` (new `checkout/layout.tsx`)
+  - `/auth`, `/auth/callback` (new `auth/layout.tsx`)
+
+**3. 404 page noindex (P1)**
+- Created `src/app/not-found.tsx` with:
+  - `metadata.robots: { index: false, follow: false }`
+  - `metadata.alternates.canonical: ""` — suppresses the inherited root canonical (so 404 URL is not treated as a duplicate of homepage)
+  - Visual style matches Next.js default 404 (UX preserved)
+
+**4. Hreflang fix (P1)**
+- Updated `src/app/metadata.ts` `alternates.languages.ar-EG`:
+  - From: `https://musclehubeg.vercel.app` (same as en-US — bug)
+  - To: `https://musclehubeg.vercel.app/ar` (correct Arabic URL)
+
+### What was NOT changed (per task constraints)
+- `public/robots.txt` — untouched
+- `src/app/sitemap.ts` — untouched
+- `src/middleware.ts` — untouched
+- `src/components/AdSenseAd.tsx` — untouched
+- `src/app/layout.tsx` (AdSense script loading) — untouched
+- `vercel.json` — untouched
+- Database, blog generation, AI system — untouched
+
+### Verification (post-deploy on musclehubeg.vercel.app)
+- `/ads.txt` → HTTP 200, `text/plain; charset=utf-8`, content exact match
+- `/robots.txt` → HTTP 200 (unchanged)
+- `/sitemap.xml` → HTTP 200, 155 URLs (unchanged)
+- `/dashboard` → `<meta name="robots" content="noindex, nofollow"/>`
+- `/admin/blog` → `<meta name="robots" content="noindex, nofollow"/>`
+- `/profile` → `<meta name="robots" content="noindex, nofollow"/>`
+- `/checkout` → `<meta name="robots" content="noindex, nofollow"/>`
+- `/auth` → `<meta name="robots" content="noindex, nofollow"/>`
+- 404 page → `<meta name="robots" content="noindex, nofollow"/>` + NO `<link rel="canonical">` tag
+- Homepage hreflang → `ar-EG` now points to `https://musclehubeg.vercel.app/ar`
+
+### Tests
+- `tsc --noEmit`: PASS (0 errors)
+- `bun run lint`: PASS (0 errors, 4 pre-existing warnings in unrelated files)
+- `bun run build`: PASS (79/79 static pages)
+- `git diff --check`: clean
+
+### Note on AdSense readiness
+This commit makes `ads.txt` available on production. AdSense's crawler will fetch it within 24-48 hours; the "Earnings at risk — you need to fix ads.txt" warning in the AdSense dashboard should clear automatically after that. This is not something we can verify from code — it requires waiting for Google's crawler + checking the AdSense dashboard.

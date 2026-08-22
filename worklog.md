@@ -116,3 +116,80 @@ Architecture Decision Record — EN/AR separation:
   "fix"). This is intentional — the user's requirement is full separation, even
   at the cost of structural coherence. Each language now produces a genuinely
   independent article.
+
+---
+Task ID: SEO-ADSENSE-FIX
+Agent: Main (Z User)
+Task: Implement SEO + AdSense fixes per TRACE/AUDIT report — add ads.txt, add noindex to private pages, fix 404 page, fix hreflang.
+
+Work Log:
+- Created `public/ads.txt` with content:
+    google.com, pub-8658364692422583, DIRECT, f08c47fec0942fa0
+  (publisher ID extracted from production AdSense script tag — confirmed
+  present in NEXT_PUBLIC_ADSENSE_CLIENT env var on Vercel + as fallback in
+  src/components/AdSenseAd.tsx:75).
+
+- Updated `next.config.ts` headers() to include `ads.txt` in the same
+  Cache-Control group as `robots.txt` and `sitemap.xml`.
+
+- Refactored `src/app/(app)/layout.tsx` (was client component):
+  • Renamed to `src/app/(app)/auth-gate.tsx` — named export `AuthGate`
+    (no metadata export — client component).
+  • Created new `src/app/(app)/layout.tsx` — server component that exports
+    `metadata: { robots: { index: false, follow: false } }` and renders
+    <AuthGate> as body.
+  • Covers: /dashboard, /plans, /progress, /chat, /support, /referral,
+    /coach/*, /questionnaires.
+
+- Refactored `src/app/admin/layout.tsx` (was client component):
+  • Renamed to `src/app/admin/admin-gate.tsx` — named export `AdminGate`.
+  • Created new `src/app/admin/layout.tsx` — server component with noindex
+    metadata + renders <AdminGate>.
+  • Covers: /admin/blog, /admin/referrals, /admin/leads, /admin/saved-results.
+
+- Updated `src/app/profile/layout.tsx`: added `robots: { index: false, follow: false }`
+  to existing metadata.
+
+- Created `src/app/checkout/layout.tsx`: server component with noindex
+  (page.tsx is a client component, so layout owns the metadata).
+
+- Created `src/app/auth/layout.tsx`: server component with noindex
+  (covers /auth + /auth/callback).
+
+- Created `src/app/not-found.tsx`:
+  • `metadata.robots: { index: false, follow: false }`
+  • `metadata.alternates.canonical: ""` — suppresses the inherited root
+    canonical (so 404 URL is not treated as a duplicate of homepage).
+  • Visual style matches Next.js default 404 (centered numeric 404 + divider
+    + caption + "Go back home" link).
+
+- Updated `src/app/metadata.ts` alternates.languages.ar-EG:
+  • From: "https://musclehubeg.vercel.app" (same as en-US — bug)
+  • To:   "https://musclehubeg.vercel.app/ar" (correct Arabic URL)
+
+Production verification (after push + 90s Vercel deploy):
+- /ads.txt → HTTP 200, content-type: text/plain, content matches exactly.
+- /robots.txt → HTTP 200 (unchanged, content matches).
+- /sitemap.xml → HTTP 200 (unchanged, 155 URLs).
+- /dashboard → <meta name="robots" content="noindex, nofollow"/>
+- /admin/blog → <meta name="robots" content="noindex, nofollow"/>
+- /profile → <meta name="robots" content="noindex, nofollow"/>
+- /checkout → <meta name="robots" content="noindex, nofollow"/>
+- /auth → <meta name="robots" content="noindex, nofollow"/>
+- 404 page → <meta name="robots" content="noindex, nofollow"/> + NO canonical tag.
+- Homepage hreflang → ar-EG now points to "https://musclehubeg.vercel.app/ar".
+
+Stage Summary:
+- ads.txt file is now present and accessible on production (HTTP 200, correct content-type, exact content match). AdSense crawler can fetch it.
+- All private authenticated pages (/dashboard, /plans, /progress, /chat, /support, /referral, /coach/*, /questionnaires, /admin/*, /profile, /checkout, /auth/*) now emit noindex, nofollow.
+- 404 page emits noindex, nofollow, and no canonical (does not point to homepage).
+- Hreflang ar-EG correctly points to /ar (was previously pointing to the English homepage URL — bug fixed).
+- public/robots.txt, src/app/sitemap.ts, src/middleware.ts, src/components/AdSenseAd.tsx, src/app/layout.tsx (AdSense script loading), vercel.json — all untouched per task constraints.
+- No database changes, no blog generation changes, no AI system changes.
+
+Verified:
+- tsc --noEmit: PASS (0 errors)
+- bun run lint: PASS (0 errors, 4 pre-existing warnings in unrelated files)
+- bun run build: PASS (79/79 static pages, 0 errors)
+- git diff --check: clean
+- Production verification: all 9 endpoints tested OK.
