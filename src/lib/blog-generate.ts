@@ -25,8 +25,7 @@
  * ─────────────────────────────────────────────────────────────────────────
  */
 
-import { parseJSON } from "@/lib/ai-provider";
-import { callGemini } from "@/lib/gemini-wrapper";
+import { callFreeOpenRouterLimited, parseJSON } from "@/lib/ai-provider";
 import { externalSearch } from "@/lib/external-search";
 
 export const ARTICLE_SYSTEM_PROMPT = `You are the MuscleHub AI Content Assistant — an expert SEO content strategist and copywriter for a premium online nutrition & fitness coaching platform (MuscleHub, musclehubeg.vercel.app).
@@ -526,7 +525,7 @@ export async function generateArticleBundle(
   // ───────────────────────────────────────────────────────────────────
   let chunk1: any = null;
   try {
-    const { text: raw1, model: model1 } = await callGemini(
+    const { text: raw1, model: model1 } = await callFreeOpenRouterLimited(
       chunk1Prompt(input, input.research),
       {
         systemPrompt: ARTICLE_SYSTEM_PROMPT,
@@ -539,19 +538,19 @@ export async function generateArticleBundle(
     chunk1 = parseJSON<any>(raw1);
     console.log(`[blog-generate] Chunk 1 done (model: ${model1}, has English: ${!!chunk1?.englishArticle})`);
   } catch (e: any) {
-    console.warn("[blog-generate] Chunk 1 AI call notice, using local structured bundle:", e?.message);
-    return generateLocalArticleBundle(input);
+    console.error("[blog-generate] Chunk 1 AI call failed:", e?.message);
+    throw new Error(`Blog article generation failed — all AI providers/models unavailable. Last error: ${e?.message || "Unknown"}. Ensure OPENROUTER_API is set with a valid key on Vercel.`);
   }
 
   if (!chunk1 || !chunk1.englishArticle || !chunk1.seo) {
-    console.warn("[blog-generate] Chunk 1 returned incomplete data, using local structured bundle.");
-    return generateLocalArticleBundle(input);
+    console.error("[blog-generate] Chunk 1 returned incomplete or invalid data.");
+    throw new Error("Blog article generation failed — AI returned incomplete data (missing englishArticle or seo). The model may be rate-limited or unavailable.");
   }
 
   // ───────────────────────────────────────────────────────────────────
   // CHUNK 2: Arabic Article + FAQ (in parallel with Chunk 3)
   // ───────────────────────────────────────────────────────────────────
-  const chunk2Promise = callGemini(
+  const chunk2Promise = callFreeOpenRouterLimited(
     chunk2Prompt(input, chunk1.seo),
     {
       systemPrompt: ARTICLE_SYSTEM_PROMPT,
@@ -572,7 +571,7 @@ export async function generateArticleBundle(
   // ───────────────────────────────────────────────────────────────────
   // CHUNK 3: Links + Image Prompts + Social Posts
   // ───────────────────────────────────────────────────────────────────
-  const chunk3Promise = callGemini(
+  const chunk3Promise = callFreeOpenRouterLimited(
     chunk3Prompt(input, chunk1.seo),
     {
       systemPrompt: ARTICLE_SYSTEM_PROMPT,
@@ -702,7 +701,7 @@ export async function generateEnglishArticle(
   research?: any,
 ): Promise<{ seo: any; englishArticle: string; source: string }> {
   const prompt = chunk1Prompt(input, research);
-  const { text, model } = await callGemini(
+  const { text, model } = await callFreeOpenRouterLimited(
     prompt,
     {
       systemPrompt: ARTICLE_SYSTEM_PROMPT,
@@ -730,7 +729,7 @@ export async function generateArabicArticle(
 ): Promise<{ arabicArticle: string; faq: any[]; faqAr: any[]; source: string }> {
   const prompt = chunk2Prompt(input, seo);
 
-  const { text, model } = await callGemini(
+  const { text, model } = await callFreeOpenRouterLimited(
     prompt,
     {
       systemPrompt: ARTICLE_SYSTEM_PROMPT,
@@ -841,7 +840,7 @@ Return STRICT JSON with this shape:
 
 Return ONLY the JSON. No commentary, no markdown fences.`;
 
-  const { text, model } = await callGemini(
+  const { text, model } = await callFreeOpenRouterLimited(
     prompt,
     {
       systemPrompt: ARTICLE_SYSTEM_PROMPT,
