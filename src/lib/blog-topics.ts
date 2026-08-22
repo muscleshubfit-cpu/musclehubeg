@@ -41,12 +41,19 @@ Requirements for the topic you pick:
  - Is CLEARLY DIFFERENT from every already-published title/keyword you're given below — not just reworded, a genuinely distinct angle (different sub-topic, different audience segment, different format like "vs" comparison / myth-busting / how-to / checklist).
  - Is likely to rank on Google AND get cited by AI answer engines (clear, answerable, specific — not vague).
 
+CRITICAL ANTI-REPETITION RULES:
+ - You MUST NOT pick a topic that covers the same core subject, target audience, or primary advice as ANY recently published post listed below.
+ - "Different" means a genuinely new angle — NOT a reworded version of the same topic.
+ - If all obvious angles within this pillar have been covered, dig deeper: explore niche sub-topics, emerging research, specific population segments (e.g., women, seniors, post-injury, Ramadan-specific), or cross-pillar intersections.
+ - Vary the article FORMAT each time: one time a how-to guide, next time a comparison, next time a myth-busting piece, next time a science deep-dive, next time a checklist.
+ - The focusKeyword MUST be different from all previously used focus keywords listed below.
+
 Consider the current month/season for relevance (e.g., Ramadan nutrition timing, summer cutting, winter bulking, New Year's resolution intent) only if it genuinely fits the assigned pillar — don't force it.
 
 Return STRICT JSON only, no prose, no markdown fences:
 {
   "topic": "string — a specific, compelling article topic (not just a keyword)",
-  "focusKeyword": "string — the primary SEO keyword this topic targets",
+  "focusKeyword": "string — the primary SEO keyword this topic targets (must be unique vs. all listed keywords)",
   "rationale": "string — 1-2 sentences: why this has search demand and will win on Google + AI search right now"
 }`;
 
@@ -267,18 +274,23 @@ ASSIGNED CONTENT PILLAR: ${category}
 RECENTLY PUBLISHED POSTS IN THIS PILLAR (MANDATORY: DO NOT duplicate, reword, or cover the same core topic/advice as any of these):
 ${samePillar.length ? samePillar.map((t, i) => `${i + 1}. "${t.title}" (Focus keyword: ${t.focusKeyword || "none"})`).join("\n") : "(none yet in this pillar)"}
 
-RECENT POSTS IN OTHER PILLARS (for overall site topic awareness):
+ALREADY USED FOCUS KEYWORDS IN THIS PILLAR (MUST NOT reuse any of these):
+${samePillar.length ? samePillar.map((t) => t.focusKeyword).filter(Boolean).join(", ") : "(none)"}
+
+RECENT POSTS IN OTHER PILLARS (for overall site topic awareness — avoid overlapping with these too):
 ${otherRecent.length ? otherRecent.map((t, i) => `• "${t.title}" [${t.category}]`).join("\n") : "(none)"}
 
 CRITICAL DIVERSITY & NO-REPETITION INSTRUCTIONS:
-1. Ensure the selected topic provides a FRESH, UNMET search angle within "${category}".
-2. Explore diverse content archetypes:
+1. The topic MUST provide a FRESH, UNMET search angle within "${category}" that has NOT been covered by any post listed above.
+2. The focusKeyword MUST be different from ALL listed focus keywords — not a variation or synonym of an existing one.
+3. Explore diverse content archetypes:
    - Deep-dive biomechanics or scientific myth-busting
    - Exact practical step-by-step routines or meal prep strategies
-   - Specific target demographics (beginners, busy professionals, athletes, women, post-injury recovery)
+   - Specific target demographics (beginners, busy professionals, athletes, women, post-injury recovery, seniors, Ramadan-specific)
    - Comparative analysis (X vs Y, Protocol A vs Protocol B)
    - Timely metabolic/seasonal health strategies
-3. The focus keyword must be distinct and have high search intent.
+4. If this pillar already has many posts, pick a NICHE sub-topic rather than a broad overview.
+5. The topic should answer a specific question a real person would search for.
 
 Pick the single best, unique topic now strictly within the "${category}" pillar.`;
 

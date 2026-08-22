@@ -154,22 +154,33 @@ STEP 4 — ARABIC ARTICLE (LOCALIZED, NOT TRANSLATED, Markdown, 500-800 words):
  - Do NOT translate English idioms literally — rewrite for Arabic readers.
  - Same SEO structure as English (H2/H3, table, key takeaways, CTA sections).
  - Include the focus keyword (transliterated or Arabic equivalent) naturally.
- - CRITICAL: The ENTIRE Arabic article MUST be 100% in Arabic. This includes:
-   * All headings (H2, H3) — Arabic only, no English words
-   * All paragraphs — Arabic only
-   * All table headers and cell content — Arabic only
-   * The FAQ questions and answers — Arabic only
-   * The CTA section — Arabic only
-   * The "Key Takeaways" section — Arabic only
-   * Source citations — write the source name in Arabic (e.g. "وفقاً لدراسة في المجلة الدولية للتغذية الرياضية")
-   * Scientific terms — transliterate to Arabic or explain in Arabic (e.g. "معدل الأيض الأساسي (BMR)")
-   * Do NOT write any English sentence, phrase, or heading in the Arabic article
+
+CRITICAL ARABIC-ONLY RULES (VIOLATION = REJECTED ARTICLE):
+ 1. The ENTIRE Arabic article MUST be 100% Arabic text.
+ 2. ALL headings (H2, H3) — Arabic ONLY. No English words in any heading.
+ 3. ALL paragraphs — Arabic ONLY. No English sentences or phrases.
+ 4. ALL table headers and cell content — Arabic ONLY.
+ 5. The CTA section — Arabic ONLY.
+ 6. The "Key Takeaways" section — Arabic ONLY.
+ 7. Source citations — write in Arabic format: "وفقاً لدراسة في المجلة الدولية للتغذية الرياضية"
+ 8. Scientific terms — transliterate to Arabic with original in parentheses: "معدل الأيض الأساسي (BMR)"
+    - Only the abbreviation in parentheses is allowed in English (e.g., "BMR", "DNA", "ATP").
+    - The full term MUST be written in Arabic before the abbreviation.
+ 9. English keywords are NOT to be inserted into the Arabic text for SEO purposes.
+    - Use the Arabic equivalent or transliteration instead.
+    - Example: use "البروتين" not "protein", use "التمارين" not "workout".
+ 10. Do NOT write ANY English sentence, phrase, or heading in the Arabic article body.
+ 11. The article must be a genuinely localized piece — not a word-for-word translation.
+     Rewrite examples, metaphors, and cultural references for an Arabic-speaking audience.
 
 STEP 5 — FAQ (3-5 Q&As, SEPARATE for each language):
  - Questions people ask on Google + AI assistants about this topic.
  - Answers 40-80 words each, concise and quotable.
  - English FAQ: questions and answers in English.
- - Arabic FAQ: questions and answers in Arabic ONLY — no English words.
+ - Arabic FAQ (faq_ar field): questions and answers in Arabic ONLY.
+   - Arabic FAQ questions MUST be different from the English FAQ questions — not translations.
+   - Arabic FAQ answers MUST be written fresh for Arabic readers.
+   - No English words in the Arabic FAQ except scientific abbreviations in parentheses.
  - Return FAQ as: [{ "question": "English Q", "answer": "English A" }, ...]
    The system will use these for the English article. For the Arabic article,
    include a separate "faq_ar" field with Arabic-only Q&A.
@@ -211,8 +222,14 @@ STEP 6 — LINK SUGGESTIONS (MUST be included in both articles):
 
 STEP 7 — IMAGE PROMPTS (English, for AI image generators):
  - featuredImage, facebookImage, openGraphImage
- - Each prompt: ultra-realistic, premium fitness style, dramatic lighting, blue & gold accent palette, NO text overlay, high CTR.
- - Vary composition between the three (different angles / subjects).
+ - CRITICAL: Each image prompt MUST be directly related to the specific article topic "${focusKw}" and title "${enTitle}".
+   - Do NOT generate generic "fitness gym" images that could apply to any article.
+   - The image should visually represent the SPECIFIC subject matter of this article.
+   - Example: If the article is about "creatine loading", show creatine supplement containers — NOT a generic gym scene.
+   - Example: If the article is about "sleep and muscle recovery", show a person sleeping with athletic recovery imagery — NOT a gym workout.
+ - Each prompt: ultra-realistic, premium fitness editorial style, dramatic lighting, blue & gold accent palette, NO text overlay, high CTR.
+ - Vary composition between the three (different angles / subjects, all related to the SAME topic).
+ - Include the article's main subject in each prompt description.
 
 STEP 8 — SOCIAL MEDIA POSTS:
  - facebook, linkedin, instagram, x
@@ -484,9 +501,9 @@ Mastering **${focusKw}** is a journey of disciplined daily habits backed by scie
       },
     ],
     imagePrompts: {
-      featuredImage: `Athletic individual training in a modern gym setting, cinematic blue and gold lighting, high detail, 8k resolution, fitness editorial style`,
-      facebookImage: `Close up fitness athlete preparing healthy meal prep bowls, warm atmospheric studio lighting, high resolution`,
-      openGraphImage: `Dynamic fitness training scene with dumbbells and modern athletic aesthetics, professional coaching atmosphere`,
+      featuredImage: `Ultra-realistic editorial photo directly related to "${input.topic || input.focusKeyword || "fitness"}", premium fitness style, dramatic blue and gold lighting, high detail, 8k resolution, no text overlay`,
+      facebookImage: `Close-up realistic photo showing the specific subject of "${input.focusKeyword || input.topic || "fitness training"}", warm atmospheric studio lighting, high resolution, no text overlay`,
+      openGraphImage: `Dynamic realistic scene depicting "${input.topic || input.focusKeyword || "athletic training"}" in context, professional fitness editorial atmosphere, no text overlay`,
     },
     socialPosts: {
       facebook: `Ready to elevate your fitness journey? Here is your complete science-backed guide to ${focusKw}.\n\nCheck out the full article on our blog!\n\nRegistration link in the first comment 👇`,
@@ -787,8 +804,14 @@ STEP 6 — LINK SUGGESTIONS (MUST be included in both articles):
 
 STEP 7 — IMAGE PROMPTS (English, for AI image generators):
  - featuredImage, facebookImage, openGraphImage
- - Each prompt: ultra-realistic, premium fitness style, dramatic lighting, blue & gold accent palette, NO text overlay, high CTR.
- - Vary composition between the three (different angles / subjects).
+ - CRITICAL: Each image prompt MUST be directly related to the specific article topic "${focusKw}" and title "${enTitle}".
+   - Do NOT generate generic "fitness gym" images that could apply to any article.
+   - The image should visually represent the SPECIFIC subject matter of this article.
+   - Example: If the article is about "creatine loading", show creatine supplement containers — NOT a generic gym scene.
+   - Example: If the article is about "sleep and muscle recovery", show a person sleeping with athletic recovery imagery — NOT a gym workout.
+ - Each prompt: ultra-realistic, premium fitness editorial style, dramatic lighting, blue & gold accent palette, NO text overlay, high CTR.
+ - Vary composition between the three (different angles / subjects, all related to the SAME topic).
+ - Include the article's main subject in each prompt description.
 
 STEP 8 — SOCIAL MEDIA POSTS:
  - facebook, linkedin, instagram, x
