@@ -84,7 +84,7 @@ export function AIGenerateModal({
 
   const [topic, setTopic] = useState("");
   const [focusKeyword, setFocusKeyword] = useState("");
-  const [category, setCategory] = useState("nutrition");
+  const [category, setCategory] = useState("");
   const [language, setLanguage] = useState<"en" | "ar">(defaultLanguage);
 
   const [generating, setGenerating] = useState(false);
@@ -109,7 +109,7 @@ export function AIGenerateModal({
       const topicRes = await fetch("/api/ai/pick-topic", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ category }),
+        body: JSON.stringify({ category: category || undefined }),
       });
       if (!topicRes.ok) {
         const errData = await topicRes.json().catch(() => null);
