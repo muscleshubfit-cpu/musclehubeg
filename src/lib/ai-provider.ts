@@ -483,10 +483,25 @@ function repairTruncatedJSON(s: string): string {
  * for routes that need SPEED (chat, swap). It races the top 3 models in PARALLEL
  * and returns whichever responds first — giving best quality AND best speed.
  */
+// IMPORTANT: This array is ordered LARGEST/STRONGEST FIRST.
+// `callFreeOpenRouterLimited` slices the first N entries, so the order
+// determines which model the deep-reasoning stages (topic picker, article
+// generation, plan generation) try first. The strongest model (ultra-550b)
+// must be index 0 so topic/article stages get the highest-quality output.
+//
+// `callFreeOpenRouterRace` (used by EVO chat + swap) races all N entries in
+// PARALLEL via Promise.any() — array order does NOT change which model wins
+// the race (the fastest responder still wins), so reordering here does not
+// affect EVO behavior.
+//
+// Capability map (per Nvidia's published specs):
+//   - ultra-550b-a55b : 550B total / 55B active  → STRONGEST  (deep reasoning)
+//   - super-120b-a12b : 120B total / 12B active  → MIDDLE     (balanced)
+//   - 3.5-lightning   : compact lightning variant → FASTEST   (low-latency)
 export const FREE_OPENROUTER_MODELS = [
-  "nvidia/nemotron-3.5-lightning:free",
   "nvidia/nemotron-3-ultra-550b-a55b:free",
- "nvidia/nemotron-3-super-120b-a12b:free",
+  "nvidia/nemotron-3-super-120b-a12b:free",
+  "nvidia/nemotron-3.5-lightning:free",
 ];
 
 /**
