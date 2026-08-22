@@ -90,8 +90,8 @@ ${content || title || "مقال عن اللياقة والتغذية"}
 
       case "faq":
         prompt = isAr
-          ? `استخرج وولّد 3 إلى 5 أسئلة وأجوبة شائعة (FAQ) هامة ومباشرة بناءً على محتوى المقال التالي. التزم بتنسيق Markdown واكتب بلغة عربية احترافية وسلسة.\n\n${articleContext}`
-          : `Generate 3 to 5 high-value Frequently Asked Questions and detailed answers based directly on this article. Format in clean Markdown.\n\n${articleContext}`;
+          ? `استخرج وولّد 3 إلى 5 أسئلة وأجوبة شائعة (FAQ) هامة ومباشرة بناءً على محتوى المقال التالي.\n\nقواعد صارمة:\n- جميع الأسئلة والأجوبة MUST تكون بالعربية الفصحى فقط.\n- لا تستخدم أي كلمات إنجليزية إلا المصطلحات العلمية المختصرة بين قوسين (مثل: BMR, DNA).\n- الأسئلة يجب أن تكون مرتبطة مباشرة بمحتوى هذا المقال تحديدًا.\n- الأجوبة يجب أن تكون عملية ومفيدة للقارئ العربي.\n- التزم بتنسيق Markdown.\n\n${articleContext}`
+          : `Generate 3 to 5 high-value Frequently Asked Questions and detailed answers based directly on this article's specific content. Format in clean Markdown.\n\n${articleContext}`;
         break;
 
       case "cta":
@@ -131,14 +131,19 @@ ${content || title || "مقال عن اللياقة والتغذية"}
         break;
 
       case "image_prompt":
-        prompt = `Write a detailed, high-quality AI image generation prompt in English (suitable for Midjourney / Imagen 3 / Flux / DALL-E) to create a professional cover image for this article:
+        prompt = `Write a detailed, high-quality AI image generation prompt in English (suitable for Midjourney / Imagen 3 / Flux / DALL-E) to create a professional cover image DIRECTLY RELATED to this specific article:
 Title: ${title || "Fitness & Nutrition"}
 Category: ${category || "Fitness"}
 Key Focus: ${keyword || content.slice(0, 150)}
 
+CRITICAL: The image MUST visually represent the SPECIFIC subject matter of this article — NOT a generic gym or fitness scene.
+- Example: If the article is about "creatine loading", show supplement containers and scoops.
+- Example: If the article is about "sleep recovery", show a person sleeping with athletic recovery imagery.
+- The image description MUST include the article's main topic in the prompt.
+
 Requirements:
 - Cinematic composition, 8k fitness photography, realistic lighting
-- Authentic gym atmosphere or healthy nutrition setting
+- Authentic atmosphere matching the article topic
 - NO text overlay, NO words, NO letters
 - Output ONLY the raw prompt string in English.`;
         break;

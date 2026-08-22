@@ -317,7 +317,7 @@ export async function aiTool(
       ? `قم بإعادة صياغة وتحسين النص التالي ليكون أكثر احترافية وسلاسة وتنظيماً بأسلوب كوتش لياقة بدنية وتغذية خبير:\n\n${content.slice(0, 3000)}`
       : `Improve readability, flow, and clarity of this fitness/nutrition text:\n\n${content.slice(0, 3000)}`,
     faq: isAr
-      ? `استخرج وولّد 3 إلى 5 أسئلة وأجوبة شائعة من هذا المحتوى وتنسيقها بأسلوب Markdown:\n${content.slice(0, 3000)}`
+      ? `استخرج وولّد 3 إلى 5 أسئلة وأجوبة شائعة (FAQ) هامة من هذا المحتوى.\n- جميع الأسئلة والأجوبة MUST تكون بالعربية الفصحى فقط.\n- لا تستخدم كلمات إنجليزية إلا المصطلحات العلمية المختصرة بين قوسين.\n- الأسئلة مرتبطة مباشرة بمحتوى المقال.\n- التزم بتنسيق Markdown:\n${content.slice(0, 3000)}`
       : `Generate 3 to 5 high-value FAQs in Markdown based on this content:\n${content.slice(0, 3000)}`,
     cta: isAr
       ? `اكتب 3 خيارات مختلفة لنصوص CTA قصيرة ومحفزة تدعو القارئ للاشتراك في برامج التدريب والتغذية المخصصة في MuscleHub.`
@@ -344,8 +344,8 @@ export async function aiTool(
       ? `لخّص هذا المحتوى في 4 إلى 6 نقاط محددة وعملية بأسلوب Markdown:\n${content.slice(0, 3000)}`
       : `Summarize this content in 4-6 actionable bullet points:\n${content.slice(0, 3000)}`,
     image_prompt: isAr
-      ? `Write a detailed, high-quality AI image generation prompt in English for an article titled "${title}" with keyword "${keyword}".`
-      : `Write a detailed, high-quality AI image generation prompt in English for an article titled "${title}" with keyword "${keyword}".`,
+      ? `Write a detailed, high-quality AI image generation prompt in English for an article titled "${title}" with keyword "${keyword}". The image MUST be directly related to the specific article topic — NOT a generic gym scene. Include the article's main subject in the prompt.`
+      : `Write a detailed, high-quality AI image generation prompt in English for an article titled "${title}" with keyword "${keyword}". The image MUST be directly related to the specific article topic — NOT a generic gym scene. Include the article's main subject in the prompt.`,
   };
 
   const prompt = prompts[tool] || prompts.improve;
