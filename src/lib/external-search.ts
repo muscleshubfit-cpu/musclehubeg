@@ -101,7 +101,7 @@ Do NOT hallucinate URLs.
 Return valid JSON only.`;
 
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: "gemini-3.7-flash",
       contents: prompt,
       config: {
         tools: [{ googleSearch: {} }]

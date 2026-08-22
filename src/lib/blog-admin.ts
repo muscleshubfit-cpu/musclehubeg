@@ -243,9 +243,9 @@ export async function aiTool(
     const OPENROUTER_BASE = "https://openrouter.ai/api/v1";
     if (OPENROUTER_KEY) {
       const models = [
-        "google/gemma-4-26b-a4b-it:free",
-        "google/gemma-4-31b-it:free",
+        "nvidia/nemotron-3.5-lightning:free",
         "nvidia/nemotron-3-ultra-550b-a55b:free",
+        "poolside/laguna-s-2.1:free",
       ];
       for (const model of models) {
         try {

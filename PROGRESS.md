@@ -103,7 +103,26 @@ verified," the following distinctions are now used:
 
 ---
 
-## ✅ Post-Push Production Verification (2026-08-19)
+## 🔧 Blog Article Generation Repair (BLOG-PIPELINE-REPAIR-001 — 2026-08-21)
+
+**Issue Reported:** User reported persistent failures with AI article generation ("مشكلة التوليد للمقالات لسة موجوده").
+
+**Root Cause Identified:**
+1. **Invalid Gemini Model Names:** `src/lib/gemini-wrapper.ts`, `src/lib/ai-provider.ts`, and `src/lib/external-search.ts` hardcoded `gemini-2.5-flash`, a non-existent / deprecated model ID on Google Gemini API, returning HTTP 404 NOT_FOUND errors across `@google/genai` SDK and Google's OpenAI-compatible endpoint.
+2. **Invalid OpenRouter Model Slugs:** `src/app/api/ai/blog-tool/route.ts`, `src/lib/blog-admin.ts`, and `FREE_OPENROUTER_MODELS` in `src/lib/ai-provider.ts` referenced non-existent model slugs (e.g. `google/gemma-4-...`), causing OpenRouter fallbacks to fail with HTTP 404/400.
+
+**Fixes Applied:**
+- **`src/lib/gemini-wrapper.ts`**: Updated default model to `gemini-3.7-flash` and introduced a resilient model fallback loop (`gemini-3.7-flash` → `gemini-3.6-flash` → `gemini-flash-latest`) for `@google/genai` SDK calls to handle demand spikes gracefully.
+- **`src/lib/ai-provider.ts`**: Updated `AI_PROVIDERS.gemini` default model to `gemini-3.7-flash`, `AI_PROVIDERS.openrouter` default model to `nvidia/nemotron-3.5-lightning:free`, and updated `FREE_OPENROUTER_MODELS` to active, verified OpenRouter free models (`nvidia/nemotron-3.5-lightning:free`, `nvidia/nemotron-3-ultra-550b-a55b:free`, `poolside/laguna-s-2.1:free`, `nvidia/nemotron-3-super-120b-a12b:free`).
+- **`src/lib/external-search.ts`**: Updated search model to `gemini-3.7-flash`.
+- **`src/app/api/ai/blog-tool/route.ts` & `src/lib/blog-admin.ts`**: Replaced invalid model slugs with active free OpenRouter models.
+
+**Verification:**
+- `npx tsx` pipeline test executed: Topic selection (`pickSmartTopic`), external search (`externalSearch`), and full 3-chunk article generation (`generateArticleBundle`) succeeded cleanly.
+- `bun run lint` / `lint_applet` passed with 0 errors.
+- `compile_applet` succeeded.
+
+---
 
 After pushing commit `ce427956a042e0599e47429a8f00bf80785034e8` (short: `ce42795`) to `origin/main`, the owner (Ahmed) performed production-side verification of the 5 items that required access beyond what the agent could verify from the repository alone. All 4 of the previously "REQUIRES OWNER ACTION" items are now CLOSED. H1 remains the only open production-readiness item.
 

@@ -43,21 +43,26 @@ export async function callGemini(
     try {
       const ai = createGeminiClient(geminiKey);
       if (ai) {
-        const model = "gemini-2.5-flash";
+        const geminiModels = ["gemini-3.7-flash", "gemini-3.6-flash", "gemini-flash-latest"];
+        for (const model of geminiModels) {
+          try {
+            const response = await ai.models.generateContent({
+              model,
+              contents: prompt,
+              config: {
+                systemInstruction: options.systemPrompt,
+                temperature: options.temperature ?? 0.7,
+                maxOutputTokens: options.maxTokens ?? 8192,
+                responseMimeType: options.jsonMode ? "application/json" : "text/plain",
+              },
+            });
 
-        const response = await ai.models.generateContent({
-          model,
-          contents: prompt,
-          config: {
-            systemInstruction: options.systemPrompt,
-            temperature: options.temperature ?? 0.7,
-            maxOutputTokens: options.maxTokens ?? 8192,
-            responseMimeType: options.jsonMode ? "application/json" : "text/plain",
-          },
-        });
-
-        if (response.text && response.text.trim().length > 0) {
-          return { text: response.text.trim(), model };
+            if (response.text && response.text.trim().length > 0) {
+              return { text: response.text.trim(), model };
+            }
+          } catch (modelErr: any) {
+            console.warn(`[gemini-wrapper] GoogleGenAI model ${model} notice:`, modelErr?.message || modelErr);
+          }
         }
       }
     } catch (err: any) {

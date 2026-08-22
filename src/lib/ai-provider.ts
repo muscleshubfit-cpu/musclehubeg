@@ -43,7 +43,7 @@ export const AI_PROVIDERS: Record<
   gemini: {
     label: "Google Gemini (Primary)",
     baseUrl: "https://generativelanguage.googleapis.com/v1beta/openai",
-    defaultModel: "gemini-2.5-flash",
+    defaultModel: "gemini-3.7-flash",
     envKey: "GEMINI_API_KEY",
     docsUrl: "https://aistudio.google.com/apikey",
     keyPrefix: "AI",
@@ -51,12 +51,7 @@ export const AI_PROVIDERS: Record<
   openrouter: {
     label: "OpenRouter",
     baseUrl: "https://openrouter.ai/api/v1",
-    // Free Gemma 4 26B — non-reasoning model that returns clean content (not
-    // hidden inside a reasoning_details block). 262K context, plenty for
-    // long-form article generation. Switch to a paid model
-    // (anthropic/claude-3.5-sonnet, openai/gpt-4o, etc.) in the AI Settings
-    // page once you add OpenRouter credits.
-    defaultModel: "google/gemma-4-26b-a4b-it:free",
+    defaultModel: "nvidia/nemotron-3.5-lightning:free",
     envKey: "OPENROUTER_API_KEY",
     docsUrl: "https://openrouter.ai/keys",
     keyPrefix: "sk-or-",
@@ -491,12 +486,10 @@ function repairTruncatedJSON(s: string): string {
  * and returns whichever responds first — giving best quality AND best speed.
  */
 export const FREE_OPENROUTER_MODELS = [
-  "nvidia/nemotron-3-ultra-550b-a55b:free",
   "nvidia/nemotron-3.5-lightning:free",
+  "nvidia/nemotron-3-ultra-550b-a55b:free",
+  "poolside/laguna-s-2.1:free",
   "nvidia/nemotron-3-super-120b-a12b:free",
-  "google/gemma-4-31b-it:free",
-  "google/gemma-4-26b-a4b-it:free",
-  "openai/gpt-oss-20b:free",
 ];
 
 /**
