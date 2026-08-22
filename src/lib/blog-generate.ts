@@ -711,20 +711,7 @@ export async function generateArabicArticle(
   seo: any,
   englishArticle?: string,
 ): Promise<{ arabicArticle: string; faq: any[]; faqAr: any[]; source: string }> {
-  const prompt = `Generate PART 2 of a blog article bundle for MuscleHub.
-CONTEXT:
- - Focus keyword: "${seo?.focusKeyword || input.focusKeyword || ""}"
- - Arabic title: "${seo?.ar?.seoTitle || ""}"
-STEP 4 — ARABIC ARTICLE & FAQ:
-Write the Arabic article.
-Return STRICT JSON:
-{
-  "arabicArticle": "markdown string",
-  "faq": [{ "question": "string", "answer": "string" }],
-  "faq_ar": [{ "question": "string (Arabic)", "answer": "string (Arabic)" }]
-}
-
-Return ONLY the JSON. No commentary, no markdown fences.`;
+  const prompt = chunk2Prompt(input, seo);
 
   const { text, model } = await callGemini(
     prompt,

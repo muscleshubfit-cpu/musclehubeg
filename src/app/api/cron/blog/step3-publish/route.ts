@@ -167,10 +167,11 @@ export async function GET(request: NextRequest) {
     const enSlug = await uniqueSlug(slugify(bundle.seo.en.slug || qi.focus_keyword), "en");
     const arSlug = await uniqueSlug(slugify(bundle.seo.ar.slug || bundle.seo.en.slug || qi.focus_keyword), "ar");
 
-    // Fetch image (Pexels — fast, ~3-5s)
+    // Fetch image (AI Pollinations / Imagen 3 / Stock)
     let imageUrl: string | null = null;
     try {
-      const img = await fetchFeaturedImage(bundle.seo.focusKeyword || qi.focus_keyword || qi.topic);
+      const imageQuery = bundle.imagePrompts?.featuredImage || bundle.seo?.focusKeyword || qi.focus_keyword || qi.topic;
+      const img = await fetchFeaturedImage(imageQuery);
       imageUrl = img?.url || null;
     } catch {}
 

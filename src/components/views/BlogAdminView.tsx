@@ -262,7 +262,7 @@ export function BlogAdminView() {
                     <td className="p-3">
                       <div className="flex items-center justify-center gap-1.5">
                         <button
-                          onClick={() => router.push(`/admin/blog/edit/${post.id}`)}
+                          onClick={() => router.push(`/admin/blog/${post.id}`)}
                           title={isAr ? "تعديل" : "Edit"}
                           className="inline-flex h-7 items-center gap-1 rounded-md bg-primary/10 px-2 text-[11px] font-medium text-primary hover:bg-primary/20 transition-colors"
                         >

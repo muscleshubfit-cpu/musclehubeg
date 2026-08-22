@@ -18,9 +18,13 @@ export type SourcedImage = { url: string; alt: string; credit: string } | null;
  * Generate an image using AI (Google Imagen 3 or Pollinations AI).
  */
 async function generateAIImage(query: string): Promise<SourcedImage> {
-  if (!query.trim()) return null;
+  const cleanQuery = query.trim().replace(/\s+/g, " ");
+  if (!cleanQuery) return null;
 
-  const prompt = `Premium fitness blog cover image: ${query}. High quality photography, realistic gym or healthy nutrition context, no text overlay, professional lighting.`;
+  const prompt = cleanQuery.toLowerCase().includes("fitness") || cleanQuery.toLowerCase().includes("gym")
+    ? `${cleanQuery}, realistic photography, no text overlay, professional lighting`
+    : `Premium fitness blog cover image: ${cleanQuery}, realistic gym or healthy nutrition context, no text overlay, professional lighting`;
+
   const encodedPrompt = encodeURIComponent(prompt);
   const seed = Math.floor(Math.random() * 100000);
 
