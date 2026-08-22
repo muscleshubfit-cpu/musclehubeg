@@ -640,7 +640,11 @@ export async function generateArticleBundle(
     faqAr: Array.isArray(chunk2?.faq_ar) ? chunk2.faq_ar : [],
     internalLinks,
     externalLinks,
-    imagePrompts: chunk3?.imagePrompts || { featuredImage: "", facebookImage: "", openGraphImage: "" },
+    imagePrompts: chunk3?.imagePrompts || {
+      featuredImage: `Ultra-realistic editorial photo directly related to: ${input.topic || input.focusKeyword || "fitness and nutrition"}. Professional lighting, 8k, no text overlay`,
+      facebookImage: `Close-up realistic photo about: ${input.focusKeyword || input.topic || "fitness"}. Professional studio lighting, no text overlay`,
+      openGraphImage: `Dynamic scene depicting: ${input.topic || input.focusKeyword || "athletic training"}. Professional editorial style, no text overlay`,
+    },
     socialPosts: chunk3?.socialPosts || { facebook: "", linkedin: "", instagram: "", x: "" },
     estimatedReadingTime,
     source: "gemini:chunked",
@@ -864,7 +868,11 @@ Return ONLY the JSON. No commentary, no markdown fences.`;
   return {
     internalLinks: Array.isArray(parsed.internalLinks) ? parsed.internalLinks : [],
     externalLinks: Array.isArray(parsed.externalLinks) ? parsed.externalLinks : [],
-    imagePrompts: parsed.imagePrompts || { featuredImage: "", facebookImage: "", openGraphImage: "" },
+    imagePrompts: parsed.imagePrompts || {
+      featuredImage: `Ultra-realistic editorial photo directly related to: ${input.topic || input.focusKeyword || "fitness and nutrition"}. Professional lighting, 8k, no text overlay`,
+      facebookImage: `Close-up realistic photo about: ${input.focusKeyword || input.topic || "fitness"}. Professional studio lighting, no text overlay`,
+      openGraphImage: `Dynamic scene depicting: ${input.topic || input.focusKeyword || "athletic training"}. Professional editorial style, no text overlay`,
+    },
     socialPosts: parsed.socialPosts || { facebook: "", linkedin: "", instagram: "", x: "" },
     estimatedReadingTime,
     source: `gemini:${model}`,
@@ -924,7 +932,11 @@ export function buildFinalBundle(parts: {
     faqAr: parts.faqAr || [],
     internalLinks: parts.internalLinks || [],
     externalLinks: parts.externalLinks || [],
-    imagePrompts: parts.imagePrompts || { featuredImage: "", facebookImage: "", openGraphImage: "" },
+    imagePrompts: parts.imagePrompts || {
+      featuredImage: `Ultra-realistic editorial photo directly related to: ${parts.seo?.focusKeyword || "fitness and nutrition"}. Professional lighting, 8k, no text overlay`,
+      facebookImage: `Close-up realistic photo about: ${parts.seo?.focusKeyword || "fitness"}. Professional studio lighting, no text overlay`,
+      openGraphImage: `Dynamic scene depicting: ${parts.seo?.focusKeyword || "athletic training"}. Professional editorial style, no text overlay`,
+    },
     socialPosts: parts.socialPosts || { facebook: "", linkedin: "", instagram: "", x: "" },
     estimatedReadingTime: parts.estimatedReadingTime || 1,
     source: "gemini:multi-step",

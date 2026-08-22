@@ -1,5 +1,4 @@
-import { parseJSON } from "@/lib/ai-provider";
-import { callGemini } from "@/lib/gemini-wrapper";
+import { callFreeOpenRouterLimited, parseJSON } from "@/lib/ai-provider";
 import { supabaseAdmin, isSupabaseAdminConfigured } from "@/lib/supabase/admin";
 
 /**
@@ -295,7 +294,7 @@ CRITICAL DIVERSITY & NO-REPETITION INSTRUCTIONS:
 Pick the single best, unique topic now strictly within the "${category}" pillar.`;
 
   try {
-    const { text: raw } = await callGemini(
+    const { text: raw } = await callFreeOpenRouterLimited(
       userPrompt,
       {
         systemPrompt: TOPIC_SYSTEM_PROMPT,

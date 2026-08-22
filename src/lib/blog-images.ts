@@ -21,10 +21,9 @@ async function generateAIImage(query: string): Promise<SourcedImage> {
   const cleanQuery = query.trim().replace(/\s+/g, " ");
   if (!cleanQuery) return null;
 
-  const prompt = cleanQuery.toLowerCase().includes("fitness") || cleanQuery.toLowerCase().includes("gym")
-    ? `${cleanQuery}, realistic photography, no text overlay, professional lighting`
-    : `Premium fitness blog cover image: ${cleanQuery}, realistic gym or healthy nutrition context, no text overlay, professional lighting`;
-
+  // Use the query as-is — it should already contain the article's specific topic.
+  // Only add visual quality modifiers, never override the subject matter.
+  const prompt = `${cleanQuery}, ultra-realistic editorial photography, professional lighting, 8k, no text overlay, no watermark`;
   const encodedPrompt = encodeURIComponent(prompt);
   const seed = Math.floor(Math.random() * 100000);
 
