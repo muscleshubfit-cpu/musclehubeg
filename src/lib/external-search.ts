@@ -68,26 +68,49 @@ function parseJSON<T = any>(text: string): T | null {
   return null;
 }
 
+/**
+ * Ordered list of Gemini Flash models tried by externalSearch().
+ *
+ * Policy (per stage-aware review):
+ *   - Stage = Google / External Research → use FASTEST free Gemini variant.
+ *   - NO Gemini Pro, NO OpenRouter models — Google Search tool grounding is
+ *     mandatory, and only Google's own Gemini family supports the
+ *     `tools: [{ googleSearch: {} }]` config used here.
+ *
+ * Order: try the newest Flash first, fall back to older revisions if the
+ * API rejects the model name (deprecation) or returns a network/quota error.
+ */
+const GEMINI_FLASH_MODELS = [
+  "gemini-3.7-flash",
+  "gemini-3.6-flash",
+  "gemini-3.5-flash",
+] as const;
+
 export async function externalSearch(
   input: ExternalSearchInput,
 ): Promise<ResearchResult> {
   const searchTerm = (input.focusKeyword || input.topic || "").trim();
   const maxResults = input.maxResults ?? 10;
-  
+
   if (!searchTerm) {
     return emptyResult();
   }
 
-  try {
-    const apiKey = getGeminiApiKey();
-    if (!apiKey) {
-      throw new Error("GEMINI_API_KEY is not configured.");
-    }
+  const apiKey = getGeminiApiKey();
+  if (!apiKey) {
+    throw new Error(
+      "[external-search] GEMINI_API_KEY (or GOOGLE_API_KEY / GOOGLE_GENAI_API_KEY / AI_API_KEY / OPENROUTER_API) is not configured. " +
+      "External research requires a valid Gemini API key — Google Search grounding is only available through Google's own Gemini models.",
+    );
+  }
 
-    // Initialize Gemini SDK
-    const ai = new GoogleGenAI({ apiKey });
-    
-    const prompt = `Perform a comprehensive Google Search for the following topic/keyword: "${searchTerm}".
+  // Initialize Gemini SDK once and reuse across all model attempts.
+  const ai = new GoogleGenAI({
+    apiKey,
+    httpOptions: { headers: { "User-Agent": "aistudio-build" } },
+  });
+
+  const prompt = `Perform a comprehensive Google Search for the following topic/keyword: "${searchTerm}".
 Return a JSON object containing the real research data exactly in this format:
 {
   "topArticles": [
@@ -100,37 +123,94 @@ Ensure you use your Google Search tool to find real, accurate URLs and titles.
 Do NOT hallucinate URLs. 
 Return valid JSON only.`;
 
-    const response = await ai.models.generateContent({
-      model: "gemini-3.7-flash",
-      contents: prompt,
-      config: {
-        tools: [{ googleSearch: {} }]
+  // ─────────────────────────────────────────────────────────────────────
+  // Ordered fallback: 3.7-flash → 3.6-flash → 3.5-flash
+  //
+  // Each attempt MUST keep Google Search grounding enabled (the
+  // `tools: [{ googleSearch: {} }]` config below is what tells the model
+  // to perform a real web search instead of relying on its training data).
+  //
+  // If a model fails (404/deprecation, network, quota, empty body), we log
+  // the cause and proceed to the next model automatically. If ALL three
+  // fail, we throw a clear error — NO local fallback, NO fabricated results.
+  // ─────────────────────────────────────────────────────────────────────
+  const attemptErrors: string[] = [];
+
+  for (const model of GEMINI_FLASH_MODELS) {
+    try {
+      const response = await ai.models.generateContent({
+        model,
+        contents: prompt,
+        config: {
+          tools: [{ googleSearch: {} }],
+        },
+      });
+
+      const text = response.text || "";
+      if (!text.trim()) {
+        throw new Error(`${model}: empty response body`);
       }
-    });
 
-    const text = response.text || "{}";
-    const data = parseJSON(text) || {};
+      const data = parseJSON<any>(text) || {};
 
-    return {
-      topArticles: Array.isArray(data.topArticles) ? data.topArticles.slice(0, maxResults) : [],
-      relatedQuestions: Array.isArray(data.relatedQuestions) ? data.relatedQuestions.slice(0, 15) : [],
-      trendingKeywords: Array.isArray(data.trendingKeywords) ? data.trendingKeywords.slice(0, 10) : [],
-      trendingAngles: Array.isArray(data.trendingKeywords) ? data.trendingKeywords.slice(0, 10) : [],
-      searchIntent: null,
-      searcherGoal: null,
-      contentGaps: [],
-      source: "gemini-search",
-      queryCount: 1,
-      successfulQueries: 1,
-      totalResults: Array.isArray(data.topArticles) ? data.topArticles.length : 0,
-      partialFailure: false,
-      firstError: null,
-    };
-  } catch (error: any) {
-    console.error("[external-search] Gemini search failed:", error);
-    const res = emptyResult();
-    res.firstError = error?.message || String(error);
-    res.partialFailure = true;
-    return res;
+      // Basic shape check — if the model returned valid JSON but with no
+      // topArticles at all, treat as a soft failure and try the next model.
+      // (This guards against cases where Google Search returned 0 results
+      // AND the model decided to output `{}`.)
+      if (
+        !Array.isArray(data.topArticles) ||
+        data.topArticles.length === 0
+      ) {
+        throw new Error(
+          `${model}: response had no topArticles (parsed keys: ${Object.keys(data).join(",") || "none"})`,
+        );
+      }
+
+      console.log(
+        `[external-search] Gemini ${model} succeeded: ` +
+        `${data.topArticles.length} articles, ` +
+        `${Array.isArray(data.relatedQuestions) ? data.relatedQuestions.length : 0} questions.`,
+      );
+
+      return {
+        topArticles: data.topArticles.slice(0, maxResults),
+        relatedQuestions: Array.isArray(data.relatedQuestions)
+          ? data.relatedQuestions.slice(0, 15)
+          : [],
+        trendingKeywords: Array.isArray(data.trendingKeywords)
+          ? data.trendingKeywords.slice(0, 10)
+          : [],
+        trendingAngles: Array.isArray(data.trendingKeywords)
+          ? data.trendingKeywords.slice(0, 10)
+          : [],
+        searchIntent: null,
+        searcherGoal: null,
+        contentGaps: [],
+        source: "gemini-search",
+        queryCount: 1,
+        successfulQueries: 1,
+        totalResults: data.topArticles.length,
+        partialFailure: false,
+        firstError: null,
+      };
+    } catch (err: any) {
+      const msg = err?.message || String(err);
+      attemptErrors.push(`${model}: ${msg}`);
+      console.warn(`[external-search] Gemini ${model} notice, trying next:`, msg);
+      // fall through to the next model in the loop
+    }
   }
+
+  // All three Flash models failed — throw a clear, descriptive error.
+  // DO NOT return empty results (would let downstream stages silently use
+  // fabricated data). DO NOT use a local fallback.
+  const failureSummary = attemptErrors.join("\n  - ");
+  const finalError = new Error(
+    `[external-search] All Gemini Flash models failed for query "${searchTerm}". ` +
+    `Google Search grounding could not be completed. Errors:\n  - ${failureSummary}\n` +
+    `Configure a valid GEMINI_API_KEY with Gemini Flash access. ` +
+    `No local fallback or fabricated results will be returned.`,
+  );
+  console.error(finalError.message);
+  throw finalError;
 }
