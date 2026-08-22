@@ -48,6 +48,7 @@ export async function POST(request: NextRequest) {
       focusKeyword: focusKeyword?.trim(),
       category: category || "nutrition",
       research,
+      language, // undefined → generate both EN and AR (legacy behavior)
     });
 
     const imageQuery = bundle.imagePrompts?.featuredImage || bundle.seo?.focusKeyword || focusKeyword || topic || "";

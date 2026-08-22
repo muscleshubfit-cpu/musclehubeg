@@ -2668,3 +2668,55 @@ Options:
    - معالجة وإضافة آلية حماية تلقائية عند إنشاء وتحديث المقالات لتجاوز خطأ الـ `source` column تلقائياً وإعادة المحاولة بنجاح دون أي توقف أو خطأ للمستخدم.
    - اجتياز جميع اختبارات البناء والفحص `compile_applet` و `lint_applet` بنجاح 100%.
 
+
+---
+
+## EN/AR Separation — COMPLETED (2026-08-22)
+
+### Architecture Decision
+
+**Prior state:** EN and AR were coupled:
+- `chunk1Prompt` generated EN article + EN SEO + **AR SEO** in one AI call.
+- `generateArabicArticle` took `englishArticle` as input (for "coherence matching").
+- `chunk3Prompt` generated links with both `anchorText` (EN) + `anchorTextAr` (AR) in one call.
+- Image prompts and social posts were English-only — AR had no image/social content of its own.
+- `step3-publish` spread `enRow` to `arRow`, inheriting `focus_keyword`, `keywords`, `tags`, `reading_time`, `author`, `featured_image` from EN to AR.
+
+**New architecture — full separation:**
+- `chunk1Prompt` produces EN article + EN SEO + EN FAQ + EN image + EN social + EN reading time. NO Arabic content.
+- `chunk2Prompt` produces AR article + AR SEO + AR FAQ + AR image + AR social + AR reading time. NO English content.
+- `generateArabicArticle` does NOT receive `englishArticle` as input.
+- `step3-publish` builds `enRow` and `arRow` independently — NO spread, NO inheritance.
+- AR has its own `focus_keyword`, `keywords`, `tags`, `reading_time`, `cover_alt`, FAQ.
+- Only shared field: `featured_image` URL (one image per article pair).
+
+### AI Model Policy
+
+| Stage | Models | Key Source | Notes |
+|---|---|---|---|
+| Topic/Title | Gemini Flash: 3.7 → 3.6 → 3.5 | `OPENROUTER_API` only | Via `callGeminiFlashViaOpenRouter` (new helper) |
+| Research | Gemini Flash: 3.7 → 3.6 → 3.5 | Google API (with Google Search grounding) | UNCHANGED — external-search.ts (commit f92b850) |
+| Article (EN + AR) | OpenRouter free models (Nemotron) | `OPENROUTER_API` | Per language, separate calls |
+| EVO (chat + swap) | OpenRouter free models via Race | `OPENROUTER_API` | UNCHANGED |
+| Image generation | Pollinations / Imagen 3 | Various | UNCHANGED (commit 24657bb fix preserved) |
+
+### Backward Compatibility
+
+- `ArticleBundle` type extended with optional AR fields (`imagePromptsAr`, `socialPostsAr`, `estimatedReadingTimeAr`, `internalLinksAr`, `externalLinksAr`). Old bundles without these still work.
+- `buildFinalBundle` handles both old (combined) and new (separated) bundle formats.
+- `step3-publish` falls back to shared `seo.focusKeyword` / `seo.secondaryKeywords` / `estimatedReadingTime` when per-language fields are absent.
+- Legacy routes (`cron/generate-blog-post`, `cron/blog/step2-generate`) — UNCHANGED. They call `generateArticleBundle` which now uses the new separated pipeline internally.
+
+### Verification
+
+- [x] `tsc --noEmit`: 0 errors
+- [x] `bun run lint`: 0 errors in modified files (4 pre-existing warnings in unrelated files)
+- [x] `bun run build`: 79/79 pages, 0 errors
+- [x] `git diff --check`: clean
+- [x] EN request does NOT produce AR (chunk1Prompt asks for EN only)
+- [x] AR request does NOT take englishArticle input (generateArabicArticle signature: `(input, seo, research?)`)
+- [x] Step2b produces EN only (saves EN SEO + EN article + EN FAQ + EN image + EN social + EN reading time)
+- [x] Step2c produces AR only (saves AR SEO + AR article + AR FAQ + AR image + AR social + AR reading time)
+- [x] Step3-publish builds enRow and arRow independently — NO spread
+- [x] Old queue bundles still work (buildFinalBundle falls back to shared fields)
+- [x] linked_post_id preserved as DB linking only

@@ -136,10 +136,42 @@ export function BlogEditorView({ mode, postId }: { mode: "new" | "edit"; postId?
  * "extras" (FAQ, image prompts, social posts, link suggestions) inside
  * the post's `schema_json` so they're saved with the draft and visible
  * in the AI results panel.
+ *
+ * EN/AR SEPARATION: uses the chosen language's own FAQ, SEO, focus keyword,
+ * and image/social prompts. Does NOT fall back to the other language's data.
  */
  const applyAIBundle = (bundle: GeneratedBundle, language: "en" | "ar") => {
  const article = language === "en" ? bundle.englishArticle : bundle.arabicArticle;
  const seo = language === "en" ? bundle.seo.en : bundle.seo.ar;
+
+ // Per-language focus keyword and secondary keywords
+ const focusKw = (language === "en"
+   ? (bundle.seo.en.focusKeyword || bundle.seo.focusKeyword)
+   : (bundle.seo.ar.focusKeyword || bundle.seo.focusKeyword)) || "";
+ const secondaryKw = (language === "en"
+   ? (bundle.seo.en.secondaryKeywords || bundle.seo.secondaryKeywords)
+   : (bundle.seo.ar.secondaryKeywords || bundle.seo.secondaryKeywords)) || [];
+
+ // Per-language FAQ — Arabic uses faqAr, English uses faq.
+ // NO fallback to the other language's FAQ.
+ const faqForLang = language === "ar"
+   ? (bundle.faqAr && bundle.faqAr.length > 0 ? bundle.faqAr : [])
+   : (bundle.faq || []);
+
+ // Per-language image prompts
+ const imagePromptsForLang = language === "ar"
+   ? (bundle.imagePromptsAr || bundle.imagePrompts)
+   : bundle.imagePrompts;
+
+ // Per-language social posts
+ const socialPostsForLang = language === "ar"
+   ? (bundle.socialPostsAr || bundle.socialPosts)
+   : bundle.socialPosts;
+
+ // Per-language reading time
+ const readingTimeForLang = language === "ar"
+   ? (bundle.estimatedReadingTimeAr || bundle.estimatedReadingTime)
+   : bundle.estimatedReadingTime;
 
  setPost((p) => ({
  ...p,
@@ -150,21 +182,23 @@ export function BlogEditorView({ mode, postId }: { mode: "new" | "edit"; postId?
  content: article,
  meta_title: seo.metaTitle || seo.seoTitle,
  meta_description: seo.metaDescription,
- focus_keyword: bundle.seo.focusKeyword,
- keywords: bundle.seo.secondaryKeywords,
- tags: bundle.seo.secondaryKeywords.slice(0, 5),
- reading_time: bundle.estimatedReadingTime,
- faq_json: bundle.faq,
+ focus_keyword: focusKw,
+ keywords: secondaryKw,
+ tags: secondaryKw.slice(0, 5),
+ reading_time: readingTimeForLang,
+ faq_json: faqForLang,
  featured_image: bundle.image?.url || p.featured_image,
- cover_alt: bundle.image?.alt || p.cover_alt,
+ cover_alt: bundle.image?.alt || seo.seoTitle || p.cover_alt,
  schema_json: {
  ...(p.schema_json || {}),
  ai_bundle: {
  research: bundle.research,
- imagePrompts: bundle.imagePrompts,
- socialPosts: bundle.socialPosts,
+ imagePrompts: imagePromptsForLang,
+ socialPosts: socialPostsForLang,
  internalLinks: bundle.internalLinks,
  externalLinks: bundle.externalLinks,
+ internalLinksAr: bundle.internalLinksAr,
+ externalLinksAr: bundle.externalLinksAr,
  otherArticle: language === "en" ? bundle.arabicArticle : bundle.englishArticle,
  otherArticleLang: language === "en" ? "ar" : "en",
  generatedAt: new Date().toISOString(),
@@ -175,13 +209,13 @@ export function BlogEditorView({ mode, postId }: { mode: "new" | "edit"; postId?
  // Also surface the social posts + image prompts in the AI results panel
  // so the admin can copy them without opening the saved JSON.
  setAiResults({
- image_prompt_featured: bundle.imagePrompts.featuredImage,
- image_prompt_facebook: bundle.imagePrompts.facebookImage,
- image_prompt_og: bundle.imagePrompts.openGraphImage,
- social_facebook: bundle.socialPosts.facebook,
- social_linkedin: bundle.socialPosts.linkedin,
- social_instagram: bundle.socialPosts.instagram,
- social_x: bundle.socialPosts.x,
+ image_prompt_featured: imagePromptsForLang.featuredImage,
+ image_prompt_facebook: imagePromptsForLang.facebookImage,
+ image_prompt_og: imagePromptsForLang.openGraphImage,
+ social_facebook: socialPostsForLang.facebook,
+ social_linkedin: socialPostsForLang.linkedin,
+ social_instagram: socialPostsForLang.instagram,
+ social_x: socialPostsForLang.x,
  });
 
  toast.success(

@@ -145,6 +145,12 @@ export async function GET(request: NextRequest) {
         imagePrompts: rawBundle.imagePrompts,
         socialPosts: rawBundle.socialPosts,
         estimatedReadingTime: rawBundle.estimatedReadingTime || 1,
+        // NEW optional fields (absent in old bundles — buildFinalBundle handles absence):
+        imagePromptsAr: rawBundle.imagePromptsAr,
+        socialPostsAr: rawBundle.socialPostsAr,
+        estimatedReadingTimeAr: rawBundle.estimatedReadingTimeAr,
+        internalLinksAr: rawBundle.internalLinksAr,
+        externalLinksAr: rawBundle.externalLinksAr,
       });
     } else {
       bundle = rawBundle as ArticleBundle;
@@ -167,28 +173,35 @@ export async function GET(request: NextRequest) {
     const enSlug = await uniqueSlug(slugify(bundle.seo.en.slug || qi.focus_keyword), "en");
     const arSlug = await uniqueSlug(slugify(bundle.seo.ar.slug || bundle.seo.en.slug || qi.focus_keyword), "ar");
 
-    // Fetch image (AI Pollinations / Imagen 3 / Stock)
+    // Fetch image — shared URL between EN and AR posts.
+    // Image query: prefer EN focus keyword, fall back to AR or topic.
+    const enFocusKeyword = bundle.seo.en.focusKeyword || bundle.seo.focusKeyword || qi.focus_keyword || qi.topic;
+    const arFocusKeyword = bundle.seo.ar.focusKeyword || bundle.seo.focusKeyword || enFocusKeyword;
+    const imageQuery = bundle.imagePrompts?.featuredImage || enFocusKeyword;
     let imageUrl: string | null = null;
     try {
-      const imageQuery = bundle.imagePrompts?.featuredImage || bundle.seo?.focusKeyword || qi.focus_keyword || qi.topic;
       const img = await fetchFeaturedImage(imageQuery);
       imageUrl = img?.url || null;
     } catch {}
 
+    // ─────────────────────────────────────────────────────────────────
+    // EN ROW — built from EN-specific fields only.
+    // EN/AR SEPARATION: no inheritance from AR.
+    // ─────────────────────────────────────────────────────────────────
     const enRow = {
-      language: "en",
+      language: "en" as const,
       title: bundle.seo.en.seoTitle,
       slug: enSlug,
       excerpt: bundle.seo.en.metaDescription,
       content: bundle.englishArticle,
       meta_title: bundle.seo.en.metaTitle,
       meta_description: bundle.seo.en.metaDescription,
-      focus_keyword: bundle.seo.focusKeyword,
-      keywords: bundle.seo.secondaryKeywords,
+      focus_keyword: enFocusKeyword,
+      keywords: bundle.seo.en.secondaryKeywords || bundle.seo.secondaryKeywords || [],
       category: safeCategory,
-      tags: bundle.seo.secondaryKeywords.slice(0, 5),
+      tags: (bundle.seo.en.secondaryKeywords || bundle.seo.secondaryKeywords || []).slice(0, 5),
       featured_image: imageUrl,
-      cover_alt: bundle.seo.en.seoTitle,
+      cover_alt: bundle.seo.en.seoTitle, // EN-specific alt text
       reading_time: bundle.estimatedReadingTime,
       author: "MuscleHub",
       is_published: true,
@@ -196,16 +209,32 @@ export async function GET(request: NextRequest) {
       faq_json: bundle.faq,
     };
 
+    // ─────────────────────────────────────────────────────────────────
+    // AR ROW — built from AR-specific fields only.
+    // EN/AR SEPARATION: no inheritance from EN. AR has its own focus_keyword,
+    // keywords, tags, reading_time, cover_alt, and FAQ.
+    // Only featured_image URL is shared (one image per article pair).
+    // ─────────────────────────────────────────────────────────────────
+    const arKeywords = bundle.seo.ar.secondaryKeywords || bundle.seo.secondaryKeywords || [];
     const arRow = {
-      ...enRow,
-      language: "ar",
+      language: "ar" as const,
       title: bundle.seo.ar.seoTitle,
       slug: arSlug,
       excerpt: bundle.seo.ar.metaDescription,
       content: bundle.arabicArticle,
       meta_title: bundle.seo.ar.metaTitle,
       meta_description: bundle.seo.ar.metaDescription,
-      faq_json: bundle.faqAr && bundle.faqAr.length > 0 ? bundle.faqAr : bundle.faq,
+      focus_keyword: arFocusKeyword, // AR-specific — NOT inherited from EN
+      keywords: arKeywords, // AR-specific — NOT inherited from EN
+      category: safeCategory,
+      tags: arKeywords.slice(0, 5), // AR-specific tags
+      featured_image: imageUrl, // shared URL (OK — one image per article pair)
+      cover_alt: bundle.seo.ar.seoTitle, // AR-specific alt text
+      reading_time: bundle.estimatedReadingTimeAr || bundle.estimatedReadingTime || 1, // AR-specific reading time
+      author: "MuscleHub",
+      is_published: true,
+      published_at: now,
+      faq_json: bundle.faqAr && bundle.faqAr.length > 0 ? bundle.faqAr : [], // AR FAQ only — NO fallback to EN faq
     };
 
     const { data: enPost, error: enErr } = await supabaseAdmin

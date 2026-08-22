@@ -74,7 +74,7 @@ Use this research data to:
 - Include the trending keywords naturally in your content
 - Find a unique angle that differentiates from competitors` : "";
 
-  return `Generate PART 1 of a blog article bundle for MuscleHub.
+  return `Generate a complete ENGLISH blog article bundle for MuscleHub.
 
 INPUT:
  - Topic: ${input.topic || "(none — derive from focus keyword)"}
@@ -82,31 +82,42 @@ INPUT:
  - Category: ${input.category || "nutrition"}
 ${researchBlock}
 
-STEP 1 — RESEARCH (do silently):
- - Identify the search intent (informational / commercial / transactional).
- - Pick the best article angle that wins on Google AND AI search.
- - Choose 1 primary focus keyword + 5-8 secondary keywords.
+STEP 1 — ENGLISH SEO DATA (English only — do NOT generate Arabic SEO):
+ - focusKeyword: the single primary English keyword.
+ - secondaryKeywords: array of 5-8 related English keywords.
+ - seoTitle: ≤ 60 chars, English, includes focus keyword near the front.
+ - metaTitle: ≤ 60 chars, English, may equal seoTitle.
+ - metaDescription: 120-160 chars, English, includes focus keyword + a CTA verb.
+ - slug: kebab-case, English, 3-6 words, includes focus keyword.
 
-STEP 2 — SEO DATA (SEPARATE for English and Arabic — never reuse one language's title/description for the other):
- - focusKeyword: the single primary keyword (English, canonical — used for internal tracking only).
- - secondaryKeywords: array of 5-8 related keywords (English).
- - en.seoTitle: ≤ 60 chars, English, includes focus keyword near the front.
- - en.metaTitle: ≤ 60 chars, English, may equal en.seoTitle.
- - en.metaDescription: 120-160 chars, English, includes focus keyword + a CTA verb.
- - en.slug: kebab-case, English, 3-6 words, includes focus keyword.
- - ar.seoTitle: ≤ 60 chars, WRITTEN IN ARABIC, a natural Arabic headline (not a translation of en.seoTitle — write it fresh for Arabic readers/search behavior).
- - ar.metaTitle: ≤ 60 chars, Arabic, may equal ar.seoTitle.
- - ar.metaDescription: 120-160 chars, WRITTEN IN ARABIC, natural Arabic phrasing + a CTA verb in Arabic.
- - ar.slug: kebab-case, LATIN CHARACTERS ONLY (transliterate or use the English focus keyword) — Arabic URLs break sharing/encoding, so even the Arabic post's slug must be Latin.
-
-STEP 3 — ENGLISH ARTICLE (Markdown, 600-900 words):
+STEP 2 — ENGLISH ARTICLE (Markdown, 600-900 words):
  - Start with a clear 2-3 sentence answer to the title (AEO).
  - Use H2/H3 hierarchy, bullet lists, at least one comparison table.
  - Cite sources inline as "(Source: NIH, 2024)" style.
  - End with a "Key Takeaways" section (3-5 bullets).
  - Embed a Coaching CTA section (H2 "Ready for a Personalized Plan?").
  - Insert the focus keyword in the first paragraph, in at least one H2, and 2-3 times in body.
- - DO NOT insert internal or external links in this chunk — they will be added in Part 3.
+ - DO NOT insert internal or external links — they will be added separately.
+
+STEP 3 — ENGLISH FAQ (3-5 Q&As, English only):
+ - Questions people ask on Google + AI assistants about this topic.
+ - Answers 40-80 words each, concise and quotable.
+
+STEP 4 — ENGLISH IMAGE PROMPTS (for AI image generators):
+ - featuredImage, facebookImage, openGraphImage
+ - CRITICAL: Each image prompt MUST be directly related to the specific article topic "${input.focusKeyword || input.topic}".
+   - Do NOT generate generic "fitness gym" images that could apply to any article.
+   - The image should visually represent the SPECIFIC subject matter of this article.
+ - Each prompt: ultra-realistic, premium fitness editorial style, dramatic lighting, blue & gold accent palette, NO text overlay, high CTR.
+ - Vary composition between the three (different angles / subjects, all related to the SAME topic).
+
+STEP 5 — ENGLISH SOCIAL MEDIA POSTS:
+ - facebook, linkedin, instagram, x
+ - Each post: strong hook (first line), 2-3 supporting lines, engagement question, CTA, 3-6 hashtags.
+ - Add a final line: "Registration link in the first comment "
+ - X post must be ≤ 280 chars.
+
+STEP 6 — estimatedReadingTime (integer minutes, based on English article word count @ 200 wpm).
 
 Return STRICT JSON with this shape:
 {
@@ -118,41 +129,55 @@ Return STRICT JSON with this shape:
   "seo": {
     "focusKeyword": "string",
     "secondaryKeywords": ["string", "..."],
-    "en": { "seoTitle": "string", "metaTitle": "string", "metaDescription": "string", "slug": "string" },
-    "ar": { "seoTitle": "string (Arabic)", "metaTitle": "string (Arabic)", "metaDescription": "string (Arabic)", "slug": "string (Latin)" }
+    "en": { "seoTitle": "string", "metaTitle": "string", "metaDescription": "string", "slug": "string" }
   },
-  "englishArticle": "markdown string"
+  "englishArticle": "markdown string",
+  "faq": [{ "question": "string", "answer": "string" }],
+  "imagePrompts": {
+    "featuredImage": "string",
+    "facebookImage": "string",
+    "openGraphImage": "string"
+  },
+  "socialPosts": {
+    "facebook": "string",
+    "linkedin": "string",
+    "instagram": "string",
+    "x": "string"
+  },
+  "estimatedReadingTime": 7
 }
 
 Return ONLY the JSON. No commentary, no markdown fences.`;
 };
 
 // ─────────────────────────────────────────────────────────────────────────
-// CHUNK 2: Arabic Article + FAQ
+// CHUNK 2: Arabic Article + AR FAQ + AR Image Prompts + AR Social + AR Reading Time
+// EN/AR SEPARATION: produces Arabic content ONLY. Does NOT produce EN FAQ
+// or any English content.
 // ─────────────────────────────────────────────────────────────────────────
 const chunk2Prompt = (input: {
   topic?: string;
   focusKeyword?: string;
   category?: string;
 }, seo: any) => {
-  const enTitle = seo?.en?.seoTitle || input.topic || "";
   const arTitle = seo?.ar?.seoTitle || "";
-  const focusKw = seo?.focusKeyword || input.focusKeyword || "";
+  const focusKw = seo?.ar?.focusKeyword || seo?.focusKeyword || input.focusKeyword || "";
 
-  return `Generate PART 2 of a blog article bundle for MuscleHub.
+  return `Generate a complete ARABIC blog article bundle for MuscleHub.
 
-CONTEXT FROM PART 1:
- - English title: "${enTitle}"
- - Arabic title: "${arTitle}"
- - Focus keyword: "${focusKw}"
+CONTEXT:
+ - Topic: ${input.topic || "(none — derive from focus keyword)"}
+ - Focus Keyword: ${focusKw}
+ - Arabic title (from previous step): "${arTitle}"
 
-STEP 4 — ARABIC ARTICLE (LOCALIZED, NOT TRANSLATED, Markdown, 500-800 words):
+STEP 1 — ARABIC ARTICLE (LOCALIZED, NOT TRANSLATED, Markdown, 500-800 words):
  - Adapt the angle for an Egyptian / Gulf Arabic-speaking audience.
  - Use culturally relevant examples (Egyptian foods, local gym culture, prayer-time scheduling, etc.).
  - Write in Modern Standard Arabic with a friendly, motivating tone.
- - Do NOT translate English idioms literally — rewrite for Arabic readers.
- - Same SEO structure as English (H2/H3, table, key takeaways, CTA sections).
+ - Do NOT translate idioms literally — rewrite for Arabic readers.
+ - Same SEO structure (H2/H3, table, key takeaways, CTA sections).
  - Include the focus keyword (transliterated or Arabic equivalent) naturally.
+ - DO NOT insert internal or external links — they will be added separately.
 
 CRITICAL ARABIC-ONLY RULES (VIOLATION = REJECTED ARTICLE):
  1. The ENTIRE Arabic article MUST be 100% Arabic text.
@@ -163,32 +188,43 @@ CRITICAL ARABIC-ONLY RULES (VIOLATION = REJECTED ARTICLE):
  6. The "Key Takeaways" section — Arabic ONLY.
  7. Source citations — write in Arabic format: "وفقاً لدراسة في المجلة الدولية للتغذية الرياضية"
  8. Scientific terms — transliterate to Arabic with original in parentheses: "معدل الأيض الأساسي (BMR)"
-    - Only the abbreviation in parentheses is allowed in English (e.g., "BMR", "DNA", "ATP").
-    - The full term MUST be written in Arabic before the abbreviation.
- 9. English keywords are NOT to be inserted into the Arabic text for SEO purposes.
-    - Use the Arabic equivalent or transliteration instead.
-    - Example: use "البروتين" not "protein", use "التمارين" not "workout".
- 10. Do NOT write ANY English sentence, phrase, or heading in the Arabic article body.
- 11. The article must be a genuinely localized piece — not a word-for-word translation.
-     Rewrite examples, metaphors, and cultural references for an Arabic-speaking audience.
+ 9. The article must be a genuinely localized piece — not a translation.
 
-STEP 5 — FAQ (3-5 Q&As, SEPARATE for each language):
+STEP 2 — ARABIC FAQ (3-5 Q&As, Arabic only — no English words):
  - Questions people ask on Google + AI assistants about this topic.
  - Answers 40-80 words each, concise and quotable.
- - English FAQ: questions and answers in English.
- - Arabic FAQ (faq_ar field): questions and answers in Arabic ONLY.
-   - Arabic FAQ questions MUST be different from the English FAQ questions — not translations.
-   - Arabic FAQ answers MUST be written fresh for Arabic readers.
-   - No English words in the Arabic FAQ except scientific abbreviations in parentheses.
- - Return FAQ as: [{ "question": "English Q", "answer": "English A" }, ...]
-   The system will use these for the English article. For the Arabic article,
-   include a separate "faq_ar" field with Arabic-only Q&A.
+ - All questions and answers must be in Arabic.
+
+STEP 3 — ARABIC IMAGE PROMPTS (for AI image generators — write prompts in English for image AI compatibility, but describe ARABIC-relevant imagery):
+ - featuredImage, facebookImage, openGraphImage
+ - CRITICAL: Each image prompt MUST be directly related to the specific article topic.
+ - Consider Arabic/Egyptian cultural context where relevant.
+ - Each prompt: ultra-realistic, premium fitness editorial style, dramatic lighting, blue & gold accent palette, NO text overlay, high CTR.
+
+STEP 4 — ARABIC SOCIAL MEDIA POSTS (write in Arabic):
+ - facebook, linkedin, instagram, x
+ - Each post: strong hook (first line in Arabic), 2-3 supporting lines, engagement question, CTA, 3-6 hashtags.
+ - Add a final line: "رابط التسجيل في أول تعليق "
+ - X post must be ≤ 280 chars.
+
+STEP 5 — estimatedReadingTimeAr (integer minutes, based on Arabic article word count @ 200 wpm).
 
 Return STRICT JSON with this shape:
 {
-  "arabicArticle": "markdown string",
-  "faq": [{ "question": "string", "answer": "string" }],
-  "faq_ar": [{ "question": "string (Arabic)", "answer": "string (Arabic)" }]
+  "arabicArticle": "markdown string (Arabic only)",
+  "faq_ar": [{ "question": "string (Arabic)", "answer": "string (Arabic)" }],
+  "imagePromptsAr": {
+    "featuredImage": "string",
+    "facebookImage": "string",
+    "openGraphImage": "string"
+  },
+  "socialPostsAr": {
+    "facebook": "string (Arabic)",
+    "linkedin": "string (Arabic)",
+    "instagram": "string (Arabic)",
+    "x": "string (Arabic)"
+  },
+  "estimatedReadingTimeAr": 5
 }
 
 Return ONLY the JSON. No commentary, no markdown fences.`;
@@ -259,11 +295,22 @@ Return STRICT JSON with this shape:
 Return ONLY the JSON. No commentary, no markdown fences.`;
 };
 
-export type SeoBlock = { seoTitle: string; metaTitle: string; metaDescription: string; slug: string };
+export type SeoBlock = {
+  seoTitle: string;
+  metaTitle: string;
+  metaDescription: string;
+  slug: string;
+  // Per-language focusKeyword and secondaryKeywords (NEW — optional for
+  // backward compat with old bundles that had shared seo.focusKeyword).
+  focusKeyword?: string;
+  secondaryKeywords?: string[];
+};
 
 export type ArticleBundle = {
   research: { angle: string; searchIntent: string; rationale: string } | null;
   seo: {
+    // Shared fields (backward compat — old bundles use these for both EN and AR).
+    // New bundles populate these from seo.en.* for backward compat with legacy consumers.
     focusKeyword: string;
     secondaryKeywords: string[];
     en: SeoBlock;
@@ -273,11 +320,20 @@ export type ArticleBundle = {
   arabicArticle: string;
   faq: { question: string; answer: string }[];
   faqAr: { question: string; answer: string }[];
-  internalLinks: { slug: string; anchorText: string; reason: string }[];
-  externalLinks: { url: string; anchorText: string; reason: string }[];
+  internalLinks: { slug: string; anchorText: string; anchorTextAr?: string; reason: string }[];
+  externalLinks: { url: string; anchorText: string; anchorTextAr?: string; reason: string }[];
+  // EN image/social/readingTime (backward compat name — same as before)
   imagePrompts: { featuredImage: string; facebookImage: string; openGraphImage: string };
   socialPosts: { facebook: string; linkedin: string; instagram: string; x: string };
   estimatedReadingTime: number;
+  // AR image/social/readingTime (NEW — optional for backward compat with old bundles)
+  imagePromptsAr?: { featuredImage: string; facebookImage: string; openGraphImage: string };
+  socialPostsAr?: { facebook: string; linkedin: string; instagram: string; x: string };
+  estimatedReadingTimeAr?: number;
+  // AR links (NEW — optional for backward compat with old bundles that had
+  // combined internalLinks/externalLinks with both anchorText + anchorTextAr)
+  internalLinksAr?: { slug: string; anchorText: string; reason: string }[];
+  externalLinksAr?: { url: string; anchorText: string; reason: string }[];
   source: string;
 };
 
@@ -516,138 +572,132 @@ Mastering **${focusKw}** is a journey of disciplined daily habits backed by scie
 }
 
 export async function generateArticleBundle(
-  input: { topic?: string; focusKeyword?: string; category?: string; research?: any },
+  input: { topic?: string; focusKeyword?: string; category?: string; research?: any; language?: "en" | "ar" },
 ): Promise<ArticleBundle> {
-  console.log("[blog-generate] Starting chunked article generation");
+  console.log(`[blog-generate] Starting EN/AR separated article generation (language: ${input.language || "both"})`);
 
-  // ───────────────────────────────────────────────────────────────────
-  // CHUNK 1: SEO + Research + English Article
-  // ───────────────────────────────────────────────────────────────────
-  let chunk1: any = null;
-  try {
-    const { text: raw1, model: model1 } = await callFreeOpenRouterLimited(
-      chunk1Prompt(input, input.research),
-      {
-        systemPrompt: ARTICLE_SYSTEM_PROMPT,
-        temperature: 0.7,
-        maxTokens: 4_000,
-        jsonMode: true,
-        timeoutMs: 50_000,
-      },
-    );
-    chunk1 = parseJSON<any>(raw1);
-    console.log(`[blog-generate] Chunk 1 done (model: ${model1}, has English: ${!!chunk1?.englishArticle})`);
-  } catch (e: any) {
-    console.error("[blog-generate] Chunk 1 AI call failed:", e?.message);
-    throw new Error(`Blog article generation failed — all AI providers/models unavailable. Last error: ${e?.message || "Unknown"}. Ensure OPENROUTER_API is set with a valid key on Vercel.`);
-  }
-
-  if (!chunk1 || !chunk1.englishArticle || !chunk1.seo) {
-    console.error("[blog-generate] Chunk 1 returned incomplete or invalid data.");
-    throw new Error("Blog article generation failed — AI returned incomplete data (missing englishArticle or seo). The model may be rate-limited or unavailable.");
-  }
-
-  // ───────────────────────────────────────────────────────────────────
-  // CHUNK 2: Arabic Article + FAQ (in parallel with Chunk 3)
-  // ───────────────────────────────────────────────────────────────────
-  const chunk2Promise = callFreeOpenRouterLimited(
-    chunk2Prompt(input, chunk1.seo),
-    {
-      systemPrompt: ARTICLE_SYSTEM_PROMPT,
-      temperature: 0.7,
-      maxTokens: 4_000,
-      jsonMode: true,
-      timeoutMs: 50_000,
-    },
-  ).then(({ text, model }) => {
-    const parsed = parseJSON<any>(text);
-    console.log(`[blog-generate] Chunk 2 done (model: ${model}, has Arabic: ${!!parsed?.arabicArticle})`);
-    return parsed;
-  }).catch((e: any) => {
-    console.error("[blog-generate] Chunk 2 failed:", e?.message);
-    return null;
-  });
-
-  // ───────────────────────────────────────────────────────────────────
-  // CHUNK 3: Links + Image Prompts + Social Posts
-  // ───────────────────────────────────────────────────────────────────
-  const chunk3Promise = callFreeOpenRouterLimited(
-    chunk3Prompt(input, chunk1.seo),
-    {
-      systemPrompt: ARTICLE_SYSTEM_PROMPT,
-      temperature: 0.7,
-      maxTokens: 2_500,
-      jsonMode: true,
-      timeoutMs: 40_000,
-    },
-  ).then(({ text, model }) => {
-    const parsed = parseJSON<any>(text);
-    console.log(`[blog-generate] Chunk 3 done (model: ${model}, has links: ${!!parsed?.internalLinks})`);
-    return parsed;
-  }).catch((e: any) => {
-    console.error("[blog-generate] Chunk 3 failed:", e?.message);
-    return null;
-  });
-
-  // Wait for chunks 2 and 3 in parallel
-  const [chunk2, chunk3] = await Promise.all([chunk2Promise, chunk3Promise]);
-
-  // ───────────────────────────────────────────────────────────────────
-  // Merge all chunks into final bundle
-  // ───────────────────────────────────────────────────────────────────
   const emptySeo: SeoBlock = { seoTitle: "", metaTitle: "", metaDescription: "", slug: "" };
   const buildSeo = (block: any): SeoBlock => ({
     seoTitle: block?.seoTitle || "",
     metaTitle: block?.metaTitle || block?.seoTitle || "",
     metaDescription: block?.metaDescription || "",
     slug: block?.slug || "",
+    focusKeyword: block?.focusKeyword,
+    secondaryKeywords: Array.isArray(block?.secondaryKeywords) ? block.secondaryKeywords : undefined,
   });
 
-  const internalLinks = Array.isArray(chunk3?.internalLinks) ? chunk3.internalLinks : [];
-  const externalLinks = Array.isArray(chunk3?.externalLinks) ? chunk3.externalLinks : [];
+  // ───────────────────────────────────────────────────────────────────
+  // EN ARTICLE (skip if language=ar)
+  // ───────────────────────────────────────────────────────────────────
+  let enResult: any = null;
+  if (input.language !== "ar") {
+    try {
+      enResult = await generateEnglishArticle(input, input.research);
+    } catch (e: any) {
+      console.error("[blog-generate] EN article failed:", e?.message);
+      throw new Error(`Blog article generation failed — EN article step error: ${e?.message || "Unknown"}. Ensure OPENROUTER_API is set with a valid key.`);
+    }
+  }
 
-  // Insert links into both articles
-  const englishArticle = insertLinksIntoArticle(
-    chunk1.englishArticle || "",
-    internalLinks,
-    externalLinks,
-    false,
-  );
-  const arabicArticle = insertLinksIntoArticle(
-    chunk2?.arabicArticle || "",
-    internalLinks,
-    externalLinks,
-    true,
-  );
+  // ───────────────────────────────────────────────────────────────────
+  // AR ARTICLE (skip if language=en) — runs in parallel with EN if both.
+  // Does NOT receive englishArticle as input.
+  // ───────────────────────────────────────────────────────────────────
+  let arResult: any = null;
+  if (input.language !== "en") {
+    try {
+      arResult = await generateArabicArticle(input, enResult?.seo || null, input.research);
+    } catch (e: any) {
+      console.error("[blog-generate] AR article failed:", e?.message);
+      if (!enResult) throw e; // If EN also failed, throw.
+      // If only AR failed, continue with EN-only bundle.
+    }
+  }
 
-  const wordCount = englishArticle.split(/\s+/).length;
+  // ───────────────────────────────────────────────────────────────────
+  // LINKS — generated separately per language via generateLinksAndSocial
+  // (which now calls generateEnglishLinks + generateArabicLinks internally).
+  // ───────────────────────────────────────────────────────────────────
+  let linksResult: any = null;
+  try {
+    linksResult = await generateLinksAndSocial(
+      { topic: input.topic, focusKeyword: input.focusKeyword },
+      enResult?.seo || arResult?.seo || null,
+      enResult?.englishArticle || "",
+      arResult?.arabicArticle || "",
+    );
+  } catch (e: any) {
+    console.error("[blog-generate] Links failed:", e?.message);
+  }
+
+  // ───────────────────────────────────────────────────────────────────
+  // Merge into final bundle
+  // ───────────────────────────────────────────────────────────────────
+  const enSeo = enResult?.seo;
+  const arSeo = arResult?.seo;
+
+  const englishArticleRaw = enResult?.englishArticle || "";
+  const arabicArticleRaw = arResult?.arabicArticle || "";
+
+  const enInternalLinks = Array.isArray(linksResult?.internalLinks) ? linksResult.internalLinks : [];
+  const enExternalLinks = Array.isArray(linksResult?.externalLinks) ? linksResult.externalLinks : [];
+
+  // Insert links into articles (EN links → EN article, AR links → AR article)
+  // For AR: if linksResult has internalLinksAr (from generateArabicLinks), use it;
+  // else use the combined internalLinks (which has anchorTextAr).
+  const arInternalLinks = linksResult?.internalLinksAr || enInternalLinks;
+  const arExternalLinks = linksResult?.externalLinksAr || enExternalLinks;
+
+  const englishArticle = insertLinksIntoArticle(englishArticleRaw, enInternalLinks, enExternalLinks, false);
+  const arabicArticle = insertLinksIntoArticle(arabicArticleRaw, arInternalLinks, arExternalLinks, true);
+
+  const enWordCount = englishArticle.split(/\s+/).filter(Boolean).length;
+  const arWordCount = arabicArticle.split(/\s+/).filter(Boolean).length;
   const estimatedReadingTime =
-    typeof chunk3?.estimatedReadingTime === "number"
-      ? chunk3.estimatedReadingTime
-      : Math.max(1, Math.ceil(wordCount / 200));
+    typeof enResult?.estimatedReadingTime === "number"
+      ? enResult.estimatedReadingTime
+      : Math.max(1, Math.ceil(enWordCount / 200));
+  const estimatedReadingTimeAr =
+    typeof arResult?.estimatedReadingTimeAr === "number"
+      ? arResult.estimatedReadingTimeAr
+      : Math.max(1, Math.ceil(arWordCount / 200));
+
+  // Build the seo block — new bundles have per-language focusKeyword/secondaryKeywords
+  const enSeoBlock: SeoBlock = enSeo?.en ? buildSeo(enSeo.en) : emptySeo;
+  if (!enSeoBlock.focusKeyword && enSeo?.focusKeyword) enSeoBlock.focusKeyword = enSeo.focusKeyword;
+  if (!enSeoBlock.secondaryKeywords && Array.isArray(enSeo?.secondaryKeywords)) enSeoBlock.secondaryKeywords = enSeo.secondaryKeywords;
+
+  const arSeoBlock: SeoBlock = arSeo?.ar ? buildSeo(arSeo.ar) : (enSeo?.ar ? buildSeo(enSeo.ar) : emptySeo);
+  if (!arSeoBlock.focusKeyword && arSeo?.focusKeyword) arSeoBlock.focusKeyword = arSeo.focusKeyword;
+  if (!arSeoBlock.secondaryKeywords && Array.isArray(arSeo?.secondaryKeywords)) arSeoBlock.secondaryKeywords = arSeo.secondaryKeywords;
 
   return {
-    research: chunk1.research || null,
+    research: enResult?.research || arResult?.research || null,
     seo: {
-      focusKeyword: chunk1.seo?.focusKeyword || input.focusKeyword || "",
-      secondaryKeywords: Array.isArray(chunk1.seo?.secondaryKeywords) ? chunk1.seo.secondaryKeywords : [],
-      en: chunk1.seo?.en ? buildSeo(chunk1.seo.en) : emptySeo,
-      ar: chunk1.seo?.ar ? buildSeo(chunk1.seo.ar) : emptySeo,
+      // For backward compat: top-level focusKeyword/secondaryKeywords come from EN
+      focusKeyword: enSeoBlock.focusKeyword || enSeo?.focusKeyword || input.focusKeyword || "",
+      secondaryKeywords: enSeoBlock.secondaryKeywords || (Array.isArray(enSeo?.secondaryKeywords) ? enSeo.secondaryKeywords : []),
+      en: enSeoBlock,
+      ar: arSeoBlock,
     },
     englishArticle,
     arabicArticle,
-    faq: Array.isArray(chunk2?.faq) ? chunk2.faq : [],
-    faqAr: Array.isArray(chunk2?.faq_ar) ? chunk2.faq_ar : [],
-    internalLinks,
-    externalLinks,
-    imagePrompts: chunk3?.imagePrompts || {
-      featuredImage: `Ultra-realistic editorial photo directly related to: ${input.topic || input.focusKeyword || "fitness and nutrition"}. Professional lighting, 8k, no text overlay`,
-      facebookImage: `Close-up realistic photo about: ${input.focusKeyword || input.topic || "fitness"}. Professional studio lighting, no text overlay`,
-      openGraphImage: `Dynamic scene depicting: ${input.topic || input.focusKeyword || "athletic training"}. Professional editorial style, no text overlay`,
-    },
-    socialPosts: chunk3?.socialPosts || { facebook: "", linkedin: "", instagram: "", x: "" },
+    faq: Array.isArray(enResult?.faq) ? enResult.faq : [],
+    faqAr: Array.isArray(arResult?.faqAr) ? arResult.faqAr : [],
+    internalLinks: enInternalLinks,
+    externalLinks: enExternalLinks,
+    // EN-specific image/social/readingTime
+    imagePrompts: enResult?.imagePrompts || linksResult?.imagePrompts || { featuredImage: "", facebookImage: "", openGraphImage: "" },
+    socialPosts: enResult?.socialPosts || linksResult?.socialPosts || { facebook: "", linkedin: "", instagram: "", x: "" },
     estimatedReadingTime,
-    source: "gemini:chunked",
+    // AR-specific image/social/readingTime (NEW)
+    imagePromptsAr: arResult?.imagePromptsAr,
+    socialPostsAr: arResult?.socialPostsAr,
+    estimatedReadingTimeAr,
+    // AR-specific links (NEW — used by step3-publish for the AR article)
+    internalLinksAr: linksResult?.internalLinksAr,
+    externalLinksAr: linksResult?.externalLinksAr,
+    source: "openrouter:en-ar-separated",
   };
 }
 
@@ -703,7 +753,15 @@ export async function generateExternalResearch(
 export async function generateEnglishArticle(
   input: { topic?: string; focusKeyword?: string; category?: string },
   research?: any,
-): Promise<{ seo: any; englishArticle: string; source: string }> {
+): Promise<{
+  seo: any;
+  englishArticle: string;
+  faq: any[];
+  imagePrompts: any;
+  socialPosts: any;
+  estimatedReadingTime: number;
+  source: string;
+}> {
   const prompt = chunk1Prompt(input, research);
   const { text, model } = await callFreeOpenRouterLimited(
     prompt,
@@ -719,9 +777,14 @@ export async function generateEnglishArticle(
   if (!parsed || !parsed.englishArticle || !parsed.seo) {
     throw new Error("English article chunk returned invalid data — missing englishArticle or seo");
   }
+  console.log(`[blog-generate] EN article done (model: ${model}, words: ${parsed.englishArticle.split(/\s+/).length})`);
   return {
     seo: parsed.seo,
     englishArticle: parsed.englishArticle,
+    faq: Array.isArray(parsed.faq) ? parsed.faq : [],
+    imagePrompts: parsed.imagePrompts || { featuredImage: "", facebookImage: "", openGraphImage: "" },
+    socialPosts: parsed.socialPosts || { facebook: "", linkedin: "", instagram: "", x: "" },
+    estimatedReadingTime: typeof parsed.estimatedReadingTime === "number" ? parsed.estimatedReadingTime : Math.max(1, Math.ceil(parsed.englishArticle.split(/\s+/).length / 200)),
     source: `gemini:${model}`,
   };
 }
@@ -729,8 +792,19 @@ export async function generateEnglishArticle(
 export async function generateArabicArticle(
   input: { topic?: string; focusKeyword?: string; category?: string },
   seo: any,
-  englishArticle?: string,
-): Promise<{ arabicArticle: string; faq: any[]; faqAr: any[]; source: string }> {
+  research?: any,
+): Promise<{
+  arabicArticle: string;
+  faqAr: any[];
+  imagePromptsAr: any;
+  socialPostsAr: any;
+  estimatedReadingTimeAr: number;
+  source: string;
+}> {
+  // EN/AR SEPARATION: this function does NOT receive englishArticle as input.
+  // It uses chunk2Prompt but the AR writer gets only topic + research (same as EN).
+  // The AR article, AR FAQ, AR image prompts, AR social posts, and AR reading
+  // time are all generated independently.
   const prompt = chunk2Prompt(input, seo);
 
   const { text, model } = await callFreeOpenRouterLimited(
@@ -748,11 +822,13 @@ export async function generateArabicArticle(
   if (!parsed || !parsed.arabicArticle) {
     throw new Error("Arabic article chunk returned invalid data — missing arabicArticle");
   }
-  console.log(`[blog-generate] AR article done (model: ${model}, has FAQ: ${!!parsed.faq?.length})`);
+  console.log(`[blog-generate] AR article done (model: ${model}, has FAQ: ${!!parsed.faq_ar?.length})`);
   return {
     arabicArticle: parsed.arabicArticle,
-    faq: Array.isArray(parsed.faq) ? parsed.faq : [],
     faqAr: Array.isArray(parsed.faq_ar) ? parsed.faq_ar : [],
+    imagePromptsAr: parsed.imagePromptsAr || { featuredImage: "", facebookImage: "", openGraphImage: "" },
+    socialPostsAr: parsed.socialPostsAr || { facebook: "", linkedin: "", instagram: "", x: "" },
+    estimatedReadingTimeAr: typeof parsed.estimatedReadingTimeAr === "number" ? parsed.estimatedReadingTimeAr : Math.max(1, Math.ceil(parsed.arabicArticle.split(/\s+/).length / 200)),
     source: `gemini:${model}`,
   };
 }
@@ -882,6 +958,11 @@ Return ONLY the JSON. No commentary, no markdown fences.`;
 /**
  * Helper: build the final ArticleBundle from individual step results.
  * Used by step3-publish to assemble the complete bundle from queue data.
+ *
+ * Supports BOTH the new separated format (imagePromptsAr, socialPostsAr,
+ * estimatedReadingTimeAr, internalLinksAr, externalLinksAr) AND the old
+ * combined format (single imagePrompts, socialPosts, estimatedReadingTime,
+ * internalLinks with both anchorText + anchorTextAr).
  */
 export function buildFinalBundle(parts: {
   research: any;
@@ -895,6 +976,12 @@ export function buildFinalBundle(parts: {
   imagePrompts: any;
   socialPosts: any;
   estimatedReadingTime: number;
+  // NEW optional fields (absent in old bundles):
+  imagePromptsAr?: any;
+  socialPostsAr?: any;
+  estimatedReadingTimeAr?: number;
+  internalLinksAr?: any[];
+  externalLinksAr?: any[];
 }): ArticleBundle {
   const emptySeo: SeoBlock = { seoTitle: "", metaTitle: "", metaDescription: "", slug: "" };
   const buildSeo = (block: any): SeoBlock => ({
@@ -902,36 +989,54 @@ export function buildFinalBundle(parts: {
     metaTitle: block?.metaTitle || block?.seoTitle || "",
     metaDescription: block?.metaDescription || "",
     slug: block?.slug || "",
+    focusKeyword: block?.focusKeyword,
+    secondaryKeywords: Array.isArray(block?.secondaryKeywords) ? block.secondaryKeywords : undefined,
   });
 
-  // Insert links into both articles
-  const englishArticle = insertLinksIntoArticle(
-    parts.englishArticle || "",
-    parts.internalLinks,
-    parts.externalLinks,
-    false,
-  );
-  const arabicArticle = insertLinksIntoArticle(
-    parts.arabicArticle || "",
-    parts.internalLinks,
-    parts.externalLinks,
-    true,
-  );
+  // EN links (use top-level internalLinks/externalLinks — old combined shape or new EN-only shape)
+  const enInternalLinks = parts.internalLinks || [];
+  const enExternalLinks = parts.externalLinks || [];
+
+  // AR links (NEW: use internalLinksAr/externalLinksAr if present; else fall
+  // back to the top-level combined links with anchorTextAr field)
+  const arInternalLinks = parts.internalLinksAr || enInternalLinks;
+  const arExternalLinks = parts.externalLinksAr || enExternalLinks;
+
+  // Insert links into articles (EN links → EN article, AR links → AR article)
+  const englishArticle = insertLinksIntoArticle(parts.englishArticle || "", enInternalLinks, enExternalLinks, false);
+  const arabicArticle = insertLinksIntoArticle(parts.arabicArticle || "", arInternalLinks, arExternalLinks, true);
+
+  // Build seo blocks with per-language focusKeyword/secondaryKeywords
+  const enSeoBlock: SeoBlock = parts.seo?.en ? buildSeo(parts.seo.en) : emptySeo;
+  if (!enSeoBlock.focusKeyword && parts.seo?.focusKeyword) enSeoBlock.focusKeyword = parts.seo.focusKeyword;
+  if (!enSeoBlock.secondaryKeywords && Array.isArray(parts.seo?.secondaryKeywords)) enSeoBlock.secondaryKeywords = parts.seo.secondaryKeywords;
+
+  const arSeoBlock: SeoBlock = parts.seo?.ar ? buildSeo(parts.seo.ar) : emptySeo;
+  if (!arSeoBlock.focusKeyword && parts.seo?.focusKeyword) arSeoBlock.focusKeyword = parts.seo.focusKeyword;
+  if (!arSeoBlock.secondaryKeywords && Array.isArray(parts.seo?.secondaryKeywords)) arSeoBlock.secondaryKeywords = parts.seo.secondaryKeywords;
+
+  // AR reading time (NEW: use estimatedReadingTimeAr if present; else fall back to EN)
+  const arReadingTime =
+    typeof parts.estimatedReadingTimeAr === "number"
+      ? parts.estimatedReadingTimeAr
+      : parts.estimatedReadingTime || 1;
 
   return {
     research: parts.research || null,
     seo: {
-      focusKeyword: parts.seo?.focusKeyword || "",
-      secondaryKeywords: Array.isArray(parts.seo?.secondaryKeywords) ? parts.seo.secondaryKeywords : [],
-      en: parts.seo?.en ? buildSeo(parts.seo.en) : emptySeo,
-      ar: parts.seo?.ar ? buildSeo(parts.seo.ar) : emptySeo,
+      // For backward compat: top-level focusKeyword/secondaryKeywords from EN
+      focusKeyword: enSeoBlock.focusKeyword || parts.seo?.focusKeyword || "",
+      secondaryKeywords: enSeoBlock.secondaryKeywords || (Array.isArray(parts.seo?.secondaryKeywords) ? parts.seo.secondaryKeywords : []),
+      en: enSeoBlock,
+      ar: arSeoBlock,
     },
     englishArticle,
     arabicArticle,
     faq: parts.faq || [],
     faqAr: parts.faqAr || [],
-    internalLinks: parts.internalLinks || [],
-    externalLinks: parts.externalLinks || [],
+    internalLinks: enInternalLinks,
+    externalLinks: enExternalLinks,
+    // EN image/social/readingTime
     imagePrompts: parts.imagePrompts || {
       featuredImage: `Ultra-realistic editorial photo directly related to: ${parts.seo?.focusKeyword || "fitness and nutrition"}. Professional lighting, 8k, no text overlay`,
       facebookImage: `Close-up realistic photo about: ${parts.seo?.focusKeyword || "fitness"}. Professional studio lighting, no text overlay`,
@@ -939,6 +1044,13 @@ export function buildFinalBundle(parts: {
     },
     socialPosts: parts.socialPosts || { facebook: "", linkedin: "", instagram: "", x: "" },
     estimatedReadingTime: parts.estimatedReadingTime || 1,
-    source: "gemini:multi-step",
+    // AR image/social/readingTime (NEW — optional, absent in old bundles)
+    imagePromptsAr: parts.imagePromptsAr,
+    socialPostsAr: parts.socialPostsAr,
+    estimatedReadingTimeAr: arReadingTime,
+    // AR links (NEW — optional)
+    internalLinksAr: parts.internalLinksAr,
+    externalLinksAr: parts.externalLinksAr,
+    source: "openrouter:multi-step",
   };
 }

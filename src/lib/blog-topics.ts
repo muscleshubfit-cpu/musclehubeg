@@ -1,4 +1,5 @@
-import { callFreeOpenRouterLimited, parseJSON } from "@/lib/ai-provider";
+import { parseJSON } from "@/lib/ai-provider";
+import { callGeminiFlashViaOpenRouter } from "@/lib/openrouter-flash";
 import { supabaseAdmin, isSupabaseAdminConfigured } from "@/lib/supabase/admin";
 
 /**
@@ -294,7 +295,11 @@ CRITICAL DIVERSITY & NO-REPETITION INSTRUCTIONS:
 Pick the single best, unique topic now strictly within the "${category}" pillar.`;
 
   try {
-    const { text: raw } = await callFreeOpenRouterLimited(
+    // Stage 1 (Topic/Title) — uses Gemini Flash via OpenRouter per stage-aware
+    // AI model policy. Key source: OPENROUTER_API only. Fallback chain:
+    // gemini-3.7-flash → gemini-3.6-flash → gemini-3.5-flash. NO Gemini API
+    // key, NO AI_MODEL, NO Pro.
+    const { text: raw } = await callGeminiFlashViaOpenRouter(
       userPrompt,
       {
         systemPrompt: TOPIC_SYSTEM_PROMPT,
@@ -303,7 +308,6 @@ Pick the single best, unique topic now strictly within the "${category}" pillar.
         jsonMode: true,
         timeoutMs: 30_000,
       },
-      2,
     );
 
     const parsed = parseJSON<any>(raw);

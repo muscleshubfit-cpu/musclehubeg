@@ -90,13 +90,26 @@ export async function GET(request: NextRequest) {
     const researchingErr = await updateQueueItem(qi.id, { status: "generating_ar" });
     if (researchingErr) throw new Error(researchingErr);
 
-    const { arabicArticle, faq, faqAr, source } = await generateArabicArticle(
+    // EN/AR SEPARATION: generateArabicArticle does NOT receive englishArticle
+    // as input. It receives only topic + research (same as EN).
+    // The AR article, AR SEO, AR FAQ, AR image prompts, AR social posts, and
+    // AR reading time are all generated independently in this single call.
+    const arResult = await generateArabicArticle(
       { topic: qi.topic, focusKeyword: qi.focus_keyword, category: qi.category },
       bundle.seo || null,
-      bundle.englishArticle || "",
+      bundle.research || null,
     );
 
-    const updatedBundle = JSON.stringify({ ...bundle, arabicArticle, faq, faqAr });
+    // Save AR SEO + AR article + AR FAQ + AR image + AR social + AR reading time
+    const updatedBundle = JSON.stringify({
+      ...bundle,
+      seo: { ...bundle.seo, ...(arResult as any).seo || {} },
+      arabicArticle: arResult.arabicArticle,
+      faqAr: arResult.faqAr,
+      imagePromptsAr: arResult.imagePromptsAr,
+      socialPostsAr: arResult.socialPostsAr,
+      estimatedReadingTimeAr: arResult.estimatedReadingTimeAr,
+    });
     const updateErr = await updateQueueItem(qi.id, { status: "ar_done", article_bundle: updatedBundle });
     if (updateErr) throw new Error(updateErr);
 
@@ -104,10 +117,11 @@ export async function GET(request: NextRequest) {
       ok: true,
       step: "2c",
       queueId: qi.id,
-      arTitle: bundle.seo?.ar?.seoTitle || "",
-      hasFaq: faq.length > 0,
-      hasFaqAr: faqAr.length > 0,
-      source,
+      arTitle: (arResult as any).seo?.ar?.seoTitle || bundle.seo?.ar?.seoTitle || "",
+      hasFaqAr: arResult.faqAr.length > 0,
+      hasImagePromptsAr: !!arResult.imagePromptsAr?.featuredImage,
+      hasSocialPostsAr: !!arResult.socialPostsAr?.facebook,
+      source: arResult.source,
     });
   } catch (e: any) {
     console.error("[blog/step2c-ar-article] Error:", e?.message || e);

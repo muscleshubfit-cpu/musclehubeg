@@ -43,15 +43,23 @@ export type GeneratedBundle = {
   seo: {
     focusKeyword: string;
     secondaryKeywords: string[];
-    en: SeoBlock;
-    ar: SeoBlock;
+    en: SeoBlock & { focusKeyword?: string; secondaryKeywords?: string[] };
+    ar: SeoBlock & { focusKeyword?: string; secondaryKeywords?: string[] };
   };
   englishArticle: string;
   arabicArticle: string;
   faq: Array<{ question: string; answer: string }>;
+  faqAr?: Array<{ question: string; answer: string }>;
   internalLinks: Array<{ slug: string; anchorText: string; reason: string }>;
+  internalLinksAr?: Array<{ slug: string; anchorText: string; reason: string }>;
   externalLinks: Array<{ url: string; anchorText: string; reason: string }>;
+  externalLinksAr?: Array<{ url: string; anchorText: string; reason: string }>;
   imagePrompts: {
+    featuredImage: string;
+    facebookImage: string;
+    openGraphImage: string;
+  };
+  imagePromptsAr?: {
     featuredImage: string;
     facebookImage: string;
     openGraphImage: string;
@@ -62,7 +70,14 @@ export type GeneratedBundle = {
     instagram: string;
     x: string;
   };
+  socialPostsAr?: {
+    facebook: string;
+    linkedin: string;
+    instagram: string;
+    x: string;
+  };
   estimatedReadingTime: number;
+  estimatedReadingTimeAr?: number;
   image?: { url: string; alt: string; credit: string } | null;
   language: "en" | "ar";
   source: string;
