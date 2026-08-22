@@ -1,32 +1,27 @@
-"use client";
-
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { useAuth } from "@/hooks/use-auth";
-import { AppLayout } from "@/components/AppLayout";
+import type { Metadata } from "next";
+import { AuthGate } from "./auth-gate";
 
 /**
- * Shared shell for every authenticated route (dashboard, plans, progress,
- * chat, coach/*, ...). Centralizes the auth gate so each page.tsx only has
- * to render its own view.
+ * Server-component layout for all authenticated routes (dashboard, plans,
+ * progress, chat, support, referral, coach/*, questionnaires).
+ *
+ * Exports `metadata` with `noindex, nofollow` so Google does not index any
+ * page under this layout. The auth gate (client component) is rendered as
+ * the body — keeping the auth logic intact while allowing this server
+ * component to own the metadata.
+ *
+ * Routes covered (one metadata for all — minimal change):
+ *   /dashboard, /plans, /progress, /chat, /support, /referral,
+ *   /coach/*, /questionnaires
  */
-export default function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
- const { profile, loading } = useAuth();
- const router = useRouter();
+export const metadata: Metadata = {
+  robots: { index: false, follow: false },
+};
 
- useEffect(() => {
- if (!loading && !profile) {
- router.replace("/auth");
- }
- }, [loading, profile, router]);
-
- if (loading || !profile) {
- return (
- <div className="flex min-h-screen items-center justify-center">
- <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
- </div>
- );
- }
-
- return <AppLayout>{children}</AppLayout>;
+export default function AuthenticatedLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return <AuthGate>{children}</AuthGate>;
 }

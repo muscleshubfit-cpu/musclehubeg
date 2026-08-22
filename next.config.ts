@@ -43,8 +43,9 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
-        // Long-cache static assets
-        source: "/(sitemap.xml|robots.txt|manifest.json|sw.js|favicon.ico|favicon.png|logo.png|logo.svg|icon-32.png|icon-192.png|icon-512.png|apple-touch-icon.png)",
+        // Long-cache static assets (including ads.txt — served to Google's
+        // AdSense crawler, same Cache-Control as robots.txt/sitemap.xml).
+        source: "/(sitemap.xml|robots.txt|ads.txt|manifest.json|sw.js|favicon.ico|favicon.png|logo.png|logo.svg|icon-32.png|icon-192.png|icon-512.png|apple-touch-icon.png)",
         headers: [
           {
             key: "Cache-Control",

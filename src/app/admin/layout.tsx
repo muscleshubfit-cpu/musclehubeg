@@ -1,38 +1,26 @@
-"use client";
-
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { useAuth } from "@/hooks/use-auth";
-import { AppLayout } from "@/components/AppLayout";
+import type { Metadata } from "next";
+import { AdminGate } from "./admin-gate";
 
 /**
- * Coach-only shell for /admin/* routes (blog CMS, referrals, AI settings).
- * Redirects non-coaches back to their dashboard; redirects logged-out users
- * to /auth. Sits OUTSIDE the (app) group, so it needs its own gate.
+ * Server-component layout for /admin/* routes (blog CMS, referrals,
+ * AI settings, leads, saved-results).
+ *
+ * Exports `metadata` with `noindex, nofollow` so Google does not index any
+ * page under /admin. The coach-only auth gate (client component) is rendered
+ * as the body — keeping the auth logic intact while allowing this server
+ * component to own the metadata.
+ *
+ * Routes covered:
+ *   /admin/blog, /admin/referrals, /admin/leads, /admin/saved-results
  */
-export default function AdminLayout({ children }: { children: React.ReactNode }) {
-  const { profile, loading } = useAuth();
-  const router = useRouter();
+export const metadata: Metadata = {
+  robots: { index: false, follow: false },
+};
 
-  useEffect(() => {
-    if (loading) return;
-    if (!profile) {
-      router.replace("/auth");
-      return;
-    }
-    if (profile.role !== "coach") {
-      // Logged in but not a coach — bounce to their own dashboard.
-      router.replace("/dashboard");
-    }
-  }, [loading, profile, router]);
-
-  if (loading || !profile || profile.role !== "coach") {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-      </div>
-    );
-  }
-
-  return <AppLayout>{children}</AppLayout>;
+export default function AdminLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return <AdminGate>{children}</AdminGate>;
 }

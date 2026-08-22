@@ -122,7 +122,7 @@ export const metadata: Metadata = {
     canonical: "https://musclehubeg.vercel.app",
     languages: {
       "en-US": "https://musclehubeg.vercel.app",
-      "ar-EG": "https://musclehubeg.vercel.app",
+      "ar-EG": "https://musclehubeg.vercel.app/ar",
     },
   },
   category: "Health & Fitness",
