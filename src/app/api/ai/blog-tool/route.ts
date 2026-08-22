@@ -182,8 +182,7 @@ Requirements:
       if (OPENROUTER_KEY) {
         const models = [
           "nvidia/nemotron-3.5-lightning:free",
-          "nvidia/nemotron-3-ultra-550b-a55b:free",
-          "poolside/laguna-s-2.1:free",
+          "nvidia/nemotron-3-super-120b-a12b:free",
         ];
         for (const model of models) {
           try {

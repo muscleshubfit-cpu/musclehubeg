@@ -12,7 +12,7 @@ import { requireCoach, isAuthConfigured } from "@/lib/auth-server";
  *
  * Uses the unified OpenRouter free-model iterator (callFreeOpenRouter)
  * — same as EVO chat, swaps, and plan-generator. No per-admin override;
- * OPENROUTER_API_KEY env var is the only key needed.
+ * OPENROUTER_API env var is the only key needed.
  *
  * NOTE: long-form article generation can take 60-120 seconds on free models.
  * We set `maxDuration = 300` (5 min) so Vercel doesn't kill the request.

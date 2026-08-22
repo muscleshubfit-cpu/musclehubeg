@@ -16,7 +16,7 @@
  * Resolution order (highest priority first):
  * 1. Runtime override (set by AI Settings page → stored in HTTP-only cookies
  * on the server, or sent inline by the API caller)
- * 2. Process.env (OPENROUTER_API_KEY / OPENAI_API_KEY / etc.)
+ * 2. Process.env (OPENROUTER_API / OPENAI_API_KEY / etc.)
  *
  * This file MUST be server-only — it never exposes API keys to the client.
  */
@@ -52,7 +52,7 @@ export const AI_PROVIDERS: Record<
     label: "OpenRouter",
     baseUrl: "https://openrouter.ai/api/v1",
     defaultModel: "nvidia/nemotron-3.5-lightning:free",
-    envKey: "OPENROUTER_API_KEY",
+    envKey: "OPENROUTER_API",
     docsUrl: "https://openrouter.ai/keys",
     keyPrefix: "sk-or-",
   },
@@ -127,7 +127,7 @@ export function getEnvConfig(): AIConfig | null {
     process.env.GEMINI_API_KEY ||
     process.env.GOOGLE_API_KEY ||
     process.env.AI_API_KEY ||
-    process.env.OPENROUTER_API_KEY ||
+    process.env.OPENROUTER_API ||
     "";
 
   if (!apiKey) return null;
@@ -228,7 +228,7 @@ export async function callAI(
   const cfg = mergeOverride(configOverride);
   if (!cfg || !cfg.apiKey) {
     throw new Error(
-      "AI provider not configured. Set OPENROUTER_API_KEY in your environment variables.",
+      "AI provider not configured. Set OPENROUTER_API in your environment variables.",
     );
   }
 
@@ -477,9 +477,7 @@ function repairTruncatedJSON(s: string): string {
  *   1. nvidia/nemotron-3-ultra-550b (550B params, 1M context — best quality)
  *   2. nvidia/nemotron-3.5-lightning (1M context, fast + smart)
  *   3. nvidia/nemotron-3-super-120b (120B params, 262K context)
- *   4. google/gemma-4-31b (31B, 262K, multimodal)
- *   5. google/gemma-4-26b (26B, 262K, multimodal — clean output)
- *   6. openai/gpt-oss-20b (20B, 131K — fallback)
+   *   Only 3 free models are currently available on OpenRouter (verified 2026-08-21).
  *
  * Speed optimization: Use callFreeOpenRouterRace() instead of callFreeOpenRouter()
  * for routes that need SPEED (chat, swap). It races the top 3 models in PARALLEL
@@ -488,8 +486,7 @@ function repairTruncatedJSON(s: string): string {
 export const FREE_OPENROUTER_MODELS = [
   "nvidia/nemotron-3.5-lightning:free",
   "nvidia/nemotron-3-ultra-550b-a55b:free",
-  "poolside/laguna-s-2.1:free",
-  "nvidia/nemotron-3-super-120b-a12b:free",
+ "nvidia/nemotron-3-super-120b-a12b:free",
 ];
 
 /**
@@ -503,9 +500,9 @@ export async function callFreeOpenRouter(
   prompt: string,
   options: CallAIOptions = {},
 ): Promise<{ text: string; model: string }> {
-  const apiKey = process.env.OPENROUTER_API_KEY || process.env.AI_API_KEY || "";
+  const apiKey = process.env.OPENROUTER_API || process.env.AI_API_KEY || "";
   const baseUrl = "https://openrouter.ai/api/v1";
-  if (!apiKey) throw new Error("OPENROUTER_API_KEY not configured");
+  if (!apiKey) throw new Error("OPENROUTER_API not configured");
 
   const errors: string[] = [];
   for (const model of FREE_OPENROUTER_MODELS) {
@@ -548,9 +545,9 @@ export async function callFreeOpenRouterLimited(
   options: CallAIOptions = {},
   maxModels = 2,
 ): Promise<{ text: string; model: string }> {
-  const apiKey = process.env.OPENROUTER_API_KEY || process.env.AI_API_KEY || "";
+  const apiKey = process.env.OPENROUTER_API || process.env.AI_API_KEY || "";
   const baseUrl = "https://openrouter.ai/api/v1";
-  if (!apiKey) throw new Error("OPENROUTER_API_KEY not configured");
+  if (!apiKey) throw new Error("OPENROUTER_API not configured");
 
   const models = FREE_OPENROUTER_MODELS.slice(0, maxModels);
   const errors: string[] = [];
@@ -599,9 +596,9 @@ export async function callFreeOpenRouterRace(
   options: CallAIOptions = {},
   raceCount = 3,
 ): Promise<{ text: string; model: string }> {
-  const apiKey = process.env.OPENROUTER_API_KEY || process.env.AI_API_KEY || "";
+  const apiKey = process.env.OPENROUTER_API || process.env.AI_API_KEY || "";
   const baseUrl = "https://openrouter.ai/api/v1";
-  if (!apiKey) throw new Error("OPENROUTER_API_KEY not configured");
+  if (!apiKey) throw new Error("OPENROUTER_API not configured");
 
   // Pick the top N models to race (largest first, as defined in FREE_OPENROUTER_MODELS)
   const models = FREE_OPENROUTER_MODELS.slice(0, raceCount);

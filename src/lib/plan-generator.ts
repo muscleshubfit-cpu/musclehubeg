@@ -40,7 +40,7 @@ import { EXERCISES } from "@/lib/exercises";
 // blog generation, and all other AI calls.
 const OPENROUTER_FREE_MODELS = FREE_OPENROUTER_MODELS;
 
-// Unified API key fallback sequence (GEMINI_API_KEY -> GOOGLE_API_KEY -> GOOGLE_GENAI_API_KEY -> AI_API_KEY -> OPENROUTER_API_KEY)
+// Unified API key fallback sequence (GEMINI_API_KEY -> GOOGLE_API_KEY -> GOOGLE_GENAI_API_KEY -> AI_API_KEY -> OPENROUTER_API)
 const OPENROUTER_KEY = getGeminiApiKey();
 const OPENROUTER_BASE = "https://openrouter.ai/api/v1";
 

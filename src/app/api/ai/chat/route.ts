@@ -213,7 +213,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 8. Try OpenRouter AI (if configured)
-    if (process.env.OPENROUTER_API_KEY || process.env.AI_API_KEY) {
+    if (process.env.OPENROUTER_API || process.env.AI_API_KEY) {
       try {
         const { text, model } = await callFreeOpenRouterRace(fullPrompt, {
           temperature: 0.6,

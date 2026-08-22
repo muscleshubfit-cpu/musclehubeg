@@ -7,7 +7,7 @@ export function getGeminiApiKey(): string {
     process.env.GOOGLE_API_KEY ||
     process.env.GOOGLE_GENAI_API_KEY ||
     process.env.AI_API_KEY ||
-    process.env.OPENROUTER_API_KEY ||
+    process.env.OPENROUTER_API ||
     ""
   );
 }
