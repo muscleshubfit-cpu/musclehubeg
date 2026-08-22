@@ -7,121 +7,222 @@ export const maxDuration = 60;
 
 export async function POST(request: NextRequest) {
   try {
+    // Coach auth check if auth is configured
     if (isAuthConfigured) {
       const auth = await requireCoach(request);
       if (auth instanceof Response) return auth;
     }
 
     const body = await request.json().catch(() => ({}));
-    const { tool, params } = body as {
-      tool: string;
-      params: { content?: string; title?: string; keyword?: string; lang: "en" | "ar" };
-    };
 
-    if (!tool || !params) {
-      return NextResponse.json({ error: "Missing tool or params" }, { status: 400 });
+    // Support both flat payload ({ tool, content, language, title, category, focusKeyword })
+    // and nested payload ({ tool, params: { content, title, keyword, lang } })
+    const toolKeyRaw = body.tool || "";
+    const params = body.params || {};
+
+    const content = (body.content || params.content || "").trim();
+    const title = (body.title || params.title || "").trim();
+    const keyword = (body.focusKeyword || body.keyword || params.keyword || params.focusKeyword || "").trim();
+    const category = (body.category || params.category || "").trim();
+    const lang = body.language || params.lang || "ar";
+
+    if (!toolKeyRaw) {
+      return NextResponse.json({ error: "اسم الأداة مطلوب (tool is required)" }, { status: 400 });
     }
 
-    const isAr = params.lang === "ar";
-    const content = params.content || "";
-    const title = params.title || "";
-    const keyword = params.keyword || "";
-
-    const prompts: Record<string, string> = {
-      seo_title: isAr
-        ? `اكتب عنوان SEO جذاب (أقل من 60 حرف) لمقال بعنوان "${title}" وكلمة مفتاحية "${keyword}". أعد العنوان فقط بدون علامات اقتباس.`
-        : `Write an SEO-optimized title (under 60 chars) for an article titled "${title}" with focus keyword "${keyword}". Return title only without quotes.`,
-      meta_desc: isAr
-        ? `اكتب وصف ميتا (أقل من 160 حرف) لمقال بعنوان "${title}". أعد الوصف فقط بدون علامات اقتباس.`
-        : `Write a meta description (under 160 chars) for an article titled "${title}". Return description only without quotes.`,
-      improve: isAr
-        ? `حسّن readability ووضوح هذا النص مع الحفاظ على المعنى العلمي والأسلوب المشوق:\n\n${content.slice(0, 3000)}`
-        : `Improve readability and clarity of this text while maintaining scientific accuracy and engaging tone:\n\n${content.slice(0, 3000)}`,
-      faq: isAr
-        ? `ولّد 3 أسئلة شائعة JSON بصيغة [{"question":"...","answer":"..."}] من هذا المحتوى:\n${content.slice(0, 3000)}`
-        : `Generate 3 FAQ JSON as [{"question":"...","answer":"..."}] from this content:\n${content.slice(0, 3000)}`,
-      cta: isAr
-        ? `اكتب نص CTA قصير ومحفز يدعو القارئ للاشتراك في عضوية التدريب في MuscleHub.`
-        : `Write a short motivating CTA copy inviting readers to subscribe to MuscleHub coaching.`,
-      fb: isAr
-        ? `اكتب منشور فيسبوك جذاب مع إيموجيز وهاشتاجات لمقال بعنوان "${title}".`
-        : `Write an engaging Facebook post with emojis and hashtags for an article titled "${title}".`,
-      linkedin: isAr
-        ? `اكتب منشور لينكد إن احترافي يناقش النقاط الأساسية لمقال بعنوان "${title}".`
-        : `Write a professional LinkedIn post highlighting key points for an article titled "${title}".`,
-      x: isAr
-        ? `اكتب تغريدة احترافية وموجزة (أقل من 280 حرف) لمقال بعنوان "${title}".`
-        : `Write a concise professional tweet (under 280 chars) for an article titled "${title}".`,
-      instagram: isAr
-        ? `اكتب كابشن إنستجرام شيق مع نقاط وهاشتاجات قوية لمقال بعنوان "${title}".`
-        : `Write an engaging Instagram caption with bullet points and strong hashtags for an article titled "${title}".`,
-      summary: isAr
-        ? `لخّص هذا المحتوى في 3 نقاط محددة وعملية:\n${content.slice(0, 3000)}`
-        : `Summarize this content in 3 actionable bullet points:\n${content.slice(0, 3000)}`,
-      image_prompt: isAr
-        ? `اكتب prompt احترافي لتوليد صورة تناسب مقال بعنوان "${title}" وكلمة مفتاحية "${keyword}". بالإنجليزية.`
-        : `Write a professional image generation prompt for an article titled "${title}" with keyword "${keyword}".`,
+    // Normalize tool key aliases
+    const toolKeyMap: Record<string, string> = {
+      seo_title: "seo_title",
+      meta_desc: "meta_desc",
+      enhance: "enhance",
+      improve: "enhance",
+      faq: "faq",
+      cta: "cta",
+      fb_post: "fb_post",
+      fb: "fb_post",
+      linkedin: "linkedin",
+      tweet: "tweet",
+      x: "tweet",
+      instagram: "instagram",
+      summary: "summary",
+      image_prompt: "image_prompt",
     };
 
-    const prompt = prompts[tool] || prompts.improve;
+    const tool = toolKeyMap[toolKeyRaw] || toolKeyRaw;
+    const isAr = lang === "ar";
 
-    // 1. Try Gemini first
+    const articleContext = `
+عنوان المقال: ${title || "بدون عنوان"}
+التصنيف: ${category || "عام"}
+الكلمة المفتاحية: ${keyword || "غير محددة"}
+
+محتوى المقال الحالي:
+${content || title || "مقال عن اللياقة والتغذية"}
+`.trim();
+
+    const systemPromptAr =
+      "أنت خبير تسويق رقمي وكوتش لياقة بدنية وتغذية محترف لـ MuscleHub. تعيد صياغة المحتوى وإخراجه بأسلوب ذكي وسلس ومؤثر باللغة العربية الفصحى البسيطة الموجهة للرياضيين والممارسين.";
+    const systemPromptEn =
+      "You are an expert digital marketer and master fitness coach for MuscleHub. You generate highly intelligent, engaging, and authoritative fitness content.";
+
+    const systemPrompt = isAr ? systemPromptAr : systemPromptEn;
+
+    let prompt = "";
+
+    switch (tool) {
+      case "seo_title":
+        prompt = isAr
+          ? `بناءً على المقال التالي، اقترح عنوان SEO جذاب ومناسب محفز للنقر (أقل من 60 حرفاً) يتضمن الكلمة المفتاحية "${keyword || title}" بشكل طبيعي ودقيق.\n\n${articleContext}\n\nاكتب العنوان فقط بدون مقدمات أو علامات تنصيص.`
+          : `Based on the following article, generate a compelling, SEO-optimized title (under 60 characters) incorporating the focus keyword "${keyword || title}" naturally. Output ONLY the title text without quotes or intro.\n\n${articleContext}`;
+        break;
+
+      case "meta_desc":
+        prompt = isAr
+          ? `اكتب وصف ميتا (Meta Description) محفز للنقر لمحركات البحث يستعرض الفائدة الرئيسية للمقال في 120 إلى 155 حرفاً متضمناً الكلمة المفتاحية "${keyword || title}".\n\n${articleContext}\n\nاكتب الوصف فقط بدون مقدمات أو علامات تنصيص.`
+          : `Write an engaging meta description (120-155 characters) summarizing the core value of the article with a subtle call to action. Output ONLY the meta description text.\n\n${articleContext}`;
+        break;
+
+      case "enhance":
+        prompt = isAr
+          ? `قم بإعادة صياغة وتحسين نص المقال التالي ليكون أكثر احترافية، سلاسة، وتنظيماً بأسلوب كوتش لياقة خبير. حسّن صياغة الجمل واستخدم العناوين الفرعية والنقاط المنظمة عند الحاجة.\n\n${articleContext}\n\nاكتب النص المحسّن كاملاً بتنسيق Markdown بدون أي مقدمات خارج النص.`
+          : `Rewrite and enhance the following article text to improve clarity, engagement, formatting, and professional fitness coach tone. Use clean Markdown formatting.\n\n${articleContext}`;
+        break;
+
+      case "faq":
+        prompt = isAr
+          ? `استخرج وولّد 3 إلى 5 أسئلة وأجوبة شائعة (FAQ) هامة ومباشرة بناءً على محتوى المقال التالي. التزم بتنسيق Markdown واكتب بلغة عربية احترافية وسلسة.\n\n${articleContext}`
+          : `Generate 3 to 5 high-value Frequently Asked Questions and detailed answers based directly on this article. Format in clean Markdown.\n\n${articleContext}`;
+        break;
+
+      case "cta":
+        prompt = isAr
+          ? `اكتب 3 خيارات مختلفة ومقنعة لدعوة القارئ للاشتراك أو اتخاذ إجراء (CTA) لـ MuscleHub (مثل: حجز استشارة مع كوتش، الاشتراك في برنامج تدريب وتغذية مخصص، أو تحميل التطبيق).\n\n${articleContext}`
+          : `Generate 3 persuasive Call-to-Action (CTA) options for MuscleHub based on this article context. Output in clean Markdown.\n\n${articleContext}`;
+        break;
+
+      case "fb_post":
+        prompt = isAr
+          ? `صمّم منشور فيسبوك تفاعلي وجذاب مستوحى من المقال التالي. استخدم جملة افتتاحية قوية (Hook)، 3-4 نقاط رئيسية مع إيموجي مناسبة، سؤالاً لإثارة التفاعل في التعليقات، ودعوة للانضمام لـ MuscleHub مع 3-5 هاشتاجات شائعة.\n\n${articleContext}`
+          : `Create an engaging Facebook post based on this article with a strong hook, bullet points with emojis, a question to prompt comments, and relevant hashtags.\n\n${articleContext}`;
+        break;
+
+      case "linkedin":
+        prompt = isAr
+          ? `اكتب منشور لينكدإن مهني واحترافي مستوحى من المقال التالي. ركّز على القيمة العلمية والنصائح العملية بأسلوب القيادة الفكرية (Thought Leadership) مع تنسيق مريح للقراءة وهاشتاجات احترافية.\n\n${articleContext}`
+          : `Write a professional, thought-leadership style LinkedIn post based on this article focusing on evidence-based insights and practical takeaways.\n\n${articleContext}`;
+        break;
+
+      case "tweet":
+        prompt = isAr
+          ? `اكتب تغريدة أو سلسلة تغريدات (Thread من 2-3 تغريدات) لـ X (تويتر) تلخص الفكرة الرئيسية للمقال في حدود 280 حرفاً للتغريدة الواحدة مع الهاشتاجات المناسبة.\n\n${articleContext}`
+          : `Write a punchy tweet or short Twitter thread summarizing the key insight of this article with relevant hashtags.\n\n${articleContext}`;
+        break;
+
+      case "instagram":
+        prompt = isAr
+          ? `اكتب كابشن إنستجرام جذاب للمقال التالي. ابدأ بجملة خطافة (Hook)، ثم النقاط الرئيسية مع إيموجيز، وسؤال تفاعلي للمتابعين، بالإضافة إلى 8-12 هاشتاج رياضي شائع.\n\n${articleContext}`
+          : `Write a creative Instagram caption for this article with a strong hook, bulleted key points, emojis, engagement question, and 8-12 fitness hashtags.\n\n${articleContext}`;
+        break;
+
+      case "summary":
+        prompt = isAr
+          ? `لخّص المقال التالي في 4 إلى 6 نقاط رئيسية مركزة بتنسيق Markdown تعرض أهم الاستنتاجات والنصائح العملية.\n\n${articleContext}`
+          : `Provide a concise executive summary of this article in 4-6 bullet points highlighting the main takeaways.\n\n${articleContext}`;
+        break;
+
+      case "image_prompt":
+        prompt = `Write a detailed, high-quality AI image generation prompt in English (suitable for Midjourney / Imagen 3 / Flux / DALL-E) to create a professional cover image for this article:
+Title: ${title || "Fitness & Nutrition"}
+Category: ${category || "Fitness"}
+Key Focus: ${keyword || content.slice(0, 150)}
+
+Requirements:
+- Cinematic composition, 8k fitness photography, realistic lighting
+- Authentic gym atmosphere or healthy nutrition setting
+- NO text overlay, NO words, NO letters
+- Output ONLY the raw prompt string in English.`;
+        break;
+
+      default:
+        prompt = isAr
+          ? `قم بمعالجة النص التالي وإخراجه بشكل احترافي:\n\n${articleContext}`
+          : `Process and enhance the following content:\n\n${articleContext}`;
+    }
+
+    let resultText = "";
+
+    // 1. Try Gemini first (gemini-3.7-flash -> 3.6-flash -> flash-latest)
     try {
       const { text: geminiText } = await callGemini(
         prompt,
         {
+          systemPrompt,
           temperature: 0.7,
-          maxTokens: 1200,
-          jsonMode: tool === "faq",
+          maxTokens: 1500,
           timeoutMs: 25_000,
         },
-        2,
+        2
       );
       if (geminiText && geminiText.trim().length > 0) {
-        return NextResponse.json({ text: geminiText.trim() });
+        resultText = geminiText.trim();
       }
     } catch (gErr: any) {
-      console.warn("[api/ai/blog-tool] Gemini notice, trying OpenRouter:", gErr?.message);
+      console.warn("[api/ai/blog-tool] Gemini failed, attempting OpenRouter fallback:", gErr?.message || gErr);
     }
 
     // 2. Try OpenRouter fallback
-    const OPENROUTER_KEY = getGeminiApiKey();
-    const OPENROUTER_BASE = "https://openrouter.ai/api/v1";
-    if (OPENROUTER_KEY) {
-      const models = [
-        "nvidia/nemotron-3.5-lightning:free",
-        "nvidia/nemotron-3-ultra-550b-a55b:free",
-        "poolside/laguna-s-2.1:free",
-      ];
-      for (const model of models) {
-        try {
-          const { text } = await callAIWithFallback(
-            prompt,
-            {
-              temperature: 0.7,
-              maxTokens: 1000,
-              jsonMode: tool === "faq",
-              timeoutMs: 30_000,
-            },
-            {
-              provider: "openrouter" as any,
-              apiKey: OPENROUTER_KEY,
-              model,
-              baseUrl: OPENROUTER_BASE,
-            },
-          );
-          if (text && text.trim().length > 0) {
-            return NextResponse.json({ text: text.trim() });
+    if (!resultText) {
+      const OPENROUTER_KEY = getGeminiApiKey();
+      const OPENROUTER_BASE = "https://openrouter.ai/api/v1";
+      if (OPENROUTER_KEY) {
+        const models = [
+          "nvidia/nemotron-3.5-lightning:free",
+          "nvidia/nemotron-3-ultra-550b-a55b:free",
+          "poolside/laguna-s-2.1:free",
+        ];
+        for (const model of models) {
+          try {
+            const { text } = await callAIWithFallback(
+              prompt,
+              {
+                temperature: 0.7,
+                maxTokens: 1200,
+                timeoutMs: 25_000,
+              },
+              {
+                provider: "openrouter" as any,
+                apiKey: OPENROUTER_KEY,
+                model,
+                baseUrl: OPENROUTER_BASE,
+              }
+            );
+            if (text && text.trim().length > 0) {
+              resultText = text.trim();
+              break;
+            }
+          } catch (e: any) {
+            console.error(`[api/ai/blog-tool] OpenRouter ${model} failed:`, e?.message || e);
           }
-        } catch (e: any) {
-          console.error(`[api/ai/blog-tool] OpenRouter ${model} failed:`, e?.message);
         }
       }
     }
 
-    return NextResponse.json({ text: "" });
+    if (!resultText) {
+      return NextResponse.json(
+        { error: "تعذر توليد المحتوى بالذكاء الاصطناعي حالياً. يرجى المحاولة مرة أخرى." },
+        { status: 500 }
+      );
+    }
+
+    // Clean up surrounding quotes for titles / meta descriptions
+    if (tool === "seo_title" || tool === "meta_desc") {
+      resultText = resultText.replace(/^["'«»]+|["'«»]+$/g, "").trim();
+    }
+
+    // Return both `result` and `text` for 100% frontend compatibility
+    return NextResponse.json({ result: resultText, text: resultText, tool: toolKeyRaw });
   } catch (err: any) {
-    console.error("[api/ai/blog-tool] Error:", err?.message || err);
-    return NextResponse.json({ error: err?.message || "Internal server error" }, { status: 500 });
+    console.error("[api/ai/blog-tool] Unexpected Error:", err?.message || err);
+    return NextResponse.json({ error: err?.message || "حدث خطأ أثناء معالجة الطلب" }, { status: 500 });
   }
 }

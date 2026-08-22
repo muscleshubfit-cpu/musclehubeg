@@ -1,132 +1,174 @@
-"use client";
+import { supabaseAdmin } from "@/lib/supabase/admin";
+import { supabase as supabaseClient } from "@/lib/supabase/client";
+import { callGemini, getGeminiApiKey } from "@/lib/gemini-wrapper";
+import { callAIWithFallback } from "@/lib/ai-provider";
 
-import { supabase, isSupabaseConfigured } from "@/lib/supabase/client";
-
-// ---- Types ----
 export type AdminBlogPost = {
   id: string;
-  language: "en" | "ar";
-  title: string;
   slug: string;
-  excerpt: string | null;
+  language: string;
+  title: string;
+  excerpt?: string;
   content: string;
-  meta_title: string | null;
-  meta_description: string | null;
-  focus_keyword: string | null;
-  keywords: string[];
+  meta_title?: string;
+  meta_description?: string;
+  focus_keyword?: string;
+  keywords?: string[];
   category: string;
-  tags: string[];
-  featured_image: string | null;
-  cover_alt: string | null;
-  reading_time: number;
-  author: string;
-  published_at: string | null;
-  updated_at: string;
+  tags?: string[];
+  featured_image?: string;
+  cover_alt?: string;
+  reading_time?: number;
+  author?: string;
   is_published: boolean;
-  faq_json: any;
-  schema_json: any;
-  linked_post_id: string | null;
-  created_at: string;
+  published_at?: string;
+  created_at?: string;
+  updated_at?: string;
+  source?: string;
+  faq_json?: any;
+  schema_json?: any;
 };
 
-// ---- CRUD ----
+// ---- Client/Admin queries ----
 
-export async function adminListPosts(
-  lang?: "en" | "ar",
-): Promise<AdminBlogPost[]> {
-  if (!isSupabaseConfigured || !supabase) return [];
-  try {
-    let q = supabase
-      .from("blog_posts" as any)
-      .select("*")
-      .order("created_at", { ascending: false });
-    if (lang) q = q.eq("language", lang);
-    const { data, error } = await q;
-    if (error) {
-      return [];
-    }
-    return (data ?? []) as unknown as AdminBlogPost[];
-  } catch {
+export async function adminListPosts(): Promise<AdminBlogPost[]> {
+  return adminGetPosts();
+}
+
+export async function adminGetPosts(): Promise<AdminBlogPost[]> {
+  const client = typeof window === "undefined" ? supabaseAdmin : supabaseClient;
+  if (!client) return [];
+  const { data, error } = await client
+    .from("blog_posts")
+    .select("*")
+    .order("created_at", { ascending: false });
+  if (error) {
+    console.error("[adminGetPosts] Error:", error);
     return [];
   }
+  return (data || []) as unknown as AdminBlogPost[];
 }
 
 export async function adminGetPost(id: string): Promise<AdminBlogPost | null> {
-  if (!isSupabaseConfigured || !supabase) return null;
-  try {
-    const { data, error } = await supabase
-      .from("blog_posts" as any)
-      .select("*")
-      .eq("id", id)
-      .maybeSingle();
-    if (error) {
-      return null;
-    }
-    return (data as unknown as AdminBlogPost) || null;
-  } catch {
+  const client = typeof window === "undefined" ? supabaseAdmin : supabaseClient;
+  if (!client) return null;
+  const { data, error } = await client
+    .from("blog_posts")
+    .select("*")
+    .eq("id", id)
+    .single();
+  if (error) {
+    console.error("[adminGetPost] Error:", error);
     return null;
   }
+  return data as unknown as AdminBlogPost;
+}
+
+export async function adminDeletePost(id: string): Promise<boolean> {
+  const client = typeof window === "undefined" ? supabaseAdmin : supabaseClient;
+  if (!client) return false;
+  const { error } = await client.from("blog_posts").delete().eq("id", id);
+  if (error) {
+    console.error("[adminDeletePost] Error:", error);
+    return false;
+  }
+  return true;
+}
+
+export async function adminDuplicatePost(id: string): Promise<AdminBlogPost | null> {
+  const post = await adminGetPost(id);
+  if (!post) return null;
+
+  const newTitle = `${post.title} (نسخة)`;
+  const newSlug = `${post.slug}-copy-${Date.now().toString().slice(-4)}`;
+
+  return adminCreatePost({
+    ...post,
+    id: undefined,
+    title: newTitle,
+    slug: newSlug,
+    is_published: false,
+  });
 }
 
 export async function adminCreatePost(
   post: Partial<AdminBlogPost>,
-): Promise<AdminBlogPost> {
-  if (!isSupabaseConfigured || !supabase)
-    throw new Error("Supabase not configured");
-  const { data, error } = await supabase
-    .from("blog_posts" as any)
-    .insert(post)
+): Promise<AdminBlogPost | null> {
+  const client = typeof window === "undefined" ? supabaseAdmin : supabaseClient;
+  if (!client) throw new Error("Supabase client unavailable");
+
+  const now = new Date().toISOString();
+  const payload = {
+    language: post.language || "ar",
+    title: post.title || "مقال جديد",
+    slug: post.slug || `post-${Date.now()}`,
+    excerpt: post.excerpt || "",
+    content: post.content || "",
+    meta_title: post.meta_title || "",
+    meta_description: post.meta_description || "",
+    focus_keyword: post.focus_keyword || "",
+    keywords: post.keywords || [],
+    category: post.category || "nutrition",
+    tags: post.tags || [],
+    featured_image: post.featured_image || "",
+    cover_alt: post.cover_alt || "",
+    reading_time: post.reading_time || 1,
+    author: post.author || "MuscleHub",
+    is_published: post.is_published || false,
+    published_at: post.is_published ? now : null,
+    created_at: now,
+    updated_at: now,
+    source: post.source || "manual",
+    faq_json: post.faq_json || [],
+    schema_json: post.schema_json || {},
+  };
+
+  const { data, error } = await (client as any)
+    .from("blog_posts")
+    .insert([payload])
     .select()
     .single();
-  if (error) throw new Error(error.message);
+
+  if (error) {
+    console.error("[adminCreatePost] Error:", error);
+    throw new Error(error.message);
+  }
   return data as unknown as AdminBlogPost;
 }
 
 export async function adminUpdatePost(
   id: string,
   updates: Partial<AdminBlogPost>,
-): Promise<AdminBlogPost> {
-  if (!isSupabaseConfigured || !supabase)
-    throw new Error("Supabase not configured");
-  const { data, error } = await supabase
-    .from("blog_posts" as any)
-    .update({ ...updates, updated_at: new Date().toISOString() })
+): Promise<AdminBlogPost | null> {
+  const client = typeof window === "undefined" ? supabaseAdmin : supabaseClient;
+  if (!client) throw new Error("Supabase client unavailable");
+
+  const payload = {
+    ...updates,
+    updated_at: new Date().toISOString(),
+  };
+
+  const { data, error } = await (client as any)
+    .from("blog_posts")
+    .update(payload)
     .eq("id", id)
     .select()
     .single();
-  if (error) throw new Error(error.message);
+
+  if (error) {
+    console.error("[adminUpdatePost] Error:", error);
+    throw new Error(error.message);
+  }
   return data as unknown as AdminBlogPost;
 }
 
-export async function adminDeletePost(id: string): Promise<void> {
-  if (!isSupabaseConfigured || !supabase) return;
-  const { error } = await supabase
-    .from("blog_posts" as any)
-    .delete()
-    .eq("id", id);
-  if (error) throw new Error(error.message);
-}
-
-export async function adminDuplicatePost(
-  id: string,
-): Promise<AdminBlogPost | null> {
-  const original = await adminGetPost(id);
-  if (!original) return null;
-  const { id: _, created_at, updated_at, published_at, ...rest } = original;
-  const dup = await adminCreatePost({
-    ...rest,
-    title: `${original.title} (Copy)`,
-    slug: `${original.slug}-copy-${Date.now().toString(36)}`,
-    is_published: false,
-    published_at: null,
-  });
-  return dup;
-}
-
-// ---- Stats ----
-
 export async function getBlogStats() {
-  if (!isSupabaseConfigured || !supabase) {
+  return adminGetStats();
+}
+
+export async function adminGetStats() {
+  const client = typeof window === "undefined" ? supabaseAdmin : supabaseClient;
+  if (!client)
     return {
       total: 0,
       published: 0,
@@ -136,13 +178,14 @@ export async function getBlogStats() {
       scheduled: 0,
       recent: [],
     };
-  }
+
   try {
-    const { data, error } = await supabase
-      .from("blog_posts" as any)
+    const { data } = await client
+      .from("blog_posts")
       .select("*")
       .order("created_at", { ascending: false });
-    if (error || !data)
+
+    if (!data)
       return {
         total: 0,
         published: 0,
@@ -192,6 +235,35 @@ export async function aiTool(
     lang: "en" | "ar";
   },
 ): Promise<AIToolResult> {
+  // If running in browser, call the server API endpoint /api/ai/blog-tool
+  if (typeof window !== "undefined") {
+    try {
+      const res = await fetch("/api/ai/blog-tool", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          tool,
+          params,
+          content: params.content,
+          title: params.title,
+          focusKeyword: params.keyword,
+          language: params.lang,
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok && (data.text || data.result)) {
+        return { text: data.text || data.result };
+      }
+      if (data.error) {
+        throw new Error(data.error);
+      }
+    } catch (err: any) {
+      console.warn("[aiTool] Fetch to /api/ai/blog-tool failed, trying direct SDK:", err?.message || err);
+    }
+  }
+
+  // Server-side / direct fallback
   const isAr = params.lang === "ar";
   const content = params.content || "";
   const title = params.title || "";
@@ -199,46 +271,66 @@ export async function aiTool(
 
   const prompts: Record<string, string> = {
     seo_title: isAr
-      ? `اكتب عنوان SEO جذاب (أقل من 60 حرف) لمقال بعنوان "${title}" وكلمة مفتاحية "${keyword}". أعد العنوان فقط.`
-      : `Write an SEO-optimized title (under 60 chars) for an article titled "${title}" with focus keyword "${keyword}". Return title only.`,
+      ? `اكتب عنوان SEO جذاب (أقل من 60 حرف) لمقال بعنوان "${title}" وكلمة مفتاحية "${keyword}". أعد العنوان فقط بدون علامات تنصيص.`
+      : `Write an SEO-optimized title (under 60 chars) for an article titled "${title}" with focus keyword "${keyword}". Return title only without quotes.`,
     meta_desc: isAr
-      ? `اكتب وصف ميتا (أقل من 160 حرف) لمقال بعنوان "${title}". أعد الوصف فقط.`
-      : `Write a meta description (under 160 chars) for an article titled "${title}". Return description only.`,
+      ? `اكتب وصف ميتا (أقل من 160 حرف) لمقال بعنوان "${title}". أعد الوصف فقط بدون علامات تنصيص.`
+      : `Write a meta description (under 160 chars) for an article titled "${title}". Return description only without quotes.`,
     improve: isAr
-      ? `حسّن readability ووضوح هذا النص:\n\n${content.slice(0, 2000)}`
-      : `Improve readability and clarity of this text:\n\n${content.slice(0, 2000)}`,
+      ? `قم بإعادة صياغة وتحسين النص التالي ليكون أكثر احترافية وسلاسة وتنظيماً بأسلوب كوتش لياقة بدنية وتغذية خبير:\n\n${content.slice(0, 3000)}`
+      : `Improve readability, flow, and clarity of this fitness/nutrition text:\n\n${content.slice(0, 3000)}`,
+    enhance: isAr
+      ? `قم بإعادة صياغة وتحسين النص التالي ليكون أكثر احترافية وسلاسة وتنظيماً بأسلوب كوتش لياقة بدنية وتغذية خبير:\n\n${content.slice(0, 3000)}`
+      : `Improve readability, flow, and clarity of this fitness/nutrition text:\n\n${content.slice(0, 3000)}`,
     faq: isAr
-      ? `ولّد 3 أسئلة شائعة JSON بصيغة [{"question":"...","answer":"..."}] من هذا المحتوى:\n${content.slice(0, 3000)}`
-      : `Generate 3 FAQ JSON as [{"question":"...","answer":"..."}] from this content:\n${content.slice(0, 3000)}`,
+      ? `استخرج وولّد 3 إلى 5 أسئلة وأجوبة شائعة من هذا المحتوى وتنسيقها بأسلوب Markdown:\n${content.slice(0, 3000)}`
+      : `Generate 3 to 5 high-value FAQs in Markdown based on this content:\n${content.slice(0, 3000)}`,
     cta: isAr
-      ? `اكتب نص CTA قصير يحفز القارئ على الاشتراك في كوتشينج رياضي.`
-      : `Write a short CTA copy motivating readers to join fitness coaching.`,
+      ? `اكتب 3 خيارات مختلفة لنصوص CTA قصيرة ومحفزة تدعو القارئ للاشتراك في برامج التدريب والتغذية المخصصة في MuscleHub.`
+      : `Write 3 motivating CTA copies inviting readers to join MuscleHub personalized coaching.`,
     fb: isAr
-      ? `اكتب منشور فيسبوك جذاب لمقال بعنوان "${title}".`
-      : `Write an engaging Facebook post for an article titled "${title}".`,
+      ? `اكتب منشور فيسبوك تفاعلي وجذاب مع إيموجيز وهاشتاجات مناسبة لمقال بعنوان "${title}".`
+      : `Write an engaging Facebook post with emojis and hashtags for an article titled "${title}".`,
+    fb_post: isAr
+      ? `اكتب منشور فيسبوك تفاعلي وجذاب مع إيموجيز وهاشتاجات مناسبة لمقال بعنوان "${title}".`
+      : `Write an engaging Facebook post with emojis and hashtags for an article titled "${title}".`,
     linkedin: isAr
-      ? `اكتب منشور لينكد إن احترافي لمقال بعنوان "${title}".`
-      : `Write a professional LinkedIn post for an article titled "${title}".`,
+      ? `اكتب منشور لينكد إن احترافي بأسلوب القيادة الفكرية يناقش النقاط الأساسية لمقال بعنوان "${title}".`
+      : `Write a professional LinkedIn post highlighting key points for an article titled "${title}".`,
     x: isAr
-      ? `اكتب تغريدة (أقل من 280 حرف) لمقال بعنوان "${title}".`
-      : `Write a tweet (under 280 chars) for an article titled "${title}".`,
+      ? `اكتب تغريدة احترافية وموجزة (أقل من 280 حرف) لمقال بعنوان "${title}".`
+      : `Write a concise professional tweet (under 280 chars) for an article titled "${title}".`,
+    tweet: isAr
+      ? `اكتب تغريدة احترافية وموجزة (أقل من 280 حرف) لمقال بعنوان "${title}".`
+      : `Write a concise professional tweet (under 280 chars) for an article titled "${title}".`,
     instagram: isAr
-      ? `اكتب كابشن إنستجرام مع هاشتاجات لمقال بعنوان "${title}".`
-      : `Write an Instagram caption with hashtags for an article titled "${title}".`,
+      ? `اكتب كابشن إنستجرام شيق مع نقاط وهاشتاجات قوية لمقال بعنوان "${title}".`
+      : `Write an engaging Instagram caption with bullet points and strong hashtags for an article titled "${title}".`,
     summary: isAr
-      ? `لخّص هذا المحتوى في 3 نقاط:\n${content.slice(0, 3000)}`
-      : `Summarize this content in 3 bullet points:\n${content.slice(0, 3000)}`,
+      ? `لخّص هذا المحتوى في 4 إلى 6 نقاط محددة وعملية بأسلوب Markdown:\n${content.slice(0, 3000)}`
+      : `Summarize this content in 4-6 actionable bullet points:\n${content.slice(0, 3000)}`,
     image_prompt: isAr
-      ? `اكتب prompt احترافي لتوليد صورة تناسب مقال بعنوان "${title}" وكلمة مفتاحية "${keyword}".`
-      : `Write a professional image generation prompt for an article titled "${title}" with keyword "${keyword}".`,
+      ? `Write a detailed, high-quality AI image generation prompt in English for an article titled "${title}" with keyword "${keyword}".`
+      : `Write a detailed, high-quality AI image generation prompt in English for an article titled "${title}" with keyword "${keyword}".`,
   };
 
   const prompt = prompts[tool] || prompts.improve;
 
-  // Use OpenRouter (Gemini removed — doesn't work)
+  // 1. Try Gemini
   try {
-    const { callAIWithFallback } = await import("@/lib/ai-provider");
-    const { getGeminiApiKey } = await import("@/lib/gemini-wrapper");
+    const { text } = await callGemini(prompt, {
+      temperature: 0.7,
+      maxTokens: 1200,
+    });
+    if (text && text.trim().length > 0) {
+      return { text: text.trim() };
+    }
+  } catch (err: any) {
+    console.warn("[aiTool] Gemini failed, trying OpenRouter fallback:", err?.message || err);
+  }
+
+  // 2. Try OpenRouter fallback
+  try {
     const OPENROUTER_KEY = getGeminiApiKey();
     const OPENROUTER_BASE = "https://openrouter.ai/api/v1";
     if (OPENROUTER_KEY) {
@@ -254,7 +346,6 @@ export async function aiTool(
             {
               temperature: 0.7,
               maxTokens: 1000,
-              jsonMode: tool === "faq",
               timeoutMs: 30_000,
             },
             {
@@ -264,85 +355,19 @@ export async function aiTool(
               baseUrl: OPENROUTER_BASE,
             },
           );
-          return { text };
+          if (text && text.trim().length > 0) {
+            return { text: text.trim() };
+          }
         } catch (e: any) {
           console.error(`[aiTool] OpenRouter ${model} failed:`, e?.message);
         }
       }
     }
   } catch (e: any) {
-    console.error("[aiTool] AI failed:", e);
+    console.error("[aiTool] OpenRouter failed:", e);
   }
 
-  // Fallback: local generation
-  return { text: localAITool(tool, params) };
-}
-
-function localAITool(
-  tool: string,
-  params: {
-    content?: string;
-    title?: string;
-    keyword?: string;
-    lang: "en" | "ar";
-  },
-): string {
-  const isAr = params.lang === "ar";
-  const title = params.title || "";
-
-  switch (tool) {
-    case "seo_title":
-      return isAr
-        ? `${title} | دليل شامل 2026`
-        : `${title} | Complete Guide 2026`;
-    case "meta_desc":
-      return isAr
-        ? `اكتشف ${title} في هذا الدليل الشامل. نصائح علمية وتوصيات عملية من MuscleHub.`
-        : `Discover ${title} in this complete guide. Science-backed tips and practical recommendations from MuscleHub.`;
-    case "improve":
-      return params.content?.slice(0, 500) || "";
-    case "faq":
-      return JSON.stringify([
-        {
-          question: isAr ? `ما هو ${title}؟` : `What is ${title}?`,
-          answer: isAr ? "إجابة تفصيلية هنا..." : "Detailed answer here...",
-        },
-        {
-          question: isAr ? `كيف أبدأ؟` : `How do I get started?`,
-          answer: isAr ? "ابدأ بـ..." : "Start by...",
-        },
-      ]);
-    case "cta":
-      return isAr
-        ? " جاهز لتبدأ تحوّلك؟ اشترك في عضوية MuscleHub اليوم واحصل على خطط مخصصة!"
-        : " Ready to transform? Subscribe to a MuscleHub membership today and get personalized plans!";
-    case "fb":
-      return isAr
-        ? ` مقال جديد: ${title}\n\nاكتشف النصائح العلمية في هذا الدليل الشامل.\n\n اقرأ المقال كاملاً\n#لياقة #تغذية #MuscleHub`
-        : ` New Article: ${title}\n\nDiscover science-backed tips in this complete guide.\n\n Read the full article\n#fitness #nutrition #MuscleHub`;
-    case "linkedin":
-      return isAr
-        ? `أكثر ما يميز النجاح في اللياقة هو الاستمرارية. في هذا المقال نشرح ${title} بالتفصيل.\n\nما هو أكبر تحدٍ يواجهك؟`
-        : `What sets fitness success apart is consistency. In this article we explain ${title} in detail.\n\nWhat's your biggest challenge?`;
-    case "x":
-      return isAr
-        ? ` ${title}\n\nنصائح علمية عملية من @MuscleHub\n\n#لياقة #تغذية`
-        : ` ${title}\n\nScience-backed tips from @MuscleHub\n\n#fitness #nutrition`;
-    case "instagram":
-      return isAr
-        ? `${title} \n.\n.\n.\n#لياقة #تغذية #تمارين #بناء_عضلات #MuscleHub #لياقة_بدون_حدود`
-        : `${title} \n.\n.\n.\n#fitness #nutrition #workout #musclebuilding #MuscleHub #fitnessjourney`;
-    case "summary":
-      return isAr
-        ? "• نقطة 1\n• نقطة 2\n• نقطة 3"
-        : "• Point 1\n• Point 2\n• Point 3";
-    case "image_prompt":
-      return isAr
-        ? `صورة احترافية لرياضي في جيم بإضاءة درامية، ألوان زرقاء وذهبية، جودة عالية`
-        : `Professional photo of an athlete in a gym with dramatic lighting, blue and gold tones, high quality`;
-    default:
-      return "";
-  }
+  throw new Error("تعذر التواصل مع خدمات الذكاء الاصطناعي حالياً. يرجى إعادة المحاولة.");
 }
 
 // ---- SEO Scoring ----
@@ -353,7 +378,6 @@ export function calculateSEOScore(post: Partial<AdminBlogPost>): {
 } {
   let score = 0;
   const suggestions: string[] = [];
-  const maxScore = 100;
 
   // Title length (15 pts)
   if (post.title && post.title.length >= 30 && post.title.length <= 60)
@@ -433,5 +457,5 @@ export function calculateWordCount(content: string): number {
 
 export function calculateReadingTime(content: string): number {
   const words = calculateWordCount(content);
-  return Math.max(1, Math.ceil(words / 200)); // 200 WPM average
+  return Math.max(1, Math.ceil(words / 200));
 }

@@ -318,7 +318,7 @@ export function BlogAdminView() {
                   <span className="text-[11px] text-muted-foreground">{getCategoryLabel(p.category, lang)}</span>
                 </div>
                 <h3 className="mt-2 line-clamp-1 text-xs font-semibold text-foreground">{p.title}</h3>
-                <p className="mt-1 text-[10px] text-muted-foreground">{new Date(p.created_at).toLocaleDateString()}</p>
+                <p className="mt-1 text-[10px] text-muted-foreground">{new Date(p.created_at || Date.now()).toLocaleDateString()}</p>
               </div>
             ))}
           </div>
