@@ -412,8 +412,7 @@ export default function CoachingPage() {
             </div>
             <Reveal delay={400}>
               <div className="mt-12 text-center">
-                <button onClick={() => navigate("memberships")} className="font-normal text-[#0071e3] transition-opacity hover:opacity-70">
-                  {/* This button intentionally goes to /memberships for plan comparison */}
+                <button onClick={scrollToPricing} className="font-normal text-[#0071e3] transition-opacity hover:opacity-70">
                   {isAr ? "كل التفاصيل ›" : "See all details ›"}
                 </button>
               </div>
