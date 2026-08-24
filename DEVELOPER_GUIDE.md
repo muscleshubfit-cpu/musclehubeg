@@ -1,11 +1,11 @@
 # Developer Guide — MuscleHub
 
-> **آخر تحديث:** 2026-08-19 (Phase 7: documentation + governance hardening — MH-DOC-001)
+> **آخر تحديث:** 2026-08-25 (documentation consolidation per `docs/_AUDIT.md`)
 > **الجمهور المستهدف:** مطورين جدد ينضمون للمشروع، أو المطور الحالي كمرجع
 > **Note (Phase 7):** Several stale claims in this file were reconciled
 > against the actual source code. Look for `> **Phase 7 correction:**`
-> notes inline. See also `PROJECT_CONTEXT.md` for the reconciled
-> repository statistics.
+> notes inline. See also `PROGRESS.md` § "Reconciled Status" for the
+> reconciled repository statistics.
 
 ---
 
@@ -123,11 +123,12 @@ src/
 │   │   ├── leads/              # Leads من الأدوات
 │   │   ├── saved-results/      # نتائج محفوظة لكل المستخدمين
 │   │   └── referrals/           # إدارة الإحالات
-│   ├── api/                     # API Routes (28 endpoints — see §8)
+│   ├── api/                     # API Routes (36 endpoints — see §8)
 │   │   ├── ai/                  # AI endpoints (chat, plan, swap, generate)
 │   │   ├── admin/               # Admin endpoints (blog cleanup, leads, saved-results)
 │   │   ├── tools/               # Tool endpoints (save-result, save-meal-plan, lead)
 │   │   ├── cron/                # Cron job endpoints (blog generation pipeline)
+│   │   ├── paypal/              # PayPal payment endpoints (create-order, capture-order, webhook)
 │   │   ├── food-search/         # البحث عن الأكلات
 │   │   ├── og-image/[slug]/     # توليد صور OG ديناميكية
 │   │   └── notifications/admin/ # إنشاء إشعارات الكوتش
@@ -145,8 +146,8 @@ src/
 │   ├── layout.tsx               # Root layout (providers + analytics + PWA)
 │   └── metadata.ts              # SEO metadata شاملة
 ├── components/
-│   ├── ui/                      # 28 shadcn/ui component
-│   ├── views/                   # 17 page-level view
+│   ├── ui/                      # 51 shadcn/ui component
+│   ├── views/                   # 25 page-level view
 │   ├── blog/                    # مكونات المدونة
 │   ├── SiteHeader.tsx           # الهيدر + التنقل + الإشعارات
 │   ├── EvoFloatingWidget.tsx    # EVO floating chat
@@ -232,20 +233,19 @@ src/
 
 ## 4. قاعدة البيانات + RLS
 
-### الجداول (20 جدول مُعرّفة في migrations + 3 مُستخدمة في الكود بدون migration)
+### الجداول (22 جدول مُعرّفة في migrations + 3 مُستخدمة في الكود بدون migration)
 
-> **Phase 7 correction (2026-08-19):** The previous count of "22 tables"
-> was inaccurate. The actual state:
-> - **20 tables** are formally defined via `CREATE TABLE` in
->   migrations `0001` → `0012`.
+> **Phase 7 correction (2026-08-19):** The previous count of "20 tables"
+> was inaccurate. The actual state (re-verified 2026-08-25):
+> - **22 tables** are formally defined via `CREATE TABLE` in
+>   migrations `0001` → `0016`.
 > - **3 additional tables** (`plan_swaps`, `progress_photos`,
 >   `coach_presence`) are referenced in `src/lib/data.ts` and were
 >   created ad-hoc on the production database during Phase 5 via
 >   Supabase SQL Editor. They are NOT in any migration file — this
->   is technical debt that should be back-filled as migrations
->   `0013_*`, `0014_*`, `0015_*`.
+>   is technical debt that should be back-filled as migrations.
 >
-> The 20 migration-defined tables are listed below. The 3 ad-hoc
+> The 22 migration-defined tables are listed below. The 3 ad-hoc
 > tables follow in a separate sub-section.
 
 | الجدول | RLS Policy |
@@ -280,9 +280,8 @@ src/
 ### Tables used in code but NOT in migrations (Phase 5 ad-hoc)
 
 > These were created on the production database via Supabase SQL
-> Editor during Phase 5. SQL scripts are preserved at:
-> `/home/z/my-project/download/MuscleHubEG_Database_Fix_v4.sql`
-> and referenced in `PROGRESS.md` Phase 5 section.
+> Editor during Phase 5. SQL scripts are referenced in `PROGRESS.md`
+> Phase 5 section.
 
 | Table | Purpose |
 |---|---|
@@ -406,13 +405,14 @@ GitHub Actions (every 2 hours)
 
 ## 8. API Routes Reference
 
-> **Phase 7 correction (2026-08-19):** The previous doc listed 22
-> API routes. The actual count (verified by
-> `find src/app/api -name "route.ts*"`) is **28 routes**. The table
-> below has been updated to include all 28.
+> **Phase 7 correction (2026-08-19, re-verified 2026-08-25):** The
+> previous doc listed 22 → 28 API routes. The actual count (verified
+> by `find src/app/api -name "route.ts*"`) is **36 routes**. The table
+> below has been updated to include all 36.
 
 | Route | Method | Auth | الوظيفة |
 |---|---|---|---|
+| `/api/ai/blog-tool` | POST | Coach | Blog editor AI tools (SEO title, FAQ, CTA, social posts) — routes to `callGemini` |
 | `/api/ai/chat` | POST | Optional | EVO AI chat (anonymous allowed) |
 | `/api/ai/generate-article` | POST | Coach | Manual blog article generation |
 | `/api/ai/generate-image` | POST | Coach | Generate image for blog article |
@@ -425,16 +425,23 @@ GitHub Actions (every 2 hours)
 | `/api/admin/leads` | GET/PATCH | Coach | View + update tool leads |
 | `/api/admin/saved-results` | GET | Coach | View all saved results |
 | `/api/blog/fetch-images` | POST | Coach | Fetch images for blog article |
-| `/api/cron/blog/step1-pick` | GET | Cron | Pick blog topic |
-| `/api/cron/blog/step2-generate` | GET | Cron | Generate article |
-| `/api/cron/blog/step3-publish` | GET | Cron | Publish article |
-| `/api/cron/generate-blog-post` | GET | Cron | Legacy single-step blog generation |
+| `/api/cron/blog/step1-pick` | GET | Cron | Pick blog topic (current pipeline) |
+| `/api/cron/blog/step2a-research` | GET | Cron | External research (Gemini Flash + Google Search grounding) |
+| `/api/cron/blog/step2b-en-article` | POST | Cron | Generate EN article (separated pipeline) |
+| `/api/cron/blog/step2c-ar-article` | POST | Cron | Generate AR article (separated pipeline) |
+| `/api/cron/blog/step2d-links` | POST | Cron | Generate links + image prompts + social posts |
+| `/api/cron/blog/step2-generate` | GET | Cron | Legacy single-step blog generation (calls `generateArticleBundle` internally) |
+| `/api/cron/blog/step3-publish` | GET | Cron | Publish article (EN + AR rows) |
+| `/api/cron/generate-blog-post` | GET | Cron | Legacy single-step blog generation (kept for backward compat) |
 | `/api/cron/progress-reminder` | GET | Cron | Weekly progress reminder (Vercel Cron — Sun 07:00 UTC) |
 | `/api/exercise-image` | GET | Public | Proxy exercise images |
 | `/api/food-search` | GET | Public | Search foods (local + Open Food Facts) |
 | `/api/notifications/admin` | POST | User | Create admin notification (service_role bypass) |
 | `/api/notifications/broadcast` | POST | Coach | Broadcast notification to multiple users |
 | `/api/og-image/[slug]` | GET | Public | Dynamic OG image (edge runtime) |
+| `/api/paypal/capture-order` | POST | User | Capture PayPal Order server-side (authoritative payment confirmation) — see `SECURITY.md` §12 |
+| `/api/paypal/create-order` | POST | User | Create PayPal Order server-side (price resolved server-side) — see `SECURITY.md` §12 |
+| `/api/paypal/webhook` | POST | PayPal (signature-verified) | PayPal webhook events (audit trail only) — see `SECURITY.md` §12 |
 | `/api/plans/normalize` | POST | Coach | Normalize coach-pasted plan text → structured JSON |
 | `/api/tools/lead` | POST | Public | Capture lead from tool |
 | `/api/tools/save-meal-plan` | POST | User | Save meal plan |
@@ -442,7 +449,7 @@ GitHub Actions (every 2 hours)
 | `/api/tools/saved-meal-plans` | GET/DELETE | User | List/delete meal plans |
 | `/api/tools/saved-results` | GET/DELETE | User | List/delete saved results |
 
-**Total: 28 routes** (verified via `find src/app/api -name "route.ts*" | wc -l`).
+**Total: 36 routes** (verified via `find src/app/api -name "route.ts*" | wc -l`).
 
 ---
 
@@ -531,7 +538,7 @@ GitHub Actions (every 2 hours)
 
 ## 11. الاختبار + الصيانة
 
-### الحالة الحالية (Phase 7 correction — 2026-08-19)
+### الحالة الحالية (Phase 7 correction — 2026-08-19, re-verified 2026-08-25)
 
 | النوع | الحالة |
 |---|---|
@@ -541,7 +548,7 @@ GitHub Actions (every 2 hours)
 | Type checking | ✅ مُفعّل (0 errors — `tsc --noEmit` clean, `@ts-nocheck` removed, `ignoreBuildErrors` NOT in `next.config.ts`) |
 | ESLint | ✅ مُفعّل عبر `bun run lint` (Next.js 16 dropped eslint config from `next.config.ts`; runs via `eslint.config.mjs` flat config) |
 | Smoke tests (manual) | ⚠️ Phase 1 + Phase 5 — 95 + 30 نقطة تم فحصها يدوياً عبر curl + agent-browser. هذه **smoke tests** وليست functional verification |
-| Build (local) | ⚠️ مكسور — `bun run build` يفشل بسبب `scripts/compress-images.js` غير موجود (B18) |
+| Build (local) | ✅ يعمل — `bun run build` exits 0 (B18 fixed in Phase 7 Master Repair Batch 001; the obsolete `node scripts/compress-images.js &&` prefix was removed from the build script) |
 | Build (Vercel production) | ✅ يعمل (يستخدم `vercel.json` buildCommand `next build`) |
 
 ### أوامر مفيدة للصيانة
@@ -553,25 +560,9 @@ npx tsc --noEmit
 # تشغيل ESLint
 bun run lint
 
-# ضغط الصور
-bun run compress-images
-
-# فحص النصوص المشوهة في المدونة
-node scripts/scan-blog-urls-broad.js
-
-# إصلاح النصوص المشوهة (dry run)
-# node scripts/fix-blog-known-garbled.js
+# Build للإنتاج (محلياً)
+bun run build
 ```
-
-### ملفات الصيانة
-
-| الملف | الوظيفة |
-|---|---|
-| `PROGRESS.md` | لوحة تحكم الميزات + الـ bugs |
-| `worklog.md` | سجل كامل لكل التغييرات |
-| `scripts/scan-blog-urls-broad.js` | فحص النصوص المشوهة في المقالات |
-| `scripts/fix-blog-known-garbled.js` | إصلاح النصوص المشوهة |
-| `scripts/scan-blog-garbled.js` | فحص الـ DB مباشرة (يتطلب Supabase env vars) |
 
 ---
 
@@ -683,10 +674,9 @@ navigate("coach-client", { clientId: "xxx" }); // → /coach/xxx
 
 ### ملفات SQL للصيانة
 
-| الملف | الوصف |
-|---|---|
-| `/home/z/my-project/download/MuscleHubEG_Database_Fix_v4.sql` | السكريبت الشامل لكل الإصلاحات |
-| `/home/z/my-project/download/MuscleHubEG_Fix_support_tickets_status.sql` | إصلاح عمود status |
+ملفات SQL التى أُنشِئَت لإصلاحات Phase 5 تم توقيعها كـ migration files
+تحت `supabase/migrations/` أو تم تطبيقها مباشرة على Supabase SQL Editor.
+انظر `PROGRESS.md` Phase 5 للتفاصيل.
 
 ### تحديث Supabase Schema Cache
 

@@ -3,7 +3,7 @@
 > **Live:** [musclehubeg.vercel.app](https://musclehubeg.vercel.app)
 > **Repository:** [github.com/muscleshubfit-cpu/musclehubeg](https://github.com/muscleshubfit-cpu/musclehubeg)
 > **Stack:** Next.js 16 · React 19 · Supabase · OpenRouter AI · Tailwind CSS 4
-> **Last updated:** 2026-08-23 (rebase + documentation cleanup)
+> **Last updated:** 2026-08-25 (documentation consolidation per `docs/_AUDIT.md`)
 
 A bilingual (Arabic/English) fitness & nutrition platform with 868+ exercises, 8,830+ foods, 6 free tools, an AI coach (EVO), a blog CMS with automated AI generation, a coach dashboard with client management, a referral system, and membership tiers.
 
@@ -77,7 +77,7 @@ CRON_SECRET=your-cron-secret
 ### Database Setup
 
 1. Go to your Supabase Dashboard → **SQL Editor**
-2. Run each migration file in order (0001 → 0012) from the `supabase/migrations/` folder
+2. Run each migration file in order (0001 → 0016) from the `supabase/migrations/` folder
 3. After the migrations, run `NOTIFY pgrst, 'reload schema';` to refresh the PostgREST schema cache
 4. Or if you have the Supabase CLI: `supabase db push`
 
@@ -135,10 +135,10 @@ The app is configured for Vercel with (see [`vercel.json`](./vercel.json)):
 ```
 musclehubeg/
 ├── src/
-│   ├── app/                    # Next.js App Router pages (47 page.tsx files)
+│   ├── app/                    # Next.js App Router pages (51 page.tsx files)
 │   │   ├── (app)/              # Authenticated routes (dashboard, coach, plans, etc.)
 │   │   ├── admin/              # Coach-only admin pages (blog, leads, saved-results, referrals)
-│   │   ├── api/                # API routes (28 endpoints — see DEVELOPER_GUIDE §8)
+│   │   ├── api/                # API routes (36 endpoints — see DEVELOPER_GUIDE §8)
 │   │   ├── ar/                 # Arabic mirror routes (limited — see Known Issues)
 │   │   ├── blog/               # Blog pages (list + article)
 │   │   ├── checkout/           # Checkout flow
@@ -154,8 +154,8 @@ musclehubeg/
 │   │   └── metadata.ts         # Site-wide SEO metadata
 │   ├── components/
 │   │   ├── blog/               # Blog article + list components
-│   │   ├── ui/                 # shadcn/ui primitives (50 files, new-york style)
-│   │   ├── views/              # Page-level views (23 views)
+│   │   ├── ui/                 # shadcn/ui primitives (51 files, new-york style)
+│   │   ├── views/              # Page-level views (25 views)
 │   │   ├── AdSenseAd.tsx       # Google AdSense (tier-gated)
 │   │   ├── SiteHeader.tsx      # Navigation + auth + notifications
 │   │   ├── EvoFloatingWidget.tsx # EVO AI chat floating widget
@@ -180,7 +180,7 @@ musclehubeg/
 │   ├── middleware.ts            # Supabase session refresh + Content-Language header
 │   └── ...
 ├── supabase/
-│   └── migrations/             # 15 SQL migration files (0001–0015) + RUN_ON_SUPABASE.sql
+│   └── migrations/             # 16 SQL migration files (0001–0016)
 ├── public/                     # Static assets (icons, QR codes, images, manifest, sw.js)
 ├── .github/workflows/          # GitHub Actions (3-step blog generation pipeline, every 2h)
 ├── AGENTS.md                   # AI agent operating rules
@@ -251,7 +251,7 @@ musclehubeg/
 
 ## 📊 Database
 
-**22 tables** are formally defined via 15 migrations (0001 → 0015),
+**22 tables** are formally defined via 16 migrations (0001 → 0016),
 all with Row Level Security (RLS) policies. An additional 3 tables
 are used in code but were created ad-hoc on production (see Known
 Issues):
@@ -288,8 +288,8 @@ Issues):
 | `coach_presence` | Coach online status | Used in code; SQL script in `PROGRESS.md` |
 
 > **Action needed:** These three tables should be back-filled as
-> migration files (`0013_*`, `0014_*`, `0015_*`) so a fresh Supabase
-> project can be set up from migrations alone. See `PROGRESS.md`.
+> migration files so a fresh Supabase project can be set up from
+> migrations alone. See `PROGRESS.md`.
 
 ---
 
@@ -323,7 +323,7 @@ metrics and any ongoing optimizations, see `worklog.md` recent entries.
 - AI chat uses an interleaved strongest-models chain (OpenRouter → Groq fallback)
 - Image optimization: AVIF + WebP formats enabled
 - Static asset caching via service worker (PWA installable)
-- Blog generation runs 3×/day via GitHub Actions cron (06:00, 14:00, 22:00 UTC)
+- Blog generation runs every 2 hours via GitHub Actions cron (`0 */2 * * *`)
 
 | Feature | Before | After | Improvement |
 |---|---|---|---|
@@ -370,10 +370,10 @@ A full evidence-based list is in [`PROGRESS.md`](./PROGRESS.md). Highlights:
 - **M4** — Profile page shows "4 Tools" instead of "6 Tools".
 - **M5** — SiteHeader has a redundant "Pricing" entry alongside
   "Memberships".
-- **B18 (new)** — `package.json` build script references
-  `scripts/compress-images.js`, but the `scripts/` directory does not
-  exist. Local `bun run build` fails; production Vercel build is
-  unaffected (uses `vercel.json` buildCommand).
+- **B18** — `package.json` build script previously referenced
+  `scripts/compress-images.js`, but the `scripts/` directory did not
+  exist. **FIXED** (Phase 7, Master Repair Batch 001) — the obsolete
+  prefix was removed. `bun run build` now succeeds locally.
 
 ---
 

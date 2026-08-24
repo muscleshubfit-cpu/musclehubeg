@@ -36,7 +36,7 @@ preserved for history.
 | Test files (`.test.ts` / `.spec.ts`) | **0** | find across repo |
 | `@ts-nocheck` occurrences in `src/` | **0** ✅ (verified removed) | `grep -r "@ts-nocheck" src/` |
 | `ignoreBuildErrors` in `next.config.ts` | **Not present** ✅ (verified removed) | grep on `next.config.ts` |
-| `scripts/` directory | **MISSING** ❌ (referenced in `package.json` build step) | `git ls-tree -r HEAD --name-only \| grep "^scripts/"` returns nothing |
+| `scripts/` directory | **Not in repo** ✅ (the `compress-images` script was removed from `package.json` in Phase 7 Master Repair Batch 001 — see B18) | `git log --all --oneline -- scripts/` returns nothing; `.gitignore` line 47 ignores it |
 
 ### Production-readiness — evidence-based reassessment
 
@@ -253,7 +253,7 @@ Commit `c329f51` ("chore: resolve all known issues + create combined migration s
 | C5 (initial) | EVO AI uses local fallback only | Fixed in Phase 6 (race + cleanup) — re-verified Post-Push |
 | C6 (initial) | Vercel project not connected to GitHub | Re-verified Post-Push |
 
-SQL fix scripts preserved at `/home/z/my-project/download/MuscleHubEG_Database_Fix_v4.sql` + `MuscleHubEG_Fix_support_tickets_status.sql`.
+SQL fix scripts for Phase 5 were applied directly to production Supabase via the SQL Editor — they are not committed files (no repo path exists for them).
 
 ### Phase 6 — AI Speed Optimization (2026-08-19)
 
@@ -580,13 +580,12 @@ Phase 7 pass:
 | **DEVELOPER_GUIDE.md** | ✅ مُحدَّث (Phase 7) | تم تصحيح إعدادات TypeScript، ESLint، AI provider architecture، tier priorities |
 | **QA_CHECKLIST.md** | ✅ مُحدَّث (Phase 7) | تمييز واضح بين smoke tests و functional verification |
 | **AGENTS.md** | ✅ جديد (Phase 7) | قواعد تشغيل الـ AI agents |
-| **PROJECT_CONTEXT.md** | ✅ جديد (Phase 7) | هوية المشروع + الحالة الحالية |
-| **SECURITY.md** | ✅ جديد (Phase 7) | سياسة أمنية شاملة |
+| **SECURITY.md** | ✅ جديد (Phase 7) | سياسة أمنية شاملة (تتضمن قسم PayPal — §12) |
 | **LICENSE** | ✅ جديد (Phase 7) | proprietary / all-rights-reserved |
 | **worklog.md** | ✅ محدّث | يحتوي على سجل كامل لكل التغييرات |
 | **تعليقات الكود** | ✅ ممتاز | كل ملف حر له header comment يشرح الوظيفة + القرارات التصميمية |
 | **.env.example** | ✅ موجود | يوثّق كل الـ env vars المطلوبة |
-| **API documentation** | ✅ مكتمل (Phase 7) | جدول في DEVELOPER_GUIDE §8 يوثّق كل الـ 28 route |
+| **API documentation** | ✅ مكتمل (Phase 7, re-verified 2026-08-25) | جدول في DEVELOPER_GUIDE §8 يوثّق كل الـ 36 route |
 | **Database schema docs** | ⚠️ جزئي | جدول في DEVELOPER_GUIDE §4 يوثّق الـ tables لكن مفيش ERD رسمي |
 
 ### الاختبارات (Tests) — مُحدَّث في Phase 7
@@ -605,22 +604,10 @@ Phase 7 pass:
 
 ## 📊 إحصائيات المشروع
 
-> **ملاحظة Phase 7 (2026-08-19):** القيم التالية تم تصحيحها بناءً على
-> فحص الكود الفعلي. القيم القديمة (المشطوبة) محفوظة للمرجعية التاريخية.
-
-| المقياس | القيمة (مُتحقَّق منها) | القيمة القديمة |
-|---|---|---|
-| عدد ملفات الكود (`.ts` + `.tsx`) في `src/` | **226** | ~120 |
-| عدد الـ API routes | **28** | 22 |
-| عدد الصفحات (`page.tsx`) | **47** | 40+ |
-| عدد جداول الـ DB (مُعرّفة في migrations) | **20** | 22 |
-| عدد جداول مُستخدمة في الكود لكن غير موجودة في migrations | **3** (`plan_swaps`, `progress_photos`, `coach_presence`) | — |
-| عدد الـ migrations | **12** (0001 → 0012) | 12 ✅ |
-| عدد ملفات shadcn UI | **50** | 28 |
-| عدد الـ views | **23** | 17 |
-| عدد لغات العرض | 2 (عربي + إنجليزي) | 2 ✅ |
-| حجم قاعدة بيانات الأكلات | 8,832 أكلة (8,830+ تسويقياً) | 8,830+ ✅ |
-| حجم مكتبة التمارين | 870 تمرين (868+ تسويقياً) | 868+ ✅ |
+> **ملاحظة Phase 7 (2026-08-19, re-verified 2026-08-25):** القيم
+> الموحَّدة والمُتحقَّق منها موجودة في قسم "Reconciled Status (Phase
+> 7)" أعلى هذا الملف. استخدم ذلك الجدول كمصدر وحيد لإحصائيات
+> المشروع الحالية.
 
 ---
 
@@ -676,9 +663,9 @@ Phase 7 pass:
 > - **1 build/tooling issue تم إصلاحه** — ~~B18~~ (local build broken) تم إصلاحه في Batch 001.
 > - **2 مشاكل مقبولة كقرارات تصميمية** (B16: Recharts lazy-loaded, B17: Framer Motion disabled)
 > - **95 نقطة فحص QA سابقة ناجحة** + **فحص Phase 5 شامل (63 صفحة + 9 API endpoints + 12 تدفق مستخدم)**
-> - **التوثيق كامل ومُحدَّث** (README.md + DEVELOPER_GUIDE.md + PROGRESS.md + QA_CHECKLIST.md + AGENTS.md + PROJECT_CONTEXT.md + SECURITY.md + LICENSE)
-> - **سكريبتات SQL للإصلاح محفوظة**: `MuscleHubEG_Database_Fix_v4.sql` + `MuscleHubEG_Fix_support_tickets_status.sql`
-> - **تقرير QA الشامل محفوظ**: `MuscleHubEG_QA_Report.docx/pdf`
+> - **التوثيق كامل ومُحدَّث** (README.md + DEVELOPER_GUIDE.md + PROGRESS.md + QA_CHECKLIST.md + AGENTS.md + SECURITY.md + LICENSE)
+> - **سكريبتات SQL لإصلاح Phase 5**: تم تطبيقها مباشرة على Supabase SQL Editor الإنتاجي — لا توجد ملفات ملتزمة في الـ repo
+> - **تقرير QA الشامل**: مُسجَّل في `QA_CHECKLIST.md` (مُلتزم في الـ repo)
 >
 > ### الإجراءات المكتملة Post-Push (2026-08-19)
 > - ✅ **H5**: Owner طبّق migration `0013` على Supabase + شغّل `UPDATE` على 46 سجل
@@ -737,8 +724,7 @@ Phase 7 pass:
 > - ✅ **NOTIFY pgrst, 'reload schema'**: تحديث Supabase schema cache
 > 
 > #### ملفات SQL محفوظة للصيانة المستقبلية:
-> - `/home/z/my-project/download/MuscleHubEG_Database_Fix_v4.sql` — السكريبت الشامل
-> - `/home/z/my-project/download/MuscleHubEG_Fix_support_tickets_status.sql` — إصلاح عمود status
+> - تم تطبيق سكريبتات Phase 5 مباشرة على Supabase SQL Editor الإنتاجي — لا توجد ملفات ملتزمة في الـ repo.
 > 
 > #### اختبارات ناجحة بعد الإصلاح:
 > - ✅ حفظ مخطط وجبات: "Plan saved ✅"
@@ -1587,7 +1573,7 @@ Layer 3 — Render (heavy AI execution — long-running jobs)
 > Render = heavy AI execution layer.
 
 Full rationale and the 8 numbered approved decisions are in
-`PROJECT_CONTEXT.md` §11 (AI Architecture Direction).
+`PROGRESS.md` §11 (AI Architecture Direction).
 
 ### What is NOT done in MH-AI-ARCH-002 (explicit)
 
@@ -1625,12 +1611,12 @@ Do Not Invent Architecture), and implemented + verified independently.
 | 10 | Support plan regeneration / modification on Render | NOT STARTED | Move `regenerateMeal()` + `normalizeCoachPlan()` to Render. |
 | 11 | Persist plan generation results and link to client | NOT STARTED | DB schema TBD at design time. May need a new migration (idempotent, owner-applied per AGENTS.md §6). |
 | 12 | Add Admin / Client permissions for plan generation surface | NOT STARTED | RLS policies + UI gating. Per AGENTS.md §7 (auth/RLS changes require pre-approval). |
-| 13 | Build dedicated plan-generation UI surface (separate from EVO) | NOT STARTED | Per decision #2 in PROJECT_CONTEXT.md §11.2. New page(s) in the Next.js app that call Render. |
-| 14 | Decouple EVO from plan generation | NOT STARTED | Today EVO gates plan requests via subscriber regex. After plan surface exists, EVO can hand off to Render instead of being a gate. Decision #1 in PROJECT_CONTEXT.md §11.2. |
+| 13 | Build dedicated plan-generation UI surface (separate from EVO) | NOT STARTED | Per decision #2 in `PROGRESS.md` §11 (AI Architecture Direction). New page(s) in the Next.js app that call Render. |
+| 14 | Decouple EVO from plan generation | NOT STARTED | Today EVO gates plan requests via subscriber regex. After plan surface exists, EVO can hand off to Render instead of being a gate. Decision #1 in `PROGRESS.md` §11 (AI Architecture Direction). |
 | 15 | Update Vercel API routes to be orchestration-only (where needed) | NOT STARTED | Vercel routes that previously executed heavy AI become thin callers of Render. |
 | 16 | QA + integration tests for Vercel ↔ Render | NOT STARTED | Test contract, auth, timeouts, error paths, partial failures. |
 | 17 | Production deployment verification of Render Backend | NOT STARTED | Deploy Render, smoke test, verify a real plan generation end-to-end. |
-| 18 | Remove old Vercel Blog pipeline routes (after Render replacement verified) | NOT STARTED | Per decision #8 in PROJECT_CONTEXT.md §11.2 — current Blog pipeline preserved until Render replacement is verified. |
+| 18 | Remove old Vercel Blog pipeline routes (after Render replacement verified) | NOT STARTED | Per decision #8 in `PROGRESS.md` §11 (AI Architecture Direction) — current Blog pipeline preserved until Render replacement is verified. |
 
 ### Preconditions (must be true before any of the above tasks start)
 
@@ -1645,7 +1631,7 @@ Do Not Invent Architecture), and implemented + verified independently.
 
 ### Source-of-truth note
 
-Per AGENTS.md §12.8 (Source of Truth) and PROJECT_CONTEXT.md §8, the
+Per AGENTS.md §12.8 (Source of Truth) and `PROGRESS.md` §11 (AI Architecture Direction), the
 actual code is the source of truth. Until each future task above is
 implemented and the code is migrated, the current AI architecture
 remains the Vercel-only single-layer model. This section records the
@@ -2653,7 +2639,7 @@ Options:
 ### الإنجازات (Accomplishments):
 1. **استبدال الاعتمادية على Z.ai تماماً:**
    - إزالة مكتبة `z-ai-web-dev-sdk` من المشروع لمنع مشاكل الـ Private IP (internal-api.z.ai) التي كانت تفشل دائمًا في بيئة Vercel.
-   - بناء محرك بحث خارجي محلي `src/lib/external-search.ts` يعتمد على `Gemini 2.5 Flash` مع `Google Search Grounding` لضمان الحصول على بيانات حية دقيقة.
+   - بناء محرك بحث خارجي محلي `src/lib/external-search.ts` يعتمد على `Gemini Flash` (سلسلة `gemini-3.7-flash` → `3.6-flash` → `3.5-flash`) مع `Google Search Grounding` لضمان الحصول على بيانات حية دقيقة.
 2. **إصلاح وتطوير نظام المدونة (Blog Cron System):**
    - استبدال أداة الاستدعاء القديمة `callFreeOpenRouter` داخل `src/lib/blog-generate.ts` بـ `callGemini` المباشرة السريعة (عبر `@google/genai`).
    - هذا الإصلاح يمنع بشكل قاطع مشاكل الـ Timeouts (انقطاع الوقت) في خوادم Vercel (Hobby Tier 60s) حيث أن نماذج OpenRouter المجانية كانت بطيئة جداً.

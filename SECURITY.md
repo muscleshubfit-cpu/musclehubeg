@@ -184,8 +184,8 @@ Any of the following:
   keep in the repo.
 - Agents do not have access to the production database. Any
   production-side fix is shipped as a SQL file under
-  `/home/z/my-project/download/` or as a migration file, and the
-  owner runs it on Supabase SQL Editor.
+  `supabase/migrations/NNNN_*.sql` and is applied by the owner
+  via the Supabase SQL Editor (see `AGENTS.md` §6).
 - After any schema change in production, the owner must run
   `NOTIFY pgrst, 'reload schema';` so PostgREST picks up the change.
   (Phase 5 fixes followed this protocol — see `PROGRESS.md`.)
@@ -353,7 +353,113 @@ Cache headers (set in `vercel.json` + `next.config.ts`):
 
 ---
 
-## 12. Incident Response
+## 12. PayPal Payment Security
+
+PayPal is the primary payment method (added 2026-08-24). Manual
+payment receipts (InstaPay / Vodafone Cash) remain as alternative
+flows; PayPal is the only automated online flow.
+
+### 12.1 Credential surface
+
+| Env var | Scope | Notes |
+|---|---|---|
+| `PAYPAL_CLIENT_ID` | Server-only | Used by `src/lib/paypal.ts` for OAuth2 + Orders API v2 |
+| `PAYPAL_CLIENT_SECRET` | Server-only | NEVER prefix `NEXT_PUBLIC_`. Bypasses nothing on its own (PayPal REST is stateless) but enables Order creation/capture |
+| `NEXT_PUBLIC_PAYPAL_CLIENT_ID` | Public (browser) | Loaded by `@paypal/react-paypal-js`. PayPal's design — safe to expose |
+| `PAYPAL_WEBHOOK_ID` | Server-only | Used by `/api/paypal/webhook` for `verify-webhook-signature` |
+| `PAYPAL_MODE` | Server-only | `sandbox` (default) \| `live` |
+
+`src/lib/paypal.ts` is a server-only module. It must NEVER be imported
+by a client component. The `PAYPAL_CLIENT_SECRET` is read via
+`process.env` directly (no `NEXT_PUBLIC_` prefix) — Next.js guarantees
+these are not shipped to the browser.
+
+### 12.2 Routes
+
+| Route | Method | Auth | Purpose |
+|---|---|---|---|
+| `/api/paypal/create-order` | POST | User (logged-in) | Create a PayPal Order server-side. **Price is resolved server-side** from `resolvePlanPrice()` (`src/lib/paypal.ts`) — the client NEVER sends the price. Client sends only `planTier` + `durationMonths`. |
+| `/api/paypal/capture-order` | POST | User (logged-in) | Capture a PayPal Order server-side. **This is the AUTHORITATIVE payment confirmation** — the client-side `onApprove` callback only signals user intent. After a successful capture, the route inserts a row in `subscription_requests` (status=`approved`) and triggers `processSubscriptionInitialPayment()` for affiliate commission. |
+| `/api/paypal/webhook` | POST | PayPal (signature-verified) | Receives webhook events (`PAYMENT.CAPTURE.COMPLETED`, `PAYMENT.CAPTURE.DENIED`, `PAYMENT.CAPTURE.REFUNDED`, `CHECKOUT.ORDER.APPROVED`). **Audit trail only** — does NOT activate subscriptions or commissions. This prevents double-activation if both the webhook and the capture endpoint fire for the same order. |
+
+### 12.3 Idempotency
+
+PayPal's Capture API is idempotent by design. The integration handles
+two idempotency paths:
+
+1. **`PayPal-Request-Id` header** — `create-order` uses
+   `mhe-create-${userId}-${Date.now()}` and `capture-order` uses
+   `mhe-capture-${orderId}`. Same ID returns the same result without
+   double-charging.
+2. **HTTP 422 / `ORDER_ALREADY_CAPTURED`** — if the order was already
+   captured (e.g., webhook fired before the capture call), the route
+   treats 422 as success and fetches the order details via
+   `fetchPayPalOrderDetails()` to retrieve the capture result.
+3. **Affiliate commission idempotency** — `affiliate_commissions` has
+   a unique constraint `uq_aff_comm_transaction` on `transaction_id`;
+   the `orderId` is used as `external_reference` so a duplicate
+   capture call cannot create a duplicate commission.
+
+### 12.4 Webhook signature verification
+
+`/api/paypal/webhook` rejects any request whose signature does not
+verify. Verification calls PayPal's
+`/v1/notifications/verify-webhook-signature` API with:
+
+- `transmission_id`, `transmission_time`, `cert_url`, `auth_algo`,
+  `transmission_sig` — all from the incoming PayPal headers
+  (`PAYPAL-TRANSMISSION-ID`, `PAYPAL-TRANSMISSION-TIME`,
+  `PAYPAL-CERT-URL`, `PAYPAL-AUTH-ALGO`, `PAYPAL-TRANSMISSION-SIG`).
+- `webhook_id` — from `PAYPAL_WEBHOOK_ID` env var.
+
+If `verifyWebhookSignature()` returns false OR
+`isPaypalConfigured` is false OR `PAYPAL_WEBHOOK_ID` is missing,
+the route responds **401** and the event is dropped (not logged as
+successful). This prevents forged webhooks from polluting the audit
+trail.
+
+### 12.5 What is NEVER logged
+
+- `PAYPAL_CLIENT_SECRET` value — never `console.log`'d, never returned
+  in any response.
+- The PayPal OAuth2 access token — cached in-memory in `paypal.ts`
+  per process; never persisted to disk or DB; never sent to the
+  browser.
+- The raw webhook body is logged for the audit trail (event type +
+  resource ID + timestamp), but the buyer's PII from PayPal's
+  response (shipping address, phone, etc.) is NOT logged — only the
+  capture status and amount.
+- The `custom_id` JSON (`{user_id, plan_tier, duration_months}`) IS
+  logged because it's our own metadata (no PayPal-injected PII).
+
+### 12.6 Database touchpoints
+
+| Table | Use |
+|---|---|
+| `subscription_requests` | After capture: a row is inserted with `status='approved'`, `payment_method='paypal'`, `price_usd` (server-resolved), and metadata linking to the PayPal Order ID (migration `0016_add_paypal_to_payment_method.sql` extended `payment_method` to include `paypal`). |
+| `affiliate_commissions` | If the user was referred, `processSubscriptionInitialPayment()` awards the commission using the PayPal Order ID as `external_reference` for idempotency. |
+| `admin_notifications` | A bell notification is inserted so the coach sees the PayPal payment in real time. |
+
+### 12.7 Live-mode readiness
+
+The integration is sandbox-tested and live-ready when the owner sets
+in Vercel Production env vars:
+
+- `PAYPAL_MODE=live`
+- `PAYPAL_CLIENT_ID` + `NEXT_PUBLIC_PAYPAL_CLIENT_ID` (same value)
+- `PAYPAL_CLIENT_SECRET`
+- `PAYPAL_WEBHOOK_ID` (obtained from the live PayPal app's webhook
+  configuration — points to the URL `/api/paypal/webhook` on the
+  production domain)
+- Migration `0016` applied to production Supabase.
+
+No code changes are required to switch sandbox → live; the
+`PAYPAL_BASE_URL` resolution in `paypal.ts` switches on
+`PAYPAL_MODE`.
+
+---
+
+## 13. Incident Response
 
 If a security incident occurs (e.g. suspected data leak, RLS bypass,
 compromised key):
@@ -370,7 +476,7 @@ compromised key):
 
 ---
 
-## 13. Past Incidents
+## 14. Past Incidents
 
 _None recorded to date._
 
