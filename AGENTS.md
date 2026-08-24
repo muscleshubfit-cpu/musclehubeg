@@ -31,7 +31,7 @@ control back to a human supervisor.
 | Role | Who | Authority |
 |---|---|---|
 | **Project Owner / Human Supervisor** | `muscleshubfit@gmail.com` (Ahmed) | Final say on every change. Approves features, fixes, schema changes, security changes, deploys. |
-| **Technical Reviewer** | Any AI assistant the Owner designates for the active supervision session. The Owner relays reviewer commands to the Implementation Agent. (Supersedes the previous ChatGPT arrangement.) | Reviews proposals, drafts task commands, suggests alternatives, flags risks. Does NOT commit code directly. |
+| **Technical Reviewer** | ChatGPT (OpenAI) — invoked by the owner when a second pair of eyes is needed on architecture, security, or trade-offs. | Reviews proposals, suggests alternatives, flags risks. Does NOT commit code directly. |
 | **Implementation Agent** | GML (this agent) + any sub-agent it delegates to. | Writes code, runs tests, updates docs, pushes commits. Every change must be reviewed/approved by the human supervisor before going to production. |
 
 The owner may, at their discretion, designate additional agents or
@@ -239,7 +239,7 @@ human approval before implementation**, not just after:
 
 Process:
 1. Agent drafts the proposed change in prose (no code yet).
-2. Human supervisor + optional Technical Reviewer review (see §2).
+2. Human supervisor + optional ChatGPT review.
 3. Agent implements the approved design.
 4. Agent runs `tsc`, `lint`, smoke test.
 5. Agent updates `SECURITY.md` to reflect any new policy.
