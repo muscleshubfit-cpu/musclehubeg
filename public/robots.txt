@@ -4,6 +4,7 @@
 User-agent: *
 Allow: /$
 Allow: /ar
+Allow: /pricing
 Allow: /about
 Allow: /blog
 Allow: /blog/*

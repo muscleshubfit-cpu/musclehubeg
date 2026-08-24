@@ -1,6 +1,6 @@
 # QA_CHECKLIST.md — Verification Evidence
 
-> **Role:** Per AGENTS.md §12.8, this file is source-of-truth #3 (below code and migrations, above docs). It records what has been verified, when, and how.
+> **Role:** Per AGENTS.md §5, this file is source-of-truth #3 (below code and migrations, above docs). It records what has been verified, when, and how.
 > **For task history:** see `worklog.md` (append-only chronological log).
 > **For current status snapshot:** see `PROGRESS.md`.
 
@@ -13,8 +13,8 @@
 | TypeScript (`npx tsc --noEmit`) | ✅ PASS (0 errors) | Local run after PayPal restoration + duplicate-button fix |
 | ESLint (`npx eslint .`) | ✅ PASS (0 errors, 6 pre-existing warnings) | Local run — warnings are unrelated `window.location.href` usage in client components |
 | Next.js Build (`npx next build`) | ✅ PASS (exit 0, all routes registered) | Local run — 3 PayPal routes present |
-| Git push (`git push origin main`) | ✅ PASS (forward-only, no force) | HEAD `d1e40d1` matches `origin/main` (consolidation cycle) |
-| HEAD == origin/main | ✅ YES | `git rev-parse HEAD` == `git rev-parse origin/main` == `d1e40d1` (consolidation commit per docs/_AUDIT.md) |
+| Git push (`git push origin main`) | ✅ PASS (forward-only, no force) | HEAD `a5b6a9a` matches `origin/main` |
+| HEAD == origin/main | ✅ YES | `git rev-parse HEAD` == `git rev-parse origin/main` == `a5b6a9a` |
 | Working tree clean | ✅ YES | `git status` shows "nothing to commit" |
 
 ### Cycle summary (2026-08-24)

@@ -99,9 +99,10 @@ reviewers. Until then, the table above is authoritative.
   - `npx tsc --noEmit` — must report 0 errors.
   - `bun run lint` — should not introduce new errors.
 - For changes that touch rendering, run `bun run build` and confirm
-  it succeeds. (The `package.json` build step is plain `next build`;
-  `vercel.json` buildCommand is also `next build` for production —
-  they match.)
+  it succeeds. (Note: `package.json` build step references
+  `scripts/compress-images.js` which is currently missing — see
+  `PROGRESS.md` known issues. `vercel.json` buildCommand uses plain
+  `next build` for production, which is unaffected.)
 - For changes that touch API routes, smoke-test the route locally with
   `curl` against the dev server before claiming success.
 - "It compiles" is not the same as "it works." Functional verification
@@ -354,15 +355,16 @@ or push — unless the Owner explicitly asked to skip one of these steps
 
 - Document every completed task while executing it.
 - Use the existing documentation files (`PROGRESS.md`, `worklog.md`,
-  `AGENTS.md`, `DEVELOPER_GUIDE.md`, `SECURITY.md`, `QA_CHECKLIST.md`,
-  `README.md`).
+  `AGENTS.md`, `PROJECT_CONTEXT.md`, `DEVELOPER_GUIDE.md`,
+  `SECURITY.md`, `QA_CHECKLIST.md`, `README.md`).
 - Do not create a new documentation system if the existing one
   suffices.
 - At the end of a large body of work, one comprehensive documentation
   review pass is allowed to fix gaps or conflicts.
 
-> **Consolidated (2026-08-24):** executed via `docs/_AUDIT.md`. Do not
-> create new documentation files.
+> **Pending consolidation:** A documentation audit is scheduled. The file
+> list above will be reduced after the Owner approves the audit report.
+> Do not create new documentation files.
 
 ### 12.6 Duplicate Tasks
 
@@ -374,8 +376,8 @@ or push — unless the Owner explicitly asked to skip one of these steps
 ### 12.7 AI Master Roadmap
 
 - When building an AI task list, aggregate from: actual source code,
-  `PROGRESS.md`, `worklog.md`, `DEVELOPER_GUIDE.md`, and
-  conversations/context as needed.
+  `PROJECT_CONTEXT.md`, `PROGRESS.md`, `worklog.md`,
+  `DEVELOPER_GUIDE.md`, and conversations/context as needed.
 - Classify each task as: `COMPLETED` / `IN PROGRESS` / `DEFERRED` /
   `NOT STARTED`.
 - Do NOT start implementation merely because a missing task was
@@ -391,7 +393,7 @@ Priority (highest wins):
 3. QA Evidence (`QA_CHECKLIST.md`, manual smoke tests in commit
    messages)
 4. Project Documentation (`README.md`, `DEVELOPER_GUIDE.md`,
-   `PROGRESS.md`, `AGENTS.md`, `SECURITY.md`)
+   `PROGRESS.md`, `AGENTS.md`, `PROJECT_CONTEXT.md`, `SECURITY.md`)
 5. Conversation Context
 6. General Knowledge
 
