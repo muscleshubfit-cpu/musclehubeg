@@ -499,3 +499,35 @@ Results:
 8. TS + Lint + Build — ✅ PASS
 
 3 items require manual Vercel env var configuration before going Live.
+
+---
+Task ID: PAYPAL-CHECKOUTVIEW-DUPLICATE-FIX
+Agent: Main (Z User)
+Task: Fix duplicate PayPal buttons in CheckoutView.
+
+ROOT CAUSE:
+PayPalButtons component used useState(rendered) to guard against
+duplicate rendering. However, the useEffect dependency array included
+onSuccess + onError which were inline functions (new identity on every
+render). This caused the effect to re-run on every parent re-render,
+which could create duplicate PayPal button instances inside the container.
+
+FIX:
+1. Replaced useState(rendered) with useRef(renderedRef) — ref mutations
+   don't trigger re-renders, so the guard is more stable.
+2. Wrapped handlePayPalSuccess + handlePayPalError in useCallback —
+   ensures stable function identity across renders.
+3. Moved useCallback declarations BEFORE the `if (!plan) return` early
+   return (React hooks rules — hooks must not be called conditionally).
+4. Kept onSuccess + onError in the dependency array (now safe because
+   they're useCallback-wrapped with stable deps).
+5. Render error resets renderedRef.current = false (allows retry if
+   the first render attempt fails).
+
+NO OTHER CHANGES:
+- PayPal payment logic unchanged
+- Manual payment (InstaPay/Vodafone Cash) unchanged
+- No API routes modified
+- No DB changes
+
+QA: TS PASS (0 errors) | Lint PASS (0 errors, 6 warnings) | Build PASS (exit 0)

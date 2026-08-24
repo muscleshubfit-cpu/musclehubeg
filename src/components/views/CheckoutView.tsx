@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { ArrowRight, Upload, Loader2, ShieldCheck, CheckCircle2, XCircle } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
@@ -134,13 +134,15 @@ function PayPalButtons({
   isAr: boolean;
 }) {
   const paypalRef = useRef<HTMLDivElement>(null);
-  const [rendered, setRendered] = useState(false);
+  const renderedRef = useRef(false);
   const [processing, setProcessing] = useState(false);
 
   useEffect(() => {
-    if (rendered || !paypalRef.current) return;
+    if (renderedRef.current || !paypalRef.current) return;
     const w = window as any;
     if (!w.paypal?.Buttons) return;
+
+    renderedRef.current = true;
 
     w.paypal
       .Buttons({
@@ -194,11 +196,11 @@ function PayPalButtons({
         },
       })
       .render(paypalRef.current)
-      .then(() => setRendered(true))
       .catch((e: any) => {
         console.error("[paypal] Render error:", e);
+        renderedRef.current = false;
       });
-  }, [planTier, durationMonths, onSuccess, onError, isAr, rendered]);
+  }, [planTier, durationMonths, isAr, onSuccess, onError]);
 
   if (processing) {
     return (
@@ -234,6 +236,17 @@ export function CheckoutView({ tier, months }: { tier: TierId | MembershipTier; 
 
   // Load PayPal SDK only when PayPal is selected
   const { loaded: paypalLoaded, error: paypalLoadError } = usePayPalScript(method === "paypal");
+
+  // PayPal success handler (must be before any conditional returns — hooks order)
+  const handlePayPalSuccess = useCallback(() => {
+    setPaypalDone(true);
+    setTimeout(() => navigate("dashboard"), 2000);
+  }, [navigate]);
+
+  // PayPal error handler
+  const handlePayPalError = useCallback((msg: string) => {
+    console.error("[paypal] Checkout error:", msg);
+  }, []);
 
   if (!plan) {
     return (
@@ -285,18 +298,6 @@ export function CheckoutView({ tier, months }: { tier: TierId | MembershipTier; 
     } finally {
       setSubmitting(false);
     }
-  };
-
-  // PayPal success handler
-  const handlePayPalSuccess = () => {
-    setPaypalDone(true);
-    setTimeout(() => navigate("dashboard"), 2000);
-  };
-
-  // PayPal error handler
-  const handlePayPalError = (msg: string) => {
-    console.error("[paypal] Checkout error:", msg);
-    // Stay on checkout — don't redirect
   };
 
   const isManualMethod = method === "instapay" || method === "vodafone_cash";
