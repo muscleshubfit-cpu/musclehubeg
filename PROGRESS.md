@@ -1,10 +1,13 @@
 # PROGRESS.md — MuscleHub Shared Dashboard
 
-> **آخر تحديث:** 2026-08-24 (PayPal integration complete — all phases)
+> **آخر تحديث:** 2026-08-24 (PayPal integration complete + checkout flow hardening)
 > **الحالة السابقة (Phase 6):** ✅ كل المشاكل الحرجة محلولة + تحسينات سرعة Phase 6
 > **الحالة الحالية (Phase 7):** تمت مراجعة التوثيق ضد الكود الفعلي وتم
 > تصحيح الادعاءات القديمة. انظر قسم "Reconciled Status (Phase 7)" أسفل
 > هذا الملف للوضع المُتحقَّق منه.
+> **Cycle 2026-08-24 additions:** PayPal integration restored (lost to force-push),
+> duplicate PayPal button fix, coaching CTA + auth return flow. See QA_CHECKLIST.md
+> section "Checkout Flow Hardening (2026-08-24)" for verification evidence.
 > **قاعدة التحكم:** هذا الملف هو لوحة التحكم والتسليم المشتركة. لا ننتقل لأي خطوة قادمة دون تحديث هذا الملف والحصول على الموافقة البشرية.
 
 ---
@@ -20,14 +23,14 @@ preserved for history.
 
 | Metric | Verified value | How verified |
 |---|---|---|
-| TypeScript / TSX files in `src/` | **226** | `find src -name "*.ts" -o -name "*.tsx" \| wc -l` |
-| Pages (`page.tsx`) | **47** (was claimed "40+") | `find src/app -name "page.tsx" \| wc -l` |
-| API routes | **28** (was claimed 22, then 18) | `find src/app/api -name "route.ts*" \| wc -l` |
-| shadcn UI components | **50** (was claimed 28) | `find src/components/ui -name "*.tsx" \| wc -l` |
-| Views (`src/components/views/`) | **23** (was claimed 17) | `find src/components/views -name "*.tsx" \| wc -l` |
-| Migrations | **12** (`0001` → `0012`) — consistent with docs | `ls supabase/migrations/` |
-| Tables formally defined in migrations | **20** (was claimed 25 in README, 22 in DEVELOPER_GUIDE) | unique `CREATE TABLE` across migrations |
-| Tables referenced in code but NOT in migrations | **3** (`plan_swaps`, `progress_photos`, `coach_presence`) | grep on `src/lib/data.ts` vs migration files |
+| TypeScript / TSX files in `src/` | **255** | `find src -name "*.ts" -o -name "*.tsx" \| wc -l` |
+| Pages (`page.tsx`) | **51** | `find src/app -name "page.tsx" \| wc -l` |
+| API routes | **36** | `find src/app/api -name "route.ts*" \| wc -l` |
+| shadcn UI components | **51** | `find src/components/ui -name "*.tsx" \| wc -l` |
+| Views (`src/components/views/`) | **25** | `find src/components/views -name "*.tsx" \| wc -l` |
+| Migrations | **16** (`0001` → `0016`) — adds affiliate engine + paypal payment_method | `ls supabase/migrations/` |
+| Tables formally defined in migrations | **22** | unique `CREATE TABLE` across migrations |
+| Tables referenced in code but NOT in migrations | 3 known (`plan_swaps`, `progress_photos`, `coach_presence`) — carried over from prior reconciliation | grep on `src/lib/data.ts` vs migration files |
 | Exercises dataset | **870 entries** (868 is the marketing number) | `grep -c "slug:" src/lib/exercises.ts` |
 | Foods dataset | **8,832 entries** (8,830 is the marketing number) | `grep -c "slug:" src/lib/foods.ts` |
 | Test files (`.test.ts` / `.spec.ts`) | **0** | find across repo |

@@ -531,3 +531,41 @@ NO OTHER CHANGES:
 - No DB changes
 
 QA: TS PASS (0 errors) | Lint PASS (0 errors, 6 warnings) | Build PASS (exit 0)
+
+---
+Task ID: CYCLE-2026-08-24-VERIFICATION
+Agent: Main (Z User)
+Task: End-of-cycle verification pass — re-run full QA, refresh documentation, commit, push.
+
+Context:
+The previous tasks in this cycle (PayPal restoration, duplicate-button fix, coaching CTA + auth return) had
+already been committed individually. This task closes the cycle by re-running the full QA chain to confirm
+nothing regressed, refreshing QA_CHECKLIST.md and PROGRESS.md to reflect today's HEAD (`a5b6a9a`), and
+pushing the documentation deltas.
+
+Work Log:
+- Verified clean working tree before starting (git status clean)
+- Confirmed HEAD == origin/main == `a5b6a9a` (in sync)
+- Ran `npx tsc --noEmit`  → exit 0, 0 errors
+- Ran `npx eslint .`     → exit 0, 0 errors, 6 pre-existing warnings
+  (all `@next/next/no-location-assign-relative-destination` on coaching/water-tracker/SaveResultButton +
+   1 unused eslint-disable directive in BlogAdminView)
+- Ran `npx next build`   → exit 0; all 78 routes registered including 3 PayPal routes
+- Updated QA_CHECKLIST.md:
+  * Top "Latest Verification" table refreshed to 2026-08-24 with HEAD `a5b6a9a`
+  * Added "Cycle summary (2026-08-24)" subsection enumerating the 3 deliverables of this cycle
+  * Repository Facts table corrected: migrations 15→16, API routes 33→36, dated 2026-08-24
+  * Routes Inventory + Affiliate + Branding sections re-dated to 2026-08-24
+  * PayPal Integration table: warning count 7→6 (the unused eslint-disable count dropped by one)
+  * Added new "Checkout Flow Hardening (2026-08-24)" section capturing the duplicate-button fix and the
+    coaching CTA + auth return flow with verification evidence
+- Updated PROGRESS.md:
+  * Header date note expanded to mention checkout-flow hardening
+  * Verified statistics table reconciled with current code: 226→255 source files, 47→51 pages, 28→36 API
+    routes, 50→51 UI components, 23→25 views, 12→16 migrations, 20→22 tables
+
+Stage Summary:
+- All code already on origin/main (no source changes this cycle)
+- Documentation refresh is the only delta; will be committed as `docs: refresh verification evidence for 2026-08-24 cycle`
+- Production code path unchanged — no risk introduced by this update
+- Next action: ship + verify remote is updated

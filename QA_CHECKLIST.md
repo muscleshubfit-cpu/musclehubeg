@@ -6,26 +6,33 @@
 
 ---
 
-## Latest Verification — 2026-08-23 (Post-Rebase Push)
+## Latest Verification — 2026-08-24 (Post-PayPal-Restoration Cycle)
 
 | Check | Result | How verified |
 |---|---|---|
-| TypeScript (`bunx tsc --noEmit`) | ✅ PASS (0 errors) | Local run after rebase |
-| ESLint (`bun run lint`) | ✅ PASS (0 errors, 4 pre-existing warnings) | Local run after rebase |
-| Next.js Build (`bun run build`) | ✅ PASS (exit 0, all routes registered) | Local run after rebase |
-| Git push (`git push origin main`) | ✅ PASS (forward-only, no force) | `814bda4..a7e8cd9 main -> main` |
-| HEAD == origin/main | ✅ YES | `git rev-parse HEAD` == `git rev-parse origin/main` == `a7e8cd9` |
+| TypeScript (`npx tsc --noEmit`) | ✅ PASS (0 errors) | Local run after PayPal restoration + duplicate-button fix |
+| ESLint (`npx eslint .`) | ✅ PASS (0 errors, 6 pre-existing warnings) | Local run — warnings are unrelated `window.location.href` usage in client components |
+| Next.js Build (`npx next build`) | ✅ PASS (exit 0, all routes registered) | Local run — 3 PayPal routes present |
+| Git push (`git push origin main`) | ✅ PASS (forward-only, no force) | HEAD `a5b6a9a` matches `origin/main` |
+| HEAD == origin/main | ✅ YES | `git rev-parse HEAD` == `git rev-parse origin/main` == `a5b6a9a` |
 | Working tree clean | ✅ YES | `git status` shows "nothing to commit" |
+
+### Cycle summary (2026-08-24)
+This cycle restored the full PayPal integration that had been lost to a force-push, then iteratively hardened the checkout flow:
+
+1. **PayPal restoration** — `src/lib/paypal.ts`, three API routes (`create-order`, `capture-order`, `webhook`), `CheckoutView.tsx` (PayPal as PRIMARY), affiliate engine + content, copy-button, 4 banner SVGs, migrations `0015` + `0016`. Commit `a079375`.
+2. **Checkout duplicate-button fix** — `PayPalButtons` `useEffect` had unstable inline `onSuccess`/`onError` deps causing duplicate SDK renders. Switched to `useRef(renderedRef)` + `useCallback`-wrapped handlers + early-return relocation. Commit `a5b6a9a`.
+3. **Coaching CTA + auth return flow** — coaching CTAs now route to checkout (logged-in) or to `/auth?mode=signup&next=...` (logged-out); `next` param is preserved across login/signup/Google OAuth. Commit `e0c6f0e`.
 
 ---
 
-## Repository Facts (verified 2026-08-23)
+## Repository Facts (verified 2026-08-24)
 
 | Metric | Value | How verified |
 |---|---|---|
-| Migrations | **15** (`0001` → `0015`) | `ls supabase/migrations/*.sql \| grep -v RUN_ON \| wc -l` |
+| Migrations | **16** (`0001` → `0016`) | `ls supabase/migrations/*.sql \| grep -v RUN_ON \| wc -l` |
 | Pages (`page.tsx`) | **51** | `find src/app -name "page.tsx" \| wc -l` |
-| API routes | **33** | `find src/app/api -name "route.ts*" \| wc -l` |
+| API routes | **36** | `find src/app/api -name "route.ts*" \| wc -l` |
 | Affiliate tables in `types.ts` | 1 each (`affiliate_transactions`, `affiliate_commissions`) | `grep -c` after dedup |
 | Local TypeScript errors | 0 | `bunx tsc --noEmit` |
 | Local ESLint errors | 0 | `bun run lint` |
@@ -33,7 +40,7 @@
 
 ---
 
-## Routes Inventory (verified 2026-08-23)
+## Routes Inventory (verified 2026-08-24)
 
 ### Public routes (no auth)
 - `/` (homepage)
@@ -57,7 +64,7 @@
 
 ---
 
-## Affiliate System Verification (2026-08-23)
+## Affiliate System Verification (2026-08-24)
 
 - ✅ `/affiliate` route exists (public, no auth)
 - ✅ `AffiliateProgramView.tsx` renders correctly (654 lines)
@@ -74,7 +81,7 @@
 
 ---
 
-## Branding Verification (2026-08-23)
+## Branding Verification (2026-08-24)
 
 - ✅ Brand name "MuscleHubEG" used consistently across user-facing surfaces
 - ✅ Banner SVGs render correctly (`MuscleHub<tspan>EG</tspan>` — colored "EG" suffix)
@@ -143,7 +150,7 @@ If any step fails: STOP, preserve state, report the issue.
 | Manual payment (InstaPay) | ✅ PASS | Unchanged — QR + receipt + coach approval |
 | Manual payment (Vodafone Cash) | ✅ PASS | Unchanged |
 | TypeScript | ✅ PASS | 0 errors |
-| ESLint | ✅ PASS | 0 errors, 7 pre-existing warnings |
+| ESLint | ✅ PASS | 0 errors, 6 pre-existing warnings (window.location.href usage in client components) |
 | Build | ✅ PASS | exit 0; 3 PayPal routes registered |
 
 ### PayPal Routes
@@ -158,3 +165,27 @@ If any step fails: STOP, preserve state, report the issue.
   - `PAYPAL_CLIENT_SECRET`
   - `PAYPAL_WEBHOOK_ID`
 - Migration 0016 must be applied to production Supabase
+
+---
+
+## Checkout Flow Hardening (2026-08-24)
+
+### Duplicate PayPal Buttons Fix
+**Root cause:** `PayPalButtons` component's `useEffect` had `onSuccess` and `onError` as inline functions (new identity every render). React's dependency diffing saw them as changed on every render, causing the PayPal SDK to re-mount button instances into the same container — visually duplicating the buttons.
+
+**Fix applied** (commit `a5b6a9a`):
+1. `useState(rendered)` → `useRef(renderedRef)` — ref mutations do not trigger re-renders, so the guard is stable.
+2. `handlePayPalSuccess` and `handlePayPalError` wrapped in `useCallback` — stable function identity across renders.
+3. `useCallback` declarations moved **before** the `if (!plan) return` early return (React hooks rules — hooks must not be called conditionally).
+4. Render error resets `renderedRef.current = false`, allowing retry if the first render attempt fails.
+
+**Verification:**
+- ✅ No duplicate PayPal button instances observed in `/checkout`
+- ✅ Payment logic unchanged (PayPal remains PRIMARY; InstaPay + Vodafone Cash unchanged)
+- ✅ No API routes or DB changes
+
+### Coaching Page CTA + Auth Return Flow (commit `e0c6f0e`)
+- ✅ "ابدأ تحوّلك" / "Start your transformation" button → smooth-scroll to `#coaching-pricing`
+- ✅ "ابدأ الآن" / "Start now" tier buttons → `/checkout?tier=X&months=1` (logged-in) or `/auth?mode=signup&next=/checkout%3Ftier%3DX%26months%3D1` (logged-out)
+- ✅ `next` URL param preserved across login form, signup form, and Google OAuth callback
+- ✅ After successful auth, user is redirected to the originally-requested checkout URL
