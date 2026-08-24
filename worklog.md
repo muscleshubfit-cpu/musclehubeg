@@ -761,3 +761,51 @@ VERIFICATION:
   * Will confirm `<pre>` longest line wraps instead of forcing intrinsic min-width
 
 QA: TS PASS | Lint PASS | Build PASS
+
+---
+Task ID: PROGRESS-CLEANUP-004
+Agent: Main (Z User)
+Task: مهمة #4 — تنظيف PROGRESS.md (لوحة حالة نظيفة) — تحويل PROGRESS.md من سجل زمني طويل إلى لوحة حالة عملية. التنفيذ حسب §12.2 (IMPLEMENT → VALIDATE → DOCUMENT → COMMIT → PUSH).
+
+Work Log:
+- استنساخ المستودع + git fetch origin + التأكد HEAD == origin/main (§3.7) — HEAD = `9a890e0` ✅
+- قراءة AGENTS.md (415 سطر) — فهم القواعد الحاكمة (§3.1, §3.5, §3.7, §12.2, §12.8, §12.9)
+- قراءة PROGRESS.md الأصلي (2826 سطر) — استيعاب الـ 6 أقسام الرئيسية + 17+ Task IDs
+- التحقق من إحصائيات المشروع الفعلية في الكود (مهمة #3 corrections):
+  • src files: 255 | pages: 51 | API routes: 36 | shadcn UI: 51 | views: 25
+  • migrations: 16 (0001→0016) | tables: 22 CREATE TABLE
+  • exercises: 33 entry (≠ 870 المُعلن) ⚠️ | foods: 29 entry (≠ 8,832 المُعلن) ⚠️
+  • test files: 0 | @ts-nocheck: 0 | ignoreBuildErrors: not present | scripts/: not in repo ✅
+  • ar routes: 6 | blog cron routes: 7 | paypal routes: 3 | workout programs: 7
+- التحقق من كل bug مُعلَّم "FIXED" في الكود (grep + فحص مباشر):
+  • B1-B17, B18, B002, C1-C6, H1-H6, M1-M5 — كلها تم التحقق منها ✅
+  • M5 (Pricing nav): DISCREPANCY — التوثيق قال "تمت إزالته" لكن الكود يحتفظ بـ "Pricing" entry مع comment يبرر ذلك — يحتاج توضيح من المالك
+  • كل Task IDs (BLOG-*, MH-*, AI-RESEARCH-EXTERNAL-001, EN-AR-SEPARATION-v2, SEO-ADSENSE-FIX, PAYPAL-INTEGRATION) — كلها مُتحقَّق منها
+- استخراج قرارات AI Architecture Direction الـ 8 من السرد الأصلي:
+  • المصدر: PROJECT_CONTEXT.md §11 (الذي تم حذفه في consolidation commit `f32da9a` — 2026-08-24)
+  • استرجاع المحتوى عبر `git show a776aa8~1:PROJECT_CONTEXT.md`
+  • إعادة بناء الجدول الكامل للقرارات الـ 8 (AAD1-AAD8) مع: القرار | السبب | التاريخ | المصدر | ساري؟
+- نسخ PROGRESS.md الأصلي إلى archive/PROGRESS_ARCHIVE.md (مع إضافة header يوضح status وpurpose)
+- إعادة كتابة PROGRESS.md بهيكل لوحة حالة (6 أقسام حسب المطلوب):
+  • القسم 1: الحالة الحالية (Current Status) — ملخص + bugs مفتوحة + إحصائيات مُتحقَّق منها
+  • القسم 2: سجل الميزات (Feature Log) — 48 ميزة مكتملة + 7 مؤجلة
+  • القسم 3: سجل الـ Bugs (Bug Log) — 36+ bug مُحلول بسطر واحد + bugs مفتوحة
+  • القسم 4: القرارات المتخذة (Decisions) — 18 قرار عام (AD1-AD18) + 8 قرارات AI Architecture Direction (AAD1-AAD8)
+  • القسم 5: التاريخ المضغوط (Condensed History) — 12 phase بسطر واحد لكل phase
+  • القسم 6: الأرشيف (Archive) — pointer إلى archive/PROGRESS_ARCHIVE.md
+- VALIDATE: تأكيد أن كل Task IDs في الأرشيف موجودة في الملف الجديد (cross-check) — 0 missing ✅
+- COMMIT: `66000cc` — `docs: restructure PROGRESS.md into clean status board`
+- PUSH: ✅ Pushed to origin/main (fast-forward `9a890e0..66000cc`). Local HEAD = origin/main = `66000cc`.
+
+Stage Summary:
+- PROGRESS.md الآن 288 سطر (كان 2826) — انخفاض 89.8% — ضمن الحد المستهدف (~300 سطر)
+- archive/PROGRESS_ARCHIVE.md يحتوي على المحتوى التاريخي الكامل (2837 سطر — 2826 الأصلي + 11 سطر header)
+- كل الأرقام في PROGRESS.md مُتحقَّق منها فعلياً في الكود
+- كل bug مُعلَّم "FIXED" تم التحقق منه بـ grep/فحص الكود قبل إدراجه في Bug Log
+- 3 discrepancies حرجة تم توثيقها للمالك:
+  1. Exercises dataset: 33 entry فعلياً (≠ 870 المُعلن)
+  2. Foods dataset: 29 entry فعلياً (≠ 8,832 المُعلن)
+  3. M5 "Pricing" nav: التوثيق قال "تمت إزالته" لكن الكود يحتفظ به
+- قرارات AI Architecture Direction الـ 8 مُعاد بناؤها بالكامل من PROJECT_CONTEXT.md §11 (الذي تم حذفه في consolidation commit `f32da9a`)
+- لا تغيير في أسماء الميزات أو ترقيم القرارات أو التواريخ
+- لا إنشاء ملفات توثيق جديدة غير archive/PROGRESS_ARCHIVE.md
