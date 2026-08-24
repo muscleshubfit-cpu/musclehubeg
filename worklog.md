@@ -909,3 +909,32 @@ Stage Summary:
 - Build: exit 0; all 78 routes registered.
 - Commit SHA: 5745e4e
 - Push status: pushed
+
+---
+Task ID: COACH-EMAIL-REVERT-2026-08-25
+Agent: Main (Z User)
+Task: Revert the coach email fallback change from DOC-AUDIT-FIXES-2026-08-25 — the `speerr@gmail.com` is the Owner's personal admin email, not a security hole.
+
+Work Log:
+- Owner clarified: `speerr@gmail.com` is his personal admin email. The fallback
+  was intentional — it ensures the Owner can always log in as coach even on a
+  fresh deployment that hasn't had `COACH_EMAILS` env var configured.
+- The prior commit (DOC-AUDIT-FIXES-2026-08-25) incorrectly classified the
+  fallback as a security risk and replaced it with an empty string. That would
+  have locked the Owner out of coach role on any deployment without the env var.
+- Reverted both occurrences in `src/lib/data.ts`:
+  • Line 202 (role-update branch): `(process.env.COACH_EMAILS || "speerr@gmail.com")`
+  • Line 228 (profile-creation branch): same
+- Added a clarifying comment explaining the rationale:
+  • `speerr@gmail.com` = Owner's admin email (always granted coach by default)
+  • `muscleshubfit@gmail.com` = public contact email only — never granted
+    coach by default (it appears on footer, contact form, SECURITY.md but
+    is not an admin identity)
+- To add more coaches: set `COACH_EMAILS` env var to comma-separated emails.
+
+Stage Summary:
+- Owner's admin access preserved on all deployments.
+- Clear documentation distinguishing admin email vs public contact email.
+- TS: 0 errors | ESLint: 0 errors (6 pre-existing warnings) | Build: exit 0
+- Commit SHA: <to be filled>
+- Push status: <to be filled>

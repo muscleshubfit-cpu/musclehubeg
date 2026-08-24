@@ -187,11 +187,19 @@ export async function fetchProfile(userId: string): Promise<Profile | null> {
  // This prevents the coach from being downgraded to 'client'
  // if the auth trigger fires with role='client'
  if (data.role === "client") {
- // SECURITY (2026-08-25): removed hardcoded `speerr@gmail.com` fallback.
- // COACH_EMAILS must be set in env (Vercel Production). If unset, no
- // user is auto-bootstrapped as coach — safer default (no privileged
- // account is granted by accident).
- const coachEmails = (process.env.COACH_EMAILS || "").split(",").map((e: string) => e.trim().toLowerCase()).filter(Boolean);
+ // Auto-bootstrap a coach account for known coach emails.
+ // The default fallback `speerr@gmail.com` is the Owner's personal
+ // admin email — it grants coach role on signup without requiring
+ // the COACH_EMAILS env var to be set. This is intentional: the
+ // Owner must always be able to log in as coach even on a fresh
+ // deployment that hasn't had env vars configured yet.
+ //
+ // `muscleshubfit@gmail.com` is the public contact email shown on
+ // the site (footer, contact form, SECURITY.md) — it is NOT an admin
+ // email and must never be granted coach role by default. To grant
+ // coach to additional emails, set the `COACH_EMAILS` env var to a
+ // comma-separated list.
+ const coachEmails = (process.env.COACH_EMAILS || "speerr@gmail.com").split(",").map((e: string) => e.trim().toLowerCase());
  const isCoachEmail = coachEmails.includes(data.email?.toLowerCase() || "");
  if (isCoachEmail) {
  const { data: updated } = await supabase
@@ -214,8 +222,10 @@ export async function fetchProfile(userId: string): Promise<Profile | null> {
  if (userData?.user) {
  const u = userData.user;
  // Check if this is a known coach email BEFORE creating the profile
- // SECURITY (2026-08-25): removed hardcoded `speerr@gmail.com` fallback.
- const coachEmails = (process.env.COACH_EMAILS || "").split(",").map((e: string) => e.trim().toLowerCase()).filter(Boolean);
+ // See the comment above (in the role-update branch) for the rationale
+ // behind the `speerr@gmail.com` default fallback. `muscleshubfit@gmail.com`
+ // is public-contact only — never granted coach role by default.
+ const coachEmails = (process.env.COACH_EMAILS || "speerr@gmail.com").split(",").map((e: string) => e.trim().toLowerCase());
  const isCoachEmail = coachEmails.includes(u.email?.toLowerCase() || "");
  const newProfile = {
  id: u.id,
