@@ -41,6 +41,7 @@ import {
   buildPromoCopy,
   getBannerUrl,
   type BannerFormat,
+  type BannerLang,
   type PromoTemplate,
 } from "@/lib/affiliate-content";
 import { FileText, LayoutGrid, Image as ImageIcon, AlertCircle } from "lucide-react";
@@ -54,6 +55,12 @@ export function AffiliateToolkit() {
   const [referralCode, setReferralCode] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // ─── Banner language selector state ───
+  // Independent from the UI language — lets the affiliate owner choose
+  // which language the actual banner CONTENT renders in (for their site
+  // visitors). Defaults to the current UI language for convenience.
+  const [bannerLang, setBannerLang] = useState<BannerLang>(isAr ? "ar" : "en");
 
   // ─── Load the user's real referral code ───
   useEffect(() => {
@@ -167,6 +174,14 @@ export function AffiliateToolkit() {
           {ui.banners.subtitle}
         </p>
 
+        {/* Banner language selector — independent from UI language */}
+        <BannerLangSelector
+          bannerLang={bannerLang}
+          onBannerLangChange={setBannerLang}
+          isAr={isAr}
+          labels={ui.banners.langSelector}
+        />
+
         <div className="mt-8 grid gap-4 md:grid-cols-2">
           {BANNER_FORMATS.map((format) => (
             <BannerCard
@@ -174,11 +189,93 @@ export function AffiliateToolkit() {
               format={format}
               affiliateUrl={affiliateUrl}
               isAr={isAr}
+              bannerLang={bannerLang}
               ui={ui}
             />
           ))}
         </div>
       </section>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Sub-component: BannerLangSelector
+// ─────────────────────────────────────────────────────────────────────────
+
+/**
+ * BannerLangSelector — segmented control that lets the affiliate owner
+ * choose which language the banner CONTENT renders in.
+ *
+ * This is INDEPENDENT from the UI language — an Arabic-speaking affiliate
+ * may want to display English banners on an English-speaking site, and
+ * vice versa. The selected language flows into:
+ *   - Which SVG asset (EN or AR) is rendered in the preview
+ *   - Which SVG asset URL is embedded in the HTML code
+ *   - The `alt` attribute on the embedded <img>
+ */
+function BannerLangSelector({
+  bannerLang,
+  onBannerLangChange,
+  isAr,
+  labels,
+}: {
+  bannerLang: BannerLang;
+  onBannerLangChange: (lang: BannerLang) => void;
+  isAr: boolean;
+  labels: { title: string; en: string; ar: string; hint: string };
+}) {
+  return (
+    <div
+      className="mt-6 flex flex-col gap-2 rounded-2xl bg-white p-4 ring-1 ring-[#e5e5e7] sm:flex-row sm:items-center sm:justify-between sm:gap-4"
+      role="group"
+      aria-label={labels.title}
+    >
+      <div className="flex flex-col gap-1">
+        <span className="text-sm font-semibold text-[#1d1d1f]">
+          {labels.title}
+        </span>
+        <span className="text-xs font-normal text-[#6e6e73]">
+          {labels.hint}
+        </span>
+      </div>
+
+      {/* Segmented control — Apple-style pill toggle */}
+      <div
+        className="inline-flex w-full max-w-full shrink-0 overflow-hidden rounded-full bg-[#f5f5f7] p-1 sm:w-auto"
+        role="radiogroup"
+        aria-label={labels.title}
+      >
+        <button
+          type="button"
+          role="radio"
+          aria-checked={bannerLang === "en"}
+          onClick={() => onBannerLangChange("en")}
+          className={
+            "flex flex-1 items-center justify-center gap-2 rounded-full px-5 py-2 text-sm font-semibold transition-colors sm:flex-none " +
+            (bannerLang === "en"
+              ? "bg-[#0071e3] text-white shadow-sm"
+              : "text-[#6e6e73] hover:text-[#1d1d1f]")
+          }
+        >
+          {labels.en}
+        </button>
+        <button
+          type="button"
+          role="radio"
+          aria-checked={bannerLang === "ar"}
+          onClick={() => onBannerLangChange("ar")}
+          className={
+            "flex flex-1 items-center justify-center gap-2 rounded-full px-5 py-2 text-sm font-semibold transition-colors sm:flex-none " +
+            (bannerLang === "ar"
+              ? "bg-[#0071e3] text-white shadow-sm"
+              : "text-[#6e6e73] hover:text-[#1d1d1f]")
+          }
+          dir="rtl"
+        >
+          {labels.ar}
+        </button>
+      </div>
     </div>
   );
 }
@@ -257,22 +354,27 @@ function BannerCard({
   format,
   affiliateUrl,
   isAr,
+  bannerLang,
   ui,
 }: {
   format: BannerFormat;
   affiliateUrl: string;
   isAr: boolean;
+  bannerLang: BannerLang;
   ui: UiStrings;
 }) {
   // Generate the trusted HTML embed code (server-side template + escaped values).
+  // The banner language is chosen by the affiliate owner via the
+  // BannerLangSelector — this determines which SVG asset (EN or AR) is
+  // embedded. The UI language (isAr) only affects chrome text/labels.
   const html = useMemo(
-    () => buildBannerEmbedHtml(format, affiliateUrl),
-    [format, affiliateUrl],
+    () => buildBannerEmbedHtml(format, affiliateUrl, bannerLang),
+    [format, affiliateUrl, bannerLang],
   );
 
   const label = isAr ? format.label_ar : format.label_en;
   const platform = isAr ? format.platformHint_ar : format.platformHint_en;
-  const bannerUrl = getBannerUrl(format);
+  const bannerUrl = getBannerUrl(format, bannerLang);
 
   return (
     <article className="flex flex-col rounded-2xl bg-white p-5 ring-1 ring-[#e5e5e7]">
@@ -281,11 +383,13 @@ function BannerCard({
         <p className="mt-1 text-xs font-normal text-[#6e6e73]">{platform}</p>
       </header>
 
-      {/* Banner preview — responsive, on a checkered bg to show transparency.
-          The container clips any overflow; the image fills the container
-          width (w-full) so it scales proportionally on every screen. */}
+      {/* Banner preview — fully responsive: container uses overflow-x-auto so
+          banners with wide aspect ratios (e.g., 728×90) can be scrolled
+          horizontally on narrow screens, while narrower banners (square,
+          mobile) scale to fit. Image uses w-full max-w-full h-auto so the SVG
+          preserves aspect ratio and never overflows the card. */}
       <div
-        className="mt-4 flex items-center justify-center overflow-hidden rounded-xl bg-[#1d1d1f] p-4"
+        className="mt-4 flex items-center justify-center overflow-x-auto overflow-y-hidden rounded-xl bg-[#1d1d1f] p-4"
         style={{
           backgroundImage:
             "linear-gradient(45deg, #2a2a2c 25%, transparent 25%), linear-gradient(-45deg, #2a2a2c 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #2a2a2c 75%), linear-gradient(-45deg, transparent 75%, #2a2a2c 75%)",
@@ -308,7 +412,9 @@ function BannerCard({
               ratio automatically. */}
           <img
             src={bannerUrl}
-            alt="MuscleHubEG — Train smarter, eat better, transform faster"
+            alt={bannerLang === "ar"
+              ? "MuscleHubEG — منصة اللياقة والتغذية الذكية. ابدأ مجانًا."
+              : "MuscleHubEG — Your AI fitness & nutrition coach. Start free."}
             loading="lazy"
             className="block h-auto w-full max-w-full"
           />
@@ -373,6 +479,12 @@ type UiStrings = {
   banners: {
     title: string;
     subtitle: string;
+    langSelector: {
+      title: string;
+      en: string;
+      ar: string;
+      hint: string;
+    };
   };
   common: {
     copied: string;
@@ -404,6 +516,12 @@ function getUi(isAr: boolean): UiStrings {
         title: "بانرات للموقع",
         subtitle:
           "بانرات جاهزة للتركيب على موقعك أو مدونتك. كل بانر فيه كود HTML جاهز للنسخ مباشرة.",
+        langSelector: {
+          title: "لغة البانر",
+          en: "إنجليزي",
+          ar: "عربي",
+          hint: "اختر اللغة اللي هتشوفها لزوار موقعك في البانر.",
+        },
       },
       common: {
         copied: "تم النسخ ✓",
@@ -433,6 +551,12 @@ function getUi(isAr: boolean): UiStrings {
       title: "WEBSITE BANNERS",
       subtitle:
         "Ready-to-embed banners for your site or blog. Each banner comes with copy-ready HTML.",
+      langSelector: {
+        title: "Banner language",
+        en: "English",
+        ar: "Arabic",
+        hint: "Choose which language your site visitors will see inside the banner.",
+    },
     },
     common: {
       copied: "COPIED ✓",

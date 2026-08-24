@@ -569,3 +569,73 @@ Stage Summary:
 - Documentation refresh is the only delta; will be committed as `docs: refresh verification evidence for 2026-08-24 cycle`
 - Production code path unchanged — no risk introduced by this update
 - Next action: ship + verify remote is updated
+
+---
+Task ID: AFFILIATE-BANNERS-2026-08-24
+Agent: Main (Z User)
+Task: Redesign affiliate banners to be fully responsive + premium + contain full marketing content (title + description + CTA + benefit) + add Arabic/English language selector before copying.
+
+ROOT PROBLEM WITH OLD BANNERS:
+- Old SVGs showed only the brand name + tagline + a JOIN NOW button.
+- No actual marketing message — visitors had no reason to click.
+- A single asset was served for both EN and AR visitors (English-only copy).
+
+NEW BANNERS (8 SVG files):
+- /public/affiliate/banner-horizontal-{en,ar}.svg   (728×90 — Leaderboard)
+- /public/affiliate/banner-medium-rectangle-{en,ar}.svg (300×250)
+- /public/affiliate/banner-square-{en,ar}.svg       (250×250)
+- /public/affiliate/banner-mobile-{en,ar}.svg       (320×50)
+- Old non-suffixed files removed (banner-horizontal.svg, etc.)
+
+DESIGN:
+- Dark gradient background (#0a0a0a → #1d1d1f → #0a0a0a) + top accent gradient (#0071e3 → #5ac8fa)
+- Stylized "M" dumbbell logo (white rounded square with dumbbell graphic) + brand text "MuscleHubEG" (EG in sky blue)
+- Marketing headline (e.g., "Your AI Fitness & Nutrition Coach" / "كوتش اللياقة والتغذية الذكي")
+- Short description (e.g., "Personalized plans · 24/7 AI coaching · Progress tracking")
+- CTA pill (gradient) "START FREE →" / "← ابدأ مجانًا"
+- Benefit badge(s): "✓ NO CREDIT CARD" + "✓ FREE TO START" (EN) / "✓ بدون بطاقة ائتمان" + "✓ ابدأ مجانًا" (AR)
+- Arabic banners use RTL layout (logo + content right-aligned, CTA on left) with Cairo font family
+
+RESPONSIVE:
+- All SVGs use viewBox + preserveAspectRatio="xMidYMid meet" so they scale without distortion
+- HTML embed code uses inline style `max-width:100%; height:auto; border:0;` so the banner never overflows its container on any device
+- AffiliateToolkit preview container uses `overflow-x-auto overflow-y-hidden` as a safety net — wide banners (728×90) can be scrolled horizontally if the card is narrower than the banner, but never overflow the page
+
+LANGUAGE SELECTOR (NEW):
+- New component `BannerLangSelector` (Apple-style segmented pill toggle: English | Arabic)
+- State: `bannerLang` ("en" | "ar") — INDEPENDENT from UI language
+- An Arabic-speaking affiliate can pick "English" banners if their site is English-only, and vice versa
+- The chosen language flows into:
+  * Which SVG asset is rendered in the preview (`getBannerUrl(format, bannerLang)`)
+  * Which SVG asset URL is embedded in the HTML code (`buildBannerEmbedHtml(format, url, bannerLang)`)
+  * The `alt` attribute on the embedded `<img>` (also localized)
+- Default = current UI language (so an Arabic UI defaults to Arabic banners)
+- UiStrings gained a `banners.langSelector` sub-object with `title / en / ar / hint` keys (EN + AR)
+
+API CHANGES:
+- `BannerFormat.assetPath` → `assetPathEn` + `assetPathAr`
+- `getBannerUrl(format, lang = "en")` — accepts a `BannerLang` arg
+- `buildBannerEmbedHtml(format, url, lang = "en")` — accepts a `BannerLang` arg, alt text localized
+- New exported type `BannerLang = "en" | "ar"`
+- All existing call sites updated (only AffiliateToolkit.tsx uses these APIs)
+
+NO CHANGES OUTSIDE BANNERS:
+- Affiliate link building unchanged
+- Affiliate engine / commission logic unchanged
+- Promo templates (instagram_facebook, whatsapp, short_social, long_social, story_caption) unchanged
+- Routes, DB, components outside AffiliateToolkit untouched
+
+VERIFICATION:
+- TypeScript: 0 errors
+- ESLint: 0 errors, 6 pre-existing warnings (unchanged from prior cycle)
+- Build: exit 0; all 78 routes registered
+- XML validation: all 8 SVGs parse as valid XML (ElementTree)
+- Visual verification (agent-browser snapshots at 1280×800 desktop + 390×844 mobile viewports):
+  * Horizontal EN — renders correctly, no overflow, all text legible
+  * Horizontal AR — renders correctly, RTL layout intact
+  * Medium Rectangle EN/AR — renders correctly, vertical hierarchy intact
+  * Square EN/AR — renders correctly
+  * Mobile EN/AR — renders correctly, compact layout intact
+- VLM (glm-5v-turbo) analysis confirmed: no overflow, no overlap, sharp text, professional appearance across all 8 variants
+
+QA: TS PASS | Lint PASS | Build PASS | Visual QA PASS

@@ -91,6 +91,8 @@ export function escapeHtml(s: string): string {
 // Banner definitions
 // ─────────────────────────────────────────────────────────────────────────
 
+export type BannerLang = "en" | "ar";
+
 export type BannerFormat = {
   /** Stable ID, used as React key + analytics payload. */
   id: "horizontal" | "medium_rectangle" | "square" | "mobile";
@@ -103,8 +105,10 @@ export type BannerFormat = {
   /** Banner width in pixels (IAB standard). */
   width: number;
   height: number;
-  /** Path under /public/ to the static SVG asset. */
-  assetPath: string;
+  /** Path under /public/ to the English SVG asset. */
+  assetPathEn: string;
+  /** Path under /public/ to the Arabic SVG asset. */
+  assetPathAr: string;
 };
 
 export const BANNER_FORMATS: BannerFormat[] = [
@@ -116,7 +120,8 @@ export const BANNER_FORMATS: BannerFormat[] = [
     platformHint_ar: "مثالي لرأس الموقع وأعلى المدونة وتخطيطات الديسكتوب.",
     width: 728,
     height: 90,
-    assetPath: "/affiliate/banner-horizontal.svg",
+    assetPathEn: "/affiliate/banner-horizontal-en.svg",
+    assetPathAr: "/affiliate/banner-horizontal-ar.svg",
   },
   {
     id: "medium_rectangle",
@@ -126,7 +131,8 @@ export const BANNER_FORMATS: BannerFormat[] = [
     platformHint_ar: "مثالي للوضع داخل المحتوى والشريط الجانبي والبريد الإلكتروني.",
     width: 300,
     height: 250,
-    assetPath: "/affiliate/banner-medium-rectangle.svg",
+    assetPathEn: "/affiliate/banner-medium-rectangle-en.svg",
+    assetPathAr: "/affiliate/banner-medium-rectangle-ar.svg",
   },
   {
     id: "square",
@@ -136,7 +142,8 @@ export const BANNER_FORMATS: BannerFormat[] = [
     platformHint_ar: "مثالي للشريط الجانبي المدمج ووسائل التواصل الاجتماعي.",
     width: 250,
     height: 250,
-    assetPath: "/affiliate/banner-square.svg",
+    assetPathEn: "/affiliate/banner-square-en.svg",
+    assetPathAr: "/affiliate/banner-square-ar.svg",
   },
   {
     id: "mobile",
@@ -146,17 +153,22 @@ export const BANNER_FORMATS: BannerFormat[] = [
     platformHint_ar: "مثالي لمواقع الموبايل والإعلانات داخل التطبيقات.",
     width: 320,
     height: 50,
-    assetPath: "/affiliate/banner-mobile.svg",
+    assetPathEn: "/affiliate/banner-mobile-en.svg",
+    assetPathAr: "/affiliate/banner-mobile-ar.svg",
   },
 ];
 
 /**
- * Build the FULL URL (origin + path) to a banner SVG asset.
- * This is the URL that gets embedded in the HTML embed code for external
- * websites to load.
+ * Build the FULL URL (origin + path) to a banner SVG asset for the
+ * given language. This is the URL that gets embedded in the HTML embed
+ * code for external websites to load.
+ *
+ * The EN asset is the default fallback if an unknown language is passed
+ * (defensive — should never happen in practice).
  */
-export function getBannerUrl(format: BannerFormat): string {
-  return `${getSiteOrigin()}${format.assetPath}`;
+export function getBannerUrl(format: BannerFormat, lang: BannerLang = "en"): string {
+  const path = lang === "ar" ? format.assetPathAr : format.assetPathEn;
+  return `${getSiteOrigin()}${path}`;
 }
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -164,12 +176,17 @@ export function getBannerUrl(format: BannerFormat): string {
 // ─────────────────────────────────────────────────────────────────────────
 
 /**
- * Generate a paste-ready HTML embed code for an affiliate banner.
+ * Generate a paste-ready HTML embed code for an affiliate banner in the
+ * chosen language.
  *
  * Output is a small, validated HTML snippet:
  *   <a href="AFFILIATE_URL" target="_blank" rel="noopener noreferrer">
- *     <img src="BANNER_URL" alt="MuscleHubEG — Train smarter, eat better" width="W" height="H" style="..." />
+ *     <img src="BANNER_URL" alt="..." width="W" height="H" style="..." loading="lazy" />
  *   </a>
+ *
+ * The image style uses `max-width:100%; height:auto;` so the banner is
+ * responsive — it scales down on small screens without overflowing its
+ * container, while preserving the SVG's intrinsic aspect ratio.
  *
  * Security:
  *   - affiliateUrl and bannerUrl are passed through escapeHtml() before
@@ -182,10 +199,13 @@ export function getBannerUrl(format: BannerFormat): string {
 export function buildBannerEmbedHtml(
   format: BannerFormat,
   affiliateUrl: string,
+  lang: BannerLang = "en",
 ): string {
   const safeHref = escapeHtml(affiliateUrl);
-  const safeSrc = escapeHtml(getBannerUrl(format));
-  const alt = "MuscleHubEG — Train smarter, eat better, transform faster";
+  const safeSrc = escapeHtml(getBannerUrl(format, lang));
+  const alt = lang === "ar"
+    ? "MuscleHubEG — منصة اللياقة والتغذية الذكية. ابدأ مجانًا."
+    : "MuscleHubEG — Your AI fitness & nutrition coach. Start free.";
 
   return [
     `<a href="${safeHref}" target="_blank" rel="noopener noreferrer">`,
@@ -194,7 +214,7 @@ export function buildBannerEmbedHtml(
     `    alt="${escapeHtml(alt)}"`,
     `    width="${format.width}"`,
     `    height="${format.height}"`,
-    `    style="display:block;border:0;max-width:100%;height:auto;"`,
+    `    style="display:block;max-width:100%;height:auto;border:0;"`,
     `    loading="lazy"`,
     `  />`,
     `</a>`,

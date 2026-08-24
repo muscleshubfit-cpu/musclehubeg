@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 728 90" preserveAspectRatio="xMidYMid meet" role="img" aria-label="MuscleHubEG — كوتش اللياقة والتغذية الذكي. خطط مخصصة + كوتش 24/7. ابدأ مجانًا.">
+  <defs>
+    <linearGradient id="bh-ar-bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0a0a0a"/>
+      <stop offset="50%" stop-color="#1d1d1f"/>
+      <stop offset="100%" stop-color="#0a0a0a"/>
+    </linearGradient>
+    <linearGradient id="bh-ar-accent" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#0071e3"/>
+      <stop offset="100%" stop-color="#5ac8fa"/>
+    </linearGradient>
+    <linearGradient id="bh-ar-cta" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#0071e3"/>
+      <stop offset="100%" stop-color="#5ac8fa"/>
+    </linearGradient>
+    <filter id="bh-ar-shadow" x="-10%" y="-10%" width="120%" height="130%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="2.5"/>
+      <feOffset dx="0" dy="2" result="offsetblur"/>
+      <feComponentTransfer><feFuncA type="linear" slope="0.45"/></feComponentTransfer>
+      <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect x="0" y="0" width="728" height="90" fill="url(#bh-ar-bg)"/>
+
+  <!-- Top accent bar -->
+  <rect x="0" y="0" width="728" height="3" fill="url(#bh-ar-accent)"/>
+
+  <!-- Logo mark (right side for RTL) -->
+  <g transform="translate(658, 24)" filter="url(#bh-ar-shadow)">
+    <rect x="0" y="0" width="42" height="42" rx="10" fill="#ffffff"/>
+    <rect x="10" y="14" width="22" height="14" rx="2" fill="#0a0a0a"/>
+    <rect x="5" y="18" width="3" height="6" rx="1" fill="#0a0a0a"/>
+    <rect x="34" y="18" width="3" height="6" rx="1" fill="#0a0a0a"/>
+  </g>
+
+  <!-- Brand name + tagline (right-aligned for RTL) -->
+  <text x="644" y="32" text-anchor="end" font-family="Cairo, Inter, system-ui, sans-serif" font-size="16" font-weight="700" fill="#ffffff" letter-spacing="-0.3">MuscleHub<tspan fill="#5ac8fa">EG</tspan></text>
+  <text x="644" y="48" text-anchor="end" font-family="Cairo, Inter, system-ui, sans-serif" font-size="10" font-weight="500" fill="#8e8e93" letter-spacing="0.4">منصة اللياقة والتغذية الذكية</text>
+
+  <!-- Marketing headline + description -->
+  <text x="644" y="68" text-anchor="end" font-family="Cairo, Inter, system-ui, sans-serif" font-size="13" font-weight="600" fill="#ffffff">كوتش اللياقة والتغذية الذكي</text>
+  <text x="644" y="82" text-anchor="end" font-family="Cairo, Inter, system-ui, sans-serif" font-size="11" font-weight="400" fill="#a8a8ad">خطط مخصصة · كوتش AI 24/7 · تتبع تقدمك</text>
+
+  <!-- CTA pill (left side for RTL) -->
+  <g transform="translate(28, 30)" filter="url(#bh-ar-shadow)">
+    <rect x="0" y="0" width="140" height="34" rx="17" fill="url(#bh-ar-cta)"/>
+    <text x="70" y="22" text-anchor="middle" font-family="Cairo, Inter, system-ui, sans-serif" font-size="13" font-weight="700" fill="#ffffff">← ابدأ مجانًا</text>
+  </g>
+
+  <!-- Benefit badge below CTA -->
+  <text x="98" y="78" text-anchor="middle" font-family="Cairo, Inter, system-ui, sans-serif" font-size="10" font-weight="600" fill="#5ac8fa">✓ بدون بطاقة ائتمان</text>
+</svg>
