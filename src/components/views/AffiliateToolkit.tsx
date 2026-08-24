@@ -304,7 +304,7 @@ function PromoCard({
   const platform = isAr ? template.recommendedPlatform_ar : template.recommendedPlatform_en;
 
   return (
-    <article className="flex flex-col rounded-2xl bg-white p-5 ring-1 ring-[#e5e5e7]">
+    <article className="flex min-w-0 flex-col rounded-2xl bg-white p-5 ring-1 ring-[#e5e5e7]">
       <header>
         <h3 className="text-base font-semibold tracking-tight">{label}</h3>
         <p className="mt-1 text-xs font-normal text-[#6e6e73]">
@@ -377,7 +377,7 @@ function BannerCard({
   const bannerUrl = getBannerUrl(format, bannerLang);
 
   return (
-    <article className="flex flex-col rounded-2xl bg-white p-5 ring-1 ring-[#e5e5e7]">
+    <article className="flex min-w-0 flex-col rounded-2xl bg-white p-5 ring-1 ring-[#e5e5e7]">
       <header>
         <h3 className="text-base font-semibold tracking-tight">{label}</h3>
         <p className="mt-1 text-xs font-normal text-[#6e6e73]">{platform}</p>
@@ -432,14 +432,18 @@ function BannerCard({
         </a>
       </div>
 
-      {/* HTML embed code block — keyboard-accessible, scrollable on mobile */}
+      {/* HTML embed code block — keyboard-accessible, wraps long URLs instead
+          of forcing horizontal scroll on the parent card. whitespace-pre-wrap
+          + break-words let very long lines (e.g. affiliate URLs) wrap inside
+          the <pre> instead of becoming intrinsic min-content of the <article>.
+          overflow-auto still allows vertical scroll for long snippets. */}
       <div className="mt-4">
         <p className="text-xs font-semibold uppercase tracking-wide text-[#6e6e73]">
           {isAr ? "كود HTML للدمج" : "HTML Embed Code"}
         </p>
         <pre
           dir="ltr"
-          className="mt-2 max-h-40 overflow-auto rounded-xl bg-[#1d1d1f] p-4 text-xs font-mono text-[#e8e8ed]"
+          className="mt-2 max-h-40 overflow-auto whitespace-pre-wrap break-words rounded-xl bg-[#1d1d1f] p-4 text-xs font-mono text-[#e8e8ed]"
           tabIndex={0}
           aria-label={isAr ? "كود HTML" : "HTML code"}
         >

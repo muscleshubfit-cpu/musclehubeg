@@ -716,3 +716,48 @@ VERIFICATION:
   was intentional and pre-existing per the original design).
 
 QA: TS PASS | Lint PASS | Build PASS | Visual QA PASS
+
+---
+Task ID: AFFILIATE-BANNER-OVERFLOW-ROOT-CAUSE-FIX-2026-08-24
+Agent: Main (Z User)
+Task: Execute the confirmed root-cause fix for the affiliate banner horizontal overflow on Live mobile (390px viewport). The prior commit 8d516e0 deployed successfully but did not visually fix the issue — root cause analysis (performed via live site DOM inspection after real Supabase signup + login) revealed the missing piece.
+
+Pre-task verification (per AGENTS.md §3.7):
+- `git fetch origin --quiet` → HEAD `8d516e0` matches `origin/main` ✅
+- Confirmed the prior fix (8d516e0) IS deployed on Live by grepping live JS chunks for the new distinctive markers (`borderRadius:"1rem"`, new alt text) — found in `referral_20x8r91nu7l74.js`. Old checkered pattern is GONE from production. ✅
+- Authenticated against production Supabase (`wyopqryzfjifyeyvyxfy.supabase.co`) via REST /auth/v1/signup using the live anon key extracted from live JS bundles — created real session and inspected actual `/referral` page DOM at 390px viewport.
+
+CONFIRMED ROOT CAUSE (verified on Live):
+- `<article className="flex flex-col ...">` in BannerCard was missing `min-w-0`.
+- As a CSS Grid item, the article had `min-width: auto` (default) — meaning it could not shrink below its intrinsic min-content size.
+- That intrinsic min-content size was 757px, dominated by the longest line in the `<pre>` HTML embed code block (97 chars of unbreakable URL × ~7.4px monospace = 717px + 40px article padding).
+- The `<pre>` had `white-space: pre` + `overflow-wrap: normal` — even with `overflow-x: auto`, it propagated its intrinsic min-width (757px) to the article.
+- On 390px viewport: grid container = 310px, but the article forced itself to 757px → grid column grew to 757px → page scrollWidth = 797px → horizontal scroll on the whole page.
+- Desktop (1280px) was visually unaffected only because the viewport was wide enough to absorb the overflow — but the bug was still present.
+
+FIX APPLIED (3 changes in AffiliateToolkit.tsx):
+1. BannerCard `<article>`: added `min-w-0` → breaks the grid-item intrinsic-min-size trap. Article can now shrink to the grid cell width (310px on mobile, 584px on desktop).
+2. BannerCard `<pre>`: added `whitespace-pre-wrap break-words` classes. Long affiliate URLs now wrap inside the `<pre>` instead of becoming intrinsic min-content. `overflow-auto` retained for vertical scroll on long snippets. (Defensive — `min-w-0` alone is sufficient, but this guarantees URLs never cause horizontal scroll even in future edge cases.)
+3. PromoCard `<article>`: added `min-w-0` for consistency — same grid-item + flex-column pattern as BannerCard. (PromoCard's `<pre>` already had `whitespace-pre-wrap break-words`, so its content was already wrapping, but the article itself was still subject to the same intrinsic-min-size trap.)
+
+UNCHANGED:
+- Banner SVG content + design (all 8 SVGs untouched)
+- All other components / routes / migrations / configs
+- Affiliate link building, engine, commission logic
+- Promo template content
+- HTML embed code generation logic
+- Banner language selector
+- Card chrome (header/footer/labels)
+
+VERIFICATION:
+- TypeScript (`npx tsc --noEmit`): 0 errors
+- ESLint (`npx eslint .`): 0 errors, 6 pre-existing warnings (unchanged)
+- Next.js build (`npx next build`): exit 0; all 78 routes registered
+- Live verification (to be performed after Vercel deploy):
+  * Will re-authenticate via Supabase REST API
+  * Will open /referral at 390×844 viewport
+  * Will confirm `document.documentElement.scrollWidth === 390` (no horizontal scroll)
+  * Will confirm `<article>` width === grid cell width (310px on mobile, 584px on desktop)
+  * Will confirm `<pre>` longest line wraps instead of forcing intrinsic min-width
+
+QA: TS PASS | Lint PASS | Build PASS
