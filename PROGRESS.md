@@ -53,8 +53,8 @@
 | Routes عربية `/ar/*` | **6** | `/ar`, `/ar/blog`, `/ar/blog/[slug]`, `/ar/exercises`, `/ar/foods`, `/ar/memberships` |
 | Blog cron routes | **7** | step1-pick + step2-generate (legacy) + step2a-research + step2b-en-article + step2c-ar-article + step2d-links + step3-publish |
 | PayPal API routes | **3** | create-order + capture-order + webhook |
-| Exercises dataset | **33 entry** ⚠️ | `grep -cE 'slug: "[^"]+"' src/lib/exercises.ts` — القيمة القديمة المُعلنة (870) غير مطابقة للكود الحالي |
-| Foods dataset | **29 entry** ⚠️ | `grep -cE 'slug: "[^"]+"' src/lib/foods.ts` — القيمة القديمة المُعلنة (8,832) غير مطابقة للكود الحالي |
+| Exercises dataset | **868** ✅ | `grep -cE 'slug: "[^"]+"' src/lib/exercises.ts` — restored from `6c48ca2` (commit `b760dbf`, 2026-08-25) after loss in `a776aa8` ("تصدير") |
+| Foods dataset | **8,830** ✅ | `grep -cE 'slug: "[^"]+"' src/lib/foods.ts` — restored from `6c48ca2` (commit `b760dbf`, 2026-08-25) after loss in `a776aa8` ("تصدير") |
 | Workout programs | **7 slugs** | `grep -cE 'slug: "[^"]+"' src/lib/workout-programs.ts` |
 | Test files | **0** | `find . -name "*.test.ts" -o -name "*.spec.ts" -not -path "./node_modules/*"` |
 | `@ts-nocheck` في `src/` | **0** ✅ | `grep -r "@ts-nocheck" src/` |
@@ -62,7 +62,7 @@
 | `scripts/` directory | **Not in repo** ✅ | `ls scripts/` → 404 |
 | Build script في `package.json` | `"next build"` ✅ | grep على `package.json` |
 
-> **ملاحظة حرجة:** أعداد Exercises (33) و Foods (29) في الكود الحالي أقل بكثير من الأرقام المُعلنة في التوثيق القديم (870 / 8,832). يحتاج المالك للتأكد إن كان هناك مصدر بيانات آخر (Supabase tables مثلاً) أم أن الـ dataset تم تقليمها فعلاً.
+> **ملاحظة تاريخية:** أعداد Exercises + Foods اتنقصت لـ 33/29 في commit `a776aa8` ("تصدير" — 2026-08-21) عن طريق الخطأ، ثم اتعادت في commit `b760dbf` (2026-08-25) باسترجاع النسخة من `6c48ca2`. التحقيق الكامل في `worklog.md` Task ID `DATA-RESTORE-2026-08-25`.
 
 ---
 
@@ -76,8 +76,8 @@
 |---|---|---|---|
 | F1 | الصفحة الرئيسية (Apple-style sticky + Liquid Glass + 14-section dark premium) | تمت | 2026-08-10 |
 | F2 | المدونة (EN + AR + CMS + AI generation + cleanup) | تمت | 2026-08-22 |
-| F3 | مكتبة التمارين (33 entry حالياً — راجع القسم 1) | تمت | 2026-08-10 |
-| F4 | مكتبة الأكلات (29 entry حالياً — راجع القسم 1) | تمت | 2026-08-10 |
+| F3 | مكتبة التمارين (868 تمرين — مسترجَعة في `b760dbf`) | تمت | 2026-08-25 |
+| F4 | مكتبة الأكلات (8,830 أكلة — مسترجَعة في `b760dbf`) | تمت | 2026-08-25 |
 | F5 | برامج التدريب (7 slugs) | تمت | 2026-08-10 |
 | F6 | صفحة الكوتشينج | تمت | 2026-08-10 |
 | F7 | صفحة EVO | تمت | 2026-08-10 |
@@ -233,18 +233,18 @@
 
 ### قرارات AI Architecture Direction (الـ 8 — مُعاد بناؤها)
 
-> **المصدر الأصلي:** `PROJECT_CONTEXT.md` §11 (الذي تم حذفه في consolidation commit `f32da9a` — 2026-08-24). القرارات الـ 8 كانت مُدرَجة هناك كجدول مرقَّم. السرد في `PROGRESS.md` الحالي (أسطر ~1575 و ~1614 و ~1615 و ~1619 و ~1650) يشير إلى هذه القرارات بأرقامها لكنه لا يُدرجها. التفاصيل الكاملة في `archive/PROGRESS_ARCHIVE.md` § MH-AI-ARCH-002.
+> **المصدر الأصلي:** القرارات الـ 8 كانت مُدرَجة في `PROJECT_CONTEXT.md` §11 (ملف تم حذفه في consolidation commit `f32d9a` — 2026-08-24). التفاصيل الكاملة الآن في `archive/PROGRESS_ARCHIVE.md` § MH-AI-ARCH-002.
 
 | # | القرار | السبب | التاريخ | المصدر في الأرشيف | ساري؟ |
 |---|---|---|---|---|---|
-| AAD1 | **EVO stays fast, chat-only** — EVO does NOT generate plans or heavy AI output, does NOT wait on long AI operations, is NOT the execution surface for long-running ops | EVO must remain responsive for chat UX | 2026-08-21 | `archive/PROGRESS_ARCHIVE.md` سطر ~1590 + `PROJECT_CONTEXT.md` §11.2 decision #1 | ✅ نعم — الكود الحالي يتوافق (EVO يستخدم `callFreeOpenRouterRace` 15s timeout، لا plan generation) |
-| AAD2 | **Dedicated plan-generation surface** — separate page/interface for client plans (Nutrition + Training + Regeneration). Records + persists results. Usable by client + admin with permissions. Does NOT depend on EVO being open | Plan generation needs dedicated UX, not buried in chat | 2026-08-21 | `archive/PROGRESS_ARCHIVE.md` سطر ~1614 + `PROJECT_CONTEXT.md` §11.2 decision #2 | ✅ ساري — Direction approved, **NOT implemented** (future task) |
-| AAD3 | **Render Backend for heavy operations** — dedicated Render Backend (separate repo) hosts all heavy/long-running AI ops that don't fit Vercel's 60s Hobby cap: full Blog AI generation, Blog external research, nutrition plan generation, training plan generation, plan regeneration/modification, future heavy AI features | Vercel Hobby 60s cap is too restrictive for long AI jobs | 2026-08-21 | `archive/PROGRESS_ARCHIVE.md` سطر ~1606 + `PROJECT_CONTEXT.md` §11.2 decision #3 | ✅ ساري — Direction approved, **NOT implemented** (Render repo skeleton exists at `muscleshubfit-cpu/Render` commit `14e87fa`, no migration started) |
-| AAD4 | **Vercel stays the fast layer** — Vercel continues to host Next.js frontend, EVO chat, fast operations, light API orchestration, receiving/persisting Render results | Vercel is optimized for fast serverless | 2026-08-21 | `archive/PROGRESS_ARCHIVE.md` سطر ~1605 + `PROJECT_CONTEXT.md` §11.2 decision #4 | ✅ نعم — الكود الحالي يتوافق (Vercel role unchanged) |
-| AAD5 | **Future AI features classified before placement** — `fast/interactive → Vercel`, `heavy/long-running → Render`, `hybrid → Vercel orchestrator + Render heavy execution` | Clear routing rule prevents architecture drift | 2026-08-21 | `PROJECT_CONTEXT.md` §11.2 decision #5 | ✅ ساري — Process rule for all future AI features |
-| AAD6 | **Blog stays separate from EVO** — Blog AI remains separate subsystem. Target Blog pipeline shape (on Render): `Topic → Research → Generation → Translation → Smart terminology/content audit → Enrichment → Save/Publish` | Blog = content production; EVO = conversation — different concerns | 2026-08-21 | `PROJECT_CONTEXT.md` §11.2 decision #6 | ✅ ساري — Partial implementation exists on Vercel (BLOG-EXTERNAL-RESEARCH-001 + BLOG-PIPELINE-RESILIENCE-002). Future: migrate to Render |
-| AAD7 | **Architecture Principle (binding one-liner):** `EVO = conversational experience. Vercel = fast application layer. Render = heavy AI execution layer.` | Concise routing rule | 2026-08-21 | `archive/PROGRESS_ARCHIVE.md` سطر ~1571-1573 + `PROJECT_CONTEXT.md` §11.2 decision #7 | ✅ نعم — Binding policy from 2026-08-21 |
-| AAD8 | **Current Blog pipeline is NOT removed** — Vercel-based Blog pipeline (Step 1 → 2a → 2b → 2c → 2d → 3) preserved and continues to run until Render Backend replacement is built, tested, and verified | No breaking changes until replacement is proven | 2026-08-21 | `archive/PROGRESS_ARCHIVE.md` سطر ~1619 + `PROJECT_CONTEXT.md` §11.2 decision #8 | ✅ نعم — الكود الحالي يتوافق (pipeline شغّال) |
+| AAD1 | **EVO stays fast, chat-only** — EVO does NOT generate plans or heavy AI output, does NOT wait on long AI operations, is NOT the execution surface for long-running ops | EVO must remain responsive for chat UX | 2026-08-21 | `archive/PROGRESS_ARCHIVE.md` § MH-AI-ARCH-002 decision #1 | ✅ نعم — الكود الحالي يتوافق (EVO يستخدم `callFreeOpenRouterRace` 15s timeout، لا plan generation) |
+| AAD2 | **Dedicated plan-generation surface** — separate page/interface for client plans (Nutrition + Training + Regeneration). Records + persists results. Usable by client + admin with permissions. Does NOT depend on EVO being open | Plan generation needs dedicated UX, not buried in chat | 2026-08-21 | `archive/PROGRESS_ARCHIVE.md` § MH-AI-ARCH-002 decision #2 | ✅ ساري — Direction approved, **NOT implemented** (future task) |
+| AAD3 | **Render Backend for heavy operations** — dedicated Render Backend (separate repo) hosts all heavy/long-running AI ops that don't fit Vercel's 60s Hobby cap: full Blog AI generation, Blog external research, nutrition plan generation, training plan generation, plan regeneration/modification, future heavy AI features | Vercel Hobby 60s cap is too restrictive for long AI jobs | 2026-08-21 | `archive/PROGRESS_ARCHIVE.md` § MH-AI-ARCH-002 decision #3 | ✅ ساري — Direction approved, **NOT implemented** (Render repo skeleton exists at `muscleshubfit-cpu/Render` commit `14e87fa`, no migration started) |
+| AAD4 | **Vercel stays the fast layer** — Vercel continues to host Next.js frontend, EVO chat, fast operations, light API orchestration, receiving/persisting Render results | Vercel is optimized for fast serverless | 2026-08-21 | `archive/PROGRESS_ARCHIVE.md` § MH-AI-ARCH-002 decision #4 | ✅ نعم — الكود الحالي يتوافق (Vercel role unchanged) |
+| AAD5 | **Future AI features classified before placement** — `fast/interactive → Vercel`, `heavy/long-running → Render`, `hybrid → Vercel orchestrator + Render heavy execution` | Clear routing rule prevents architecture drift | 2026-08-21 | `archive/PROGRESS_ARCHIVE.md` § MH-AI-ARCH-002 decision #5 | ✅ ساري — Process rule for all future AI features |
+| AAD6 | **Blog stays separate from EVO** — Blog AI remains separate subsystem. Target Blog pipeline shape (on Render): `Topic → Research → Generation → Translation → Smart terminology/content audit → Enrichment → Save/Publish` | Blog = content production; EVO = conversation — different concerns | 2026-08-21 | `archive/PROGRESS_ARCHIVE.md` § MH-AI-ARCH-002 decision #6 | ✅ ساري — Partial implementation exists on Vercel (BLOG-EXTERNAL-RESEARCH-001 + BLOG-PIPELINE-RESILIENCE-002). Future: migrate to Render |
+| AAD7 | **Architecture Principle (binding one-liner):** `EVO = conversational experience. Vercel = fast application layer. Render = heavy AI execution layer.` | Concise routing rule | 2026-08-21 | `archive/PROGRESS_ARCHIVE.md` § MH-AI-ARCH-002 decision #7 | ✅ نعم — Binding policy from 2026-08-21 |
+| AAD8 | **Current Blog pipeline is NOT removed** — Vercel-based Blog pipeline (Step 1 → 2a → 2b → 2c → 2d → 3) preserved and continues to run until Render Backend replacement is built, tested, and verified | No breaking changes until replacement is proven | 2026-08-21 | `archive/PROGRESS_ARCHIVE.md` § MH-AI-ARCH-002 decision #8 | ✅ نعم — الكود الحالي يتوافق (pipeline شغّال) |
 
 ---
 
@@ -281,7 +281,7 @@
 - تفاصيل Post-Push Production Verification (2026-08-19)
 - Documentation accuracy fixes (Phase 7)
 - سرد Phase 5 + Phase 6 الكامل
-- PROJECT_CONTEXT.md §11 (AI Architecture Direction) — المحتوى الأصلي الكامل للقرارات الـ 8
+- `archive/PROGRESS_ARCHIVE.md` § MH-AI-ARCH-002 (AI Architecture Direction) — المحتوى الأصلي الكامل للقرارات الـ 8
 
 ---
 

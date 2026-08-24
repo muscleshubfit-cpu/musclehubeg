@@ -868,3 +868,44 @@ Stage Summary:
 - الإصلاح الوحيد في الكود: src/app/coaching/page.tsx line 415 — استبدال `navigate("memberships")` بـ `scrollToPricing` (+ حذف comment مضلِّل)
 - 20 ⚠️ mismatches أُدرجت في docs/_NAV_MAP.md للمالك ليقرر (لا تعديل في هذه المهمة)
 - اكتشاف حرج: البيانات الكبيرة (868 تمارين / 8,830 أطعمة) فُقدت في commit `a776aa8` "تصدير" (2026-08-21) — regression غير موثّق. التطبيق لا يقرأ من Supabase إطلاقاً في هذا الشأن. الـ recovery يتطلب مهمة منفصلة من المالك (restore من git history قبل a776aa8، أو إعادة استيراد dataset).
+
+---
+Task ID: DOC-AUDIT-FIXES-2026-08-25
+Agent: Main (Z User)
+Task: Full project audit + fix discovered issues + add governance rules T6/T9/T10 to AGENTS.md.
+
+Work Log:
+- Verified sync per §3.7: HEAD `b760dbf` matches `origin/main`.
+- Ran 17-point audit across code structure, docs accuracy, security,
+  dependencies, live site, migrations, Arabic routes, SEO, stale refs,
+  AGENTS.md duplicate commands, worklog template gaps, audit cadence.
+- Discovered 7 issues:
+  1. PROGRESS.md showed Exercises=33 + Foods=29 (stale values from
+     before `b760dbf` data restore). Fixed: now shows 868 + 8830.
+  2. `src/lib/data.ts` had `speerr@gmail.com` hardcoded as fallback for
+     `COACH_EMAILS` env var — security risk. Fixed: empty string
+     fallback + `.filter(Boolean)` + security comment.
+  3. 13 references to `PROJECT_CONTEXT.md` (deleted file) in PROGRESS.md.
+     Fixed: rewrote all to point to `archive/PROGRESS_ARCHIVE.md` §
+     MH-AI-ARCH-002.
+  4. DEVELOPER_GUIDE.md `scripts/*.js` references — already cleaned by
+     audit work (only 1 historical-context ref remains).
+  5. T6: worklog.md had no binding template. Added §12.5.1 with the
+     template + 4 mandatory fields (Task ID / Agent / Task / Work Log
+     / Stage Summary).
+  6. T9: TS/Lint/Build commands were duplicated in §3.5 + §4 + QA_CHECKLIST.md.
+     Fixed: §3.5 is now the canonical source with the full command set;
+     §4 references it by pointer; QA_CHECKLIST.md Verification Protocol
+     now says "see AGENTS.md §3.5".
+  7. T10: no periodic audit cadence rule. Added §12.5.2 with monthly +
+     post-major-feature + post-force-push triggers + 6-point checklist.
+- Also updated §4 (Definition of Done) to reference §3.5 + §12.5.1
+  template, replacing the duplicated command lines.
+- Bumped AGENTS.md "Last updated" to 2026-08-25.
+
+Stage Summary:
+- 7 audit issues identified + all 7 fixed.
+- 0 TS errors, 0 ESLint errors (6 pre-existing warnings unchanged).
+- Build: exit 0; all 78 routes registered.
+- Commit SHA: <to be filled after commit>
+- Push status: <to be filled after push>

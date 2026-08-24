@@ -100,32 +100,24 @@ This cycle restored the full PayPal integration that had been lost to a force-pu
 
 ## Verification Protocol
 
-When pushing changes, run this checklist:
+> **Single source of truth:** the canonical verification command set is
+> defined in `AGENTS.md` §3.5. The block below is kept for backwards
+> reference — when in doubt, use `AGENTS.md` §3.5 as the authoritative
+> command set.
+
+When pushing changes, follow `AGENTS.md` §3.5 (Verification command set).
+The same six-step flow applies:
 
 ```bash
-# 1. TypeScript
-bunx tsc --noEmit
-# Expected: 0 errors
-
-# 2. Lint
-bun run lint
-# Expected: 0 errors (warnings are acceptable if pre-existing)
-
-# 3. Build
-bun run build
-# Expected: exit 0
-
-# 4. Git push (forward-only, no force)
-git push origin main
-
-# 5. Verify synchronization
-git rev-parse HEAD
-git rev-parse origin/main
-# Both must be identical
-
-# 6. Verify clean working tree
-git status
-# Expected: "nothing to commit, working tree clean"
+# See AGENTS.md §3.5 for the canonical, current command set.
+# (Historical reference — kept for context only.)
+npx tsc --noEmit     # 1. TypeScript — 0 errors
+npx eslint .         # 2. ESLint — 0 errors
+npx next build       # 3. Next.js build — exit 0 (if rendering touched)
+git push origin main # 4. Forward-only push
+git fetch origin --quiet && git rev-parse HEAD && git rev-parse origin/main
+                     # 5. Sync verification — both must be identical
+git status --short   # 6. Working tree clean check
 ```
 
 If any step fails: STOP, preserve state, report the issue.

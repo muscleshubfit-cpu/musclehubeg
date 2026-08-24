@@ -2,7 +2,7 @@
 
 > **Status:** Active — required reading for every AI agent (and human
 > contributor) before any commit, PR, or production change.
-> **Last updated:** 2026-08-24
+> **Last updated:** 2026-08-25
 > **Owner:** muscleshubfit@gmail.com (project owner + human supervisor)
 
 ---
@@ -95,13 +95,37 @@ reviewers. Until then, the table above is authoritative.
 
 ### 3.5 Verify Changes
 
-- After every meaningful change, run **at minimum**:
-  - `npx tsc --noEmit` — must report 0 errors.
-  - `bun run lint` — should not introduce new errors.
-- For changes that touch rendering, run `bun run build` and confirm
-  it succeeds. (The `package.json` build step is plain `next build`;
-  `vercel.json` buildCommand is also `next build` for production —
-  they match.)
+> **Canonical command set — do NOT duplicate these commands elsewhere.**
+> §4 (Definition of Done) and `QA_CHECKLIST.md` (Verification Protocol)
+> MUST reference this section by pointer instead of restating the commands.
+
+The canonical verification command set:
+
+```bash
+# 1. TypeScript — must report 0 errors
+npx tsc --noEmit
+
+# 2. ESLint — must report 0 errors (warnings are acceptable if pre-existing)
+npx eslint .
+
+# 3. Next.js build — must exit 0 (run when changes touch rendering,
+#    routes, or anything that could break the build)
+npx next build
+
+# 4. Git push — forward-only (never `--force` without explicit Owner directive)
+git push origin main
+
+# 5. Sync verification — both must be identical
+git fetch origin --quiet
+[ "$(git rev-parse HEAD)" = "$(git rev-parse origin/main)" ] && echo "SYNCED" || echo "DRIFT"
+
+# 6. Working tree clean check
+git status --short
+# Expected: empty (or only pre-existing drift)
+```
+
+Additional rules:
+
 - For changes that touch API routes, smoke-test the route locally with
   `curl` against the dev server before claiming success.
 - "It compiles" is not the same as "it works." Functional verification
@@ -171,19 +195,19 @@ reviewers. Until then, the table above is authoritative.
 A task is "Done" only when ALL of the following are true:
 
 - [ ] Code is written, formatted, and committed with a clear message.
-- [ ] `npx tsc --noEmit` passes with 0 new errors.
-- [ ] `bun run lint` introduces 0 new errors (warnings acceptable only
-      if explicitly justified in the commit message).
+- [ ] Verification command set (§3.5) executed — all checks pass with
+      no new errors or warnings beyond pre-existing.
 - [ ] Affected routes / pages were smoke-tested locally.
 - [ ] Documentation is updated (`README`, `DEVELOPER_GUIDE`, `PROGRESS`,
       `QA_CHECKLIST`, `SECURITY` as applicable).
 - [ ] `PROGRESS.md` reflects the new state (feature marked done, bug
       marked fixed, etc.) with a date.
+- [ ] `worklog.md` gains a new entry following the template in §12.5.1.
 - [ ] No secrets, no customer data, no production-only config was
       committed.
 - [ ] The change was pushed, and the human supervisor was notified for
       production deployment.
-- [ ] The final report (§7) was filed.
+- [ ] The final report (§12.9) was filed.
 
 "Do not claim PASS unless the acceptance criteria are actually met." —
 this rule is non-negotiable.
@@ -363,6 +387,60 @@ or push — unless the Owner explicitly asked to skip one of these steps
 
 > **Consolidated (2026-08-24):** executed via `docs/_AUDIT.md`. Do not
 > create new documentation files.
+
+#### 12.5.1 `worklog.md` Entry Template (Binding)
+
+Every task MUST append exactly one entry to `worklog.md` following
+this template. No free-form entries are allowed.
+
+```markdown
+---
+Task ID: <unique ID, e.g. AFFILIATE-BANNERS-2026-08-24>
+Agent: <agent name, e.g. Main (Z User)>
+Task: <one-line description of the task>
+
+Work Log:
+- <concrete step 1>
+- <concrete step 2>
+- ...
+
+Stage Summary:
+- <key results / important decisions / produced artifacts>
+- Commit SHA: <sha>
+- Push status: <pushed | not-pushed>
+```
+
+Rules:
+
+- The `---` separator before each entry is mandatory (append-only log).
+- `Task ID` MUST be unique across the file — search before adding.
+- `Work Log` is bulleted, factual, and ordered chronologically.
+- `Stage Summary` includes the commit SHA and push status (matches
+  §12.9 Final Report fields).
+
+#### 12.5.2 Periodic Documentation Audit (Cadence)
+
+A full documentation audit MUST be performed at the following cadence:
+
+- **Monthly** — last week of every month.
+- **After any major feature addition** — within 7 days of deploy.
+- **After any force-push or major git operation** — within 24 hours.
+
+The audit verifies (per `docs/_AUDIT.md` methodology):
+
+1. All file counts in docs match actual `find` / `wc -l` results.
+2. No references to files that don't exist (e.g. `PROJECT_CONTEXT.md`,
+   `scripts/*.js` if missing).
+3. No duplicate commands across `AGENTS.md` §3.5 vs §4 vs
+   `QA_CHECKLIST.md` Verification Protocol.
+4. No deprecated sections still being cited by other sections.
+5. `Last updated` date in every doc file reflects the last commit
+   that touched it.
+6. Live site (`https://musclehubeg.vercel.app`) status code per
+   public route matches the route's documented status.
+
+Each audit's results are appended to `worklog.md` under Task ID
+`DOC-AUDIT-YYYY-MM-DD`.
 
 ### 12.6 Duplicate Tasks
 

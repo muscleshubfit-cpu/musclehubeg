@@ -187,7 +187,11 @@ export async function fetchProfile(userId: string): Promise<Profile | null> {
  // This prevents the coach from being downgraded to 'client'
  // if the auth trigger fires with role='client'
  if (data.role === "client") {
- const coachEmails = (process.env.COACH_EMAILS || "speerr@gmail.com").split(",").map((e: string) => e.trim().toLowerCase());
+ // SECURITY (2026-08-25): removed hardcoded `speerr@gmail.com` fallback.
+ // COACH_EMAILS must be set in env (Vercel Production). If unset, no
+ // user is auto-bootstrapped as coach — safer default (no privileged
+ // account is granted by accident).
+ const coachEmails = (process.env.COACH_EMAILS || "").split(",").map((e: string) => e.trim().toLowerCase()).filter(Boolean);
  const isCoachEmail = coachEmails.includes(data.email?.toLowerCase() || "");
  if (isCoachEmail) {
  const { data: updated } = await supabase
@@ -210,7 +214,8 @@ export async function fetchProfile(userId: string): Promise<Profile | null> {
  if (userData?.user) {
  const u = userData.user;
  // Check if this is a known coach email BEFORE creating the profile
- const coachEmails = (process.env.COACH_EMAILS || "speerr@gmail.com").split(",").map((e: string) => e.trim().toLowerCase());
+ // SECURITY (2026-08-25): removed hardcoded `speerr@gmail.com` fallback.
+ const coachEmails = (process.env.COACH_EMAILS || "").split(",").map((e: string) => e.trim().toLowerCase()).filter(Boolean);
  const isCoachEmail = coachEmails.includes(u.email?.toLowerCase() || "");
  const newProfile = {
  id: u.id,
