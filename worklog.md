@@ -639,3 +639,80 @@ VERIFICATION:
 - VLM (glm-5v-turbo) analysis confirmed: no overflow, no overlap, sharp text, professional appearance across all 8 variants
 
 QA: TS PASS | Lint PASS | Build PASS | Visual QA PASS
+
+---
+Task ID: AFFILIATE-BANNER-PREVIEW-FIX-2026-08-24
+Agent: Main (Z User)
+Task: Fix affiliate banner preview display across all screen sizes — mobile must be fully responsive with no horizontal overflow/clipping/distortion; desktop must preserve original dimensions and aspect ratio. Banner preview must show the banner in its true final form with no external card/frame/background around it. Corners must be soft rounded, not sharp.
+
+Pre-task verification (per AGENTS.md §3.7):
+- `git fetch origin --quiet` → HEAD `66b5c9c` matches `origin/main` ✅
+- Confirmed files I'm editing (`src/components/views/AffiliateToolkit.tsx`) exist on `origin/main` and match local working tree ✅
+- Pre-existing `bun.lock` 0-line drift left untouched (out of scope)
+
+ROOT CAUSE OF PREVIOUS RENDERING ISSUE:
+- The `<BannerCard>` preview container wrapped the banner in a dark
+  checkered backdrop (`bg-[#1d1d1f]` + checkered CSS gradient) with
+  `p-4` padding + sharp `rounded-xl` corners + `overflow-x-auto`. This
+  made the banner look like it lived inside an external "card/frame"
+  with a transparent-checker background, NOT in its final form.
+- The `<a>` used `w-full max-w-full` but lacked `min-width:0` — the
+  classic flexbox intrinsic-min-size trap. On narrow viewports, wide
+  banners (e.g., 728×90 with 8.1:1 aspect) refused to shrink below
+  their intrinsic width, forcing horizontal scroll on the card.
+- `<img>` used Tailwind classes `h-auto w-full max-w-full` which
+  normally works, but inline `style` was needed to force `min-width:0`
+  + guarantee rounded corners on the image itself (Tailwind's `rounded`
+  utility on `<img>` inside `<a>` doesn't reliably cascade).
+
+FIX APPLIED (BannerCard preview block):
+1. Removed the checkered backdrop `div` wrapper. The preview is now a
+   bare `<div class="mt-4 w-full min-w-0 max-w-full overflow-hidden
+   rounded-2xl">` containing just the `<a>` + `<img>`.
+2. The `<a>` uses the same `w-full min-w-0 max-w-full overflow-hidden
+   rounded-2xl` chain so the banner fills the preview container width
+   with no horizontal scroll.
+3. The `<img>` uses inline `style` with:
+   - `display: block`
+   - `width: 100%`
+   - `max-width: 100%`
+   - `min-width: 0`
+   - `height: auto` (preserves SVG viewBox aspect ratio)
+   - `border-radius: 1rem` (soft rounded corners — matches design system)
+4. Corners switched from sharp `rounded-xl` (12px) to soft `rounded-2xl`
+   (16px) on both wrapper `<div>` and `<a>`, and `border-radius: 1rem`
+   on `<img>` so the banner's own corners are rounded (not just the
+   container clipping it).
+
+UNCHANGED (per Owner instruction "حافظ على التصميم والمحتوى الحاليين"):
+- Banner SVG content + design (all 8 SVGs untouched)
+- Affiliate link building (`buildAffiliateUrl`)
+- Affiliate engine / commission logic
+- Promo templates
+- HTML embed code generation (`buildBannerEmbedHtml`)
+- Banner language selector (`BannerLangSelector`)
+- Card chrome around the preview (header / footer / HTML code block)
+
+VERIFICATION:
+- TypeScript (`npx tsc --noEmit`): 0 errors
+- ESLint (`npx eslint .`): 0 errors, 6 pre-existing warnings (unchanged)
+- Next.js build (`npx next build`): exit 0; all 78 routes registered
+- Browser test on isolated HTML replica of the BannerCard layout:
+  * Mobile viewport 390×844: `document.documentElement.scrollWidth`
+    (390) == viewport (390) → **NO horizontal scroll**
+  * Desktop viewport 1280×800: `document.documentElement.scrollWidth`
+    (1280) == viewport (1280) → **NO horizontal scroll**
+  * All 4 banner formats (Horizontal, Medium Rectangle, Square, Mobile)
+    in both EN and AR render with 100% width of their preview container
+    while preserving the SVG's intrinsic aspect ratio — no clipping,
+    no distortion.
+  * No external card/frame/background around the banner preview — the
+    banner renders in its final true form.
+  * Soft rounded corners (1rem = 16px) applied uniformly to banner,
+    anchor, and wrapper div.
+- VLM (glm-5v-turbo) confirmed: all corners are softly rounded, banners
+  are fully visible with no clipping/distortion, and the only card
+  around the banner is the AffiliateToolkit's own card chrome (which
+  was intentional and pre-existing per the original design).
+
+QA: TS PASS | Lint PASS | Build PASS | Visual QA PASS

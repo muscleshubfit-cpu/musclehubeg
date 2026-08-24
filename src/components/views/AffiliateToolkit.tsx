@@ -383,40 +383,51 @@ function BannerCard({
         <p className="mt-1 text-xs font-normal text-[#6e6e73]">{platform}</p>
       </header>
 
-      {/* Banner preview — fully responsive: container uses overflow-x-auto so
-          banners with wide aspect ratios (e.g., 728×90) can be scrolled
-          horizontally on narrow screens, while narrower banners (square,
-          mobile) scale to fit. Image uses w-full max-w-full h-auto so the SVG
-          preserves aspect ratio and never overflows the card. */}
-      <div
-        className="mt-4 flex items-center justify-center overflow-x-auto overflow-y-hidden rounded-xl bg-[#1d1d1f] p-4"
-        style={{
-          backgroundImage:
-            "linear-gradient(45deg, #2a2a2c 25%, transparent 25%), linear-gradient(-45deg, #2a2a2c 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #2a2a2c 75%), linear-gradient(-45deg, transparent 75%, #2a2a2c 75%)",
-          backgroundSize: "16px 16px",
-          backgroundPosition: "0 0, 0 8px, 8px -8px, -8px 0",
-        }}
-      >
+      {/* Banner preview — renders the banner in its final true form.
+          No external card / frame / checkered backdrop: just the banner
+          itself, responsively scaled to fit its container width on every
+          screen (mobile + desktop). The container clips any sub-pixel
+          rounding overflow but never scrolls horizontally (no overflow-x).
+          min-w-0 + max-w-full chain breaks the flexbox "intrinsic min-size"
+          trap that otherwise forces wide banners (e.g. 728×90) to overflow
+          narrow viewports. rounded-2xl gives the banner soft rounded
+          corners. The SVG's intrinsic viewBox preserves the original
+          aspect ratio automatically — no clipping or distortion. */}
+      <div className="mt-4 w-full min-w-0 max-w-full overflow-hidden rounded-2xl">
         <a
           href={affiliateUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="block w-full max-w-full"
+          className="block w-full min-w-0 max-w-full overflow-hidden rounded-2xl"
           aria-label={isAr ? `معاينة بانر ${label}` : `Preview ${label}`}
         >
-          {/* Note: <img> is intentionally used here (not next/image) because
-              the banner is a static SVG asset that doesn't need optimization
-              and is embedded as-is by external websites via the HTML embed code.
-              No width/height HTML attributes — CSS w-full + h-auto handles
-              responsive scaling. The SVG's intrinsic viewBox preserves aspect
-              ratio automatically. */}
+          {/*
+            Note: <img> is intentionally used here (not next/image) because
+            the banner is a static SVG asset that doesn't need optimization
+            and is embedded as-is by external websites via the HTML embed
+            code. No width/height HTML attributes — inline style forces the
+            image to fully fill its container while preserving the SVG's
+            intrinsic aspect ratio. The width:100% + max-width:100% +
+            height:auto + min-width:0 chain guarantees:
+              - On mobile: banner shrinks to viewport width (no horizontal
+                scroll, no clipping, no distortion)
+              - On desktop: banner renders at its natural dimensions up to
+                the column width, preserving original aspect ratio
+          */}
           <img
             src={bannerUrl}
             alt={bannerLang === "ar"
               ? "MuscleHubEG — منصة اللياقة والتغذية الذكية. ابدأ مجانًا."
               : "MuscleHubEG — Your AI fitness & nutrition coach. Start free."}
             loading="lazy"
-            className="block h-auto w-full max-w-full"
+            style={{
+              display: "block",
+              width: "100%",
+              maxWidth: "100%",
+              minWidth: 0,
+              height: "auto",
+              borderRadius: "1rem",
+            }}
           />
         </a>
       </div>
