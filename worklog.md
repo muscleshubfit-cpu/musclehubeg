@@ -193,3 +193,35 @@ Verified:
 - bun run build: PASS (79/79 static pages, 0 errors)
 - git diff --check: clean
 - Production verification: all 9 endpoints tested OK.
+
+---
+Task ID: COACHING-PAGE-CTA-AUTH-FLOW-FIX
+Agent: Main (Z User)
+Task: Fix coaching page CTA buttons + standardize 'next' redirect after auth.
+
+CHANGES:
+1. src/app/coaching/page.tsx:
+   - Added useAuth() import for login state check
+   - Added scrollToPricing() — smooth scroll to #coaching-pricing
+   - Added goToCheckout(tier) — if logged in: /checkout?tier=X&months=1
+     if not: /auth?mode=signup&next=/checkout?tier=X&months=1
+   - Hero "ابدأ تحوّلك" button → scrollToPricing() (was navigate("memberships"))
+   - Final CTA "ابدأ تحوّلي" button → scrollToPricing() (was navigate("memberships"))
+   - Pricing card "ابدأ الآن" button → goToCheckout(tier) (was navigate("memberships"))
+     - Starter card → goToCheckout("starter")
+     - Elite card → goToCheckout("elite")
+   - "كل التفاصيل" button → kept as navigate("memberships") (for plan comparison)
+   - Added id="coaching-pricing" + scroll-mt-20 to pricing section
+   - "اعرف عن EVO" buttons → kept as /evo (correct destination)
+
+AUTH FLOW (already working — verified, no changes needed):
+- auth/page.tsx reads 'next' from searchParams → passes to AuthView
+- AuthView after login/signup: if next → window.location.href = next
+- AuthView Google login: signInGoogle(next) → appends next to callback URL
+- auth/callback: reads 'next' → redirects to next after OAuth
+- If no 'next': defaults to dashboard (client) or coach (coach) — unchanged
+
+QA:
+- TypeScript: PASS (0 errors)
+- Lint: PASS (0 errors, 6 pre-existing warnings)
+- Build: PASS (exit 0)

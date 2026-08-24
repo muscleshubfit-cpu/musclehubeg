@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useI18n } from "@/lib/i18n";
 import { useNav } from "@/hooks/use-nav";
+import { useAuth } from "@/hooks/use-auth";
 import { SiteHeader } from "@/components/SiteHeader";
 import { ShareButtons } from "@/components/ShareButtons";
 import {
@@ -82,8 +83,24 @@ function CenteredSection({
 export default function CoachingPage() {
   const { lang } = useI18n();
   const { navigate } = useNav();
+  const { profile } = useAuth();
   const isAr = lang === "ar";
   const [latestPosts, setLatestPosts] = useState<BlogPost[]>([]);
+
+  // Smooth scroll to pricing section
+  const scrollToPricing = () => {
+    document.getElementById("coaching-pricing")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  // Navigate to checkout with the right tier — handles auth redirect
+  const goToCheckout = (tier: string) => {
+    const checkoutUrl = `/checkout?tier=${tier}&months=1`;
+    if (profile) {
+      window.location.href = checkoutUrl;
+    } else {
+      window.location.href = `/auth?mode=signup&next=${encodeURIComponent(checkoutUrl)}`;
+    }
+  };
 
   useEffect(() => {
     (async () => {
@@ -153,7 +170,7 @@ export default function CoachingPage() {
             </p>
             <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
               <button
-                onClick={() => navigate("memberships")}
+                onClick={scrollToPricing}
                 className="rounded-full bg-[#0071e3] px-7 py-3 text-base font-normal text-white transition-opacity hover:opacity-90"
               >
                 {isAr ? "ابدأ تحوّلك" : "Start your transformation"}
@@ -350,7 +367,7 @@ export default function CoachingPage() {
         </section>
 
         {/* ===================== PRICING ===================== */}
-        <section className="bg-white px-4 py-16 md:py-24">
+        <section id="coaching-pricing" className="scroll-mt-20 bg-white px-4 py-16 md:py-24">
           <div className="mx-auto max-w-5xl">
             <Reveal>
               <h2 className="text-center text-3xl font-semibold tracking-tight md:text-5xl">
@@ -384,7 +401,7 @@ export default function CoachingPage() {
                       ))}
                     </ul>
                     <button
-                      onClick={() => navigate("memberships")}
+                      onClick={() => goToCheckout(p.name === "Starter" ? "starter" : "elite")}
                       className={`mt-8 w-full rounded-full px-6 py-3 text-base font-normal transition-opacity hover:opacity-90 ${p.highlight ? "bg-white text-black" : "bg-[#0071e3] text-white"}`}
                     >
                       {isAr ? "ابدأ الآن" : "Get Started"}
@@ -396,6 +413,7 @@ export default function CoachingPage() {
             <Reveal delay={400}>
               <div className="mt-12 text-center">
                 <button onClick={() => navigate("memberships")} className="font-normal text-[#0071e3] transition-opacity hover:opacity-70">
+                  {/* This button intentionally goes to /memberships for plan comparison */}
                   {isAr ? "كل التفاصيل ›" : "See all details ›"}
                 </button>
               </div>
@@ -445,7 +463,7 @@ export default function CoachingPage() {
           <Reveal delay={200}>
             <div className="mt-8 flex flex-wrap items-center justify-center gap-4 md:gap-6">
               <button
-                onClick={() => navigate("memberships")}
+                onClick={scrollToPricing}
                 className="rounded-full bg-[#0071e3] px-7 py-3 text-base font-normal text-white transition-opacity hover:opacity-90"
               >
                 {isAr ? "ابدأ تحوّلي" : "Start my transformation"}
