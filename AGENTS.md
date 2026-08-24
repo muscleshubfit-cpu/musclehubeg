@@ -2,7 +2,7 @@
 
 > **Status:** Active — required reading for every AI agent (and human
 > contributor) before any commit, PR, or production change.
-> **Last updated:** 2026-08-24
+> **Last updated:** 2026-08-19
 > **Owner:** muscleshubfit@gmail.com (project owner + human supervisor)
 
 ---
@@ -45,7 +45,7 @@ reviewers. Until then, the table above is authoritative.
 
 - **Read the actual source code, configuration, and migrations before
   changing anything.** Documentation can lag behind implementation — the
-  source of truth hierarchy (§12.8) defines what wins.
+  source of truth hierarchy (§5) defines what wins.
 - If documentation conflicts with implementation, do NOT blindly follow
   the documentation. Verify the implementation and document the
   discrepancy in `PROGRESS.md` (or the appropriate file).
@@ -193,7 +193,18 @@ this rule is non-negotiable.
 
 ## 5. Source-of-Truth Hierarchy
 
-> **Deprecated (2026-08-24):** Superseded by §12.8. Do not use this hierarchy.
+When sources conflict, the higher source wins:
+
+1. **Actual source code and configuration** (`src/**`, `next.config.ts`,
+   `tsconfig.json`, `package.json`, `vercel.json`).
+2. **Database migrations / schema** (`supabase/migrations/*.sql`).
+3. **Verified tests and QA evidence** (`QA_CHECKLIST.md`, manual smoke
+   tests recorded in commit messages).
+4. **Documentation** (`README.md`, `DEVELOPER_GUIDE.md`, `PROGRESS.md`,
+   this file, `SECURITY.md`).
+
+Documentation is a derivative. If it disagrees with code, the code wins
+and the documentation gets updated in the same PR.
 
 ---
 
@@ -270,7 +281,40 @@ Process:
 
 ## 9. Final Report Format
 
-> **Deprecated (2026-08-24):** Superseded by §12.9. Do not use this format.
+After every task, the implementation agent must produce a final report
+with exactly these sections (the template is in the project root as
+part of the master prompt):
+
+```
+Task: <TASK-ID>
+Status: PASS / PARTIAL / FAIL
+
+Files created:
+- ...
+
+Files modified:
+- ...
+
+Implementation findings:
+- ...
+
+Documentation discrepancies resolved:
+- ...
+
+Known unresolved issues:
+- ...
+
+Verification performed:
+- ...
+
+Commands run:
+- ...
+
+Potential risks:
+- ...
+```
+
+"Do not claim PASS unless the acceptance criteria are actually met."
 
 ---
 
@@ -361,10 +405,6 @@ or push — unless the Owner explicitly asked to skip one of these steps
   suffices.
 - At the end of a large body of work, one comprehensive documentation
   review pass is allowed to fix gaps or conflicts.
-
-> **Pending consolidation:** A documentation audit is scheduled. The file
-> list above will be reduced after the Owner approves the audit report.
-> Do not create new documentation files.
 
 ### 12.6 Duplicate Tasks
 
