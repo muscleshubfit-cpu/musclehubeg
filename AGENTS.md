@@ -124,6 +124,47 @@ reviewers. Until then, the table above is authoritative.
   obsolete, mark it `> **Deprecated (date):** reason` and keep it for
   one release cycle before removing.
 
+### 3.7 Always Verify Against `origin/main` Before Any Decision or Report
+
+- **The local clone and the session/conversation memory are NOT sources
+  of truth.** They can lag behind, be stale, or be divergent from the
+  actual production state. Always treat `origin/main` on the remote
+  repository as the authoritative reference for the current project
+  state, and treat deployed production (live URLs, Vercel dashboard,
+  Supabase production) as the authoritative reference for the runtime
+  state.
+- Before **any** of the following actions, the agent MUST run
+  `git fetch origin --quiet` and verify that the local `HEAD` matches
+  `origin/main`:
+  - Claiming the project state (file existence, route count, feature
+    status, dependency presence, etc.) in any report or commit message.
+  - Starting work on a new task that depends on the current state of
+    files, schema, routes, or env vars.
+  - Producing a "what's there" / "what's missing" audit.
+  - Refusing a task because "the feature doesn't exist" — verify on
+    `origin/main`, not on the local clone.
+- If the local `HEAD` is behind `origin/main`, the local clone is
+  **stale**. Do NOT trust the local working tree as evidence. Either:
+  - Run `git pull --ff-only` (preferred) to fast-forward the local
+    branch, or
+  - Explicitly cite `git ls-tree -r origin/main --name-only` /
+    `git show origin/main:<path>` as the source of truth for any
+    claim about file existence or content.
+- If the local `HEAD` is ahead of `origin/main` (local-only commits) OR
+  the local working tree has uncommitted modifications, do NOT silently
+  reconcile them. Surface the discrepancy to the Owner in the report and
+  let the Owner decide whether to merge, rebase, or discard. Never run
+  `git reset --hard`, `git push --force`, or `git checkout -- .` to
+  "fix" a divergence without explicit Owner instruction.
+- The same rule applies to runtime / production state: before claiming
+  "feature X is live" or "route Y returns 200", the agent must verify
+  against the actual production URL (or have a verifiable record of a
+  recent successful request). Conversation memory and old commit
+  messages do not constitute verification.
+- This rule overrides any prior assumption in this document about
+  "the local clone reflecting the project state". When in doubt, fetch
+  and diff.
+
 ---
 
 ## 4. Definition of Done
