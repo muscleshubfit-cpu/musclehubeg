@@ -936,5 +936,5 @@ Stage Summary:
 - Owner's admin access preserved on all deployments.
 - Clear documentation distinguishing admin email vs public contact email.
 - TS: 0 errors | ESLint: 0 errors (6 pre-existing warnings) | Build: exit 0
-- Commit SHA: <to be filled>
-- Push status: <to be filled>
+- Commit SHA: d974dd7
+- Push status: pushed
