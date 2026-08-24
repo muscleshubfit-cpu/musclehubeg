@@ -27,6 +27,10 @@ export type QueueItem = {
   id: string;
   topic: string;
   focus_keyword: string;
+  // EN/AR SEPARATION: separate AR topic fields (nullable — old queue rows
+  // don't have these; step2c falls back to EN topic if missing).
+  topic_ar?: string | null;
+  focus_keyword_ar?: string | null;
   category: string;
   status: string;
   article_bundle: string | null;

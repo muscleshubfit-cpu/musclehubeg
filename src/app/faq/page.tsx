@@ -7,7 +7,7 @@ import { StaticPageView } from "@/components/views/StaticPageView";
  */
 
 const FAQS_EN = [
-  { q: "What is MuscleHub?", a: "A human optimization platform combining the EVO AI engine with a massive exercise and food database for personalized plans and smart tracking." },
+  { q: "What is MuscleHubEG?", a: "A human optimization platform combining the EVO AI engine with a massive exercise and food database for personalized plans and smart tracking." },
   { q: "Who is EVO?", a: "EVO is the AI performance engine. It analyzes your data, predicts outcomes, recommends improvements, and updates plans automatically. Available to all members with tier-based limits." },
   { q: "Is there a human coach?", a: "EVO is an AI coach. If you want human supervision, there's a separate human coaching section you can book via the coaching page." },
   { q: "How many daily swaps?", a: "Free: 0. Premium: 3 meal + 3 exercise swaps/week. Pro: 6/week. Coaching: unlimited. Resets weekly." },
@@ -19,16 +19,16 @@ const FAQS_EN = [
 ];
 
 export const metadata: Metadata = {
-  title: "FAQ — MuscleHub | Frequently Asked Questions",
+  title: "FAQ — MuscleHubEG | Frequently Asked Questions",
   description:
-    "Answers to common questions about MuscleHub: how EVO AI works, membership tiers, payment methods, data security, Arabic support, and results timeline.",
+    "Answers to common questions about MuscleHubEG: how EVO AI works, membership tiers, payment methods, data security, Arabic support, and results timeline.",
   alternates: {
     canonical: "https://musclehubeg.vercel.app/faq",
   },
   openGraph: {
-    title: "FAQ — MuscleHub",
+    title: "FAQ — MuscleHubEG",
     description:
-      "Answers to common questions about MuscleHub: EVO AI, memberships, payments, security, and more.",
+      "Answers to common questions about MuscleHubEG: EVO AI, memberships, payments, security, and more.",
     url: "https://musclehubeg.vercel.app/faq",
     type: "website",
   },

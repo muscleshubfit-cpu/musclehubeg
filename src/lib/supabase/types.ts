@@ -555,6 +555,14 @@ export type Database = {
           paid_at: string | null;
           payout_method: string | null;
           payout_details: string | null;
+          // Added by migration 0015 (Affiliate Engine Foundation):
+          affiliate_commission_id: string | null;
+          transaction_type:
+            | "subscription_initial"
+            | "subscription_renewal"
+            | "one_time_product"
+            | "one_time_service"
+            | null;
         };
         Insert: {
           id?: string;
@@ -567,6 +575,13 @@ export type Database = {
           paid_at?: string | null;
           payout_method?: string | null;
           payout_details?: string | null;
+          affiliate_commission_id?: string | null;
+          transaction_type?:
+            | "subscription_initial"
+            | "subscription_renewal"
+            | "one_time_product"
+            | "one_time_service"
+            | null;
         };
         Update: {
           referral_id?: string | null;
@@ -576,10 +591,142 @@ export type Database = {
           paid_at?: string | null;
           payout_method?: string | null;
           payout_details?: string | null;
+          affiliate_commission_id?: string | null;
+          transaction_type?:
+            | "subscription_initial"
+            | "subscription_renewal"
+            | "one_time_product"
+            | "one_time_service"
+            | null;
         };
         Relationships: [
           { foreignKeyName: "referral_earnings_user_id_fkey"; columns: ["user_id"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] },
           { foreignKeyName: "referral_earnings_referral_id_fkey"; columns: ["referral_id"]; isOneToOne: false; referencedRelation: "referrals"; referencedColumns: ["id"] },
+          { foreignKeyName: "referral_earnings_affiliate_commission_id_fkey"; columns: ["affiliate_commission_id"]; isOneToOne: false; referencedRelation: "affiliate_commissions"; referencedColumns: ["id"] },
+        ];
+      };
+      affiliate_transactions: {
+        Row: {
+          id: string;
+          user_id: string;
+          affiliate_user_id: string | null;
+          transaction_type:
+            | "subscription_initial"
+            | "subscription_renewal"
+            | "one_time_product"
+            | "one_time_service";
+          amount: number;
+          currency: string;
+          external_reference: string | null;
+          product_id: string | null;
+          affiliate_eligible: boolean;
+          status: "completed" | "refunded" | "reversed" | "pending";
+          metadata: Json | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          affiliate_user_id?: string | null;
+          transaction_type:
+            | "subscription_initial"
+            | "subscription_renewal"
+            | "one_time_product"
+            | "one_time_service";
+          amount: number;
+          currency?: string;
+          external_reference?: string | null;
+          product_id?: string | null;
+          affiliate_eligible?: boolean;
+          status?: "completed" | "refunded" | "reversed" | "pending";
+          metadata?: Json | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          user_id?: string;
+          affiliate_user_id?: string | null;
+          transaction_type?:
+            | "subscription_initial"
+            | "subscription_renewal"
+            | "one_time_product"
+            | "one_time_service";
+          amount?: number;
+          currency?: string;
+          external_reference?: string | null;
+          product_id?: string | null;
+          affiliate_eligible?: boolean;
+          status?: "completed" | "refunded" | "reversed" | "pending";
+          metadata?: Json | null;
+          updated_at?: string;
+        };
+        Relationships: [
+          { foreignKeyName: "affiliate_transactions_user_id_fkey"; columns: ["user_id"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] },
+          { foreignKeyName: "affiliate_transactions_affiliate_user_id_fkey"; columns: ["affiliate_user_id"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] },
+        ];
+      };
+      affiliate_commissions: {
+        Row: {
+          id: string;
+          affiliate_user_id: string;
+          transaction_id: string;
+          referral_id: string | null;
+          commission_type:
+            | "subscription_initial"
+            | "subscription_renewal"
+            | "one_time_product"
+            | "one_time_service";
+          amount: number;
+          rate: number;
+          status: "pending" | "available" | "requested" | "paid" | "reversed";
+          reversed_at: string | null;
+          reversal_reason: string | null;
+          earning_id: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          affiliate_user_id: string;
+          transaction_id: string;
+          referral_id?: string | null;
+          commission_type:
+            | "subscription_initial"
+            | "subscription_renewal"
+            | "one_time_product"
+            | "one_time_service";
+          amount: number;
+          rate?: number;
+          status?: "pending" | "available" | "requested" | "paid" | "reversed";
+          reversed_at?: string | null;
+          reversal_reason?: string | null;
+          earning_id?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          affiliate_user_id?: string;
+          transaction_id?: string;
+          referral_id?: string | null;
+          commission_type?:
+            | "subscription_initial"
+            | "subscription_renewal"
+            | "one_time_product"
+            | "one_time_service";
+          amount?: number;
+          rate?: number;
+          status?: "pending" | "available" | "requested" | "paid" | "reversed";
+          reversed_at?: string | null;
+          reversal_reason?: string | null;
+          earning_id?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [
+          { foreignKeyName: "affiliate_commissions_affiliate_user_id_fkey"; columns: ["affiliate_user_id"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] },
+          { foreignKeyName: "affiliate_commissions_transaction_id_fkey"; columns: ["transaction_id"]; isOneToOne: false; referencedRelation: "affiliate_transactions"; referencedColumns: ["id"] },
+          { foreignKeyName: "affiliate_commissions_referral_id_fkey"; columns: ["referral_id"]; isOneToOne: false; referencedRelation: "referrals"; referencedColumns: ["id"] },
+          { foreignKeyName: "affiliate_commissions_earning_id_fkey"; columns: ["earning_id"]; isOneToOne: false; referencedRelation: "referral_earnings"; referencedColumns: ["id"] },
         ];
       };
       referral_payouts: {
@@ -756,7 +903,7 @@ export type Database = {
           plan_tier: string;
           duration_months: number;
           price_usd: number | null;
-          payment_method: "instapay" | "vodafone_cash" | null;
+          payment_method: "instapay" | "vodafone_cash" | "paypal" | null;
           receipt_path: string | null;
           status: "pending" | "approved" | "rejected";
           reviewed_at: string | null;
@@ -770,7 +917,7 @@ export type Database = {
           plan_tier: string;
           duration_months?: number;
           price_usd?: number | null;
-          payment_method?: "instapay" | "vodafone_cash" | null;
+          payment_method?: "instapay" | "vodafone_cash" | "paypal" | null;
           receipt_path?: string | null;
           status?: "pending" | "approved" | "rejected";
           reviewed_at?: string | null;
@@ -782,7 +929,7 @@ export type Database = {
           plan_tier?: string;
           duration_months?: number;
           price_usd?: number | null;
-          payment_method?: "instapay" | "vodafone_cash" | null;
+          payment_method?: "instapay" | "vodafone_cash" | "paypal" | null;
           receipt_path?: string | null;
           status?: "pending" | "approved" | "rejected";
           reviewed_at?: string | null;

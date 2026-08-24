@@ -79,7 +79,7 @@ export function BlogArticlePage({ lang, slug }: { lang: "en" | "ar"; slug: strin
       <header className="sticky top-0 z-40 border-b border-[#d2d2d7] bg-white/80 backdrop-blur-xl">
         <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between px-4 sm:px-6">
           <a href="/" className="text-lg font-semibold tracking-tight">
-            MuscleHub
+            MuscleHubEG
           </a>
           <div className="flex items-center gap-4">
             <LanguageToggle />
@@ -259,7 +259,7 @@ export function BlogArticlePage({ lang, slug }: { lang: "en" | "ar"; slug: strin
       </main>
 
       <footer className="mt-auto border-t border-[#d2d2d7] py-6 text-center text-xs font-normal text-[#6e6e73]">
-        © {new Date().getFullYear()} MuscleHub. {isAr ? "كل الحقوق محفوظة." : "All rights reserved."}
+        © {new Date().getFullYear()} MuscleHubEG. {isAr ? "كل الحقوق محفوظة." : "All rights reserved."}
       </footer>
     </div>
   );

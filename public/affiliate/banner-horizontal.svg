@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 728 90" role="img" aria-label="MuscleHubEG — Train smarter, eat better, transform faster. Join now.">
+  <defs>
+    <linearGradient id="bg728" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0a0a0a"/>
+      <stop offset="55%" stop-color="#1d1d1f"/>
+      <stop offset="100%" stop-color="#0a0a0a"/>
+    </linearGradient>
+    <linearGradient id="accent728" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#0071e3"/>
+      <stop offset="100%" stop-color="#5ac8fa"/>
+    </linearGradient>
+    <filter id="shadow728" x="-5%" y="-5%" width="110%" height="120%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="2"/>
+      <feOffset dx="0" dy="2" result="offsetblur"/>
+      <feComponentTransfer><feFuncA type="linear" slope="0.4"/></feComponentTransfer>
+      <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect fill="url(#bg728)"/>
+  <rect x="0" y="0" fill="url(#accent728)"/>
+
+  <!-- Logo mark (stylised "M" dumbbell) -->
+  <g transform="translate(30, 25)" filter="url(#shadow728)">
+    <rect x="0" y="14" rx="6" fill="#ffffff"/>
+    <rect x="6" y="6" rx="4" fill="none" stroke="#ffffff" stroke-width="3"/>
+    <rect x="-4" y="10" rx="2" fill="#ffffff"/>
+    <rect x="38" y="10" rx="2" fill="#ffffff"/>
+  </g>
+
+  <!-- Brand name -->
+  <text x="92" y="42" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" font-size="22" font-weight="700" fill="#ffffff" letter-spacing="-0.3">MuscleHub<tspan fill="#5ac8fa">EG</tspan></text>
+  <text x="92" y="62" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" font-size="12" font-weight="500" fill="#8e8e93">Train smarter. Eat better. Transform faster.</text>
+
+  <!-- CTA pill -->
+  <g transform="translate(580, 25)">
+    <rect x="0" y="0" rx="20" fill="url(#accent728)" filter="url(#shadow728)"/>
+    <text x="60" y="26" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" font-size="14" font-weight="700" fill="#ffffff">JOIN NOW →</text>
+  </g>
+</svg>

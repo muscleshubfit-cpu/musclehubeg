@@ -244,8 +244,8 @@ export default function BMICalculatorPage() {
               <ShareButtons
                 title={
                   isAr
-                    ? `نتائجي من حاسبة BMI: ${result.bmi} (${result.category}) | MuscleHub`
-                    : `My BMI results: ${result.bmi} (${result.category}) | MuscleHub`
+                    ? `نتائجي من حاسبة BMI: ${result.bmi} (${result.category}) | MuscleHubEG`
+                    : `My BMI results: ${result.bmi} (${result.category}) | MuscleHubEG`
                 }
               />
             </div>

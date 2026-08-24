@@ -1,9 +1,9 @@
-# MuscleHub — Comprehensive Sports Platform
+# MuscleHubEG — Comprehensive Sports Platform
 
 > **Live:** [musclehubeg.vercel.app](https://musclehubeg.vercel.app)
 > **Repository:** [github.com/muscleshubfit-cpu/musclehubeg](https://github.com/muscleshubfit-cpu/musclehubeg)
 > **Stack:** Next.js 16 · React 19 · Supabase · OpenRouter AI · Tailwind CSS 4
-> **Last updated:** 2026-08-19 (Phase 7: documentation + governance hardening)
+> **Last updated:** 2026-08-23 (rebase + documentation cleanup)
 
 A bilingual (Arabic/English) fitness & nutrition platform with 868+ exercises, 8,830+ foods, 6 free tools, an AI coach (EVO), a blog CMS with automated AI generation, a coach dashboard with client management, a referral system, and membership tiers.
 
@@ -180,16 +180,15 @@ musclehubeg/
 │   ├── middleware.ts            # Supabase session refresh + Content-Language header
 │   └── ...
 ├── supabase/
-│   └── migrations/             # 12 SQL migration files (0001–0012) + RUN_ON_SUPABASE.sql
+│   └── migrations/             # 15 SQL migration files (0001–0015) + RUN_ON_SUPABASE.sql
 ├── public/                     # Static assets (icons, QR codes, images, manifest, sw.js)
 ├── .github/workflows/          # GitHub Actions (3-step blog generation pipeline, every 2h)
 ├── AGENTS.md                   # AI agent operating rules
-├── PROJECT_CONTEXT.md          # Project identity + current state
 ├── SECURITY.md                 # Security policy
 ├── LICENSE                     # Proprietary, all rights reserved
-├── PROGRESS.md                 # Feature freeze + bugs tracker
+├── PROGRESS.md                 # Current status snapshot (1-page, refreshed on each push)
 ├── DEVELOPER_GUIDE.md          # Developer onboarding + architecture details
-├── QA_CHECKLIST.md             # Test points (Phase 1 + 5 + 6)
+├── QA_CHECKLIST.md             # Verification evidence + QA protocol
 ├── next.config.ts              # Next.js config (images, headers, experiments)
 ├── vercel.json                 # Vercel deployment config (buildCommand override, headers, cron)
 ├── tailwind.config.ts          # Tailwind config
@@ -252,7 +251,7 @@ musclehubeg/
 
 ## 📊 Database
 
-**20 tables** are formally defined via 12 migrations (0001 → 0012),
+**22 tables** are formally defined via 15 migrations (0001 → 0015),
 all with Row Level Security (RLS) policies. An additional 3 tables
 are used in code but were created ad-hoc on production (see Known
 Issues):
@@ -315,7 +314,16 @@ Issues):
 
 ---
 
-## ⚡ Performance (Phase 6 — 2026-08-19)
+## ⚡ Performance
+
+Performance optimizations were applied during Phase 6 (2026-08-19) and the
+project has been running in production since. For current performance
+metrics and any ongoing optimizations, see `worklog.md` recent entries.
+
+- AI chat uses an interleaved strongest-models chain (OpenRouter → Groq fallback)
+- Image optimization: AVIF + WebP formats enabled
+- Static asset caching via service worker (PWA installable)
+- Blog generation runs 3×/day via GitHub Actions cron (06:00, 14:00, 22:00 UTC)
 
 | Feature | Before | After | Improvement |
 |---|---|---|---|
@@ -383,10 +391,9 @@ See [`LICENSE`](./LICENSE) for the full proprietary terms.
 ## 📋 Additional Documentation
 
 - [`AGENTS.md`](./AGENTS.md) — AI agent operating rules (required reading)
-- [`PROJECT_CONTEXT.md`](./PROJECT_CONTEXT.md) — Project identity + current state
 - [`SECURITY.md`](./SECURITY.md) — Security policy
-- [`PROGRESS.md`](./PROGRESS.md) — Feature freeze + bugs tracker (evidence-based)
+- [`PROGRESS.md`](./PROGRESS.md) — Current status snapshot (1-page, refreshed on each push)
 - [`DEVELOPER_GUIDE.md`](./DEVELOPER_GUIDE.md) — Developer onboarding + architecture details
-- [`QA_CHECKLIST.md`](./QA_CHECKLIST.md) — Test points (Phase 1 + 5 + 6)
+- [`QA_CHECKLIST.md`](./QA_CHECKLIST.md) — Verification evidence + QA protocol
 - [`.env.example`](./.env.example) — Environment variables reference
 - [`worklog.md`](./worklog.md) — Per-agent change log

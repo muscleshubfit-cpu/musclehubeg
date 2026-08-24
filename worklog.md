@@ -195,33 +195,307 @@ Verified:
 - Production verification: all 9 endpoints tested OK.
 
 ---
-Task ID: COACHING-PAGE-CTA-AUTH-FLOW-FIX
+Task ID: PAYPAL-PHASE-4-CHECKOUT-INTEGRATION
 Agent: Main (Z User)
-Task: Fix coaching page CTA buttons + standardize 'next' redirect after auth.
+Task: PayPal Phase 4 — Integrate PayPal into CheckoutView as PRIMARY payment method.
 
 CHANGES:
-1. src/app/coaching/page.tsx:
-   - Added useAuth() import for login state check
-   - Added scrollToPricing() — smooth scroll to #coaching-pricing
-   - Added goToCheckout(tier) — if logged in: /checkout?tier=X&months=1
-     if not: /auth?mode=signup&next=/checkout?tier=X&months=1
-   - Hero "ابدأ تحوّلك" button → scrollToPricing() (was navigate("memberships"))
-   - Final CTA "ابدأ تحوّلي" button → scrollToPricing() (was navigate("memberships"))
-   - Pricing card "ابدأ الآن" button → goToCheckout(tier) (was navigate("memberships"))
-     - Starter card → goToCheckout("starter")
-     - Elite card → goToCheckout("elite")
-   - "كل التفاصيل" button → kept as navigate("memberships") (for plan comparison)
-   - Added id="coaching-pricing" + scroll-mt-20 to pricing section
-   - "اعرف عن EVO" buttons → kept as /evo (correct destination)
+1. src/lib/plans.ts:
+   - Added 'paypal' to PaymentMethod type: "instapay" | "vodafone_cash" | "paypal"
 
-AUTH FLOW (already working — verified, no changes needed):
-- auth/page.tsx reads 'next' from searchParams → passes to AuthView
-- AuthView after login/signup: if next → window.location.href = next
-- AuthView Google login: signInGoogle(next) → appends next to callback URL
-- auth/callback: reads 'next' → redirects to next after OAuth
-- If no 'next': defaults to dashboard (client) or coach (coach) — unchanged
+2. src/components/views/CheckoutView.tsx (complete rewrite, ~400 lines):
+   - Added PayPal as PRIMARY (default) payment method alongside InstaPay + Vodafone Cash
+   - usePayPalScript() hook: lazily loads PayPal JS SDK with NEXT_PUBLIC_PAYPAL_CLIENT_ID
+     (NOT client-id=test). Only loads when PayPal method is selected.
+   - PayPalButtons component: renders PayPal JS SDK buttons
+     * createOrder → POST /api/paypal/create-order (server-side price)
+     * onApprove → POST /api/paypal/capture-order (server-side capture + activation)
+     * onCancel → toast "Payment cancelled" (stays on checkout)
+     * onError → toast "An error occurred" (stays on checkout)
+   - PayPal success state: green checkmark + "Payment successful!" + redirect to dashboard
+   - PayPal loading state: spinner "Loading PayPal..."
+   - PayPal error state: "PayPal not available. Use manual payment."
+   - 3-column payment method selector: PayPal (Instant) | InstaPay | Vodafone
+   - Manual payment flow (InstaPay/Vodafone Cash) is UNCHANGED:
+     * QR code display
+     * Contact info form
+     * Receipt upload
+     * submitSubscriptionRequest()
+     * Coach approval flow
+
+SECURITY:
+- No secrets in frontend — only NEXT_PUBLIC_PAYPAL_CLIENT_ID (public by design)
+- PayPal JS SDK loaded with client-id=NEXT_PUBLIC_PAYPAL_CLIENT_ID (not 'test')
+- Price comes from server (create-order endpoint resolves via resolvePlanPrice)
+- Capture is server-side (capture-order endpoint verifies with PayPal API)
+- Subscription activation only after verified COMPLETED capture
+
+NOT TOUCHED:
+- No Webhook route (next phase)
+- No manual payment flow changes
+- No DB migrations
+- No create-order or capture-order API route changes
 
 QA:
 - TypeScript: PASS (0 errors)
-- Lint: PASS (0 errors, 6 pre-existing warnings)
+- Lint: PASS (0 errors, 4 pre-existing warnings)
+- Build: PASS (exit 0; /checkout route registered)
+
+IMPORTANT:
+- NEXT_PUBLIC_PAYPAL_CLIENT_ID must be set in Vercel for PayPal JS SDK to work
+- Without it, PayPal button shows "PayPal not available" fallback
+- All other payment methods work regardless
+
+---
+Task ID: PAYPAL-CAPTURE-SERVER-FIX
+Agent: Main (Z User)
+Task: Fix capture-order route — replace client-only imports with server-side supabaseAdmin helpers.
+
+ROOT CAUSE:
+capture-order/route.ts imported upsertSubscription(), createNotification(),
+and processSubscriptionInitialPayment() from src/lib/data.ts and
+src/lib/affiliate-engine.ts. Both files import the client-side Supabase
+browser client (createBrowserClient), which cannot be used in a server
+route. Next.js throws: "Attempted to call upsertSubscription() from the
+server but upsertSubscription is on the client."
+
+FIX:
+Replaced all 3 client-only function calls with server-side equivalents
+that use supabaseAdmin (service-role client):
+
+1. serverUpsertSubscription() — replicates upsertSubscription() logic
+   using supabaseAdmin.from("subscriptions").upsert()
+2. serverCreateNotification() — replicates createNotification() using
+   supabaseAdmin.from("notifications").insert()
+3. serverProcessAffiliateCommission() — replicates the core of
+   processSubscriptionInitialPayment() using supabaseAdmin for:
+   - affiliate_transactions insert (idempotent via external_reference)
+   - affiliate_commissions insert (idempotent via unique transaction_id)
+   - referral_earnings insert (links to payout system)
+   - referrals table update (status → 'completed')
+   - notification to affiliate
+
+Also: COMMISSION_RATE (0.20) defined directly in the route file instead
+of importing from referral.ts (which also uses client supabase).
+
+SECURITY:
+- supabaseAdmin bypasses RLS — safe because:
+  a) User identity already verified via requireUser()
+  b) PayPal custom_id verified against authenticated user (IDOR check)
+  c) Capture status verified as COMPLETED by PayPal API
+- All idempotency protections preserved:
+  - PayPal-Request-Id header
+  - HTTP 422 ORDER_ALREADY_CAPTURED handling
+  - Unique constraint on affiliate_commissions.transaction_id
+  - Unique constraint on affiliate_transactions(external_reference, transaction_type)
+
+NOT TOUCHED:
+- No manual payment flow changes
+- No DB migrations
+- No create-order route changes
+- No CheckoutView changes
+
+QA:
+- TypeScript: PASS (0 errors)
+- Lint: PASS (0 errors, 4 pre-existing warnings)
+- Build: PASS (exit 0; /api/paypal/capture-order registered)
+
+---
+Task ID: PAYPAL-ADMIN-NOTIFICATION-COACHING-FIX
+Agent: Main (Z User)
+Task: Fix missing admin notifications + PayPal payment record + coaching page buttons.
+
+FIXES:
+
+1. ADMIN NOTIFICATIONS (capture-order route):
+   - Added serverCreateAdminNotification() — inserts into admin_notifications
+     table so the coach sees a notification in their bell: "دفع PayPal جديد ✅"
+   - Added serverCreatePayPalPaymentRecord() — inserts into subscription_requests
+     with status='approved' + payment_method='paypal' so the coach sees it
+     in the payments dashboard alongside manual payments.
+   - Both are called after successful capture + subscription activation.
+   - Both are non-blocking (errors are logged but don't fail the capture).
+
+2. DB MIGRATION (0016_add_paypal_to_payment_method.sql):
+   - The subscription_requests table had a CHECK constraint:
+     payment_method in ('instapay', 'vodafone_cash')
+   - This would reject 'paypal' at the DB level.
+   - Migration 0016 drops the old constraint and adds:
+     payment_method in ('instapay', 'vodafone_cash', 'paypal')
+   - Also appended to RUN_ON_SUPABASE.sql for manual execution.
+
+3. TYPES (src/lib/supabase/types.ts):
+   - Updated payment_method type to include 'paypal' in all 3 places
+     (Row, Insert, Update) to match the new DB constraint.
+
+4. COACHING PAGE BUTTONS (src/app/coaching/page.tsx):
+   - 3 buttons were navigating to /memberships instead of /checkout
+   - Changed to: window.location.href = "/checkout?tier=coaching&months=1"
+   - Affected buttons:
+     * "Start your transformation" (hero CTA)
+     * "Get Started" (pricing card)
+     * "Start my transformation" (final CTA)
+   - "See all details" link kept as /memberships (for comparison view)
+
+QA:
+- TypeScript: PASS (0 errors)
+- Lint: PASS (0 errors, 7 warnings — 3 new from coaching page window.location)
 - Build: PASS (exit 0)
+
+IMPORTANT:
+- Migration 0016 must be applied to production Supabase before the code
+  works correctly. Run the SQL in Supabase SQL Editor.
+
+---
+Task ID: PAYPAL-WEBHOOK
+Agent: Main (Z User)
+Task: Create PayPal Webhook route with server-side signature verification.
+
+NEW FILE:
+- src/app/api/paypal/webhook/route.ts (~160 lines)
+
+FEATURES:
+1. Server-side signature verification:
+   - Reads PayPal transmission headers (PAYPAL-TRANSMISSION-ID, -TIME,
+     -SIG, PAYPAL-CERT-URL, PAYPAL-AUTH-ALGO)
+   - Calls PayPal's /v1/notifications/verify-webhook-signature API
+   - Uses PAYPAL_WEBHOOK_ID env var
+   - Rejects unsigned/invalid webhooks with 401
+
+2. Event logging (audit trail):
+   - PAYMENT.CAPTURE.COMPLETED → logs success
+   - PAYMENT.CAPTURE.DENIED → logs denial
+   - PAYMENT.CAPTURE.REFUNDED → logs refund (future: reverseCommission)
+   - CHECKOUT.ORDER.APPROVED → logs approval
+   - * → logs unknown events
+
+3. NO subscription activation:
+   - The webhook does NOT activate subscriptions or commissions
+   - The capture-order endpoint is the authoritative source for activation
+   - This prevents double-activation if both webhook and capture fire
+
+4. No user auth required:
+   - PayPal sends the webhook, not a user
+   - Security is via signature verification only
+
+QA:
+- TypeScript: PASS (0 errors)
+- Lint: PASS (0 errors, 7 pre-existing warnings)
+- Build: PASS (exit 0; /api/paypal/webhook route registered)
+
+IMPORTANT:
+- PAYPAL_WEBHOOK_ID must be set in Vercel env vars
+- The webhook URL must be registered in PayPal Developer Dashboard:
+  https://developer.paypal.com/dashboard/applications/sandbox
+  → Select the app → "Add Webhook" → URL:
+  https://musclehubeg.vercel.app/api/paypal/webhook
+
+---
+Task ID: PAYPAL-SETUP-PHASE-1 (retroactive)
+Agent: Main (Z User)
+Task: PayPal Phase 1 — Install package + add env vars to .env.example.
+
+- Installed @paypal/react-paypal-js v10.3.0 via bun add
+- Added PayPal env vars to .env.example (no secrets):
+  PAYPAL_CLIENT_ID, PAYPAL_CLIENT_SECRET, PAYPAL_WEBHOOK_ID,
+  PAYPAL_MODE=sandbox, NEXT_PUBLIC_PAYPAL_CLIENT_ID
+- Commit: 412056a
+
+---
+Task ID: PAYPAL-PHASE-2-CREATE-ORDER (retroactive)
+Agent: Main (Z User)
+Task: PayPal Phase 2 — Create src/lib/paypal.ts + create-order route.
+
+- Created src/lib/paypal.ts: getPayPalAccessToken() (OAuth2 cached),
+  createPayPalOrder() (Orders API v2), resolvePlanPrice() (server-side).
+- Created POST /api/paypal/create-order: auth + plan validation + price.
+- Commit: ea464f3
+
+---
+Task ID: PAYPAL-PHASE-3-CAPTURE (retroactive)
+Agent: Main (Z User)
+Task: PayPal Phase 3 — Capture Order + subscription activation.
+
+- Added capturePayPalOrder() to paypal.ts (POST /v2/checkout/orders/{id}/capture)
+- Handles HTTP 422 ORDER_ALREADY_CAPTURED via fetchPayPalOrderDetails()
+- Created POST /api/paypal/capture-order: auth + IDOR check + status=COMPLETED
+  verification + subscription activation + affiliate commission (idempotent)
+- Commit: 115953f
+
+---
+Task ID: PAYPAL-PHASE-4-CHECKOUT-INTEGRATION
+Agent: Main (Z User)
+Task: PayPal Phase 4 — Integrate PayPal into CheckoutView.
+
+- Added 'paypal' to PaymentMethod type
+- Rewrote CheckoutView.tsx: PayPal as PRIMARY payment method
+- usePayPalScript() hook: lazy-loads SDK with NEXT_PUBLIC_PAYPAL_CLIENT_ID
+- PayPalButtons component: createOrder → /api/paypal/create-order,
+  onApprove → /api/paypal/capture-order
+- Success: redirect to dashboard. Cancel/Error: stay on checkout.
+- Manual payment (InstaPay/Vodafone Cash) unchanged.
+- Commit: 17fa894
+
+---
+Task ID: PAYPAL-CAPTURE-SERVER-FIX
+Agent: Main (Z User)
+Task: Fix capture-order route — replace client-only imports with server-side supabaseAdmin.
+
+- upsertSubscription() + createNotification() + processSubscriptionInitialPayment()
+  were imported from client-only modules (data.ts, affiliate-engine.ts)
+- Replaced with: serverUpsertSubscription(), serverCreateNotification(),
+  serverProcessAffiliateCommission() — all using supabaseAdmin
+- COMMISSION_RATE defined directly in route file (avoids importing referral.ts)
+- Commit: ba3d399
+
+---
+Task ID: PAYPAL-ADMIN-NOTIFICATION-COACHING-FIX
+Agent: Main (Z User)
+Task: Add admin notifications + PayPal payment records + fix coaching buttons.
+
+- Added serverCreateAdminNotification() — coach gets bell notification
+- Added serverCreatePayPalPaymentRecord() — record in subscription_requests
+- Migration 0016: added 'paypal' to payment_method CHECK constraint
+- Updated types.ts: payment_method includes 'paypal'
+- Fixed 3 coaching page buttons: /memberships → /checkout?tier=coaching&months=1
+- Commit: 5ef6cc6
+
+---
+Task ID: PAYPAL-WEBHOOK
+Agent: Main (Z User)
+Task: Create PayPal Webhook route with signature verification.
+
+- Created src/app/api/paypal/webhook/route.ts (~160 lines)
+- Verifies signature via PayPal's /v1/notifications/verify-webhook-signature
+- Uses PAYPAL_WEBHOOK_ID env var
+- Logs events (CAPTURE.COMPLETED, DENIED, REFUNDED, ORDER.APPROVED)
+- Does NOT activate subscriptions (capture-order is authoritative)
+- Rejects unsigned webhooks with 401
+- Commit: 6489da0
+
+---
+Task ID: PAYPAL-FAWRY-FIX
+Agent: Main (Z User)
+Task: Replace 'فوري/Instant' label with neutral text to avoid Fawry confusion.
+
+- 'فوري' → 'دفع سريع وآمن'
+- 'Instant' → 'Fast & secure'
+- Subtitle: 'فوري' → 'سريع وآمن'
+- Commit: 8bf6cc4
+
+---
+Task ID: PAYPAL-LIVE-READINESS-CHECK
+Agent: Main (Z User)
+Task: Read-only Live readiness check (no code changes).
+
+Results:
+1. PAYPAL_MODE=live — ⚠️ CANNOT VERIFY (Vercel env var)
+2. Client ID matching — ⚠️ CANNOT VERIFY (Vercel env vars)
+3. PAYPAL_WEBHOOK_ID — ⚠️ CANNOT VERIFY (Vercel env var)
+4. Webhook route + signature verification — ✅ PASS
+5. Create Order + Capture use Live API — ✅ PASS
+6. No sandbox URLs/credentials in code — ✅ PASS
+7. Manual Payment unchanged — ✅ PASS
+8. TS + Lint + Build — ✅ PASS
+
+3 items require manual Vercel env var configuration before going Live.

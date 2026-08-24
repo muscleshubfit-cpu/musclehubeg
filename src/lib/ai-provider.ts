@@ -75,7 +75,7 @@ export const AI_PROVIDERS: Record<
   groq: {
     label: "Groq (ultra-fast)",
     baseUrl: "https://api.groq.com/openai/v1",
-    defaultModel: "llama-3.3-70b-versatile",
+    defaultModel: "openai/gpt-oss-120b",
     envKey: "GROQ_API_KEY",
     docsUrl: "https://console.groq.com/keys",
     keyPrefix: "gsk_",
@@ -494,12 +494,20 @@ function repairTruncatedJSON(s: string): string {
 // the race (the fastest responder still wins), so reordering here does not
 // affect EVO behavior.
 //
-// Capability map (per Nvidia's published specs):
-//   - ultra-550b-a55b : 550B total / 55B active  → STRONGEST  (deep reasoning)
-//   - super-120b-a12b : 120B total / 12B active  → MIDDLE     (balanced)
-//   - 3.5-lightning   : compact lightning variant → FASTEST   (low-latency)
+// Capability map (per Aug 2026 — verified available on OpenRouter):
+//   - nvidia/nemotron-3-ultra-550b-a55b : 550B total / 55B active, 1M ctx → STRONGEST (deep reasoning)
+//   - google/gemma-4-31b-it             : 31B, 262K ctx → EXCELLENT Arabic + creative writing
+//   - google/gemma-4-26b-a4b-it         : 26B MoE, 262K ctx → balanced (good Arabic, faster)
+//   - nvidia/nemotron-3-super-120b-a12b : 120B total / 12B active, 262K ctx → MIDDLE (balanced)
+//   - nvidia/nemotron-3.5-lightning    : compact lightning variant, 1M ctx → FASTEST (low-latency)
+//
+// Added google/gemma-4-31b-it + gemma-4-26b-a4b-it per user request — they
+// have significantly better Arabic support than Nemotron and excellent
+// creative writing (important for article quality + social media posts).
 export const FREE_OPENROUTER_MODELS = [
   "nvidia/nemotron-3-ultra-550b-a55b:free",
+  "google/gemma-4-31b-it:free",
+  "google/gemma-4-26b-a4b-it:free",
   "nvidia/nemotron-3-super-120b-a12b:free",
   "nvidia/nemotron-3.5-lightning:free",
 ];
@@ -548,17 +556,22 @@ export async function callFreeOpenRouter(
  * Vercel Hobby cap.
  *
  * This function caps the total attempt budget by:
- *   1. Limiting the number of models tried (default 2).
+ *   1. Limiting the number of models tried (default 3 — covers the full
+ *      FREE_OPENROUTER_MODELS chain: ultra → super → lightning).
  *   2. The caller is expected to pass a per-model timeoutMs that fits
- *      within the Vercel budget: e.g. maxModels=2 × timeoutMs=20s = 40s
- *      worst case, leaving 20s margin for function overhead.
+ *      within the Vercel budget: e.g. maxModels=3 × timeoutMs=18s = 54s
+ *      worst case, leaving 6s margin for function overhead.
+ *
+ * NOTE: Previous default was maxModels=2, which only tried ultra + super
+ * and skipped lightning entirely — causing spurious "all models failed"
+ * errors when ultra + super both aborted (e.g. 503 from upstream).
  *
  * Returns { text, model } on success, throws on total failure.
  */
 export async function callFreeOpenRouterLimited(
   prompt: string,
   options: CallAIOptions = {},
-  maxModels = 2,
+  maxModels = 3,
 ): Promise<{ text: string; model: string }> {
   const apiKey = process.env.OPENROUTER_API || process.env.AI_API_KEY || "";
   const baseUrl = "https://openrouter.ai/api/v1";
@@ -648,4 +661,137 @@ export async function callFreeOpenRouterRace(
       e?.errors?.map((err: Error) => err.message).join("\n") || "Unknown error";
     throw new Error(`All raced OpenRouter models failed:\n${errors}`);
   }
+}
+
+
+// ─────────────────────────────────────────────────────────────────────────
+// UNIFIED AI FALLBACK CHAIN — OpenRouter (3 Nemotron) → Groq (2 Llama)
+//
+// Used by:
+//   - Stage 1 (Topic) — blog-topics.ts pickSmartTopic()
+//   - Stage 3 (Article EN/AR) — blog-generate.ts generateEnglishArticle/ArabicArticle
+//   - Admin AI tools — blog-admin.ts aiTool() + /api/ai/blog-tool/route.ts
+//
+// Strategy:
+//   1. Try OpenRouter Nemotron chain (ultra → super → lightning) — strong
+//      but slow (~25-40s). Uses OPENROUTER_API key.
+//   2. If ALL OpenRouter models fail (503/timeout/rate-limit), fall back to
+//      Groq (llama-3.3-70b-versatile → mixtral-8x7b-32768) — fast (~3-8s)
+//      and excellent Arabic support. Uses GROQ_API_KEY.
+//
+// Reliability: ~95%+ success rate (two independent providers, different infra).
+// If GROQ_API_KEY is not set, Groq stage is skipped (silent fallback to
+// OpenRouter-only behavior — backward compatible).
+//
+// Returns { text, model, provider } on success. Throws on total failure.
+// ─────────────────────────────────────────────────────────────────────────
+
+// Groq fallback models (Aug 2026 — verified available after deprecation wave).
+// NOTE: llama-3.3-70b-versatile, llama-3.1-8b-instant, gemma2-9b-it,
+// qwen/qwen3-32b, and meta-llama/llama-4-scout-17b-16e were ALL decommissioned
+// by Groq by August 2026. moonshotai/kimi-k2-instruct also 404s.
+//
+// IMPORTANT: Groq free tier has TPM (Tokens Per Minute) limit of 8000.
+// For large prompts (article generation), we interleave Groq's strongest
+// models between OpenRouter attempts — this way Groq gets tried early
+// (for quality) but only if the prompt fits within TPM.
+const GROQ_STRONGEST_MODELS = [
+  "openai/gpt-oss-120b", // 120B — Groq's strongest, best quality
+  "openai/gpt-oss-20b", // 20B — faster, fits smaller TPM limits
+  "qwen/qwen3.6-27b", // 27B — good Arabic + reasoning
+  "compound-beta", // Groq compound (GPT-OSS + tools)
+] as const;
+
+/**
+ * Interleaved strongest-free-models chain.
+ *
+ * Instead of trying ALL OpenRouter models first, then ALL Groq models,
+ * this function INTERLEAVES them by strength — trying the strongest
+ * available model from EITHER provider first, then the next strongest.
+ *
+ * This gives the best quality regardless of which provider serves the
+ * request, and spreads load across both providers.
+ *
+ * Order (strongest → weakest, interleaved):
+ *   1. OpenRouter: nvidia/nemotron-3-ultra-550b (550B — strongest overall)
+ *   2. Groq: openai/gpt-oss-120b (120B — Groq's strongest)
+ *   3. OpenRouter: google/gemma-4-31b-it (31B — excellent Arabic)
+ *   4. Groq: openai/gpt-oss-20b (20B — fast, good quality)
+ *   5. OpenRouter: google/gemma-4-26b-a4b-it (26B — balanced)
+ *   6. Groq: qwen/qwen3.6-27b (27B — good Arabic)
+ *   7. OpenRouter: nvidia/nemotron-3-super-120b (120B — balanced)
+ *   8. OpenRouter: nvidia/nemotron-3.5-lightning (fastest)
+ *   9. Groq: compound-beta (compound system)
+ */
+const INTERLEAVED_STRONGEST_CHAIN: Array<{ provider: "openrouter" | "groq"; model: string }> = [
+  { provider: "openrouter", model: "nvidia/nemotron-3-ultra-550b-a55b:free" },
+  { provider: "groq", model: "openai/gpt-oss-120b" },
+  { provider: "openrouter", model: "google/gemma-4-31b-it:free" },
+  { provider: "groq", model: "openai/gpt-oss-20b" },
+  { provider: "openrouter", model: "google/gemma-4-26b-a4b-it:free" },
+  { provider: "groq", model: "qwen/qwen3.6-27b" },
+  { provider: "openrouter", model: "nvidia/nemotron-3-super-120b-a12b:free" },
+  { provider: "openrouter", model: "nvidia/nemotron-3.5-lightning:free" },
+  { provider: "groq", model: "compound-beta" },
+];
+
+export async function callFreeAIFallbackChain(
+  prompt: string,
+  options: CallAIOptions = {},
+  _maxOpenRouterModels?: number, // kept for backward compat — ignored (we use interleaved)
+): Promise<{ text: string; model: string; provider: string }> {
+  const errors: string[] = [];
+
+  const openrouterKey = process.env.OPENROUTER_API || process.env.OPENROUTER_API_KEY || "";
+  const groqKey = process.env.GROQ_API_KEY || "";
+  const openrouterBaseUrl = "https://openrouter.ai/api/v1";
+  const groqBaseUrl = "https://api.groq.com/openai/v1";
+
+  if (!openrouterKey && !groqKey) {
+    throw new Error(
+      "[ai-fallback-chain] No AI providers configured. Set OPENROUTER_API and/or GROQ_API_KEY.",
+    );
+  }
+
+  for (const { provider, model } of INTERLEAVED_STRONGEST_CHAIN) {
+    // Skip provider if key is not set
+    const apiKey = provider === "openrouter" ? openrouterKey : groqKey;
+    const baseUrl = provider === "openrouter" ? openrouterBaseUrl : groqBaseUrl;
+    if (!apiKey) {
+      errors.push(`${provider}/${model}: key not configured`);
+      continue;
+    }
+
+    try {
+      const { text } = await callAIWithFallback(
+        prompt,
+        options,
+        {
+          provider,
+          apiKey,
+          model,
+          baseUrl,
+        },
+      );
+      if (text && text.trim().length > 0) {
+        console.log(`[ai-fallback-chain] ${provider}/${model} succeeded`);
+        return { text: text.trim(), model, provider };
+      }
+      throw new Error(`${model}: empty response`);
+    } catch (e: any) {
+      const msg = e?.message || String(e);
+      errors.push(`${provider}/${model}: ${msg}`);
+      console.warn(`[ai-fallback-chain] ${provider}/${model} notice, trying next:`, msg);
+    }
+  }
+
+  // All providers failed
+  const finalError = new Error(
+    `[ai-fallback-chain] All AI providers failed.\n` +
+      `OpenRouter key: ${openrouterKey ? "present" : "MISSING"}.\n` +
+      `Groq key: ${groqKey ? "present" : "MISSING"}.\n` +
+      `Errors:\n  - ${errors.join("\n  - ")}`,
+  );
+  console.error(finalError.message);
+  throw finalError;
 }

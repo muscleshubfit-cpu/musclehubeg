@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { getCoachingServiceSchema } from "@/lib/seo";
 
 export const metadata: Metadata = {
-  title: "الكوتشينج أونلاين | MuscleHub — مدربين وأخصائيين تغذية",
+  title: "الكوتشينج أونلاين | MuscleHubEG — مدربين وأخصائيين تغذية",
   description:
     "كوتشينج أونلاين مع مدربين وأخصائيين تغذية محترفين. خطط تغذية مخصصة، برامج تمارين متكيفة، متابعة شخصية، ومساعد ذكاء اصطناعي (EVO) متاح 24/7. ابدأ رحلتك اليوم.",
   keywords: [
@@ -18,7 +18,7 @@ export const metadata: Metadata = {
     "custom workout programs",
   ],
   openGraph: {
-    title: "الكوتشينج أونلاين | MuscleHub — مدربين وأخصائيين تغذية",
+    title: "الكوتشينج أونلاين | MuscleHubEG — مدربين وأخصائيين تغذية",
     description:
       "خطط تغذية مخصصة، برامج تمارين متكيفة، متابعة شخصية، و EVO AI متاح 24/7.",
     type: "website",

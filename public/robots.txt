@@ -1,4 +1,4 @@
-# MuscleHub — robots.txt
+# MuscleHubEG — robots.txt
 # Allow all public pages, block private/authenticated pages
 
 User-agent: *

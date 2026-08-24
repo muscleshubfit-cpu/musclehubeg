@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { getEVOApplicationSchema } from "@/lib/seo";
 
 export const metadata: Metadata = {
-  title: "EVO — كوتش ذكاء اصطناعي | MuscleHub",
+  title: "EVO — كوتش ذكاء اصطناعي | MuscleHubEG",
   description:
     "EVO محرك أداء ذكي — مش مجرد شات بوت. يحلل بياناتك الصحية، يتنبأ بنتائجك، يحدّث خططك تلقائياً، ويوفر استشارات لياقة وتغذية 24/7 عبر الذكاء الاصطناعي. مجاني للجميع.",
   keywords: [
@@ -16,7 +16,7 @@ export const metadata: Metadata = {
     "ذكاء اصطناعي رياضي",
   ],
   openGraph: {
-    title: "EVO — كوتش ذكاء اصطناعي | MuscleHub",
+    title: "EVO — كوتش ذكاء اصطناعي | MuscleHubEG",
     description:
       "محرك أداء ذكي يحلل بياناتك ويحدّث خططك تلقائياً. مجاني للجميع.",
     type: "website",

@@ -1,26 +1,42 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/hooks/use-auth";
 import {
   getReferralStats,
-  getOrCreateReferralCode,
   createPayoutRequest,
   COMMISSION_RATE,
   MINIMUM_PAYOUT,
   type ReferralStats,
   type PayoutMethod,
 } from "@/lib/referral";
+import { getAffiliateStats, type AffiliateStats } from "@/lib/affiliate-engine";
 import { toast } from "sonner";
+import { AffiliateToolkit } from "@/components/views/AffiliateToolkit";
+import { CopyButton } from "@/components/ui/copy-button";
+import {
+  buildAffiliateUrl,
+  buildPromoCopy,
+  PROMO_TEMPLATES,
+} from "@/lib/affiliate-content";
+import {
+  Link2,
+  TrendingUp,
+  Users,
+  Coins,
+  Wallet,
+  FileText,
+  LayoutGrid,
+} from "lucide-react";
 
 export function ReferralView() {
   const { t, lang } = useI18n();
   const { profile } = useAuth();
   const isAr = lang === "ar";
   const [stats, setStats] = useState<ReferralStats | null>(null);
+  const [affiliateStats, setAffiliateStats] = useState<AffiliateStats | null>(null);
   const [loading, setLoading] = useState(true);
-  const [copied, setCopied] = useState(false);
   const [showPayoutModal, setShowPayoutModal] = useState(false);
 
   // Payout form
@@ -33,8 +49,12 @@ export function ReferralView() {
   const load = async () => {
     if (!profile) return;
     setLoading(true);
-    const s = await getReferralStats(profile.id);
+    const [s, affS] = await Promise.all([
+      getReferralStats(profile.id),
+      getAffiliateStats(profile.id),
+    ]);
     setStats(s);
+    setAffiliateStats(affS);
     setLoading(false);
   };
 
@@ -42,33 +62,58 @@ export function ReferralView() {
     load();
   }, [profile]);
 
-  const referralLink = stats?.referralCode
-    ? `${typeof window !== "undefined" ? window.location.origin : ""}/?ref=${stats.referralCode}`
-    : "";
-
-  const copyLink = () => {
-    navigator.clipboard.writeText(referralLink);
-    setCopied(true);
-    toast.success(isAr ? "تم نسخ الرابط!" : "Link copied!");
-    setTimeout(() => setCopied(false), 2000);
-  };
+  const referralLink = useMemo(
+    () => (stats?.referralCode ? buildAffiliateUrl(stats.referralCode) : ""),
+    // React Compiler wants the whole `stats` object here so it can prove
+    // the memo is stable. Using `stats?.referralCode` makes the dependency
+    // narrower than what the compiler can verify statically.
+    [stats],
+  );
 
   const shareWhatsApp = () => {
-    const text = isAr
-      ? `جرب MuscleHub معايا! منصة كوتشينج أونلاين للتغذية واللياقة. سجل برابطي واحصل على خصم: ${referralLink}`
-      : `Try MuscleHub with me! Online coaching for nutrition and fitness. Sign up with my link: ${referralLink}`;
+    // Use the existing WhatsApp template from affiliate-content.ts
+    // (single source of truth — same text as the toolkit's WhatsApp card)
+    const text = buildPromoCopy(PROMO_TEMPLATES[1], referralLink, isAr);
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
   };
 
   const shareFacebook = () => {
+    // Facebook's sharer.php only accepts a URL — it ignores custom text
+    // (Facebook deprecated the `quote=` parameter). The preview is rendered
+    // from the page's Open Graph metadata. We share the URL; the OG tags
+    // on the homepage accurately describe MuscleHubEG as a comprehensive
+    // sports platform with exercises, programs, calculators, and coaching.
     window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(referralLink)}`, "_blank");
   };
 
   const shareX = () => {
-    const text = isAr
-      ? `جرب MuscleHub! منصة لياقة وتغذية بالذكاء الاصطناعي. ${referralLink}`
-      : `Try MuscleHub! AI-powered fitness & nutrition platform. ${referralLink}`;
+    // Use the existing short social template from affiliate-content.ts
+    // (single source of truth — same text as the toolkit's Short Social card)
+    const text = buildPromoCopy(PROMO_TEMPLATES[2], referralLink, isAr);
     window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`, "_blank");
+  };
+
+  // Download QR Code as PNG — fetches the image from the QR API,
+  // converts to a blob, and triggers a download. This works cross-origin
+  // because api.qrserver.com sends CORS headers.
+  const downloadQr = async () => {
+    if (!referralLink) return;
+    try {
+      const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(referralLink)}`;
+      const res = await fetch(qrUrl);
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `musclehubeg-affiliate-qr.png`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success(isAr ? "تم تحميل QR Code" : "QR Code downloaded");
+    } catch (e: any) {
+      toast.error(isAr ? "تعذر تحميل QR Code" : "Failed to download QR Code");
+    }
   };
 
   const submitPayout = async () => {
@@ -125,12 +170,12 @@ export function ReferralView() {
       {/* Header */}
       <div>
         <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">
-          {isAr ? "نظام الإحالة والعمولات" : "Referral & Commission System"}
+          {isAr ? "برنامج الأفلييت والعمولات" : "Affiliate & Commission Program"}
         </h1>
         <p className="mt-2 text-base font-normal text-[#6e6e73] md:text-lg">
           {isAr
-            ? `اكسب ${COMMISSION_RATE * 100}% عمولة من كل صديق يشترك. العمولة تُضاف لرصيدك عند تأكيد الدفع.`
-            : `Earn ${COMMISSION_RATE * 100}% commission for each friend who subscribes. Commission is added when payment is confirmed.`}
+            ? `اكسب ${(COMMISSION_RATE * 100).toFixed(0)}% عمولة من كل صديق يشترك. العمولة بتتضاف لرصيدك لما الدفع يتأكد.`
+            : `Earn ${(COMMISSION_RATE * 100).toFixed(0)}% commission for each friend who subscribes. Commission is added when payment is confirmed.`}
         </p>
       </div>
 
@@ -166,67 +211,108 @@ export function ReferralView() {
         )}
       </div>
 
-      {/* Referral Link + Share */}
-      <div className="rounded-3xl bg-[#f5f5f7] p-8 md:p-10">
-        <h2 className="text-xl font-semibold tracking-tight">
-          {isAr ? "رابط الإحالة الخاص بك" : "Your Referral Link"}
-        </h2>
-        <p className="mt-2 text-sm font-normal text-[#6e6e73]">
-          {isAr ? "شارك الرابط ده. الكوكيز بتدوم 30 يوم." : "Share this link. Cookie lasts 30 days."}
-        </p>
-        <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-          <input
-            value={referralLink}
-            readOnly
-            dir="ltr"
-            className="flex-1 rounded-full border border-[#d2d2d7] bg-white px-5 py-3 font-mono text-sm font-normal outline-none"
-          />
-          <button
-            onClick={copyLink}
-            className="shrink-0 rounded-full bg-[#1d1d1f] px-6 py-3 text-sm font-normal text-white transition-opacity hover:opacity-90"
-          >
-            {copied ? (isAr ? "✓ اتنسخ!" : "✓ Copied!") : (isAr ? "نسخ" : "Copy")}
-          </button>
-        </div>
+      {/* ── Section: YOUR LINK — single, modern link card ── */}
+      <SectionHeader
+        id="sec-link"
+        icon={<Link2 className="h-4 w-4" aria-hidden="true" />}
+        title={isAr ? "رابطك" : "YOUR LINK"}
+      />
 
-        {/* Share buttons */}
-        <div className="mt-6 flex flex-wrap gap-3">
-          <button
-            onClick={shareWhatsApp}
-            className="rounded-full bg-[#25D366] px-5 py-2.5 text-sm font-normal text-white transition-opacity hover:opacity-90"
-          >
-            WhatsApp
-          </button>
-          <button
-            onClick={shareFacebook}
-            className="rounded-full bg-[#1877F2] px-5 py-2.5 text-sm font-normal text-white transition-opacity hover:opacity-90"
-          >
-            Facebook
-          </button>
-          <button
-            onClick={shareX}
-            className="rounded-full bg-[#1d1d1f] px-5 py-2.5 text-sm font-normal text-white transition-opacity hover:opacity-90"
-          >
-            X (Twitter)
-          </button>
-        </div>
+      {/* Modern link card — dark gradient, compact, all-in-one */}
+      <div className="overflow-hidden rounded-3xl bg-gradient-to-br from-[#1d1d1f] to-[#0a0a0a] text-white">
+        {/* Top: link + copy */}
+        <div className="p-6 sm:p-8">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-white/10">
+              <Link2 className="h-5 w-5 text-[#5ac8fa]" aria-hidden="true" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <h2 className="text-lg font-semibold tracking-tight sm:text-xl">
+                {isAr ? "رابط الأفلييت الخاص بك" : "Your Affiliate Link"}
+              </h2>
+              <p className="mt-1 text-xs font-normal text-gray-400 sm:text-sm">
+                {isAr ? "شاركه. الكوكيز بيدوم 30 يوم." : "Share it. Cookie lasts 30 days."}
+              </p>
+            </div>
+          </div>
 
-        {/* QR Code */}
-        {referralLink && (
-          <div className="mt-8 flex flex-col items-center">
-            <p className="mb-4 text-sm font-normal text-[#6e6e73]">
-              {isAr ? "QR Code — امسح أو اطبع" : "QR Code — scan or print"}
-            </p>
-            <img
-              src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(referralLink)}`}
-              alt="Referral QR Code"
-              className="h-48 w-48 rounded-2xl bg-white p-3"
+          {/* URL input + Copy — stacks on mobile, row on desktop */}
+          <div className="mt-5 flex flex-col gap-2 sm:flex-row">
+            <input
+              value={referralLink}
+              readOnly
+              dir="ltr"
+              aria-label={isAr ? "رابط الأفلييت" : "Affiliate link"}
+              className="min-w-0 flex-1 rounded-xl border border-white/20 bg-white/10 px-4 py-2.5 font-mono text-xs text-white outline-none focus:border-[#5ac8fa] sm:text-sm"
             />
+            <CopyButton
+              value={referralLink}
+              label={isAr ? "نسخ" : "Copy"}
+              successLabel={isAr ? "تم النسخ ✓" : "Copied ✓"}
+              errorLabel={isAr ? "تعذر" : "Failed"}
+              variant="primary"
+              analyticsEvent="affiliate_link_copied"
+              analyticsPayload={{ source: "dashboard_link_card" }}
+              ariaLabel={isAr ? "نسخ رابط الأفلييت" : "Copy affiliate link"}
+              className="shrink-0"
+            />
+          </div>
+
+          {/* Share buttons — compact, responsive */}
+          <div className="mt-4 flex flex-wrap gap-2">
+            <button
+              onClick={shareWhatsApp}
+              className="inline-flex min-h-[40px] items-center gap-1.5 rounded-full bg-[#25D366] px-4 py-2 text-xs font-medium text-white transition-opacity hover:opacity-90 sm:text-sm"
+            >
+              WhatsApp
+            </button>
+            <button
+              onClick={shareFacebook}
+              className="inline-flex min-h-[40px] items-center gap-1.5 rounded-full bg-[#1877F2] px-4 py-2 text-xs font-medium text-white transition-opacity hover:opacity-90 sm:text-sm"
+            >
+              Facebook
+            </button>
+            <button
+              onClick={shareX}
+              className="inline-flex min-h-[40px] items-center gap-1.5 rounded-full bg-white px-4 py-2 text-xs font-medium text-[#1d1d1f] transition-opacity hover:opacity-90 sm:text-sm"
+            >
+              X
+            </button>
+          </div>
+        </div>
+
+        {/* Bottom: QR code + Download — side-by-side on desktop, stacked on mobile */}
+        {referralLink && (
+          <div className="flex flex-col items-center gap-4 border-t border-white/10 p-6 sm:flex-row sm:items-center sm:gap-6 sm:p-8">
+            <img
+              src={`https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(referralLink)}`}
+              alt={isAr ? "QR Code لرابط الأفلييت" : "QR Code for affiliate link"}
+              className="h-32 w-32 shrink-0 rounded-xl bg-white p-2 sm:h-36 sm:w-36"
+            />
+            <div className="flex flex-col items-center text-center sm:items-start sm:text-left">
+              <p className="text-sm font-medium">
+                {isAr ? "امسح أو حمّل QR Code" : "Scan or Download QR Code"}
+              </p>
+              <p className="mt-1 text-xs font-normal text-gray-400">
+                {isAr ? "يحتوي على رابطك الشخصي. يعمل مطبوعًا أو رقميًا." : "Encodes your personal link. Works printed or digital."}
+              </p>
+              <button
+                onClick={downloadQr}
+                className="mt-3 inline-flex min-h-[40px] items-center gap-2 rounded-full bg-[#0071e3] px-4 py-2 text-xs font-medium text-white transition-opacity hover:opacity-90 sm:text-sm"
+              >
+                {isAr ? "تحميل QR" : "Download QR"}
+              </button>
+            </div>
           </div>
         )}
       </div>
 
-      {/* Stats — 3 cards */}
+      {/* ── Section: EARNINGS — Stats (3 cards) ── */}
+      <SectionHeader
+        id="sec-earnings"
+        icon={<TrendingUp className="h-4 w-4" aria-hidden="true" />}
+        title={isAr ? "الأرباح" : "EARNINGS"}
+      />
       <div className="grid gap-4 sm:grid-cols-3">
         <div className="rounded-2xl bg-[#f5f5f7] p-6">
           <p className="text-3xl font-semibold tracking-tight">{stats?.total || 0}</p>
@@ -242,7 +328,39 @@ export function ReferralView() {
         </div>
       </div>
 
-      {/* Referrals list */}
+      {/* Commission breakdown (affiliate engine) */}
+      {affiliateStats && (affiliateStats.initialCommissions > 0 || affiliateStats.renewalCommissions > 0 || affiliateStats.productCommissions > 0) && (
+        <div className="rounded-3xl bg-[#f5f5f7] p-8">
+          <h2 className="text-xl font-semibold tracking-tight">
+            {isAr ? "تفصيل العمولات" : "Commission Breakdown"}
+          </h2>
+          <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="rounded-2xl bg-white p-4">
+              <p className="text-2xl font-semibold tracking-tight text-[#0071e3]">{affiliateStats.initialCommissions}</p>
+              <p className="mt-1 text-xs font-normal text-[#6e6e73]">{isAr ? "اشتراكات أولية" : "Initial Subs"}</p>
+            </div>
+            <div className="rounded-2xl bg-white p-4">
+              <p className="text-2xl font-semibold tracking-tight text-[#34c759]">{affiliateStats.renewalCommissions}</p>
+              <p className="mt-1 text-xs font-normal text-[#6e6e73]">{isAr ? "تجديدات" : "Renewals"}</p>
+            </div>
+            <div className="rounded-2xl bg-white p-4">
+              <p className="text-2xl font-semibold tracking-tight text-[#ff9500]">{affiliateStats.productCommissions}</p>
+              <p className="mt-1 text-xs font-normal text-[#6e6e73]">{isAr ? "منتجات" : "Products"}</p>
+            </div>
+            <div className="rounded-2xl bg-white p-4">
+              <p className="text-2xl font-semibold tracking-tight text-[#ff3b30]">{affiliateStats.reversedEarnings > 0 ? `$${affiliateStats.reversedEarnings.toFixed(2)}` : "0"}</p>
+              <p className="mt-1 text-xs font-normal text-[#6e6e73]">{isAr ? "مرتجع" : "Reversed"}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Section: REFERRALS ── */}
+      <SectionHeader
+        id="sec-referrals"
+        icon={<Users className="h-4 w-4" aria-hidden="true" />}
+        title={isAr ? "الإحالات" : "REFERRALS"}
+      />
       {stats && stats.referrals.length > 0 && (
         <div className="rounded-3xl bg-[#f5f5f7] p-8">
           <h2 className="text-xl font-semibold tracking-tight">
@@ -285,7 +403,58 @@ export function ReferralView() {
         </div>
       )}
 
-      {/* Payout history */}
+      {/* ── Section: COMMISSIONS ── */}
+      <SectionHeader
+        id="sec-commissions"
+        icon={<Coins className="h-4 w-4" aria-hidden="true" />}
+        title={isAr ? "العمولات" : "COMMISSIONS"}
+      />
+      {stats && stats.earnings.length > 0 && (
+        <div className="rounded-3xl bg-[#f5f5f7] p-8">
+          <h2 className="text-xl font-semibold tracking-tight">
+            {isAr ? "سجل العمولات" : "Commission Log"}
+          </h2>
+          <div className="mt-6 space-y-3">
+            {stats.earnings.slice(0, 20).map((e) => (
+              <div key={e.id} className="flex items-center justify-between rounded-2xl bg-white p-4">
+                <div>
+                  <p className="text-sm font-medium">${Number(e.amount).toFixed(2)}</p>
+                  <p className="mt-1 text-xs font-normal text-[#6e6e73]">
+                    {new Date(e.created_at).toLocaleDateString()}
+                  </p>
+                </div>
+                <span
+                  className={`rounded-full px-2.5 py-0.5 text-xs font-normal ${
+                    e.status === "paid"
+                      ? "bg-[#0071e3]/10 text-[#0071e3]"
+                      : e.status === "available"
+                        ? "bg-[#34c759]/10 text-[#1d8a3d]"
+                        : e.status === "requested"
+                          ? "bg-[#ff9500]/10 text-[#ff9500]"
+                          : "bg-[#6e6e73]/10 text-[#6e6e73]"
+                  }`
+                }
+                >
+                  {e.status === "paid"
+                    ? isAr ? "تم الصرف" : "Paid"
+                    : e.status === "available"
+                      ? isAr ? "متاح" : "Available"
+                      : e.status === "requested"
+                        ? isAr ? "مطلوب" : "Requested"
+                        : isAr ? "معلق" : "Pending"}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── Section: PAYOUTS ── */}
+      <SectionHeader
+        id="sec-payouts"
+        icon={<Wallet className="h-4 w-4" aria-hidden="true" />}
+        title={isAr ? "المدفوعات" : "PAYOUTS"}
+      />
       {stats && stats.payouts.length > 0 && (
         <div className="rounded-3xl bg-[#f5f5f7] p-8">
           <h2 className="text-xl font-semibold tracking-tight">
@@ -327,6 +496,21 @@ export function ReferralView() {
           </div>
         </div>
       )}
+
+      {/* ── Sections: PROMOTIONAL CONTENT + WEBSITE BANNERS ── */}
+      <SectionHeader
+        id="sec-promo"
+        icon={<FileText className="h-4 w-4" aria-hidden="true" />}
+        title={isAr ? "المحتوى الترويجي" : "PROMOTIONAL CONTENT"}
+      />
+
+      <SectionHeader
+        id="sec-banners"
+        icon={<LayoutGrid className="h-4 w-4" aria-hidden="true" />}
+        title={isAr ? "بانرات الموقع" : "WEBSITE BANNERS"}
+      />
+
+      <AffiliateToolkit />
 
       {/* Payout Modal */}
       {showPayoutModal && (
@@ -442,6 +626,36 @@ export function ReferralView() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Small section header used to organise the dashboard into clear sections.
+// Visual anchor only — does not change any financial/payout data flow.
+// ─────────────────────────────────────────────────────────────────────────
+function SectionHeader({
+  id,
+  title,
+  icon,
+}: {
+  id: string;
+  title: string;
+  icon: React.ReactNode;
+}) {
+  return (
+    <div
+      id={id}
+      className="scroll-mt-24 pt-4"
+      role="heading"
+      aria-level={2}
+      aria-label={title}
+    >
+      <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-[#8e8e93]">
+        <span className="text-[#0071e3]">{icon}</span>
+        <span>{title}</span>
+      </div>
+      <div className="mt-2 h-px w-full bg-gradient-to-r from-[#d2d2d7] to-transparent" aria-hidden="true" />
     </div>
   );
 }

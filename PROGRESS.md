@@ -1,6 +1,6 @@
 # PROGRESS.md — MuscleHub Shared Dashboard
 
-> **آخر تحديث:** 2026-08-19 (Phase 7: documentation + governance hardening — MH-DOC-001)
+> **آخر تحديث:** 2026-08-24 (PayPal integration complete — all phases)
 > **الحالة السابقة (Phase 6):** ✅ كل المشاكل الحرجة محلولة + تحسينات سرعة Phase 6
 > **الحالة الحالية (Phase 7):** تمت مراجعة التوثيق ضد الكود الفعلي وتم
 > تصحيح الادعاءات القديمة. انظر قسم "Reconciled Status (Phase 7)" أسفل
@@ -2783,3 +2783,55 @@ Options:
 
 ### Note on AdSense readiness
 This commit makes `ads.txt` available on production. AdSense's crawler will fetch it within 24-48 hours; the "Earnings at risk — you need to fix ads.txt" warning in the AdSense dashboard should clear automatically after that. This is not something we can verify from code — it requires waiting for Google's crawler + checking the AdSense dashboard.
+
+---
+
+## PayPal Integration (2026-08-24) — COMPLETE
+
+### Architecture
+- **PayPal = Primary Payment Method** (Sandbox tested, Live-ready)
+- **Manual Payment (InstaPay / Vodafone Cash) = Secondary** (unchanged)
+- **Currency = USD**
+- PayPal is a SEPARATE payment path (not via subscription_requests for activation — only for dashboard visibility records)
+
+### Components
+| File | Purpose |
+|------|---------|
+| `src/lib/paypal.ts` | OAuth2 + Create Order + Capture Order + price resolution |
+| `src/app/api/paypal/create-order/route.ts` | POST — auth + plan validation + server-side price |
+| `src/app/api/paypal/capture-order/route.ts` | POST — capture + subscription activation + admin notification + affiliate commission (all via supabaseAdmin) |
+| `src/app/api/paypal/webhook/route.ts` | POST — signature verification + event logging (no activation) |
+| `src/components/views/CheckoutView.tsx` | PayPal button (PRIMARY) + InstaPay + Vodafone Cash (SECONDARY) |
+| `supabase/migrations/0016_add_paypal_to_payment_method.sql` | Added 'paypal' to payment_method CHECK constraint |
+
+### Security
+- ✅ Server-side price resolution (client never sends price)
+- ✅ Server-side capture (onApprove alone does NOT activate)
+- ✅ IDOR protection (custom_id verified against authenticated user)
+- ✅ Idempotency (3 layers: PayPal-Request-Id, HTTP 422 handling, DB unique constraints)
+- ✅ Webhook signature verification (rejects unsigned requests with 401)
+- ✅ No secrets in frontend (PAYPAL_CLIENT_SECRET is server-only)
+
+### Idempotency
+1. PayPal API: same PayPal-Request-Id returns same result
+2. HTTP 422 ORDER_ALREADY_CAPTURED → fetch order details instead of re-capture
+3. Affiliate engine: orderId as external_reference prevents duplicate commissions
+
+### Admin Notifications
+- Coach gets bell notification: "دفع PayPal جديد ✅"
+- Payment record in subscription_requests (status='approved', payment_method='paypal')
+- Visible in coach payments dashboard
+
+### Migrations Required
+- 0016_add_paypal_to_payment_method.sql — must be applied to production Supabase
+
+### Vercel Env Vars Required for Live
+- `PAYPAL_MODE=live`
+- `PAYPAL_CLIENT_ID` = Live Client ID
+- `PAYPAL_CLIENT_SECRET` = Live Secret
+- `NEXT_PUBLIC_PAYPAL_CLIENT_ID` = same as PAYPAL_CLIENT_ID
+- `PAYPAL_WEBHOOK_ID` = Webhook ID from PayPal Dashboard
+
+### Webhook Registration
+- URL: `https://musclehubeg.vercel.app/api/paypal/webhook`
+- Register in PayPal Developer Dashboard → App → Add Webhook

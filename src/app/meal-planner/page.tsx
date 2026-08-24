@@ -387,8 +387,8 @@ export default function MealPlannerPage() {
           <ShareButtons
             title={
               isAr
-                ? `مخطط وجباتي | ${grandTotal.calories} سعرة | MuscleHub`
-                : `My meal plan | ${grandTotal.calories} kcal | MuscleHub`
+                ? `مخطط وجباتي | ${grandTotal.calories} سعرة | MuscleHubEG`
+                : `My meal plan | ${grandTotal.calories} kcal | MuscleHubEG`
             }
           />
         </div>

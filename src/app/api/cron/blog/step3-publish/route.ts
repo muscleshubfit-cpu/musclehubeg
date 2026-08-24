@@ -176,7 +176,7 @@ export async function GET(request: NextRequest) {
     // Fetch image — shared URL between EN and AR posts.
     // Image query: prefer EN focus keyword, fall back to AR or topic.
     const enFocusKeyword = bundle.seo.en.focusKeyword || bundle.seo.focusKeyword || qi.focus_keyword || qi.topic;
-    const arFocusKeyword = bundle.seo.ar.focusKeyword || bundle.seo.focusKeyword || enFocusKeyword;
+    const arFocusKeyword = bundle.seo.ar.focusKeyword || qi.focus_keyword_ar || qi.focus_keyword || "";
     const imageQuery = bundle.imagePrompts?.featuredImage || enFocusKeyword;
     let imageUrl: string | null = null;
     try {
@@ -190,7 +190,7 @@ export async function GET(request: NextRequest) {
     // ─────────────────────────────────────────────────────────────────
     const enRow = {
       language: "en" as const,
-      title: bundle.seo.en.seoTitle,
+      title: bundle.seo.en.seoTitle || qi.topic || "Untitled",
       slug: enSlug,
       excerpt: bundle.seo.en.metaDescription,
       content: bundle.englishArticle,
@@ -201,9 +201,9 @@ export async function GET(request: NextRequest) {
       category: safeCategory,
       tags: (bundle.seo.en.secondaryKeywords || bundle.seo.secondaryKeywords || []).slice(0, 5),
       featured_image: imageUrl,
-      cover_alt: bundle.seo.en.seoTitle, // EN-specific alt text
+      cover_alt: bundle.seo.en.seoTitle || qi.topic || "Untitled", // EN-specific alt text
       reading_time: bundle.estimatedReadingTime,
-      author: "MuscleHub",
+      author: "MuscleHubEG",
       is_published: true,
       published_at: now,
       faq_json: bundle.faq,
@@ -215,23 +215,24 @@ export async function GET(request: NextRequest) {
     // keywords, tags, reading_time, cover_alt, and FAQ.
     // Only featured_image URL is shared (one image per article pair).
     // ─────────────────────────────────────────────────────────────────
-    const arKeywords = bundle.seo.ar.secondaryKeywords || bundle.seo.secondaryKeywords || [];
+    const arKeywords = bundle.seo.ar.secondaryKeywords || [];
+    const arTitle = bundle.seo.ar.seoTitle || qi.topic_ar || qi.topic || "Untitled";
     const arRow = {
       language: "ar" as const,
-      title: bundle.seo.ar.seoTitle,
+      title: arTitle,
       slug: arSlug,
       excerpt: bundle.seo.ar.metaDescription,
       content: bundle.arabicArticle,
-      meta_title: bundle.seo.ar.metaTitle,
+      meta_title: bundle.seo.ar.metaTitle || arTitle,
       meta_description: bundle.seo.ar.metaDescription,
       focus_keyword: arFocusKeyword, // AR-specific — NOT inherited from EN
       keywords: arKeywords, // AR-specific — NOT inherited from EN
       category: safeCategory,
       tags: arKeywords.slice(0, 5), // AR-specific tags
       featured_image: imageUrl, // shared URL (OK — one image per article pair)
-      cover_alt: bundle.seo.ar.seoTitle, // AR-specific alt text
+      cover_alt: arTitle, // AR-specific alt text
       reading_time: bundle.estimatedReadingTimeAr || bundle.estimatedReadingTime || 1, // AR-specific reading time
-      author: "MuscleHub",
+      author: "MuscleHubEG",
       is_published: true,
       published_at: now,
       faq_json: bundle.faqAr && bundle.faqAr.length > 0 ? bundle.faqAr : [], // AR FAQ only — NO fallback to EN faq

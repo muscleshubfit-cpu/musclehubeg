@@ -1,13 +1,12 @@
 # SECURITY.md — MuscleHubEG Security Policy
 
-> **Last updated:** 2026-08-19
+> **Last updated:** 2026-08-23
 > **Owner:** muscleshubfit@gmail.com
 > **Reporting security issues:** see §8 below.
 
 This document defines the security posture, secrets policy, and rules
 for AI agents working on the MuscleHubEG codebase. It complements
-`AGENTS.md` (operating rules) and `PROJECT_CONTEXT.md` (product
-context).
+`AGENTS.md` (operating rules) and `DEVELOPER_GUIDE.md` (architecture).
 
 ---
 

@@ -24,6 +24,7 @@ import {
   User,
   Sparkles,
   Bookmark,
+  Users,
 } from "lucide-react";
 import { LanguageToggle } from "@/components/LanguageToggle";
 import { useI18n } from "@/lib/i18n";
@@ -96,55 +97,79 @@ export function SiteHeader({ variant = "landing" }: { variant?: "landing" | "app
     onClick: () => navigate("landing"),
   });
 
-  // 2. Blog
-  menu.push({
-    label: isAr ? "المدونة" : "Blog",
-    icon: FileText,
-    href: blogHref,
-  });
+  // === PUBLIC NAVIGATION (visible to logged-out + logged-in visitors) ===
+  // Order per project spec: Exercises → Programs → Foods → Tools → EVO → Blog → Coaching → Memberships → Pricing → Affiliate Program
 
-  // 2b. Tools (free calculators)
-  menu.push({
-    label: isAr ? "الأدوات المجانية" : "Free Tools",
-    icon: Calculator,
-    href: "/tools",
-  });
-
-  // 2c. Exercise Library
+  // 1. Exercises
   menu.push({
     label: isAr ? "مكتبة التمارين" : "Exercises",
     icon: Dumbbell,
     href: "/exercises",
   });
 
-  // 2d. Workout Programs
+  // 2. Programs
   menu.push({
     label: isAr ? "برامج التدريب" : "Programs",
     icon: ClipboardList,
     href: "/programs",
   });
 
-  // 2e. Food Library
+  // 3. Foods
   menu.push({
     label: isAr ? "مكتبة الأكلات" : "Foods",
     icon: Utensils,
     href: "/foods",
   });
 
-  // 2f. EVO AI Coach
+  // 4. Tools (free calculators)
+  menu.push({
+    label: isAr ? "الأدوات المجانية" : "Free Tools",
+    icon: Calculator,
+    href: "/tools",
+  });
+
+  // 5. EVO AI Coach
   menu.push({
     label: "EVO",
     icon: Bot,
     href: "/evo",
   });
 
-  // 3. Memberships (was previously duplicated as "Pricing" + "Memberships"
-  // both pointing to /memberships — the redundant "Pricing" entry was
-  // removed in Phase 7 to avoid two menu items with the same destination).
+  // 6. Blog
+  menu.push({
+    label: isAr ? "المدونة" : "Blog",
+    icon: FileText,
+    href: blogHref,
+  });
+
+  // 7. Coaching
+  menu.push({
+    label: isAr ? "الكوتشينج" : "Coaching",
+    icon: Users,
+    href: "/coaching",
+  });
+
+  // 8. Memberships
   menu.push({
     label: isAr ? "العضويات" : "Memberships",
     icon: Sparkles,
     href: "/memberships",
+  });
+
+  // 9. Pricing (same destination as Memberships — kept as a separate label
+  // per nav spec so visitors scanning the menu find "Pricing" by name).
+  menu.push({
+    label: isAr ? "الأسعار" : "Pricing",
+    icon: Crown,
+    href: "/memberships",
+  });
+
+  // 10. Affiliate Program — public marketing page (no login required).
+  // Distinct from the authenticated "Referrals" dashboard item below.
+  menu.push({
+    label: isAr ? "برنامج الأفلييت" : "Affiliate Program",
+    icon: Gift,
+    href: "/affiliate",
   });
 
   // 4. Client pages
@@ -155,7 +180,7 @@ export function SiteHeader({ variant = "landing" }: { variant?: "landing" | "app
       { label: isAr ? "تقدمي" : "My Progress", icon: LineChart, onClick: () => navigate("progress") },
       { label: isAr ? "كوتش EVO" : "EVO Coach", icon: Bot, onClick: () => navigate("chat") },
       { label: isAr ? "الاستبيانات" : "Questionnaires", icon: ClipboardList, onClick: () => navigate("questionnaires") },
-      { label: isAr ? "دعوة الأصدقاء" : "Referral", icon: Gift, onClick: () => navigate("referral") },
+      { label: isAr ? "الإحالات" : "Referrals", icon: Gift, onClick: () => navigate("referral") },
       { label: isAr ? "الدعم" : "Support", icon: LifeBuoy, onClick: () => navigate("support") },
     );
   }
@@ -166,7 +191,7 @@ export function SiteHeader({ variant = "landing" }: { variant?: "landing" | "app
       { label: isAr ? "لوحة الكوتش" : "Coach Dashboard", icon: LayoutDashboard, onClick: () => navigate("coach") },
       { label: isAr ? "المدفوعات" : "Payments", icon: Crown, onClick: () => navigate("coach-payments") },
       { label: isAr ? "دعم العملاء" : "Client Support", icon: LifeBuoy, onClick: () => navigate("coach-support") },
-      { label: isAr ? "Leads الأدوات" : "Tool Leads", icon: Calculator, href: "/admin/leads" },
+      { label: isAr ? "أدوات Leads" : "Tool Leads", icon: Calculator, href: "/admin/leads" },
       { label: isAr ? "النتائج المحفوظة" : "Saved Results", icon: Bookmark, href: "/admin/saved-results" },
       { label: isAr ? "الإحالات" : "Referrals", icon: Gift, onClick: () => navigate("admin-referrals") },
       { label: isAr ? "المدونة" : "Blog Admin", icon: FileText, href: "/admin/blog" },
@@ -193,17 +218,17 @@ export function SiteHeader({ variant = "landing" }: { variant?: "landing" | "app
           <button
             onClick={() => navigate("landing")}
             className="flex items-center gap-2"
-            aria-label="MuscleHub"
+            aria-label="MuscleHubEG"
           >
             <img
               src="/logo.png"
-              alt="MuscleHub"
+              alt="MuscleHubEG"
               className="hidden h-9 w-auto object-contain md:block"
               loading="eager"
             />
             <img
               src="/icon-192.png"
-              alt="MuscleHub"
+              alt="MuscleHubEG"
               className="h-9 w-9 rounded-lg object-contain md:hidden"
               loading="eager"
             />
@@ -289,7 +314,7 @@ export function SiteHeader({ variant = "landing" }: { variant?: "landing" | "app
         >
           {/* Drawer header */}
           <div className="flex h-16 items-center justify-between border-b border-[#d2d2d7] px-4">
-            <span className="text-base font-semibold">MuscleHub</span>
+            <span className="text-base font-semibold">MuscleHubEG</span>
             <button
               onClick={() => setOpen(false)}
               className="flex h-10 w-10 items-center justify-center rounded-lg text-[#1d1d1f] hover:bg-[#f5f5f7]"
@@ -382,7 +407,7 @@ export function SiteHeader({ variant = "landing" }: { variant?: "landing" | "app
 
           {/* Footer */}
           <div className="border-t border-[#d2d2d7] px-4 py-3 text-center text-xs font-normal text-[#6e6e73]">
-            <p>© {new Date().getFullYear()} MuscleHub</p>
+            <p>© {new Date().getFullYear()} MuscleHubEG</p>
           </div>
         </aside>
       </div>

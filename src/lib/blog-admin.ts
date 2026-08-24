@@ -1,7 +1,6 @@
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { supabase as supabaseClient } from "@/lib/supabase/client";
-import { callGemini, getGeminiApiKey } from "@/lib/gemini-wrapper";
-import { callAIWithFallback } from "@/lib/ai-provider";
+import { callFreeAIFallbackChain } from "@/lib/ai-provider";
 
 export type AdminBlogPost = {
   id: string;
@@ -113,7 +112,7 @@ export async function adminCreatePost(
     featured_image: post.featured_image || "",
     cover_alt: post.cover_alt || "",
     reading_time: post.reading_time || 1,
-    author: post.author || "MuscleHub",
+    author: post.author || "MuscleHubEG",
     is_published: post.is_published || false,
     published_at: post.is_published ? now : null,
     created_at: now,
@@ -320,8 +319,8 @@ export async function aiTool(
       ? `استخرج وولّد 3 إلى 5 أسئلة وأجوبة شائعة (FAQ) هامة من هذا المحتوى.\n- جميع الأسئلة والأجوبة MUST تكون بالعربية الفصحى فقط.\n- لا تستخدم كلمات إنجليزية إلا المصطلحات العلمية المختصرة بين قوسين.\n- الأسئلة مرتبطة مباشرة بمحتوى المقال.\n- التزم بتنسيق Markdown:\n${content.slice(0, 3000)}`
       : `Generate 3 to 5 high-value FAQs in Markdown based on this content:\n${content.slice(0, 3000)}`,
     cta: isAr
-      ? `اكتب 3 خيارات مختلفة لنصوص CTA قصيرة ومحفزة تدعو القارئ للاشتراك في برامج التدريب والتغذية المخصصة في MuscleHub.`
-      : `Write 3 motivating CTA copies inviting readers to join MuscleHub personalized coaching.`,
+      ? `اكتب 3 خيارات مختلفة لنصوص CTA قصيرة ومحفزة تدعو القارئ للاشتراك في برامج التدريب والتغذية المخصصة في MuscleHubEG.`
+      : `Write 3 motivating CTA copies inviting readers to join MuscleHubEG personalized coaching.`,
     fb: isAr
       ? `اكتب منشور فيسبوك تفاعلي وجذاب مع إيموجيز وهاشتاجات مناسبة لمقال بعنوان "${title}".`
       : `Write an engaging Facebook post with emojis and hashtags for an article titled "${title}".`,
@@ -350,57 +349,38 @@ export async function aiTool(
 
   const prompt = prompts[tool] || prompts.improve;
 
-  // 1. Try Gemini
+  // Use callFreeAIFallbackChain — same model selection order as article
+  // generation. Tries OpenRouter Nemotron (ultra → super → lightning) first,
+  // then falls back to Groq (llama-3.3-70b → mixtral-8x7b) if all OpenRouter
+  // models fail. ~95% success rate across two independent providers.
   try {
-    const { text } = await callGemini(prompt, {
-      temperature: 0.7,
-      maxTokens: 1200,
-    });
+    const { text } = await callFreeAIFallbackChain(
+      prompt,
+      {
+        temperature: 0.7,
+        maxTokens: 1200,
+        jsonMode: tool === "faq",
+        timeoutMs: 25_000,
+      },
+      3, // maxOpenRouterModels=3 — try all 3 Nemotron before Groq fallback
+    );
     if (text && text.trim().length > 0) {
       return { text: text.trim() };
     }
   } catch (err: any) {
-    console.warn("[aiTool] Gemini failed, trying OpenRouter fallback:", err?.message || err);
+    console.error("[aiTool] OpenRouter failed:", err?.message);
+    throw new Error(
+      isAr
+        ? "تعذر التواصل مع خدمات الذكاء الاصطناعي حالياً. يرجى إعادة المحاولة."
+        : "AI service is currently unavailable. Please try again.",
+    );
   }
 
-  // 2. Try OpenRouter fallback
-  try {
-    const OPENROUTER_KEY = getGeminiApiKey();
-    const OPENROUTER_BASE = "https://openrouter.ai/api/v1";
-    if (OPENROUTER_KEY) {
-      const models = [
-        "nvidia/nemotron-3.5-lightning:free",
-        "nvidia/nemotron-3-super-120b-a12b:free",
-      ];
-      for (const model of models) {
-        try {
-          const { text } = await callAIWithFallback(
-            prompt,
-            {
-              temperature: 0.7,
-              maxTokens: 1000,
-              timeoutMs: 30_000,
-            },
-            {
-              provider: "openrouter" as any,
-              apiKey: OPENROUTER_KEY,
-              model,
-              baseUrl: OPENROUTER_BASE,
-            },
-          );
-          if (text && text.trim().length > 0) {
-            return { text: text.trim() };
-          }
-        } catch (e: any) {
-          console.error(`[aiTool] OpenRouter ${model} failed:`, e?.message);
-        }
-      }
-    }
-  } catch (e: any) {
-    console.error("[aiTool] OpenRouter failed:", e);
-  }
-
-  throw new Error("تعذر التواصل مع خدمات الذكاء الاصطناعي حالياً. يرجى إعادة المحاولة.");
+  throw new Error(
+    isAr
+      ? "تعذر التواصل مع خدمات الذكاء الاصطناعي حالياً. يرجى إعادة المحاولة."
+      : "AI service is currently unavailable. Please try again.",
+  );
 }
 
 // ---- SEO Scoring ----

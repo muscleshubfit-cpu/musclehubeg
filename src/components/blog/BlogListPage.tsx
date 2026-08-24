@@ -25,7 +25,7 @@ export function BlogListPage({ lang }: { lang: "en" | "ar" }) {
       <header className="sticky top-0 z-40 border-b border-[#d2d2d7] bg-white/80 backdrop-blur-xl">
         <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between px-4 sm:px-6">
           <a href="/" className="text-lg font-semibold tracking-tight">
-            MuscleHub
+            MuscleHubEG
           </a>
           <div className="flex items-center gap-4">
             <LanguageToggle />
@@ -40,12 +40,12 @@ export function BlogListPage({ lang }: { lang: "en" | "ar" }) {
         {/* Hero */}
         <div className="mb-12 text-center">
           <h1 className="text-4xl font-semibold tracking-tight md:text-6xl">
-            {isAr ? "مدونة MuscleHub" : "MuscleHub Blog"}
+            {isAr ? "مدونة MuscleHubEG" : "MuscleHubEG Blog"}
           </h1>
           <p className="mx-auto mt-6 max-w-xl text-lg font-normal text-[#6e6e73] md:text-xl">
             {isAr
-              ? "نصائح وإرشادات علمية للتغذية واللياقة من فريق MuscleHub"
-              : "Science-backed nutrition and fitness tips from the MuscleHub team"}
+              ? "نصائح وإرشادات علمية للتغذية واللياقة من فريق MuscleHubEG"
+              : "Science-backed nutrition and fitness tips from the MuscleHubEG team"}
           </p>
         </div>
 
@@ -132,7 +132,7 @@ export function BlogListPage({ lang }: { lang: "en" | "ar" }) {
       </main>
 
       <footer className="mt-auto border-t border-[#d2d2d7] py-6 text-center text-xs font-normal text-[#6e6e73]">
-        © {new Date().getFullYear()} MuscleHub. {isAr ? "كل الحقوق محفوظة." : "All rights reserved."}
+        © {new Date().getFullYear()} MuscleHubEG. {isAr ? "كل الحقوق محفوظة." : "All rights reserved."}
       </footer>
     </div>
   );

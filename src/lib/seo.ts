@@ -17,7 +17,7 @@
  */
 
 const SITE_URL = "https://musclehubeg.vercel.app";
-const SITE_NAME = "MuscleHub";
+const SITE_NAME = "MuscleHubEG";
 const SITE_LOGO = `${SITE_URL}/logo.png`;
 
 /**

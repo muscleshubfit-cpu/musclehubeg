@@ -179,8 +179,8 @@ export default function BodyFatCalculatorPage() {
               <ShareButtons
                 title={
                   isAr
-                    ? `نسبة دهوني: ${result.bf}% (${result.category}) | MuscleHub`
-                    : `My body fat: ${result.bf}% (${result.category}) | MuscleHub`
+                    ? `نسبة دهوني: ${result.bf}% (${result.category}) | MuscleHubEG`
+                    : `My body fat: ${result.bf}% (${result.category}) | MuscleHubEG`
                 }
               />
             </div>

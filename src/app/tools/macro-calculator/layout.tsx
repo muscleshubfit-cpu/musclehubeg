@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "حاسبة الماكروز | MuscleHub — احسب البروتين والكارب والدهون",
+  title: "حاسبة الماكروز | MuscleHubEG — احسب البروتين والكارب والدهون",
   description:
     "احسب احتياجك اليومي من الماكروز (بروتين، كاربوهيدرات، دهون) بناءً على السعرات الحرارية وهدفك. حاسبة ماكروز مجانية ودقيقة.",
   keywords: [
@@ -13,7 +13,7 @@ export const metadata: Metadata = {
     "حساب الكاربوهيدرات",
   ],
   openGraph: {
-    title: "حاسبة الماكروز | MuscleHub",
+    title: "حاسبة الماكروز | MuscleHubEG",
     description: "احسب احتياجك اليومي من البروتين والكارب والدهون مجاناً.",
     type: "website",
     locale: "ar_EG",

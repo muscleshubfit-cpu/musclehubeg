@@ -4,6 +4,7 @@ import { supabase, isSupabaseConfigured } from "@/lib/supabase/client";
 import type { Profile } from "@/lib/supabase/types";
 import { swapLimitFor } from "@/lib/plans";
 import { trackReferral, awardCommission } from "@/lib/referral";
+import { processSubscriptionInitialPayment } from "@/lib/affiliate-engine";
 import { getReferralCookie, clearReferralCookie } from "@/lib/referral-cookie";
 
 /* -------------------------------------------------------------------------- */
@@ -297,7 +298,7 @@ export function seedLocalData() {
  [coachId]: {
  id: coachId,
  email: "ahmed@coach.app",
- full_name: "MuscleHub Coach",
+ full_name: "MuscleHubEG Coach",
  phone: "+20 100 000 0000",
  role: "coach",
  avatar_url: null,
@@ -1052,12 +1053,30 @@ export async function reviewSubscriptionRequest(id: string, action: "approve" | 
  await upsertSubscription(req.user_id, req.plan_tier, req.duration_months, start.toISOString(), end.toISOString());
  // Notify the user
  await createNotification(req.user_id, "subscription_approved", "تم تفعيل اشتراكك!", `تم الموافقة على طلب اشتراكك (${req.plan_tier}) لمدة ${req.duration_months} أشهر.`, "/dashboard");
- // Award referral commission (20% of payment)
+ // Award affiliate commission through the new engine (idempotent, transaction-level).
+ // This replaces the legacy awardCommission() call with a generic, idempotent engine.
+ // Engine flow:
+ //   processSubscriptionInitialPayment()
+ //     → createAffiliateTransaction (type: subscription_initial)
+ //     → processCommission()
+ //         → look up affiliate from referrals (first-click, permanent)
+ //         → idempotency check (unique index on affiliate_commissions.transaction_id)
+ //         → insert affiliate_commissions row
+ //         → insert referral_earnings row (links to payout system)
+ //         → update referrals.status → 'completed'
+ //         → notify the affiliate
+ // If anything fails inside the engine, the try/catch swallows the error
+ // so the subscription approval itself is not blocked.
  try {
  const paymentAmount = req.price_usd ? Number(req.price_usd) : 10; // already USD
- await awardCommission(req.user_id, paymentAmount, req.id);
+ await processSubscriptionInitialPayment(
+   req.user_id,
+   paymentAmount,
+   req.id,
+   req.plan_tier,
+ );
  } catch (e) {
- console.error("[reviewSubscriptionRequest] Commission error:", e);
+ console.error("[reviewSubscriptionRequest] Affiliate commission error:", e);
  }
  } else {
  await createNotification(data.user_id, "subscription_rejected", "تم رفض طلب الاشتراك", "تم رفض طلب اشتراكك. يرجى التواصل مع الدعم.", "/memberships");

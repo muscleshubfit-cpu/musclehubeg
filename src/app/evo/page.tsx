@@ -509,7 +509,7 @@ export default function EvoPage() {
             {isAr ? "شارك صفحة EVO" : "Share EVO page"}
           </p>
           <ShareButtons
-            title={isAr ? "EVO — كوتش ذكاء اصطناعي | MuscleHub" : "EVO — AI Coach | MuscleHub"}
+            title={isAr ? "EVO — كوتش ذكاء اصطناعي | MuscleHubEG" : "EVO — AI Coach | MuscleHubEG"}
             text={isAr ? "محرك أداء ذكي مش مجرد شات بوت — متاح للجميع" : "An intelligent performance engine, not just a chatbot — available to everyone"}
           />
         </div>

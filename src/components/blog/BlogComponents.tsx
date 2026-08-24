@@ -1,16 +1,14 @@
 "use client";
 
-import { ArrowRight, Check, Facebook, Linkedin, Twitter, MessageCircle, Copy, Check as CheckIcon, Share2, Crown } from "lucide-react";
+import { ArrowRight, Check, Facebook, Linkedin, Twitter, MessageCircle, Copy, Check as CheckIcon, Share2, Crown, Gift } from "lucide-react";
 import { useState, useEffect } from "react";
 
 /**
  * BlogMembershipCard — compact single-card CTA shown inside blog articles.
  *
- * Replaces the old BlogCTA (which promoted an individual coach by name)
- * with a clean membership pitch. One brief card, no images, no email form.
- *
- * Three tiers are highlighted in a single horizontal row so the reader
- * can self-select without leaving the article.
+ * Two sections:
+ * 1. Coaching CTA — book a coaching session
+ * 2. Membership plans — Free / Premium / Pro tiers
  */
 export function BlogMembershipCard({ lang }: { lang: "en" | "ar" }) {
  const isAr = lang === "ar";
@@ -22,13 +20,36 @@ export function BlogMembershipCard({ lang }: { lang: "en" | "ar" }) {
  ];
 
  return (
- <div className="my-12 overflow-hidden rounded-3xl border border-[#0071e3]/20 bg-[#0071e3]/5 p-6 md:p-8">
+ <div className="my-12 space-y-6">
+ {/* Section 1: Coaching CTA */}
+ <div className="overflow-hidden rounded-3xl border border-[#0071e3]/20 bg-gradient-to-br from-[#0071e3]/5 to-[#0071e3]/10 p-6 md:p-8">
  <div className="flex flex-col items-center text-center">
  <span className="grid mx-auto h-12 w-12 place-items-center rounded-2xl bg-[#0071e3] text-white shadow-lg">
  <Crown className="h-6 w-6" />
  </span>
  <h3 className="mt-4 text-xl font-semibold tracking-tight md:text-2xl">
- {isAr ? "اختر عضوية MuscleHub المناسبة لهدفك" : "Pick the MuscleHub plan that fits your goal"}
+ {isAr ? "احجز جلسة كوتشينج مع MuscleHubEG" : "Book a Coaching Session with MuscleHubEG"}
+ </h3>
+ <p className="mx-auto mt-2 max-w-md text-sm font-normal text-[#6e6e73]">
+ {isAr
+ ? "احصل على خطة مخصصة من مدرب معتمد — تغذية + تمارين + متابعة أسبوعية. ابدأ رحلتك اليوم."
+ : "Get a personalized plan from a certified coach — nutrition + training + weekly tracking. Start your journey today."}
+ </p>
+ <a
+ href={isAr ? "/ar/coaching" : "/coaching"}
+ className="mt-5 inline-flex items-center gap-2 rounded-full bg-[#0071e3] px-6 py-2.5 text-sm font-normal text-white transition-opacity hover:opacity-90"
+ >
+ {isAr ? "احجز جلسة الآن" : "Book a session"}
+ <ArrowRight className="h-4 w-4 rtl:rotate-180" />
+ </a>
+ </div>
+ </div>
+
+ {/* Section 2: Membership plans */}
+ <div className="overflow-hidden rounded-3xl border border-[#0071e3]/20 bg-[#0071e3]/5 p-6 md:p-8">
+ <div className="flex flex-col items-center text-center">
+ <h3 className="text-xl font-semibold tracking-tight md:text-2xl">
+ {isAr ? "أو اختر عضوية MuscleHubEG" : "Or pick a MuscleHubEG plan"}
  </h3>
  <p className="mx-auto mt-2 max-w-md text-sm font-normal text-[#6e6e73]">
  {isAr
@@ -85,6 +106,31 @@ export function BlogMembershipCard({ lang }: { lang: "en" | "ar" }) {
  </a>
  </div>
  </div>
+
+ {/* Section 3: Affiliate Program CTA */}
+ <div className="overflow-hidden rounded-3xl border border-[#34c759]/20 bg-gradient-to-br from-[#34c759]/5 to-[#34c759]/10 p-6 md:p-8">
+ <div className="flex flex-col items-center text-center">
+ <span className="grid mx-auto h-12 w-12 place-items-center rounded-2xl bg-[#1d8a3d] text-white shadow-lg">
+ <Gift className="h-6 w-6" />
+ </span>
+ <h3 className="mt-4 text-xl font-semibold tracking-tight md:text-2xl">
+ {isAr ? "حوّل تأثيرك إلى دخل مع برنامج الأفلييت" : "Turn Your Influence Into Income — Affiliate Program"}
+ </h3>
+ <p className="mx-auto mt-2 max-w-md text-sm font-normal text-[#6e6e73]">
+ {isAr
+ ? "شارك MuscleHubEG مع جمهورك واكسب 20% عمولة من كل اشتراك مؤهل. كوكيز 30 يوم."
+ : "Share MuscleHubEG with your audience and earn 20% commission on every eligible subscription. 30-day cookie."}
+ </p>
+ <a
+ href="/affiliate"
+ className="mt-5 inline-flex items-center gap-2 rounded-full bg-[#1d8a3d] px-6 py-2.5 text-sm font-normal text-white transition-opacity hover:opacity-90"
+ >
+ {isAr ? "تعرف على البرنامج" : "Learn about the program"}
+ <ArrowRight className="h-4 w-4 rtl:rotate-180" />
+ </a>
+ </div>
+ </div>
+ </div>
  );
 }
 
@@ -98,8 +144,8 @@ export function SocialShare({ url, ogUrl, title, description, image, lang }: { u
  // Language-aware share text — always include a summary
  const shortDesc = description ? description.slice(0, 150) + (description.length > 150 ? "..." : "") : (title ? title : "");
  const shareText = isAr
-   ? `${title}\n\n${shortDesc}\n\nاقرأ المقال كاملاً على MuscleHub:`
-   : `${title}\n\n${shortDesc}\n\nRead the full article on MuscleHub:`;
+   ? `${title}\n\n${shortDesc}\n\nاقرأ المقال كاملاً على MuscleHubEG:`
+   : `${title}\n\n${shortDesc}\n\nRead the full article on MuscleHubEG:`;
  const encodedShareText = encodeURIComponent(shareText);
 
  const share = (platform: string) => {

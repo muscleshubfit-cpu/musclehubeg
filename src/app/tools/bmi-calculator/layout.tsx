@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "حاسبة مؤشر كتلة الجسم BMI | MuscleHub — احسب وزنك المثالي",
+  title: "حاسبة مؤشر كتلة الجسم BMI | MuscleHubEG — احسب وزنك المثالي",
   description:
     "احسب مؤشر كتلة الجسم (BMI) مجاناً. اعرف هل وزنك مثالي أم زائد أم ناقص. حاسبة BMI دقيقة وسهلة الاستخدام مع تفسير النتائج.",
   keywords: [
@@ -14,7 +14,7 @@ export const metadata: Metadata = {
     "حساب مؤشر الكتلة",
   ],
   openGraph: {
-    title: "حاسبة مؤشر كتلة الجسم BMI | MuscleHub",
+    title: "حاسبة مؤشر كتلة الجسم BMI | MuscleHubEG",
     description: "احسب مؤشر كتلة الجسم (BMI) مجاناً واعرف وزنك المثالي.",
     type: "website",
     locale: "ar_EG",

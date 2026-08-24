@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "برامج التدريب | MuscleHub",
+  title: "برامج التدريب | MuscleHubEG",
   description:
     "برامج تدريبية جاهزة لكل المستويات والأهداف. برامج منزلية بدون معدات، برامج بدمبل في المنزل، وبرامج جيم كاملة. ابدأ رحلتك الرياضية اليوم.",
   keywords: [
@@ -14,7 +14,7 @@ export const metadata: Metadata = {
     "تمارين بدون معدات",
   ],
   openGraph: {
-    title: "برامج التدريب | MuscleHub",
+    title: "برامج التدريب | MuscleHubEG",
     description: "برامج تدريبية جاهزة لكل المستويات والأهداف.",
     type: "website",
     locale: "ar_EG",

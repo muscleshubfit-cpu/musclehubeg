@@ -53,7 +53,7 @@ export async function GET(request: NextRequest) {
     let research: any = null;
     try {
       console.log("[blog/step2] Starting research phase");
-      const researchPrompt = `You are an expert SEO/GEO content strategist. Research the topic "${qi.focus_keyword || qi.topic}" for a fitness & nutrition coaching blog (MuscleHub, Egypt-focused, Arabic + English audience).
+      const researchPrompt = `You are an expert SEO/GEO content strategist. Research the topic "${qi.focus_keyword || qi.topic}" for a fitness & nutrition coaching blog (MuscleHubEG, Egypt-focused, Arabic + English audience).
 
 Based on your knowledge of search trends, Google search behavior, and AI answer engine patterns, provide:
 

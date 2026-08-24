@@ -1,19 +1,22 @@
 import { parseJSON } from "@/lib/ai-provider";
-import { callGeminiFlashViaOpenRouter } from "@/lib/openrouter-flash";
+import { callFreeAIFallbackChain } from "@/lib/ai-provider";
 import { supabaseAdmin, isSupabaseAdminConfigured } from "@/lib/supabase/admin";
 
 /**
  * Smart topic picker for the automated blog pipeline.
  *
- * There's no paid keyword/trends API wired in (SerpApi, Ahrefs, etc. all
- * cost money — this project is deliberately built on free tiers only). So
- * "search-aware" here means: prompt the model, itself trained on a huge
- * corpus of real search behavior, to act as an SEO strategist — while we
- * mechanically guarantee variety by choosing the content pillar in CODE
- * (round-robin), not by hoping the model remembers to rotate.
+ * EN/AR SEPARATION: This module maintains TWO separate topic pools:
+ *   - EN_TOPIC_FALLBACKS: English topics (for English articles)
+ *   - AR_TOPIC_FALLBACKS: Arabic topics (for Arabic articles)
  *
- * If real-time SERP/trends data is wanted later, this is the single place
- * to plug in a live search API before building the prompt.
+ * Each language has its own curated fallback list + its own AI prompt.
+ * The `pickSmartTopic()` function accepts a `language` param ("en" | "ar")
+ * and picks from the correct pool.
+ *
+ * Research-based topics (Aug 2026):
+ * Each topic was identified via web search of trending fitness/nutrition
+ * content. Topics span diverse niches to avoid the "muscle/protein/gain"
+ * repetition pattern that plagued earlier versions.
  */
 
 // IMPORTANT: these MUST match BLOG_CATEGORIES ids in src/lib/blog.ts exactly,
@@ -31,30 +34,84 @@ const CONTENT_PILLARS = [
 
 type Pillar = (typeof CONTENT_PILLARS)[number];
 
-const TOPIC_SYSTEM_PROMPT = `You are an SEO/GEO content strategist for a premium online fitness & nutrition coaching platform (MuscleHub, Egypt-focused, Arabic + English audience).
+// ─────────────────────────────────────────────────────────────────────────
+// ENGLISH SYSTEM PROMPT
+// ─────────────────────────────────────────────────────────────────────────
+const TOPIC_SYSTEM_PROMPT_EN = `You are an SEO/GEO content strategist for MuscleHubEG (musclehubeg.vercel.app), a fitness & nutrition platform for an English-speaking audience.
 
-You will be told the EXACT content pillar to write about (it was already chosen by a rotation system — do not change it). Your job is to pick the single best, specific ARTICLE ANGLE within that pillar.
+You will be told the EXACT content pillar to write about. Pick the single best, specific ARTICLE ANGLE within that pillar.
 
-Requirements for the topic you pick:
- - Has genuine, evergreen or currently-seasonal search demand (something real people actually type into Google or ask ChatGPT/Perplexity about).
+Requirements:
+ - Has genuine search demand (something real people search for on Google or ask AI assistants).
  - Stays squarely within the assigned pillar.
- - Is CLEARLY DIFFERENT from every already-published title/keyword you're given below — not just reworded, a genuinely distinct angle (different sub-topic, different audience segment, different format like "vs" comparison / myth-busting / how-to / checklist).
- - Is likely to rank on Google AND get cited by AI answer engines (clear, answerable, specific — not vague).
+ - Is CLEARLY DIFFERENT from every already-published title/keyword listed below.
+ - Is likely to rank on Google AND get cited by AI answer engines.
 
-CRITICAL ANTI-REPETITION RULES:
- - You MUST NOT pick a topic that covers the same core subject, target audience, or primary advice as ANY recently published post listed below.
- - "Different" means a genuinely new angle — NOT a reworded version of the same topic.
- - If all obvious angles within this pillar have been covered, dig deeper: explore niche sub-topics, emerging research, specific population segments (e.g., women, seniors, post-injury, Ramadan-specific), or cross-pillar intersections.
- - Vary the article FORMAT each time: one time a how-to guide, next time a comparison, next time a myth-busting piece, next time a science deep-dive, next time a checklist.
- - The focusKeyword MUST be different from all previously used focus keywords listed below.
+CRITICAL DIVERSITY RULES (the site already has too many "muscle gain" + "protein" posts):
+ - For "muscle-gain": AVOID "how to gain muscle", "protein for muscle", "lean bulking", "hypertrophy vs strength" basics.
+   Pick NICHE: muscle imbalances, unilateral training, mind-muscle connection, recovery protocols, deloading, periodization, muscle memory, sarcopenia.
+ - For "nutrition": AVOID protein basics, calorie counting, macros 101.
+   Pick: nutrient timing, micronutrients, fiber, hydration, circadian nutrition, Ramadan nutrition.
+ - For "workout": AVOID "full body vs split", "best workout routine".
+   Pick: biomechanics, tempo, rest intervals, drop sets, supersets, frequency.
+ - For "supplements": AVOID "creatine basics", "best protein powder".
+   Pick: caffeine, beta-alanine, vitamin D, omega-3, magnesium, specific dosing.
+ - For "weight-loss": AVOID "how to lose weight", "calorie deficit".
+   Pick: sleep, cortisol, reverse dieting, GLP-1, gut microbiome, NEAT.
+ - For "health": AVOID generic "fitness for health".
+   Pick: HRV, cold exposure, sunlight/vitamin D, mental health, longevity.
+ - For "recipes": AVOID "high protein meals" (overused).
+   Pick: high-fiber, meal prep, sugar-free, post-workout, Egyptian recipes.
+ - For "science": AVOID "DOMS", "anabolic window".
+   Pick: MPS, lactic acid myth, testosterone, genetics, muscle memory science.
 
-Consider the current month/season for relevance (e.g., Ramadan nutrition timing, summer cutting, winter bulking, New Year's resolution intent) only if it genuinely fits the assigned pillar — don't force it.
+Vary the article FORMAT each time: how-to guide, comparison, myth-busting, science deep-dive, checklist.
 
 Return STRICT JSON only, no prose, no markdown fences:
 {
-  "topic": "string — a specific, compelling article topic (not just a keyword)",
-  "focusKeyword": "string — the primary SEO keyword this topic targets (must be unique vs. all listed keywords)",
-  "rationale": "string — 1-2 sentences: why this has search demand and will win on Google + AI search right now"
+  "topic": "string — specific, compelling article topic in ENGLISH",
+  "focusKeyword": "string — primary English SEO keyword (must be unique)",
+  "rationale": "string — 1-2 sentences: why this has search demand now"
+}`;
+
+// ─────────────────────────────────────────────────────────────────────────
+// ARABIC SYSTEM PROMPT
+// ─────────────────────────────────────────────────────────────────────────
+const TOPIC_SYSTEM_PROMPT_AR = `أنت خبير استراتيجية محتوى SEO و GEO لمنصة MuscleHubEG (musclehubeg.vercel.app)، منصة لياقة وتغذية للجمهور العربي (مصر والخليج).
+
+سيتم إخبارك بالقسم المحدد للكتابة فيه. اختر أفضل زاوية مقال محددة ضمن هذا القسم.
+
+المتطلبات:
+ - له طلب بحث حقيقي (شيء يبحث عنه الناس فعلاً على جوجل أو يسألون عنه المساعدين الذكيين).
+ - يبقى ضمن القسم المحدد.
+ - مختلف بوضوح عن كل عنوان/كلمة مفتاحية منشورة سابقاً مذكورة أدناه.
+ - محتمل أن يترتي على جوجل ويُستشهد به في محركات البحث الذكية.
+
+قواعد التنوع (الموقع به الكثير من مقالات "بناء العضلات" و"البروتين"):
+ - لـ"muscle-gain": تجنب "كيفية بناء العضلات"، "البروتين للعضلات"، "التضخيم النظيف".
+   اختر: عدم التوازن العضلي، التدريب الأحادي، الاتصال الذهني العضلي، التعافي، فك الحمل، التخطيط الدوري.
+ - لـ"nutrition": تجنب أساسيات البروتين، عد السعرات.
+   اختر: توقيت التغذية، المغذيات الدقيقة، الألياف، الترطيب، التغذية circadian، رمضان.
+ - لـ"workout": تجنب "تمرين كامل مقابل تقسيم"، "أفضل روتين".
+   اختر: البيوميكانيكا، الإيقاع، فترات الراحة، الدروب سيتس، السوبر سيتس.
+ - لـ"supplements": تجنب "أساسيات الكرياتين"، "أفضل بروتين".
+   اختر: الكافيين، بيتا ألانين، فيتامين D، أوميغا 3، المغنيسيوم.
+ - لـ"weight-loss": تجنب "كيفية خسارة الوزن"، "عجز السعرات".
+   اختر: النوم، الكورتيزول، النظام الغذائي العكسي، الميكروبيوم المعوي.
+ - لـ"health": تجنب "اللياقة للصحة" عام.
+   اختر: HRV، التعرض للبرد، ضوء الشمس، الصحة النفسية، طول العمر.
+ - لـ"recipes": تجنب "وجبات عالية البروتين" (مستخدمة كثيراً).
+   اختر: ألياف عالية، تحضير وجبات، سكر مجاني، وجبات ما بعد التمرين.
+ - لـ"science": تجنب "DOMS"، "النافذة الأيضية".
+   اختر: تخليق البروتين العضلي، خرافة حمض اللاكتيك، التستوستيرون، الوراثة.
+
+تنوع في كل مرة: دليل عملي، مقارنة، دحض خرافة، تحليل علمي، قائمة مرجعية.
+
+أعد JSON فقط، بدون نص خارج JSON:
+{
+  "topic": "string — موضوع مقال محدد وجذاب بالعربية",
+  "focusKeyword": "string — الكلمة المفتاحية العربية الرئيسية (يجب أن تكون فريدة)",
+  "rationale": "string — 1-2 جملة: لماذا له طلب بحثي الآن"
 }`;
 
 export type TopicPick = {
@@ -64,7 +121,7 @@ export type TopicPick = {
   rationale: string;
 };
 
-async function getRecentPosts(limit = 40): Promise<{ title: string; focusKeyword: string; category: string }[]> {
+async function getRecentPosts(limit = 100): Promise<{ title: string; focusKeyword: string; category: string }[]> {
   if (!isSupabaseAdminConfigured || !supabaseAdmin) return [];
   const { data, error } = await supabaseAdmin
     .from("blog_posts" as any)
@@ -80,167 +137,291 @@ async function getRecentPosts(limit = 40): Promise<{ title: string; focusKeyword
   }));
 }
 
+async function getRecentPostsByLanguage(lang: "en" | "ar", limit = 100): Promise<{ title: string; focusKeyword: string; category: string }[]> {
+  if (!isSupabaseAdminConfigured || !supabaseAdmin) return [];
+  const { data, error } = await supabaseAdmin
+    .from("blog_posts" as any)
+    .select("title, focus_keyword, category")
+    .eq("language", lang)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (error || !data) return [];
+  return (data as any[]).map((p) => ({
+    title: p.title || "",
+    focusKeyword: p.focus_keyword || "",
+    category: p.category || "",
+  }));
+}
+
+/**
+ * Stronger duplicate detector — checks BOTH exact match AND substring
+ * overlap (≥70% of the focus keyword words appear in an existing title
+ * or focus keyword).
+ */
+function isDuplicateTopic(
+  newTopic: string,
+  newFocusKw: string,
+  existing: { title: string; focusKeyword: string }[],
+): { duplicate: boolean; matchedExisting?: string } {
+  const normalize = (s: string) => s.toLowerCase().replace(/[^a-z0-9\s\u0600-\u06FF]/g, " ").replace(/\s+/g, " ").trim();
+  const newTitleNorm = normalize(newTopic);
+  const newKwNorm = normalize(newFocusKw);
+  const newKwWords = newKwNorm.split(" ").filter((w) => w.length > 2);
+
+  for (const ex of existing) {
+    const exTitle = normalize(ex.title);
+    const exKw = normalize(ex.focusKeyword);
+
+    if (exTitle.includes(newKwNorm) || exKw.includes(newKwNorm)) {
+      return { duplicate: true, matchedExisting: ex.title };
+    }
+
+    if (newKwWords.length >= 2) {
+      const overlapCount = newKwWords.filter((w) => exTitle.includes(w) || exKw.includes(w)).length;
+      const overlapPct = overlapCount / newKwWords.length;
+      if (overlapPct >= 0.7) {
+        return { duplicate: true, matchedExisting: ex.title };
+      }
+    }
+  }
+  return { duplicate: false };
+}
+
 /**
  * Deterministic round-robin: mandate whichever pillar hasn't been used
- * most recently. This is a hard guarantee in code, not left to the model's
- * judgment — the LLM only picks the specific angle *within* the pillar
- * this function assigns.
+ * most recently.
  */
 export function pickRotationCategory(recent: { category: string }[]): Pillar {
   const lastUsedIndex = new Map<string, number>();
   recent.forEach((p, idx) => {
-    if (p.category && !lastUsedIndex.has(p.category)) lastUsedIndex.set(p.category, idx); // 0 = most recent
+    if (p.category && !lastUsedIndex.has(p.category)) lastUsedIndex.set(p.category, idx);
   });
   const ranked = [...CONTENT_PILLARS].sort((a, b) => {
     const ai = lastUsedIndex.has(a) ? (lastUsedIndex.get(a) as number) : Infinity;
     const bi = lastUsedIndex.has(b) ? (lastUsedIndex.get(b) as number) : Infinity;
-    return bi - ai; // pillar with the largest "posts since last used" comes first
+    return bi - ai;
   });
   return ranked[0];
 }
 
-const CURATED_TOPIC_FALLBACKS: Record<
+// ═════════════════════════════════════════════════════════════════════════
+// ENGLISH CURATED TOPIC FALLBACKS (research-based, Aug 2026)
+// ═════════════════════════════════════════════════════════════════════════
+const EN_TOPIC_FALLBACKS: Record<
   Pillar,
   Array<{ topic: string; focusKeyword: string; rationale: string }>
 > = {
   nutrition: [
-    {
-      topic: "High-Protein Egyptian Breakfasts: 5 Traditional Meals Optimized for Muscle Growth",
-      focusKeyword: "high protein Egyptian breakfast",
-      rationale: "High regional search volume with high practical utility for Middle Eastern fitness enthusiasts.",
-    },
-    {
-      topic: "Carb Cycling for Fat Loss: Complete Guide with Macro Breakdown and Meal Timing",
-      focusKeyword: "carb cycling for fat loss",
-      rationale: "Targeting intermediate trainees looking for evidence-based fat loss strategies beyond simple calorie deficits.",
-    },
-    {
-      topic: "Plant-Based Protein vs Whey: Muscle Protein Synthesis and Digestion Rates Compared",
-      focusKeyword: "plant protein vs whey",
-      rationale: "Addresses growing search queries around vegan vs dairy protein efficacy for hypertrophy.",
-    },
-    {
-      topic: "Intermittent Fasting and Muscle Retention: What the Latest Science Says",
-      focusKeyword: "intermittent fasting muscle retention",
-      rationale: "Evergreen interest topic with strong intent regarding preserving lean mass during fasting.",
-    },
+    { topic: "Circadian Nutrition: How Meal Timing Affects Metabolism and Sleep", focusKeyword: "circadian nutrition meal timing", rationale: "Emerging science on chrononutrition with growing search interest." },
+    { topic: "Fiber-Maxxing: Why 30g Daily Fiber Is the 2026 Nutrition Trend", focusKeyword: "fiber maxxing trend", rationale: "Top 2026 nutrition trend per multiple dietitian surveys." },
+    { topic: "Micronutrient Deficiencies in Strength Athletes: Iron, Zinc, Magnesium", focusKeyword: "micronutrient deficiency athletes", rationale: "Underexplored topic with strong health implications." },
+    { topic: "Meal Frequency Myths: Does Eating 6 Times a Day Boost Metabolism?", focusKeyword: "meal frequency metabolism myth", rationale: "Myth-busting with high search volume." },
+    { topic: "Hydration Science: How Much Water Do Athletes Really Need?", focusKeyword: "athlete hydration guidelines", rationale: "Evergreen practical topic." },
+    { topic: "Ramadan Nutrition: Maintaining Muscle While Fasting 16 Hours", focusKeyword: "ramadan nutrition muscle retention", rationale: "Seasonal but recurring high-demand topic." },
+    { topic: "Caffeine and Performance: Optimal Dosing and Timing", focusKeyword: "caffeine performance dosing", rationale: "Most-used ergogenic aid with constant search interest." },
+    { topic: "Gut Microbiome and Nutrition: How Bacteria Affect Absorption", focusKeyword: "gut microbiome nutrition", rationale: "Cutting-edge science with growing interest." },
+    { topic: "Anti-Inflammatory Foods for Recovery: Omega-3, Turmeric, Ginger", focusKeyword: "anti-inflammatory foods recovery", rationale: "Recovery-focused nutrition topic." },
+    { topic: "Sugar Alternatives: Stevia, Monk Fruit, Allulose Compared", focusKeyword: "sugar alternatives comparison", rationale: "Consumer education with high commercial intent." },
   ],
   workout: [
-    {
-      topic: "Dumbbell-Only Upper Body Hypertrophy Routine: Full 4-Day Home Split",
-      focusKeyword: "dumbbell upper body workout",
-      rationale: "Extremely popular search intent for home gym and limited-equipment workouts.",
-    },
-    {
-      topic: "How to Overcome a Bench Press Plateau: Biomechanics and Accessory Protocol",
-      focusKeyword: "increase bench press strength",
-      rationale: "High intent from lifters seeking actionable periodization and form fixes.",
-    },
-    {
-      topic: "RPE vs Percentage-Based Training: Which Auto-Regulation Method Builds More Muscle?",
-      focusKeyword: "RPE vs percentage training",
-      rationale: "Appeals to serious lifters seeking advanced programming and fatigue management insights.",
-    },
-    {
-      topic: "Fixing Forward Head Posture and Rounded Shoulders for Lifters: 10-Minute Mobility Routine",
-      focusKeyword: "rounded shoulders posture fix lifters",
-      rationale: "High search volume addressing common desk posture issues exacerbated by gym training.",
-    },
+    { topic: "Mind-Muscle Connection: Scientific Evidence and Application", focusKeyword: "mind muscle connection science", rationale: "Trending among intermediate lifters." },
+    { topic: "Tempo Training: How Slow Eccentrics Build More Muscle", focusKeyword: "tempo training hypertrophy", rationale: "Underexplored training variable." },
+    { topic: "Drop Sets and Supersets: When to Use Intensity Techniques", focusKeyword: "drop sets supersets guide", rationale: "Practical guide for intermediates." },
+    { topic: "Unilateral Training: Fixing Muscle Imbalances", focusKeyword: "unilateral training imbalances", rationale: "Niche topic addressing common issues." },
+    { topic: "Deloading: The Science of Recovery Weeks", focusKeyword: "deloading science", rationale: "Important for long-term progress." },
+    { topic: "Rest Interval Science: How Long Between Sets?", focusKeyword: "rest intervals between sets", rationale: "Fundamental programming question." },
+    { topic: "Time-Efficient Training: 20-Minute Workouts That Work", focusKeyword: "time efficient workout 20 minutes", rationale: "Top 2026 fitness trend per ACSM." },
+    { topic: "Strength Training for Older Adults: Programs After 50", focusKeyword: "strength training older adults", rationale: "Growing demographic per ACSM 2026 trends." },
+    { topic: "Exercise Selection Biomechanics: Why Some Exercises Build More Muscle", focusKeyword: "exercise biomechanics muscle growth", rationale: "Science-based topic for serious lifters." },
+    { topic: "Training Frequency: How Many Days Per Week Is Optimal?", focusKeyword: "optimal training frequency", rationale: "Core programming question." },
   ],
   supplements: [
-    {
-      topic: "Creatine Monohydrate: Loading vs Daily 5g Protocol & Timing with Carbs",
-      focusKeyword: "creatine monohydrate loading vs daily",
-      rationale: "Number one researched fitness supplement with constant search intent around dosing protocols.",
-    },
-    {
-      topic: "Ashwagandha (KSM-66) for Cortisol and Strength: What Clinical Trials Actually Show",
-      focusKeyword: "ashwagandha benefits bodybuilding cortisol",
-      rationale: "Trending supplement keyword with high interest in stress management and hormonal balance.",
-    },
-    {
-      topic: "Electrolytes and Intra-Workout Hydration: Do You Really Need BCAAs or Salt?",
-      focusKeyword: "intra workout electrolytes benefits",
-      rationale: "Educational comparison answering search queries about workout hydration and fatigue prevention.",
-    },
+    { topic: "Caffeine and Performance: Optimal Dosing, Timing, Tolerance", focusKeyword: "caffeine performance dosing timing", rationale: "Most-used supplement with constant interest." },
+    { topic: "Beta-Alanine for Endurance: Does It Improve High-Rep Performance?", focusKeyword: "beta alanine endurance", rationale: "Underexplained supplement with evidence." },
+    { topic: "Vitamin D for Athletes: Deficiency, Performance, Dosing", focusKeyword: "vitamin d deficiency athletes", rationale: "High-prevalence deficiency." },
+    { topic: "Omega-3 Fish Oil: EPA/DHA Ratio for Recovery", focusKeyword: "omega 3 epa dha recovery", rationale: "Popular supplement with nuanced dosing." },
+    { topic: "Magnesium for Athletes: Which Type and How Much?", focusKeyword: "magnesium athletes dosing", rationale: "Top supplement per ConsumerLab 2026 survey." },
+    { topic: "Pre-Workout Ingredients: What Actually Works vs Hype", focusKeyword: "pre workout ingredients science", rationale: "Consumer education with high intent." },
+    { topic: "Creatine Beyond Muscle: Cognitive Benefits and Brain Health", focusKeyword: "creatine cognitive benefits", rationale: "Emerging research on creatine's brain benefits." },
+    { topic: "Ashwagandha (KSM-66): Cortisol and Strength Evidence", focusKeyword: "ashwagandha cortisol strength", rationale: "Trending adaptogen." },
+    { topic: "Electrolytes for Athletes: Sodium, Potassium, Magnesium Balance", focusKeyword: "electrolytes athletes", rationale: "Hydration-focused supplement topic." },
+    { topic: "Zinc for Testosterone: Does Supplementation Actually Work?", focusKeyword: "zinc testosterone supplement", rationale: "High-interest hormonal topic." },
   ],
   "weight-loss": [
-    {
-      topic: "The Ultimate Guide to Beating Metabolic Adaptation During a Long Calorie Deficit",
-      focusKeyword: "metabolic adaptation weight loss fix",
-      rationale: "Answers crucial questions for dieters hitting frustrating fat loss plateaus.",
-    },
-    {
-      topic: "How to Lose Fat Without Counting Calories: Visual Portion Guides & Satiety Index",
-      focusKeyword: "fat loss without tracking calories",
-      rationale: "High conversion topic for beginners and busy individuals seeking sustainable weight management.",
-    },
-    {
-      topic: "NEAT (Non-Exercise Activity Thermogenesis): The Secret to Effortless Fat Burning",
-      focusKeyword: "increase NEAT for fat loss",
-      rationale: "Evidence-backed lifestyle strategy that consistently attracts high readership and shareability.",
-    },
+    { topic: "Sleep and Weight Loss: How Poor Sleep Sabotages Fat Loss", focusKeyword: "sleep deprivation weight gain", rationale: "Emerging science connecting sleep to fat loss." },
+    { topic: "Cortisol and Belly Fat: Stress's Role in Visceral Fat", focusKeyword: "cortisol belly fat stress", rationale: "Addresses stubborn fat loss." },
+    { topic: "Reverse Dieting: Increasing Calories Without Gaining Fat", focusKeyword: "reverse dieting after diet", rationale: "Post-diet strategy." },
+    { topic: "Intermittent Fasting Protocols: 16:8 vs 5:2 vs Alternate Day", focusKeyword: "intermittent fasting protocols", rationale: "Comparison with high search volume." },
+    { topic: "GLP-1 Medications and Exercise: What Athletes Should Know", focusKeyword: "glp-1 weight loss exercise", rationale: "Trending 2026 weight loss topic." },
+    { topic: "Gut Microbiome and Weight: How Bacteria Affect Metabolism", focusKeyword: "gut microbiome weight loss", rationale: "Cutting-edge science." },
+    { topic: "NEAT: Non-Exercise Activity for Effortless Fat Burning", focusKeyword: "neat fat loss", rationale: "Lifestyle strategy with evidence." },
+    { topic: "Metabolic Adaptation: Breaking Through Weight Loss Plateaus", focusKeyword: "metabolic adaptation plateau", rationale: "Addresses common dieter frustration." },
+    { topic: "Satiety Index: Foods That Keep You Full Longest", focusKeyword: "satiety index foods", rationale: "Practical, actionable topic." },
+    { topic: "Carb Cycling for Fat Loss: Complete Protocol Guide", focusKeyword: "carb cycling fat loss", rationale: "Evidence-based strategy." },
   ],
   "muscle-gain": [
-    {
-      topic: "Hardgainer Nutrition Blueprint: How to Eat 3500+ Clean Calories Without Bloating",
-      focusKeyword: "hardgainer clean bulking diet",
-      rationale: "High demand among skinny beginners struggling with appetite and digestive comfort.",
-    },
-    {
-      topic: "Mechanical Tension vs Metabolic Stress: What Drives Hypertrophy the Most?",
-      focusKeyword: "mechanical tension vs metabolic stress",
-      rationale: "Scientific deep dive that establishes E-E-A-T authority and AI answer citations.",
-    },
-    {
-      topic: "Optimal Training Volume: How Many Sets Per Muscle Group Per Week?",
-      focusKeyword: "optimal weekly sets per muscle",
-      rationale: "Core programming question with high recurring search interest.",
-    },
+    { topic: "Muscle Memory: How Quickly Can You Regain Lost Muscle?", focusKeyword: "muscle memory regain", rationale: "Fascinating topic for returning lifters." },
+    { topic: "Sarcopenia Prevention: Strength Training After 40", focusKeyword: "sarcopenia prevention", rationale: "Aging demographic trend." },
+    { topic: "Muscle Imbalances: Identifying and Fixing Asymmetry", focusKeyword: "muscle imbalances fix", rationale: "Common issue among lifters." },
+    { topic: "Recovery Protocols: Active Recovery vs Complete Rest", focusKeyword: "active recovery vs rest", rationale: "Practical programming question." },
+    { topic: "Periodization: Linear vs Undulating for Intermediates", focusKeyword: "periodization intermediate", rationale: "Advanced programming." },
+    { topic: "Mechanical Tension vs Metabolic Stress: What Drives Growth?", focusKeyword: "mechanical tension metabolic stress", rationale: "Science deep-dive." },
+    { topic: "Training Volume: How Many Sets Per Muscle Group Per Week?", focusKeyword: "optimal weekly sets per muscle", rationale: "Core programming question." },
+    { topic: "Mind-Muscle Connection for Hypertrophy: Does It Matter?", focusKeyword: "mind muscle connection hypertrophy", rationale: "Trending training concept." },
+    { topic: "Muscle Protein Synthesis: Complete Science of How Muscles Grow", focusKeyword: "muscle protein synthesis science", rationale: "Foundational science." },
+    { topic: "Hardgainer Nutrition: Eating 3500+ Calories Without Bloating", focusKeyword: "hardgainer calories", rationale: "High-demand among skinny beginners." },
   ],
   health: [
-    {
-      topic: "Sleep Hygiene for Athletes: How Deep Sleep Affects Testosterone and Recovery",
-      focusKeyword: "sleep hygiene athletic recovery testosterone",
-      rationale: "Increasing focus on wellness, sleep tracking, and holistic athletic longevity.",
-    },
-    {
-      topic: "Managing Blood Pressure and Heart Health While Lifting Heavy Weights",
-      focusKeyword: "weightlifting blood pressure heart health",
-      rationale: "Crucial health topic addressing cardiovascular safety and resistance training benefits.",
-    },
+    { topic: "Heart Rate Variability: What HRV Reveals About Recovery", focusKeyword: "heart rate variability recovery", rationale: "Wearable tech trend." },
+    { topic: "Cold Exposure Therapy: Does Ice Bathing Improve Recovery?", focusKeyword: "cold exposure recovery", rationale: "Trending wellness topic." },
+    { topic: "Sunlight and Vitamin D: Natural Production vs Supplementation", focusKeyword: "sunlight vitamin d production", rationale: "Holistic health topic." },
+    { topic: "Mental Health and Exercise: How Training Reduces Anxiety", focusKeyword: "exercise mental health anxiety", rationale: "High search volume topic." },
+    { topic: "Sleep Hygiene for Athletes: How Deep Sleep Affects Testosterone", focusKeyword: "sleep hygiene testosterone", rationale: "Athletic longevity topic." },
+    { topic: "Blood Pressure and Weightlifting: Heart Health for Lifters", focusKeyword: "weightlifting blood pressure", rationale: "Cardiovascular safety topic." },
+    { topic: "Longevity and Fitness: Training for a Longer Life", focusKeyword: "longevity fitness training", rationale: "Top 2026 health trend." },
+    { topic: "Wearable Technology: Using Fitness Trackers Effectively", focusKeyword: "wearable fitness tracker guide", rationale: "Top fitness trend 2026 per ACSM." },
+    { topic: "Hydration and Health: Beyond 8 Glasses a Day", focusKeyword: "hydration health guidelines", rationale: "Practical health topic." },
+    { topic: "Stress Management for Athletes: Cortisol and Performance", focusKeyword: "stress cortisol performance", rationale: "Holistic health angle." },
   ],
   recipes: [
-    {
-      topic: "5 High-Protein Egyptian Meals Under 500 Calories (Koshari & Fava Bean Hacks)",
-      focusKeyword: "high protein Egyptian healthy recipes",
-      rationale: "Strong regional appeal providing localized culinary adaptations for fitness goals.",
-    },
-    {
-      topic: "Homemade High-Protein Meal Prep Bowls: 4 Balanced Lunches in 45 Minutes",
-      focusKeyword: "quick high protein meal prep bowls",
-      rationale: "Practical, actionable guide targeting busy professionals searching for meal planning ideas.",
-    },
+    { topic: "Post-Workout Meal Ideas: 5 Quick Recipes Under 500 Calories", focusKeyword: "post workout meal ideas", rationale: "Practical, actionable content." },
+    { topic: "High-Fiber Egyptian Recipes: Traditional Dishes Made Healthier", focusKeyword: "high fiber egyptian recipes", rationale: "Regional appeal." },
+    { topic: "Meal Prep for Busy Professionals: 3 Days of High-Protein Lunches", focusKeyword: "meal prep busy professionals", rationale: "Time-saving guide." },
+    { topic: "Sugar-Free Dessert Recipes: 5 Options for Fitness Enthusiasts", focusKeyword: "sugar free dessert recipes", rationale: "Niche with high intent." },
+    { topic: "High-Protein One-Pot Meals Ready in 30 Minutes", focusKeyword: "high protein one pot meals", rationale: "Practical time-saving recipes." },
+    { topic: "Anti-Inflammatory Meal Plan: 7 Days of Recovery Foods", focusKeyword: "anti inflammatory meal plan", rationale: "Recovery-focused nutrition." },
+    { topic: "High-Protein Egyptian Breakfasts: 5 Traditional Meals", focusKeyword: "high protein egyptian breakfast", rationale: "Regional breakfast ideas." },
+    { topic: "Healthy Dinner Recipes Under 600 Calories", focusKeyword: "healthy dinner under 600 calories", rationale: "Calorie-conscious recipes." },
+    { topic: "Meal Prep Bowls: 4 Balanced Lunches in 45 Minutes", focusKeyword: "meal prep bowls lunches", rationale: "Practical meal prep guide." },
+    { topic: "Protein Smoothie Recipes: 5 Post-Workout Options", focusKeyword: "protein smoothie recipes", rationale: "Quick post-workout nutrition." },
   ],
   science: [
-    {
-      topic: "The Science of Muscle SORENESS (DOMS): Does Muscle Soreness Mean Growth?",
-      focusKeyword: "does muscle soreness mean growth DOMS",
-      rationale: "Debunks one of the most common fitness myths with peer-reviewed physiology.",
-    },
-    {
-      topic: "Anabolic Window Myth vs Reality: Nutrient Timing for Strength & Hypertrophy",
-      focusKeyword: "anabolic window nutrient timing science",
-      rationale: "Consistently searched fitness query requiring clear, authoritative consensus.",
-    },
+    { topic: "Muscle Protein Synthesis: Complete Science of How Muscles Grow", focusKeyword: "muscle protein synthesis science", rationale: "Foundational science." },
+    { topic: "Lactic Acid Myth: What Really Causes Muscle Burn and Fatigue", focusKeyword: "lactic acid myth", rationale: "Common misconception." },
+    { topic: "Testosterone and Training: How Workouts Affect Hormones", focusKeyword: "testosterone exercise response", rationale: "High-interest hormonal topic." },
+    { topic: "Genetics and Muscle Growth: How Much Is Determined by DNA", focusKeyword: "genetics muscle growth", rationale: "Fascinating topic." },
+    { topic: "Anabolic Window Myth: Nutrient Timing Reality", focusKeyword: "anabolic window myth", rationale: "Debunks common fitness myth." },
+    { topic: "DOMS Science: Does Muscle Soreness Mean Growth?", focusKeyword: "doms muscle soreness growth", rationale: "Common fitness question." },
+    { topic: "Muscle Fiber Types: Fast-Twitch vs Slow-Twitch Training", focusKeyword: "muscle fiber types training", rationale: "Science-based training topic." },
+    { topic: "Recovery Science: How Long Does It Take to Recover?", focusKeyword: "muscle recovery time", rationale: "Practical science topic." },
+    { topic: "Biomechanics of Hypertrophy: How Muscle Mechanics Work", focusKeyword: "biomechanics hypertrophy", rationale: "Deep science for serious lifters." },
+    { topic: "Hormonal Response to Exercise: Cortisol, Testosterone, GH", focusKeyword: "hormonal response exercise", rationale: "Endocrinology of training." },
   ],
 };
 
-function getFallbackTopic(category: Pillar, recent: { title: string; focusKeyword: string }[]): TopicPick {
-  const list = CURATED_TOPIC_FALLBACKS[category] || CURATED_TOPIC_FALLBACKS.nutrition;
+// ═════════════════════════════════════════════════════════════════════════
+// ARABIC CURATED TOPIC FALLBACKS (research-based, Aug 2026)
+// ═════════════════════════════════════════════════════════════════════════
+const AR_TOPIC_FALLBACKS: Record<
+  Pillar,
+  Array<{ topic: string; focusKeyword: string; rationale: string }>
+> = {
+  nutrition: [
+    { topic: "التغذية circadian: كيف يؤثر توقيت الوجبات على الأيض والنوم", focusKeyword: "توقيت الوجبات circadian", rationale: "علم ناشئ باهتمام بحثي متزايد." },
+    { topic: "الألياف الغذائية: لماذا 30 جرام يومياً يحسن الأداء وصحة الأمعاء", focusKeyword: "الألياف الغذائية للأبطال", rationale: "اتجاه 2026 الغذائي الرئيسي." },
+    { topic: "نقص المغذيات الدقيقة عند الرياضيين: الحديد والزنك والمغنيسيوم", focusKeyword: "نقص المغذيات الرياضيين", rationale: "موضوع نادر ذو قيمة عالية." },
+    { topic: "خرافة تعدد الوجبات: هل 6 وجبات يومياً ترفع الأيض فعلاً؟", focusKeyword: "تعدد الوجبات الأيض", rationale: "دحض خرافة شائعة." },
+    { topic: "علم الترطيب: كمية الماء التي يحتاجها الرياضي فعلاً", focusKeyword: "ترطيب الرياضي", rationale: "موضوع عملي دائم الطلب." },
+    { topic: "تغذية رمضان: الحفاظ على العضلات أثناء الصيام 16 ساعة", focusKeyword: "تغذية رمضان العضلات", rationale: "موسمي عالي الطلب." },
+    { topic: "القهوة والأداء: الجرعة والتوقيت المثالي للكافيين", focusKeyword: "الكافيين الأداء الرياضي", rationale: "أكثر منشط استخداماً." },
+    { topic: "الميكروبيوم المعوي والتغذية: كيف تؤثر البكتيريا على الامتصاص", focusKeyword: "الميكروبيوم المعوي", rationale: "علم متطور باهتمام متزايد." },
+    { topic: "أطعمة مضادة للالتهابات للتعافي: أوميغا 3 والكركم والزنجبيل", focusKeyword: "أطعمة مضادة للالتهابات", rationale: "تغذية للتعافي." },
+    { topic: "بدائل السكر: ستيفيا ومونك فروت والألولوز مقارنة", focusKeyword: "بدائل السكر الصحية", rationale: "تعليم المستهلك." },
+  ],
+  workout: [
+    { topic: "الاتصال الذهني العضلي: الأدلة العلمية والتطبيق العملي", focusKeyword: "الاتصال الذهني العضلي", rationale: "موضوع رائج للمتدربين المتوسطين." },
+    { topic: "تدريب الإيقاع: كيف تبني الحركة البطيئة عضلات أكثر", focusKeyword: "تدريب الإيقاع البطيء", rationale: "متغير تدريبي غير مستغل." },
+    { topic: "الدروب سيتس والسوبر سيتس: متى تستخدم تقنيات الشدة", focusKeyword: "دروب سيتس سوبر سيتس", rationale: "دليل عملي للمتوسطين." },
+    { topic: "التدريب الأحادي: إصلاح عدم التوازن العضلي", focusKeyword: "التدريب الأحادي", rationale: "موضوع نادر يعالج مشكلة شائعة." },
+    { topic: "فك الحمل: علم أسابيع الراحة للتقدم طويل المدى", focusKeyword: "فك الحمل التعافي", rationale: "مهم للتقدم طويل المدى." },
+    { topic: "فترات الراحة بين المجموعات: كم من الوقت هو الأمثل؟", focusKeyword: "فترات الراحة بين المجموعات", rationale: "سؤال برمجي أساسي." },
+    { topic: "تدريب فعال للوقت: تمارين 20 دقيقة فعّالة", focusKeyword: "تمارين 20 دقيقة", rationale: "اتجاه 2026 الرئيسي." },
+    { topic: "تدريب القوة لكبار السن: برامج بعد سن 50", focusKeyword: "تدريب القوة لكبار السن", rationale: "اتجاه ديموغرافي متنامي." },
+    { topic: "بيوميكانيكا اختيار التمارين: لماذا تبني بعض التمارين عضلات أكثر", focusKeyword: "بيوميكانيكا التمارين", rationale: "موضوع علمي للمتدربين الجادين." },
+    { topic: "تكرار التدريب: كم يوماً في الأسبوع هو الأمثل؟", focusKeyword: "تكرار التدريب الأسبوعي", rationale: "سؤال برمجي أساسي." },
+  ],
+  supplements: [
+    { topic: "الكافيين والأداء: الجرعة والتوقيت وإدارة التحمل", focusKeyword: "الكافيين الأداء الرياضي", rationale: "أكثر مكمل استخداماً." },
+    { topic: "بيتا ألانين للتحمل: هل يحسن الأداء عالي التكرار؟", focusKeyword: "بيتا ألانين التحمل", rationale: "مكمل بأدلة علمية." },
+    { topic: "فيتامين D للرياضيين: النقص والأداء والجرعة المثالية", focusKeyword: "فيتامين D الرياضيين", rationale: "نقص منتشر." },
+    { topic: "زيت السمك أوميغا 3: نسبة EPA/DHA للتعافي", focusKeyword: "أوميغا 3 التعافي", rationale: "مكمل شائع بأسئلة دقيقة." },
+    { topic: "المغنيسيوم للرياضيين: أي نوع وكم؟", focusKeyword: "المغنيسيوم للرياضيين", rationale: "مكمل رئيسي 2026." },
+    { topic: "مكونات ما قبل التمرين: ما الذي يعمل فعلاً مقابل التسويق", focusKeyword: "مكونات ما قبل التمرين", rationale: "تعليم المستهلك." },
+    { topic: "الكرياتين وفوائده العقلية: صحة الدماغ", focusKeyword: "الكرياتين صحة الدماغ", rationale: "بحث ناشئ." },
+    { topic: "أشواغاندا (KSM-66): الكورتيزول والقوة", focusKeyword: "أشواغاندا الكورتيزول", rationale: "أدابتوجين رائج." },
+    { topic: "الإلكتروليت للرياضيين: توازن الصوديوم والبوتاسيوم والمغنيسيوم", focusKeyword: "الإلكتروليت الرياضي", rationale: "ترطيب مكملات." },
+    { topic: "الزنك والتستوستيرون: هل يعمل المكمل فعلاً؟", focusKeyword: "الزنك التستوستيرون", rationale: "موضوع هرموني." },
+  ],
+  "weight-loss": [
+    { topic: "النوم وخسارة الوزن: كيف يخرب قلة النوم فقدان الدهون", focusKeyword: "النوم خسارة الوزن", rationale: "علم ناشئ." },
+    { topic: "الكورتيزول ودهون البطن: دور التوتر في الدهون الحشوية", focusKeyword: "الكورتيزول دهون البطن", rationale: "يعالج مشكلة شائعة." },
+    { topic: "النظام الغذائي العكسي: زيادة السعرات دون اكتساب دهون", focusKeyword: "النظام الغذائي العكسي", rationale: "استراتيجية ما بعد الحمية." },
+    { topic: "بروتوكولات الصيام المتقطع: 16:8 مقابل 5:2 مقابل اليوم البديل", focusKeyword: "بروتوكولات الصيام المتقطع", rationale: "مقارنة عالية البحث." },
+    { topic: "أدوية GLP-1 والتمرين: ما يجب أن يعرفه الرياضيون", focusKeyword: "أدوية GLP-1 الرياضيين", rationale: "اتجاه 2026 لخسارة الوزن." },
+    { topic: "الميكروبيوم المعوي والوزن: كيف تؤثر البكتيريا على الأيض", focusKeyword: "الميكروبيوم والوزن", rationale: "علم متطور." },
+    { topic: "NEAT: النشاط غير الرياضي لحرق الدهون بدون جهد", focusKeyword: "NEAT حرق الدهون", rationale: "استراتيجية بأسلوب حياة." },
+    { topic: "التكيف الأيضي:突破 عناء خسارة الوزن", focusKeyword: "التكيف الأيضي", rationale: "يعالج إحباط شائع." },
+    { topic: "مؤشر الشبع: أطعمة تبقيك ممتلئاً لأطول فترة", focusKeyword: "مؤشر الشبع", rationale: "موضوع عملي." },
+    { topic: "دورة الكربوهيدرات لخسارة الدهون: دليل كامل", focusKeyword: "دورة الكربوهيدرات", rationale: "استراتيجية علمية." },
+  ],
+  "muscle-gain": [
+    { topic: "الذاكرة العضلية: كم بسرعة يمكنك استعادة العضلات المفقودة؟", focusKeyword: "الذاكرة العضلية", rationale: "موضوع مثير للرياضيين العائدين." },
+    { topic: "وقاية الساركوبينيا: تدريب القوة بعد سن 40", focusKeyword: "الساركوبينيا الوقاية", rationale: "اتجاه ديموغرافي." },
+    { topic: "عدم التوازن العضلي: كيف تحدد وتصلح عدم التناسق", focusKeyword: "عدم التوازن العضلي", rationale: "مشكلة شائعة." },
+    { topic: "بروتوكولات التعافي: التعافي النشط مقابل الراحة الكاملة", focusKeyword: "التعافي النشط الراحة", rationale: "سؤال برمجي عملي." },
+    { topic: "التخطيط الدوري: الخطي مقابل المتذبذب للمتوسطين", focusKeyword: "التخطيط الدوري", rationale: "برمجة متقدمة." },
+    { topic: "التوتر الميكانيكي مقابل الإجهاد الأيضي: ما الذي يحفز النمو؟", focusKeyword: "التوتر الميكانيكي الإجهاد الأيضي", rationale: "تحليل علمي عميق." },
+    { topic: "حجم التدريب: كم مجموعة لكل مجموعة عضلية أسبوعياً؟", focusKeyword: "حجم التدريب الأسبوعي", rationale: "سؤال برمجي أساسي." },
+    { topic: "الاتصال الذهني العضلي لتضخيم: هل يهم فعلاً؟", focusKeyword: "الاتصال الذهني التضخيم", rationale: "مفهوم تدريبي رائج." },
+    { topic: "تخليق البروتين العضلي: العلم الكامل لنمو العضلات", focusKeyword: "تخليق البروتين العضلي", rationale: "علم أساسي." },
+    { topic: "تغذية هاردجاينر: أكل 3500+ سعرة بدون نفخة", focusKeyword: "تغذية هاردجاينر", rationale: "عالي الطلب للنحافين." },
+  ],
+  health: [
+    { topic: "تغير معدل ضربات القلب: ماذا يكشف HRV عن تعافيك", focusKeyword: "HRV التعافي", rationale: "اتجاه التقنيات القابلة للارتداء." },
+    { topic: "علاج التعرض للبرد: هل يحسن الاستحمام البارد التعافي؟", focusKeyword: "التعرض للبرد التعافي", rationale: "موضوع رائج." },
+    { topic: "ضوء الشمس وفيتامين D: الإنتاج الطبيعي مقابل المكملات", focusKeyword: "ضوء الشمس فيتامين D", rationale: "موضوع صحة شامل." },
+    { topic: "الصحة النفسية والتمرين: كيف يقلل التدريب القلق", focusKeyword: "التمرين الصحة النفسية", rationale: "موضوع عالي البحث." },
+    { topic: "نظافة النوم للرياضيين: كيف يؤثر النوم العميق على التستوستيرون", focusKeyword: "نظافة النوم التستوستيرون", rationale: "طول العمر الرياضي." },
+    { topic: "ضغط الدم ورفع الأثقال: صحة القلب للرياضيين", focusKeyword: "ضغط الدم رفع الأثقال", rationale: "سلامة القلب والأوعية." },
+    { topic: "طول العمر واللياقة: التدريب لحياة أطول", focusKeyword: "طول العمر اللياقة", rationale: "اتجاه صحة 2026." },
+    { topic: "التقنيات القابلة للارتداء: استخدام متتبعات اللياقة بفعالية", focusKeyword: "متتبعات اللياقة", rationale: "اتجاه لياقة 2026." },
+    { topic: "الترطيب والصحة: ما بعد 8 أكواب يومياً", focusKeyword: "الترطيب الصحة", rationale: "موضوع صحة عملي." },
+    { topic: "إدارة التوتر للرياضيين: الكورتيزول والأداء", focusKeyword: "إدارة التوتر الكورتيزول", rationale: "زاوية صحة شاملة." },
+  ],
+  recipes: [
+    { topic: "أفكار وجبات ما بعد التمرين: 5 وصفات سريعة تحت 500 سعرة", focusKeyword: "وجبات ما بعد التمرين", rationale: "محتوى عملي." },
+    { topic: "وصفات مصرية عالية الألياف: أطباق تقليدية صحية", focusKeyword: "وصفات مصرية ألياف", rationale: "جاذبية إقليمية." },
+    { topic: "تحضير وجبات للمحترفين المشغولين: 3 أيام بروتين عالي", focusKeyword: "تحضير وجبات مشغولين", rationale: "دليل توفير وقت." },
+    { topic: "وصفات حلويات بدون سكر: 5 خيارات لعشاق اللياقة", focusKeyword: "حلويات بدون سكر", rationale: "موضوع بنية عالية." },
+    { topic: "وجبات عالية البروتين بوعاء واحد في 30 دقيقة", focusKeyword: "وجبات وعاء واحد بروتين", rationale: "وصفات توفير وقت." },
+    { topic: "خطة وجبات مضادة للالتهابات: 7 أيام من أطعمة التعافي", focusKeyword: "خطة وجبات مضادة للالتهابات", rationale: "تغذية للتعافي." },
+    { topic: "فطور مصري عالي البروتين: 5 وجبات تقليدية", focusKeyword: "فطور مصري بروتين", rationale: "أفكار فطور إقليمية." },
+    { topic: "وصفات عشاء صحي تحت 600 سعرة", focusKeyword: "عشاء صحي 600 سعرة", rationale: "وصفات واعية بالسعرات." },
+    { topic: "أوعية تحضير وجبات: 4 غداء متوازن في 45 دقيقة", focusKeyword: "أوعية تحضير وجبات", rationale: "دليل تحضير عملي." },
+    { topic: "وصفات سموذي البروتين: 5 خيارات ما بعد التمرين", focusKeyword: "سموذي البروتين", rationale: "تغذية سريعة." },
+  ],
+  science: [
+    { topic: "تخليق البروتين العضلي: العلم الكامل لنمو العضلات", focusKeyword: "تخليق البروتين العضلي", rationale: "علم أساسي." },
+    { topic: "خرافة حمض اللاكتيك: ما الذي يسبب حرق العضلات والتعب فعلاً", focusKeyword: "خرافة حمض اللاكتيك", rationale: "مفهوم خاطئ شائع." },
+    { topic: "التستوستيرون والتمرين: كيف تؤثر التمارين على الهرمونات", focusKeyword: "التستوستيرون التمرين", rationale: "موضوع هرموني مثير." },
+    { topic: "الوراثة ونمو العضلات: كم يحدد DNA من إمكاناتك", focusKeyword: "الوراثة نمو العضلات", rationale: "موضوع مثير للاهتمام." },
+    { topic: "خرافة النافذة الأيضية: حقيقة توقيت التغذية", focusKeyword: "النافذة الأيضية", rationale: "دحض خرافة لياقة." },
+    { topic: "علم DOMS: هل تعني وجع العضلات نموها؟", focusKeyword: "DOMS وجع العضلات", rationale: "سؤال لياقة شائع." },
+    { topic: "أنواع ألياف العضلات: تدريب السريع مقابل البطيء", focusKeyword: "أنواع ألياف العضلات", rationale: "موضوع تدريب علمي." },
+    { topic: "علم التعافي: كم يستغرق التعافي من التمرين؟", focusKeyword: "وقت التعافي العضلي", rationale: "موضوع علمي عملي." },
+    { topic: "بيوميكانيكا التضخيم: كيف تعمل ميكانيكا العضلات", focusKeyword: "بيوميكانيكا التضخيم", rationale: "علم عميق للمتدربين." },
+    { topic: "الاستجابة الهرمونية للتمرين: الكورتيزول والتستوستيرون", focusKeyword: "الاستجابة الهرمونية", rationale: "علم الغدد الصماء." },
+  ],
+};
+
+function getFallbackTopic(
+  category: Pillar,
+  recent: { title: string; focusKeyword: string }[],
+  language: "en" | "ar" = "en",
+): TopicPick {
+  const list = (language === "ar" ? AR_TOPIC_FALLBACKS : EN_TOPIC_FALLBACKS)[category] || EN_TOPIC_FALLBACKS.nutrition;
   const recentLower = recent.map((r) => (r.title + " " + r.focusKeyword).toLowerCase());
 
-  // Find one that hasn't been recently published
   const unused = list.find(
     (item) => !recentLower.some((t) => t.includes(item.focusKeyword.toLowerCase())),
   );
@@ -254,8 +435,21 @@ function getFallbackTopic(category: Pillar, recent: { title: string; focusKeywor
   };
 }
 
-export async function pickSmartTopic(preferredCategory?: string): Promise<TopicPick> {
-  const recent = await getRecentPosts();
+/**
+ * Pick a smart topic for article generation.
+ *
+ * EN/AR SEPARATION: The `language` param controls which pool to pick from:
+ *   - "en" (default): English topic pool + English AI prompt
+ *   - "ar": Arabic topic pool + Arabic AI prompt
+ *
+ * The topic returned is in the requested language. Downstream stages
+ * (article generation) use this topic as the article's subject.
+ */
+export async function pickSmartTopic(
+  preferredCategory?: string,
+  language: "en" | "ar" = "en",
+): Promise<TopicPick> {
+  const recent = await getRecentPostsByLanguage(language);
   const category: Pillar =
     preferredCategory && (CONTENT_PILLARS as readonly string[]).includes(preferredCategory)
       ? (preferredCategory as Pillar)
@@ -266,6 +460,8 @@ export async function pickSmartTopic(preferredCategory?: string): Promise<TopicP
 
   const samePillar = recent.filter((p) => p.category === category);
   const otherRecent = recent.filter((p) => p.category !== category).slice(0, 15);
+
+  const systemPrompt = language === "ar" ? TOPIC_SYSTEM_PROMPT_AR : TOPIC_SYSTEM_PROMPT_EN;
 
   const userPrompt = `Current date context: ${monthLabel}.
 
@@ -292,37 +488,47 @@ CRITICAL DIVERSITY & NO-REPETITION INSTRUCTIONS:
 4. If this pillar already has many posts, pick a NICHE sub-topic rather than a broad overview.
 5. The topic should answer a specific question a real person would search for.
 
-Pick the single best, unique topic now strictly within the "${category}" pillar.`;
+Pick the single best, unique topic now strictly within the "${category}" pillar.
+
+IMPORTANT: Return the topic and focusKeyword in ${language === "ar" ? "ARABIC" : "ENGLISH"}.`;
 
   try {
-    // Stage 1 (Topic/Title) — uses Gemini Flash via OpenRouter per stage-aware
-    // AI model policy. Key source: OPENROUTER_API only. Fallback chain:
-    // gemini-3.7-flash → gemini-3.6-flash → gemini-3.5-flash. NO Gemini API
-    // key, NO AI_MODEL, NO Pro.
-    const { text: raw } = await callGeminiFlashViaOpenRouter(
+    const { text: raw } = await callFreeAIFallbackChain(
       userPrompt,
       {
-        systemPrompt: TOPIC_SYSTEM_PROMPT,
+        systemPrompt,
         temperature: 0.85,
         maxTokens: 600,
         jsonMode: true,
         timeoutMs: 30_000,
       },
     );
+    console.log(`[blog-topics] Topic pick raw response (language: ${language}, length: ${raw.length})`);
 
     const parsed = parseJSON<any>(raw);
     if (parsed?.topic && parsed?.focusKeyword) {
-      return {
-        topic: String(parsed.topic),
-        focusKeyword: String(parsed.focusKeyword),
-        category,
-        rationale: String(parsed.rationale || ""),
-      };
+      const aiTopic = String(parsed.topic);
+      const aiFocusKw = String(parsed.focusKeyword);
+
+      const dupCheck = isDuplicateTopic(aiTopic, aiFocusKw, recent);
+      if (dupCheck.duplicate) {
+        console.warn(
+          `[blog-topics] AI picked a duplicate topic "${aiTopic}" (kw: "${aiFocusKw}") — matches existing "${dupCheck.matchedExisting}". Falling back to curated.`,
+        );
+      } else {
+        return {
+          topic: aiTopic,
+          focusKeyword: aiFocusKw,
+          category,
+          rationale: String(parsed.rationale || ""),
+        };
+      }
+    } else {
+      console.error(`[blog-topics] AI returned invalid JSON. Parsed keys: ${parsed ? Object.keys(parsed).join(", ") : "null"}. Raw (first 500): ${raw.slice(0, 500)}`);
     }
   } catch (err: any) {
     console.warn("[blog-topics] AI topic pick notice, using smart curated fallback:", err?.message || err);
   }
 
-  // Graceful fallback to guaranteed valid topic
-  return getFallbackTopic(category, recent);
+  return getFallbackTopic(category, recent, language);
 }

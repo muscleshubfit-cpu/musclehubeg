@@ -56,83 +56,118 @@ export async function GET(request: NextRequest) {
  if (!isSupabaseAdminConfigured || !supabaseAdmin) return NextResponse.json({ error: "Supabase admin not configured." }, { status: 500 });
 
  try {
- // 1. Pick topic (uses OpenRouter via callAIWithFallback)
- const pick = await pickSmartTopic();
+ // 1. Pick BOTH topics — EN for English article, AR for Arabic article
+ const [enPick, arPick] = await Promise.all([
+   pickSmartTopic(undefined, "en"),
+   pickSmartTopic(undefined, "ar"),
+ ]);
 
- // Normalize the category defensively — pickSmartTopic already restricts
- // to CONTENT_PILLARS, but belt-and-suspenders in case the AI returns a
- // synonym like "training" instead of "workout".
- const safeCategory = normalizeCategory(pick.category);
+ // Normalize the category defensively
+ const safeCategory = normalizeCategory(enPick.category);
 
- // 2. Generate article (skip research for speed)
+ // 2. Generate article — pass BOTH topics + no language (generate both)
  const bundle = await generateArticleBundle({
- topic: pick.topic,
- focusKeyword: pick.focusKeyword,
- category: safeCategory,
+   topic: enPick.topic,
+   focusKeyword: enPick.focusKeyword,
+   category: safeCategory,
  });
 
- // Reject duplicate titles — the topic picker is told not to repeat, but
- // the AI sometimes ignores that. Better to skip this run than publish
- // a duplicate (the next cron tick will pick a different topic).
- if (await titleAlreadyExists(bundle.seo.en.seoTitle, "en")) {
- return NextResponse.json(
- { skipped: true, reason: "duplicate-en-title", title: bundle.seo.en.seoTitle },
- { status: 200 },
- );
+ // Override Arabic article with AR topic (generateArticleBundle uses EN topic
+ // for both by default — we need to regenerate AR with the AR topic)
+ // Actually, generateArticleBundle already calls generateArabicArticle with
+ // input.topic — which is the EN topic. We need to call AR separately.
+ // But generateArticleBundle with no language generates both EN + AR from the
+ // same input.topic. To keep the legacy route simple, let's just use the
+ // multi-step pipeline instead. This legacy route is deprecated.
+ // For now: generate AR article separately with AR topic.
+ let arBundle: any = null;
+ try {
+   const { generateArabicArticle } = await import("@/lib/blog-generate");
+   arBundle = await generateArabicArticle(
+     { topic: arPick.topic, focusKeyword: arPick.focusKeyword, category: safeCategory },
+     null,
+     null,
+   );
+ } catch (arErr: any) {
+   console.warn("[cron/generate-blog-post] AR generation failed, using EN bundle's AR:", arErr?.message);
  }
- if (await titleAlreadyExists(bundle.seo.ar.seoTitle, "ar")) {
- return NextResponse.json(
- { skipped: true, reason: "duplicate-ar-title", title: bundle.seo.ar.seoTitle },
- { status: 200 },
- );
+
+ // Use AR bundle if available, otherwise fall back to EN bundle's AR
+ const finalArabicArticle = arBundle?.arabicArticle || bundle.arabicArticle;
+ const finalArSeo = arBundle?.seo || bundle.seo;
+ const finalFaqAr = arBundle?.faqAr || bundle.faqAr;
+ const finalImagePromptsAr = arBundle?.imagePromptsAr || bundle.imagePromptsAr;
+ const finalSocialPostsAr = arBundle?.socialPostsAr || bundle.socialPostsAr;
+ const finalReadingTimeAr = arBundle?.estimatedReadingTimeAr || bundle.estimatedReadingTimeAr;
+
+ // Reject duplicate titles
+ if (await titleAlreadyExists(bundle.seo.en.seoTitle, "en")) {
+   return NextResponse.json(
+     { skipped: true, reason: "duplicate-en-title", title: bundle.seo.en.seoTitle },
+     { status: 200 },
+   );
+ }
+ if (await titleAlreadyExists(finalArSeo?.ar?.seoTitle || "", "ar")) {
+   return NextResponse.json(
+     { skipped: true, reason: "duplicate-ar-title", title: finalArSeo?.ar?.seoTitle },
+     { status: 200 },
+   );
  }
 
  const now = new Date().toISOString();
- const enSlug = await uniqueSlug(slugify(bundle.seo.en.slug || pick.focusKeyword), "en");
- const arSlug = await uniqueSlug(slugify(bundle.seo.ar.slug || bundle.seo.en.slug || pick.focusKeyword), "ar");
+ const enSlug = await uniqueSlug(slugify(bundle.seo.en.slug || enPick.focusKeyword), "en");
+ const arSlug = await uniqueSlug(slugify(finalArSeo?.ar?.slug || `${bundle.seo.en.slug}-ar` || enPick.focusKeyword), "ar");
 
- // 3. Fetch image (fast — Pexels)
+ // 3. Fetch image
  let imageUrl: string | null = null;
  try {
- const img = await fetchFeaturedImage(bundle.seo.focusKeyword || pick.focusKeyword || pick.topic);
+ const img = await fetchFeaturedImage(bundle.seo.focusKeyword || enPick.focusKeyword || enPick.topic);
  imageUrl = img?.url || null;
  } catch {}
 
- // 4. Publish both languages
+ // 4. Publish both languages — EN from EN topic, AR from AR topic
  const enRow = {
- language: "en",
- title: bundle.seo.en.seoTitle,
- slug: enSlug,
- excerpt: bundle.seo.en.metaDescription,
- content: bundle.englishArticle,
- meta_title: bundle.seo.en.metaTitle,
- meta_description: bundle.seo.en.metaDescription,
- focus_keyword: bundle.seo.focusKeyword,
- keywords: bundle.seo.secondaryKeywords,
- category: safeCategory,
- tags: bundle.seo.secondaryKeywords.slice(0, 5),
- featured_image: imageUrl,
- cover_alt: bundle.seo.en.seoTitle,
- reading_time: bundle.estimatedReadingTime,
- author: "MuscleHub",
- is_published: true,
- published_at: now,
- faq_json: bundle.faq,
-
+   language: "en",
+   title: bundle.seo.en.seoTitle,
+   slug: enSlug,
+   excerpt: bundle.seo.en.metaDescription,
+   content: bundle.englishArticle,
+   meta_title: bundle.seo.en.metaTitle,
+   meta_description: bundle.seo.en.metaDescription,
+   focus_keyword: bundle.seo.en.focusKeyword || bundle.seo.focusKeyword || enPick.focusKeyword,
+   keywords: bundle.seo.en.secondaryKeywords || bundle.seo.secondaryKeywords || [],
+   category: safeCategory,
+   tags: (bundle.seo.en.secondaryKeywords || bundle.seo.secondaryKeywords || []).slice(0, 5),
+   featured_image: imageUrl,
+   cover_alt: bundle.seo.en.seoTitle,
+   reading_time: bundle.estimatedReadingTime,
+   author: "MuscleHubEG",
+   is_published: true,
+   published_at: now,
+   faq_json: bundle.faq,
  };
 
+ const arFocusKw = finalArSeo?.ar?.focusKeyword || arPick.focusKeyword || "";
+ const arKeywords = finalArSeo?.ar?.secondaryKeywords || [];
  const arRow = {
- ...enRow,
- language: "ar",
- title: bundle.seo.ar.seoTitle,
- slug: arSlug,
- excerpt: bundle.seo.ar.metaDescription,
- content: bundle.arabicArticle,
- meta_title: bundle.seo.ar.metaTitle,
- meta_description: bundle.seo.ar.metaDescription,
- // Use the Arabic FAQ — previously this inherited bundle.faq (English)
- // from enRow, which caused English Q&A to appear on Arabic articles.
- faq_json: bundle.faqAr && bundle.faqAr.length > 0 ? bundle.faqAr : bundle.faq,
+   language: "ar",
+   title: finalArSeo?.ar?.seoTitle || arPick.topic,
+   slug: arSlug,
+   excerpt: finalArSeo?.ar?.metaDescription || "",
+   content: finalArabicArticle,
+   meta_title: finalArSeo?.ar?.metaTitle || finalArSeo?.ar?.seoTitle || "",
+   meta_description: finalArSeo?.ar?.metaDescription || "",
+   focus_keyword: arFocusKw,
+   keywords: arKeywords,
+   category: safeCategory,
+   tags: arKeywords.slice(0, 5),
+   featured_image: imageUrl,
+   cover_alt: finalArSeo?.ar?.seoTitle || arPick.topic,
+   reading_time: finalReadingTimeAr || bundle.estimatedReadingTime || 1,
+   author: "MuscleHubEG",
+   is_published: true,
+   published_at: now,
+   faq_json: finalFaqAr && finalFaqAr.length > 0 ? finalFaqAr : [],
  };
 
  const { data: enPost, error: enErr } = await supabaseAdmin.from("blog_posts" as any).insert(enRow).select().single() as any;
@@ -149,8 +184,8 @@ export async function GET(request: NextRequest) {
 
  return NextResponse.json({
  ok: true,
- category: pick.category,
- topic: pick.topic,
+ category: enPick.category,
+ topic: enPick.topic,
  en: { title: enRow.title, slug: enSlug },
  ar: { title: arRow.title, slug: arSlug },
  });

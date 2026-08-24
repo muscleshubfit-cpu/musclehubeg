@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { ArrowRight, Upload, Loader2, ShieldCheck } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import { ArrowRight, Upload, Loader2, ShieldCheck, CheckCircle2, XCircle } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,23 +16,32 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
 /**
- * Unified checkout — supports both:
- *   1. New membership tiers (premium, pro) — uses MEMBERSHIPS table for
- *      pricing ($14.99/$29.99 monthly, $119/$239 yearly)
- *   2. Legacy coaching tiers (starter, elite) — kept for backward compat
- *      with any old links
+ * Unified checkout — supports three payment methods:
+ *   1. PayPal (PRIMARY — instant activation via Capture API)
+ *   2. InstaPay (SECONDARY — manual receipt upload + coach approval)
+ *   3. Vodafone Cash (SECONDARY — manual receipt upload + coach approval)
+ *
+ * For PayPal:
+ *   - PayPal JS SDK loads with NEXT_PUBLIC_PAYPAL_CLIENT_ID
+ *   - createOrder calls /api/paypal/create-order (server-side price)
+ *   - onApprove calls /api/paypal/capture-order (server-side capture + activation)
+ *   - On success: redirect to dashboard
+ *   - On cancel/error: stay on checkout, show message
+ *
+ * For Manual (InstaPay/Vodafone Cash):
+ *   - User uploads receipt → submitSubscriptionRequest → coach approval
+ *   - Unchanged from original flow
  */
 
 type PlanInfo = {
   name: string;
   sub: string;
-  price: number; // USD for the chosen duration
+  price: number;
   durationMonths: number;
-  monthlyEquivalent?: number; // for yearly plans: /12
+  monthlyEquivalent?: number;
 };
 
 function resolvePlan(tier: string, months: number, isAr: boolean): PlanInfo | null {
-  // New membership tiers
   const m = MEMBERSHIPS.find((x) => x.id === tier);
   if (m && (m.id === "premium" || m.id === "pro")) {
     const isYearly = months === 12;
@@ -48,7 +57,6 @@ function resolvePlan(tier: string, months: number, isAr: boolean): PlanInfo | nu
     };
   }
 
-  // Legacy tiers (starter, elite)
   const legacy = getTier(tier as TierId);
   if (legacy) {
     const price = legacy.prices[months as Duration] ?? legacy.prices[1];
@@ -63,6 +71,151 @@ function resolvePlan(tier: string, months: number, isAr: boolean): PlanInfo | nu
   return null;
 }
 
+// ─────────────────────────────────────────────────────────────────────────
+// PayPal JS SDK loader (lazy — only loaded when PayPal is selected)
+// ─────────────────────────────────────────────────────────────────────────
+
+const PAYPAL_CLIENT_ID = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID || "";
+
+/**
+ * Load the PayPal JS SDK script dynamically.
+ * Only called when the user selects PayPal as payment method.
+ * Uses NEXT_PUBLIC_PAYPAL_CLIENT_ID (public — safe to expose in browser).
+ */
+function usePayPalScript(shouldLoad: boolean) {
+  const [loaded, setLoaded] = useState(false);
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    if (!shouldLoad || loaded || error) return;
+    if (!PAYPAL_CLIENT_ID) {
+      console.error("[paypal] NEXT_PUBLIC_PAYPAL_CLIENT_ID is not set");
+      setError(true);
+      return;
+    }
+
+    const scriptId = "paypal-sdk-script";
+    const existing = document.getElementById(scriptId);
+    if (existing) {
+      setLoaded(true);
+      return;
+    }
+
+    const script = document.createElement("script");
+    script.id = scriptId;
+    script.src = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_CLIENT_ID}&currency=USD&intent=capture`;
+    script.async = true;
+    script.onload = () => setLoaded(true);
+    script.onerror = () => {
+      console.error("[paypal] Failed to load PayPal JS SDK");
+      setError(true);
+    };
+    document.head.appendChild(script);
+  }, [shouldLoad, loaded, error]);
+
+  return { loaded, error };
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// PayPal Buttons component
+// ─────────────────────────────────────────────────────────────────────────
+
+function PayPalButtons({
+  planTier,
+  durationMonths,
+  onSuccess,
+  onError,
+  isAr,
+}: {
+  planTier: string;
+  durationMonths: number;
+  onSuccess: () => void;
+  onError: (msg: string) => void;
+  isAr: boolean;
+}) {
+  const paypalRef = useRef<HTMLDivElement>(null);
+  const [rendered, setRendered] = useState(false);
+  const [processing, setProcessing] = useState(false);
+
+  useEffect(() => {
+    if (rendered || !paypalRef.current) return;
+    const w = window as any;
+    if (!w.paypal?.Buttons) return;
+
+    w.paypal
+      .Buttons({
+        style: { layout: "vertical", color: "blue", shape: "pill", label: "pay" },
+        createOrder: async () => {
+          const res = await fetch("/api/paypal/create-order", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ planTier, durationMonths }),
+          });
+          const data = await res.json();
+          if (!res.ok || !data.orderId) {
+            throw new Error(data.error || "Failed to create order");
+          }
+          return data.orderId;
+        },
+        onApprove: async (data: { orderID: string }) => {
+          setProcessing(true);
+          try {
+            const res = await fetch("/api/paypal/capture-order", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ orderId: data.orderID }),
+            });
+            const result = await res.json();
+            if (res.ok && result.success) {
+              toast.success(
+                isAr
+                  ? "تم الدفع بنجاح! تم تفعيل اشتراكك 🎉"
+                  : "Payment successful! Your subscription is active 🎉",
+              );
+              onSuccess();
+            } else {
+              toast.error(result.error || (isAr ? "فشل الدفع" : "Payment failed"));
+              onError(result.error || "Capture failed");
+            }
+          } catch (e: any) {
+            toast.error(e.message || (isAr ? "خطأ في المعالجة" : "Processing error"));
+            onError(e.message);
+          } finally {
+            setProcessing(false);
+          }
+        },
+        onCancel: () => {
+          toast.info(isAr ? "تم إلغاء الدفع" : "Payment cancelled");
+        },
+        onError: (err: any) => {
+          console.error("[paypal] Button error:", err);
+          toast.error(isAr ? "حدث خطأ. حاول مرة أخرى." : "An error occurred. Please try again.");
+          onError("PayPal button error");
+        },
+      })
+      .render(paypalRef.current)
+      .then(() => setRendered(true))
+      .catch((e: any) => {
+        console.error("[paypal] Render error:", e);
+      });
+  }, [planTier, durationMonths, onSuccess, onError, isAr, rendered]);
+
+  if (processing) {
+    return (
+      <div className="flex items-center justify-center gap-2 py-4 text-sm text-[#6e6e73]">
+        <Loader2 className="h-4 w-4 animate-spin" />
+        {isAr ? "جاري معالجة الدفع..." : "Processing payment..."}
+      </div>
+    );
+  }
+
+  return <div ref={paypalRef} className="paypal-buttons-container" />;
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Main CheckoutView
+// ─────────────────────────────────────────────────────────────────────────
+
 export function CheckoutView({ tier, months }: { tier: TierId | MembershipTier; months: Duration }) {
   const { t, lang } = useI18n();
   const isAr = lang === "ar";
@@ -70,12 +223,17 @@ export function CheckoutView({ tier, months }: { tier: TierId | MembershipTier; 
   const { profile } = useAuth();
   const plan = resolvePlan(tier as string, months as number, isAr);
 
-  const [method, setMethod] = useState<PaymentMethod>("instapay");
+  // PayPal is the DEFAULT (primary) payment method
+  const [method, setMethod] = useState<PaymentMethod>("paypal");
   const [fullName, setFullName] = useState(profile?.full_name || "");
   const [whatsapp, setWhatsapp] = useState(profile?.phone || "");
   const [receipt, setReceipt] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
+  const [paypalDone, setPaypalDone] = useState(false);
+
+  // Load PayPal SDK only when PayPal is selected
+  const { loaded: paypalLoaded, error: paypalLoadError } = usePayPalScript(method === "paypal");
 
   if (!plan) {
     return (
@@ -90,6 +248,7 @@ export function CheckoutView({ tier, months }: { tier: TierId | MembershipTier; 
     );
   }
 
+  // Manual payment submit (InstaPay / Vodafone Cash — unchanged)
   const submit = async () => {
     if (!profile) {
       navigate("auth", { mode: "signup" });
@@ -118,7 +277,7 @@ export function CheckoutView({ tier, months }: { tier: TierId | MembershipTier; 
       });
       setDone(true);
       toast.success(
-        isAr ? "تم إرسال طلب الاشتراك! راجعه فريق MuscleHub قريباً." : "Subscription request sent!",
+        isAr ? "تم إرسال طلب الاشتراك! راجعه فريق MuscleHubEG قريباً." : "Subscription request sent!",
       );
       setTimeout(() => navigate("dashboard"), 3000);
     } catch (e: any) {
@@ -128,6 +287,20 @@ export function CheckoutView({ tier, months }: { tier: TierId | MembershipTier; 
     }
   };
 
+  // PayPal success handler
+  const handlePayPalSuccess = () => {
+    setPaypalDone(true);
+    setTimeout(() => navigate("dashboard"), 2000);
+  };
+
+  // PayPal error handler
+  const handlePayPalError = (msg: string) => {
+    console.error("[paypal] Checkout error:", msg);
+    // Stay on checkout — don't redirect
+  };
+
+  const isManualMethod = method === "instapay" || method === "vodafone_cash";
+
   return (
     <div className="flex min-h-screen flex-col bg-white text-[#1d1d1f]">
       <header className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between px-4">
@@ -136,6 +309,7 @@ export function CheckoutView({ tier, months }: { tier: TierId | MembershipTier; 
           onClick={() => navigate("memberships")}
         >
           MuscleHub
+          <span className="text-[#0071e3]">EG</span>
         </button>
         <LanguageToggle />
       </header>
@@ -146,19 +320,39 @@ export function CheckoutView({ tier, months }: { tier: TierId | MembershipTier; 
         </h1>
         <p className="mt-2 text-base font-normal text-[#6e6e73]">
           {isAr
-            ? "اختر طريقة الدفع وارفع الإيصال. هنفعّل اشتراكك خلال 24 ساعة."
-            : "Choose a payment method and upload your receipt. We'll activate within 24 hours."}
+            ? "اختر طريقة الدفع. الدفع عبر PayPal سريع وآمن، أما الدفع اليدوي فيتطلب موافقة الكوتش."
+            : "Choose a payment method. PayPal is instant, manual methods require coach approval."}
         </p>
 
-        {done ? (
+        {/* PayPal success state */}
+        {paypalDone ? (
+          <div className="mt-12 rounded-3xl bg-[#f5f5f7] p-12 text-center">
+            <CheckCircle2 className="mx-auto h-16 w-16 text-[#34c759]" />
+            <h2 className="mt-4 text-2xl font-semibold tracking-tight">
+              {isAr ? "تم الدفع بنجاح!" : "Payment successful!"}
+            </h2>
+            <p className="mt-3 text-base font-normal text-[#6e6e73]">
+              {isAr
+                ? "تم تفعيل اشتراكك تلقائياً. جاري تحويلك إلى لوحة التحكم..."
+                : "Your subscription is now active. Redirecting to dashboard..."}
+            </p>
+            <button
+              onClick={() => navigate("dashboard")}
+              className="mt-8 rounded-full bg-[#0071e3] px-6 py-3 text-base font-normal text-white transition-opacity hover:opacity-90"
+            >
+              {isAr ? "العودة للوحة التحكم" : "Go to dashboard"}
+            </button>
+          </div>
+        ) : done ? (
+          /* Manual payment success state (unchanged) */
           <div className="mt-12 rounded-3xl bg-[#f5f5f7] p-12 text-center">
             <h2 className="text-2xl font-semibold tracking-tight">
               {isAr ? "تم إرسال طلبك بنجاح!" : "Request sent successfully!"}
             </h2>
             <p className="mt-3 text-base font-normal text-[#6e6e73]">
               {isAr
-                ? "استلمنا طلب اشتراكك وإيصال الدفع. راجعه فريق MuscleHub قريباً وسيتم تفعيل اشتراكك. ستصللك إشعار فور التفعيل."
-                : "We received your subscription request and payment receipt. The MuscleHub team will review and activate your subscription shortly. You'll be notified once it's active."}
+                ? "استلمنا طلب اشتراكك وإيصال الدفع. راجعه فريق MuscleHubEG قريباً وسيتم تفعيل اشتراكك. ستصللك إشعار فور التفعيل."
+                : "We received your subscription request and payment receipt. The MuscleHubEG team will review and activate your subscription shortly. You'll be notified once it's active."}
             </p>
             <button
               onClick={() => navigate("dashboard")}
@@ -170,7 +364,7 @@ export function CheckoutView({ tier, months }: { tier: TierId | MembershipTier; 
         ) : (
           <>
             <div className="mt-12 grid gap-6 md:grid-cols-2">
-              {/* Summary */}
+              {/* Summary (unchanged) */}
               <div className="rounded-3xl bg-[#f5f5f7] p-8">
                 <h2 className="text-xs font-normal uppercase tracking-wide text-[#6e6e73]">
                   {isAr ? "الخطة" : "Plan"}
@@ -203,7 +397,7 @@ export function CheckoutView({ tier, months }: { tier: TierId | MembershipTier; 
                   </div>
                 </div>
 
-                {/* Refund policy */}
+                {/* Refund policy (unchanged) */}
                 <div className="mt-6 rounded-2xl border border-[#d2d2d7] bg-white p-4">
                   <div className="flex items-start gap-2">
                     <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-[#34c759]" />
@@ -213,8 +407,8 @@ export function CheckoutView({ tier, months }: { tier: TierId | MembershipTier; 
                       </p>
                       <p className="mt-1 text-xs font-normal text-[#6e6e73]">
                         {isAr
-                          ? "استرداد كامل خلال 7 أيام من تفعيل الاشتراك، بشرط عدم استخدام مميزات الخطة المدفوعة (توليد خطط، تبديلات، حفظ نتائج). بمجرد استخدام أي ميزة مدفوعة، لا يُسترد الاشتراك."
-                          : "Full refund within 7 days of subscription activation, provided that no paid plan features have been used (plan generation, swaps, saved results). Once any paid feature is used, the subscription is non-refundable."}
+                          ? "استرداد كامل خلال 7 أيام من تفعيل الاشتراك، بشرط عدم استخدام مميزات الخطة المدفوعة."
+                          : "Full refund within 7 days of subscription activation, provided that no paid plan features have been used."}
                       </p>
                     </div>
                   </div>
@@ -226,116 +420,178 @@ export function CheckoutView({ tier, months }: { tier: TierId | MembershipTier; 
                 <h2 className="text-xs font-normal uppercase tracking-wide text-[#6e6e73]">
                   {isAr ? "طريقة الدفع" : "Payment method"}
                 </h2>
-                <div className="mt-4 grid grid-cols-2 gap-3">
+
+                {/* Payment method selection — 3 options */}
+                <div className="mt-4 grid grid-cols-3 gap-2">
+                  {/* PayPal (PRIMARY) */}
+                  <button
+                    onClick={() => setMethod("paypal")}
+                    className={cn(
+                      "flex flex-col items-center gap-1 rounded-2xl border p-3 text-xs font-medium transition-colors sm:text-sm",
+                      method === "paypal"
+                        ? "border-[#0071e3] bg-white text-[#0071e3]"
+                        : "border-[#d2d2d7] hover:border-[#0071e3]/40",
+                    )}
+                  >
+                    <span className="text-[10px] uppercase tracking-wide text-[#0071e3] sm:text-xs">
+                      {isAr ? "دفع سريع وآمن" : "Fast & secure"}
+                    </span>
+                    PayPal
+                  </button>
+                  {/* InstaPay */}
                   <button
                     onClick={() => setMethod("instapay")}
                     className={cn(
-                      "flex flex-col items-center gap-2 rounded-2xl border p-4 text-sm font-normal transition-colors",
+                      "flex flex-col items-center gap-1 rounded-2xl border p-3 text-xs font-normal transition-colors sm:text-sm",
                       method === "instapay"
                         ? "border-[#0071e3] bg-white text-[#0071e3]"
                         : "border-[#d2d2d7] hover:border-[#0071e3]/40",
                     )}
                   >
-                    {isAr ? "InstaPay" : "InstaPay"}
+                    InstaPay
                   </button>
+                  {/* Vodafone Cash */}
                   <button
                     onClick={() => setMethod("vodafone_cash")}
                     className={cn(
-                      "flex flex-col items-center gap-2 rounded-2xl border p-4 text-sm font-normal transition-colors",
+                      "flex flex-col items-center gap-1 rounded-2xl border p-3 text-xs font-normal transition-colors sm:text-sm",
                       method === "vodafone_cash"
                         ? "border-[#0071e3] bg-white text-[#0071e3]"
                         : "border-[#d2d2d7] hover:border-[#0071e3]/40",
                     )}
                   >
-                    {isAr ? "فودافون كاش" : "Vodafone Cash"}
+                    {isAr ? "فودافون" : "Vodafone"}
                   </button>
                 </div>
 
-                <div className="mt-5 flex flex-col items-center rounded-2xl border border-dashed border-border bg-muted/40 p-5">
-                  <img
-                    src={method === "instapay" ? "/qr-instapay.png" : "/qr-vodafone.png"}
-                    alt={method === "instapay" ? "InstaPay QR Code" : "Vodafone Cash QR Code"}
-                    className="h-48 w-48 rounded-xl object-contain"
-                    loading="eager"
-                  />
-                  <p className="mt-3 text-center text-xs text-muted-foreground">
-                    {isAr ? "امسح الكود للدفع" : "Scan QR to pay"}
-                  </p>
-                  <p className="mt-2 font-mono text-sm font-semibold" dir="ltr">
-                    {method === "instapay" ? "musclehub@instapay" : "01000000000"}
-                  </p>
-                </div>
-
-                {/* Contact info + receipt upload */}
-                <div className="mt-5 space-y-3">
-                  <div>
-                    <Label htmlFor="fullname">{isAr ? "الاسم" : "Full name"}</Label>
-                    <Input
-                      id="fullname"
-                      value={fullName}
-                      onChange={(e) => setFullName(e.target.value)}
-                      placeholder={isAr ? "محمد علي" : "Mohamed Ali"}
-                      className="mt-1.5"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="whatsapp">WhatsApp</Label>
-                    <Input
-                      id="whatsapp"
-                      value={whatsapp}
-                      onChange={(e) => setWhatsapp(e.target.value)}
-                      placeholder="+20 100 000 0000"
-                      className="mt-1.5"
-                      dir="ltr"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="receipt">
-                      {isAr ? "إيصال الدفع (صورة / PDF)" : "Payment receipt (image / PDF)"}
-                    </Label>
-                    <div className="mt-1.5">
-                      <label
-                        className={cn(
-                          "flex cursor-pointer items-center gap-3 rounded-xl border border-dashed p-4 transition-colors hover:border-primary/40",
-                          receipt && "border-primary/40 bg-primary/5",
-                        )}
-                      >
-                        <Upload className="h-5 w-5 text-muted-foreground" />
-                        <span className="text-sm">
-                          {receipt
-                            ? receipt.name
-                            : isAr
-                              ? "اضغط لرفع الإيصال"
-                              : "Click to upload receipt"}
+                {/* ─── PAYPAL SECTION ─── */}
+                {method === "paypal" && (
+                  <div className="mt-5">
+                    {paypalLoadError ? (
+                      <div className="flex flex-col items-center gap-3 rounded-2xl border border-[#ff3b30]/20 bg-[#ff3b30]/5 p-6 text-center">
+                        <XCircle className="h-8 w-8 text-[#ff3b30]" />
+                        <p className="text-sm font-medium text-[#ff3b30]">
+                          {isAr
+                            ? "PayPal غير متاح حالياً. استخدم الدفع اليدوي."
+                            : "PayPal is not available. Please use manual payment."}
+                        </p>
+                      </div>
+                    ) : !paypalLoaded ? (
+                      <div className="flex items-center justify-center gap-2 py-8">
+                        <Loader2 className="h-5 w-5 animate-spin text-[#0071e3]" />
+                        <span className="text-sm text-[#6e6e73]">
+                          {isAr ? "تحميل PayPal..." : "Loading PayPal..."}
                         </span>
-                        <input
-                          type="file"
-                          accept="image/*,application/pdf"
-                          className="hidden"
-                          onChange={(e) => setReceipt(e.target.files?.[0] ?? null)}
+                      </div>
+                    ) : (
+                      <>
+                        <div className="mb-3 rounded-xl bg-[#0071e3]/5 p-3 text-center text-xs text-[#0071e3]">
+                          {isAr
+                            ? "ادفع بأمان عبر PayPal. سيتم تفعيل اشتراكك فوراً."
+                            : "Pay securely with PayPal. Your subscription activates instantly."}
+                        </div>
+                        <PayPalButtons
+                          planTier={tier as string}
+                          durationMonths={months as number}
+                          onSuccess={handlePayPalSuccess}
+                          onError={handlePayPalError}
+                          isAr={isAr}
                         />
-                      </label>
-                    </div>
+                      </>
+                    )}
                   </div>
-                </div>
+                )}
 
-                <Button
-                  className="mt-5 w-full gap-2"
-                  disabled={submitting || !receipt || !fullName.trim() || !whatsapp.trim()}
-                  onClick={submit}
-                >
-                  {submitting ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      {t("common.loading")}
-                    </>
-                  ) : (
-                    <>
-                      {isAr ? "إرسال طلب الاشتراك" : "Submit subscription request"}
-                      <ArrowRight className="h-4 w-4 rtl:rotate-180" />
-                    </>
-                  )}
-                </Button>
+                {/* ─── MANUAL PAYMENT SECTION (InstaPay / Vodafone Cash — unchanged) ─── */}
+                {isManualMethod && (
+                  <>
+                    <div className="mt-5 flex flex-col items-center rounded-2xl border border-dashed border-border bg-muted/40 p-5">
+                      <img
+                        src={method === "instapay" ? "/qr-instapay.png" : "/qr-vodafone.png"}
+                        alt={method === "instapay" ? "InstaPay QR Code" : "Vodafone Cash QR Code"}
+                        className="h-48 w-48 rounded-xl object-contain"
+                        loading="eager"
+                      />
+                      <p className="mt-3 text-center text-xs text-muted-foreground">
+                        {isAr ? "امسح الكود للدفع" : "Scan QR to pay"}
+                      </p>
+                      <p className="mt-2 font-mono text-sm font-semibold" dir="ltr">
+                        {method === "instapay" ? "musclehub@instapay" : "01000000000"}
+                      </p>
+                    </div>
+
+                    {/* Contact info + receipt upload (unchanged) */}
+                    <div className="mt-5 space-y-3">
+                      <div>
+                        <Label htmlFor="fullname">{isAr ? "الاسم" : "Full name"}</Label>
+                        <Input
+                          id="fullname"
+                          value={fullName}
+                          onChange={(e) => setFullName(e.target.value)}
+                          placeholder={isAr ? "محمد علي" : "Mohamed Ali"}
+                          className="mt-1.5"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="whatsapp">WhatsApp</Label>
+                        <Input
+                          id="whatsapp"
+                          value={whatsapp}
+                          onChange={(e) => setWhatsapp(e.target.value)}
+                          placeholder="+20 100 000 0000"
+                          className="mt-1.5"
+                          dir="ltr"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="receipt">
+                          {isAr ? "إيصال الدفع (صورة / PDF)" : "Payment receipt (image / PDF)"}
+                        </Label>
+                        <div className="mt-1.5">
+                          <label
+                            className={cn(
+                              "flex cursor-pointer items-center gap-3 rounded-xl border border-dashed p-4 transition-colors hover:border-primary/40",
+                              receipt && "border-primary/40 bg-primary/5",
+                            )}
+                          >
+                            <Upload className="h-5 w-5 text-muted-foreground" />
+                            <span className="text-sm">
+                              {receipt
+                                ? receipt.name
+                                : isAr
+                                  ? "اضغط لرفع الإيصال"
+                                  : "Click to upload receipt"}
+                            </span>
+                            <input
+                              type="file"
+                              accept="image/*,application/pdf"
+                              className="hidden"
+                              onChange={(e) => setReceipt(e.target.files?.[0] ?? null)}
+                            />
+                          </label>
+                        </div>
+                      </div>
+                    </div>
+
+                    <Button
+                      className="mt-5 w-full gap-2"
+                      disabled={submitting || !receipt || !fullName.trim() || !whatsapp.trim()}
+                      onClick={submit}
+                    >
+                      {submitting ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          {t("common.loading")}
+                        </>
+                      ) : (
+                        <>
+                          {isAr ? "إرسال طلب الاشتراك" : "Submit subscription request"}
+                          <ArrowRight className="h-4 w-4 rtl:rotate-180" />
+                        </>
+                      )}
+                    </Button>
+                  </>
+                )}
               </div>
             </div>
 
@@ -350,7 +606,7 @@ export function CheckoutView({ tier, months }: { tier: TierId | MembershipTier; 
       </main>
 
       <footer className="mt-auto border-t border-border py-8 text-center text-sm text-muted-foreground">
-        © {new Date().getFullYear()} {t("brand.name")}. {t("landing.footer")}
+        © {new Date().getFullYear()} MuscleHubEG. {isAr ? "كل الحقوق محفوظة." : "All rights reserved."}
       </footer>
     </div>
   );

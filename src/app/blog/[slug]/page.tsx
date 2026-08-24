@@ -20,7 +20,10 @@ export async function generateMetadata({
 
   const og = await fetchBlogForOG(slug, "en");
   if (!og) {
-    return { title: "Article Not Found — MuscleHub" };
+    return {
+      title: "Article Not Found — MuscleHubEG",
+      robots: { index: false, follow: false },
+    };
   }
 
   return {
@@ -33,7 +36,7 @@ export async function generateMetadata({
       title: og.title,
       description: og.description,
       images: [{ url: og.image, width: 1200, height: 630 }],
-      siteName: "MuscleHub",
+      siteName: "MuscleHubEG",
       locale: "en_US",
     },
     twitter: {

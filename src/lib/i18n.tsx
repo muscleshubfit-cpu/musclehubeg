@@ -14,7 +14,7 @@ export type Lang = "ar" | "en";
 type Dict = Record<string, string>;
 
 const en: Dict = {
- "brand.name": "MuscleHub",
+ "brand.name": "MuscleHubEG",
  "brand.tagline": "Online fitness & nutrition platform",
  "nav.dashboard": "Dashboard",
  "nav.coach": "AI Coach",
@@ -59,7 +59,7 @@ const en: Dict = {
  "landing.hero.badge": "Transform with a coach who cares",
  "landing.hero.title": "Build the body you deserve",
  "landing.hero.subtitle":
- "Personalized nutrition and training plans, weekly progress tracking, and AI-powered guidance from MuscleHub.",
+ "Personalized nutrition and training plans, weekly progress tracking, and AI-powered guidance from MuscleHubEG.",
  "landing.hero.cta": "Start your journey",
  "landing.hero.login": "Log in",
  "landing.stats.clients": "Clients coached",
@@ -78,14 +78,14 @@ const en: Dict = {
  "landing.f5.title": "Weight Charts",
  "landing.f5.desc": "Beautiful charts that keep you motivated.",
  "landing.f6.title": "Direct Coaching",
- "landing.f6.desc": "Stay accountable with the MuscleHub team every step.",
+ "landing.f6.desc": "Stay accountable with the MuscleHubEG team every step.",
  "landing.how.title": "How it works",
  "landing.how.s1.title": "Sign up",
  "landing.how.s1.desc": "Create your account in seconds.",
  "landing.how.s2.title": "Complete questionnaires",
  "landing.how.s2.desc": "Tell us about your nutrition and fitness.",
  "landing.how.s3.title": "Get your plans",
- "landing.how.s3.desc": "MuscleHub builds your custom meal & training plans.",
+ "landing.how.s3.desc": "MuscleHubEG builds your custom meal & training plans.",
  "landing.how.s4.title": "Track & transform",
  "landing.how.s4.desc": "Log progress and crush your goals.",
  "landing.cta.title": "Ready to start?",
@@ -232,7 +232,7 @@ const en: Dict = {
  "prog.noPhotos": "No photos yet. Upload your first one!",
 
  "plans.title": "My Plans",
- "plans.subtitle": "Your meal and workout plans from MuscleHub.",
+ "plans.subtitle": "Your meal and workout plans from MuscleHubEG.",
  "plans.meal": "Meal plans",
  "plans.workout": "Workout plans",
  "plans.empty": "No plans yet. Your coach will upload them soon.",
@@ -391,7 +391,7 @@ const en: Dict = {
 };
 
 const ar: Dict = {
- "brand.name": "MuscleHub",
+ "brand.name": "MuscleHubEG",
  "brand.tagline": "منصة لياقة وتغذية أونلاين",
  "nav.dashboard": "لوحة التحكم",
  "nav.coach": "الكوتش الذكي",
@@ -436,7 +436,7 @@ const ar: Dict = {
  "landing.hero.badge": "تحول مع كوتش يهتم بك",
  "landing.hero.title": "ابني الجسم الذي تستحقه",
  "landing.hero.subtitle":
- "خطط تغذية وتمارين مخصصة، تتبع أسبوعي للتقدم، وإشراف منصة MuscleHub الذكية.",
+ "خطط تغذية وتمارين مخصصة، تتبع أسبوعي للتقدم، وإشراف منصة MuscleHubEG الذكية.",
  "landing.hero.cta": "ابدأ رحلتك",
  "landing.hero.login": "تسجيل الدخول",
  "landing.stats.clients": "عميل تم تدريبهم",
@@ -455,14 +455,14 @@ const ar: Dict = {
  "landing.f5.title": "رسوم الوزن",
  "landing.f5.desc": "رسوم بيانية رائعة تحافظ على تحفيزك.",
  "landing.f6.title": "إشراف مباشر",
- "landing.f6.desc": "ابقَ ملتزماً مع فريق MuscleHub في كل خطوة.",
+ "landing.f6.desc": "ابقَ ملتزماً مع فريق MuscleHubEG في كل خطوة.",
  "landing.how.title": "كيف يعمل",
  "landing.how.s1.title": "إنشاء حساب",
  "landing.how.s1.desc": "أنشئ حسابك في ثوانٍ.",
  "landing.how.s2.title": "أكمل الاستبيانات",
  "landing.how.s2.desc": "أخبرنا عن تغذيتك ولياقتك.",
  "landing.how.s3.title": "احصل على خططك",
- "landing.how.s3.desc": "فريق MuscleHub يبني خطط وجبات وتمارين مخصصة لك.",
+ "landing.how.s3.desc": "فريق MuscleHubEG يبني خطط وجبات وتمارين مخصصة لك.",
  "landing.how.s4.title": "تتبع وتحول",
  "landing.how.s4.desc": "سجل تقدمك وحقق أهدافك.",
  "landing.cta.title": "جاهز للبدء؟",
@@ -609,7 +609,7 @@ const ar: Dict = {
  "prog.noPhotos": "مفيش صور بعد. ارفع أول صورة!",
 
  "plans.title": "خطتي",
- "plans.subtitle": "خطط وجباتك وتمارينك من فريق MuscleHub.",
+ "plans.subtitle": "خطط وجباتك وتمارينك من فريق MuscleHubEG.",
  "plans.meal": "خطط الوجبات",
  "plans.workout": "خطط التمارين",
  "plans.empty": "لا توجد خطط بعد. سيرفعها الكوتش قريباً.",

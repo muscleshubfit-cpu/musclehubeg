@@ -1,20 +1,20 @@
 import type { Metadata, Viewport } from "next";
 
 /**
- * Site-wide metadata for MuscleHub.
+ * Site-wide metadata for MuscleHubEG.
  *
  * English is the PRIMARY language (targeting English-speaking audience).
  * Arabic is secondary (supported via language toggle).
  *
- * Strategy: Position MuscleHub as a comprehensive sports & wellness platform
+ * Strategy: Position MuscleHubEG as a comprehensive sports & wellness platform
  * (not just a coaching site). Keywords cover all platform features:
  * exercises, programs, tools, food library, blog.
  */
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://musclehubeg.vercel.app'),
-  title: "MuscleHub — Comprehensive Sports Platform | Exercises, Programs, Calculators & Nutrition",
+  title: "MuscleHubEG — Comprehensive Sports Platform | Exercises, Programs, Calculators & Nutrition",
   description:
-    "MuscleHub is a comprehensive sports platform: 547+ exercise library, ready workout programs, free fitness calculators (calories, BMI, macros), food database with nutrition info, fitness blog, and online coaching with nutrition specialists.",
+    "MuscleHubEG is a comprehensive sports platform: 547+ exercise library, ready workout programs, free fitness calculators (calories, BMI, macros), food database with nutrition info, fitness blog, and online coaching with nutrition specialists.",
   keywords: [
     // Platform-level keywords (primary, English)
     "sports platform",
@@ -63,9 +63,9 @@ export const metadata: Metadata = {
     "كوتشينج أونلاين",
     "تغذية رياضية",
     // Brand
-    "MuscleHub",
+    "MuscleHubEG",
   ],
-  authors: [{ name: "MuscleHub" }],
+  authors: [{ name: "MuscleHubEG" }],
   manifest: "/manifest.json",
   icons: {
     icon: [
@@ -78,14 +78,14 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "MuscleHub",
+    title: "MuscleHubEG",
   },
   openGraph: {
-    title: "MuscleHub — Comprehensive Sports Platform",
+    title: "MuscleHubEG — Comprehensive Sports Platform",
     description:
       "547+ exercises, workout programs, free fitness calculators, food database, fitness blog, and online coaching. Everything you need for your fitness journey in one place.",
     type: "website",
-    siteName: "MuscleHub",
+    siteName: "MuscleHubEG",
     locale: "en_US",
     url: "https://musclehubeg.vercel.app",
     images: [
@@ -93,13 +93,13 @@ export const metadata: Metadata = {
         url: "/logo.png",
         width: 1200,
         height: 630,
-        alt: "MuscleHub — Comprehensive Sports Platform",
+        alt: "MuscleHubEG — Comprehensive Sports Platform",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "MuscleHub — Comprehensive Sports Platform",
+    title: "MuscleHubEG — Comprehensive Sports Platform",
     description:
       "Exercises, workout programs, fitness calculators, food database, fitness blog, and online coaching.",
     images: ["/logo.png"],

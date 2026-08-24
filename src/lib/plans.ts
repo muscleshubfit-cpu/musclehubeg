@@ -4,7 +4,7 @@
 
 export type TierId = "starter" | "elite";
 export type Duration = 1 | 12;
-export type PaymentMethod = "instapay" | "vodafone_cash";
+export type PaymentMethod = "instapay" | "vodafone_cash" | "paypal";
 
 export const DURATIONS: Duration[] = [1, 12];
 export const TIER_IDS: TierId[] = ["starter", "elite"];

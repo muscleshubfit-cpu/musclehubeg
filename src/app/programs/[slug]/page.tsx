@@ -270,8 +270,8 @@ export default function ProgramDetailPage() {
           </h2>
           <p className="mt-2 text-sm font-normal text-gray-300">
             {isAr
-              ? "منصة MuscleHub بتعمل خطط مخصصة بناءً على أهدافك ومستواك."
-              : "MuscleHub creates personalized plans based on your goals and level."}
+              ? "منصة MuscleHubEG بتعمل خطط مخصصة بناءً على أهدافك ومستواك."
+              : "MuscleHubEG creates personalized plans based on your goals and level."}
           </p>
           <a
             href="/memberships"

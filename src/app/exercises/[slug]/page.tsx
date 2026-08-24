@@ -244,7 +244,7 @@ export default function ExerciseDetailPage() {
             {isAr ? "شارك التمرين ده" : "Share this exercise"}
           </p>
           <ShareButtons
-            title={isAr ? `${exercise.nameAr} | MuscleHub` : `${exercise.nameEn} | MuscleHub`}
+            title={isAr ? `${exercise.nameAr} | MuscleHubEG` : `${exercise.nameEn} | MuscleHubEG`}
             text={isAr ? exercise.instructionsAr[0] : exercise.instructionsEn[0]}
           />
         </div>

@@ -19,7 +19,7 @@ export function StaticPageView({ page }: { page: "about" | "privacy" | "terms" |
             onClick={() => navigate("landing")}
             className="text-lg font-semibold tracking-tight"
           >
-            MuscleHub
+            MuscleHubEG
           </button>
           <LanguageToggle />
         </div>
@@ -66,7 +66,7 @@ export function StaticPageView({ page }: { page: "about" | "privacy" | "terms" |
       </main>
 
       <footer className="mt-auto border-t border-[#d2d2d7] py-6 text-center text-xs font-normal text-[#6e6e73]">
-        © {new Date().getFullYear()} MuscleHub. {isAr ? "كل الحقوق محفوظة." : "All rights reserved."}
+        © {new Date().getFullYear()} MuscleHubEG. {isAr ? "كل الحقوق محفوظة." : "All rights reserved."}
       </footer>
  </div>
  );
@@ -77,22 +77,22 @@ function getContent(page: string, isAr: boolean) {
 
  if (page === "about") {
  return isAr ? {
- title: "عن MuscleHub",
+ title: "عن MuscleHubEG",
  updated: `آخر تحديث: ${date}`,
  sections: [
- { heading: "من نحن", paragraphs: ["MuscleHub هي منصة تحسين أداء بشري بالذكاء الاصطناعي. نجمع بين محرك الذكاء الاصطناعي EVO وقاعدة بيانات ضخمة لتمارين (٨٦٨+) وأكلات (٨٬٨٣٠+) لتقديم تجربة لياقة وتغذية لا مثيل لها.", "تأسست MuscleHub برؤية بسيطة: المستقبل ليس إنسان ضد AI، بل إنسان + AI. نحن نؤمن بأن أفضل النتائج تأتي من الجمع بين حكمة الإنسان وذكاء الآلة."] },
+ { heading: "من نحن", paragraphs: ["MuscleHubEG هي منصة تحسين أداء بشري بالذكاء الاصطناعي. نجمع بين محرك الذكاء الاصطناعي EVO وقاعدة بيانات ضخمة لتمارين (٨٦٨+) وأكلات (٨٬٨٣٠+) لتقديم تجربة لياقة وتغذية لا مثيل لها.", "تأسست MuscleHubEG برؤية بسيطة: المستقبل ليس إنسان ضد AI، بل إنسان + AI. نحن نؤمن بأن أفضل النتائج تأتي من الجمع بين حكمة الإنسان وذكاء الآلة."] },
  { heading: "رؤيتنا", paragraphs: ["أن نكون المنصة الأولى للكوتشينج الرياضي والتغذوي في العالم العربي، ونقدم تجربة عالمية المستوى لكل عضو."] },
  { heading: "EVO — محرك الأداء الذكي", paragraphs: ["EVO ليس شات بوت عادي. بل محرك ذكاء اصطناعي يحلل بياناتك، يتنبأ بالنتائج، يوصي بالتحسينات، ويحدّث خططك تلقائياً. متاح لجميع الأعضاء مع حدود حسب العضوية."] },
- { heading: "العضويات", paragraphs: ["MuscleHub تقدم 3 باقات: مجاني (وصول محدود)، بريميوم $14.99/شهر أو $119/سنة (EVO غير محدود + خطط شهرية)، برو $29.99/شهر أو $239/سنة (محتوى مميز + خطط مضاعفة). وكوتشينج بشري منفصل بـ $39.99/شهر أو $359/سنة للمهتمين بمتابعة فردية."] },
+ { heading: "العضويات", paragraphs: ["MuscleHubEG تقدم 3 باقات: مجاني (وصول محدود)، بريميوم $14.99/شهر أو $119/سنة (EVO غير محدود + خطط شهرية)، برو $29.99/شهر أو $239/سنة (محتوى مميز + خطط مضاعفة). وكوتشينج بشري منفصل بـ $39.99/شهر أو $359/سنة للمهتمين بمتابعة فردية."] },
  ],
  } : {
- title: "About MuscleHub",
+ title: "About MuscleHubEG",
  updated: `Last updated: ${date}`,
  sections: [
- { heading: "Who We Are", paragraphs: ["MuscleHub is an AI-powered human optimization platform. We combine the EVO AI engine with a massive database of exercises (868+) and foods (8,830+) to deliver an unmatched fitness and nutrition experience.", "MuscleHub was founded on a simple vision: the future isn't Human vs AI, it's Human + AI. We believe the best results come from combining human wisdom with machine intelligence."] },
+ { heading: "Who We Are", paragraphs: ["MuscleHubEG is an AI-powered human optimization platform. We combine the EVO AI engine with a massive database of exercises (868+) and foods (8,830+) to deliver an unmatched fitness and nutrition experience.", "MuscleHubEG was founded on a simple vision: the future isn't Human vs AI, it's Human + AI. We believe the best results come from combining human wisdom with machine intelligence."] },
  { heading: "Our Vision", paragraphs: ["To be the leading fitness and nutrition platform in the Arab world, delivering a world-class experience to every member."] },
  { heading: "EVO — The AI Performance Engine", paragraphs: ["EVO is not a regular chatbot. It's an AI engine that analyzes your data, predicts outcomes, recommends improvements, and updates your plans automatically. Available to all members with tier-based limits."] },
- { heading: "Memberships", paragraphs: ["MuscleHub offers 3 tiers: Free (limited access), Premium $14.99/mo or $119/yr (unlimited EVO + monthly plans), Pro $29.99/mo or $239/yr (premium content + doubled plans). Human coaching is available separately at $39.99/mo or $359/yr for those who want 1-on-1 supervision."] },
+ { heading: "Memberships", paragraphs: ["MuscleHubEG offers 3 tiers: Free (limited access), Premium $14.99/mo or $119/yr (unlimited EVO + monthly plans), Pro $29.99/mo or $239/yr (premium content + doubled plans). Human coaching is available separately at $39.99/mo or $359/yr for those who want 1-on-1 supervision."] },
  ],
  };
  }
@@ -128,24 +128,24 @@ function getContent(page: string, isAr: boolean) {
  title: "الشروط والأحكام",
  updated: `آخر تحديث: ${date}`,
  sections: [
- { heading: "قبول الشروط", paragraphs: ["باستخدامك لموقع MuscleHub، فإنك توافق على هذه الشروط والأحكام. إذا لم توافق، يرجى عدم استخدام الموقع."] },
- { heading: "الاشتراك", paragraphs: ["الاشتراك في MuscleHub يمنحك accès لخطط مخصصة، مساعد ذكي، وتتبع تقدم. الأسعار موضحة في صفحة الأسعار.", "يمكنك عدم التجديد في أي وقت. لا توجد عقود ملزمة."] },
- { heading: "الخطط المخصصة", paragraphs: ["الخطط الغذائية والتدريبية مولّدة بالذكاء الاصطناعي ومراجعة من الكوتش. النتائج تختلف من شخص لآخر حسب الالتزام والجينات.", "MuscleHub لا يقدم نصائح طبية. استشر طبيبك قبل بدء أي برنامج غذائي أو رياضي."] },
+ { heading: "قبول الشروط", paragraphs: ["باستخدامك لموقع MuscleHubEG، فإنك توافق على هذه الشروط والأحكام. إذا لم توافق، يرجى عدم استخدام الموقع."] },
+ { heading: "الاشتراك", paragraphs: ["الاشتراك في MuscleHubEG يمنحك accès لخطط مخصصة، مساعد ذكي، وتتبع تقدم. الأسعار موضحة في صفحة الأسعار.", "يمكنك عدم التجديد في أي وقت. لا توجد عقود ملزمة."] },
+ { heading: "الخطط المخصصة", paragraphs: ["الخطط الغذائية والتدريبية مولّدة بالذكاء الاصطناعي ومراجعة من الكوتش. النتائج تختلف من شخص لآخر حسب الالتزام والجينات.", "MuscleHubEG لا يقدم نصائح طبية. استشر طبيبك قبل بدء أي برنامج غذائي أو رياضي."] },
  { heading: "التبديلات", paragraphs: ["حد التبديلات اليومية يعتمد على باقتك:", "Starter: 2 تبديل/يوم لكل نوع. Elite: غير محدود.", "التبديلات تتجدد يومياً."] },
- { heading: "المسؤولية", paragraphs: ["منصة MuscleHub غير مسؤولة عن أي إصابة أو ضرر صحي ناتج عن اتباع البرنامج دون استشارة طبية."] },
- { heading: "الملكية الفكرية", paragraphs: ["جميع المحتويات (الخطط، المقالات، التصميم) مملوكة لـ MuscleHub ولا يجوز نسخها أو إعادة استخدامها."] },
+ { heading: "المسؤولية", paragraphs: ["منصة MuscleHubEG غير مسؤولة عن أي إصابة أو ضرر صحي ناتج عن اتباع البرنامج دون استشارة طبية."] },
+ { heading: "الملكية الفكرية", paragraphs: ["جميع المحتويات (الخطط، المقالات، التصميم) مملوكة لـ MuscleHubEG ولا يجوز نسخها أو إعادة استخدامها."] },
  { heading: "تعديل الشروط", paragraphs: ["نحتفظ بحق تعديل هذه الشروط في أي وقت. سيتم إشعار المستخدمين بالتغييرات الجوهرية."] },
  ],
  } : {
  title: "Terms & Conditions",
  updated: `Last updated: ${date}`,
  sections: [
- { heading: "Acceptance", paragraphs: ["By using MuscleHub, you agree to these terms. If you disagree, please do not use the site."] },
- { heading: "Subscription", paragraphs: ["Subscribing to MuscleHub grants access to personalized plans, AI assistant, and progress tracking. Prices are listed on the pricing page.", "You can choose not to renew at any time. No binding contracts."] },
- { heading: "Personalized Plans", paragraphs: ["Nutrition and workout plans are AI-generated and reviewed by the coach. Results vary by individual based on adherence and genetics.", "MuscleHub does not provide medical advice. Consult your doctor before starting any nutrition or exercise program."] },
+ { heading: "Acceptance", paragraphs: ["By using MuscleHubEG, you agree to these terms. If you disagree, please do not use the site."] },
+ { heading: "Subscription", paragraphs: ["Subscribing to MuscleHubEG grants access to personalized plans, AI assistant, and progress tracking. Prices are listed on the pricing page.", "You can choose not to renew at any time. No binding contracts."] },
+ { heading: "Personalized Plans", paragraphs: ["Nutrition and workout plans are AI-generated and reviewed by the coach. Results vary by individual based on adherence and genetics.", "MuscleHubEG does not provide medical advice. Consult your doctor before starting any nutrition or exercise program."] },
  { heading: "Swaps", paragraphs: ["Daily swap limits depend on your plan:", "Starter: 2 swaps/day per type. Elite: unlimited.", "Swaps reset daily."] },
- { heading: "Liability", paragraphs: ["MuscleHub is not liable for any injury or health damage resulting from following the program without medical consultation."] },
- { heading: "Intellectual Property", paragraphs: ["All content (plans, articles, design) is owned by MuscleHub and may not be copied or reused."] },
+ { heading: "Liability", paragraphs: ["MuscleHubEG is not liable for any injury or health damage resulting from following the program without medical consultation."] },
+ { heading: "Intellectual Property", paragraphs: ["All content (plans, articles, design) is owned by MuscleHubEG and may not be copied or reused."] },
  { heading: "Changes to Terms", paragraphs: ["We reserve the right to modify these terms at any time. Users will be notified of significant changes."] },
  ],
  };
@@ -156,7 +156,7 @@ function getContent(page: string, isAr: boolean) {
  title: "الأسئلة الشائعة",
  updated: `آخر تحديث: ${date}`,
  sections: [
- { heading: "ما هو MuscleHub؟", paragraphs: ["منصة تحسين أداء بشري تجمع بين محرك الذكاء الاصطناعي EVO وقاعدة بيانات ضخمة (تمارين وأكلات) لتقديم خطط مخصصة وتتبع ذكي."] },
+ { heading: "ما هو MuscleHubEG؟", paragraphs: ["منصة تحسين أداء بشري تجمع بين محرك الذكاء الاصطناعي EVO وقاعدة بيانات ضخمة (تمارين وأكلات) لتقديم خطط مخصصة وتتبع ذكي."] },
  { heading: "من هو EVO؟", paragraphs: ["EVO هو محرك الأداء الذكي. يحلل بياناتك، يتنبأ بالنتائج، يوصي بالتحسينات، ويحدّث خططك تلقائياً. متاح لجميع الأعضاء مع حدود حسب العضوية."] },
  { heading: "هل فيه كوتش بشري؟", paragraphs: ["EVO هو كوتش ذكاء اصطناعي. لو حابب متابعة بشرية، فيه قسم كوتشينج بشري منفصل يمكنك حجزه عبر صفحة الكوتشينج."] },
  { heading: "كم تبديل يومياً مسموح؟", paragraphs: ["Starter: 2 تبديل وجبات + 2 تبديل تمارين يومياً. Elite: غير محدود. تتجدد يومياً."] },
@@ -170,7 +170,7 @@ function getContent(page: string, isAr: boolean) {
  title: "Frequently Asked Questions",
  updated: `Last updated: ${date}`,
  sections: [
- { heading: "What is MuscleHub?", paragraphs: ["A human optimization platform combining the EVO AI engine with a massive exercise and food database for personalized plans and smart tracking."] },
+ { heading: "What is MuscleHubEG?", paragraphs: ["A human optimization platform combining the EVO AI engine with a massive exercise and food database for personalized plans and smart tracking."] },
  { heading: "Who is EVO?", paragraphs: ["EVO is the AI performance engine. It analyzes your data, predicts outcomes, recommends improvements, and updates plans automatically. Available to all members with tier-based limits."] },
  { heading: "Is there a human coach?", paragraphs: ["EVO is an AI coach. If you want human supervision, there's a separate human coaching section you can book via the coaching page."] },
  { heading: "How many daily swaps?", paragraphs: ["Starter: 2 meal + 2 exercise swaps/day. Elite: unlimited. Resets daily."] },

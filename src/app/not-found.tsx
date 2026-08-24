@@ -17,7 +17,7 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   robots: { index: false, follow: false },
-  title: "404 — Page Not Found | MuscleHub",
+  title: "404 — Page Not Found | MuscleHubEG",
   // Override the inherited root canonical — a 404 page should NOT have a
   // canonical pointing to homepage (that would make Google think the 404
   // URL is a duplicate of the homepage, which is wrong and harmful for SEO).

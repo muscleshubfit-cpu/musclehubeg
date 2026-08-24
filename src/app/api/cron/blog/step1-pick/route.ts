@@ -8,6 +8,11 @@ export const maxDuration = 60;
 /**
  * Step 1: Pick a topic.
  * Saves the picked topic to blog_generation_queue for step 2.
+ *
+ * EN/AR SEPARATION: Picks TWO topics — one EN, one AR — for the same
+ * category. Both are stored in the queue row. Step 2b uses the EN topic
+ * for the English article; step 2c uses the AR topic for the Arabic
+ * article. This ensures each language gets a topic in its own language.
  */
 export async function GET(request: NextRequest) {
   const auth = request.headers.get("authorization");
@@ -18,14 +23,21 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Supabase admin not configured." }, { status: 500 });
 
   try {
-    const pick = await pickSmartTopic();
-    const safeCategory = normalizeCategory(pick.category);
+    // Pick BOTH EN and AR topics for the same rotation category.
+    // pickRotationCategory is deterministic — both calls get the same pillar.
+    const [enPick, arPick] = await Promise.all([
+      pickSmartTopic(undefined, "en"),
+      pickSmartTopic(undefined, "ar"),
+    ]);
+    const safeCategory = normalizeCategory(enPick.category);
 
     const { data, error } = await supabaseAdmin
       .from("blog_generation_queue" as any)
       .insert({
-        topic: pick.topic,
-        focus_keyword: pick.focusKeyword,
+        topic: enPick.topic,
+        focus_keyword: enPick.focusKeyword,
+        topic_ar: arPick.topic,
+        focus_keyword_ar: arPick.focusKeyword,
         category: safeCategory,
         status: "topic_picked",
         created_at: new Date().toISOString(),
@@ -40,8 +52,10 @@ export async function GET(request: NextRequest) {
       ok: true,
       step: 1,
       queueId: (data as any).id,
-      topic: pick.topic,
-      focusKeyword: pick.focusKeyword,
+      topic: enPick.topic,
+      focusKeyword: enPick.focusKeyword,
+      topicAr: arPick.topic,
+      focusKeywordAr: arPick.focusKeyword,
       category: safeCategory,
     });
   } catch (e: any) {

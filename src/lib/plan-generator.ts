@@ -416,7 +416,7 @@ ${coachNote ? `تعليمات الكوتش: ${coachNote}` : ""}
 
 /* ----------------------------- Prompts ----------------------------- */
 
-const NUTRITION_SYSTEM_PROMPT = `أنت أخصائي تغذية رياضية محترف يعمل في منصة MuscleHub.
+const NUTRITION_SYSTEM_PROMPT = `أنت أخصائي تغذية رياضية محترف يعمل في منصة MuscleHubEG.
 مهمتك: تصميم خطة تغذية مخصصة باللغة العربية بأسلوب احترافي يطابق شكل التقارير الطبية.
 
 قواعد الإخراج:
@@ -546,7 +546,7 @@ ${overridesText}
 أعد النتيجة بصيغة JSON صالحة فقط (بدون نص إضافي، بدون أسوار markdown) بالتنسيق المحدد في تعليمات النظام.`;
 }
 
-const WORKOUT_SYSTEM_PROMPT = `أنت مدرب لياقة محترف يعمل في منصة MuscleHub.
+const WORKOUT_SYSTEM_PROMPT = `أنت مدرب لياقة محترف يعمل في منصة MuscleHubEG.
 مهمتك: تصميم برنامج تمارين أسبوعي مخصص باللغة العربية.
 
 قواعد الإخراج:
@@ -889,7 +889,7 @@ export async function normalizeCoachPlanText(
     }
   }
 
-  const prompt = `أنت مساعد ذكي في منصة MuscleHub. مهمتك: تحويل نص خطة ${planType === "nutrition" ? "تغذية" : "تمارين"} حر (مكتوبة يدوياً أو منسوخة من PDF) إلى JSON منظم قابل للتعديل.
+  const prompt = `أنت مساعد ذكي في منصة MuscleHubEG. مهمتك: تحويل نص خطة ${planType === "nutrition" ? "تغذية" : "تمارين"} حر (مكتوبة يدوياً أو منسوخة من PDF) إلى JSON منظم قابل للتعديل.
 
 النص الأصلي:
 """

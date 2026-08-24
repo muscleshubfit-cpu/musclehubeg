@@ -90,20 +90,39 @@ export async function GET(request: NextRequest) {
     const researchingErr = await updateQueueItem(qi.id, { status: "generating_ar" });
     if (researchingErr) throw new Error(researchingErr);
 
-    // EN/AR SEPARATION: generateArabicArticle does NOT receive englishArticle
-    // as input. It receives only topic + research (same as EN).
-    // The AR article, AR SEO, AR FAQ, AR image prompts, AR social posts, and
-    // AR reading time are all generated independently in this single call.
+    // EN/AR SEPARATION: use AR topic from queue (topic_ar), not EN topic.
+    // Falls back to EN topic if topic_ar is missing (old queue rows).
+    const arTopic = bundle.topic_ar || qi.topic;
+    const arFocusKw = bundle.focus_keyword_ar || qi.focus_keyword;
+
     const arResult = await generateArabicArticle(
-      { topic: qi.topic, focusKeyword: qi.focus_keyword, category: qi.category },
-      bundle.seo || null,
+      { topic: arTopic, focusKeyword: arFocusKw, category: qi.category },
+      null, // Pass null — AR writer generates its own AR SEO from scratch
       bundle.research || null,
     );
 
     // Save AR SEO + AR article + AR FAQ + AR image + AR social + AR reading time
+    // IMPORTANT: The AR AI might return seo fields in different shapes:
+    //   Shape A (correct): { seo: { focusKeyword, ar: { seoTitle, slug, ... } } }
+    //   Shape B (buggy):  { seo: { focusKeyword, seoTitle, slug, ... } }  ← no ar sub-block
+    // We normalize to Shape A before saving to the bundle.
+    const arSeo = (arResult as any).seo || {};
+    const normalizedArSeo = {
+      ...bundle.seo, // preserve EN SEO (en block, en focusKeyword, etc.)
+      focusKeyword: arSeo.focusKeyword || bundle.seo?.focusKeyword || arFocusKw,
+      secondaryKeywords: arSeo.secondaryKeywords || bundle.seo?.secondaryKeywords || [],
+      ar: arSeo.ar || {
+        // If AI didn't return the ar sub-block, build it from top-level fields
+        seoTitle: arSeo.seoTitle || arSeo.ar?.seoTitle || "",
+        metaTitle: arSeo.metaTitle || arSeo.ar?.metaTitle || arSeo.seoTitle || "",
+        metaDescription: arSeo.metaDescription || arSeo.ar?.metaDescription || "",
+        slug: arSeo.slug || arSeo.ar?.slug || "",
+      },
+    };
+
     const updatedBundle = JSON.stringify({
       ...bundle,
-      seo: { ...bundle.seo, ...(arResult as any).seo || {} },
+      seo: normalizedArSeo,
       arabicArticle: arResult.arabicArticle,
       faqAr: arResult.faqAr,
       imagePromptsAr: arResult.imagePromptsAr,
