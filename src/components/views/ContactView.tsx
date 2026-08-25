@@ -81,13 +81,7 @@ export function ContactView() {
               <h3 className="text-xs font-normal uppercase tracking-wide text-[#6e6e73]">
                 {isAr ? "البريد الإلكتروني" : "Email"}
               </h3>
-              <p className="mt-2 text-lg font-normal" dir="ltr">support@musclehubeg.com</p>
-            </div>
-            <div>
-              <h3 className="text-xs font-normal uppercase tracking-wide text-[#6e6e73]">
-                {isAr ? "واتساب" : "WhatsApp"}
-              </h3>
-              <p className="mt-2 text-lg font-normal" dir="ltr">+20 100 000 0000</p>
+              <p className="mt-2 text-lg font-normal" dir="ltr">muscleshubfit@gmail.com</p>
             </div>
             <div>
               <h3 className="text-xs font-normal uppercase tracking-wide text-[#6e6e73]">

@@ -247,10 +247,11 @@ export function LandingView() {
 
   // FAQ schema for SEO
   const faqs = [
-    { q: isAr ? "ما هي MuscleHub؟" : "What is MuscleHub?", a: isAr ? "منصة رياضية شاملة تقدم مكتبة تمارين، برامج تدريب، حاسبات لياقة، مكتبة أكلات، ومدونة رياضية." : "A comprehensive sports platform offering exercise library, workout programs, fitness calculators, food database, and a sports blog." },
-    { q: isAr ? "هل الأدوات مجانية؟" : "Are the tools free?", a: isAr ? "نعم، كل الأدوات (حاسبة سعرات، BMI، ماكروز، دهون) مجانية بدون تسجيل." : "Yes, all tools (calorie, BMI, macro, body fat calculators) are free without signup." },
-    { q: isAr ? "ما هو EVO؟" : "What is EVO?", a: isAr ? "EVO محرك أداء ذكي — مش مجرد شات بوت. يحلل بياناتك ويوجّهك للمحتوى المناسب." : "EVO is a smart performance engine — not just a chatbot. It analyzes your data and guides you to relevant content." },
-    { q: isAr ? "هل الكوتشينج متاح؟" : "Is coaching available?", a: isAr ? "نعم، عندنا كوتشينج أونلاين مع مدربين وأخصائيين تغذية محترفين." : "Yes, we offer online coaching with professional coaches and nutrition specialists." },
+    { q: isAr ? "هل أحتاج اشتراك لاستخدام الأدوات؟" : "Do I need a subscription to use the tools?", a: isAr ? "لا، كل الأدوات الستة (حاسبة سعرات، BMI، ماكروز، دهون، متتبع ماء، مخطط وجبات) مجانية تماماً بدون تسجيل." : "No, all six tools (calorie, BMI, macro, body fat, water tracker, meal planner) are completely free without signup." },
+    { q: isAr ? "ما الفرق بين Premium و Pro؟" : "What's the difference between Premium and Pro?", a: isAr ? "Premium ($14.99/شهر): EVO غير محدود، 3 خطط/شهر، 50 نتيجة محفوظة. Pro ($29.99/شهر): 6 خطط/شهر، 200 نتيجة، تحليل أنماط، بدون إعلانات." : "Premium ($14.99/mo): unlimited EVO, 3 plans/mo, 50 saved results. Pro ($29.99/mo): 6 plans/mo, 200 results, pattern analysis, ad-free." },
+    { q: isAr ? "هل يدعم PayPal؟" : "Does it support PayPal?", a: isAr ? "نعم، PayPal هو طريقة الدفع الرئيسية. متاح أيضاً الدفع اليدوي عبر InstaPay و Vodafone Cash." : "Yes, PayPal is the primary payment method. Manual payment via InstaPay and Vodafone Cash is also available." },
+    { q: isAr ? "كم عدد التمارين والأكلات؟" : "How many exercises and foods are there?", a: isAr ? "مكتبة 868 تمرين بصور وتعليمات ثنائية اللغة، و 8,830 أكلة بالسعرات والماكروز لكل 100 جرام." : "868 exercises with bilingual instructions and images, plus 8,830 foods with calories and macros per 100g." },
+    { q: isAr ? "هل الموقع يدعم العربية؟" : "Does the site support Arabic?", a: isAr ? "نعم، الموقع ثنائي اللغة (عربي/إنجليزي) مع دعم كامل لـ RTL، صفحات عربية mirror، ومدونة بمحتوى مستقل لكل لغة." : "Yes, fully bilingual (Arabic/English) with complete RTL support, Arabic mirror pages, and a blog with independent content per language." },
   ];
   const faqSchema = getFAQSchema(faqs);
 
@@ -370,17 +371,11 @@ export function LandingView() {
               </a>
             </div>
           </div>
-          {/* Images — 2 premium EVO visuals */}
-          <div className="mt-10 grid grid-cols-1 gap-4 md:grid-cols-2">
+          {/* Image — single premium EVO visual */}
+          <div className="mt-10">
             <img
               src="/images/hero/evo-1.jpg"
               alt={isAr ? "EVO — واجهة ذكاء اصطناعي" : "EVO — AI interface"}
-              className="aspect-[3/2] w-full rounded-3xl object-cover"
-              loading="lazy"
-            />
-            <img
-              src="/images/hero/evo-2.jpg"
-              alt={isAr ? "EVO — تحليل البيانات" : "EVO — Data analysis"}
               className="aspect-[3/2] w-full rounded-3xl object-cover"
               loading="lazy"
             />
@@ -612,7 +607,7 @@ export function LandingView() {
       </section>
 
       {/* ===================== 10. Premium Memberships ===================== */}
-      <section className="bg-[#1d1d1f] px-4 py-12 md:py-20 text-white">
+      <section className="bg-[#f5f5f7] px-4 py-12 md:py-20">
         <div className="mx-auto max-w-5xl">
           <Reveal>
             <h2 className="text-center text-3xl font-semibold tracking-tight md:text-5xl">
@@ -620,7 +615,7 @@ export function LandingView() {
             </h2>
           </Reveal>
           <Reveal delay={150}>
-            <p className="mx-auto mt-4 max-w-md text-base font-normal text-gray-400 md:text-lg">
+            <p className="mx-auto mt-4 max-w-md text-base font-normal text-[#6e6e73] md:text-lg">
               {isAr
                 ? "افتح القوة الكاملة للذكاء الاصطناعي والمحتوى المميز بعضوية Premium أو Pro."
                 : "Unlock the full power of AI and premium content with a Premium or Pro membership."}

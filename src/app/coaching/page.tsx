@@ -152,6 +152,7 @@ export default function CoachingPage() {
 
       <main>
         {/* ===================== HERO ===================== */}
+        {/* Image 1 (coaching-1) directly under the title */}
         <section className="bg-gradient-to-b from-[#f5f5f7] to-white px-4 py-16 md:py-24">
           <div className="mx-auto max-w-4xl text-center">
             <span className="inline-flex items-center gap-1.5 rounded-full bg-[#0071e3]/10 px-4 py-1.5 text-xs font-medium text-[#0071e3]">
@@ -163,7 +164,16 @@ export default function CoachingPage() {
               <br />
               {isAr ? "تغذية محترفين." : "Specialists."}
             </h1>
-            <p className="mx-auto mt-6 max-w-xl text-lg font-normal leading-snug text-[#6e6e73] md:text-xl">
+            {/* Image 1 — directly under the hero title */}
+            <div className="mt-8">
+              <img
+                src="/images/hero/coaching-1.jpg"
+                alt={isAr ? "منصة MuscleHubEG الذكية" : "MuscleHubEG smart platform"}
+                className="aspect-[3/2] w-full rounded-3xl object-cover shadow-2xl"
+                loading="eager"
+              />
+            </div>
+            <p className="mx-auto mt-8 max-w-xl text-lg font-normal leading-snug text-[#6e6e73] md:text-xl">
               {isAr
                 ? "خطط تغذية مخصصة، برامج تمارين متكيفة، متابعة شخصية، ومحرك ذكاء اصطناعي (EVO) متاح 24/7."
                 : "Personalized nutrition plans, adaptive workout programs, personal follow-up, and an AI engine (EVO) available 24/7."}
@@ -246,22 +256,15 @@ export default function CoachingPage() {
         </section>
 
         {/* ===================== COACHING VISUALS ===================== */}
+        {/* Image 2 (coaching-2) — placed between Features and EVO sections */}
         <section className="bg-white px-4 py-12 md:py-20">
-          <div className="mx-auto max-w-5xl">
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <img
-                src="/images/hero/coaching-1.jpg"
-                alt={isAr ? "منصة MuscleHubEG الذكية" : "MuscleHubEG smart platform"}
-                className="aspect-[3/2] w-full rounded-3xl object-cover shadow-lg"
-                loading="lazy"
-              />
-              <img
-                src="/images/hero/coaching-2.jpg"
-                alt={isAr ? "تدريب احترافي بالذكاء الاصطناعي" : "Professional AI-assisted training"}
-                className="aspect-[3/2] w-full rounded-3xl object-cover shadow-lg"
-                loading="lazy"
-              />
-            </div>
+          <div className="mx-auto max-w-4xl">
+            <img
+              src="/images/hero/coaching-2.jpg"
+              alt={isAr ? "تدريب احترافي بالذكاء الاصطناعي" : "Professional AI-assisted training"}
+              className="aspect-[3/2] w-full rounded-3xl object-cover shadow-2xl"
+              loading="lazy"
+            />
           </div>
         </section>
 
