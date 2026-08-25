@@ -6,7 +6,43 @@
 
 ---
 
-## Latest Verification — 2026-08-24 (Post-PayPal-Restoration Cycle)
+## Latest Verification — 2026-08-26 (Phase 12 — UI Palette Unification + Memberships Redesign)
+
+| Check | Result | How verified |
+|---|---|---|
+| Git sync (`HEAD == origin/main`) | ✅ PASS | `git rev-parse HEAD` == `git rev-parse origin/main` == `21c3b5b` (post-docs commit) — main implementation commits `8aff772` → `1447a0b` → `2a449d5` all pushed |
+| Live site (`https://musclehubeg.vercel.app/`) | ✅ PASS | `curl -sI` → HTTP 200, response time 1.16s |
+| Deployed palette (HTML inspection) | ✅ PASS | `curl https://musclehubeg.vercel.app/ \| grep -oE '#4A5260\|#0F5BB5\|#1D252E\|#FDFCFE'` → 41 / 10 / 32 / 12 occurrences respectively (new palette is live) |
+| Old palette fully removed | ✅ PASS | `grep -oE 'text-gray-400\|text-gray-300\|bg-white/5\|ring-white/10'` → 0 occurrences (was used in Memberships section, now fully replaced) |
+| WCAG AAA contrast on text | ✅ PASS | `textPrim` (#1D252E) on `surface` (#FDFCFE) = 15.0:1; `textSec` (#4A5260) on `surface` = 7.5:1; `brandDeep` (#0F5BB5) on white = 7.3:1 — all meet AAA (≥7:1) |
+| Memberships cards visible | ✅ PASS | Premium card uses solid `#FDFCFE` bg (was `bg-white/5` = 5% opacity invisible); Pro card uses solid bg + 2px brand border + brand glow shadow |
+| Section backgrounds preserved | ✅ PASS | Alternating `bg-white` / `bg-[#f5f5f7]` per Apple visual rhythm — no new sections added, no layout changes |
+| `prefers-reduced-motion` | ⚠️ PARTIAL | Inline `onMouseEnter` handlers (translateY + boxShadow) are NOT covered by `@media (prefers-reduced-motion: reduce)` in `globals.css`. Accepted as known limitation per Owner direction (visual hover only — no auto-playing animations). Future: migrate to `.card-gemini-hover` CSS class. |
+
+### Phase 12 commits (forward-only push — no force)
+
+| SHA | Type | Summary |
+|---|---|---|
+| `8aff772` | feat(ui) | Initial Gemini-card palette on 4 CTA card groups |
+| `1447a0b` | fix(ui) | Deepen text colors (`#656D75` → `#4A5260`; add `brandDeep` `#0F5BB5`) to reach WCAG AAA |
+| `2a449d5` | feat(ui) | Expanded `CARD` → `PALETTE` const + redesigned Memberships cards + unified all 12 sections' text colors |
+| `21c3b5b` | docs(worklog) | Append `P0-site-palette-redesign` entry |
+
+### Live HTML verification (2026-08-26)
+
+```bash
+$ curl -s "https://musclehubeg.vercel.app/" | grep -oE '#[0-9A-Fa-f]{6}' | sort | uniq -c | sort -rn | head
+     41 #4A5260   ← textSec (new) ✅
+     32 #1D252E   ← textPrim ✅
+     17 #6e6e73   ← footer textMuted only (intentional AA for legal text)
+     15 #0071e3   ← brand (solid buttons only — intentional)
+     12 #FDFCFE   ← surface ✅
+     10 #0F5BB5   ← brandDeep (new) ✅
+```
+
+---
+
+## Previous Verification — 2026-08-24 (Post-PayPal-Restoration Cycle)
 
 | Check | Result | How verified |
 |---|---|---|

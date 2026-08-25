@@ -592,6 +592,31 @@ bun run build
 --purple: #8b5cf6;      /* بنفسجي (Coaching) */
 ```
 
+### الـ `PALETTE` Const — Landing page (Phase 12 — 2026-08-26)
+
+`src/components/views/LandingView.tsx` يحتوي على `const PALETTE = { ... }`
+مستقل عن `globals.css`. هذا ليس بديلاً عن الـ Primary palette، بل
+**مكمِّل** له — يُستخدم فقط للعناصر التي تحتاج `inline style={{}}`
+(hover effects, dynamic shadows, badges, price pills).
+
+| Token | Hex | الاستخدام | الـ contrast |
+|---|---|---|---|
+| `PALETTE.surface` | `#FDFCFE` | خلفية الكروت (أبيض نقي) | — |
+| `PALETTE.tint` | `#F5F7FC` | خلفية الكروت الثانوية | — |
+| `PALETTE.textPrim` | `#1D252E` | h1/h2/h3 (أزرق داكن بديل الأسود) | 15:1 AAA |
+| `PALETTE.textSec` | `#4A5260` | النص الوصفي/الـ body | 7.5:1 AAA |
+| `PALETTE.textMuted` | `#6E6E73` | footer/legal فقط (AA مقبول) | 4.5:1 AA |
+| `PALETTE.brand` | `#0071e3` | خلفية الأزرار الصلبة فقط | — |
+| `PALETTE.brandDeep` | `#0F5BB5` | روابط نصية على خلفية فاتحة | 7.3:1 AAA |
+| `PALETTE.brandSoft` | `#E9F2FD` | خلفية badges/pills | — |
+| `PALETTE.border` | `#D2D2D7` | حدود Apple الرمادية | — |
+
+**قاعدة:** إذا العنصر على landing page ويحتاج hover effect أو box-shadow
+ديناميكي → استخدم `PALETTE.*` عبر `style={{}}`. إذا العنصر ثابت
+(`bg-white`, `text-[#1d1d1f]`) → استخدم Tailwind classes العادية.
+
+**مرجع كامل:** `DESIGN.md` §2.2 (الجدول الكامل + الـ contrast ratios).
+
 ### الـ AI Model Selection
 
 مبدأ موحد في كل الموقع: `callFreeOpenRouter` يجرب النماذج بالترتيب من الأكبر للأصغر:

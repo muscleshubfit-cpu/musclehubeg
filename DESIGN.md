@@ -1,6 +1,6 @@
 # MuscleHubEG — Design System Documentation
 
-> **Last updated:** 2026-08-25
+> **Last updated:** 2026-08-26 (added §2.2 — unified PALETTE const with WCAG AAA contrast)
 > **Status:** Active — binding reference for all UI/UX decisions
 > **Audience:** AI agents, developers, designers
 
@@ -59,6 +59,48 @@ to Tailwind utility classes via `tailwind.config.ts`.
 | Food: nuts | `#d9943a` | Bronze |
 | Food: snack | `#9775fa` | Purple |
 | Food: drink | `#5c7cfa` | Indigo |
+
+### 2.2 Unified PALETTE Const (landing page + future surfaces)
+
+> **Added 2026-08-26** — Extracted from the Gemini "Ask Gemini" card palette
+> and extended across the entire landing page. Defined in
+> `src/components/views/LandingView.tsx` (lines 22-50).
+>
+> **Why a separate const?** The Primary Palette (§2.1) lives in
+> `globals.css` as CSS variables for shadcn/ui and global Tailwind classes.
+> The `PALETTE` const covers surface-level accent tokens that need to be
+> applied as inline `style={{ ... }}` (because Tailwind cannot express
+> dynamic opacity in `box-shadow` or `border` reliably when paired with
+> inline `onMouseEnter` hover handlers). The two systems are
+> **complementary** — neither replaces the other.
+
+| Token | Hex | Role | Contrast on `surface` | WCAG |
+|---|---|---|---|---|
+| `surface` | `#FDFCFE` | Card surface — pure white | — | — |
+| `tint` | `#F5F7FC` | Card surface — cool white-blue (secondary cards) | — | — |
+| `halo` | `#E9F2FD` | Hover halo (box-shadow tint) | — | — |
+| `blue` | `#CAE3FA` | Decorative blue (button gradients) | — | — |
+| `blueDeep` | `#C9E4FC` | Decorative blue (deeper accent) | — | — |
+| `textPrim` | `#1D252E` | h1/h2/h3 — dark blue (not pure black) | 15.0:1 | ✅ AAA |
+| `textSec` | `#4A5260` | Descriptions / body text | 7.5:1 | ✅ AAA |
+| `textMuted` | `#6E6E73` | Footer / legal / non-essential text only | 4.5:1 on `#f5f5f7` | ⚠️ AA (accepted for legal text) |
+| `brand` | `#0071e3` | Solid button background only | — | — |
+| `brandDeep` | `#0F5BB5` | Text links on light bg | 7.3:1 | ✅ AAA |
+| `brandSoft` | `#E9F2FD` | Badge / pill background | — | — |
+| `border` | `#D2D2D7` | Apple gray border | — | — |
+| `sectionWhite` | `#FFFFFF` | Section background (alternating) | — | — |
+| `sectionGray` | `#F5F5F7` | Section background (alternating) | — | — |
+| `sectionDark` | `#1D1D1F` | Hero / featured-blog dark surface | — | — |
+
+**Usage rule:** prefer `PALETTE.*` tokens for any element on the landing
+page that needs inline styling (hover effects, dynamic shadows, price pills,
+badges). For static Tailwind classes (e.g. `bg-white`, `text-[#1d1d1f]`),
+the Primary Palette (§2.1) remains authoritative.
+
+**Backward compatibility:** the const alias `const CARD = PALETTE;`
+preserves references in legacy helper components (`LandingToolCard`,
+`LandingExerciseCategoryCard`, `LandingProgramCard`,
+`LandingFoodCategoryCard`). New code should use `PALETTE.*` directly.
 
 ---
 

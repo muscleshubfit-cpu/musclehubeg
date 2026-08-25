@@ -1,6 +1,6 @@
 # PROGRESS.md — MuscleHub Status Board
 
-> **آخر تحديث:** 2026-08-25 (مهمة #4 — تنظيف PROGRESS.md إلى لوحة حالة)
+> **آخر تحديث:** 2026-08-26 (مرحلة 12 — توحيد PALETTE + إعادة تصميم كروت العضويات)
 > **قاعدة التحكم:** هذا الملف هو لوحة التحكم والتسليم المشتركة. لا ننتقل لأي خطوة قادمة دون تحديث هذا الملف والحصول على الموافقة البشرية.
 > **مصدر الحقيقة:** الكود الفعلي (`src/**` + `supabase/migrations/`) يتفوق على هذا الملف (§12.8). كل الأرقام في القسم 1 تم التحقق منها فعلياً في مهمة #4.
 > **الأرشيف الكامل:** المحتوى التاريخي التفصيلي منقول إلى `archive/PROGRESS_ARCHIVE.md`.
@@ -122,6 +122,7 @@
 | F46 | Blog Admin UI (compact + searchable + responsive) | تمت | 2026-08-21 |
 | F47 | Blog Editor AI Tools (SEO Title + Meta + Improve + FAQ + CTA + Social + Image prompts — all live Gemini) | تمت | 2026-08-21 |
 | F48 | Affiliate Engine (migration 0015 + commission tracking) | تمت | 2026-08-24 |
+| F49 | Unified `PALETTE` const (Gemini-card palette extended site-wide — WCAG AAA contrast on all landing text) + Premium Memberships cards redesign | تمت | 2026-08-26 |
 
 ### الميزات المؤجلة (BACKLOG)
 
@@ -230,6 +231,7 @@
 | AD16 | Blog EN/AR full separation — independent engines per language (no EN→AR inheritance in Step 3) | AR is first-class content, not translation of EN | 2026-08-22 | EN-AR-SEPARATION-v2 (`5c35b46`) | ✅ نعم |
 | AD17 | External research via Gemini Flash (3.7 → 3.6 → 3.5) with Google Search Grounding | Replaced broken Z.ai private-IP path + LLM pseudo-research | 2026-08-21 | Phase 8 — `src/lib/external-search.ts` | ✅ نعم |
 | AD18 | Image generation via Pollinations / Imagen 3 (replaced Z.ai) | Stability + reliability | 2026-08-21 | Phase 8 — `src/app/api/ai/generate-image/route.ts` | ✅ نعم |
+| AD19 | Unified `PALETTE` const in `LandingView.tsx` — single source of truth for landing-page surface colors (cards, hover shadows, badges, price pills). Complementary to `globals.css` Primary Palette (§2.1 in DESIGN.md) — used for inline `style={{}}` where Tailwind can't express dynamic opacity. All text tokens meet WCAG AAA (≥7:1) on intended backgrounds. `textMuted` (`#6E6E73`) is the **only** AA token — reserved for footer/legal text only. | Site-wide visual consistency + WCAG AAA compliance. Memberships cards were broken (`bg-white/5` on light bg = invisible + `text-gray-400/300` designed for dark bg). | 2026-08-26 | Phase 12 — commits `8aff772` → `1447a0b` → `2a449d5` | ✅ نعم |
 
 ### قرارات AI Architecture Direction (الـ 8 — مُعاد بناؤها)
 
@@ -266,6 +268,7 @@
 | Phase 9 | 2026-08-22 | EN/AR blog separation (independent content engines per language — no EN→AR inheritance) + SEO/AdSense fixes (ads.txt + noindex on private routes + hreflang + 404 noindex) |
 | Phase 10 | 2026-08-24 | PayPal integration (PRIMARY payment method — `src/lib/paypal.ts` + 3 API routes + migration 0016 + idempotency + webhook signature verification) + checkout flow hardening + affiliate engine (migration 0015) |
 | Phase 11 | 2026-08-25 | PROGRESS.md restructure into clean status board (هذه المهمة #4) |
+| Phase 12 | 2026-08-26 | UI palette unification — extracted Gemini-card palette + applied site-wide via `PALETTE` const in `LandingView.tsx`. Redesigned Premium Memberships cards (were broken: `bg-white/5` invisible + `text-gray-400/300` on light bg). All landing text now WCAG AAA (≥7:1). Commits: `8aff772` (initial palette), `1447a0b` (deepen text colors to AAA), `2a449d5` (site-wide unification + memberships redesign) |
 
 ---
 
