@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useI18n, type Lang } from "@/lib/i18n";
 import { SiteHeader } from "@/components/SiteHeader";
 import { getExerciseImages, getFallbackSVG, getExerciseImageUrl } from "@/lib/exercise-images";
@@ -15,6 +15,11 @@ import {
   type Level,
 } from "@/lib/exercises";
 
+// Page size for incremental rendering. 868 exercises at once is heavy on
+// low-end devices — we render PAGE_SIZE results immediately, then load
+// more on scroll / button click.
+const PAGE_SIZE = 48;
+
 export default function ExercisesPage({ lang: langProp }: { lang?: Lang } = {}) {
   const { lang: ctxLang } = useI18n();
   const lang = langProp ?? ctxLang;
@@ -25,10 +30,36 @@ export default function ExercisesPage({ lang: langProp }: { lang?: Lang } = {}) 
   const [level, setLevel] = useState<Level | "all">("all");
   const [search, setSearch] = useState("");
 
+  // Visible count — incremental render (avoids jank with 868 cards).
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+
   const filtered = useMemo(
     () => filterExercises({ category, equipment, level, search }),
     [category, equipment, level, search],
   );
+
+  // Reset visible count when filters change.
+  useEffect(() => {
+    setVisibleCount(PAGE_SIZE);
+  }, [category, equipment, level, search]);
+
+  const visibleExercises = filtered.slice(0, visibleCount);
+  const hasMore = visibleCount < filtered.length;
+
+  // Infinite-scroll: load more when user scrolls near the bottom.
+  useEffect(() => {
+    if (!hasMore) return;
+    const onScroll = () => {
+      const nearBottom =
+        window.innerHeight + window.scrollY >=
+        document.documentElement.scrollHeight - 800;
+      if (nearBottom) {
+        setVisibleCount((c) => Math.min(c + PAGE_SIZE, filtered.length));
+      }
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, [hasMore, filtered.length]);
 
   const categories: (ExerciseCategory | "all")[] = [
     "all",
@@ -91,46 +122,50 @@ export default function ExercisesPage({ lang: langProp }: { lang?: Lang } = {}) 
             />
           </div>
 
-          {/* Category pills — each shows a thumbnail image of a representative exercise for that category */}
-          <div className="flex flex-wrap gap-2">
+          {/* Category pills — card-style with 64×64 thumbnail image on top + label below.
+              Each card represents a category using a representative exercise image from the library. */}
+          <div className="flex flex-wrap gap-3">
             {categories.map((cat) => {
               const isAll = cat === "all";
               const isActive = category === cat;
+              const label = isAll ? (isAr ? "الكل" : "All") : (isAr ? CATEGORY_LABELS[cat].ar : CATEGORY_LABELS[cat].en);
               return (
                 <button
                   key={cat}
                   onClick={() => setCategory(cat)}
-                  className={`group flex items-center gap-2 rounded-full pe-4 ps-1 py-1 text-sm font-normal transition-all ${
+                  className={`group flex w-20 flex-col items-center gap-2 rounded-2xl p-2 transition-all ${
                     isActive
-                      ? "bg-[#1d1d1f] text-white"
-                      : "bg-[#f5f5f7] text-[#6e6e73] hover:text-[#1d1d1f]"
+                      ? "bg-[#1d1d1f] text-white ring-2 ring-[#0071e3] ring-offset-2"
+                      : "bg-[#f5f5f7] text-[#6e6e73] hover:bg-white hover:text-[#1d1d1f] hover:ring-1 hover:ring-[#d2d2d7]"
                   }`}
-                  aria-label={isAll ? (isAr ? "الكل" : "All") : (isAr ? CATEGORY_LABELS[cat].ar : CATEGORY_LABELS[cat].en)}
+                  aria-label={label}
+                  aria-pressed={isActive}
                 >
                   {isAll ? (
-                    <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#0071e3] text-white text-xs font-bold">
+                    <span className="flex h-16 w-16 items-center justify-center rounded-xl bg-[#0071e3] text-white text-sm font-bold">
                       {isAr ? "الكل" : "All"}
                     </span>
                   ) : (
                     <img
                       src={getExerciseImageUrl(CATEGORY_LABELS[cat].image)}
-                      alt={isAr ? CATEGORY_LABELS[cat].ar : CATEGORY_LABELS[cat].en}
+                      alt={label}
                       loading="lazy"
-                      className="h-8 w-8 rounded-full object-cover ring-1 ring-black/5"
+                      className="h-16 w-16 rounded-xl object-cover ring-1 ring-black/5"
                       onError={(e) => {
-                        // Hide image on error, fall back to emoji text
                         (e.target as HTMLImageElement).style.display = "none";
                         const fallback = (e.target as HTMLImageElement).nextElementSibling;
-                        if (fallback) (fallback as HTMLElement).style.display = "inline";
+                        if (fallback) (fallback as HTMLElement).style.display = "flex";
                       }}
                     />
                   )}
                   {!isAll && (
-                    <span style={{ display: "none" }} className="flex h-8 w-8 items-center justify-center rounded-full bg-[#0071e3]/10 text-base">
+                    <span style={{ display: "none" }} className="flex h-16 w-16 items-center justify-center rounded-xl bg-[#0071e3]/10 text-2xl">
                       {CATEGORY_LABELS[cat].emoji}
                     </span>
                   )}
-                  <span>{isAll ? (isAr ? "الكل" : "All") : (isAr ? CATEGORY_LABELS[cat].ar : CATEGORY_LABELS[cat].en)}</span>
+                  <span className="text-center text-[11px] font-medium leading-tight">
+                    {label}
+                  </span>
                 </button>
               );
             })}
@@ -182,7 +217,7 @@ export default function ExercisesPage({ lang: langProp }: { lang?: Lang } = {}) 
           {filtered.length} {isAr ? "تمرين" : "exercises"}
         </p>
 
-        {/* Exercises grid */}
+        {/* Exercises grid — uses visibleExercises (slice) instead of filtered (full 868) */}
         {filtered.length === 0 ? (
           <div className="mt-10 rounded-3xl bg-[#f5f5f7] p-12 text-center">
             <p className="text-base font-normal text-[#6e6e73]">
@@ -190,71 +225,86 @@ export default function ExercisesPage({ lang: langProp }: { lang?: Lang } = {}) 
             </p>
           </div>
         ) : (
-          <div className="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {filtered.map((exercise) => {
-              const imgUrls = getExerciseImages(exercise.imageKey);
-              return (
-                <a
-                  key={exercise.slug}
-                  href={`/exercises/${exercise.slug}`}
-                  className="group overflow-hidden rounded-3xl bg-[#f5f5f7] transition-opacity hover:opacity-90"
-                >
-                  {/* Images — show both side by side */}
-                  <div className="aspect-[4/3] w-full overflow-hidden bg-white">
-                    {imgUrls.length > 0 ? (
-                      <div className="grid h-full grid-cols-2 gap-0.5">
-                        {imgUrls.slice(0, 2).map((url, idx) => (
-                          <img
-                            key={idx}
-                            src={url}
-                            alt={`${isAr ? exercise.nameAr : exercise.nameEn} ${idx + 1}`}
-                            className="h-full w-full object-contain"
-                            loading="lazy"
-                            onError={(e) => {
-                              (e.target as HTMLImageElement).src = getFallbackSVG(exercise.category);
-                            }}
-                          />
-                        ))}
-                      </div>
-                    ) : (
-                      <img
-                        src={getFallbackSVG(exercise.category)}
-                        alt={isAr ? exercise.nameAr : exercise.nameEn}
-                        className="h-full w-full object-contain"
-                      />
-                    )}
-                  </div>
-                  {/* Content */}
-                  <div className="p-5">
-                    <div className="flex items-center gap-2">
-                      <span className="rounded-full bg-[#0071e3]/10 px-2 py-0.5 text-[10px] font-medium text-[#0071e3]">
-                        {isAr ? CATEGORY_LABELS[exercise.category].ar : CATEGORY_LABELS[exercise.category].en}
-                      </span>
-                      <span
-                        className="rounded-full px-2 py-0.5 text-[10px] font-medium"
-                        style={{
-                          backgroundColor: `${LEVEL_LABELS[exercise.level].color}15`,
-                          color: LEVEL_LABELS[exercise.level].color,
-                        }}
-                      >
-                        {isAr ? LEVEL_LABELS[exercise.level].ar : LEVEL_LABELS[exercise.level].en}
-                      </span>
+          <>
+            <div className="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              {visibleExercises.map((exercise) => {
+                const imgUrls = getExerciseImages(exercise.imageKey);
+                return (
+                  <a
+                    key={exercise.slug}
+                    href={`/exercises/${exercise.slug}`}
+                    className="group overflow-hidden rounded-3xl bg-[#f5f5f7] transition-opacity hover:opacity-90"
+                  >
+                    {/* Images — show both side by side */}
+                    <div className="aspect-[4/3] w-full overflow-hidden bg-white">
+                      {imgUrls.length > 0 ? (
+                        <div className="grid h-full grid-cols-2 gap-0.5">
+                          {imgUrls.slice(0, 2).map((url, idx) => (
+                            <img
+                              key={idx}
+                              src={url}
+                              alt={`${isAr ? exercise.nameAr : exercise.nameEn} ${idx + 1}`}
+                              className="h-full w-full object-contain"
+                              loading="lazy"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).src = getFallbackSVG(exercise.category);
+                              }}
+                            />
+                          ))}
+                        </div>
+                      ) : (
+                        <img
+                          src={getFallbackSVG(exercise.category)}
+                          alt={isAr ? exercise.nameAr : exercise.nameEn}
+                          className="h-full w-full object-contain"
+                        />
+                      )}
                     </div>
-                    <h3 className="mt-2 text-lg font-semibold tracking-tight">
-                      {isAr ? exercise.nameAr : exercise.nameEn}
-                    </h3>
-                    <p className="mt-1 text-xs font-normal text-[#6e6e73]">
-                      {isAr ? "المعدات: " : "Equipment: "}
-                      {isAr ? EQUIPMENT_LABELS[exercise.equipment].ar : EQUIPMENT_LABELS[exercise.equipment].en}
-                    </p>
-                    <p className="mt-3 text-sm font-normal text-[#0071e3]">
-                      {isAr ? "اعرف أكثر ›" : "Learn more ›"}
-                    </p>
-                  </div>
-                </a>
-              );
-            })}
-          </div>
+                    {/* Content */}
+                    <div className="p-5">
+                      <div className="flex items-center gap-2">
+                        <span className="rounded-full bg-[#0071e3]/10 px-2 py-0.5 text-[10px] font-medium text-[#0071e3]">
+                          {isAr ? CATEGORY_LABELS[exercise.category].ar : CATEGORY_LABELS[exercise.category].en}
+                        </span>
+                        <span
+                          className="rounded-full px-2 py-0.5 text-[10px] font-medium"
+                          style={{
+                            backgroundColor: `${LEVEL_LABELS[exercise.level].color}15`,
+                            color: LEVEL_LABELS[exercise.level].color,
+                          }}
+                        >
+                          {isAr ? LEVEL_LABELS[exercise.level].ar : LEVEL_LABELS[exercise.level].en}
+                        </span>
+                      </div>
+                      <h3 className="mt-2 text-lg font-semibold tracking-tight">
+                        {isAr ? exercise.nameAr : exercise.nameEn}
+                      </h3>
+                      <p className="mt-1 text-xs font-normal text-[#6e6e73]">
+                        {isAr ? "المعدات: " : "Equipment: "}
+                        {isAr ? EQUIPMENT_LABELS[exercise.equipment].ar : EQUIPMENT_LABELS[exercise.equipment].en}
+                      </p>
+                      <p className="mt-3 text-sm font-normal text-[#0071e3]">
+                        {isAr ? "اعرف أكثر ›" : "Learn more ›"}
+                      </p>
+                    </div>
+                  </a>
+                );
+              })}
+            </div>
+            {/* Load more — manual fallback for infinite scroll */}
+            {hasMore && (
+              <div className="mt-8 text-center">
+                <button
+                  onClick={() => setVisibleCount((c) => Math.min(c + PAGE_SIZE, filtered.length))}
+                  className="rounded-full bg-[#1d1d1f] px-6 py-3 text-sm font-normal text-white transition-opacity hover:opacity-90"
+                >
+                  {isAr
+                    ? `عرض المزيد (${visibleCount.toLocaleString()} من ${filtered.length.toLocaleString()})`
+                    : `Load more (${visibleCount.toLocaleString()} of ${filtered.length.toLocaleString()})`}
+                </button>
+              </div>
+            )}
+          </>
         )}
       </main>
     </div>

@@ -1024,3 +1024,47 @@ Other icon opportunities to flag to the Owner:
 1. src/app/tools/page.tsx — tools listing page uses emoji icons (🔥⚖️🥩📊💧🍽️). Could be upgraded to lucide-react icons (Flame, Scale, Beef, BarChart3, Droplet, Utensils) for a more consistent look with the rest of the site.
 2. src/components/views/LandingView.tsx — hero section likely uses emoji or simple icons. Should be audited.
 3. Profile page uses lucide icons already — consistent.
+
+---
+Task ID: UI-RENDER-FIX-AND-TOOLS-2026-08-25
+Agent: Main (Z User)
+Task: Fix white-screen crash on /foods (8,830 cards rendering at once), enlarge category pills to card-style on /exercises + /foods, replace tool listing emojis with real thumbnails.
+
+Work Log:
+- Diagnosed /foods white screen: the page was rendering all 8,830 food cards in one go (no pagination/virtualization). This crashed the browser tab — white screen + auto-reload loop. The 868-exercise page had the same architectural flaw (just less severe).
+- Added incremental rendering to /foods:
+  • PAGE_SIZE = 60 (initial render shows 60 cards)
+  • useEffect on filter changes resets visibleCount to PAGE_SIZE
+  • useEffect on scroll: when user reaches 800px from bottom, loads PAGE_SIZE more
+  • visibleFoods = filtered.slice(0, visibleCount) — only the visible subset is rendered
+  • Manual 'Load more' button fallback (mobile users / slow connections)
+  • Bilingual: 'Load more (60 of 8830)' / 'عرض المزيد (60 من 8,830)'
+- Added same incremental rendering pattern to /exercises (PAGE_SIZE = 48).
+- Enlarged category pills on /exercises + /foods from small 32×32 horizontal pills to
+  card-style tiles:
+  • Vertical layout: 64×64 image on top + label below
+  • Card container: rounded-2xl p-2 w-20
+  • Active state: bg-[#1d1d1f] text-white + ring-2 ring-[#0071e3] ring-offset-2
+  • Inactive: bg-[#f5f5f7] text-[#6e6e73] hover:bg-white + ring-1 ring-[#d2d2d7]
+  • Image: h-16 w-16 rounded-xl object-cover ring-1 ring-black/5
+  • Label: text-[11px] font-medium leading-tight (centered)
+  • Emoji fallback preserved (display:none → display:flex on image error)
+- Replaced tools listing emojis with real Unsplash thumbnail images:
+  • Calorie Calculator → flame / cooking image
+  • BMI Calculator → scale / fitness assessment image
+  • Macro Calculator → protein food image
+  • Body Fat Calculator → body composition image
+  • Water Tracker → water glass image
+  • Meal Planner → meal prep image
+  • Same onError emoji fallback pattern (🔥⚖️🥩📊💧🍽️)
+- Kept the previous "Category images on detail pills" approach.
+
+Stage Summary:
+- White-screen crash on /foods is FIXED — page now renders 60 cards initially
+  + loads more on scroll / button click.
+- Same defensive incremental rendering added to /exercises (868 cards → 48/page).
+- Category pills on both pages are now prominent card-style tiles with 64×64 thumbnails.
+- Tool listing images upgraded from emojis to real Unsplash thumbnails.
+- TS: 0 errors | ESLint: 0 errors (6 pre-existing warnings) | Build: exit 0
+- Commit SHA: <to be filled>
+- Push status: <to be filled>
