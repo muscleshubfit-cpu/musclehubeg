@@ -1230,3 +1230,44 @@ Stage Summary:
 - TS: 0 errors | ESLint: 0 errors (6 pre-existing warnings) | Build: exit 0
 - Commit SHA: b53628b
 - Push status: pushed
+
+---
+Task ID: UI-AUDIT-DESIGN-DOC-2026-08-25
+Agent: Main (Z User)
+Task: Fix exercise category icons (getExerciseImageUrl bug) + fix duplicated program images + create DESIGN.md documentation.
+
+Work Log:
+- BUG FIX 1: Exercise page showed emoji icons instead of images.
+  Root cause: `getExerciseImageUrl()` in src/lib/exercise-images.ts only
+  checked `startsWith("http")` — local paths starting with "/" were
+  being prefixed with the GitHub IMAGE_BASE URL, resulting in 404s
+  → onError → emoji fallback.
+  Fix: Added `if (imagePath.startsWith("/")) return imagePath;` check
+  before the IMAGE_BASE prefix logic. Local paths now pass through
+  unchanged.
+
+- BUG FIX 2: Program images were duplicated (all 7 programs shared 3 images).
+  Root cause: `IMAGES` object in workout-programs.ts mapped 11 keys to
+  only 3 image files (home-workout / full-gym / hiit). Multiple programs
+  shared the same image.
+  Fix: Generated 4 additional AI images (home-core, home-dumbbell,
+  gym-beginner, gym-strength) → 7 unique program images total.
+  Updated IMAGES mapping: each program type now uses its own unique image.
+  gym-beginner-fullbody → gym-beginner.png (was: gym-strength.png)
+  gym-strength-5x5 → gym-strength.png (unchanged, now unique)
+  home-core-specialization → home-core.png (was: hiit.png)
+  home-dumbbell-ppl → home-dumbbell.png (was: home-workout.png)
+
+- NEW: Created DESIGN.md — comprehensive design system documentation.
+  Covers: design philosophy, color system, typography, layout & spacing,
+  component patterns (category pill, content card, empty state, header
+  drawer, footer), animation system, image system, performance patterns,
+  bilingual support, verification protocol.
+
+Stage Summary:
+- Exercise category images now load correctly (getExerciseImageUrl fix).
+- 7 workout programs each have a unique image (4 new AI-generated).
+- DESIGN.md created as binding design reference.
+- TS: 0 errors | ESLint: 0 errors (6 pre-existing warnings) | Build: exit 0
+- Commit SHA: <to be filled>
+- Push status: <to be filled>

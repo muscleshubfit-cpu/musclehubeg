@@ -67,22 +67,23 @@ export const GOAL_LABELS: Record<ProgramGoal, { ar: string; en: string }> = {
   endurance: { ar: "تحمل", en: "Endurance" },
 };
 
-// Local images (replaces previous Unsplash URLs — those URLs became 404
-// when Unsplash removed the photos). All workout program images now
-// use locally-hosted files from /public/images/programs/.
+// Local images — each program type has its own unique AI-generated image.
+// Generated in Apple iPhone product photography style (2026-08-25).
 const IMAGES = {
   homeBodyweight: "/images/programs/home-workout.png",
-  homeDumbbell: "/images/programs/home-workout.png",
-  gymStrength: "/images/programs/full-gym.png",
+  homeDumbbell: "/images/programs/home-dumbbell.png",
+  homeCore: "/images/programs/home-core.png",
+  gymBeginner: "/images/programs/gym-beginner.png",
+  gymStrength: "/images/programs/gym-strength.png",
   gymHypertrophy: "/images/programs/full-gym.png",
   fatLoss: "/images/programs/hiit.png",
   cardio: "/images/programs/hiit.png",
-  absCore: "/images/programs/hiit.png",
-  pushDay: "/images/programs/full-gym.png",
-  pullDay: "/images/programs/full-gym.png",
+  absCore: "/images/programs/home-core.png",
+  pushDay: "/images/programs/gym-strength.png",
+  pullDay: "/images/programs/gym-beginner.png",
   legDay: "/images/programs/full-gym.png",
-  fullBody: "/images/programs/full-gym.png",
-  upperBody: "/images/programs/full-gym.png",
+  fullBody: "/images/programs/gym-beginner.png",
+  upperBody: "/images/programs/gym-strength.png",
 };
 
 export const WORKOUT_PROGRAMS: WorkoutProgram[] = [
@@ -440,7 +441,7 @@ export const WORKOUT_PROGRAMS: WorkoutProgram[] = [
     goal: "general",
     durationWeeks: 8,
     daysPerWeek: 3,
-    image: IMAGES.gymStrength,
+    image: IMAGES.gymBeginner,
     imageAltAr: "تمرين جيم",
     imageAltEn: "Gym workout",
     days: [

@@ -13,12 +13,15 @@
 const IMAGE_BASE = "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises";
 
 /**
- * Get the full GitHub URL for an exercise image path.
- * imagePath format: "Folder_Name/0.jpg" or "Folder_Name/1.jpg"
+ * Get the full image URL for an exercise image path.
+ * - If path starts with "/" → local asset (e.g. "/images/categories/exercises/chest.png")
+ * - If path starts with "http" → full URL (passthrough)
+ * - Otherwise → yuhonas/free-exercise-db GitHub raw URL (legacy individual exercise images)
  */
 export function getExerciseImageUrl(imagePath: string): string {
   if (!imagePath) return "";
   if (imagePath.startsWith("http")) return imagePath;
+  if (imagePath.startsWith("/")) return imagePath;
   return `${IMAGE_BASE}/${imagePath}`;
 }
 
