@@ -1410,5 +1410,5 @@ Stage Summary:
 - 5 new uploaded images integrated into hero + EVO + coaching sections.
 - All sections use consistent Apple-style layout (rounded-3xl, shadow, aspect ratios).
 - TS: 0 errors | ESLint: 0 errors (6 pre-existing warnings) | Build: exit 0
-- Commit SHA: <to be filled>
-- Push status: <to be filled>
+- Commit SHA: 35383a9
+- Push status: pushed
