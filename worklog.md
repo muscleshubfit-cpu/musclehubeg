@@ -984,5 +984,5 @@ Stage Summary:
 - All routes verified correct — no broken links
 - Duplicate Pricing entry removed from both header + footer
 - Legal/basic pages now footer-only (per Owner directive)
-- Commit SHA: <to be filled>
-- Push status: <to be filled>
+- Commit SHA: 78f3686
+- Push status: pushed
