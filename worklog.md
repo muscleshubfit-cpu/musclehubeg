@@ -1269,5 +1269,5 @@ Stage Summary:
 - 7 workout programs each have a unique image (4 new AI-generated).
 - DESIGN.md created as binding design reference.
 - TS: 0 errors | ESLint: 0 errors (6 pre-existing warnings) | Build: exit 0
-- Commit SHA: <to be filled>
-- Push status: <to be filled>
+- Commit SHA: 6c1cbac
+- Push status: pushed
