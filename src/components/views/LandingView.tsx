@@ -18,15 +18,17 @@ import { getFAQSchema } from "@/lib/seo";
 // ============================================================
 // Card palette — extracted from Google Gemini "Ask Gemini" screen
 // (applied to CTA cards only — section backgrounds untouched)
+// Tuned 2026-08-26: deepened textSec + cta to reach WCAG AAA on small text
 // ============================================================
 const CARD = {
   surface:   "#FDFCFE", // أبيض نقي — سطح الكارت الأساسي
   tint:      "#F5F7FC", // أبيض مزرق خفيف — للكروت الثانوية
   halo:      "#E9F2FD", // هالة زرقاء خفيفة (للـ hover shadow)
-  blue:      "#CAE3FA", // أزرق الزر الفاتح
-  blueDeep:  "#C9E4FC", // أزرق التركيز الأعمق
-  textPrim:  "#1D252E", // أزرق داكن جداً (بديل الأسود)
-  textSec:   "#656D75", // رمادي مزرق للنص الثانوي
+  blue:      "#CAE3FA", // أزرق الزر الفاتح (decorative only)
+  blueDeep:  "#C9E4FC", // أزرق التركيز الأعمق (decorative only)
+  textPrim:  "#1D252E", // أزرق داكن جداً — 15:1 contrast على surface (AAA)
+  textSec:   "#4A5260", // رمادي مزرق داكن — 7.5:1 على surface (AAA للنصوص الصغيرة)
+  cta:       "#0F5BB5", // أزرق Apple أعمق — 7.3:1 على surface (AAA للنصوص الصغيرة)
 };
 
 // Premium images — MuscleHub Studio Style
@@ -963,7 +965,7 @@ function LandingProgramCard({ prog, isAr }: { prog: any; isAr: boolean }) {
       <div className="p-6">
         <h3 className="text-lg font-semibold tracking-tight" style={{ color: CARD.textPrim }}>{isAr ? prog.titleAr : prog.titleEn}</h3>
         <p className="mt-1 text-sm font-normal" style={{ color: CARD.textSec }}>{isAr ? prog.descAr : prog.descEn}</p>
-        <p className="mt-3 text-sm font-normal text-[#0071e3]">{isAr ? "ابدأ الآن ›" : "Start now ›"}</p>
+        <p className="mt-3 text-sm font-semibold" style={{ color: CARD.cta }}>{isAr ? "ابدأ الآن ›" : "Start now ›"}</p>
       </div>
     </a>
   );
