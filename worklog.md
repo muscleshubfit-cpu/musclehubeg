@@ -1307,5 +1307,5 @@ Stage Summary:
 - G5/G7/G8 assessed as already compliant or better-than-Apple.
 - G9 deferred (interactive gallery = future enhancement).
 - TS: 0 errors | ESLint: 0 errors (6 pre-existing warnings) | Build: exit 0
-- Commit SHA: <to be filled>
-- Push status: <to be filled>
+- Commit SHA: 4c63974
+- Push status: pushed
