@@ -3,7 +3,7 @@
 import { useI18n } from "@/lib/i18n";
 import { SiteHeader } from "@/components/SiteHeader";
 
-// Each tool has a curated Unsplash thumbnail that visually represents it.
+// Each tool has a local AI-generated thumbnail (Apple iPhone style).
 // Emojis are kept as fallback (shown if the image fails to load).
 const tools = [
   {
@@ -14,7 +14,7 @@ const tools = [
     descEn: "Calculate daily calories and macros",
     emoji: "🔥",
     color: "#ff9500",
-    image: "https://images.unsplash.com/photo-1590446202655-9c0c8c9f6b8e?w=400&q=80&auto=format&fit=crop",
+    image: "/images/tools/calorie-calculator.png",
   },
   {
     slug: "bmi-calculator",
@@ -24,7 +24,7 @@ const tools = [
     descEn: "Check if your weight is healthy",
     emoji: "⚖️",
     color: "#0071e3",
-    image: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&q=80&auto=format&fit=crop",
+    image: "/images/tools/bmi-calculator.png",
   },
   {
     slug: "macro-calculator",
@@ -34,7 +34,7 @@ const tools = [
     descEn: "Split calories into protein, carbs, fat",
     emoji: "🥩",
     color: "#34c759",
-    image: "https://images.unsplash.com/photo-1529692236671-f1f6b9b3e03f?w=400&q=80&auto=format&fit=crop",
+    image: "/images/tools/macro-calculator.png",
   },
   {
     slug: "body-fat-calculator",
@@ -44,7 +44,7 @@ const tools = [
     descEn: "Calculate your body fat percentage",
     emoji: "📊",
     color: "#ff3b30",
-    image: "https://images.unsplash.com/photo-1571902943202-507ec2618e8f?w=400&q=80&auto=format&fit=crop",
+    image: "/images/tools/body-fat-calculator.png",
   },
   {
     slug: "water-tracker",
@@ -54,7 +54,7 @@ const tools = [
     descEn: "Set your goal and log your cups daily",
     emoji: "💧",
     color: "#00b8d9",
-    image: "https://images.unsplash.com/photo-1606243979903-3e8d8c8b3e4a?w=400&q=80&auto=format&fit=crop",
+    image: "/images/tools/water-tracker.png",
   },
   {
     slug: "/meal-planner",
@@ -64,7 +64,7 @@ const tools = [
     descEn: "Build meals from 8,830+ foods and track macros",
     emoji: "🍽️",
     color: "#8b5cf6",
-    image: "https://images.unsplash.com/photo-1490645935967-10de6ba17061?w=400&q=80&auto=format&fit=crop",
+    image: "/images/tools/meal-planner.png",
   },
 ];
 

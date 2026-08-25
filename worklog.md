@@ -1124,3 +1124,27 @@ Stage Summary:
 - TS: 0 errors | ESLint: 0 errors (6 pre-existing warnings) | Build: exit 0
 - Commit SHA: c333fd4dc6ef281ec35c962420c93c1921fc8ef9
 - Push status: pushed
+
+---
+Task ID: AI-TOOL-IMAGES-2026-08-25
+Agent: Main (Z User)
+Task: Generate 6 AI tool images in Apple iPhone style + update code to use local paths.
+
+Work Log:
+- Used z-ai CLI to generate 6 premium tool images (1024×1024 PNG):
+  • calorie-calculator.png (74 KB) — flame icon with measuring tape concept
+  • bmi-calculator.png (37 KB) — modern white bathroom scale
+  • macro-calculator.png (71 KB) — meal prep container with 3 compartments (protein/carbs/fats)
+  • body-fat-calculator.png (86 KB) — body composition analyzer device
+  • water-tracker.png (47 KB) — clear glass of fresh water with condensation
+  • meal-planner.png (82 KB) — meal prep planning notebook with pen and vegetables
+- Updated src/app/tools/page.tsx: 6 Unsplash URLs → 6 local paths
+- Updated src/components/views/LandingView.tsx tools section: 6 Unsplash URLs → 6 local paths
+- Emoji fallbacks preserved (onError handler unchanged).
+
+Stage Summary:
+- 6 AI-generated tool images saved locally (~397 KB total, avg 66 KB/image).
+- 12 Unsplash URLs removed from code (6 in tools/page.tsx + 6 in LandingView.tsx).
+- TS: 0 errors | ESLint: 0 errors (6 pre-existing warnings) | Build: exit 0
+- Commit SHA: <to be filled>
+- Push status: <to be filled>

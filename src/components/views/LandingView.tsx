@@ -358,12 +358,12 @@ export function LandingView() {
           </div>
           <div className="mt-10 grid grid-cols-1 gap-4 sm:grid-cols-2">
             {[
-              { slug: "calorie-calculator", nameAr: "حاسبة السعرات", nameEn: "Calorie Calculator", descAr: "احسب احتياجك اليومي", descEn: "Daily calorie needs", emoji: "🔥", color: "#ff9500", href: "/tools/calorie-calculator", image: "https://images.unsplash.com/photo-1590446202655-9c0c8c9f6b8e?w=400&q=80&auto=format&fit=crop" },
-              { slug: "bmi-calculator", nameAr: "حاسبة BMI", nameEn: "BMI Calculator", descAr: "هل وزنك مثالي؟", descEn: "Is your weight healthy?", emoji: "⚖️", color: "#0071e3", href: "/tools/bmi-calculator", image: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&q=80&auto=format&fit=crop" },
-              { slug: "macro-calculator", nameAr: "حاسبة الماكروز", nameEn: "Macro Calculator", descAr: "بروتين وكارب ودهون", descEn: "Protein, carbs, fat", emoji: "🥩", color: "#34c759", href: "/tools/macro-calculator", image: "https://images.unsplash.com/photo-1529692236671-f1f6b9b3e03f?w=400&q=80&auto=format&fit=crop" },
-              { slug: "body-fat-calculator", nameAr: "حاسبة الدهون", nameEn: "Body Fat %", descAr: "نسبة دهون جسمك", descEn: "Your body fat %", emoji: "📊", color: "#ff3b30", href: "/tools/body-fat-calculator", image: "https://images.unsplash.com/photo-1571902943202-507ec2618e8f?w=400&q=80&auto=format&fit=crop" },
-              { slug: "water-tracker", nameAr: "متتبع الماء", nameEn: "Water Tracker", descAr: "سجل كوبساتك يومياً", descEn: "Log your daily cups", emoji: "💧", color: "#00b8d9", href: "/tools/water-tracker", image: "https://images.unsplash.com/photo-1606243979903-3e8d8c8b3e4a?w=400&q=80&auto=format&fit=crop" },
-              { slug: "meal-planner", nameAr: "مخطط الوجبات", nameEn: "Meal Planner", descAr: "ابني وجباتك بنفسك", descEn: "Build your own meals", emoji: "🍽️", color: "#8b5cf6", href: "/meal-planner", image: "https://images.unsplash.com/photo-1490645935967-10de6ba17061?w=400&q=80&auto=format&fit=crop" },
+              { slug: "calorie-calculator", nameAr: "حاسبة السعرات", nameEn: "Calorie Calculator", descAr: "احسب احتياجك اليومي", descEn: "Daily calorie needs", emoji: "🔥", color: "#ff9500", href: "/tools/calorie-calculator", image: "/images/tools/calorie-calculator.png" },
+              { slug: "bmi-calculator", nameAr: "حاسبة BMI", nameEn: "BMI Calculator", descAr: "هل وزنك مثالي؟", descEn: "Is your weight healthy?", emoji: "⚖️", color: "#0071e3", href: "/tools/bmi-calculator", image: "/images/tools/bmi-calculator.png" },
+              { slug: "macro-calculator", nameAr: "حاسبة الماكروز", nameEn: "Macro Calculator", descAr: "بروتين وكارب ودهون", descEn: "Protein, carbs, fat", emoji: "🥩", color: "#34c759", href: "/tools/macro-calculator", image: "/images/tools/macro-calculator.png" },
+              { slug: "body-fat-calculator", nameAr: "حاسبة الدهون", nameEn: "Body Fat %", descAr: "نسبة دهون جسمك", descEn: "Your body fat %", emoji: "📊", color: "#ff3b30", href: "/tools/body-fat-calculator", image: "/images/tools/body-fat-calculator.png" },
+              { slug: "water-tracker", nameAr: "متتبع الماء", nameEn: "Water Tracker", descAr: "سجل كوبساتك يومياً", descEn: "Log your daily cups", emoji: "💧", color: "#00b8d9", href: "/tools/water-tracker", image: "/images/tools/water-tracker.png" },
+              { slug: "meal-planner", nameAr: "مخطط الوجبات", nameEn: "Meal Planner", descAr: "ابني وجباتك بنفسك", descEn: "Build your own meals", emoji: "🍽️", color: "#8b5cf6", href: "/meal-planner", image: "/images/tools/meal-planner.png" },
             ].map((tool, i) => (
               <Reveal key={tool.slug} delay={i * 80}>
                 <a
