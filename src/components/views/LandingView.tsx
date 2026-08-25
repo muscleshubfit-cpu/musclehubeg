@@ -27,6 +27,12 @@ const IMAGES = {
   mealDark: "/images/meal-dark.jpg",
   mealBowl: "/images/meal-bowl.jpg",
   yoga: "/images/yoga-studio.jpg",
+  // Hero athlete images (uploaded by Owner 2026-08-25)
+  heroAthlete1: "/images/hero/athlete-1.jpg",
+  heroAthlete2: "/images/hero/athlete-2.jpg",
+  heroAthleteBiceps: "/images/hero/athlete-biceps.jpg",
+  heroAthleteFuturistic: "/images/hero/athlete-futuristic.jpg",
+  heroTrainerSpotting: "/images/hero/trainer-spotting.jpg",
 };
 
 // Disabled Reveal — animations were causing jarring "shake" effects
@@ -55,6 +61,25 @@ function CenteredSection({
     <section className={`${bg} px-4 py-16 md:py-24`}>
       <div className="mx-auto max-w-4xl text-center">{children}</div>
     </section>
+  );
+}
+
+/**
+ * GradientFade — G2: smooth visual transition between sections with
+ * different background colors. Inserts a 4px gradient strip that blends
+ * the previous section's color into the next one, matching Apple's
+ * seamless section transitions.
+ */
+function GradientFade({ from = "bg-white", to = "bg-[#f5f5f7]" }: { from?: string; to?: string }) {
+  // Extract the color value from Tailwind class names
+  const fromColor = from.includes("#f5f5f7") ? "#f5f5f7" : "#ffffff";
+  const toColor = to.includes("#f5f5f7") ? "#f5f5f7" : "#ffffff";
+  return (
+    <div
+      className="h-1 w-full"
+      style={{ background: `linear-gradient(to bottom, ${fromColor}, ${toColor})` }}
+      aria-hidden="true"
+    />
   );
 }
 
@@ -202,16 +227,18 @@ export function LandingView() {
     })();
   }, [lang]);
 
-  // Image stream corridor
+  // Image stream corridor — includes hero athlete images for premium visual impact
   const streamImages: StreamImage[] = [
+    { src: IMAGES.heroAthleteBiceps, alt: isAr ? "تمرين بايسبس" : "Bicep curl" },
     { src: IMAGES.gym, alt: isAr ? "صالة ألعاب" : "Gym" },
+    { src: IMAGES.heroTrainerSpotting, alt: isAr ? "كوتشينج شخصي" : "Personal training" },
     { src: IMAGES.meal, alt: isAr ? "تغذية" : "Nutrition" },
+    { src: IMAGES.heroAthleteFuturistic, alt: isAr ? "لياقة مستقبلية" : "Future fitness" },
     { src: IMAGES.dumbbell, alt: isAr ? "قوة" : "Strength" },
+    { src: IMAGES.heroAthlete1, alt: isAr ? "رياضي" : "Athlete" },
     { src: IMAGES.running, alt: isAr ? "كارديو" : "Cardio" },
-    { src: IMAGES.tracker, alt: isAr ? "تتبع" : "Tracking" },
+    { src: IMAGES.heroAthlete2, alt: isAr ? "رياضي" : "Athlete" },
     { src: IMAGES.fitnessDark, alt: isAr ? "لياقة" : "Fitness" },
-    { src: IMAGES.fitnessPortrait, alt: isAr ? "تمرين" : "Workout" },
-    { src: IMAGES.mealDark, alt: isAr ? "طعام صحي" : "Healthy food" },
     { src: IMAGES.mealBowl, alt: isAr ? "وجبة" : "Meal" },
     { src: IMAGES.yoga, alt: isAr ? "يوجا" : "Yoga" },
   ];
@@ -238,16 +265,19 @@ export function LandingView() {
       <SiteHeader variant="landing" />
 
       {/* ===================== 1. HERO — Image Stream Corridor ===================== */}
+      {/* G6: Hero now includes uploaded athlete images in the stream.
+          G10: Gradient background from white to subtle gray for depth. */}
       <ImageStreamHero
         images={streamImages}
         cards={9}
         speed={18}
         axis={55}
         path={{ cardWidth: 22, cardHeight: 30, cardRadius: 0.6 }}
-        className="h-[70vh] w-full bg-white"
+        className="h-[70vh] w-full bg-gradient-to-b from-white via-[#f5f5f7]/30 to-white"
       >
         <div className="relative z-10 flex flex-col items-center justify-start px-4 pt-20 text-center md:pt-24">
-          <h1 className="text-4xl font-semibold leading-[1.1] tracking-tight md:text-6xl lg:text-7xl">
+          {/* G3: leading-[1.05] for tighter hero typography (Apple style) */}
+          <h1 className="text-4xl font-semibold leading-[1.05] tracking-tight md:text-6xl lg:text-7xl">
             {isAr ? "منصتك الرياضية الشاملة." : "Your complete fitness platform."}
           </h1>
           <p className="mx-auto mt-3 max-w-md text-lg font-normal leading-snug text-[#1d1d1f] md:text-xl">
@@ -255,16 +285,17 @@ export function LandingView() {
               ? "تمارين، برامج تدريب، حاسبات، أكلات، ومدونة — في مكان واحد."
               : "Exercises, programs, calculators, foods, and blog — all in one place."}
           </p>
-          <div className="mt-5 flex flex-wrap items-center justify-center gap-3 text-sm md:gap-5">
+          {/* G4: Enlarged CTA buttons to Apple's px-7 py-3.5 standard */}
+          <div className="mt-6 flex flex-wrap items-center justify-center gap-3 text-sm md:gap-5">
             <a
               href="/memberships"
-              className="rounded-full bg-[#0071e3] px-5 py-2 font-normal text-white transition-opacity hover:opacity-90 md:px-6 md:py-2.5 md:text-base"
+              className="rounded-full bg-[#0071e3] px-7 py-3.5 font-normal text-white transition-opacity hover:opacity-90 md:text-base"
             >
               {isAr ? "ابدأ مجاناً" : "Start for free"}
             </a>
             <a
               href="/evo"
-              className="rounded-full bg-white/90 px-5 py-2 font-normal text-[#1d1d1f] backdrop-blur transition-opacity hover:opacity-90 md:px-6 md:py-2.5 md:text-base"
+              className="rounded-full bg-white/90 px-7 py-3.5 font-normal text-[#1d1d1f] backdrop-blur transition-opacity hover:opacity-90 md:text-base"
             >
               {isAr ? "جرّب EVO" : "Try EVO"}
             </a>
@@ -340,6 +371,7 @@ export function LandingView() {
           </div>
         </div>
       </section>
+      <GradientFade from="bg-[#1d1d1f]" to="bg-[#f5f5f7]" />
 
       {/* ===================== 4. FREE TOOLS ===================== */}
       <section className="bg-[#f5f5f7] px-4 py-12 md:py-20">
@@ -378,6 +410,7 @@ export function LandingView() {
         </div>
       </section>
 
+      <GradientFade from="bg-[#f5f5f7]" to="bg-white" />
       {/* ===================== 5. EXERCISE LIBRARY ===================== */}
       <section className="bg-white px-4 py-12 md:py-20">
         <div className="mx-auto max-w-4xl">
@@ -412,6 +445,7 @@ export function LandingView() {
           </div>
         </div>
       </section>
+      <GradientFade from="bg-white" to="bg-[#f5f5f7]" />
 
       {/* ===================== 6. WORKOUT PROGRAMS ===================== */}
       <section className="bg-[#f5f5f7] px-4 py-12 md:py-20">
@@ -446,6 +480,7 @@ export function LandingView() {
           </div>
         </div>
       </section>
+      <GradientFade from="bg-[#f5f5f7]" to="bg-white" />
 
       {/* ===================== 7. FOOD LIBRARY ===================== */}
       <section className="bg-white px-4 py-12 md:py-20">
@@ -480,6 +515,7 @@ export function LandingView() {
             </a>
           </div>
         </div>
+      <GradientFade from="bg-white" to="bg-[#f5f5f7]" />
       </section>
 
       {/* ===================== 8. BLOG (raised higher) — Latest + Featured carousels ===================== */}

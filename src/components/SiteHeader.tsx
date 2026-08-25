@@ -288,7 +288,8 @@ export function SiteHeader({ variant = "landing" }: { variant?: "landing" | "app
 
   return (
     <>
-      <header className="sticky top-0 z-40 w-full border-b border-[#d2d2d7] bg-white/80 backdrop-blur-xl">
+      {/* G1: backdrop-saturate-150 for richer frosted-glass effect (Apple style) */}
+      <header className="sticky top-0 z-40 w-full border-b border-[#d2d2d7] bg-white/80 backdrop-blur-xl backdrop-saturate-150">
         <div
           className={cn(
             "mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6",
