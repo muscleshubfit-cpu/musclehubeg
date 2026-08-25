@@ -1068,3 +1068,28 @@ Stage Summary:
 - TS: 0 errors | ESLint: 0 errors (6 pre-existing warnings) | Build: exit 0
 - Commit SHA: 53bacfc
 - Push status: pushed
+
+---
+Task ID: LANDING-IMAGES-UPGRADE-2026-08-25
+Agent: Main (Z User)
+Task: Replace all emojis on landing page (LandingView.tsx) with real thumbnail images — 4 sections (Tools preview + Exercise categories + Workout programs + Food categories).
+
+Work Log:
+- Audited LandingView.tsx: found 17 emojis across 4 sections (Tools preview, Exercise categories, Workout programs, Food categories).
+- Section 1 (Tools preview): 6 tools (Calorie, BMI, Macro, Body Fat, Water, Meal Planner) — added Unsplash thumbnails matching the tools/page.tsx commit (same image URLs).
+- Section 2 (Exercise categories): 4 cards (Chest/Legs/Core/Cardio) — added exercise library image URLs from yuhonas/free-exercise-db (Alternating_Floor_Press, 90_90_Hamstring, 3_4_Sit-Up).
+- Section 3 (Workout Programs): 3 cards (Home/Gym/HIIT) — added Unsplash images (home workout, full gym, HIIT training).
+- Section 4 (Food categories): 4 cards (Protein/Carbs/Fats/Fruits) — added Unsplash food category images matching the foods/page.tsx commit.
+- Each image uses loading="lazy" for performance.
+- Each image has onError emoji fallback (image hidden → emoji shown).
+- Program cards: aspect-[16/10] with group-hover:scale-105 zoom effect on the image.
+- Food category cards: aspect-square with same hover zoom effect.
+- Exercise category cards: aspect-[4/3] (matches individual exercise card aspect ratio on /exercises).
+
+Stage Summary:
+- 17 emojis across 4 landing page sections → 17 real thumbnail images.
+- Image sources: Unsplash (food + tools + workout programs) + yuhonas/free-exercise-db (exercise categories).
+- All emoji fallbacks preserved — UI never breaks if a remote image fails.
+- TS: 0 errors | ESLint: 0 errors (6 pre-existing warnings) | Build: exit 0
+- Commit SHA: <to be filled>
+- Push status: <to be filled>

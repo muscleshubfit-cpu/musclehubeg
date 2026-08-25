@@ -358,20 +358,31 @@ export function LandingView() {
           </div>
           <div className="mt-10 grid grid-cols-1 gap-4 sm:grid-cols-2">
             {[
-              { slug: "calorie-calculator", nameAr: "حاسبة السعرات", nameEn: "Calorie Calculator", descAr: "احسب احتياجك اليومي", descEn: "Daily calorie needs", emoji: "🔥", color: "#ff9500", href: "/tools/calorie-calculator" },
-              { slug: "bmi-calculator", nameAr: "حاسبة BMI", nameEn: "BMI Calculator", descAr: "هل وزنك مثالي؟", descEn: "Is your weight healthy?", emoji: "⚖️", color: "#0071e3", href: "/tools/bmi-calculator" },
-              { slug: "macro-calculator", nameAr: "حاسبة الماكروز", nameEn: "Macro Calculator", descAr: "بروتين وكارب ودهون", descEn: "Protein, carbs, fat", emoji: "🥩", color: "#34c759", href: "/tools/macro-calculator" },
-              { slug: "body-fat-calculator", nameAr: "حاسبة الدهون", nameEn: "Body Fat %", descAr: "نسبة دهون جسمك", descEn: "Your body fat %", emoji: "📊", color: "#ff3b30", href: "/tools/body-fat-calculator" },
-              { slug: "water-tracker", nameAr: "متتبع الماء", nameEn: "Water Tracker", descAr: "سجل كوبساتك يومياً", descEn: "Log your daily cups", emoji: "💧", color: "#00b8d9", href: "/tools/water-tracker" },
-              { slug: "meal-planner", nameAr: "مخطط الوجبات", nameEn: "Meal Planner", descAr: "ابني وجباتك بنفسك", descEn: "Build your own meals", emoji: "🍽️", color: "#8b5cf6", href: "/meal-planner" },
+              { slug: "calorie-calculator", nameAr: "حاسبة السعرات", nameEn: "Calorie Calculator", descAr: "احسب احتياجك اليومي", descEn: "Daily calorie needs", emoji: "🔥", color: "#ff9500", href: "/tools/calorie-calculator", image: "https://images.unsplash.com/photo-1590446202655-9c0c8c9f6b8e?w=400&q=80&auto=format&fit=crop" },
+              { slug: "bmi-calculator", nameAr: "حاسبة BMI", nameEn: "BMI Calculator", descAr: "هل وزنك مثالي؟", descEn: "Is your weight healthy?", emoji: "⚖️", color: "#0071e3", href: "/tools/bmi-calculator", image: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&q=80&auto=format&fit=crop" },
+              { slug: "macro-calculator", nameAr: "حاسبة الماكروز", nameEn: "Macro Calculator", descAr: "بروتين وكارب ودهون", descEn: "Protein, carbs, fat", emoji: "🥩", color: "#34c759", href: "/tools/macro-calculator", image: "https://images.unsplash.com/photo-1529692236671-f1f6b9b3e03f?w=400&q=80&auto=format&fit=crop" },
+              { slug: "body-fat-calculator", nameAr: "حاسبة الدهون", nameEn: "Body Fat %", descAr: "نسبة دهون جسمك", descEn: "Your body fat %", emoji: "📊", color: "#ff3b30", href: "/tools/body-fat-calculator", image: "https://images.unsplash.com/photo-1571902943202-507ec2618e8f?w=400&q=80&auto=format&fit=crop" },
+              { slug: "water-tracker", nameAr: "متتبع الماء", nameEn: "Water Tracker", descAr: "سجل كوبساتك يومياً", descEn: "Log your daily cups", emoji: "💧", color: "#00b8d9", href: "/tools/water-tracker", image: "https://images.unsplash.com/photo-1606243979903-3e8d8c8b3e4a?w=400&q=80&auto=format&fit=crop" },
+              { slug: "meal-planner", nameAr: "مخطط الوجبات", nameEn: "Meal Planner", descAr: "ابني وجباتك بنفسك", descEn: "Build your own meals", emoji: "🍽️", color: "#8b5cf6", href: "/meal-planner", image: "https://images.unsplash.com/photo-1490645935967-10de6ba17061?w=400&q=80&auto=format&fit=crop" },
             ].map((tool, i) => (
               <Reveal key={tool.slug} delay={i * 80}>
                 <a
                   href={tool.href}
                   className="group flex items-center gap-4 rounded-3xl bg-white p-6 transition-opacity hover:opacity-90"
                 >
-                  <span className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl text-2xl" style={{ backgroundColor: `${tool.color}15` }}>
-                    {tool.emoji}
+                  <span className="grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-2xl text-2xl" style={{ backgroundColor: `${tool.color}15` }}>
+                    <img
+                      src={tool.image}
+                      alt={isAr ? tool.nameAr : tool.nameEn}
+                      loading="lazy"
+                      className="h-full w-full object-cover"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = "none";
+                        const fallback = (e.target as HTMLImageElement).nextElementSibling;
+                        if (fallback) (fallback as HTMLElement).style.display = "inline";
+                      }}
+                    />
+                    <span style={{ display: "none" }}>{tool.emoji}</span>
                   </span>
                   <div className="min-w-0 flex-1">
                     <h3 className="text-lg font-semibold tracking-tight">{isAr ? tool.nameAr : tool.nameEn}</h3>
@@ -407,19 +418,36 @@ export function LandingView() {
           </div>
           <div className="mt-10 grid grid-cols-2 gap-4 md:grid-cols-4">
             {[
-              { emoji: "💪", labelAr: "صدر", labelEn: "Chest", slug: "chest", count: 6 },
-              { emoji: "🦵", labelAr: "أرجل", labelEn: "Legs", slug: "legs", count: 12 },
-              { emoji: "🎯", labelAr: "كور", labelEn: "Core", slug: "core", count: 9 },
-              { emoji: "❤️", labelAr: "كارديو", labelEn: "Cardio", slug: "cardio", count: 6 },
+              { emoji: "💪", labelAr: "صدر", labelEn: "Chest", slug: "chest", count: 6, image: "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Alternating_Floor_Press/0.jpg" },
+              { emoji: "🦵", labelAr: "أرجل", labelEn: "Legs", slug: "legs", count: 12, image: "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/90_90_Hamstring/0.jpg" },
+              { emoji: "🎯", labelAr: "كور", labelEn: "Core", slug: "core", count: 9, image: "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/3_4_Sit-Up/0.jpg" },
+              { emoji: "❤️", labelAr: "كارديو", labelEn: "Cardio", slug: "cardio", count: 6, image: "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/3_4_Sit-Up/0.jpg" },
             ].map((cat, i) => (
               <Reveal key={cat.slug} delay={i * 80}>
                 <a
                   href={`/exercises?cat=${cat.slug}`}
-                  className="group block rounded-3xl bg-[#f5f5f7] p-6 text-center transition-opacity hover:opacity-90"
+                  className="group block overflow-hidden rounded-3xl bg-[#f5f5f7] text-center transition-opacity hover:opacity-90"
                 >
-                  <span className="text-4xl">{cat.emoji}</span>
-                  <h3 className="mt-3 text-base font-semibold tracking-tight">{isAr ? cat.labelAr : cat.labelEn}</h3>
-                  <p className="mt-1 text-xs font-normal text-[#6e6e73]">{cat.count} {isAr ? "تمارين" : "exercises"}</p>
+                  <div className="aspect-[4/3] w-full overflow-hidden bg-white">
+                    <img
+                      src={cat.image}
+                      alt={isAr ? cat.labelAr : cat.labelEn}
+                      loading="lazy"
+                      className="h-full w-full object-contain"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = "none";
+                        const fallback = (e.target as HTMLImageElement).parentElement?.nextElementSibling;
+                        if (fallback) (fallback as HTMLElement).style.display = "block";
+                      }}
+                    />
+                  </div>
+                  <div className="p-4" style={{ display: "none" }}>
+                    <span className="text-4xl">{cat.emoji}</span>
+                  </div>
+                  <div className="p-4">
+                    <h3 className="text-base font-semibold tracking-tight">{isAr ? cat.labelAr : cat.labelEn}</h3>
+                    <p className="mt-1 text-xs font-normal text-[#6e6e73]">{cat.count} {isAr ? "تمارين" : "exercises"}</p>
+                  </div>
                 </a>
               </Reveal>
             ))}
@@ -449,19 +477,36 @@ export function LandingView() {
           </div>
           <div className="mt-10 grid grid-cols-1 gap-4 md:grid-cols-3">
             {[
-              { emoji: "🏠", titleAr: "منزلي بدون معدات", titleEn: "Home (No Equipment)", descAr: "تمارين بالوزن فقط", descEn: "Bodyweight only", slug: "home-beginner-fullbody" },
-              { emoji: "🏋️", titleAr: "جيم كامل", titleEn: "Full Gym", descAr: "بمعدات كاملة", descEn: "Full equipment", slug: "gym-ppl-intermediate" },
-              { emoji: "🔥", titleAr: "حرق دهون HIIT", titleEn: "Fat Loss HIIT", descAr: "حارب الدهون بسرعة", descEn: "Burn fat fast", slug: "home-fat-loss-hiit" },
+              { emoji: "🏠", titleAr: "منزلي بدون معدات", titleEn: "Home (No Equipment)", descAr: "تمارين بالوزن فقط", descEn: "Bodyweight only", slug: "home-beginner-fullbody", image: "https://images.unsplash.com/photo-1599058917212-d750089bc07e?w=600&q=80&auto=format&fit=crop" },
+              { emoji: "🏋️", titleAr: "جيم كامل", titleEn: "Full Gym", descAr: "بمعدات كاملة", descEn: "Full equipment", slug: "gym-ppl-intermediate", image: "https://images.unsplash.com/photo-1534438327272-729a0a1c3e6e?w=600&q=80&auto=format&fit=crop" },
+              { emoji: "🔥", titleAr: "حرق دهون HIIT", titleEn: "Fat Loss HIIT", descAr: "حارب الدهون بسرعة", descEn: "Burn fat fast", slug: "home-fat-loss-hiit", image: "https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=600&q=80&auto=format&fit=crop" },
             ].map((prog, i) => (
               <Reveal key={prog.slug} delay={i * 100}>
                 <a
                   href={`/programs/${prog.slug}`}
-                  className="group block rounded-3xl bg-white p-6 transition-opacity hover:opacity-90"
+                  className="group block overflow-hidden rounded-3xl bg-white transition-opacity hover:opacity-90"
                 >
-                  <span className="text-4xl">{prog.emoji}</span>
-                  <h3 className="mt-3 text-lg font-semibold tracking-tight">{isAr ? prog.titleAr : prog.titleEn}</h3>
-                  <p className="mt-1 text-sm font-normal text-[#6e6e73]">{isAr ? prog.descAr : prog.descEn}</p>
-                  <p className="mt-3 text-sm font-normal text-[#0071e3]">{isAr ? "ابدأ الآن ›" : "Start now ›"}</p>
+                  <div className="aspect-[16/10] w-full overflow-hidden">
+                    <img
+                      src={prog.image}
+                      alt={isAr ? prog.titleAr : prog.titleEn}
+                      loading="lazy"
+                      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = "none";
+                        const fallback = (e.target as HTMLImageElement).parentElement?.nextElementSibling;
+                        if (fallback) (fallback as HTMLElement).style.display = "block";
+                      }}
+                    />
+                  </div>
+                  <div className="p-4 text-center" style={{ display: "none" }}>
+                    <span className="text-4xl">{prog.emoji}</span>
+                  </div>
+                  <div className="p-6">
+                    <h3 className="text-lg font-semibold tracking-tight">{isAr ? prog.titleAr : prog.titleEn}</h3>
+                    <p className="mt-1 text-sm font-normal text-[#6e6e73]">{isAr ? prog.descAr : prog.descEn}</p>
+                    <p className="mt-3 text-sm font-normal text-[#0071e3]">{isAr ? "ابدأ الآن ›" : "Start now ›"}</p>
+                  </div>
                 </a>
               </Reveal>
             ))}
@@ -491,19 +536,36 @@ export function LandingView() {
           </div>
           <div className="mt-10 grid grid-cols-2 gap-4 md:grid-cols-4">
             {[
-              { emoji: "🥩", titleAr: "بروتين", titleEn: "Protein", descAr: "لحم، دجاج، بيض", descEn: "Meat, chicken, eggs" },
-              { emoji: "🍚", titleAr: "كارب", titleEn: "Carbs", descAr: "أرز، شوفان، بطاطس", descEn: "Rice, oats, potato" },
-              { emoji: "🥑", titleAr: "دهون", titleEn: "Fats", descAr: "أفوكادو، مكسرات", descEn: "Avocado, nuts" },
-              { emoji: "🍎", titleAr: "فواكه وخضار", titleEn: "Fruits & Veg", descAr: "طازجة وصحية", descEn: "Fresh and healthy" },
+              { emoji: "🥩", titleAr: "بروتين", titleEn: "Protein", descAr: "لحم، دجاج، بيض", descEn: "Meat, chicken, eggs", image: "https://images.unsplash.com/photo-1532550907401-a5007fb57bc2?w=400&q=80&auto=format&fit=crop" },
+              { emoji: "🍚", titleAr: "كارب", titleEn: "Carbs", descAr: "أرز، شوفان، بطاطس", descEn: "Rice, oats, potato", image: "https://images.unsplash.com/photo-1586201375761-83865074e770?w=400&q=80&auto=format&fit=crop" },
+              { emoji: "🥑", titleAr: "دهون", titleEn: "Fats", descAr: "أفوكادو، مكسرات", descEn: "Avocado, nuts", image: "https://images.unsplash.com/photo-1601039641847-7857b994d704?w=400&q=80&auto=format&fit=crop" },
+              { emoji: "🍎", titleAr: "فواكه وخضار", titleEn: "Fruits & Veg", descAr: "طازجة وصحية", descEn: "Fresh and healthy", image: "https://images.unsplash.com/photo-1619566636858-adf3ef46400b?w=400&q=80&auto=format&fit=crop" },
             ].map((cat, i) => (
               <Reveal key={cat.titleEn} delay={i * 80}>
                 <a
                   href="/foods"
-                  className="group block rounded-3xl bg-[#f5f5f7] p-6 text-center transition-opacity hover:opacity-90"
+                  className="group block overflow-hidden rounded-3xl bg-[#f5f5f7] transition-opacity hover:opacity-90"
                 >
-                  <span className="text-4xl">{cat.emoji}</span>
-                  <h3 className="mt-3 text-base font-semibold tracking-tight">{isAr ? cat.titleAr : cat.titleEn}</h3>
-                  <p className="mt-1 text-xs font-normal text-[#6e6e73]">{isAr ? cat.descAr : cat.descEn}</p>
+                  <div className="aspect-square w-full overflow-hidden">
+                    <img
+                      src={cat.image}
+                      alt={isAr ? cat.titleAr : cat.titleEn}
+                      loading="lazy"
+                      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = "none";
+                        const fallback = (e.target as HTMLImageElement).parentElement?.nextElementSibling;
+                        if (fallback) (fallback as HTMLElement).style.display = "block";
+                      }}
+                    />
+                  </div>
+                  <div className="p-4 text-center" style={{ display: "none" }}>
+                    <span className="text-4xl">{cat.emoji}</span>
+                  </div>
+                  <div className="p-4 text-center">
+                    <h3 className="text-base font-semibold tracking-tight">{isAr ? cat.titleAr : cat.titleEn}</h3>
+                    <p className="mt-1 text-xs font-normal text-[#6e6e73]">{isAr ? cat.descAr : cat.descEn}</p>
+                  </div>
                 </a>
               </Reveal>
             ))}
