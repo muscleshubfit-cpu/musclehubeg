@@ -1066,5 +1066,5 @@ Stage Summary:
 - Category pills on both pages are now prominent card-style tiles with 64×64 thumbnails.
 - Tool listing images upgraded from emojis to real Unsplash thumbnails.
 - TS: 0 errors | ESLint: 0 errors (6 pre-existing warnings) | Build: exit 0
-- Commit SHA: <to be filled>
-- Push status: <to be filled>
+- Commit SHA: 53bacfc
+- Push status: pushed
