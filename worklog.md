@@ -1185,5 +1185,5 @@ Stage Summary:
   • exercises.ts/exercise-images.ts IMAGE_BASE — yuhonas GitHub for 868 individual exercise photos (too large to host locally)
   • layout.tsx — preconnect hints for Unsplash (performance only, no image fetch)
 - TS: 0 errors | ESLint: 0 errors (6 pre-existing warnings) | Build: exit 0
-- Commit SHA: <to be filled>
-- Push status: <to be filled>
+- Commit SHA: 49af798
+- Push status: pushed
