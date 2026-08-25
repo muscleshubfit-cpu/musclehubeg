@@ -1,28 +1,49 @@
+import type { Metadata } from "next";
+
 /**
  * Arabic nested layout.
  *
- * H1 fix (Option B): The root `<html lang dir>` attributes are now set
- * correctly on the server by `src/app/layout.tsx` (via `resolveLocale()`
- * reading the `x-pathname` header set by middleware). This means the
- * root `<html>` tag already has `lang="ar" dir="rtl"` for `/ar/*` routes
- * — making this `<div dir="rtl" lang="ar">` wrapper REDUNDANT for the
- * root HTML attributes.
+ * Provides Arabic-specific SEO metadata for all /ar/* routes:
+ *   - Arabic title + description for search engines
+ *   - og:locale = ar_EG for social sharing
+ *   - hreflang alternates pointing to EN + AR versions
  *
- * HOWEVER: the wrapper is intentionally RETAINED as a defensive
- * safety net for deeply-nested components that read `lang`/`dir` from
- * their immediate DOM ancestors (e.g. via `closest('[dir="rtl"]')`
- * or `parentElement.lang`). Removing it is safe in theory, but keeping
- * it costs nothing and protects against edge cases in third-party
- * libraries that may not correctly traverse up to `<html>`.
+ * The root `<html lang dir>` attributes are set by `src/app/layout.tsx`
+ * via `resolveLocale()` reading the `x-pathname` header from middleware.
  *
- * If you want to remove this wrapper in the future, verify that:
- *   1. All Arabic CSS selectors that use `[dir="rtl"]` still work
- *      (they should — `[dir="rtl"]` matches `<html>` too).
- *   2. No third-party component reads `dir`/`lang` from a parent `<div>`
- *      instead of from `<html>`.
- *   3. Screen readers correctly announce the page language (they
- *      should — they read `<html lang>`).
+ * The `<div dir="rtl" lang="ar">` wrapper is RETAINED as a defensive
+ * safety net for deeply-nested components / third-party libraries.
  */
+
+export const metadata: Metadata = {
+  title: {
+    default: "MuscleHubEG — منصة اللياقة والتغذية الشاملة",
+    template: "%s — MuscleHubEG",
+  },
+  description:
+    "منصة MuscleHubEG لللياقة والتغذية: مكتبة تمارين (868+)، برامج تدريب، حاسبات لياقة مجانية، قاعدة بيانات أطعمة (8,830+)، مدونة رياضية، وكوتشينج أونلاين مع محرك EVO الذكي.",
+  openGraph: {
+    title: "MuscleHubEG — منصة اللياقة والتغذية الشاملة",
+    description:
+      "868+ تمرين، برامج تدريب جاهزة، حاسبات لياقة مجانية، 8,830+ أكلة بالسعرات والماكروز، مدونة رياضية علمية، وكوتشينج أونلاين مع محرك EVO الذكي.",
+    siteName: "MuscleHubEG",
+    locale: "ar_EG",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "MuscleHubEG — منصة اللياقة والتغذية",
+    description:
+      "868+ تمرين، برامج تدريب، حاسبات مجانية، 8,830+ أكلة، مدونة رياضية، وكوتشينج أونلاين مع EVO AI.",
+  },
+  alternates: {
+    languages: {
+      "en": "https://musclehubeg.vercel.app",
+      "ar": "https://musclehubeg.vercel.app/ar",
+    },
+  },
+};
+
 export default function ArLayout({ children }: { children: React.ReactNode }) {
   return <div dir="rtl" lang="ar">{children}</div>;
 }
