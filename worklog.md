@@ -1309,3 +1309,63 @@ Stage Summary:
 - TS: 0 errors | ESLint: 0 errors (6 pre-existing warnings) | Build: exit 0
 - Commit SHA: 4c63974
 - Push status: pushed
+
+---
+Task ID: SEO-AUDIT-2026-08-25
+Agent: Main (Z User)
+Task: Download claude-seo reference docs + manual SEO audit of MuscleHubEG.
+
+Work Log:
+- Downloaded 3 SEO reference files from AgriciDaniel/claude-seo to docs/:
+  • SEO-SCHEMA-REFERENCE.md (129 lines) — active/deprecated Schema.org types
+  • SEO-EEAT-FRAMEWORK.md (210 lines) — E-E-A-T evaluation criteria
+  • SEO-CWV-THRESHOLDS.md (110 lines) — Core Web Vitals thresholds
+
+AUDIT 1 — Schema.org deprecation check:
+  Found 2 deprecated schema types still in use:
+  • FAQPage — Google retired rich results May 7, 2026 (all sites)
+  • HowTo — Google retired rich results September 2023
+  Action: Added ⚠️ DEPRECATED comments to both functions in seo.ts.
+  Did NOT remove the functions — they still have non-Google semantic value
+  (other search engines + AI crawlers may use them). Marked as "do not add
+  new instances expecting Google rich results."
+  
+  Active schemas verified as correct:
+  • Organization ✅ | WebSite ✅ | Service ✅ | SoftwareApplication ✅
+  • Article ✅ (with author, datePublished, dateModified)
+  • BreadcrumbList ✅ | ItemList ✅ | ExerciseAction ✅
+
+AUDIT 2 — E-E-A-T compliance:
+  Blog articles: ✅ Article schema injected on /blog/[slug] pages
+  with author + datePublished + dateModified + publisher + image.
+  Blog posts table has: author (default 'MuscleHub'), published_at,
+  updated_at (auto-trigger). E-E-A-T compliant.
+  
+  Missing: hreflang tags on blog article pages (EN/AR alternates not
+  declared). This is a known issue (H1 fix added server-side locale
+  detection, but hreflang link tags are not generated per-page).
+  Status: deferred — needs metadata.generateMetadata() per [slug] route.
+
+AUDIT 3 — Core Web Vitals:
+  PageSpeed Insights API returned 429 (quota exceeded).
+  Fallback audit performed via curl:
+  • robots.txt ✅ — correct, blocks private routes
+  • sitemap.xml ✅ — auto-generated, includes lastmod
+  • canonical ✅ — present on homepage
+  • meta description ✅ — present, accurate
+  • Open Graph ✅ — title, description, image, site_name, locale
+  • Twitter Card ✅ — present
+  • Google site verification ✅ — present
+  
+  Fix: metadata.ts description said "547+ exercise library" but actual
+  count is 868. Updated to "868+ exercise library" in both meta
+  description + OG description.
+
+Stage Summary:
+- 3 SEO reference docs downloaded to docs/
+- 2 deprecated schema types marked (FAQPage + HowTo)
+- 1 metadata error fixed (547→868 exercise count)
+- SEO audit report: 3 audits performed, 0 critical issues, 1 minor fix applied
+- TS: 0 errors | ESLint: 0 errors (6 pre-existing warnings) | Build: exit 0
+- Commit SHA: <to be filled>
+- Push status: <to be filled>

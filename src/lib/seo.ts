@@ -9,11 +9,15 @@
  *   - Organization (site-wide)
  *   - WebSite (site-wide, with SearchAction)
  *   - Service (for coaching page)
- *   - FAQPage (for FAQ sections)
+ *   - FAQPage (⚠️ DEPRECATED — Google retired rich results May 2026)
  *   - BreadcrumbList (for navigation)
- *   - HowTo (for tools and exercises)
+ *   - HowTo (⚠️ DEPRECATED — Google retired rich results Sept 2023)
  *   - Article (for blog posts)
  *   - SoftwareApplication (for EVO AI coach)
+ *   - ExerciseAction (for exercise detail pages)
+ *   - ItemList (for list pages)
+ *
+ * Reference: docs/SEO-SCHEMA-REFERENCE.md (from claude-seo project)
  */
 
 const SITE_URL = "https://musclehubeg.vercel.app";
@@ -135,7 +139,13 @@ export function getEVOApplicationSchema() {
 
 /**
  * FAQPage schema — for FAQ sections.
- * Enables rich snippets in Google search results.
+ *
+ * ⚠️ DEPRECATED (per SEO-SCHEMA-REFERENCE.md, May 2026):
+ * Google retired FAQ rich results for ALL sites on May 7, 2026.
+ * This schema no longer produces any SERP feature.
+ * Kept for non-Google semantic value only — do NOT add new FAQPage
+ * schemas expecting Google rich results.
+ * For genuine user Q&A pages, use QAPage instead.
  */
 export function getFAQSchema(faqs: Array<{ q: string; a: string }>) {
   return {
@@ -172,7 +182,12 @@ export function getBreadcrumbSchema(
 
 /**
  * HowTo schema — for tools and exercises.
- * Enables "How to" rich results in Google.
+ *
+ * ⚠️ DEPRECATED (per SEO-SCHEMA-REFERENCE.md, September 2023):
+ * Google stopped showing how-to rich results entirely since Sept 2023.
+ * This schema no longer produces any SERP feature.
+ * Kept for non-Google semantic value only — do NOT add new HowTo
+ * schemas expecting Google rich results.
  */
 export function getHowToSchema(params: {
   name: string;

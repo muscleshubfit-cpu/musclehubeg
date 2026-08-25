@@ -14,7 +14,7 @@ export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://musclehubeg.vercel.app'),
   title: "MuscleHubEG — Comprehensive Sports Platform | Exercises, Programs, Calculators & Nutrition",
   description:
-    "MuscleHubEG is a comprehensive sports platform: 547+ exercise library, ready workout programs, free fitness calculators (calories, BMI, macros), food database with nutrition info, fitness blog, and online coaching with nutrition specialists.",
+    "MuscleHubEG is a comprehensive sports platform: 868+ exercise library, ready workout programs, free fitness calculators (calories, BMI, macros), food database with nutrition info, fitness blog, and online coaching with nutrition specialists.",
   keywords: [
     // Platform-level keywords (primary, English)
     "sports platform",
@@ -83,7 +83,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "MuscleHubEG — Comprehensive Sports Platform",
     description:
-      "547+ exercises, workout programs, free fitness calculators, food database, fitness blog, and online coaching. Everything you need for your fitness journey in one place.",
+      "868+ exercises, workout programs, free fitness calculators, food database, fitness blog, and online coaching. Everything you need for your fitness journey in one place.",
     type: "website",
     siteName: "MuscleHubEG",
     locale: "en_US",
