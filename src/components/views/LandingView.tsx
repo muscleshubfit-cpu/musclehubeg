@@ -15,6 +15,20 @@ import { SiteHeader } from "@/components/SiteHeader";
 import { ImageStreamHero, type StreamImage } from "@/components/ui/image-stream-hero";
 import { getFAQSchema } from "@/lib/seo";
 
+// ============================================================
+// Card palette — extracted from Google Gemini "Ask Gemini" screen
+// (applied to CTA cards only — section backgrounds untouched)
+// ============================================================
+const CARD = {
+  surface:   "#FDFCFE", // أبيض نقي — سطح الكارت الأساسي
+  tint:      "#F5F7FC", // أبيض مزرق خفيف — للكروت الثانوية
+  halo:      "#E9F2FD", // هالة زرقاء خفيفة (للـ hover shadow)
+  blue:      "#CAE3FA", // أزرق الزر الفاتح
+  blueDeep:  "#C9E4FC", // أزرق التركيز الأعمق
+  textPrim:  "#1D252E", // أزرق داكن جداً (بديل الأسود)
+  textSec:   "#656D75", // رمادي مزرق للنص الثانوي
+};
+
 // Premium images — MuscleHub Studio Style
 const IMAGES = {
   gym: "/images/gym-interior.jpg",
@@ -834,7 +848,19 @@ function LandingToolCard({ tool, isAr }: { tool: any; isAr: boolean }) {
   return (
     <a
       href={tool.href}
-      className="group flex items-center gap-4 rounded-3xl bg-white p-6 transition-opacity hover:opacity-90"
+      className="group flex items-center gap-4 rounded-3xl p-6 transition-all duration-300"
+      style={{
+        backgroundColor: CARD.surface,
+        boxShadow: "0 1px 2px rgba(29, 37, 46, 0.03)",
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.boxShadow = "0 4px 16px rgba(201, 228, 252, 0.45)";
+        e.currentTarget.style.transform = "translateY(-1px)";
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.boxShadow = "0 1px 2px rgba(29, 37, 46, 0.03)";
+        e.currentTarget.style.transform = "translateY(0)";
+      }}
     >
       <span className="grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-2xl text-2xl" style={{ backgroundColor: `${tool.color}15` }}>
         {imgError ? (
@@ -850,10 +876,10 @@ function LandingToolCard({ tool, isAr }: { tool: any; isAr: boolean }) {
         )}
       </span>
       <div className="min-w-0 flex-1">
-        <h3 className="text-lg font-semibold tracking-tight">{isAr ? tool.nameAr : tool.nameEn}</h3>
-        <p className="mt-1 text-sm font-normal text-[#6e6e73]">{isAr ? tool.descAr : tool.descEn}</p>
+        <h3 className="text-lg font-semibold tracking-tight" style={{ color: CARD.textPrim }}>{isAr ? tool.nameAr : tool.nameEn}</h3>
+        <p className="mt-1 text-sm font-normal" style={{ color: CARD.textSec }}>{isAr ? tool.descAr : tool.descEn}</p>
       </div>
-      <span className="text-2xl text-[#6e6e73]">›</span>
+      <span className="text-2xl" style={{ color: CARD.textSec }}>›</span>
     </a>
   );
 }
@@ -863,7 +889,19 @@ function LandingExerciseCategoryCard({ cat, isAr }: { cat: any; isAr: boolean })
   return (
     <a
       href={`/exercises?cat=${cat.slug}`}
-      className="group block overflow-hidden rounded-3xl bg-[#f5f5f7] text-center transition-opacity hover:opacity-90"
+      className="group block overflow-hidden rounded-3xl text-center transition-all duration-300"
+      style={{
+        backgroundColor: CARD.tint,
+        boxShadow: "0 1px 2px rgba(29, 37, 46, 0.03)",
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.boxShadow = "0 4px 16px rgba(201, 228, 252, 0.45)";
+        e.currentTarget.style.transform = "translateY(-1px)";
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.boxShadow = "0 1px 2px rgba(29, 37, 46, 0.03)";
+        e.currentTarget.style.transform = "translateY(0)";
+      }}
     >
       <div className="aspect-[4/3] w-full overflow-hidden bg-white">
         {imgError ? (
@@ -881,8 +919,8 @@ function LandingExerciseCategoryCard({ cat, isAr }: { cat: any; isAr: boolean })
         )}
       </div>
       <div className="p-4">
-        <h3 className="text-base font-semibold tracking-tight">{isAr ? cat.labelAr : cat.labelEn}</h3>
-        <p className="mt-1 text-xs font-normal text-[#6e6e73]">{cat.count} {isAr ? "تمارين" : "exercises"}</p>
+        <h3 className="text-base font-semibold tracking-tight" style={{ color: CARD.textPrim }}>{isAr ? cat.labelAr : cat.labelEn}</h3>
+        <p className="mt-1 text-xs font-normal" style={{ color: CARD.textSec }}>{cat.count} {isAr ? "تمارين" : "exercises"}</p>
       </div>
     </a>
   );
@@ -893,7 +931,19 @@ function LandingProgramCard({ prog, isAr }: { prog: any; isAr: boolean }) {
   return (
     <a
       href={`/programs/${prog.slug}`}
-      className="group block overflow-hidden rounded-3xl bg-white transition-opacity hover:opacity-90"
+      className="group block overflow-hidden rounded-3xl transition-all duration-300"
+      style={{
+        backgroundColor: CARD.surface,
+        boxShadow: "0 1px 2px rgba(29, 37, 46, 0.03)",
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.boxShadow = "0 4px 16px rgba(201, 228, 252, 0.45)";
+        e.currentTarget.style.transform = "translateY(-1px)";
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.boxShadow = "0 1px 2px rgba(29, 37, 46, 0.03)";
+        e.currentTarget.style.transform = "translateY(0)";
+      }}
     >
       <div className="aspect-[16/10] w-full overflow-hidden">
         {imgError ? (
@@ -911,8 +961,8 @@ function LandingProgramCard({ prog, isAr }: { prog: any; isAr: boolean }) {
         )}
       </div>
       <div className="p-6">
-        <h3 className="text-lg font-semibold tracking-tight">{isAr ? prog.titleAr : prog.titleEn}</h3>
-        <p className="mt-1 text-sm font-normal text-[#6e6e73]">{isAr ? prog.descAr : prog.descEn}</p>
+        <h3 className="text-lg font-semibold tracking-tight" style={{ color: CARD.textPrim }}>{isAr ? prog.titleAr : prog.titleEn}</h3>
+        <p className="mt-1 text-sm font-normal" style={{ color: CARD.textSec }}>{isAr ? prog.descAr : prog.descEn}</p>
         <p className="mt-3 text-sm font-normal text-[#0071e3]">{isAr ? "ابدأ الآن ›" : "Start now ›"}</p>
       </div>
     </a>
@@ -924,11 +974,23 @@ function LandingFoodCategoryCard({ cat, isAr }: { cat: any; isAr: boolean }) {
   return (
     <a
       href="/foods"
-      className="group block overflow-hidden rounded-3xl bg-[#f5f5f7] transition-opacity hover:opacity-90"
+      className="group block overflow-hidden rounded-3xl transition-all duration-300"
+      style={{
+        backgroundColor: CARD.tint,
+        boxShadow: "0 1px 2px rgba(29, 37, 46, 0.03)",
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.boxShadow = "0 4px 16px rgba(201, 228, 252, 0.45)";
+        e.currentTarget.style.transform = "translateY(-1px)";
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.boxShadow = "0 1px 2px rgba(29, 37, 46, 0.03)";
+        e.currentTarget.style.transform = "translateY(0)";
+      }}
     >
       <div className="aspect-square w-full overflow-hidden">
         {imgError ? (
-          <div className="flex h-full w-full items-center justify-center bg-[#f5f5f7]">
+          <div className="flex h-full w-full items-center justify-center" style={{ backgroundColor: CARD.tint }}>
             <span className="text-4xl">{cat.emoji}</span>
           </div>
         ) : (
@@ -942,8 +1004,8 @@ function LandingFoodCategoryCard({ cat, isAr }: { cat: any; isAr: boolean }) {
         )}
       </div>
       <div className="p-4 text-center">
-        <h3 className="text-base font-semibold tracking-tight">{isAr ? cat.titleAr : cat.titleEn}</h3>
-        <p className="mt-1 text-xs font-normal text-[#6e6e73]">{isAr ? cat.descAr : cat.descEn}</p>
+        <h3 className="text-base font-semibold tracking-tight" style={{ color: CARD.textPrim }}>{isAr ? cat.titleAr : cat.titleEn}</h3>
+        <p className="mt-1 text-xs font-normal" style={{ color: CARD.textSec }}>{isAr ? cat.descAr : cat.descEn}</p>
       </div>
     </a>
   );
