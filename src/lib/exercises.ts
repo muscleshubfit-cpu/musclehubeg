@@ -34,14 +34,14 @@ export const LEVEL_LABELS: Record<Level, { ar: string; en: string; color: string
 };
 
 export const CATEGORY_LABELS: Record<ExerciseCategory, { ar: string; en: string; emoji: string; image: string }> = {
-  chest: { ar: "صدر", en: "Chest", emoji: "💪", image: "Alternating_Floor_Press/0.jpg" },
-  back: { ar: "ظهر", en: "Back", emoji: "🔙", image: "Alternating_Kettlebell_Row/0.jpg" },
-  shoulders: { ar: "أكتاف", en: "Shoulders", emoji: "🏆", image: "Alternating_Cable_Shoulder_Press/0.jpg" },
-  legs: { ar: "أرجل", en: "Legs", emoji: "🦵", image: "90_90_Hamstring/0.jpg" },
-  biceps: { ar: "بايسبس", en: "Biceps", emoji: "💪", image: "Alternate_Hammer_Curl/0.jpg" },
-  triceps: { ar: "ترايسبس", en: "Triceps", emoji: "💪", image: "Band_Skull_Crusher/0.jpg" },
-  core: { ar: "بطن/كور", en: "Core", emoji: "🎯", image: "3_4_Sit-Up/0.jpg" },
-  cardio: { ar: "كارديو", en: "Cardio", emoji: "❤️", image: "3_4_Sit-Up/0.jpg" },
+  chest: { ar: "صدر", en: "Chest", emoji: "💪", image: "/images/categories/exercises/chest.png" },
+  back: { ar: "ظهر", en: "Back", emoji: "🔙", image: "/images/categories/exercises/back.png" },
+  shoulders: { ar: "أكتاف", en: "Shoulders", emoji: "🏆", image: "/images/categories/exercises/shoulders.png" },
+  legs: { ar: "أرجل", en: "Legs", emoji: "🦵", image: "/images/categories/exercises/legs.png" },
+  biceps: { ar: "بايسبس", en: "Biceps", emoji: "💪", image: "/images/categories/exercises/biceps.png" },
+  triceps: { ar: "ترايسبس", en: "Triceps", emoji: "💪", image: "/images/categories/exercises/triceps.png" },
+  core: { ar: "بطن/كور", en: "Core", emoji: "🎯", image: "/images/categories/exercises/core.png" },
+  cardio: { ar: "كارديو", en: "Cardio", emoji: "❤️", image: "/images/categories/exercises/cardio.png" },
 };
 
 const IMAGE_BASE = "https://raw.githubusercontent.com/yuhonas//main/exercises";

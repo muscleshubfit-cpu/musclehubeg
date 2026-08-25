@@ -67,20 +67,22 @@ export const GOAL_LABELS: Record<ProgramGoal, { ar: string; en: string }> = {
   endurance: { ar: "تحمل", en: "Endurance" },
 };
 
-// High-quality Unsplash images (free to use, CC-licensed)
+// Local images (replaces previous Unsplash URLs — those URLs became 404
+// when Unsplash removed the photos). All workout program images now
+// use locally-hosted files from /public/images/programs/.
 const IMAGES = {
-  homeBodyweight: "https://images.unsplash.com/photo-1599058917212-d750089bc07e?w=800&q=80",
-  homeDumbbell: "https://images.unsplash.com/photo-1638536532686-d610adfc8e5c?w=800&q=80",
-  gymStrength: "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=800&q=80",
-  gymHypertrophy: "https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=800&q=80",
-  fatLoss: "https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=800&q=80",
-  cardio: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=800&q=80",
-  absCore: "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=800&q=80",
-  pushDay: "https://images.unsplash.com/photo-1583454110551-21f2fa2afe61?w=800&q=80",
-  pullDay: "https://images.unsplash.com/photo-1599058917765-a780eda07a3e?w=800&q=80",
-  legDay: "https://images.unsplash.com/photo-1517963879433-6ad2b056d712?w=800&q=80",
-  fullBody: "https://images.unsplash.com/photo-1518611012118-696072aa579a?w=800&q=80",
-  upperBody: "https://images.unsplash.com/photo-1581009137042-c552e485697a?w=800&q=80",
+  homeBodyweight: "/images/programs/home-workout.png",
+  homeDumbbell: "/images/programs/home-workout.png",
+  gymStrength: "/images/programs/full-gym.png",
+  gymHypertrophy: "/images/programs/full-gym.png",
+  fatLoss: "/images/programs/hiit.png",
+  cardio: "/images/programs/hiit.png",
+  absCore: "/images/programs/hiit.png",
+  pushDay: "/images/programs/full-gym.png",
+  pullDay: "/images/programs/full-gym.png",
+  legDay: "/images/programs/full-gym.png",
+  fullBody: "/images/programs/full-gym.png",
+  upperBody: "/images/programs/full-gym.png",
 };
 
 export const WORKOUT_PROGRAMS: WorkoutProgram[] = [

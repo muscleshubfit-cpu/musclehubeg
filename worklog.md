@@ -1148,3 +1148,42 @@ Stage Summary:
 - TS: 0 errors | ESLint: 0 errors (6 pre-existing warnings) | Build: exit 0
 - Commit SHA: 833dc04
 - Push status: pushed
+
+---
+Task ID: AI-PROGRAM-EXERCISE-IMAGES-2026-08-25
+Agent: Main (Z User)
+Task: Generate 3 program images + 8 exercise category images in Apple iPhone style + replace all remaining Unsplash URLs in code with local paths.
+
+Work Log:
+- Generated 3 program images (1024×1024 PNG):
+  • home-workout.png (99 KB) — yoga mat + dumbbells + resistance bands
+  • full-gym.png (93 KB) — gym equipment dumbbells rack
+  • hiit.png (69 KB) — kettlebell + jump rope
+- Generated 8 exercise category images (1024×1024 PNG):
+  • chest.png (68 KB) — barbell + bench press setup
+  • back.png (68 KB) — pull-up bar + resistance bands
+  • shoulders.png (102 KB) — dumbbells in fan shape
+  • legs.png (70 KB) — kettlebell + plyometric box
+  • biceps.png (45 KB) — single dumbbell standing upright
+  • triceps.png (64 KB) — dip bars parallel bars
+  • core.png (50 KB) — exercise mat + stability ball
+  • cardio.png (93 KB) — running shoes + jump rope
+- Updated src/lib/exercises.ts CATEGORY_LABELS: 8 GitHub raw URLs → 8 local paths.
+- Updated src/components/views/LandingView.tsx:
+  • 4 exercise category GitHub URLs → 4 local paths
+  • 3 program Unsplash URLs → 3 local paths
+- Cleaned up src/lib/workout-programs.ts: 12 Unsplash URLs → local paths (using the 3 new program images mapped by category).
+- Cleaned up src/lib/ai-local.ts: 2 Unsplash URLs → local exercise category image.
+- Cleaned up src/lib/plan-generator.ts: 1 yuhonas GitHub URL removed.
+
+Stage Summary:
+- 11 AI-generated images saved locally (3 programs + 8 exercise categories).
+- Total project image library: 26 AI-generated images (9 foods + 6 tools + 3 programs + 8 exercises).
+- All category/tool/program image URLs in code are now LOCAL — no external dependency for category images.
+- Remaining external URLs (acceptable):
+  • blog-images.ts — Unsplash API for blog post image search (feature)
+  • exercises.ts/exercise-images.ts IMAGE_BASE — yuhonas GitHub for 868 individual exercise photos (too large to host locally)
+  • layout.tsx — preconnect hints for Unsplash (performance only, no image fetch)
+- TS: 0 errors | ESLint: 0 errors (6 pre-existing warnings) | Build: exit 0
+- Commit SHA: <to be filled>
+- Push status: <to be filled>

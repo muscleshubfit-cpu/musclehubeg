@@ -853,7 +853,7 @@ function getExerciseImageFromLibrary(exercise: any): string | undefined {
   if (!exercise || !exercise.imageKey) return undefined;
   const images = exercise.imageKey.split(",").filter(Boolean);
   if (images.length === 0) return undefined;
-  return `https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/${images[0].trim()}`;
+  return `${images[0].trim()}`;
 }
 
 /* ----------------- Coach-pasted plan normalizer ----------------- */

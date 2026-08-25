@@ -418,10 +418,10 @@ export function LandingView() {
           </div>
           <div className="mt-10 grid grid-cols-2 gap-4 md:grid-cols-4">
             {[
-              { emoji: "💪", labelAr: "صدر", labelEn: "Chest", slug: "chest", count: 6, image: "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Alternating_Floor_Press/0.jpg" },
-              { emoji: "🦵", labelAr: "أرجل", labelEn: "Legs", slug: "legs", count: 12, image: "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/90_90_Hamstring/0.jpg" },
-              { emoji: "🎯", labelAr: "كور", labelEn: "Core", slug: "core", count: 9, image: "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/3_4_Sit-Up/0.jpg" },
-              { emoji: "❤️", labelAr: "كارديو", labelEn: "Cardio", slug: "cardio", count: 6, image: "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/3_4_Sit-Up/0.jpg" },
+              { emoji: "💪", labelAr: "صدر", labelEn: "Chest", slug: "chest", count: 6, image: "/images/categories/exercises/chest.png" },
+              { emoji: "🦵", labelAr: "أرجل", labelEn: "Legs", slug: "legs", count: 12, image: "/images/categories/exercises/legs.png" },
+              { emoji: "🎯", labelAr: "كور", labelEn: "Core", slug: "core", count: 9, image: "/images/categories/exercises/core.png" },
+              { emoji: "❤️", labelAr: "كارديو", labelEn: "Cardio", slug: "cardio", count: 6, image: "/images/categories/exercises/cardio.png" },
             ].map((cat, i) => (
               <Reveal key={cat.slug} delay={i * 80}>
                 <a
@@ -477,9 +477,9 @@ export function LandingView() {
           </div>
           <div className="mt-10 grid grid-cols-1 gap-4 md:grid-cols-3">
             {[
-              { emoji: "🏠", titleAr: "منزلي بدون معدات", titleEn: "Home (No Equipment)", descAr: "تمارين بالوزن فقط", descEn: "Bodyweight only", slug: "home-beginner-fullbody", image: "https://images.unsplash.com/photo-1599058917212-d750089bc07e?w=600&q=80&auto=format&fit=crop" },
-              { emoji: "🏋️", titleAr: "جيم كامل", titleEn: "Full Gym", descAr: "بمعدات كاملة", descEn: "Full equipment", slug: "gym-ppl-intermediate", image: "https://images.unsplash.com/photo-1534438327272-729a0a1c3e6e?w=600&q=80&auto=format&fit=crop" },
-              { emoji: "🔥", titleAr: "حرق دهون HIIT", titleEn: "Fat Loss HIIT", descAr: "حارب الدهون بسرعة", descEn: "Burn fat fast", slug: "home-fat-loss-hiit", image: "https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=600&q=80&auto=format&fit=crop" },
+              { emoji: "🏠", titleAr: "منزلي بدون معدات", titleEn: "Home (No Equipment)", descAr: "تمارين بالوزن فقط", descEn: "Bodyweight only", slug: "home-beginner-fullbody", image: "/images/programs/home-workout.png" },
+              { emoji: "🏋️", titleAr: "جيم كامل", titleEn: "Full Gym", descAr: "بمعدات كاملة", descEn: "Full equipment", slug: "gym-ppl-intermediate", image: "/images/programs/full-gym.png" },
+              { emoji: "🔥", titleAr: "حرق دهون HIIT", titleEn: "Fat Loss HIIT", descAr: "حارب الدهون بسرعة", descEn: "Burn fat fast", slug: "home-fat-loss-hiit", image: "/images/programs/hiit.png" },
             ].map((prog, i) => (
               <Reveal key={prog.slug} delay={i * 100}>
                 <a
