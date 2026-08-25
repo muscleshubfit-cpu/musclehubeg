@@ -1091,5 +1091,5 @@ Stage Summary:
 - Image sources: Unsplash (food + tools + workout programs) + yuhonas/free-exercise-db (exercise categories).
 - All emoji fallbacks preserved — UI never breaks if a remote image fails.
 - TS: 0 errors | ESLint: 0 errors (6 pre-existing warnings) | Build: exit 0
-- Commit SHA: <to be filled>
-- Push status: <to be filled>
+- Commit SHA: c727eae
+- Push status: pushed
