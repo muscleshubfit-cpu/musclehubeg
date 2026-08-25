@@ -739,45 +739,74 @@ export function LandingView() {
       {/* ===================== FOOTER ===================== */}
       <footer className="border-t border-[#d2d2d7] bg-[#f5f5f7] px-4 py-10 text-[#6e6e73]">
         <div className="mx-auto max-w-6xl">
-          <div className="grid gap-8 md:grid-cols-4">
+          <div className="grid gap-8 md:grid-cols-3 lg:grid-cols-5">
+            {/* Brand */}
             <div>
-              <p className="text-sm font-semibold text-[#1d1d1f]">MuscleHub</p>
+              <p className="text-sm font-semibold text-[#1d1d1f]">MuscleHubEG</p>
               <p className="mt-2 text-xs font-normal">{isAr ? "منصة رياضية شاملة." : "Comprehensive sports platform."}</p>
+              <p className="mt-3 text-[10px] font-normal text-[#8e8e93]">{isAr ? "© 2026 جميع الحقوق محفوظة" : "© 2026 All rights reserved"}</p>
             </div>
+
+            {/* Group 1: Paid Services */}
             <div>
-              <p className="text-xs font-normal uppercase tracking-wide">{isAr ? "روابط" : "Links"}</p>
+              <p className="text-[10px] font-semibold uppercase tracking-wider">{isAr ? "الخدمات المدفوعة" : "Paid Services"}</p>
               <ul className="mt-3 space-y-2 text-xs">
-                <li><a href="/exercises" className="hover:underline">{isAr ? "التمارين" : "Exercises"}</a></li>
-                <li><a href="/programs" className="hover:underline">{isAr ? "البرامج" : "Programs"}</a></li>
-                <li><a href="/foods" className="hover:underline">{isAr ? "الأكلات" : "Foods"}</a></li>
-                <li><a href="/tools" className="hover:underline">{isAr ? "الأدوات" : "Tools"}</a></li>
-                <li><a href="/evo" className="hover:underline">EVO</a></li>
-                <li><a href="/blog" className="hover:underline">{isAr ? "المدونة" : "Blog"}</a></li>
                 <li><a href="/coaching" className="hover:underline">{isAr ? "الكوتشينج" : "Coaching"}</a></li>
                 <li><a href="/memberships" className="hover:underline">{isAr ? "العضويات" : "Memberships"}</a></li>
-                <li><a href="/memberships" className="hover:underline">{isAr ? "الأسعار" : "Pricing"}</a></li>
+                <li><a href="/evo" className="hover:underline">EVO AI Coach</a></li>
               </ul>
             </div>
+
+            {/* Group 2: Affiliate & Referral */}
             <div>
-              <p className="text-xs font-normal uppercase tracking-wide">{isAr ? "قانوني" : "Legal"}</p>
+              <p className="text-[10px] font-semibold uppercase tracking-wider">{isAr ? "الأفلييت والإحالات" : "Affiliate & Referral"}</p>
               <ul className="mt-3 space-y-2 text-xs">
-                <li><button onClick={() => navigate("privacy")} className="hover:underline">{isAr ? "الخصوصية" : "Privacy"}</button></li>
-                <li><button onClick={() => navigate("terms")} className="hover:underline">{isAr ? "الشروط" : "Terms"}</button></li>
-                <li><button onClick={() => navigate("about")} className="hover:underline">{isAr ? "من نحن" : "About"}</button></li>
-                <li><button onClick={() => navigate("faq")} className="hover:underline">{isAr ? "أسئلة شائعة" : "FAQ"}</button></li>
+                <li><a href="/affiliate" className="hover:underline">{isAr ? "برنامج الأفلييت" : "Affiliate Program"}</a></li>
+                <li><a href="/referral" className="hover:underline">{isAr ? "لوحة الإحالات" : "Referral Dashboard"}</a></li>
               </ul>
             </div>
+
+            {/* Group 3: Tools */}
             <div>
-              <p className="text-xs font-normal uppercase tracking-wide">{isAr ? "تواصل" : "Contact"}</p>
+              <p className="text-[10px] font-semibold uppercase tracking-wider">{isAr ? "الأدوات" : "Tools"}</p>
               <ul className="mt-3 space-y-2 text-xs">
-                <li>WhatsApp</li>
-                <li>Instagram</li>
-                <li>{isAr ? "دعم 24/7" : "24/7 support"}</li>
+                <li><a href="/tools/bmi-calculator" className="hover:underline">{isAr ? "حاسبة BMI" : "BMI Calculator"}</a></li>
+                <li><a href="/tools/body-fat-calculator" className="hover:underline">{isAr ? "حاسبة الدهون" : "Body Fat Calculator"}</a></li>
+                <li><a href="/tools/calorie-calculator" className="hover:underline">{isAr ? "حاسبة السعرات" : "Calorie Calculator"}</a></li>
+                <li><a href="/tools/macro-calculator" className="hover:underline">{isAr ? "حاسبة الماكروز" : "Macro Calculator"}</a></li>
+                <li><a href="/tools/water-tracker" className="hover:underline">{isAr ? "متتبع الماء" : "Water Tracker"}</a></li>
+                <li><a href="/meal-planner" className="hover:underline">{isAr ? "مخطط الوجبات" : "Meal Planner"}</a></li>
+              </ul>
+            </div>
+
+            {/* Group 4: Resources */}
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-wider">{isAr ? "المحتوى" : "Resources"}</p>
+              <ul className="mt-3 space-y-2 text-xs">
+                <li><a href="/exercises" className="hover:underline">{isAr ? "مكتبة التمارين" : "Exercises"}</a></li>
+                <li><a href="/programs" className="hover:underline">{isAr ? "برامج التدريب" : "Programs"}</a></li>
+                <li><a href="/foods" className="hover:underline">{isAr ? "مكتبة الأكلات" : "Foods"}</a></li>
+                <li><a href="/blog" className="hover:underline">{isAr ? "المدونة" : "Blog"}</a></li>
               </ul>
             </div>
           </div>
-          <div className="mt-8 border-t border-[#d2d2d7] pt-6 text-center text-xs">
-            © {new Date().getFullYear()} MuscleHub. {isAr ? "كل الحقوق محفوظة." : "All rights reserved."}
+
+          {/* Group 5: Legal + Basic — bottom row (per Owner directive 2026-08-25:
+              legal/basic pages like About / Contact / Privacy / Terms / FAQ
+              live in the footer only, not in the header) */}
+          <div className="mt-8 border-t border-[#d2d2d7] pt-6">
+            <p className="text-[10px] font-semibold uppercase tracking-wider mb-3">{isAr ? "قانوني وأساسي" : "Legal & Basic"}</p>
+            <ul className="flex flex-wrap gap-x-6 gap-y-2 text-xs">
+              <li><button onClick={() => navigate("about")} className="hover:underline">{isAr ? "من نحن" : "About"}</button></li>
+              <li><button onClick={() => navigate("contact")} className="hover:underline">{isAr ? "تواصل معنا" : "Contact"}</button></li>
+              <li><button onClick={() => navigate("faq")} className="hover:underline">{isAr ? "أسئلة شائعة" : "FAQ"}</button></li>
+              <li><button onClick={() => navigate("privacy")} className="hover:underline">{isAr ? "الخصوصية" : "Privacy"}</button></li>
+              <li><button onClick={() => navigate("terms")} className="hover:underline">{isAr ? "الشروط" : "Terms"}</button></li>
+            </ul>
+          </div>
+
+          <div className="mt-6 border-t border-[#d2d2d7] pt-4 text-center text-[10px] text-[#8e8e93]">
+            {isAr ? "صُنع بحب لمجتمع اللياقة العربي" : "Built with care for the fitness community"}
           </div>
         </div>
       </footer>

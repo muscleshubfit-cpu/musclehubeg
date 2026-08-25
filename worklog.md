@@ -938,3 +938,51 @@ Stage Summary:
 - TS: 0 errors | ESLint: 0 errors (6 pre-existing warnings) | Build: exit 0
 - Commit SHA: d974dd7
 - Push status: pushed
+
+---
+Task ID: NAV-REORG-2026-08-25
+Agent: Main (Z User)
+Task: Audit all navigation routes + reorganize header into grouped sections + reorganize footer into coherent groups. Tools must be a dropdown menu in header (not a single link).
+
+Work Log:
+- Audited 67 navigate() + 15 <a href> + 11 router.push + 3 window.location.href calls across src/.
+- Verified all referenced routes exist (51 page.tsx + 36 API routes — all destinations resolve).
+- Identified duplicate "Pricing" entry in header (same destination as Memberships).
+- Restructured SiteHeader.tsx drawer into 5-7 grouped sections:
+  1. Home
+  2. Paid Services (Coaching + Memberships + EVO AI Coach) — premium offerings
+  3. Affiliate Program
+  4. Tools (expandable dropdown — 6 tools: BMI / Body Fat / Calorie / Macro / Water Tracker / Meal Planner)
+  5. Resources (Exercises + Programs + Foods + Blog)
+  6. My Account (authenticated: Dashboard, Plans, Progress, EVO, Questionnaires, Referrals, Support)
+  7. Coach Admin (when isCoach: Coach Dashboard, Payments, Client Support, Tool Leads, Saved Results, Referrals, Blog Admin)
+- Removed duplicate "Pricing" entry (was duplicate of Memberships).
+- Tools group is collapsible (ChevronDown toggle, expanded by default).
+- All other groups always show their items.
+- Each item now has its own icon (Droplet for water, Activity for BMI, Target for body fat, Pizza for meal planner, etc.).
+- Per Owner directive: legal/basic pages (About, Contact, FAQ, Privacy, Terms) moved to FOOTER ONLY — not in header.
+
+Footer (LandingView.tsx) reorganized into 5 groups:
+- Brand
+- Paid Services (Coaching + Memberships + EVO AI Coach)
+- Affiliate & Referral (Affiliate Program + Referral Dashboard)
+- Tools (all 6 tools listed individually)
+- Resources (Exercises + Programs + Foods + Blog)
+- Legal & Basic (bottom row, horizontal flex): About + Contact + FAQ + Privacy + Terms
+- Removed duplicate "Pricing" link from footer.
+- Removed placeholder WhatsApp / Instagram / "24/7 support" items (no real destinations).
+- Footer copyright: changed "MuscleHub" to "MuscleHubEG" (brand consistency).
+
+Verification:
+- TS: 0 errors
+- ESLint: 0 errors, 6 pre-existing warnings (unchanged)
+- Build: exit 0; all 78 routes registered
+
+Stage Summary:
+- Header drawer: 7 groups, ~25 items, with Tools collapsible
+- Footer: 5 groups + horizontal Legal & Basic row
+- All routes verified correct — no broken links
+- Duplicate Pricing entry removed from both header + footer
+- Legal/basic pages now footer-only (per Owner directive)
+- Commit SHA: <to be filled>
+- Push status: <to be filled>

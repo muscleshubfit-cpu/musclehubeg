@@ -20,11 +20,16 @@ import {
   LogOut,
   Bot,
   ChevronRight,
+  ChevronDown,
   Bell,
   User,
   Sparkles,
   Bookmark,
   Users,
+  Droplet,
+  Target,
+  Activity,
+  Pizza,
 } from "lucide-react";
 import { LanguageToggle } from "@/components/LanguageToggle";
 import { useI18n } from "@/lib/i18n";
@@ -81,6 +86,21 @@ export function SiteHeader({ variant = "landing" }: { variant?: "landing" | "app
 
   const blogHref = isCoach ? "/admin/blog" : isAr ? "/ar/blog" : "/blog";
 
+  // ─── Menu data model (grouped) ─────────────────────────────────────────
+  // The drawer is organised into clear sections:
+  //   1. Home
+  //   2. Paid Services (Coaching + Memberships + EVO AI Coach) — premium offerings
+  //   3. Affiliate Program — monetization for promoters
+  //   4. Tools (expandable dropdown) — 6 free calculators + meal planner
+  //   5. Resources — content libraries (Exercises, Programs, Foods, Blog)
+  //   6. Authenticated-only items (Dashboard, My Plans, etc.) — appended below
+  //   7. Coach-only items — appended when isCoach
+  //
+  // Legal & basic pages (Privacy, Terms, About, FAQ, Contact) are intentionally
+  // NOT in the header — they live in the footer only (per Owner directive
+  // 2026-08-25). Visitors scanning the header should see the product offering
+  // first; legal/contact pages are secondary.
+
   type MenuItem = {
     label: string;
     icon: any;
@@ -88,117 +108,178 @@ export function SiteHeader({ variant = "landing" }: { variant?: "landing" | "app
     onClick?: () => void;
   };
 
-  const menu: MenuItem[] = [];
+  type MenuGroup = {
+    id: string;
+    title: string;
+    items: MenuItem[];
+  };
 
-  // 1. Home
-  menu.push({
-    label: isAr ? "الرئيسية" : "Home",
-    icon: Home,
-    onClick: () => navigate("landing"),
+  const groups: MenuGroup[] = [];
+
+  // Group 1: Home
+  groups.push({
+    id: "home",
+    title: "",
+    items: [
+      {
+        label: isAr ? "الرئيسية" : "Home",
+        icon: Home,
+        onClick: () => navigate("landing"),
+      },
+    ],
   });
 
-  // === PUBLIC NAVIGATION (visible to logged-out + logged-in visitors) ===
-  // Order per project spec: Exercises → Programs → Foods → Tools → EVO → Blog → Coaching → Memberships → Pricing → Affiliate Program
-
-  // 1. Exercises
-  menu.push({
-    label: isAr ? "مكتبة التمارين" : "Exercises",
-    icon: Dumbbell,
-    href: "/exercises",
+  // Group 2: Paid Services (Coaching + Memberships + EVO AI Coach)
+  groups.push({
+    id: "paid-services",
+    title: isAr ? "الخدمات المدفوعة" : "Paid Services",
+    items: [
+      {
+        label: isAr ? "الكوتشينج" : "Coaching",
+        icon: Users,
+        href: "/coaching",
+      },
+      {
+        label: isAr ? "العضويات" : "Memberships",
+        icon: Sparkles,
+        href: "/memberships",
+      },
+      {
+        label: "EVO AI Coach",
+        icon: Bot,
+        href: "/evo",
+      },
+    ],
   });
 
-  // 2. Programs
-  menu.push({
-    label: isAr ? "برامج التدريب" : "Programs",
-    icon: ClipboardList,
-    href: "/programs",
+  // Group 3: Affiliate Program (public marketing page)
+  groups.push({
+    id: "affiliate",
+    title: isAr ? "الأفلييت" : "Affiliate",
+    items: [
+      {
+        label: isAr ? "برنامج الأفلييت" : "Affiliate Program",
+        icon: Gift,
+        href: "/affiliate",
+      },
+    ],
   });
 
-  // 3. Foods
-  menu.push({
-    label: isAr ? "مكتبة الأكلات" : "Foods",
-    icon: Utensils,
-    href: "/foods",
+  // Group 4: Tools (dropdown — expandable to show all 6 tools + meal planner)
+  // Per Owner directive 2026-08-25: tools must be a dropdown menu showing all
+  // individual tools, NOT a single link to /tools.
+  groups.push({
+    id: "tools",
+    title: isAr ? "الأدوات" : "Tools",
+    items: [
+      {
+        label: isAr ? "حاسبة BMI" : "BMI Calculator",
+        icon: Activity,
+        href: "/tools/bmi-calculator",
+      },
+      {
+        label: isAr ? "حاسبة الدهون" : "Body Fat Calculator",
+        icon: Target,
+        href: "/tools/body-fat-calculator",
+      },
+      {
+        label: isAr ? "حاسبة السعرات" : "Calorie Calculator",
+        icon: Calculator,
+        href: "/tools/calorie-calculator",
+      },
+      {
+        label: isAr ? "حاسبة الماكروز" : "Macro Calculator",
+        icon: Calculator,
+        href: "/tools/macro-calculator",
+      },
+      {
+        label: isAr ? "متتبع الماء" : "Water Tracker",
+        icon: Droplet,
+        href: "/tools/water-tracker",
+      },
+      {
+        label: isAr ? "مخطط الوجبات" : "Meal Planner",
+        icon: Pizza,
+        href: "/meal-planner",
+      },
+    ],
   });
 
-  // 4. Tools (free calculators)
-  menu.push({
-    label: isAr ? "الأدوات المجانية" : "Free Tools",
-    icon: Calculator,
-    href: "/tools",
+  // Group 5: Resources (content libraries — exercises / programs / foods / blog)
+  groups.push({
+    id: "resources",
+    title: isAr ? "المحتوى" : "Resources",
+    items: [
+      {
+        label: isAr ? "مكتبة التمارين" : "Exercises",
+        icon: Dumbbell,
+        href: "/exercises",
+      },
+      {
+        label: isAr ? "برامج التدريب" : "Programs",
+        icon: ClipboardList,
+        href: "/programs",
+      },
+      {
+        label: isAr ? "مكتبة الأكلات" : "Foods",
+        icon: Utensils,
+        href: "/foods",
+      },
+      {
+        label: isAr ? "المدونة" : "Blog",
+        icon: FileText,
+        href: blogHref,
+      },
+    ],
   });
 
-  // 5. EVO AI Coach
-  menu.push({
-    label: "EVO",
-    icon: Bot,
-    href: "/evo",
-  });
-
-  // 6. Blog
-  menu.push({
-    label: isAr ? "المدونة" : "Blog",
-    icon: FileText,
-    href: blogHref,
-  });
-
-  // 7. Coaching
-  menu.push({
-    label: isAr ? "الكوتشينج" : "Coaching",
-    icon: Users,
-    href: "/coaching",
-  });
-
-  // 8. Memberships
-  menu.push({
-    label: isAr ? "العضويات" : "Memberships",
-    icon: Sparkles,
-    href: "/memberships",
-  });
-
-  // 9. Pricing (same destination as Memberships — kept as a separate label
-  // per nav spec so visitors scanning the menu find "Pricing" by name).
-  menu.push({
-    label: isAr ? "الأسعار" : "Pricing",
-    icon: Crown,
-    href: "/memberships",
-  });
-
-  // 10. Affiliate Program — public marketing page (no login required).
-  // Distinct from the authenticated "Referrals" dashboard item below.
-  menu.push({
-    label: isAr ? "برنامج الأفلييت" : "Affiliate Program",
-    icon: Gift,
-    href: "/affiliate",
-  });
-
-  // 4. Client pages
+  // Group 6: Account (authenticated items)
   if (isLoggedIn && !isCoach) {
-    menu.push(
-      { label: isAr ? "لوحة التحكم" : "Dashboard", icon: LayoutDashboard, onClick: () => navigate("dashboard") },
-      { label: isAr ? "خططي" : "My Plans", icon: FileText, onClick: () => navigate("plans") },
-      { label: isAr ? "تقدمي" : "My Progress", icon: LineChart, onClick: () => navigate("progress") },
-      { label: isAr ? "كوتش EVO" : "EVO Coach", icon: Bot, onClick: () => navigate("chat") },
-      { label: isAr ? "الاستبيانات" : "Questionnaires", icon: ClipboardList, onClick: () => navigate("questionnaires") },
-      { label: isAr ? "الإحالات" : "Referrals", icon: Gift, onClick: () => navigate("referral") },
-      { label: isAr ? "الدعم" : "Support", icon: LifeBuoy, onClick: () => navigate("support") },
-    );
+    groups.push({
+      id: "account",
+      title: isAr ? "حسابي" : "My Account",
+      items: [
+        { label: isAr ? "لوحة التحكم" : "Dashboard", icon: LayoutDashboard, onClick: () => navigate("dashboard") },
+        { label: isAr ? "خططي" : "My Plans", icon: FileText, onClick: () => navigate("plans") },
+        { label: isAr ? "تقدمي" : "My Progress", icon: LineChart, onClick: () => navigate("progress") },
+        { label: isAr ? "كوتش EVO" : "EVO Coach", icon: Bot, onClick: () => navigate("chat") },
+        { label: isAr ? "الاستبيانات" : "Questionnaires", icon: ClipboardList, onClick: () => navigate("questionnaires") },
+        { label: isAr ? "الإحالات" : "Referrals", icon: Gift, onClick: () => navigate("referral") },
+        { label: isAr ? "الدعم" : "Support", icon: LifeBuoy, onClick: () => navigate("support") },
+      ],
+    });
   }
 
-  // 4b. Coach pages
+  // Group 7: Coach (admin items)
   if (isLoggedIn && isCoach) {
-    menu.push(
-      { label: isAr ? "لوحة الكوتش" : "Coach Dashboard", icon: LayoutDashboard, onClick: () => navigate("coach") },
-      { label: isAr ? "المدفوعات" : "Payments", icon: Crown, onClick: () => navigate("coach-payments") },
-      { label: isAr ? "دعم العملاء" : "Client Support", icon: LifeBuoy, onClick: () => navigate("coach-support") },
-      { label: isAr ? "أدوات Leads" : "Tool Leads", icon: Calculator, href: "/admin/leads" },
-      { label: isAr ? "النتائج المحفوظة" : "Saved Results", icon: Bookmark, href: "/admin/saved-results" },
-      { label: isAr ? "الإحالات" : "Referrals", icon: Gift, onClick: () => navigate("admin-referrals") },
-      { label: isAr ? "المدونة" : "Blog Admin", icon: FileText, href: "/admin/blog" },
-    );
+    groups.push({
+      id: "coach",
+      title: isAr ? "إدارة الكوتش" : "Coach Admin",
+      items: [
+        { label: isAr ? "لوحة الكوتش" : "Coach Dashboard", icon: LayoutDashboard, onClick: () => navigate("coach") },
+        { label: isAr ? "المدفوعات" : "Payments", icon: Crown, onClick: () => navigate("coach-payments") },
+        { label: isAr ? "دعم العملاء" : "Client Support", icon: LifeBuoy, onClick: () => navigate("coach-support") },
+        { label: isAr ? "أدوات Leads" : "Tool Leads", icon: Calculator, href: "/admin/leads" },
+        { label: isAr ? "النتائج المحفوظة" : "Saved Results", icon: Bookmark, href: "/admin/saved-results" },
+        { label: isAr ? "الإحالات" : "Referrals", icon: Gift, onClick: () => navigate("admin-referrals") },
+        { label: isAr ? "إدارة المدونة" : "Blog Admin", icon: FileText, href: "/admin/blog" },
+      ],
+    });
   }
 
-  // Note: Logout is now in the bottom section of the drawer (separate from menu items)
+  // Expandable group state (only Tools is expandable by default)
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(
+    new Set(["tools"]), // Tools group is open by default so users see all tools
+  );
+
+  const toggleGroup = (groupId: string) => {
+    setExpandedGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(groupId)) next.delete(groupId);
+      else next.add(groupId);
+      return next;
+    });
+  };
 
   const handleItemClick = (item: MenuItem) => {
     setOpen(false);
@@ -324,34 +405,67 @@ export function SiteHeader({ variant = "landing" }: { variant?: "landing" | "app
             </button>
           </div>
 
-          {/* Menu items */}
-          <nav className="flex-1 overflow-y-auto p-3">
-            <ul className="space-y-1">
-              {menu.map((item, i) => {
-                return (
-                  <li key={i}>
-                    {item.href ? (
-                      <a
-                        href={item.href}
-                        onClick={() => setOpen(false)}
-                        className="flex items-center gap-3 rounded-lg px-3 py-3 text-start text-sm font-normal transition-colors text-[#1d1d1f] hover:bg-[#f5f5f7]"
-                      >
-                        <span className="flex-1">{item.label}</span>
-                        <ChevronRight className="h-4 w-4 shrink-0 opacity-30 rtl:rotate-180" />
-                      </a>
-                    ) : (
-                      <button
-                        onClick={() => handleItemClick(item)}
-                        className="flex w-full items-center gap-3 rounded-lg px-3 py-3 text-start text-sm font-normal transition-colors text-[#1d1d1f] hover:bg-[#f5f5f7]"
-                      >
-                        <span className="flex-1">{item.label}</span>
-                        <ChevronRight className="h-4 w-4 shrink-0 opacity-30 rtl:rotate-180" />
-                      </button>
-                    )}
-                  </li>
-                );
-              })}
-            </ul>
+          {/* Menu items — grouped layout */}
+          <nav className="flex-1 overflow-y-auto p-3" aria-label={isAr ? "القائمة الرئيسية" : "Main menu"}>
+            {groups.map((group, gi) => {
+              const isExpanded = expandedGroups.has(group.id);
+              const canCollapse = group.id === "tools"; // Only Tools is collapsible (others always show items)
+              const showHeader = group.title !== "";
+              return (
+                <section key={group.id} className={gi > 0 ? "mt-4" : ""}>
+                  {showHeader && (
+                    <button
+                      type="button"
+                      onClick={() => canCollapse && toggleGroup(group.id)}
+                      className={
+                        "mb-1 flex w-full items-center justify-between px-3 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-wider text-[#8e8e93] " +
+                        (canCollapse ? "cursor-pointer hover:text-[#1d1d1f]" : "cursor-default")
+                      }
+                      aria-expanded={canCollapse ? isExpanded : undefined}
+                      disabled={!canCollapse}
+                    >
+                      <span>{group.title}</span>
+                      {canCollapse && (
+                        <ChevronDown
+                          className={"h-3.5 w-3.5 transition-transform " + (isExpanded ? "rotate-180" : "")}
+                          aria-hidden="true"
+                        />
+                      )}
+                    </button>
+                  )}
+                  {(!canCollapse || isExpanded) && (
+                    <ul className="space-y-0.5">
+                      {group.items.map((item, i) => {
+                        return (
+                          <li key={`${group.id}-${i}`}>
+                            {item.href ? (
+                              <a
+                                href={item.href}
+                                onClick={() => setOpen(false)}
+                                className={"flex items-center gap-3 rounded-lg px-3 py-2.5 text-start text-sm font-normal transition-colors text-[#1d1d1f] hover:bg-[#f5f5f7] " + (canCollapse ? "ps-6" : "")}
+                              >
+                                <item.icon className="h-4 w-4 shrink-0 text-[#6e6e73]" aria-hidden="true" />
+                                <span className="flex-1">{item.label}</span>
+                                <ChevronRight className="h-4 w-4 shrink-0 opacity-30 rtl:rotate-180" aria-hidden="true" />
+                              </a>
+                            ) : (
+                              <button
+                                onClick={() => handleItemClick(item)}
+                                className={"flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-start text-sm font-normal transition-colors text-[#1d1d1f] hover:bg-[#f5f5f7] " + (canCollapse ? "ps-6" : "")}
+                              >
+                                <item.icon className="h-4 w-4 shrink-0 text-[#6e6e73]" aria-hidden="true" />
+                                <span className="flex-1">{item.label}</span>
+                                <ChevronRight className="h-4 w-4 shrink-0 opacity-30 rtl:rotate-180" aria-hidden="true" />
+                              </button>
+                            )}
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )}
+                </section>
+              );
+            })}
           </nav>
 
           {/* Bottom section — account + logout */}
