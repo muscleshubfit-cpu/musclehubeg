@@ -300,11 +300,12 @@ export function LandingView() {
               </a>
             </div>
           </div>
-          {/* Image — right side on desktop, hidden on mobile (text-only hero) */}
-          <div className="relative hidden md:block">
+          {/* Image — visible on ALL screen sizes (mobile + desktop).
+              On mobile: full-width below text. On desktop: right column. */}
+          <div className="relative">
             <img
               src="/images/hero/hero-athlete.jpg"
-              alt={isAr ? "رياضي ي Perform تمرين بايسبس" : "Athlete performing bicep curls"}
+              alt={isAr ? "رياضي يعمل تمرين بايسبس" : "Athlete performing bicep curls"}
               className="aspect-[3/2] w-full rounded-3xl object-cover shadow-2xl"
               loading="eager"
             />
