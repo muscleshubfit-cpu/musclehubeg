@@ -344,14 +344,14 @@ export function LandingView() {
       </CenteredSection>
 
       {/* ===================== 3. EVO PREVIEW ===================== */}
-      <section className="bg-[#1d1d1f] px-4 py-16 text-white md:py-24">
+      <section className="bg-[#f5f5f7] px-4 py-16 text-[#1d1d1f] md:py-24">
         <div className="mx-auto max-w-5xl">
           {/* Text */}
           <div className="text-center">
             <h2 className="text-4xl font-semibold tracking-tight md:text-6xl">
               EVO
             </h2>
-            <p className="mx-auto mt-3 max-w-md text-lg font-normal text-gray-400 md:text-xl">
+            <p className="mx-auto mt-3 max-w-md text-lg font-normal text-[#6e6e73] md:text-xl">
               {isAr
                 ? "محرك أداء ذكي — مش مجرد شات بوت. اسأله أي حاجة رياضية وهو يوجّهك."
                 : "A smart performance engine — not just a chatbot. Ask it anything fitness-related."}
@@ -359,13 +359,13 @@ export function LandingView() {
             <div className="mt-6 flex flex-wrap items-center justify-center gap-4">
               <a
                 href="/chat"
-                className="inline-flex items-center gap-2 rounded-full bg-white px-7 py-3.5 text-base font-normal text-[#1d1d1f] transition-opacity hover:opacity-90"
+                className="inline-flex items-center gap-2 rounded-full bg-[#0071e3] px-7 py-3.5 text-base font-normal text-white transition-opacity hover:opacity-90"
               >
                 {isAr ? "ابدأ المحادثة" : "Start chatting"}
               </a>
               <a
                 href="/evo"
-                className="inline-flex items-center gap-2 rounded-full border border-white/30 px-7 py-3.5 text-base font-normal text-white transition-colors hover:bg-white/10"
+                className="inline-flex items-center gap-2 rounded-full border border-[#d2d2d7] bg-white px-7 py-3.5 text-base font-normal text-[#1d1d1f] transition-colors hover:bg-[#f5f5f7]"
               >
                 {isAr ? "اعرف أكثر" : "Learn more"}
               </a>
@@ -382,7 +382,7 @@ export function LandingView() {
           </div>
         </div>
       </section>
-      <GradientFade from="bg-[#1d1d1f]" to="bg-[#f5f5f7]" />
+      <GradientFade from="bg-[#f5f5f7]" to="bg-[#f5f5f7]" />
 
       {/* ===================== 4. FREE TOOLS ===================== */}
       <section className="bg-[#f5f5f7] px-4 py-12 md:py-20">

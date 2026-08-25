@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { SiteHeader } from "@/components/SiteHeader";
 import { StaticPageView } from "@/components/views/StaticPageView";
 
 /**

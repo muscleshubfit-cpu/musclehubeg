@@ -1,4 +1,5 @@
 "use client";
+import { SiteHeader } from "@/components/SiteHeader";
 
 /**
  * Public Affiliate Program page.
@@ -115,28 +116,7 @@ export function AffiliateProgramView() {
       dir={dir}
       className="flex min-h-screen flex-col overflow-x-hidden bg-white text-[#1d1d1f]"
     >
-      {/* ─── Header ─── */}
-      <header className="sticky top-0 z-40 border-b border-[#d2d2d7] bg-white/80 backdrop-blur-xl">
-        <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between px-4 sm:px-6">
-          <button
-            onClick={() => navigate("landing")}
-            className="text-lg font-semibold tracking-tight"
-            aria-label={isAr ? "العودة للرئيسية" : "Back to home"}
-          >
-            MuscleHub
-            <span className="text-[#0071e3]">EG</span>
-          </button>
-          <div className="flex items-center gap-3">
-            <LanguageToggle />
-            <button
-              onClick={() => navigate("auth", { mode: "login" })}
-              className="hidden rounded-full bg-[#f5f5f7] px-5 py-2 text-sm font-medium transition-colors hover:bg-[#e8e8ed] sm:inline-flex"
-            >
-              {isAr ? "تسجيل الدخول" : "Log in"}
-            </button>
-          </div>
-        </div>
-      </header>
+      <SiteHeader variant="landing" />
 
       <main className="flex-1">
         {/* ─── HERO ─── */}
@@ -235,11 +215,11 @@ export function AffiliateProgramView() {
             </div>
 
             {/* No claims section */}
-            <div className="mt-12 rounded-3xl bg-[#1d1d1f] p-8 text-center text-white md:p-12">
+            <div className="mt-12 rounded-3xl bg-[#f5f5f7] p-8 text-center text-[#1d1d1f] md:p-12">
               <p className="text-lg font-medium tracking-tight md:text-xl">
                 {c.why.pitch}
               </p>
-              <p className="mt-4 text-sm font-normal text-gray-400">
+              <p className="mt-4 text-sm font-normal text-[#6e6e73]">
                 {c.why.disclosure}
               </p>
             </div>
@@ -380,12 +360,12 @@ export function AffiliateProgramView() {
 
         {/* ─── SHARE SECTION (authenticated users only) ─── */}
         {profile && affiliateUrl && (
-          <section className="border-t border-[#d2d2d7] bg-[#1d1d1f]">
+          <section className="border-t border-[#d2d2d7] bg-[#f5f5f7]">
             <div className="mx-auto w-full max-w-3xl px-4 py-16 text-center text-white sm:px-6 md:py-20">
               <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl md:text-4xl">
                 {isAr ? "شارك رابطك الآن" : "Share Your Link Now"}
               </h2>
-              <p className="mx-auto mt-3 max-w-xl text-sm font-normal text-gray-400 sm:text-base">
+              <p className="mx-auto mt-3 max-w-xl text-sm font-normal text-[#6e6e73] sm:text-base">
                 {isAr
                   ? "انسخ رابطك أو شاركه مباشرة على منصاتك المفضلة."
                   : "Copy your link or share it directly to your favourite platforms."}

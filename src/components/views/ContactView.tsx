@@ -1,4 +1,5 @@
 "use client";
+import { SiteHeader } from "@/components/SiteHeader";
 
 import { useState } from "react";
 import { useI18n } from "@/lib/i18n";
@@ -50,18 +51,7 @@ export function ContactView() {
 
   return (
     <div className="flex min-h-screen flex-col bg-white text-[#1d1d1f]">
-      <header className="sticky top-0 z-40 border-b border-[#d2d2d7] bg-white/80 backdrop-blur-xl">
-        <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between px-4 sm:px-6">
-          <button
-            onClick={() => navigate("landing")}
-            className="text-lg font-semibold tracking-tight"
-          >
-            MuscleHub
-          </button>
-          <LanguageToggle />
-        </div>
-      </header>
-
+      <SiteHeader variant="landing" />
       <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-20 sm:px-6 md:py-28">
         <div className="text-center">
           <h1 className="text-4xl font-semibold tracking-tight md:text-6xl">

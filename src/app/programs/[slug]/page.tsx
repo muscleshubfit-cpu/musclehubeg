@@ -264,7 +264,7 @@ export default function ProgramDetailPage() {
         </section>
 
         {/* CTA */}
-        <section className="mt-10 rounded-3xl bg-[#1d1d1f] p-6 text-center text-white md:p-8">
+        <section className="mt-10 rounded-3xl bg-[#f5f5f7] p-6 text-center text-[#1d1d1f] md:p-8">
           <h2 className="text-xl font-semibold tracking-tight md:text-2xl">
             {isAr ? "عايز خطة مخصصة ليك؟" : "Want a personalized plan?"}
           </h2>

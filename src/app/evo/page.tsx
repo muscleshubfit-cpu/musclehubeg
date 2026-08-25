@@ -266,7 +266,7 @@ export default function EvoPage() {
         </section>
 
         {/* How EVO works */}
-        <section className="mt-16 rounded-3xl bg-[#1d1d1f] p-6 text-white md:p-10">
+        <section className="mt-16 rounded-3xl bg-[#f5f5f7] p-6 text-[#1d1d1f] md:p-10">
           <h2 className="text-2xl font-semibold tracking-tight md:text-3xl">
             {isAr ? "إزاي EVO بيشتغل؟" : "How does EVO work?"}
           </h2>

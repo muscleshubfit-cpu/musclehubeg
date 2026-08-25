@@ -1,7 +1,7 @@
 "use client";
 
 import { useI18n } from "@/lib/i18n";
-import { LanguageToggle } from "@/components/LanguageToggle";
+import { SiteHeader } from "@/components/SiteHeader";
 import { useNav, type View } from "@/hooks/use-nav";
 
 export function StaticPageView({ page }: { page: "about" | "privacy" | "terms" | "faq" }) {
@@ -13,17 +13,7 @@ export function StaticPageView({ page }: { page: "about" | "privacy" | "terms" |
 
   return (
     <div className="flex min-h-screen flex-col bg-white text-[#1d1d1f]">
-      <header className="sticky top-0 z-40 border-b border-[#d2d2d7] bg-white/80 backdrop-blur-xl">
-        <div className="mx-auto flex h-16 w-full max-w-4xl items-center justify-between px-4 sm:px-6">
-          <button
-            onClick={() => navigate("landing")}
-            className="text-lg font-semibold tracking-tight"
-          >
-            MuscleHubEG
-          </button>
-          <LanguageToggle />
-        </div>
-      </header>
+      <SiteHeader variant="landing" />
 
       <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-20 sm:px-6 md:py-28">
         <h1 className="text-4xl font-semibold tracking-tight md:text-6xl">{content.title}</h1>

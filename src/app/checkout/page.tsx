@@ -1,4 +1,5 @@
 "use client";
+import { SiteHeader } from "@/components/SiteHeader";
 
 import { Suspense, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";

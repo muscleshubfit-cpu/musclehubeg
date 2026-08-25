@@ -269,12 +269,12 @@ export default function CoachingPage() {
         </section>
 
         {/* ===================== EVO INTEGRATION ===================== */}
-        <section className="bg-[#1d1d1f] px-4 py-16 text-white md:py-24">
+        <section className="bg-[#f5f5f7] px-4 py-16 text-[#1d1d1f] md:py-24">
           <div className="mx-auto max-w-4xl text-center">
             <h2 className="text-3xl font-semibold tracking-tight md:text-5xl">
               EVO
             </h2>
-            <p className="mx-auto mt-3 max-w-md text-lg font-normal text-gray-400 md:text-xl">
+            <p className="mx-auto mt-3 max-w-md text-lg font-normal text-[#6e6e73] md:text-xl">
               {isAr
                 ? "مش مجرد شات بوت. محرك أداء ذكي بيحلل بياناتك، يتنبأ بنتائجك، ويحدّث خططك تلقائياً."
                 : "Not just a chatbot. A smart engine that analyzes your data, predicts outcomes, and updates your plans automatically."}
@@ -282,14 +282,14 @@ export default function CoachingPage() {
             <div className="mt-6 flex flex-wrap items-center justify-center gap-4">
               <a
                 href="/evo"
-                className="inline-flex items-center gap-2 rounded-full bg-white px-7 py-3.5 text-base font-normal text-[#1d1d1f] transition-opacity hover:opacity-90"
+                className="inline-flex items-center gap-2 rounded-full bg-[#0071e3] px-7 py-3.5 text-base font-normal text-white transition-opacity hover:opacity-90"
               >
                 {isAr ? "اعرف أكثر عن EVO" : "Learn more about EVO"}
                 <ArrowRight className="h-4 w-4 rtl:rotate-180" />
               </a>
               <a
                 href="/chat"
-                className="inline-flex items-center gap-2 rounded-full border border-white/30 px-7 py-3.5 text-base font-normal text-white transition-colors hover:bg-white/10"
+                className="inline-flex items-center gap-2 rounded-full border border-[#d2d2d7] px-7 py-3.5 text-base font-normal text-white transition-colors hover:bg-[#e5e5e7]"
               >
                 {isAr ? "ابدأ المحادثة" : "Start chatting"}
               </a>
