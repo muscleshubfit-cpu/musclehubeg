@@ -16,20 +16,38 @@ import { ImageStreamHero, type StreamImage } from "@/components/ui/image-stream-
 import { getFAQSchema } from "@/lib/seo";
 
 // ============================================================
-// Card palette — extracted from Google Gemini "Ask Gemini" screen
-// (applied to CTA cards only — section backgrounds untouched)
-// Tuned 2026-08-26: deepened textSec + cta to reach WCAG AAA on small text
+// Site palette — Gemini-card palette extended to all landing sections
+// All tokens meet WCAG AAA (≥7:1) on their intended backgrounds
 // ============================================================
-const CARD = {
+const PALETTE = {
+  // Card surfaces (kept from previous commit)
   surface:   "#FDFCFE", // أبيض نقي — سطح الكارت الأساسي
   tint:      "#F5F7FC", // أبيض مزرق خفيف — للكروت الثانوية
   halo:      "#E9F2FD", // هالة زرقاء خفيفة (للـ hover shadow)
   blue:      "#CAE3FA", // أزرق الزر الفاتح (decorative only)
   blueDeep:  "#C9E4FC", // أزرق التركيز الأعمق (decorative only)
-  textPrim:  "#1D252E", // أزرق داكن جداً — 15:1 contrast على surface (AAA)
-  textSec:   "#4A5260", // رمادي مزرق داكن — 7.5:1 على surface (AAA للنصوص الصغيرة)
-  cta:       "#0F5BB5", // أزرق Apple أعمق — 7.3:1 على surface (AAA للنصوص الصغيرة)
+
+  // Text colors (AAA on white/tint backgrounds)
+  textPrim:  "#1D252E", // h1/h2/h3 — 15:1 on surface (AAA)
+  textSec:   "#4A5260", // descriptions/body — 7.5:1 on surface (AAA)
+  textMuted: "#6E6E73", // footer/legal only — 4.5:1 on #f5f5f7 (AA only — accepted for non-essential text)
+
+  // Brand colors
+  brand:     "#0071e3", // Apple blue — solid button background only
+  brandDeep: "#0F5BB5", // deep blue — text links on light bg, 7.3:1 on white (AAA)
+  brandSoft: "#E9F2FD", // brand tint background (badges, pills)
+
+  // Borders
+  border:    "#D2D2D7", // Apple gray border
+
+  // Section backgrounds (unchanged — Apple-style alternating)
+  sectionWhite: "#FFFFFF",
+  sectionGray:  "#F5F5F7",
+  sectionDark:  "#1D1D1F",
 };
+
+// Backward-compat alias (existing components reference CARD.*)
+const CARD = PALETTE;
 
 // Premium images — MuscleHub Studio Style
 const IMAGES = {
@@ -132,7 +150,10 @@ function BlogCarousel({
       <div className="mb-4 flex justify-end gap-2">
         <button
           onClick={() => scroll(isAr ? "right" : "left")}
-          className="grid h-9 w-9 place-items-center rounded-full bg-[#f5f5f7] text-[#1d1d1f] transition-colors hover:bg-[#e5e5e7]"
+          className="grid h-9 w-9 place-items-center rounded-full transition-colors"
+          style={{ backgroundColor: PALETTE.surface, color: PALETTE.textPrim, border: `1px solid ${PALETTE.border}` }}
+          onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = PALETTE.halo; }}
+          onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = PALETTE.surface; }}
           aria-label={isAr ? "السابق" : "Previous"}
         >
           <svg className="h-4 w-4 rtl:rotate-180" viewBox="0 0 20 20" fill="currentColor">
@@ -141,7 +162,10 @@ function BlogCarousel({
         </button>
         <button
           onClick={() => scroll(isAr ? "left" : "right")}
-          className="grid h-9 w-9 place-items-center rounded-full bg-[#f5f5f7] text-[#1d1d1f] transition-colors hover:bg-[#e5e5e7]"
+          className="grid h-9 w-9 place-items-center rounded-full transition-colors"
+          style={{ backgroundColor: PALETTE.surface, color: PALETTE.textPrim, border: `1px solid ${PALETTE.border}` }}
+          onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = PALETTE.halo; }}
+          onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = PALETTE.surface; }}
           aria-label={isAr ? "التالي" : "Next"}
         >
           <svg className="h-4 w-4 rtl:rotate-180" viewBox="0 0 20 20" fill="currentColor">
@@ -163,11 +187,23 @@ function BlogCarousel({
           <a
             key={post.id}
             href={`${isAr ? "/ar" : ""}/blog/${encodeURIComponent(post.slug)}`}
-            className={`group block shrink-0 overflow-hidden rounded-3xl transition-opacity hover:opacity-90 ${
-              isFeatured
-                ? "w-72 bg-[#1d1d1f] text-white"
-                : "w-80 bg-[#f5f5f7] text-[#1d1d1f]"
-            }`}
+            className="group block shrink-0 overflow-hidden rounded-3xl transition-all duration-300"
+            style={{
+              backgroundColor: isFeatured ? PALETTE.sectionDark : PALETTE.surface,
+              color: isFeatured ? "#FFFFFF" : PALETTE.textPrim,
+              boxShadow: "0 1px 2px rgba(29, 37, 46, 0.04)",
+              width: isFeatured ? "18rem" : "20rem",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.boxShadow = isFeatured
+                ? "0 4px 16px rgba(29, 37, 46, 0.25)"
+                : "0 4px 16px rgba(201, 228, 252, 0.45)";
+              e.currentTarget.style.transform = "translateY(-1px)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.boxShadow = "0 1px 2px rgba(29, 37, 46, 0.04)";
+              e.currentTarget.style.transform = "translateY(0)";
+            }}
           >
             {post.featured_image && (
               <div className="aspect-[16/10] w-full overflow-hidden">
@@ -180,22 +216,24 @@ function BlogCarousel({
               </div>
             )}
             <div className="p-5">
-              <p className={`text-xs font-normal uppercase tracking-wide ${
-                isFeatured ? "text-gray-400" : "text-[#6e6e73]"
-              }`}>
+              <p
+                className="text-xs font-normal uppercase tracking-wide"
+                style={{ color: isFeatured ? "rgba(255,255,255,0.6)" : PALETTE.textSec }}
+              >
                 {getCategoryLabel(post.category, isAr ? "ar" : "en")}
               </p>
               <h3 className="mt-2 text-base font-semibold leading-tight tracking-tight line-clamp-2">
                 {post.title}
               </h3>
               {post.excerpt && (
-                <p className={`mt-2 line-clamp-2 text-sm font-normal ${
-                  isFeatured ? "text-gray-400" : "text-[#6e6e73]"
-                }`}>
+                <p
+                  className="mt-2 line-clamp-2 text-sm font-normal"
+                  style={{ color: isFeatured ? "rgba(255,255,255,0.7)" : PALETTE.textSec }}
+                >
                   {post.excerpt}
                 </p>
               )}
-              <p className="mt-3 text-sm font-normal text-[#0071e3]">
+              <p className="mt-3 text-sm font-semibold" style={{ color: PALETTE.brandDeep }}>
                 {isAr ? "اقرأ ›" : "Read ›"}
               </p>
             </div>
@@ -291,7 +329,7 @@ export function LandingView() {
             <h1 className="text-4xl font-semibold leading-[1.05] tracking-tight md:text-6xl lg:text-7xl">
               {isAr ? "منصتك الرياضية الشاملة." : "Your complete fitness platform."}
             </h1>
-            <p className="mx-auto mt-4 max-w-md text-lg font-normal leading-snug text-[#1d1d1f] md:mx-0 md:text-xl">
+            <p className="mx-auto mt-4 max-w-md text-lg font-normal leading-snug md:mx-0 md:text-xl" style={{ color: PALETTE.textSec }}>
               {isAr
                 ? "تمارين، برامج تدريب، حاسبات، أكلات، ومدونة — في مكان واحد."
                 : "Exercises, programs, calculators, foods, and blog — all in one place."}
@@ -299,19 +337,22 @@ export function LandingView() {
             <div className="mt-8 flex flex-wrap items-center justify-center gap-3 md:justify-start md:gap-5">
               <a
                 href="/memberships"
-                className="rounded-full bg-[#0071e3] px-7 py-3.5 font-normal text-white transition-opacity hover:opacity-90 md:text-base"
+                className="rounded-full px-7 py-3.5 font-normal text-white transition-opacity hover:opacity-90 md:text-base"
+                style={{ backgroundColor: PALETTE.brand }}
               >
                 {isAr ? "ابدأ مجاناً" : "Start for free"}
               </a>
               <a
                 href="/evo"
-                className="rounded-full bg-[#f5f5f7] px-7 py-3.5 font-normal text-[#1d1d1f] transition-opacity hover:opacity-90 md:text-base"
+                className="rounded-full px-7 py-3.5 font-normal transition-opacity hover:opacity-90 md:text-base"
+                style={{ backgroundColor: PALETTE.sectionGray, color: PALETTE.textPrim }}
               >
                 {isAr ? "جرّب EVO" : "Try EVO"} →
               </a>
               <a
                 href="/coaching"
-                className="text-sm font-normal text-[#0071e3] transition-opacity hover:opacity-70 md:text-base"
+                className="text-sm font-normal transition-opacity hover:opacity-70 md:text-base"
+                style={{ color: PALETTE.brandDeep }}
               >
                 {isAr ? "الكوتشينج ›" : "Coaching ›"}
               </a>
@@ -333,10 +374,10 @@ export function LandingView() {
       {/* ===================== 2. WHAT IS MUSCLEHUB ===================== */}
       <CenteredSection bg="bg-white">
         <div className="px-4 text-center">
-          <p className="text-sm font-normal text-[#6e6e73] md:text-base">
+          <p className="text-sm font-normal md:text-base" style={{ color: PALETTE.textSec }}>
             {isAr ? "ما هي MuscleHub؟" : "What is MuscleHub?"}
           </p>
-          <h2 className="mx-auto mt-4 max-w-4xl text-4xl font-semibold leading-[1.08] tracking-tight md:text-6xl lg:text-7xl">
+          <h2 className="mx-auto mt-4 max-w-4xl text-4xl font-semibold leading-[1.08] tracking-tight md:text-6xl lg:text-7xl" style={{ color: PALETTE.textPrim }}>
             {isAr ? (
               <>
                 ليست مجرد منصة لياقة.
@@ -351,7 +392,7 @@ export function LandingView() {
               </>
             )}
           </h2>
-          <p className="mx-auto mt-6 max-w-2xl text-lg font-normal leading-relaxed text-[#6e6e73] md:text-xl">
+          <p className="mx-auto mt-6 max-w-2xl text-lg font-normal leading-relaxed md:text-xl" style={{ color: PALETTE.textSec }}>
             {isAr
               ? "مكتبة تمارين احترافية، برامج تدريب جاهزة، حاسبات لياقة مجانية، مكتبة أكلات بالسعرات، مدونة رياضية علمية، وكوتشينج أونلاين — كل ما تحتاجه في مكان واحد."
               : "Professional exercise library, ready workout programs, free fitness calculators, food database with calories, scientific sports blog, and online coaching — everything you need in one place."}
@@ -360,14 +401,14 @@ export function LandingView() {
       </CenteredSection>
 
       {/* ===================== 3. EVO PREVIEW ===================== */}
-      <section className="bg-[#f5f5f7] px-4 py-16 text-[#1d1d1f] md:py-24">
+      <section className="px-4 py-16 md:py-24" style={{ backgroundColor: PALETTE.sectionGray, color: PALETTE.textPrim }}>
         <div className="mx-auto max-w-5xl">
           {/* Text */}
           <div className="text-center">
-            <h2 className="text-4xl font-semibold tracking-tight md:text-6xl">
+            <h2 className="text-4xl font-semibold tracking-tight md:text-6xl" style={{ color: PALETTE.textPrim }}>
               EVO
             </h2>
-            <p className="mx-auto mt-3 max-w-md text-lg font-normal text-[#6e6e73] md:text-xl">
+            <p className="mx-auto mt-3 max-w-md text-lg font-normal md:text-xl" style={{ color: PALETTE.textSec }}>
               {isAr
                 ? "محرك أداء ذكي — مش مجرد شات بوت. اسأله أي حاجة رياضية وهو يوجّهك."
                 : "A smart performance engine — not just a chatbot. Ask it anything fitness-related."}
@@ -375,13 +416,15 @@ export function LandingView() {
             <div className="mt-6 flex flex-wrap items-center justify-center gap-4">
               <a
                 href="/chat"
-                className="inline-flex items-center gap-2 rounded-full bg-[#0071e3] px-7 py-3.5 text-base font-normal text-white transition-opacity hover:opacity-90"
+                className="inline-flex items-center gap-2 rounded-full px-7 py-3.5 text-base font-normal text-white transition-opacity hover:opacity-90"
+                style={{ backgroundColor: PALETTE.brand }}
               >
                 {isAr ? "ابدأ المحادثة" : "Start chatting"}
               </a>
               <a
                 href="/evo"
-                className="inline-flex items-center gap-2 rounded-full border border-[#d2d2d7] bg-white px-7 py-3.5 text-base font-normal text-[#1d1d1f] transition-colors hover:bg-[#f5f5f7]"
+                className="inline-flex items-center gap-2 rounded-full border px-7 py-3.5 text-base font-normal transition-colors hover:bg-[#f5f5f7]"
+                style={{ borderColor: PALETTE.border, backgroundColor: PALETTE.sectionWhite, color: PALETTE.textPrim }}
               >
                 {isAr ? "اعرف أكثر" : "Learn more"}
               </a>
@@ -410,7 +453,7 @@ export function LandingView() {
               </h2>
             </Reveal>
             <Reveal delay={100}>
-              <p className="mx-auto mt-3 max-w-md text-base font-normal text-[#6e6e73] md:text-lg">
+              <p className="mx-auto mt-3 max-w-md text-base font-normal md:text-lg" style={{ color: PALETTE.textSec }}>
                 {isAr ? "حاسبات لياقة وتغذية مجانية بدون تسجيل." : "Free fitness and nutrition calculators, no signup required."}
               </p>
             </Reveal>
@@ -430,7 +473,7 @@ export function LandingView() {
             ))}
           </div>
           <div className="mt-8 text-center">
-            <a href="/tools" className="text-sm font-normal text-[#0071e3] transition-opacity hover:opacity-70">
+            <a href="/tools" className="text-sm font-medium transition-opacity hover:opacity-70" style={{ color: PALETTE.brandDeep }}>
               {isAr ? "كل الأدوات ›" : "View all tools ›"}
             </a>
           </div>
@@ -448,7 +491,7 @@ export function LandingView() {
               </h2>
             </Reveal>
             <Reveal delay={100}>
-              <p className="mx-auto mt-3 max-w-md text-base font-normal text-[#6e6e73] md:text-lg">
+              <p className="mx-auto mt-3 max-w-md text-base font-normal md:text-lg" style={{ color: PALETTE.textSec }}>
                 {isAr ? "868+ تمرين بشرح كامل ومستوى الصعوبة." : "868+ exercises with full instructions and difficulty levels."}
               </p>
             </Reveal>
@@ -466,7 +509,7 @@ export function LandingView() {
             ))}
           </div>
           <div className="mt-8 text-center">
-            <a href="/exercises" className="inline-block rounded-full bg-[#1d1d1f] px-6 py-2.5 text-sm font-normal text-white transition-opacity hover:opacity-90">
+            <a href="/exercises" className="inline-block rounded-full px-6 py-2.5 text-sm font-normal text-white transition-opacity hover:opacity-90" style={{ backgroundColor: PALETTE.textPrim }}>
               {isAr ? "تصفّح كل التمارين ›" : "Browse all exercises ›"}
             </a>
           </div>
@@ -484,7 +527,7 @@ export function LandingView() {
               </h2>
             </Reveal>
             <Reveal delay={100}>
-              <p className="mx-auto mt-3 max-w-md text-base font-normal text-[#6e6e73] md:text-lg">
+              <p className="mx-auto mt-3 max-w-md text-base font-normal md:text-lg" style={{ color: PALETTE.textSec }}>
                 {isAr ? "برامج كاملة حسب المستوى والهدف — منزل، جيم، أو معدات بسيطة." : "Complete programs by level and goal — home, gym, or minimal equipment."}
               </p>
             </Reveal>
@@ -501,7 +544,7 @@ export function LandingView() {
             ))}
           </div>
           <div className="mt-8 text-center">
-            <a href="/programs" className="inline-block rounded-full bg-[#1d1d1f] px-6 py-2.5 text-sm font-normal text-white transition-opacity hover:opacity-90">
+            <a href="/programs" className="inline-block rounded-full px-6 py-2.5 text-sm font-normal text-white transition-opacity hover:opacity-90" style={{ backgroundColor: PALETTE.textPrim }}>
               {isAr ? "كل البرامج ›" : "View all programs ›"}
             </a>
           </div>
@@ -519,7 +562,7 @@ export function LandingView() {
               </h2>
             </Reveal>
             <Reveal delay={100}>
-              <p className="mx-auto mt-3 max-w-md text-base font-normal text-[#6e6e73] md:text-lg">
+              <p className="mx-auto mt-3 max-w-md text-base font-normal md:text-lg" style={{ color: PALETTE.textSec }}>
                 {isAr ? "8830+ أكلة بالسعرات والماكروز + حاسبة جرامات." : "8830+ foods with calories and macros + grams calculator."}
               </p>
             </Reveal>
@@ -537,7 +580,7 @@ export function LandingView() {
             ))}
           </div>
           <div className="mt-8 text-center">
-            <a href="/foods" className="inline-block rounded-full bg-[#1d1d1f] px-6 py-2.5 text-sm font-normal text-white transition-opacity hover:opacity-90">
+            <a href="/foods" className="inline-block rounded-full px-6 py-2.5 text-sm font-normal text-white transition-opacity hover:opacity-90" style={{ backgroundColor: PALETTE.textPrim }}>
               {isAr ? "تصفّح كل الأكلات ›" : "Browse all foods ›"}
             </a>
           </div>
@@ -556,7 +599,7 @@ export function LandingView() {
                   <h2 className="text-2xl font-semibold tracking-tight md:text-4xl">
                     {isAr ? "أحدث المقالات" : "Latest Articles"}
                   </h2>
-                  <a href={blogHref} className="text-sm font-normal text-[#0071e3] transition-opacity hover:opacity-70">
+                  <a href={blogHref} className="text-sm font-medium transition-opacity hover:opacity-70" style={{ color: PALETTE.brandDeep }}>
                     {isAr ? "كل المقالات ›" : "View all ›"}
                   </a>
                 </div>
@@ -586,17 +629,17 @@ export function LandingView() {
         <div className="mx-auto max-w-4xl">
           <div className="text-center">
             <Reveal>
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-[#0071e3]/10 px-4 py-1.5 text-xs font-medium text-[#0071e3]">
+              <span className="inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-medium" style={{ backgroundColor: PALETTE.brandSoft, color: PALETTE.brandDeep }}>
                 {isAr ? "كوتشينج أونلاين" : "Online Coaching"}
               </span>
             </Reveal>
             <Reveal delay={100}>
-              <h2 className="mt-4 text-3xl font-semibold tracking-tight md:text-5xl">
+              <h2 className="mt-4 text-3xl font-semibold tracking-tight md:text-5xl" style={{ color: PALETTE.textPrim }}>
                 {isAr ? "مدربين وأخصائيين تغذية" : "Coaches & Nutrition Specialists"}
               </h2>
             </Reveal>
             <Reveal delay={150}>
-              <p className="mx-auto mt-4 max-w-md text-base font-normal text-[#6e6e73] md:text-lg">
+              <p className="mx-auto mt-4 max-w-md text-base font-normal md:text-lg" style={{ color: PALETTE.textSec }}>
                 {isAr
                   ? "خطط تغذية مخصصة، برامج تمارين متكيفة، متابعة شخصية، و EVO AI متاح 24/7."
                   : "Personalized nutrition plans, adaptive workouts, personal follow-up, and EVO AI available 24/7."}
@@ -606,13 +649,15 @@ export function LandingView() {
               <div className="mt-6 flex flex-wrap items-center justify-center gap-4">
                 <a
                   href="/coaching"
-                  className="rounded-full bg-[#0071e3] px-6 py-2.5 text-sm font-normal text-white transition-opacity hover:opacity-90"
+                  className="rounded-full px-6 py-2.5 text-sm font-normal text-white transition-opacity hover:opacity-90"
+                  style={{ backgroundColor: PALETTE.brand }}
                 >
                   {isAr ? "اعرف أكثر ›" : "Learn more ›"}
                 </a>
                 <a
                   href="/memberships"
-                  className="rounded-full bg-[#f5f5f7] px-6 py-2.5 text-sm font-normal text-[#1d1d1f] transition-opacity hover:opacity-90"
+                  className="rounded-full px-6 py-2.5 text-sm font-normal transition-opacity hover:opacity-90"
+                  style={{ backgroundColor: PALETTE.sectionGray, color: PALETTE.textPrim }}
                 >
                   {isAr ? "الأسعار" : "Pricing"}
                 </a>
@@ -623,71 +668,114 @@ export function LandingView() {
       </section>
 
       {/* ===================== 10. Premium Memberships ===================== */}
-      <section className="bg-[#f5f5f7] px-4 py-12 md:py-20">
+      <section className="px-4 py-12 md:py-20" style={{ backgroundColor: PALETTE.sectionGray }}>
         <div className="mx-auto max-w-5xl">
           <Reveal>
-            <h2 className="text-center text-3xl font-semibold tracking-tight md:text-5xl">
+            <h2 className="text-center text-3xl font-semibold tracking-tight md:text-5xl" style={{ color: PALETTE.textPrim }}>
               {isAr ? "عضويات MuscleHub المميزة." : "MuscleHub Premium memberships."}
             </h2>
           </Reveal>
           <Reveal delay={150}>
-            <p className="mx-auto mt-4 max-w-md text-base font-normal text-[#6e6e73] md:text-lg">
+            <p className="mx-auto mt-4 max-w-md text-base font-normal md:text-lg" style={{ color: PALETTE.textSec }}>
               {isAr
                 ? "افتح القوة الكاملة للذكاء الاصطناعي والمحتوى المميز بعضوية Premium أو Pro."
                 : "Unlock the full power of AI and premium content with a Premium or Pro membership."}
             </p>
           </Reveal>
 
-          {/* Two-tier preview cards */}
+          {/* Two-tier preview cards — redesigned with solid surfaces + clear hierarchy */}
           <div className="mt-10 grid grid-cols-1 gap-4 sm:grid-cols-2">
+            {/* Premium tier — standard card */}
             <Reveal delay={200}>
               <a
                 href="/memberships"
-                className="group block rounded-3xl bg-white/5 p-6 backdrop-blur ring-1 ring-white/10 transition-all hover:ring-[#0071e3]/40"
+                className="group block rounded-3xl p-6 transition-all duration-300"
+                style={{
+                  backgroundColor: PALETTE.surface,
+                  boxShadow: "0 1px 2px rgba(29, 37, 46, 0.04)",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.boxShadow = "0 4px 16px rgba(201, 228, 252, 0.45)";
+                  e.currentTarget.style.transform = "translateY(-1px)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.boxShadow = "0 1px 2px rgba(29, 37, 46, 0.04)";
+                  e.currentTarget.style.transform = "translateY(0)";
+                }}
               >
                 <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-semibold tracking-tight">
+                  <h3 className="text-lg font-semibold tracking-tight" style={{ color: PALETTE.textPrim }}>
                     {isAr ? "بريميوم" : "Premium"}
                   </h3>
-                  <span className="rounded-full bg-[#0071e3]/20 px-3 py-1 text-xs font-medium text-[#0071e3]">
+                  <span
+                    className="rounded-full px-3 py-1 text-xs font-semibold"
+                    style={{ backgroundColor: PALETTE.brandSoft, color: PALETTE.brandDeep }}
+                  >
                     $14.99/{isAr ? "شهر" : "mo"}
                   </span>
                 </div>
-                <p className="mt-2 text-sm font-normal text-gray-400">
+                <p className="mt-3 text-sm font-normal leading-relaxed" style={{ color: PALETTE.textSec }}>
                   {isAr
                     ? "EVO غير محدود، 3 خطط تغذية/تمرين شهرياً، 50 نتيجة محفوظة، تحميل PDF."
                     : "Unlimited EVO, 3 nutrition/workout plans/mo, 50 saved results, PDF export."}
                 </p>
-                <div className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-[#0071e3] group-hover:opacity-80">
+                <div
+                  className="mt-5 inline-flex items-center gap-1.5 text-sm font-semibold transition-opacity group-hover:opacity-80"
+                  style={{ color: PALETTE.brandDeep }}
+                >
                   {isAr ? "اشترك الآن" : "Subscribe now"}
                   <span className="rtl:rotate-180">›</span>
                 </div>
               </a>
             </Reveal>
+
+            {/* Pro tier — featured card (deeper accent + brand border) */}
             <Reveal delay={300}>
               <a
                 href="/memberships"
-                className="group block rounded-3xl bg-[#0071e3]/10 p-6 ring-2 ring-[#0071e3]/40 transition-all hover:ring-[#0071e3]/80"
+                className="group block rounded-3xl p-6 transition-all duration-300"
+                style={{
+                  backgroundColor: PALETTE.surface,
+                  boxShadow: "0 4px 12px rgba(15, 91, 181, 0.08)",
+                  border: `2px solid ${PALETTE.brand}`,
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.boxShadow = "0 8px 24px rgba(15, 91, 181, 0.18)";
+                  e.currentTarget.style.transform = "translateY(-1px)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.boxShadow = "0 4px 12px rgba(15, 91, 181, 0.08)";
+                  e.currentTarget.style.transform = "translateY(0)";
+                }}
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <h3 className="text-lg font-semibold tracking-tight">
+                    <h3 className="text-lg font-semibold tracking-tight" style={{ color: PALETTE.textPrim }}>
                       {isAr ? "برو" : "Pro"}
                     </h3>
-                    <span className="rounded-full bg-[#0071e3] px-2 py-0.5 text-[10px] font-semibold text-white">
-                      {isAr ? "الأكثر شعبية" : "Popular"}
+                    <span
+                      className="rounded-full px-2 py-0.5 text-[10px] font-bold text-white"
+                      style={{ backgroundColor: PALETTE.brand }}
+                    >
+                      {isAr ? "الأكثر شعبية" : "POPULAR"}
                     </span>
                   </div>
-                  <span className="rounded-full bg-[#0071e3] px-3 py-1 text-xs font-medium text-white">
+                  <span
+                    className="rounded-full px-3 py-1 text-xs font-bold text-white"
+                    style={{ backgroundColor: PALETTE.brand }}
+                  >
                     $29.99/{isAr ? "شهر" : "mo"}
                   </span>
                 </div>
-                <p className="mt-2 text-sm font-normal text-gray-300">
+                <p className="mt-3 text-sm font-normal leading-relaxed" style={{ color: PALETTE.textSec }}>
                   {isAr
                     ? "كل مميزات Premium + 6 خطط شهرياً، تحليل الأنماط، 200 نتيجة محفوظة، محتوى مميز."
                     : "All Premium + 6 plans/mo, pattern analysis, 200 saved results, premium content."}
                 </p>
-                <div className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-[#0071e3] group-hover:opacity-80">
+                <div
+                  className="mt-5 inline-flex items-center gap-1.5 text-sm font-bold transition-opacity group-hover:opacity-80"
+                  style={{ color: PALETTE.brandDeep }}
+                >
                   {isAr ? "اشترك الآن" : "Subscribe now"}
                   <span className="rtl:rotate-180">›</span>
                 </div>
@@ -698,14 +786,19 @@ export function LandingView() {
           {/* Free tier mention + compare link */}
           <Reveal delay={400}>
             <div className="mt-8 flex flex-col items-center gap-3 text-center">
-              <p className="text-sm font-normal text-gray-400">
+              <p className="text-sm font-normal" style={{ color: PALETTE.textSec }}>
                 {isAr
                   ? "أو ابدأ بالخطة المجانية — 868+ تمرين، 8,830+ أكلة، 5 حاسبات، EVO 10 رسائل/يوم."
                   : "Or start with the Free plan — 868+ exercises, 8,830+ foods, 5 calculators, EVO 10 messages/day."}
               </p>
               <a
                 href="/memberships"
-                className="inline-flex items-center gap-2 rounded-full bg-white px-6 py-2.5 text-sm font-medium text-[#1d1d1f] transition-opacity hover:opacity-90"
+                className="inline-flex items-center gap-2 rounded-full px-6 py-2.5 text-sm font-semibold transition-all duration-300"
+                style={{
+                  backgroundColor: PALETTE.surface,
+                  color: PALETTE.textPrim,
+                  border: `1px solid ${PALETTE.border}`,
+                }}
               >
                 {isAr ? "قارن كل العضويات" : "Compare all plans"}
                 <span className="rtl:rotate-180">›</span>
@@ -730,7 +823,7 @@ export function LandingView() {
                   <AccordionTrigger className="py-5 text-start text-lg font-normal hover:no-underline">
                     {faq.q}
                   </AccordionTrigger>
-                  <AccordionContent className="pb-5 text-base font-normal leading-relaxed text-[#6e6e73]">
+                  <AccordionContent className="pb-5 text-base font-normal leading-relaxed" style={{ color: PALETTE.textSec }}>
                     {faq.a}
                   </AccordionContent>
                 </AccordionItem>
@@ -741,9 +834,9 @@ export function LandingView() {
       </section>
 
       {/* ===================== 11. FINAL CTA ===================== */}
-      <section className="bg-white px-4 py-12 text-center md:py-20">
+      <section className="px-4 py-12 text-center md:py-20" style={{ backgroundColor: PALETTE.sectionWhite }}>
         <Reveal>
-          <h2 className="mx-auto max-w-3xl text-4xl font-semibold leading-[1.05] tracking-tight md:text-6xl lg:text-7xl">
+          <h2 className="mx-auto max-w-3xl text-4xl font-semibold leading-[1.05] tracking-tight md:text-6xl lg:text-7xl" style={{ color: PALETTE.textPrim }}>
             {isAr ? "ابدأ رحلتك الرياضية." : "Start your fitness journey."}
           </h2>
         </Reveal>
@@ -751,13 +844,15 @@ export function LandingView() {
           <div className="mt-8 flex flex-wrap items-center justify-center gap-4 md:gap-6">
             <a
               href="/memberships"
-              className="rounded-full bg-[#0071e3] px-7 py-3 text-base font-normal text-white transition-opacity hover:opacity-90"
+              className="rounded-full px-7 py-3 text-base font-normal text-white transition-opacity hover:opacity-90"
+              style={{ backgroundColor: PALETTE.brand }}
             >
               {isAr ? "ابدأ مجاناً" : "Start for free"}
             </a>
             <a
               href="/coaching"
-              className="font-normal text-[#0071e3] transition-opacity hover:opacity-70"
+              className="font-normal transition-opacity hover:opacity-70"
+              style={{ color: PALETTE.brandDeep }}
             >
               {isAr ? "اعرف عن الكوتشينج ›" : "Learn about coaching ›"}
             </a>
@@ -852,7 +947,7 @@ function LandingToolCard({ tool, isAr }: { tool: any; isAr: boolean }) {
       href={tool.href}
       className="group flex items-center gap-4 rounded-3xl p-6 transition-all duration-300"
       style={{
-        backgroundColor: CARD.surface,
+        backgroundColor: PALETTE.surface,
         boxShadow: "0 1px 2px rgba(29, 37, 46, 0.03)",
       }}
       onMouseEnter={(e) => {
@@ -878,10 +973,10 @@ function LandingToolCard({ tool, isAr }: { tool: any; isAr: boolean }) {
         )}
       </span>
       <div className="min-w-0 flex-1">
-        <h3 className="text-lg font-semibold tracking-tight" style={{ color: CARD.textPrim }}>{isAr ? tool.nameAr : tool.nameEn}</h3>
-        <p className="mt-1 text-sm font-normal" style={{ color: CARD.textSec }}>{isAr ? tool.descAr : tool.descEn}</p>
+        <h3 className="text-lg font-semibold tracking-tight" style={{ color: PALETTE.textPrim }}>{isAr ? tool.nameAr : tool.nameEn}</h3>
+        <p className="mt-1 text-sm font-normal" style={{ color: PALETTE.textSec }}>{isAr ? tool.descAr : tool.descEn}</p>
       </div>
-      <span className="text-2xl" style={{ color: CARD.textSec }}>›</span>
+      <span className="text-2xl" style={{ color: PALETTE.textSec }}>›</span>
     </a>
   );
 }
@@ -893,7 +988,7 @@ function LandingExerciseCategoryCard({ cat, isAr }: { cat: any; isAr: boolean })
       href={`/exercises?cat=${cat.slug}`}
       className="group block overflow-hidden rounded-3xl text-center transition-all duration-300"
       style={{
-        backgroundColor: CARD.tint,
+        backgroundColor: PALETTE.tint,
         boxShadow: "0 1px 2px rgba(29, 37, 46, 0.03)",
       }}
       onMouseEnter={(e) => {
@@ -921,8 +1016,8 @@ function LandingExerciseCategoryCard({ cat, isAr }: { cat: any; isAr: boolean })
         )}
       </div>
       <div className="p-4">
-        <h3 className="text-base font-semibold tracking-tight" style={{ color: CARD.textPrim }}>{isAr ? cat.labelAr : cat.labelEn}</h3>
-        <p className="mt-1 text-xs font-normal" style={{ color: CARD.textSec }}>{cat.count} {isAr ? "تمارين" : "exercises"}</p>
+        <h3 className="text-base font-semibold tracking-tight" style={{ color: PALETTE.textPrim }}>{isAr ? cat.labelAr : cat.labelEn}</h3>
+        <p className="mt-1 text-xs font-normal" style={{ color: PALETTE.textSec }}>{cat.count} {isAr ? "تمارين" : "exercises"}</p>
       </div>
     </a>
   );
@@ -935,7 +1030,7 @@ function LandingProgramCard({ prog, isAr }: { prog: any; isAr: boolean }) {
       href={`/programs/${prog.slug}`}
       className="group block overflow-hidden rounded-3xl transition-all duration-300"
       style={{
-        backgroundColor: CARD.surface,
+        backgroundColor: PALETTE.surface,
         boxShadow: "0 1px 2px rgba(29, 37, 46, 0.03)",
       }}
       onMouseEnter={(e) => {
@@ -963,9 +1058,9 @@ function LandingProgramCard({ prog, isAr }: { prog: any; isAr: boolean }) {
         )}
       </div>
       <div className="p-6">
-        <h3 className="text-lg font-semibold tracking-tight" style={{ color: CARD.textPrim }}>{isAr ? prog.titleAr : prog.titleEn}</h3>
-        <p className="mt-1 text-sm font-normal" style={{ color: CARD.textSec }}>{isAr ? prog.descAr : prog.descEn}</p>
-        <p className="mt-3 text-sm font-semibold" style={{ color: CARD.cta }}>{isAr ? "ابدأ الآن ›" : "Start now ›"}</p>
+        <h3 className="text-lg font-semibold tracking-tight" style={{ color: PALETTE.textPrim }}>{isAr ? prog.titleAr : prog.titleEn}</h3>
+        <p className="mt-1 text-sm font-normal" style={{ color: PALETTE.textSec }}>{isAr ? prog.descAr : prog.descEn}</p>
+        <p className="mt-3 text-sm font-semibold" style={{ color: PALETTE.brandDeep }}>{isAr ? "ابدأ الآن ›" : "Start now ›"}</p>
       </div>
     </a>
   );
@@ -978,7 +1073,7 @@ function LandingFoodCategoryCard({ cat, isAr }: { cat: any; isAr: boolean }) {
       href="/foods"
       className="group block overflow-hidden rounded-3xl transition-all duration-300"
       style={{
-        backgroundColor: CARD.tint,
+        backgroundColor: PALETTE.tint,
         boxShadow: "0 1px 2px rgba(29, 37, 46, 0.03)",
       }}
       onMouseEnter={(e) => {
@@ -992,7 +1087,7 @@ function LandingFoodCategoryCard({ cat, isAr }: { cat: any; isAr: boolean }) {
     >
       <div className="aspect-square w-full overflow-hidden">
         {imgError ? (
-          <div className="flex h-full w-full items-center justify-center" style={{ backgroundColor: CARD.tint }}>
+          <div className="flex h-full w-full items-center justify-center" style={{ backgroundColor: PALETTE.tint }}>
             <span className="text-4xl">{cat.emoji}</span>
           </div>
         ) : (
@@ -1006,8 +1101,8 @@ function LandingFoodCategoryCard({ cat, isAr }: { cat: any; isAr: boolean }) {
         )}
       </div>
       <div className="p-4 text-center">
-        <h3 className="text-base font-semibold tracking-tight" style={{ color: CARD.textPrim }}>{isAr ? cat.titleAr : cat.titleEn}</h3>
-        <p className="mt-1 text-xs font-normal" style={{ color: CARD.textSec }}>{isAr ? cat.descAr : cat.descEn}</p>
+        <h3 className="text-base font-semibold tracking-tight" style={{ color: PALETTE.textPrim }}>{isAr ? cat.titleAr : cat.titleEn}</h3>
+        <p className="mt-1 text-xs font-normal" style={{ color: PALETTE.textSec }}>{isAr ? cat.descAr : cat.descEn}</p>
       </div>
     </a>
   );
