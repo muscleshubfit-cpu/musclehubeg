@@ -264,50 +264,53 @@ export function LandingView() {
 
       <SiteHeader variant="landing" />
 
-      {/* ===================== 1. HERO — Image Stream Corridor ===================== */}
-      {/* G6: Hero now includes uploaded athlete images in the stream.
-          G10: Gradient background from white to subtle gray for depth. */}
-      <ImageStreamHero
-        images={streamImages}
-        cards={9}
-        speed={18}
-        axis={55}
-        path={{ cardWidth: 22, cardHeight: 30, cardRadius: 0.6 }}
-        className="h-[70vh] w-full bg-gradient-to-b from-white via-[#f5f5f7]/30 to-white"
-      >
-        <div className="relative z-10 flex flex-col items-center justify-start px-4 pt-20 text-center md:pt-24">
-          {/* G3: leading-[1.05] for tighter hero typography (Apple style) */}
-          <h1 className="text-4xl font-semibold leading-[1.05] tracking-tight md:text-6xl lg:text-7xl">
-            {isAr ? "منصتك الرياضية الشاملة." : "Your complete fitness platform."}
-          </h1>
-          <p className="mx-auto mt-3 max-w-md text-lg font-normal leading-snug text-[#1d1d1f] md:text-xl">
-            {isAr
-              ? "تمارين، برامج تدريب، حاسبات، أكلات، ومدونة — في مكان واحد."
-              : "Exercises, programs, calculators, foods, and blog — all in one place."}
-          </p>
-          {/* G4: Enlarged CTA buttons to Apple's px-7 py-3.5 standard */}
-          <div className="mt-6 flex flex-wrap items-center justify-center gap-3 text-sm md:gap-5">
-            <a
-              href="/memberships"
-              className="rounded-full bg-[#0071e3] px-7 py-3.5 font-normal text-white transition-opacity hover:opacity-90 md:text-base"
-            >
-              {isAr ? "ابدأ مجاناً" : "Start for free"}
-            </a>
-            <a
-              href="/evo"
-              className="rounded-full bg-white/90 px-7 py-3.5 font-normal text-[#1d1d1f] backdrop-blur transition-opacity hover:opacity-90 md:text-base"
-            >
-              {isAr ? "جرّب EVO" : "Try EVO"}
-            </a>
-            <a
-              href="/coaching"
-              className="text-sm font-normal text-[#0071e3] transition-opacity hover:opacity-70 md:text-base"
-            >
-              {isAr ? "الكوتشينج ›" : "Coaching ›"}
-            </a>
+      {/* ===================== 1. HERO — Static premium image + text ===================== */}
+      {/* Replaced ImageStreamHero with a clean static hero using the athlete image.
+          Apple-style: large image on right (desktop), centered text on mobile. */}
+      <section className="relative overflow-hidden bg-gradient-to-b from-white via-[#f5f5f7]/30 to-white">
+        <div className="mx-auto grid max-w-6xl items-center gap-8 px-4 py-16 md:grid-cols-2 md:py-24">
+          {/* Text — left side on desktop, centered on mobile */}
+          <div className="text-center md:text-left">
+            <h1 className="text-4xl font-semibold leading-[1.05] tracking-tight md:text-6xl lg:text-7xl">
+              {isAr ? "منصتك الرياضية الشاملة." : "Your complete fitness platform."}
+            </h1>
+            <p className="mx-auto mt-4 max-w-md text-lg font-normal leading-snug text-[#1d1d1f] md:mx-0 md:text-xl">
+              {isAr
+                ? "تمارين، برامج تدريب، حاسبات، أكلات، ومدونة — في مكان واحد."
+                : "Exercises, programs, calculators, foods, and blog — all in one place."}
+            </p>
+            <div className="mt-8 flex flex-wrap items-center justify-center gap-3 md:justify-start md:gap-5">
+              <a
+                href="/memberships"
+                className="rounded-full bg-[#0071e3] px-7 py-3.5 font-normal text-white transition-opacity hover:opacity-90 md:text-base"
+              >
+                {isAr ? "ابدأ مجاناً" : "Start for free"}
+              </a>
+              <a
+                href="/evo"
+                className="rounded-full bg-[#f5f5f7] px-7 py-3.5 font-normal text-[#1d1d1f] transition-opacity hover:opacity-90 md:text-base"
+              >
+                {isAr ? "جرّب EVO" : "Try EVO"} →
+              </a>
+              <a
+                href="/coaching"
+                className="text-sm font-normal text-[#0071e3] transition-opacity hover:opacity-70 md:text-base"
+              >
+                {isAr ? "الكوتشينج ›" : "Coaching ›"}
+              </a>
+            </div>
+          </div>
+          {/* Image — right side on desktop, hidden on mobile (text-only hero) */}
+          <div className="relative hidden md:block">
+            <img
+              src="/images/hero/hero-athlete.jpg"
+              alt={isAr ? "رياضي ي Perform تمرين بايسبس" : "Athlete performing bicep curls"}
+              className="aspect-[3/2] w-full rounded-3xl object-cover shadow-2xl"
+              loading="eager"
+            />
           </div>
         </div>
-      </ImageStreamHero>
+      </section>
 
       {/* ===================== 2. WHAT IS MUSCLEHUB ===================== */}
       <CenteredSection bg="bg-white">
@@ -340,34 +343,46 @@ export function LandingView() {
 
       {/* ===================== 3. EVO PREVIEW ===================== */}
       <section className="bg-[#1d1d1f] px-4 py-16 text-white md:py-24">
-        <div className="mx-auto max-w-4xl text-center">
-          <img
-            src="/images/evo-standalone.jpg"
-            alt="EVO"
-            className="mx-auto h-20 w-20 rounded-2xl object-cover"
-          />
-          <h2 className="mt-6 text-4xl font-semibold tracking-tight md:text-6xl">
-            EVO
-          </h2>
-          <p className="mx-auto mt-3 max-w-md text-lg font-normal text-gray-400 md:text-xl">
-            {isAr
-              ? "محرك أداء ذكي — مش مجرد شات بوت. اسأله أي حاجة رياضية وهو يوجّهك."
-              : "A smart performance engine — not just a chatbot. Ask it anything fitness-related."}
-          </p>
-          <div className="mt-6 flex flex-wrap items-center justify-center gap-4">
-            <a
-              href="/chat"
-              className="inline-flex items-center gap-2 rounded-full bg-white px-6 py-3 text-base font-normal text-[#1d1d1f] transition-opacity hover:opacity-90"
-            >
-              <img src="/images/evo-standalone.jpg" alt="EVO" className="h-6 w-6 rounded-full object-cover" />
-              {isAr ? "ابدأ المحادثة" : "Start chatting"}
-            </a>
-            <a
-              href="/evo"
-              className="inline-flex items-center gap-2 rounded-full border border-white/30 px-6 py-3 text-base font-normal text-white transition-colors hover:bg-white/10"
-            >
-              {isAr ? "اعرف أكثر" : "Learn more"}
-            </a>
+        <div className="mx-auto max-w-5xl">
+          {/* Text */}
+          <div className="text-center">
+            <h2 className="text-4xl font-semibold tracking-tight md:text-6xl">
+              EVO
+            </h2>
+            <p className="mx-auto mt-3 max-w-md text-lg font-normal text-gray-400 md:text-xl">
+              {isAr
+                ? "محرك أداء ذكي — مش مجرد شات بوت. اسأله أي حاجة رياضية وهو يوجّهك."
+                : "A smart performance engine — not just a chatbot. Ask it anything fitness-related."}
+            </p>
+            <div className="mt-6 flex flex-wrap items-center justify-center gap-4">
+              <a
+                href="/chat"
+                className="inline-flex items-center gap-2 rounded-full bg-white px-7 py-3.5 text-base font-normal text-[#1d1d1f] transition-opacity hover:opacity-90"
+              >
+                {isAr ? "ابدأ المحادثة" : "Start chatting"}
+              </a>
+              <a
+                href="/evo"
+                className="inline-flex items-center gap-2 rounded-full border border-white/30 px-7 py-3.5 text-base font-normal text-white transition-colors hover:bg-white/10"
+              >
+                {isAr ? "اعرف أكثر" : "Learn more"}
+              </a>
+            </div>
+          </div>
+          {/* Images — 2 premium EVO visuals */}
+          <div className="mt-10 grid grid-cols-1 gap-4 md:grid-cols-2">
+            <img
+              src="/images/hero/evo-1.jpg"
+              alt={isAr ? "EVO — واجهة ذكاء اصطناعي" : "EVO — AI interface"}
+              className="aspect-[3/2] w-full rounded-3xl object-cover"
+              loading="lazy"
+            />
+            <img
+              src="/images/hero/evo-2.jpg"
+              alt={isAr ? "EVO — تحليل البيانات" : "EVO — Data analysis"}
+              className="aspect-[3/2] w-full rounded-3xl object-cover"
+              loading="lazy"
+            />
           </div>
         </div>
       </section>

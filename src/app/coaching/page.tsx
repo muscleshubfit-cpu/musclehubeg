@@ -245,15 +245,30 @@ export default function CoachingPage() {
           </div>
         </section>
 
+        {/* ===================== COACHING VISUALS ===================== */}
+        <section className="bg-white px-4 py-12 md:py-20">
+          <div className="mx-auto max-w-5xl">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <img
+                src="/images/hero/coaching-1.jpg"
+                alt={isAr ? "منصة MuscleHubEG الذكية" : "MuscleHubEG smart platform"}
+                className="aspect-[3/2] w-full rounded-3xl object-cover shadow-lg"
+                loading="lazy"
+              />
+              <img
+                src="/images/hero/coaching-2.jpg"
+                alt={isAr ? "تدريب احترافي بالذكاء الاصطناعي" : "Professional AI-assisted training"}
+                className="aspect-[3/2] w-full rounded-3xl object-cover shadow-lg"
+                loading="lazy"
+              />
+            </div>
+          </div>
+        </section>
+
         {/* ===================== EVO INTEGRATION ===================== */}
         <section className="bg-[#1d1d1f] px-4 py-16 text-white md:py-24">
           <div className="mx-auto max-w-4xl text-center">
-            <img
-              src="/images/evo-standalone.jpg"
-              alt="EVO"
-              className="mx-auto h-20 w-20 rounded-2xl object-cover"
-            />
-            <h2 className="mt-6 text-3xl font-semibold tracking-tight md:text-5xl">
+            <h2 className="text-3xl font-semibold tracking-tight md:text-5xl">
               EVO
             </h2>
             <p className="mx-auto mt-3 max-w-md text-lg font-normal text-gray-400 md:text-xl">
@@ -264,16 +279,15 @@ export default function CoachingPage() {
             <div className="mt-6 flex flex-wrap items-center justify-center gap-4">
               <a
                 href="/evo"
-                className="inline-flex items-center gap-2 rounded-full bg-white px-6 py-3 text-base font-normal text-[#1d1d1f] transition-opacity hover:opacity-90"
+                className="inline-flex items-center gap-2 rounded-full bg-white px-7 py-3.5 text-base font-normal text-[#1d1d1f] transition-opacity hover:opacity-90"
               >
                 {isAr ? "اعرف أكثر عن EVO" : "Learn more about EVO"}
                 <ArrowRight className="h-4 w-4 rtl:rotate-180" />
               </a>
               <a
                 href="/chat"
-                className="inline-flex items-center gap-2 rounded-full border border-white/30 px-6 py-3 text-base font-normal text-white transition-colors hover:bg-white/10"
+                className="inline-flex items-center gap-2 rounded-full border border-white/30 px-7 py-3.5 text-base font-normal text-white transition-colors hover:bg-white/10"
               >
-                <img src="/images/evo-standalone.jpg" alt="EVO" className="h-6 w-6 rounded-full object-cover" />
                 {isAr ? "ابدأ المحادثة" : "Start chatting"}
               </a>
             </div>

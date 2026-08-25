@@ -1369,3 +1369,46 @@ Stage Summary:
 - TS: 0 errors | ESLint: 0 errors (6 pre-existing warnings) | Build: exit 0
 - Commit SHA: d38d4eb
 - Push status: pushed
+
+---
+Task ID: HERO-REDESIGN-2026-08-25
+Agent: Main (Z User)
+Task: Remove ImageStreamHero animation + use static athlete image in hero + update coaching page with 2 new images + update EVO section with 2 new images.
+
+Work Log:
+- Compressed 5 uploaded images (2-2.5MB each → 159-240KB each):
+  • hero-athlete.jpg (236 KB) — bearded man doing bicep curls in gym (hero)
+  • coaching-1.jpg (240 KB) — Ahmed Zake + EVO platform presentation
+  • coaching-2.jpg (233 KB) — Ahmed Zake high-tech strength training
+  • evo-1.jpg (170 KB) — man in EVO high-tech suit with holographic interface
+  • evo-2.jpg (159 KB) — man in EVO jacket with AI data visualizations
+
+- Landing page hero:
+  • REMOVED ImageStreamHero (animated corridor) entirely
+  • Replaced with static 2-column layout: text left + hero-athlete.jpg right
+  • Image: aspect-[3/2], rounded-3xl, shadow-2xl, loading="eager"
+  • Hidden on mobile (md:block) — text-only hero on small screens
+  • CTA buttons: px-7 py-3.5 (Apple standard)
+
+- Landing page EVO section:
+  • Removed old evo-standalone.jpg thumbnail
+  • Added 2-column image grid: evo-1.jpg + evo-2.jpg
+  • Each image: aspect-[3/2], rounded-3xl, loading="lazy"
+  • Enlarged CTA buttons to px-7 py-3.5
+  • Removed evo-standalone.jpg icon from "Start chatting" button
+
+- Coaching page:
+  • Added new "COACHING VISUALS" section before EVO integration
+  • 2-column image grid: coaching-1.jpg + coaching-2.jpg
+  • Each image: aspect-[3/2], rounded-3xl, shadow-lg, loading="lazy"
+  • Removed old evo-standalone.jpg from EVO section
+  • Enlarged CTA buttons to px-7 py-3.5
+  • Removed evo-standalone.jpg icon from "Start chatting" button
+
+Stage Summary:
+- ImageStreamHero animation removed — cleaner, faster, more premium.
+- 5 new uploaded images integrated into hero + EVO + coaching sections.
+- All sections use consistent Apple-style layout (rounded-3xl, shadow, aspect ratios).
+- TS: 0 errors | ESLint: 0 errors (6 pre-existing warnings) | Build: exit 0
+- Commit SHA: <to be filled>
+- Push status: <to be filled>
