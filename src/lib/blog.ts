@@ -37,6 +37,8 @@ export const BLOG_CATEGORIES = [
  { id: "health", en: "Health", ar: "صحة" },
  { id: "recipes", en: "Recipes", ar: "وصفات" },
  { id: "science", en: "Science", ar: "علم" },
+ { id: "fitness", en: "Fitness", ar: "لياقة" },
+ { id: "wellness", en: "Wellness", ar: "عافية" },
 ];
 
 export const VALID_CATEGORY_IDS = new Set(BLOG_CATEGORIES.map((c) => c.id));

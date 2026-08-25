@@ -22,12 +22,9 @@
  */
 
 import {
-  callAIWithFallback,
+  callFreeAIFallbackChain,
   parseJSON,
-  FREE_OPENROUTER_MODELS,
-  type AIProvider,
 } from "@/lib/ai-provider";
-import { callGeminiJSON, getGeminiApiKey } from "@/lib/gemini-wrapper";
 import {
   generateNutritionPlan,
   generateWorkoutPlan,
@@ -35,14 +32,9 @@ import {
 } from "@/lib/ai-local";
 import { EXERCISES } from "@/lib/exercises";
 
-// Use the UNIFIED model list from ai-provider.ts — single source of truth.
-// Order: best/largest first. Same list used by EVO chat, plan generator,
-// blog generation, and all other AI calls.
-const OPENROUTER_FREE_MODELS = FREE_OPENROUTER_MODELS;
-
-// Unified API key fallback sequence (GEMINI_API_KEY -> GOOGLE_API_KEY -> GOOGLE_GENAI_API_KEY -> AI_API_KEY -> OPENROUTER_API)
-const OPENROUTER_KEY = getGeminiApiKey();
-const OPENROUTER_BASE = "https://openrouter.ai/api/v1";
+// Plan generator uses callFreeAIFallbackChain (interleaved OpenRouter + Groq)
+// for all AI calls — strongest free models first, with Groq for speed.
+// No Gemini dependency.
 
 export type PlanOverrides = {
   targetCalories?: number;
@@ -149,64 +141,27 @@ export async function generateNutritionPlanAI(
 ملاحظة: كل توليد يجب أن ينتج خطة مختلفة. استخدم تنويع ${seed} لاختيار أصناف جديدة.`;
 
   try {
-    // 1. Try Google Gemini first (fast, smart, robust JSON)
-    try {
-      const { data: geminiData, model: geminiModel } =
-        await callGeminiJSON<NutritionPlanContent>(prompt, {
-          systemPrompt: NUTRITION_SYSTEM_PROMPT,
-          temperature: 0.7,
-          maxTokens: 4000,
-          timeoutMs: 45_000,
-        });
-      if (geminiData && geminiData.meals && geminiData.meals.length > 0) {
-        return {
-          title: `خطة تغذية - ${name}`,
-          content: normalizeNutritionPlan(geminiData, overrides),
-          source: `gemini:${geminiModel}`,
-        };
-      }
-    } catch (gErr: any) {
-      console.warn("[plan-generator] Gemini generation notice, trying fallbacks:", gErr?.message);
-    }
-
-    // Try each free OpenRouter model in order until one returns valid JSON.
-    for (const model of OPENROUTER_FREE_MODELS) {
-      if (!OPENROUTER_KEY) break;
-      try {
-        const { text } = await callAIWithFallback(
-          prompt,
-          {
-            systemPrompt: NUTRITION_SYSTEM_PROMPT,
-            temperature: 0.7,
-            maxTokens: 4000,
-            jsonMode: true,
-            timeoutMs: 60_000, // 1 min — Vercel hobby plan limit
-          },
-          {
-            provider: "openrouter" as AIProvider,
-            apiKey: OPENROUTER_KEY,
-            model,
-            baseUrl: OPENROUTER_BASE,
-          },
-        );
-        const parsed = parseJSON<NutritionPlanContent>(text);
-        if (parsed && parsed.meals && parsed.meals.length > 0) {
-          return {
-            title: `خطة تغذية - ${name}`,
-            content: normalizeNutritionPlan(parsed, overrides),
-            source: `openrouter:${model}`,
-          };
-        }
-      } catch (e: any) {
-        console.error(
-          `[plan-generator] OpenRouter ${model} failed:`,
-          e?.message,
-        );
-        // try next model
-      }
+    // Use callFreeAIFallbackChain — interleaved OpenRouter + Groq (strongest models first)
+    const { text, model, provider } = await callFreeAIFallbackChain(
+      prompt,
+      {
+        systemPrompt: NUTRITION_SYSTEM_PROMPT,
+        temperature: 0.7,
+        maxTokens: 4000,
+        jsonMode: true,
+        timeoutMs: 55_000,
+      },
+    );
+    const parsed = parseJSON<NutritionPlanContent>(text);
+    if (parsed && parsed.meals && parsed.meals.length > 0) {
+      return {
+        title: `خطة تغذية - ${name}`,
+        content: normalizeNutritionPlan(parsed, overrides),
+        source: `${provider}:${model}`,
+      };
     }
   } catch (e: any) {
-    console.error("[plan-generator] All OpenRouter models failed:", e?.message);
+    console.error("[plan-generator] Nutrition plan AI failed:", e?.message);
   }
 
   // Fallback: local rule-based generator
@@ -233,63 +188,27 @@ export async function generateWorkoutPlanAI(
 ملاحظة: كل توليد يجب أن ينتج برنامج مختلف. استخدم تنويع ${seed} لاختيار تمارين جديدة.`;
 
   try {
-    // 1. Try Google Gemini first
-    try {
-      const { data: geminiData, model: geminiModel } =
-        await callGeminiJSON<WorkoutPlanContent>(prompt, {
-          systemPrompt: WORKOUT_SYSTEM_PROMPT,
-          temperature: 0.7,
-          maxTokens: 4000,
-          timeoutMs: 45_000,
-        });
-      if (geminiData && geminiData.days && geminiData.days.length > 0) {
-        return {
-          title: `برنامج تمارين - ${name}`,
-          content: normalizeWorkoutPlan(geminiData),
-          source: `gemini:${geminiModel}`,
-        };
-      }
-    } catch (gErr: any) {
-      console.warn("[plan-generator] Gemini workout notice, trying fallbacks:", gErr?.message);
-    }
-
-    // 2. Try OpenRouter free models
-    for (const model of OPENROUTER_FREE_MODELS) {
-      if (!OPENROUTER_KEY) break;
-      try {
-        const { text } = await callAIWithFallback(
-          prompt,
-          {
-            systemPrompt: WORKOUT_SYSTEM_PROMPT,
-            temperature: 0.7,
-            maxTokens: 4000,
-            jsonMode: true,
-            timeoutMs: 60_000, // 1 min — Vercel hobby plan limit
-          },
-          {
-            provider: "openrouter" as AIProvider,
-            apiKey: OPENROUTER_KEY,
-            model,
-            baseUrl: OPENROUTER_BASE,
-          },
-        );
-        const parsed = parseJSON<WorkoutPlanContent>(text);
-        if (parsed && parsed.days && parsed.days.length > 0) {
-          return {
-            title: `برنامج تمارين - ${name}`,
-            content: normalizeWorkoutPlan(parsed),
-            source: `openrouter:${model}`,
-          };
-        }
-      } catch (e: any) {
-        console.error(
-          `[plan-generator] OpenRouter ${model} failed:`,
-          e?.message,
-        );
-      }
+    // Use callFreeAIFallbackChain — interleaved OpenRouter + Groq (strongest models first)
+    const { text, model, provider } = await callFreeAIFallbackChain(
+      prompt,
+      {
+        systemPrompt: WORKOUT_SYSTEM_PROMPT,
+        temperature: 0.7,
+        maxTokens: 4000,
+        jsonMode: true,
+        timeoutMs: 55_000,
+      },
+    );
+    const parsed = parseJSON<WorkoutPlanContent>(text);
+    if (parsed && parsed.days && parsed.days.length > 0) {
+      return {
+        title: `برنامج تمارين - ${name}`,
+        content: normalizeWorkoutPlan(parsed),
+        source: `${provider}:${model}`,
+      };
     }
   } catch (e: any) {
-    console.error("[plan-generator] All OpenRouter models failed:", e?.message);
+    console.error("[plan-generator] Workout plan AI failed:", e?.message);
   }
 
   const local = generateWorkoutPlan(ctx);
@@ -356,58 +275,23 @@ ${coachNote ? `تعليمات الكوتش: ${coachNote}` : ""}
 تأكد أن مجموع سعرات الأصناف يساوي تقريباً ${totalCals}. استخدم أصناف عربية/مصرية متنوعة. لا تكرر نفس الأصناف الموجودة في الوجبة الحالية.`;
 
   try {
-    // 1. Try Gemini first
-    try {
-      const { data: geminiMeal, model: geminiModel } =
-        await callGeminiJSON<any>(prompt, {
-          systemPrompt: NUTRITION_SYSTEM_PROMPT,
-          temperature: 0.8,
-          maxTokens: 1500,
-          timeoutMs: 30_000,
-        });
-      if (geminiMeal && geminiMeal.items && geminiMeal.items.length > 0) {
-        return { meal: geminiMeal, source: `gemini:${geminiModel}` };
-      }
-    } catch (gErr: any) {
-      console.warn("[regenerate-meal] Gemini notice, trying fallbacks:", gErr?.message);
-    }
-
-    // 2. Try OpenRouter models
-    for (const model of OPENROUTER_FREE_MODELS) {
-      if (!OPENROUTER_KEY) break;
-      try {
-        const { text } = await callAIWithFallback(
-          prompt,
-          {
-            systemPrompt: NUTRITION_SYSTEM_PROMPT,
-            temperature: 0.8,
-            maxTokens: 1500,
-            jsonMode: true,
-            timeoutMs: 45_000,
-          },
-          {
-            provider: "openrouter" as AIProvider,
-            apiKey: OPENROUTER_KEY,
-            model,
-            baseUrl: OPENROUTER_BASE,
-          },
-        );
-        const parsed = parseJSON<any>(text);
-        if (parsed && parsed.items && parsed.items.length > 0) {
-          return { meal: parsed, source: `openrouter:${model}` };
-        }
-      } catch (e: any) {
-        console.error(
-          `[regenerate-meal] OpenRouter ${model} failed:`,
-          e?.message,
-        );
-      }
+    // Use callFreeAIFallbackChain — interleaved OpenRouter + Groq
+    const { text, model, provider } = await callFreeAIFallbackChain(
+      prompt,
+      {
+        systemPrompt: NUTRITION_SYSTEM_PROMPT,
+        temperature: 0.8,
+        maxTokens: 1500,
+        jsonMode: true,
+        timeoutMs: 30_000,
+      },
+    );
+    const parsed = parseJSON<any>(text);
+    if (parsed && parsed.items && parsed.items.length > 0) {
+      return { meal: parsed, source: `${provider}:${model}` };
     }
   } catch (e: any) {
-    console.error(
-      "[regenerate-meal] All OpenRouter models failed:",
-      e?.message,
-    );
+    console.error("[regenerate-meal] AI failed:", e?.message);
   }
 
   // Fallback: return the original meal unchanged (the caller can show an error)
@@ -940,43 +824,28 @@ ${
 - أعد JSON صالح فقط (بدون نص إضافي، بدون أسوار markdown).`;
 
   try {
-    for (const model of OPENROUTER_FREE_MODELS) {
-      if (!OPENROUTER_KEY) break;
-      try {
-        const { text } = await callAIWithFallback(
-          prompt,
-          {
-            systemPrompt:
-              "أنت مساعد ذكي لتحويل نصوص الخطط إلى JSON منظم. أعد JSON صالح فقط.",
-            temperature: 0.3, // low temp for faithful extraction
-            maxTokens: 4000,
-            jsonMode: true,
-            timeoutMs: 60_000,
-          },
-          {
-            provider: "openrouter" as AIProvider,
-            apiKey: OPENROUTER_KEY,
-            model,
-            baseUrl: OPENROUTER_BASE,
-          },
-        );
-        const parsed = parseJSON<any>(text);
-        if (parsed && (parsed.meals || parsed.days)) {
-          const normalized =
-            planType === "nutrition"
-              ? normalizeNutritionPlan(parsed)
-              : normalizeWorkoutPlan(parsed);
-          return { content: normalized, source: `openrouter:${model}` };
-        }
-      } catch (e: any) {
-        console.error(
-          `[normalize-coach-plan] OpenRouter ${model} failed:`,
-          e?.message,
-        );
-      }
+    // Use callFreeAIFallbackChain — interleaved OpenRouter + Groq
+    const { text, model, provider } = await callFreeAIFallbackChain(
+      prompt,
+      {
+        systemPrompt:
+          "أنت مساعد ذكي لتحويل نصوص الخطط إلى JSON منظم. أعد JSON صالح فقط.",
+        temperature: 0.3, // low temp for faithful extraction
+        maxTokens: 4000,
+        jsonMode: true,
+        timeoutMs: 55_000,
+      },
+    );
+    const parsed = parseJSON<any>(text);
+    if (parsed && (parsed.meals || parsed.days)) {
+      const normalized =
+        planType === "nutrition"
+          ? normalizeNutritionPlan(parsed)
+          : normalizeWorkoutPlan(parsed);
+      return { content: normalized, source: `${provider}:${model}` };
     }
   } catch (e: any) {
-    console.error("[normalize-coach-plan] All models failed:", e?.message);
+    console.error("[normalize-coach-plan] AI failed:", e?.message);
   }
 
   // Last-resort fallback: wrap the raw text in a minimal structure

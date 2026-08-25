@@ -30,6 +30,8 @@ const CONTENT_PILLARS = [
   "health",
   "recipes",
   "science",
+  "fitness",
+  "wellness",
 ] as const;
 
 type Pillar = (typeof CONTENT_PILLARS)[number];
@@ -307,6 +309,30 @@ const EN_TOPIC_FALLBACKS: Record<
     { topic: "Biomechanics of Hypertrophy: How Muscle Mechanics Work", focusKeyword: "biomechanics hypertrophy", rationale: "Deep science for serious lifters." },
     { topic: "Hormonal Response to Exercise: Cortisol, Testosterone, GH", focusKeyword: "hormonal response exercise", rationale: "Endocrinology of training." },
   ],
+  fitness: [
+    { topic: "Functional Fitness: Training for Real-Life Movement Patterns", focusKeyword: "functional fitness training", rationale: "Growing trend in fitness training." },
+    { topic: "Mobility vs Flexibility: What's the Difference and Why It Matters", focusKeyword: "mobility vs flexibility", rationale: "Common confusion with high search volume." },
+    { topic: "Bodyweight Training: Building Strength Without Equipment", focusKeyword: "bodyweight strength training", rationale: "Popular for home workouts." },
+    { topic: "Balance Training: Why It Matters Beyond Yoga", focusKeyword: "balance training exercises", rationale: "Underexplored fitness topic." },
+    { topic: "Cardio vs HIIT: Which Burns More Fat in Less Time?", focusKeyword: "cardio vs hiit fat loss", rationale: "Evergreen comparison topic." },
+    { topic: "Cross Training: How Mixing Sports Improves Overall Fitness", focusKeyword: "cross training benefits", rationale: "Growing interest in multi-sport training." },
+    { topic: "Agility Training: Speed, Quickness, and Reaction Time", focusKeyword: "agility training exercises", rationale: "Athletic performance niche." },
+    { topic: "Posture Correction: Exercises to Fix Rounded Shoulders", focusKeyword: "posture correction exercises", rationale: "Desk-worker health concern." },
+    { topic: "Core Strength vs Six-Pack: Why They're Not the Same", focusKeyword: "core strength vs abs", rationale: "Common fitness misconception." },
+    { topic: "Progressive Overload: The Science of Getting Stronger", focusKeyword: "progressive overload training", rationale: "Fundamental training principle." },
+  ],
+  wellness: [
+    { topic: "Sleep and Recovery: How Deep Sleep Builds Muscle", focusKeyword: "sleep muscle recovery", rationale: "Critical wellness topic for athletes." },
+    { topic: "Stress and Cortisol: How Chronic Stress Sabotages Gains", focusKeyword: "stress cortisol muscle loss", rationale: "Wellness + fitness intersection." },
+    { topic: "Mindful Eating: How Awareness Transforms Your Diet", focusKeyword: "mindful eating practice", rationale: "Growing wellness trend." },
+    { topic: "Mental Health and Exercise: Endorphins, Anxiety, Depression", focusKeyword: "exercise mental health", rationale: "Important wellness topic." },
+    { topic: "Breathing Exercises for Athletic Performance", focusKeyword: "breathing exercises athletes", rationale: "Underexplored wellness + fitness topic." },
+    { topic: "Digital Detox: How Screen Time Affects Sleep and Recovery", focusKeyword: "screen time sleep recovery", rationale: "Modern wellness concern." },
+    { topic: "Cold Water Immersion: Does Ice Bath Recovery Actually Work?", focusKeyword: "cold water immersion recovery", rationale: "Trending recovery topic." },
+    { topic: "Hydration Beyond Water: Electrolytes and Athletic Performance", focusKeyword: "electrolytes athletic performance", rationale: "Practical wellness + nutrition." },
+    { topic: "Circadian Rhythm: How Your Body Clock Affects Fitness", focusKeyword: "circadian rhythm fitness", rationale: "Emerging science topic." },
+    { topic: "Burnout in Training: Signs You Need a Deload Week", focusKeyword: "training burnout deload", rationale: "Wellness + training intersection." },
+  ],
 };
 
 // ═════════════════════════════════════════════════════════════════════════
@@ -411,6 +437,22 @@ const AR_TOPIC_FALLBACKS: Record<
     { topic: "علم التعافي: كم يستغرق التعافي من التمرين؟", focusKeyword: "وقت التعافي العضلي", rationale: "موضوع علمي عملي." },
     { topic: "بيوميكانيكا التضخيم: كيف تعمل ميكانيكا العضلات", focusKeyword: "بيوميكانيكا التضخيم", rationale: "علم عميق للمتدربين." },
     { topic: "الاستجابة الهرمونية للتمرين: الكورتيزول والتستوستيرون", focusKeyword: "الاستجابة الهرمونية", rationale: "علم الغدد الصماء." },
+  ],
+  fitness: [
+    { topic: "اللياقة الوظيفية: التدريب لحركات الحياة اليومية", focusKeyword: "اللياقة الوظيفية", rationale: "اتجاه متنامي في التدريب." },
+    { topic: "المرونة مقابل المطاطية: الفرق ولماذا يهم", focusKeyword: "المرونة مقابل المطاطية", rationale: "ارتباك شائع بحجم بحث عالي." },
+    { topic: "تدريب وزن الجسم: بناء القوة بدون معدات", focusKeyword: "تدريب وزن الجسم قوة", rationale: "شائع للتمارين المنزلية." },
+    { topic: "تدريب التوازن: لماذا يهم أكثر من اليوجا", focusKeyword: "تمارين التوازن", rationale: "موضوع لياقة غير مستكشف." },
+    { topic: "كارديو مقابل HIIT: أيهما يحرق دهون أكثر في وقت أقل؟", focusKeyword: "كارديو مقابل hiit", rationale: "مقارنة دائمة." },
+    { topic: "التصحيح الوضعي: تمارين لتعديل الأكتاف المنحنية", focusKeyword: "تصحيح الوضع", rationale: "مخاوف صحة العاملين." },
+  ],
+  wellness: [
+    { topic: "النوم والتعافي: كيف يبني النوم العميق العضلات", focusKeyword: "النوم تعافي العضلات", rationale: "موضوع عافية حاسم للرياضيين." },
+    { topic: "التوتر والكورتيزول: كيف يخرب التوتر المزمن اكتسابك", focusKeyword: "التوتر كورتيزول العضلات", rationale: "تقاطع عافية ولياقة." },
+    { topic: "الأكل الواعي: كيف يحول الوعي نظامك الغذائي", focusKeyword: "الأكل الواعي", rationale: "اتجاه عافية متنامي." },
+    { topic: "الصحة النفسية والتمرين: الإندورفين والقلق والاكتئاب", focusKeyword: "التمرين الصحة النفسية", rationale: "موضوع عافية مهم." },
+    { topic: "غمر الماء البارد: هل حمام الثلج يعزز التعافي فعلاً؟", focusKeyword: "غمر الماء البارد تعافي", rationale: "موضوع تعافي رائج." },
+    { topic: "الإرهاق في التدريب: علامات تحتاج أسبوع تخفيف", focusKeyword: "إرهاق التدريب تخفيف", rationale: "تقاطع عافية وتدريب." },
   ],
 };
 

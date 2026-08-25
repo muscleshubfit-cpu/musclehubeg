@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { callFreeOpenRouterRace } from "@/lib/ai-provider";
-import { callGemini } from "@/lib/gemini-wrapper";
+import { callFreeAIFallbackChain } from "@/lib/ai-provider";
 import { generateChatReply } from "@/lib/ai-local";
 import { listPlans, listProgress, getQuestionnaire, getSubscriptionForClient } from "@/lib/data";
 import { getTier } from "@/lib/plans";
@@ -189,44 +188,23 @@ export async function POST(request: NextRequest) {
       .join("\n\n");
     const fullPrompt = `${systemPrompt}\n\n${chatPrompt}\n\nAssistant:`;
 
-    // 7. Try Gemini first (fastest, cleanest responses)
+    // 7. Try AI via callFreeAIFallbackChain (OpenRouter + Groq interleaved)
+    //    Groq models (gpt-oss-120b) typically respond in 1-3 seconds.
+    //    This replaces the old Gemini-first → OpenRouter-race path.
     try {
-      const { text: geminiReply, model: geminiModel } = await callGemini(
+      const { text: aiReply, model: aiModel, provider: aiProvider } = await callFreeAIFallbackChain(
         fullPrompt,
         {
-          temperature: 0.7,
-          maxTokens: 1000,
+          temperature: 0.6,
+          maxTokens: 800,
           timeoutMs: 15_000,
         },
-        2,
       );
 
-      if (geminiReply && geminiReply.trim().length > 5) {
-        return NextResponse.json({
-          response: geminiReply.trim(),
-          links,
-          source: `gemini:${geminiModel}`,
-        });
-      }
-    } catch (gErr: any) {
-      console.warn("[api/ai/chat] Gemini notice, falling back to OpenRouter/local:", gErr?.message);
-    }
-
-    // 8. Try OpenRouter AI (if configured)
-    if (process.env.OPENROUTER_API || process.env.AI_API_KEY) {
-      try {
-        const { text, model } = await callFreeOpenRouterRace(fullPrompt, {
-          temperature: 0.6,
-          maxTokens: 500,
-          timeoutMs: 15_000,
-        }, 3);
-
-        if (text && text.length > 10) {
-          // ─────────────────────────────────────────────────────────────
-          // Clean up reasoning artifacts from nemotron models that
-          // sometimes include "thinking process" content in the response.
-          // ─────────────────────────────────────────────────────────────
-          let cleanText = text;
+      if (aiReply && aiReply.trim().length > 5) {
+        // Clean up reasoning artifacts from models that sometimes include
+        // "thinking process" content in the response.
+        let cleanText = aiReply;
 
           // 1. Strip <think>...</think>, <reasoning>...</reasoning>,
           //    <reflection>...</reflection>, <analysis>...</analysis> blocks
@@ -311,13 +289,12 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({
             response: cleanText,
             links,
-            source: `openrouter:${model}`,
+            source: `${aiProvider}:${aiModel}`,
           });
         }
       } catch (aiErr) {
-        console.error("[api/ai/chat] OpenRouter failed, using local fallback:", aiErr);
+        console.error("[api/ai/chat] AI fallback chain failed, using local reply:", aiErr);
       }
-    }
 
     // 8. Fallback: local rule-based reply + platform context
     const localReply = generateLocalReply(
