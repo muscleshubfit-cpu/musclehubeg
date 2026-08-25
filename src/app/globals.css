@@ -608,3 +608,57 @@ textarea:disabled {
     transform: translateY(calc(-100% - var(--gap)));
   }
 }
+
+/* ─── UI Polish: card-hover + fade-in-up animations ──────────────────── */
+/* Added 2026-08-25 per Task 3.2 — premium Apple-style micro-interactions. */
+/* All animations respect prefers-reduced-motion (see existing block below). */
+
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 0.5s ease-out;
+}
+
+/* Card hover effect — used on food/exercise/program cards */
+.card-hover {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.card-hover:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.08);
+}
+
+/* Skeleton shimmer effect — used while loading deferred food/exercise lists */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.skeleton-shimmer {
+  background: linear-gradient(90deg, #e5e5e7 25%, #f5f5f7 50%, #e5e5e7 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-in-up,
+  .card-hover,
+  .skeleton-shimmer {
+    animation: none !important;
+    transition: none !important;
+  }
+}

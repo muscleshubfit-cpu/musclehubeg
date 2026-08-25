@@ -366,30 +366,7 @@ export function LandingView() {
               { slug: "meal-planner", nameAr: "مخطط الوجبات", nameEn: "Meal Planner", descAr: "ابني وجباتك بنفسك", descEn: "Build your own meals", emoji: "🍽️", color: "#8b5cf6", href: "/meal-planner", image: "/images/tools/meal-planner.png" },
             ].map((tool, i) => (
               <Reveal key={tool.slug} delay={i * 80}>
-                <a
-                  href={tool.href}
-                  className="group flex items-center gap-4 rounded-3xl bg-white p-6 transition-opacity hover:opacity-90"
-                >
-                  <span className="grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-2xl text-2xl" style={{ backgroundColor: `${tool.color}15` }}>
-                    <img
-                      src={tool.image}
-                      alt={isAr ? tool.nameAr : tool.nameEn}
-                      loading="lazy"
-                      className="h-full w-full object-cover"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).style.display = "none";
-                        const fallback = (e.target as HTMLImageElement).nextElementSibling;
-                        if (fallback) (fallback as HTMLElement).style.display = "inline";
-                      }}
-                    />
-                    <span style={{ display: "none" }}>{tool.emoji}</span>
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <h3 className="text-lg font-semibold tracking-tight">{isAr ? tool.nameAr : tool.nameEn}</h3>
-                    <p className="mt-1 text-sm font-normal text-[#6e6e73]">{isAr ? tool.descAr : tool.descEn}</p>
-                  </div>
-                  <span className="text-2xl text-[#6e6e73]">›</span>
-                </a>
+                <LandingToolCard tool={tool} isAr={isAr} />
               </Reveal>
             ))}
           </div>
@@ -424,31 +401,7 @@ export function LandingView() {
               { emoji: "❤️", labelAr: "كارديو", labelEn: "Cardio", slug: "cardio", count: 6, image: "/images/categories/exercises/cardio.png" },
             ].map((cat, i) => (
               <Reveal key={cat.slug} delay={i * 80}>
-                <a
-                  href={`/exercises?cat=${cat.slug}`}
-                  className="group block overflow-hidden rounded-3xl bg-[#f5f5f7] text-center transition-opacity hover:opacity-90"
-                >
-                  <div className="aspect-[4/3] w-full overflow-hidden bg-white">
-                    <img
-                      src={cat.image}
-                      alt={isAr ? cat.labelAr : cat.labelEn}
-                      loading="lazy"
-                      className="h-full w-full object-contain"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).style.display = "none";
-                        const fallback = (e.target as HTMLImageElement).parentElement?.nextElementSibling;
-                        if (fallback) (fallback as HTMLElement).style.display = "block";
-                      }}
-                    />
-                  </div>
-                  <div className="p-4" style={{ display: "none" }}>
-                    <span className="text-4xl">{cat.emoji}</span>
-                  </div>
-                  <div className="p-4">
-                    <h3 className="text-base font-semibold tracking-tight">{isAr ? cat.labelAr : cat.labelEn}</h3>
-                    <p className="mt-1 text-xs font-normal text-[#6e6e73]">{cat.count} {isAr ? "تمارين" : "exercises"}</p>
-                  </div>
-                </a>
+                <LandingExerciseCategoryCard cat={cat} isAr={isAr} />
               </Reveal>
             ))}
           </div>
@@ -482,32 +435,7 @@ export function LandingView() {
               { emoji: "🔥", titleAr: "حرق دهون HIIT", titleEn: "Fat Loss HIIT", descAr: "حارب الدهون بسرعة", descEn: "Burn fat fast", slug: "home-fat-loss-hiit", image: "/images/programs/hiit.png" },
             ].map((prog, i) => (
               <Reveal key={prog.slug} delay={i * 100}>
-                <a
-                  href={`/programs/${prog.slug}`}
-                  className="group block overflow-hidden rounded-3xl bg-white transition-opacity hover:opacity-90"
-                >
-                  <div className="aspect-[16/10] w-full overflow-hidden">
-                    <img
-                      src={prog.image}
-                      alt={isAr ? prog.titleAr : prog.titleEn}
-                      loading="lazy"
-                      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).style.display = "none";
-                        const fallback = (e.target as HTMLImageElement).parentElement?.nextElementSibling;
-                        if (fallback) (fallback as HTMLElement).style.display = "block";
-                      }}
-                    />
-                  </div>
-                  <div className="p-4 text-center" style={{ display: "none" }}>
-                    <span className="text-4xl">{prog.emoji}</span>
-                  </div>
-                  <div className="p-6">
-                    <h3 className="text-lg font-semibold tracking-tight">{isAr ? prog.titleAr : prog.titleEn}</h3>
-                    <p className="mt-1 text-sm font-normal text-[#6e6e73]">{isAr ? prog.descAr : prog.descEn}</p>
-                    <p className="mt-3 text-sm font-normal text-[#0071e3]">{isAr ? "ابدأ الآن ›" : "Start now ›"}</p>
-                  </div>
-                </a>
+                <LandingProgramCard prog={prog} isAr={isAr} />
               </Reveal>
             ))}
           </div>
@@ -542,31 +470,7 @@ export function LandingView() {
               { emoji: "🍎", titleAr: "فواكه وخضار", titleEn: "Fruits & Veg", descAr: "طازجة وصحية", descEn: "Fresh and healthy", image: "/images/categories/foods/fruit.png" },
             ].map((cat, i) => (
               <Reveal key={cat.titleEn} delay={i * 80}>
-                <a
-                  href="/foods"
-                  className="group block overflow-hidden rounded-3xl bg-[#f5f5f7] transition-opacity hover:opacity-90"
-                >
-                  <div className="aspect-square w-full overflow-hidden">
-                    <img
-                      src={cat.image}
-                      alt={isAr ? cat.titleAr : cat.titleEn}
-                      loading="lazy"
-                      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).style.display = "none";
-                        const fallback = (e.target as HTMLImageElement).parentElement?.nextElementSibling;
-                        if (fallback) (fallback as HTMLElement).style.display = "block";
-                      }}
-                    />
-                  </div>
-                  <div className="p-4 text-center" style={{ display: "none" }}>
-                    <span className="text-4xl">{cat.emoji}</span>
-                  </div>
-                  <div className="p-4 text-center">
-                    <h3 className="text-base font-semibold tracking-tight">{isAr ? cat.titleAr : cat.titleEn}</h3>
-                    <p className="mt-1 text-xs font-normal text-[#6e6e73]">{isAr ? cat.descAr : cat.descEn}</p>
-                  </div>
-                </a>
+                <LandingFoodCategoryCard cat={cat} isAr={isAr} />
               </Reveal>
             ))}
           </div>
@@ -873,5 +777,127 @@ export function LandingView() {
         </div>
       </footer>
     </div>
+  );
+}
+
+// ─── Helper components (conditional rendering — no display:none in DOM) ───
+
+function LandingToolCard({ tool, isAr }: { tool: any; isAr: boolean }) {
+  const [imgError, setImgError] = useState(false);
+  return (
+    <a
+      href={tool.href}
+      className="group flex items-center gap-4 rounded-3xl bg-white p-6 transition-opacity hover:opacity-90"
+    >
+      <span className="grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-2xl text-2xl" style={{ backgroundColor: `${tool.color}15` }}>
+        {imgError ? (
+          <span>{tool.emoji}</span>
+        ) : (
+          <img
+            src={tool.image}
+            alt={isAr ? tool.nameAr : tool.nameEn}
+            loading="lazy"
+            className="h-full w-full object-cover"
+            onError={() => setImgError(true)}
+          />
+        )}
+      </span>
+      <div className="min-w-0 flex-1">
+        <h3 className="text-lg font-semibold tracking-tight">{isAr ? tool.nameAr : tool.nameEn}</h3>
+        <p className="mt-1 text-sm font-normal text-[#6e6e73]">{isAr ? tool.descAr : tool.descEn}</p>
+      </div>
+      <span className="text-2xl text-[#6e6e73]">›</span>
+    </a>
+  );
+}
+
+function LandingExerciseCategoryCard({ cat, isAr }: { cat: any; isAr: boolean }) {
+  const [imgError, setImgError] = useState(false);
+  return (
+    <a
+      href={`/exercises?cat=${cat.slug}`}
+      className="group block overflow-hidden rounded-3xl bg-[#f5f5f7] text-center transition-opacity hover:opacity-90"
+    >
+      <div className="aspect-[4/3] w-full overflow-hidden bg-white">
+        {imgError ? (
+          <div className="flex h-full w-full items-center justify-center">
+            <span className="text-4xl">{cat.emoji}</span>
+          </div>
+        ) : (
+          <img
+            src={cat.image}
+            alt={isAr ? cat.labelAr : cat.labelEn}
+            loading="lazy"
+            className="h-full w-full object-contain"
+            onError={() => setImgError(true)}
+          />
+        )}
+      </div>
+      <div className="p-4">
+        <h3 className="text-base font-semibold tracking-tight">{isAr ? cat.labelAr : cat.labelEn}</h3>
+        <p className="mt-1 text-xs font-normal text-[#6e6e73]">{cat.count} {isAr ? "تمارين" : "exercises"}</p>
+      </div>
+    </a>
+  );
+}
+
+function LandingProgramCard({ prog, isAr }: { prog: any; isAr: boolean }) {
+  const [imgError, setImgError] = useState(false);
+  return (
+    <a
+      href={`/programs/${prog.slug}`}
+      className="group block overflow-hidden rounded-3xl bg-white transition-opacity hover:opacity-90"
+    >
+      <div className="aspect-[16/10] w-full overflow-hidden">
+        {imgError ? (
+          <div className="flex h-full w-full items-center justify-center bg-[#f5f5f7]">
+            <span className="text-4xl">{prog.emoji}</span>
+          </div>
+        ) : (
+          <img
+            src={prog.image}
+            alt={isAr ? prog.titleAr : prog.titleEn}
+            loading="lazy"
+            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+            onError={() => setImgError(true)}
+          />
+        )}
+      </div>
+      <div className="p-6">
+        <h3 className="text-lg font-semibold tracking-tight">{isAr ? prog.titleAr : prog.titleEn}</h3>
+        <p className="mt-1 text-sm font-normal text-[#6e6e73]">{isAr ? prog.descAr : prog.descEn}</p>
+        <p className="mt-3 text-sm font-normal text-[#0071e3]">{isAr ? "ابدأ الآن ›" : "Start now ›"}</p>
+      </div>
+    </a>
+  );
+}
+
+function LandingFoodCategoryCard({ cat, isAr }: { cat: any; isAr: boolean }) {
+  const [imgError, setImgError] = useState(false);
+  return (
+    <a
+      href="/foods"
+      className="group block overflow-hidden rounded-3xl bg-[#f5f5f7] transition-opacity hover:opacity-90"
+    >
+      <div className="aspect-square w-full overflow-hidden">
+        {imgError ? (
+          <div className="flex h-full w-full items-center justify-center bg-[#f5f5f7]">
+            <span className="text-4xl">{cat.emoji}</span>
+          </div>
+        ) : (
+          <img
+            src={cat.image}
+            alt={isAr ? cat.titleAr : cat.titleEn}
+            loading="lazy"
+            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+            onError={() => setImgError(true)}
+          />
+        )}
+      </div>
+      <div className="p-4 text-center">
+        <h3 className="text-base font-semibold tracking-tight">{isAr ? cat.titleAr : cat.titleEn}</h3>
+        <p className="mt-1 text-xs font-normal text-[#6e6e73]">{isAr ? cat.descAr : cat.descEn}</p>
+      </div>
+    </a>
   );
 }

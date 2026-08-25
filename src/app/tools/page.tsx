@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useI18n } from "@/lib/i18n";
 import { SiteHeader } from "@/components/SiteHeader";
 
@@ -90,42 +91,46 @@ export default function ToolsPage() {
 
         <div className="mt-10 grid grid-cols-1 gap-4 sm:grid-cols-2">
           {tools.map((tool) => (
-            <a
-              key={tool.slug}
-              href={tool.slug.startsWith("/") ? tool.slug : `/tools/${tool.slug}`}
-              className="group flex items-center gap-4 rounded-3xl bg-[#f5f5f7] p-6 transition-opacity hover:opacity-90"
-            >
-              <span
-                className="grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-2xl text-2xl"
-                style={{ backgroundColor: `${tool.color}15` }}
-              >
-                <img
-                  src={tool.image}
-                  alt={isAr ? tool.nameAr : tool.nameEn}
-                  loading="lazy"
-                  className="h-full w-full object-cover"
-                  onError={(e) => {
-                    // Hide image on error, fall back to emoji text
-                    (e.target as HTMLImageElement).style.display = "none";
-                    const fallback = (e.target as HTMLImageElement).nextElementSibling;
-                    if (fallback) (fallback as HTMLElement).style.display = "inline";
-                  }}
-                />
-                <span style={{ display: "none" }}>{tool.emoji}</span>
-              </span>
-              <div className="min-w-0 flex-1">
-                <h3 className="text-lg font-semibold tracking-tight">
-                  {isAr ? tool.nameAr : tool.nameEn}
-                </h3>
-                <p className="mt-1 text-sm font-normal text-[#6e6e73]">
-                  {isAr ? tool.descAr : tool.descEn}
-                </p>
-              </div>
-              <span className="text-2xl text-[#6e6e73]">›</span>
-            </a>
+            <ToolCard key={tool.slug} tool={tool} isAr={isAr} />
           ))}
         </div>
       </main>
     </div>
+  );
+}
+
+function ToolCard({ tool, isAr }: { tool: typeof tools[number]; isAr: boolean }) {
+  const [imgError, setImgError] = useState(false);
+  return (
+    <a
+      href={tool.slug.startsWith("/") ? tool.slug : `/tools/${tool.slug}`}
+      className="group flex items-center gap-4 rounded-3xl bg-[#f5f5f7] p-6 transition-opacity hover:opacity-90"
+    >
+      <span
+        className="grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-2xl text-2xl"
+        style={{ backgroundColor: `${tool.color}15` }}
+      >
+        {imgError ? (
+          <span>{tool.emoji}</span>
+        ) : (
+          <img
+            src={tool.image}
+            alt={isAr ? tool.nameAr : tool.nameEn}
+            loading="lazy"
+            className="h-full w-full object-cover"
+            onError={() => setImgError(true)}
+          />
+        )}
+      </span>
+      <div className="min-w-0 flex-1">
+        <h3 className="text-lg font-semibold tracking-tight">
+          {isAr ? tool.nameAr : tool.nameEn}
+        </h3>
+        <p className="mt-1 text-sm font-normal text-[#6e6e73]">
+          {isAr ? tool.descAr : tool.descEn}
+        </p>
+      </div>
+      <span className="text-2xl text-[#6e6e73]">›</span>
+    </a>
   );
 }

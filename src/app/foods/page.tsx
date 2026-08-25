@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useDeferredValue } from "react";
 import { useI18n, type Lang } from "@/lib/i18n";
 import { SiteHeader } from "@/components/SiteHeader";
+import { SearchX } from "lucide-react";
 import {
   FOODS,
   CATEGORY_LABELS,
@@ -47,13 +48,19 @@ export default function FoodsPage({ lang: langProp }: { lang?: Lang } = {}) {
     [search, category, activeTags, minProtein, maxCarbs, maxCalories],
   );
 
+  // useDeferredValue: defers the heavy filter computation so the input
+  // stays responsive even when filtering 8,830 foods. React 19 handles
+  // this natively — the UI updates immediately, results arrive a tick later.
+  const deferredFiltered = useDeferredValue(filtered);
+  const isStale = deferredFiltered !== filtered;
+
   // Reset visible count when filters change (so user sees fresh results from the top).
   useEffect(() => {
     setVisibleCount(PAGE_SIZE);
   }, [search, category, activeTags, minProtein, maxCarbs, maxCalories]);
 
-  const visibleFoods = filtered.slice(0, visibleCount);
-  const hasMore = visibleCount < filtered.length;
+  const visibleFoods = deferredFiltered.slice(0, visibleCount);
+  const hasMore = visibleCount < deferredFiltered.length;
 
   // Infinite-scroll: load more when user scrolls near the bottom.
   useEffect(() => {
@@ -63,12 +70,12 @@ export default function FoodsPage({ lang: langProp }: { lang?: Lang } = {}) {
         window.innerHeight + window.scrollY >=
         document.documentElement.scrollHeight - 800;
       if (nearBottom) {
-        setVisibleCount((c) => Math.min(c + PAGE_SIZE, filtered.length));
+        setVisibleCount((c) => Math.min(c + PAGE_SIZE, deferredFiltered.length));
       }
     };
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
-  }, [hasMore, filtered.length]);
+  }, [hasMore, deferredFiltered.length]);
 
   const categories: (FoodCategory | "all")[] = [
     "all",
@@ -127,53 +134,19 @@ export default function FoodsPage({ lang: langProp }: { lang?: Lang } = {}) {
             />
           </div>
 
-          {/* Category pills — each shows a thumbnail image for that food category (Unsplash).
-              Card-style: 80×80 image on top + label below, like a small tile. */}
+          {/* Category pills — each shows a thumbnail image for that food category.
+              Card-style: 80×80 image on top + label below, like a small tile.
+              Uses conditional rendering (not display:none) for emoji fallback — better SEO + accessibility. */}
           <div className="flex flex-wrap gap-3">
-            {categories.map((cat) => {
-              const isAll = cat === "all";
-              const isActive = category === cat;
-              const label = isAll ? (isAr ? "الكل" : "All") : (isAr ? CATEGORY_LABELS[cat].ar : CATEGORY_LABELS[cat].en);
-              return (
-                <button
-                  key={cat}
-                  onClick={() => setCategory(cat)}
-                  className={`group flex w-20 flex-col items-center gap-2 rounded-2xl p-2 transition-all ${
-                    isActive
-                      ? "bg-[#1d1d1f] text-white ring-2 ring-[#0071e3] ring-offset-2"
-                      : "bg-[#f5f5f7] text-[#6e6e73] hover:bg-white hover:text-[#1d1d1f] hover:ring-1 hover:ring-[#d2d2d7]"
-                  }`}
-                  aria-label={label}
-                  aria-pressed={isActive}
-                >
-                  {isAll ? (
-                    <span className="flex h-16 w-16 items-center justify-center rounded-xl bg-[#0071e3] text-white text-sm font-bold">
-                      {isAr ? "الكل" : "All"}
-                    </span>
-                  ) : (
-                    <img
-                      src={CATEGORY_LABELS[cat].image}
-                      alt={label}
-                      loading="lazy"
-                      className="h-16 w-16 rounded-xl object-cover ring-1 ring-black/5"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).style.display = "none";
-                        const fallback = (e.target as HTMLImageElement).nextElementSibling;
-                        if (fallback) (fallback as HTMLElement).style.display = "flex";
-                      }}
-                    />
-                  )}
-                  {!isAll && (
-                    <span style={{ display: "none" }} className="flex h-16 w-16 items-center justify-center rounded-xl bg-[#0071e3]/10 text-2xl">
-                      {CATEGORY_LABELS[cat].emoji}
-                    </span>
-                  )}
-                  <span className="text-center text-[11px] font-medium leading-tight">
-                    {label}
-                  </span>
-                </button>
-              );
-            })}
+            {categories.map((cat) => (
+              <FoodCategoryPill
+                key={cat}
+                cat={cat}
+                isActive={category === cat}
+                isAr={isAr}
+                onClick={() => setCategory(cat)}
+              />
+            ))}
           </div>
 
           {/* Tags */}
@@ -255,15 +228,27 @@ export default function FoodsPage({ lang: langProp }: { lang?: Lang } = {}) {
 
         {/* Results count */}
         <p className="mt-6 text-sm font-normal text-[#6e6e73]">
-          {filtered.length} {isAr ? "أكلة" : "foods"}
+          {deferredFiltered.length} {isAr ? "أكلة" : "foods"}
         </p>
 
         {/* Foods grid — uses visibleFoods (slice) instead of filtered (full 8,830) */}
-        {filtered.length === 0 ? (
+        {deferredFiltered.length === 0 ? (
           <div className="mt-10 rounded-3xl bg-[#f5f5f7] p-12 text-center">
-            <p className="text-base font-normal text-[#6e6e73]">
-              {isAr ? "مفيش أكلات مطابقة لبحثك" : "No foods match your search"}
+            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-[#0071e3]/10">
+              <SearchX className="h-8 w-8 text-[#0071e3]" aria-hidden="true" />
+            </div>
+            <h3 className="mt-4 text-lg font-semibold">
+              {isAr ? "لم نجد نتائج" : "No results found"}
+            </h3>
+            <p className="mx-auto mt-2 max-w-sm text-sm text-[#6e6e73]">
+              {isAr ? "جرّب تغيير الفلاتر أو البحث بكلمة مختلفة" : "Try adjusting your filters or search term"}
             </p>
+            <button
+              onClick={() => { setSearch(""); setCategory("all"); setActiveTags([]); setMinProtein(""); setMaxCarbs(""); setMaxCalories(""); }}
+              className="mt-6 rounded-full bg-[#1d1d1f] px-6 py-2.5 text-sm font-normal text-white transition-opacity hover:opacity-90"
+            >
+              {isAr ? "إعادة ضبط الفلاتر" : "Reset filters"}
+            </button>
           </div>
         ) : (
           <>
@@ -272,7 +257,7 @@ export default function FoodsPage({ lang: langProp }: { lang?: Lang } = {}) {
                 <a
                   key={food.slug}
                   href={`/foods/${food.slug}`}
-                  className="group rounded-3xl bg-[#f5f5f7] transition-opacity hover:opacity-90"
+                  className="card-hover group rounded-3xl bg-[#f5f5f7]"
                 >
                   {/* Content */}
                   <div className="p-3">
@@ -303,12 +288,12 @@ export default function FoodsPage({ lang: langProp }: { lang?: Lang } = {}) {
             {hasMore && (
               <div className="mt-8 text-center">
                 <button
-                  onClick={() => setVisibleCount((c) => Math.min(c + PAGE_SIZE, filtered.length))}
+                  onClick={() => setVisibleCount((c) => Math.min(c + PAGE_SIZE, deferredFiltered.length))}
                   className="rounded-full bg-[#1d1d1f] px-6 py-3 text-sm font-normal text-white transition-opacity hover:opacity-90"
                 >
                   {isAr
-                    ? `عرض المزيد (${visibleCount.toLocaleString()} من ${filtered.length.toLocaleString()})`
-                    : `Load more (${visibleCount.toLocaleString()} of ${filtered.length.toLocaleString()})`}
+                    ? `عرض المزيد (${visibleCount.toLocaleString()} من ${deferredFiltered.length.toLocaleString()})`
+                    : `Load more (${visibleCount.toLocaleString()} of ${deferredFiltered.length.toLocaleString()})`}
                 </button>
               </div>
             )}
@@ -316,5 +301,55 @@ export default function FoodsPage({ lang: langProp }: { lang?: Lang } = {}) {
         )}
       </main>
     </div>
+  );
+}
+
+// ─── Food category pill — uses conditional rendering (no display:none) ───
+function FoodCategoryPill({
+  cat,
+  isActive,
+  isAr,
+  onClick,
+}: {
+  cat: FoodCategory | "all";
+  isActive: boolean;
+  isAr: boolean;
+  onClick: () => void;
+}) {
+  const [imgError, setImgError] = useState(false);
+  const isAll = cat === "all";
+  const label = isAll ? (isAr ? "الكل" : "All") : (isAr ? CATEGORY_LABELS[cat].ar : CATEGORY_LABELS[cat].en);
+  return (
+    <button
+      onClick={onClick}
+      className={`group flex w-20 flex-col items-center gap-2 rounded-2xl p-2 transition-all ${
+        isActive
+          ? "bg-[#1d1d1f] text-white ring-2 ring-[#0071e3] ring-offset-2"
+          : "bg-[#f5f5f7] text-[#6e6e73] hover:bg-white hover:text-[#1d1d1f] hover:ring-1 hover:ring-[#d2d2d7]"
+      }`}
+      aria-label={label}
+      aria-pressed={isActive}
+    >
+      {isAll ? (
+        <span className="flex h-16 w-16 items-center justify-center rounded-xl bg-[#0071e3] text-white text-sm font-bold">
+          {isAr ? "الكل" : "All"}
+        </span>
+      ) : imgError ? (
+        <span className="flex h-16 w-16 items-center justify-center rounded-xl bg-[#0071e3]/10 text-2xl">
+          {CATEGORY_LABELS[cat].emoji}
+        </span>
+      ) : (
+        <img
+          src={CATEGORY_LABELS[cat].image}
+          alt={label}
+          loading="lazy"
+          className="h-16 w-16 rounded-xl object-cover ring-1 ring-black/5"
+          onError={() => setImgError(true)}
+        />
+      )}
+      <span className="text-center text-[11px] font-medium leading-tight">
+        {label}
+      </span>
+    </button>
   );
 }

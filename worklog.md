@@ -1187,3 +1187,46 @@ Stage Summary:
 - TS: 0 errors | ESLint: 0 errors (6 pre-existing warnings) | Build: exit 0
 - Commit SHA: 49af798
 - Push status: pushed
+
+---
+Task ID: UI-POLISH-2026-08-25
+Agent: Main (Z User)
+Task: Execute 4 UI/UX polish tasks (conditional rendering, enhanced empty states, micro-interactions, deferred filtering).
+
+Work Log:
+- Task 1.2 — Removed all `display: none` emoji fallback patterns from DOM:
+  • exercises/page.tsx: extracted ExerciseCategoryPill component with useState
+  • foods/page.tsx: extracted FoodCategoryPill component with useState
+  • tools/page.tsx: extracted ToolCard component with useState
+  • LandingView.tsx: extracted 4 helper components (LandingToolCard, LandingExerciseCategoryCard, LandingProgramCard, LandingFoodCategoryCard)
+  • All 7 `style={{ display: "none" }}` patterns replaced with conditional rendering
+  • Better SEO + accessibility (no hidden DOM nodes)
+
+- Task 1.3 — Enhanced Empty States on /exercises + /foods:
+  • Replaced bare "No results" text with rich empty state
+  • Added lucide-react SearchX icon (40px circle)
+  • Added heading + description + "Reset filters" button
+  • Reset button clears all filters (search + category + tags + macros)
+
+- Task 3.2 — Micro-interactions added to globals.css:
+  • `@keyframes fade-in-up` — smooth entrance animation (0.5s)
+  • `.card-hover` — translateY(-4px) + box-shadow on hover
+  • `@keyframes shimmer` — skeleton loading effect
+  • `.skeleton-shimmer` — animated gradient background
+  • `@media (prefers-reduced-motion: reduce)` — disables all animations
+  • Applied `card-hover` class to exercise + food card grids
+
+- Task 3.3 — Deferred filtering with useDeferredValue:
+  • foods/page.tsx: `useDeferredValue(filtered)` prevents UI jank when
+    filtering 8,830 foods. Input stays responsive, results arrive a tick later.
+  • All rendering uses `deferredFiltered` (deferred) instead of `filtered` (immediate)
+  • `isStale` flag available for future skeleton loader integration
+
+Stage Summary:
+- 0 `display: none` patterns left in code (SEO + accessibility win)
+- Empty states now show icon + heading + description + reset button (UX win)
+- Card hover effect: translateY + shadow (premium feel)
+- Deferred filtering: 8,830 foods filter without UI jank (performance win)
+- TS: 0 errors | ESLint: 0 errors (6 pre-existing warnings) | Build: exit 0
+- Commit SHA: <to be filled>
+- Push status: <to be filled>

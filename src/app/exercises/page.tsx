@@ -4,6 +4,7 @@ import { useState, useMemo, useEffect } from "react";
 import { useI18n, type Lang } from "@/lib/i18n";
 import { SiteHeader } from "@/components/SiteHeader";
 import { getExerciseImages, getFallbackSVG, getExerciseImageUrl } from "@/lib/exercise-images";
+import { SearchX } from "lucide-react";
 import {
   EXERCISES,
   CATEGORY_LABELS,
@@ -123,52 +124,18 @@ export default function ExercisesPage({ lang: langProp }: { lang?: Lang } = {}) 
           </div>
 
           {/* Category pills — card-style with 64×64 thumbnail image on top + label below.
-              Each card represents a category using a representative exercise image from the library. */}
+              Each card represents a category using a representative exercise image from the library.
+              Uses conditional rendering (not display:none) for emoji fallback — better SEO + accessibility. */}
           <div className="flex flex-wrap gap-3">
-            {categories.map((cat) => {
-              const isAll = cat === "all";
-              const isActive = category === cat;
-              const label = isAll ? (isAr ? "الكل" : "All") : (isAr ? CATEGORY_LABELS[cat].ar : CATEGORY_LABELS[cat].en);
-              return (
-                <button
-                  key={cat}
-                  onClick={() => setCategory(cat)}
-                  className={`group flex w-20 flex-col items-center gap-2 rounded-2xl p-2 transition-all ${
-                    isActive
-                      ? "bg-[#1d1d1f] text-white ring-2 ring-[#0071e3] ring-offset-2"
-                      : "bg-[#f5f5f7] text-[#6e6e73] hover:bg-white hover:text-[#1d1d1f] hover:ring-1 hover:ring-[#d2d2d7]"
-                  }`}
-                  aria-label={label}
-                  aria-pressed={isActive}
-                >
-                  {isAll ? (
-                    <span className="flex h-16 w-16 items-center justify-center rounded-xl bg-[#0071e3] text-white text-sm font-bold">
-                      {isAr ? "الكل" : "All"}
-                    </span>
-                  ) : (
-                    <img
-                      src={getExerciseImageUrl(CATEGORY_LABELS[cat].image)}
-                      alt={label}
-                      loading="lazy"
-                      className="h-16 w-16 rounded-xl object-cover ring-1 ring-black/5"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).style.display = "none";
-                        const fallback = (e.target as HTMLImageElement).nextElementSibling;
-                        if (fallback) (fallback as HTMLElement).style.display = "flex";
-                      }}
-                    />
-                  )}
-                  {!isAll && (
-                    <span style={{ display: "none" }} className="flex h-16 w-16 items-center justify-center rounded-xl bg-[#0071e3]/10 text-2xl">
-                      {CATEGORY_LABELS[cat].emoji}
-                    </span>
-                  )}
-                  <span className="text-center text-[11px] font-medium leading-tight">
-                    {label}
-                  </span>
-                </button>
-              );
-            })}
+            {categories.map((cat) => (
+              <ExerciseCategoryPill
+                key={cat}
+                cat={cat}
+                isActive={category === cat}
+                isAr={isAr}
+                onClick={() => setCategory(cat)}
+              />
+            ))}
           </div>
 
           {/* Equipment + Level filters */}
@@ -220,9 +187,21 @@ export default function ExercisesPage({ lang: langProp }: { lang?: Lang } = {}) 
         {/* Exercises grid — uses visibleExercises (slice) instead of filtered (full 868) */}
         {filtered.length === 0 ? (
           <div className="mt-10 rounded-3xl bg-[#f5f5f7] p-12 text-center">
-            <p className="text-base font-normal text-[#6e6e73]">
-              {isAr ? "مفيش تمارين مطابقة لبحثك" : "No exercises match your search"}
+            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-[#0071e3]/10">
+              <SearchX className="h-8 w-8 text-[#0071e3]" aria-hidden="true" />
+            </div>
+            <h3 className="mt-4 text-lg font-semibold">
+              {isAr ? "لم نجد نتائج" : "No results found"}
+            </h3>
+            <p className="mx-auto mt-2 max-w-sm text-sm text-[#6e6e73]">
+              {isAr ? "جرّب تغيير الفلاتر أو البحث بكلمة مختلفة" : "Try adjusting your filters or search term"}
             </p>
+            <button
+              onClick={() => { setSearch(""); setCategory("all"); setEquipment("all"); setLevel("all"); }}
+              className="mt-6 rounded-full bg-[#1d1d1f] px-6 py-2.5 text-sm font-normal text-white transition-opacity hover:opacity-90"
+            >
+              {isAr ? "إعادة ضبط الفلاتر" : "Reset filters"}
+            </button>
           </div>
         ) : (
           <>
@@ -233,7 +212,7 @@ export default function ExercisesPage({ lang: langProp }: { lang?: Lang } = {}) 
                   <a
                     key={exercise.slug}
                     href={`/exercises/${exercise.slug}`}
-                    className="group overflow-hidden rounded-3xl bg-[#f5f5f7] transition-opacity hover:opacity-90"
+                    className="card-hover group overflow-hidden rounded-3xl bg-[#f5f5f7]"
                   >
                     {/* Images — show both side by side */}
                     <div className="aspect-[4/3] w-full overflow-hidden bg-white">
@@ -308,5 +287,55 @@ export default function ExercisesPage({ lang: langProp }: { lang?: Lang } = {}) 
         )}
       </main>
     </div>
+  );
+}
+
+// ─── Exercise category pill — uses conditional rendering (no display:none) ───
+function ExerciseCategoryPill({
+  cat,
+  isActive,
+  isAr,
+  onClick,
+}: {
+  cat: ExerciseCategory | "all";
+  isActive: boolean;
+  isAr: boolean;
+  onClick: () => void;
+}) {
+  const [imgError, setImgError] = useState(false);
+  const isAll = cat === "all";
+  const label = isAll ? (isAr ? "الكل" : "All") : (isAr ? CATEGORY_LABELS[cat].ar : CATEGORY_LABELS[cat].en);
+  return (
+    <button
+      onClick={onClick}
+      className={`group flex w-20 flex-col items-center gap-2 rounded-2xl p-2 transition-all ${
+        isActive
+          ? "bg-[#1d1d1f] text-white ring-2 ring-[#0071e3] ring-offset-2"
+          : "bg-[#f5f5f7] text-[#6e6e73] hover:bg-white hover:text-[#1d1d1f] hover:ring-1 hover:ring-[#d2d2d7]"
+      }`}
+      aria-label={label}
+      aria-pressed={isActive}
+    >
+      {isAll ? (
+        <span className="flex h-16 w-16 items-center justify-center rounded-xl bg-[#0071e3] text-white text-sm font-bold">
+          {isAr ? "الكل" : "All"}
+        </span>
+      ) : imgError ? (
+        <span className="flex h-16 w-16 items-center justify-center rounded-xl bg-[#0071e3]/10 text-2xl">
+          {CATEGORY_LABELS[cat].emoji}
+        </span>
+      ) : (
+        <img
+          src={getExerciseImageUrl(CATEGORY_LABELS[cat].image)}
+          alt={label}
+          loading="lazy"
+          className="h-16 w-16 rounded-xl object-cover ring-1 ring-black/5"
+          onError={() => setImgError(true)}
+        />
+      )}
+      <span className="text-center text-[11px] font-medium leading-tight">
+        {label}
+      </span>
+    </button>
   );
 }
