@@ -536,10 +536,10 @@ export function LandingView() {
           </div>
           <div className="mt-10 grid grid-cols-2 gap-4 md:grid-cols-4">
             {[
-              { emoji: "🥩", titleAr: "بروتين", titleEn: "Protein", descAr: "لحم، دجاج، بيض", descEn: "Meat, chicken, eggs", image: "https://images.unsplash.com/photo-1532550907401-a5007fb57bc2?w=400&q=80&auto=format&fit=crop" },
-              { emoji: "🍚", titleAr: "كارب", titleEn: "Carbs", descAr: "أرز، شوفان، بطاطس", descEn: "Rice, oats, potato", image: "https://images.unsplash.com/photo-1586201375761-83865074e770?w=400&q=80&auto=format&fit=crop" },
-              { emoji: "🥑", titleAr: "دهون", titleEn: "Fats", descAr: "أفوكادو، مكسرات", descEn: "Avocado, nuts", image: "https://images.unsplash.com/photo-1601039641847-7857b994d704?w=400&q=80&auto=format&fit=crop" },
-              { emoji: "🍎", titleAr: "فواكه وخضار", titleEn: "Fruits & Veg", descAr: "طازجة وصحية", descEn: "Fresh and healthy", image: "https://images.unsplash.com/photo-1619566636858-adf3ef46400b?w=400&q=80&auto=format&fit=crop" },
+              { emoji: "🥩", titleAr: "بروتين", titleEn: "Protein", descAr: "لحم، دجاج، بيض", descEn: "Meat, chicken, eggs", image: "/images/categories/foods/protein.png" },
+              { emoji: "🍚", titleAr: "كارب", titleEn: "Carbs", descAr: "أرز، شوفان، بطاطس", descEn: "Rice, oats, potato", image: "/images/categories/foods/carb.png" },
+              { emoji: "🥑", titleAr: "دهون", titleEn: "Fats", descAr: "أفوكادو، مكسرات", descEn: "Avocado, nuts", image: "/images/categories/foods/fat.png" },
+              { emoji: "🍎", titleAr: "فواكه وخضار", titleEn: "Fruits & Veg", descAr: "طازجة وصحية", descEn: "Fresh and healthy", image: "/images/categories/foods/fruit.png" },
             ].map((cat, i) => (
               <Reveal key={cat.titleEn} delay={i * 80}>
                 <a

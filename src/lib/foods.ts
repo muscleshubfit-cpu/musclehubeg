@@ -42,15 +42,15 @@ export type Food = {
 };
 
 export const CATEGORY_LABELS: Record<FoodCategory, { ar: string; en: string; emoji: string; image: string }> = {
-  protein: { ar: "بروتين", en: "Protein", emoji: "🥩", image: "https://images.unsplash.com/photo-1532550907401-a5007fb57bc2?w=400&q=80&auto=format&fit=crop" },
-  carb: { ar: "كارب", en: "Carbs", emoji: "🍚", image: "https://images.unsplash.com/photo-1586201375761-83865074e770?w=400&q=80&auto=format&fit=crop" },
-  fat: { ar: "دهون", en: "Fats", emoji: "🥑", image: "https://images.unsplash.com/photo-1601039641847-7857b994d704?w=400&q=80&auto=format&fit=crop" },
-  vegetable: { ar: "خضار", en: "Vegetables", emoji: "🥦", image: "https://images.unsplash.com/photo-1540420773420-3366772f4999?w=400&q=80&auto=format&fit=crop" },
-  fruit: { ar: "فواكه", en: "Fruits", emoji: "🍎", image: "https://images.unsplash.com/photo-1574226516831-e1dff420e572?w=400&q=80&auto=format&fit=crop" },
-  dairy: { ar: "ألبان", en: "Dairy", emoji: "🥛", image: "https://images.unsplash.com/photo-1563636612-e814b7e5d72e?w=400&q=80&auto=format&fit=crop" },
-  nuts: { ar: "مكسرات", en: "Nuts", emoji: "🥜", image: "https://images.unsplash.com/photo-1599909533730-c4a5b6b3c5a6?w=400&q=80&auto=format&fit=crop" },
-  snack: { ar: "سناك", en: "Snacks", emoji: "🍫", image: "https://images.unsplash.com/photo-1599639957037-8613d1b9b9c4?w=400&q=80&auto=format&fit=crop" },
-  drink: { ar: "مشروبات", en: "Drinks", emoji: "☕", image: "https://images.unsplash.com/photo-1497935586351-b67a49e012bf?w=400&q=80&auto=format&fit=crop" },
+  protein: { ar: "بروتين", en: "Protein", emoji: "🥩", image: "/images/categories/foods/protein.png" },
+  carb: { ar: "كارب", en: "Carbs", emoji: "🍚", image: "/images/categories/foods/carb.png" },
+  fat: { ar: "دهون", en: "Fats", emoji: "🥑", image: "/images/categories/foods/fat.png" },
+  vegetable: { ar: "خضار", en: "Vegetables", emoji: "🥦", image: "/images/categories/foods/vegetable.png" },
+  fruit: { ar: "فواكه", en: "Fruits", emoji: "🍎", image: "/images/categories/foods/fruit.png" },
+  dairy: { ar: "ألبان", en: "Dairy", emoji: "🥛", image: "/images/categories/foods/dairy.png" },
+  nuts: { ar: "مكسرات", en: "Nuts", emoji: "🥜", image: "/images/categories/foods/nuts.png" },
+  snack: { ar: "سناك", en: "Snacks", emoji: "🍫", image: "/images/categories/foods/snack.png" },
+  drink: { ar: "مشروبات", en: "Drinks", emoji: "☕", image: "/images/categories/foods/drink.png" },
 };
 
 export const TAG_LABELS: Record<string, { ar: string; en: string; color: string }> = {
