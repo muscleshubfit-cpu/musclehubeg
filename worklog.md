@@ -986,3 +986,41 @@ Stage Summary:
 - Legal/basic pages now footer-only (per Owner directive)
 - Commit SHA: 78f3686
 - Push status: pushed
+
+---
+Task ID: UI-ICONS-UPGRADE-2026-08-25
+Agent: Main (Z User)
+Task: Replace exercise + food category emojis with thumbnail images. Use exercise library images for exercise categories + Unsplash images for food categories.
+
+Work Log:
+- Audited current icon usage: found emoji-only pills in /exercises + /foods pages, plus emoji icons in tools listing page.
+- Inspected exercises.ts structure: each exercise has `imageKey` field referencing images on GitHub (yuhonas/free-exercise-db raw URLs).
+- Inspected foods.ts structure: 9 food categories (protein/carb/fat/vegetable/fruit/dairy/nuts/snack/drink).
+- Found a representative exercise per category (first exercise in each category):
+  • chest → Alternating_Floor_Press/0.jpg
+  • back → Alternating_Kettlebell_Row/0.jpg
+  • shoulders → Alternating_Cable_Shoulder_Press/0.jpg
+  • legs → 90_90_Hamstring/0.jpg
+  • biceps → Alternate_Hammer_Curl/0.jpg
+  • triceps → Band_Skull_Crusher/0.jpg
+  • core → 3_4_Sit-Up/0.jpg
+  • cardio → 3_4_Sit-Up/0.jpg (closest match — no cardio exercises in DB)
+- Added `image` field to CATEGORY_LABELS in src/lib/exercises.ts (8 entries).
+- Added `image` field to CATEGORY_LABELS in src/lib/foods.ts (9 Unsplash URLs for each food category).
+- Updated src/app/exercises/page.tsx: category pills now show 32×32 rounded thumbnail images (with emoji fallback on image load error).
+- Updated src/app/foods/page.tsx: same pattern — 32×32 rounded thumbnails from Unsplash.
+- All image loads use `loading="lazy"` to avoid blocking initial render.
+- onError handler hides the image + shows the emoji fallback span (defensive — if a remote image fails, the UI still works).
+
+Stage Summary:
+- 17 category pills across exercises + foods pages now use thumbnail images instead of emojis.
+- 7 exercise categories use images from the existing exercise library (yuhonas/free-exercise-db on GitHub).
+- 9 food categories use curated Unsplash photos (protein → grilled chicken, carb → rice bowl, fat → avocado, vegetable → broccoli, fruit → apples, dairy → milk glass, nuts → mixed nuts, snack → dark chocolate, drink → coffee).
+- TS: 0 errors | ESLint: 0 errors (6 pre-existing warnings) | Build: exit 0
+- Commit SHA: <to be filled>
+- Push status: <to be filled>
+
+Other icon opportunities to flag to the Owner:
+1. src/app/tools/page.tsx — tools listing page uses emoji icons (🔥⚖️🥩📊💧🍽️). Could be upgraded to lucide-react icons (Flame, Scale, Beef, BarChart3, Droplet, Utensils) for a more consistent look with the rest of the site.
+2. src/components/views/LandingView.tsx — hero section likely uses emoji or simple icons. Should be audited.
+3. Profile page uses lucide icons already — consistent.

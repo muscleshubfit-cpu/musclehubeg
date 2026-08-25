@@ -41,16 +41,16 @@ export type Food = {
   tags: string[];
 };
 
-export const CATEGORY_LABELS: Record<FoodCategory, { ar: string; en: string; emoji: string }> = {
-  protein: { ar: "بروتين", en: "Protein", emoji: "🥩" },
-  carb: { ar: "كارب", en: "Carbs", emoji: "🍚" },
-  fat: { ar: "دهون", en: "Fats", emoji: "🥑" },
-  vegetable: { ar: "خضار", en: "Vegetables", emoji: "🥦" },
-  fruit: { ar: "فواكه", en: "Fruits", emoji: "🍎" },
-  dairy: { ar: "ألبان", en: "Dairy", emoji: "🥛" },
-  nuts: { ar: "مكسرات", en: "Nuts", emoji: "🥜" },
-  snack: { ar: "سناك", en: "Snacks", emoji: "🍫" },
-  drink: { ar: "مشروبات", en: "Drinks", emoji: "☕" },
+export const CATEGORY_LABELS: Record<FoodCategory, { ar: string; en: string; emoji: string; image: string }> = {
+  protein: { ar: "بروتين", en: "Protein", emoji: "🥩", image: "https://images.unsplash.com/photo-1532550907401-a5007fb57bc2?w=400&q=80&auto=format&fit=crop" },
+  carb: { ar: "كارب", en: "Carbs", emoji: "🍚", image: "https://images.unsplash.com/photo-1586201375761-83865074e770?w=400&q=80&auto=format&fit=crop" },
+  fat: { ar: "دهون", en: "Fats", emoji: "🥑", image: "https://images.unsplash.com/photo-1601039641847-7857b994d704?w=400&q=80&auto=format&fit=crop" },
+  vegetable: { ar: "خضار", en: "Vegetables", emoji: "🥦", image: "https://images.unsplash.com/photo-1540420773420-3366772f4999?w=400&q=80&auto=format&fit=crop" },
+  fruit: { ar: "فواكه", en: "Fruits", emoji: "🍎", image: "https://images.unsplash.com/photo-1574226516831-e1dff420e572?w=400&q=80&auto=format&fit=crop" },
+  dairy: { ar: "ألبان", en: "Dairy", emoji: "🥛", image: "https://images.unsplash.com/photo-1563636612-e814b7e5d72e?w=400&q=80&auto=format&fit=crop" },
+  nuts: { ar: "مكسرات", en: "Nuts", emoji: "🥜", image: "https://images.unsplash.com/photo-1599909533730-c4a5b6b3c5a6?w=400&q=80&auto=format&fit=crop" },
+  snack: { ar: "سناك", en: "Snacks", emoji: "🍫", image: "https://images.unsplash.com/photo-1599639957037-8613d1b9b9c4?w=400&q=80&auto=format&fit=crop" },
+  drink: { ar: "مشروبات", en: "Drinks", emoji: "☕", image: "https://images.unsplash.com/photo-1497935586351-b67a49e012bf?w=400&q=80&auto=format&fit=crop" },
 };
 
 export const TAG_LABELS: Record<string, { ar: string; en: string; color: string }> = {

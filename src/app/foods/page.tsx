@@ -94,23 +94,49 @@ export default function FoodsPage({ lang: langProp }: { lang?: Lang } = {}) {
             />
           </div>
 
-          {/* Category pills */}
+          {/* Category pills — each shows a thumbnail image for that food category (Unsplash) */}
           <div className="flex flex-wrap gap-2">
-            {categories.map((cat) => (
-              <button
-                key={cat}
-                onClick={() => setCategory(cat)}
-                className={`rounded-full px-4 py-2 text-sm font-normal transition-all ${
-                  category === cat
-                    ? "bg-[#1d1d1f] text-white"
-                    : "bg-[#f5f5f7] text-[#6e6e73] hover:text-[#1d1d1f]"
-                }`}
-              >
-                {cat === "all"
-                  ? isAr ? "الكل" : "All"
-                  : `${CATEGORY_LABELS[cat].emoji} ${isAr ? CATEGORY_LABELS[cat].ar : CATEGORY_LABELS[cat].en}`}
-              </button>
-            ))}
+            {categories.map((cat) => {
+              const isAll = cat === "all";
+              const isActive = category === cat;
+              return (
+                <button
+                  key={cat}
+                  onClick={() => setCategory(cat)}
+                  className={`group flex items-center gap-2 rounded-full pe-4 ps-1 py-1 text-sm font-normal transition-all ${
+                    isActive
+                      ? "bg-[#1d1d1f] text-white"
+                      : "bg-[#f5f5f7] text-[#6e6e73] hover:text-[#1d1d1f]"
+                  }`}
+                  aria-label={isAll ? (isAr ? "الكل" : "All") : (isAr ? CATEGORY_LABELS[cat].ar : CATEGORY_LABELS[cat].en)}
+                >
+                  {isAll ? (
+                    <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#0071e3] text-white text-xs font-bold">
+                      {isAr ? "الكل" : "All"}
+                    </span>
+                  ) : (
+                    <img
+                      src={CATEGORY_LABELS[cat].image}
+                      alt={isAr ? CATEGORY_LABELS[cat].ar : CATEGORY_LABELS[cat].en}
+                      loading="lazy"
+                      className="h-8 w-8 rounded-full object-cover ring-1 ring-black/5"
+                      onError={(e) => {
+                        // Hide image on error, fall back to emoji text
+                        (e.target as HTMLImageElement).style.display = "none";
+                        const fallback = (e.target as HTMLImageElement).nextElementSibling;
+                        if (fallback) (fallback as HTMLElement).style.display = "inline";
+                      }}
+                    />
+                  )}
+                  {!isAll && (
+                    <span style={{ display: "none" }} className="flex h-8 w-8 items-center justify-center rounded-full bg-[#0071e3]/10 text-base">
+                      {CATEGORY_LABELS[cat].emoji}
+                    </span>
+                  )}
+                  <span>{isAll ? (isAr ? "الكل" : "All") : (isAr ? CATEGORY_LABELS[cat].ar : CATEGORY_LABELS[cat].en)}</span>
+                </button>
+              );
+            })}
           </div>
 
           {/* Tags */}
