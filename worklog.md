@@ -2623,3 +2623,47 @@ Stage Summary:
 - Existing `getFallbackSVG` SVG markup strings continue to work as `<Image src>` (same as the existing pre-migration pattern in exercises/page.tsx and ExerciseDetailClient.tsx that already passed `getFallbackSVG` directly to `<Image src>`).
 - Commit SHA: dd9e80b
 - Push status: pushed
+
+---
+Task ID: FIX-SPLIT-DATA-TS-051
+Agent: Main (Z User)
+Task: Split the monolithic `src/lib/data.ts` (1601 lines, 58 exports) into domain-specific modules under `src/lib/data/` with a barrel `index.ts` that re-exports everything — so ALL existing `from "@/lib/data"` imports keep working with ZERO changes to consumer files.
+
+Work Log:
+- Read `src/lib/data.ts` end-to-end (lines 1-1601) to map every export, every cross-call between exports, and the full set of shared internal helpers (`uid`, `read<T>`, `write<T>`, `validateUploadFile`, `MAX_FILE_SIZE_LABEL`, the 11 `LS_*` localStorage constants, `LS_PREFIX = "mhe:"`, the `StoredUser` / `Session` types) plus the 6 re-exported upstream dependencies (`supabase`, `isSupabaseConfigured`, `Profile`, `swapLimitFor`, `trackReferral`/`awardCommission`, `processSubscriptionInitialPayment`, `getReferralCookie`/`clearReferralCookie`).
+- Verified the raw byte-level indentation style of the original file (1-space base indentation, with the blog functions using a 2-space `try` block) via a Python byte dump, so the transcribed function bodies preserve the EXACT original whitespace.
+- Grepped all 20 consumer files that import `from "@/lib/data"` and confirmed none import the internal-only helpers (`read`, `write`, LS_* constants, `StoredUser`, `Session`) — they only import the public API functions. Re-exporting the helpers anyway as a strict superset (safe — adding exports never breaks consumers).
+- Created `src/lib/data/` directory with 13 files:
+  • `helpers.ts` — re-exports the 6 upstream deps (`supabase`, `isSupabaseConfigured`, `Profile`, `swapLimitFor`, `trackReferral`, `awardCommission`, `processSubscriptionInitialPayment`, `getReferralCookie`, `clearReferralCookie`), defines `validateUploadFile` (+ local `MAX_FILE_SIZE_LABEL`), all 11 `LS_*` constants + `LS_PREFIX`, the `StoredUser` / `Session` types, and `read<T>` / `write<T>` / `uid`.
+  • `notifications.ts` — `listNotifications`, `markNotificationsRead`, `createNotification`, `listAdminNotifications`, `markAdminNotificationsRead`, `createAdminNotification`. Imports only from `./helpers` (no cross-module deps — base of the dependency DAG).
+  • `auth.ts` — `signUpEmail`, `signInEmail`, `signOut`, `signInWithGoogle`, `fetchProfile`, `onAuthChange`, `seedLocalData`. Imports from `./helpers` + `createAdminNotification` from `./notifications`.
+  • `plans.ts` — `listPlans`, `listAllClientPlans`, `activatePlan`, `recordSwap`, `getSwapUsage`, `addPlan`, `deletePlan`, `updatePlan`, `createSwapRequest`. Imports from `./helpers` + `createNotification`/`createAdminNotification` from `./notifications` + `getSubscriptionForClient` from `./subscriptions`.
+  • `progress.ts` — `listProgress`, `addProgress`, `listPhotos`, `uploadPhoto`, `deletePhoto`. Imports only from `./helpers` (uses `validateUploadFile` + the `supabase!` non-null assertion in `listPhotos`, preserved verbatim).
+  • `tickets.ts` — `listTickets`, `createTicket`, `listTicketMessages`, `addTicketMessage`, `updateTicketStatus`, `listAllTickets`. Imports from `./helpers` + `createAdminNotification` from `./notifications`.
+  • `subscriptions.ts` — `listSubscriptionRequests`, `submitSubscriptionRequest`, `reviewSubscriptionRequest`, `getReceiptSignedUrl`, `uploadReceipt`, `uploadPlanFile`, `getPlanFileUrl`, `listAllSubscriptions`, `getSubscriptionForClient`, `listSubscriptionsForClient`, `upsertSubscription`, `listAllClients`, `getCoachClientListOptimized`. Imports from `./helpers` (incl. `validateUploadFile` + `processSubscriptionInitialPayment` + `Profile`) + `createNotification`/`createAdminNotification` from `./notifications`.
+  • `chat.ts` — `listChat`, `addChat`. Imports only from `./helpers`.
+  • `questionnaires.ts` — `getQuestionnaire`, `upsertQuestionnaire`, `setQuestionnaireStatus`. Imports from `./helpers` + `createNotification`/`createAdminNotification` from `./notifications`.
+  • `referrals.ts` — `getReferralStats`, `createReferral`. Imports only from `./helpers`.
+  • `blog.ts` — `listBlogPosts`, `getBlogPost`. Imports only from `./helpers` (preserved the original 2-space `try`-block indentation).
+  • `coach.ts` — `getCoachPresence`, `updateCoachPresence`. Imports only from `./helpers`.
+  • `index.ts` — barrel that does `export * from "./helpers"` + `export * from "./auth"` + ... + `export * from "./coach"` (12 re-export lines). Verified no export-name collisions across modules before writing.
+- Dependency DAG (all acyclic — no circular imports):
+    helpers  ←  notifications  ←  auth
+                              ←  tickets
+                              ←  questionnaires
+                              ←  subscriptions  ←  plans
+- Every module file starts with `"use client";` (matching the original `data.ts` directive). The barrel `index.ts` intentionally has NO directive — the client boundary is determined per exporting module, and re-exporting preserves the client-reference nature for server-side importers (e.g. `src/lib/tier-limits.ts` and `src/app/api/ai/chat/route.ts` that import `getSubscriptionForClient`), preserving the exact original boundary structure.
+- Deleted the old monolithic `src/lib/data.ts`. TypeScript's `moduleResolution: "bundler"` resolves `@/lib/data` → `src/lib/data/index.ts` automatically (no path-alias change needed).
+- Did NOT modify any file outside `src/lib/data/` (except deleting the old `data.ts`). All 20 consumer files unchanged.
+
+Verification (all green):
+- `bunx tsc --noEmit` → EXIT_CODE=0 (0 TypeScript errors). Confirms every `from "@/lib/data"` named import across all 20 consumer files still resolves.
+- `bunx next build` → EXIT_CODE=0 (full production build succeeds; all routes compiled, Turbopack build completed).
+- `bunx vitest run` → 3 test files, 34 tests passed (memberships: 14, safe-redirect: 12, tier-limits: 8), EXIT_CODE=0.
+- `bun run lint` → 0 errors, 538 warnings (all pre-existing `@typescript-eslint/no-explicit-any` warnings carried over verbatim from the original function bodies — no new warnings introduced).
+
+Stage Summary:
+- 1 file deleted (`src/lib/data.ts`, 1601 lines) → 13 files created under `src/lib/data/` (helpers, auth, plans, progress, tickets, notifications, subscriptions, chat, questionnaires, referrals, blog, coach, index).
+- All 58 exports preserved with identical function bodies (including 1-space indentation, Arabic UI strings, `supabase!` non-null assertion, `try/catch` swallow patterns, RLS-bypass `/api/notifications/admin` fetch in `createAdminNotification`).
+- All 20 consumer files (`tier-limits.ts`, `use-auth.tsx`, `use-membership-tier.ts`, `api/ai/chat/route.ts`, `meal-planner/page.tsx`, + 14 view/component files) continue to import from `@/lib/data` unchanged — the barrel makes the split transparent to consumers.
+- Net behavior change: ZERO. This is a pure refactor for maintainability.
