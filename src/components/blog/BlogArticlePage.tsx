@@ -6,15 +6,39 @@ import { getBlogPost, getRelatedPosts, getLinkedPost, parseTableOfContents, rend
 import { BlogMembershipCard, SocialShare, ReadingProgress, TableOfContents } from "./BlogComponents";
 import { AdSenseAd } from "@/components/AdSenseAd";
 
-export function BlogArticlePage({ lang, slug }: { lang: "en" | "ar"; slug: string }) {
+export function BlogArticlePage({
+  lang,
+  slug,
+  initialPost,
+}: {
+  lang: "en" | "ar";
+  slug: string;
+  initialPost?: BlogPost | null;
+}) {
   const isAr = lang === "ar";
-  const [post, setPost] = useState<BlogPost | null>(null);
+  // M28 fix: accept initialPost as a prop from the server component.
+  // If provided, use it immediately (server-rendered content in initial HTML).
+  // If not (e.g. fallback), fetch client-side as before.
+  const [post, setPost] = useState<BlogPost | null>(initialPost ?? null);
   const [linked, setLinked] = useState<BlogPost | null>(null);
   const [related, setRelated] = useState<BlogPost[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!initialPost);
   const [showCTA, setShowCTA] = useState(false);
 
   useEffect(() => {
+    if (initialPost) {
+      // Already have the post from server — just fetch related + linked
+      (async () => {
+        const [rel, lnk] = await Promise.all([
+          getRelatedPosts(initialPost),
+          getLinkedPost(initialPost),
+        ]);
+        setRelated(rel);
+        setLinked(lnk);
+      })();
+      return;
+    }
+    // No initial post — fetch client-side (fallback path)
     (async () => {
       setLoading(true);
       const p = await getBlogPost(lang, slug);
@@ -29,7 +53,7 @@ export function BlogArticlePage({ lang, slug }: { lang: "en" | "ar"; slug: strin
       }
       setLoading(false);
     })();
-  }, [lang, slug]);
+  }, [lang, slug, initialPost]);
 
   useEffect(() => {
     const handleScroll = () => {

@@ -103,3 +103,63 @@ export async function fetchBlogForOG(
     return null;
   }
 }
+
+/**
+ * M28 fix: fetch a published blog post's FULL content server-side.
+ *
+ * Previously BlogArticlePage was a "use client" component that fetched
+ * the post via getBlogPost() in a useEffect — Googlebot saw an empty
+ * <div> where the article body should be. This function fetches the
+ * full post server-side so the article HTML is in the initial response.
+ *
+ * Returns null when Supabase isn't configured, the post doesn't exist,
+ * or the request fails.
+ */
+export async function fetchBlogPostFull(
+  slug: string,
+  lang: "en" | "ar",
+): Promise<any | null> {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!supabaseUrl || !supabaseAnonKey) return null;
+
+  try {
+    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+    const { data } = await supabase
+      .from("blog_posts")
+      .select("*")
+      .eq("slug", slug)
+      .eq("language", lang)
+      .eq("is_published", true)
+      .maybeSingle();
+    if (!data) return null;
+    return data as BlogPostFull;
+  } catch {
+    return null;
+  }
+}
+
+export type BlogPostFull = {
+  id: string;
+  slug: string;
+  language: "en" | "ar";
+  title: string;
+  meta_title: string | null;
+  meta_description: string | null;
+  excerpt: string | null;
+  content: string;
+  featured_image: string | null;
+  cover_alt: string | null;
+  reading_time: number | null;
+  category: string | null;
+  keywords: string[] | null;
+  faq_json: any | null;
+  is_published: boolean;
+  author: string | null;
+  published_at: string | null;
+  created_at: string;
+  updated_at: string | null;
+  linked_post_id: string | null;
+};

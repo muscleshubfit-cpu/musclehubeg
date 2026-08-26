@@ -2237,3 +2237,25 @@ Stage Summary:
 - clearChat no longer resets the daily message counter.
 - Commit SHA: 0bdcaef
 - Push status: pushed
+
+---
+Task ID: FIX-BLOG-SERVER-RENDER-035
+Agent: Main (Z User)
+Task: Fix M28 — blog article body was client-rendered only (Googlebot saw empty article).
+
+Work Log:
+- Added fetchBlogPostFull() in blog-server.ts — fetches the full blog post (all fields including content) server-side.
+- Modified BlogArticlePage to accept optional `initialPost` prop:
+  - If provided (from server): uses it immediately, skips client fetch, fetches only related + linked posts.
+  - If not provided (fallback): fetches client-side as before.
+- Modified /blog/[slug]/page.tsx + /ar/blog/[slug]/page.tsx: calls fetchBlogPostFull() + passes result as initialPost to BlogArticlePage.
+- The article body (content, headings, markdown) is now in the initial server-rendered HTML — Googlebot sees the full article without executing JS.
+- Verified: tsc 0 errors, next build exit 0.
+
+Stage Summary:
+- Blog articles are now server-rendered (article body in initial HTML).
+- Googlebot can index full article content without JS execution.
+- Social previews that don't run JS (Bing, some scrapers) now see the article.
+- Falls back to client-side fetch if server fetch fails (graceful degradation).
+- Commit SHA: (pending)
+- Push status: (pending)

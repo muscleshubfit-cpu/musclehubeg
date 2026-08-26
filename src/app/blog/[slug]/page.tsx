@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { BlogArticlePage } from "@/components/blog/BlogArticlePage";
-import { fetchBlogForOG } from "@/lib/blog-server";
+import { fetchBlogForOG, fetchBlogPostFull } from "@/lib/blog-server";
 import { getArticleSchema, getBreadcrumbSchema } from "@/lib/seo";
 import type { Metadata } from "next";
 
@@ -89,6 +89,10 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
       ])
     : null;
 
+  // M28 fix: fetch the full post server-side so the article body is in
+  // the initial HTML (visible to Googlebot without executing JS).
+  const fullPost = await fetchBlogPostFull(slug, "en");
+
   return (
     <>
       {articleSchema && (
@@ -103,7 +107,7 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
           dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
         />
       )}
-      <BlogArticlePage lang="en" slug={slug} />
+      <BlogArticlePage lang="en" slug={slug} initialPost={fullPost} />
     </>
   );
 }
