@@ -30,9 +30,9 @@
 
 | ID | الوصف | الملف | الأولوية |
 |---|---|---|---|
-| — | لا توجد bugs حرجة أو عالية الأولوية مفتوحة في الكود الحالي — تم إصلاح 65 مشكلة في 2026-08-26 (انظر القسم أدناه) | — | — |
+| — | لا توجد bugs حرجة أو عالية الأولوية مفتوحة في الكود الحالي — تم إصلاح 71 مشكلة في 2026-08-26 (انظر القسم أدناه) | — | — |
 
-### إصلاحات 2026-08-26 (65 مشكلة عبر 32 commit)
+### إصلاحات 2026-08-26 (71 مشكلة عبر 35 commit)
 
 | الفئة | المشاكل | Commits |
 |---|---|---|
@@ -46,7 +46,7 @@
 | 📝 محتوى | M32-M34 (FAQ PayPal + tiers) | 8ab78fb |
 | 🔧 Minor/Polish | dead code, brand name, RTL, ShareButtons aria, OtherTools, referral cookie Secure, package.json name, NotificationBell polling | e2ae247, ba3cb0c |
 | 👤 Auth | M6 (email confirmation redirect bug), M2 (swap race condition) | dbc81e8 |
-| 📊 UX | M4 (profile stats dynamic), M14 (plans empty state guidance), M40 (Arabic detection), M39 (404 bilingual), M43 (meal planner persistence) | 702340d, ce8199d |
+| 📊 UX | M4 (profile stats dynamic), M14 (plans empty state guidance), M40 (Arabic detection), M39 (404 bilingual), M43 (meal planner persistence), M41 (blog header nav), M42 (link tags in body), M48 (meal planner grams), M46 (progress date picker), M45 (progress validation) | 702340d, ce8199d, 267fde0, 3d6708b |
 
 **Migrations المطلوبة على Supabase الإنتاج:**
 - `0017_security_rls_hardening.sql` — RLS + trigger + 2 SECURITY DEFINER functions

@@ -2097,8 +2097,8 @@ Stage Summary:
 - Blog readers can now navigate the full site from article pages.
 - SEO link tags are in <head> (server-side), not <body>.
 - Meal planner accepts fractional grams + blocks negative values.
-- Commit SHA: (pending)
-- Push status: (pending)
+- Commit SHA: 267fde0
+- Push status: pushed
 
 ---
 Task ID: FIX-PROGRESS-VALIDATION-028
@@ -2118,5 +2118,5 @@ Work Log:
 Stage Summary:
 - Users can back-date progress entries (date picker, max=today).
 - Progress data is validated (no NaN, no impossible values).
-- Commit SHA: (pending)
-- Push status: (pending)
+- Commit SHA: 3d6708b
+- Push status: pushed
