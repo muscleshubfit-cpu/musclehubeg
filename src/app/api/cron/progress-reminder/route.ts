@@ -17,8 +17,7 @@ export const maxDuration = 120;
 export async function GET(request: NextRequest) {
   // ── Auth ───────────────────────────────────────────────────────────
   // Vercel Cron sends Authorization: Bearer <CRON_SECRET>.
-  // If CRON_SECRET is not set, we still allow the request so the
-  // deploy never fails — but log a warning.
+  // Fail-closed: if CRON_SECRET is not set, reject with 401 (C4 fix).
   const auth = request.headers.get("authorization");
   const expected = process.env.CRON_SECRET;
   if (!expected || auth !== `Bearer ${expected}`)
