@@ -68,14 +68,14 @@ export default function FoodDetailClient({ food }: { food: Food | null }) {
       <SiteHeader variant="landing" />
 
       <main className="mx-auto max-w-4xl px-4 py-8 md:py-12">
-        {/* Back link */}
-        <a
-          href="/foods"
-          className="inline-flex items-center gap-1.5 text-sm font-normal text-[#0071e3] hover:opacity-70"
-        >
-          <ArrowLeft className="h-4 w-4 rtl:rotate-180" />
-          {isAr ? "كل الأكلات" : "All foods"}
-        </a>
+        {/* #17 fix: visible breadcrumb trail */}
+        <nav aria-label="breadcrumb" className="mb-6 flex items-center gap-1.5 text-sm text-[#6e6e73]">
+          <a href="/" className="hover:text-[#0071e3]">{isAr ? "الرئيسية" : "Home"}</a>
+          <span className="text-[#d2d2d7]">›</span>
+          <a href="/foods" className="hover:text-[#0071e3]">{isAr ? "الأكلات" : "Foods"}</a>
+          <span className="text-[#d2d2d7]">›</span>
+          <span className="font-medium text-[#1d1d1f]">{isAr ? food.nameAr : food.nameEn}</span>
+        </nav>
 
         {/* Header */}
         <div className="mt-6 grid gap-8 md:grid-cols-2">

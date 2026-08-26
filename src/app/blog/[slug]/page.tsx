@@ -4,8 +4,10 @@ import { fetchBlogForOG, fetchBlogPostFull } from "@/lib/blog-server";
 import { getArticleSchema, getBreadcrumbSchema } from "@/lib/seo";
 import type { Metadata } from "next";
 
-// Force dynamic rendering so generateMetadata runs on every request
-export const dynamic = "force-dynamic";
+// #10 fix: use ISR instead of force-dynamic — blog posts change rarely,
+// so a 1-hour revalidate cache reduces Vercel function invocations
+// significantly while keeping content fresh.
+export const revalidate = 3600; // 1 hour
 export const runtime = "nodejs";
 
 /**

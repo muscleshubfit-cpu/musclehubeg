@@ -2337,3 +2337,19 @@ Stage Summary:
 - All primary CTAs now use `font-medium` (stronger visual hierarchy).
 - Commit SHA: (pending)
 - Push status: (pending)
+
+---
+Task ID: FIX-AUDIT-BATCH-6B-040
+Agent: Main (Z User)
+Task: Audit fixes #10 (ISR blog) + #17 (breadcrumbs on detail pages).
+
+Work Log:
+- #10: blog/[slug] + ar/blog/[slug] used `dynamic = "force-dynamic"` — every page load hit Supabase. Changed to `revalidate = 3600` (ISR — 1 hour cache). Blog posts change rarely, so this significantly reduces Vercel function invocations while keeping content fresh within 1 hour.
+- #17: exercises/foods/programs detail pages had only a single "back" link (no breadcrumb trail). Added visible `<nav aria-label="breadcrumb">` with full trail: Home › Category › [Title]. Bilingual labels. Mirrors the existing JSON-LD BreadcrumbList schema.
+- Verified: tsc 0 errors, next build exit 0.
+
+Stage Summary:
+- Blog pages use ISR (1hr cache) — reduced Vercel function invocations.
+- 3 detail pages (exercises, foods, programs) now have visible breadcrumbs.
+- Commit SHA: (pending)
+- Push status: (pending)

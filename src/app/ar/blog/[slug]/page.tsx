@@ -4,7 +4,8 @@ import { fetchBlogForOG, fetchBlogPostFull } from "@/lib/blog-server";
 import { getArticleSchema, getBreadcrumbSchema } from "@/lib/seo";
 import type { Metadata } from "next";
 
-export const dynamic = "force-dynamic";
+// #10 fix: ISR — 1 hour revalidate
+export const revalidate = 3600;
 export const runtime = "nodejs";
 
 export async function generateMetadata({

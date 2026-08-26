@@ -59,14 +59,14 @@ export default function ExerciseDetailClient({
       <SiteHeader variant="landing" />
 
       <main className="mx-auto max-w-4xl px-4 py-8 md:py-12">
-        {/* Back link */}
-        <a
-          href="/exercises"
-          className="inline-flex items-center gap-1.5 text-sm font-normal text-[#0071e3] hover:opacity-70"
-        >
-          <ArrowLeft className="h-4 w-4 rtl:rotate-180" />
-          {isAr ? "كل التمارين" : "All exercises"}
-        </a>
+        {/* #17 fix: visible breadcrumb trail */}
+        <nav aria-label="breadcrumb" className="mb-6 flex items-center gap-1.5 text-sm text-[#6e6e73]">
+          <a href="/" className="hover:text-[#0071e3]">{isAr ? "الرئيسية" : "Home"}</a>
+          <span className="text-[#d2d2d7]">›</span>
+          <a href="/exercises" className="hover:text-[#0071e3]">{isAr ? "التمارين" : "Exercises"}</a>
+          <span className="text-[#d2d2d7]">›</span>
+          <span className="font-medium text-[#1d1d1f]">{isAr ? exercise.nameAr : exercise.nameEn}</span>
+        </nav>
 
         {/* Header */}
         <div className="mt-6 grid gap-8 md:grid-cols-2">
