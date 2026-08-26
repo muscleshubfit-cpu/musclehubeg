@@ -549,7 +549,10 @@ export function generateNutritionPlan(ctx: ClientContext): NutritionContent {
  const isFatLoss = weightDiff < -2 || goal.includes("fat") || goal.includes("دهون") || goal.includes("تخسيس") || goal.includes("loss");
  const isMuscleGain = weightDiff > 2 || goal.includes("muscle") || goal.includes("عضلات") || goal.includes("build") || goal.includes("كتلة");
 
- const isMale = true;
+ // FIX (2026-08-27): derive sex from the questionnaire instead of hardcoding
+ // isMale=true — female clients were getting +5 kcal BMR instead of −161.
+ const genderRaw = String(nutrition.gender || "male").toLowerCase();
+ const isMale = !(genderRaw.includes("f") || /أنثى|بنت|امرأة|إمرأة/.test(genderRaw));
  const bmr = calculateBMR(weight, height, age, isMale);
 
  let adjustedMultiplier = activityLevel;

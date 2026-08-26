@@ -126,22 +126,29 @@ export type GeneratePlanResult = {
 };
 
 /**
- * Generate a nutrition plan via OpenRouter AI, with fallback to local.
+ * Generate a nutrition plan via AI, with fallback to local.
+ *
+ * #3 FIX (2026-08-27): daily calories / BMR / TDEE / macros are computed
+ * SERVER-SIDE first (computeNutritionTargets), injected into the prompt as
+ * MANDATORY numbers, then RE-ENFORCED on the parsed output via
+ * normalizeNutritionPlan(targets) — the model cannot overwrite them.
  */
 export async function generateNutritionPlanAI(
   ctx: ClientContext,
   overrides?: PlanOverrides,
 ): Promise<GeneratePlanResult> {
   const name = ctx.name || "العميل";
+  const targets = computeNutritionTargets(ctx, overrides);
   // Add a randomization seed to the prompt so each generation produces
   // different meal/exercise choices even for the same client.
   const seed = Math.floor(Math.random() * 1000000);
-  const prompt = `${buildNutritionPrompt(ctx, name, overrides)}
+  const prompt = `${buildNutritionPrompt(ctx, name, overrides, targets)}
 
 ملاحظة: كل توليد يجب أن ينتج خطة مختلفة. استخدم تنويع ${seed} لاختيار أصناف جديدة.`;
 
   try {
-    // Use callFreeAIFallbackChain — interleaved OpenRouter + Groq (strongest models first)
+    // Use callFreeAIFallbackChain — OpenRouter + Groq interleaved (owner
+    // directive). Chain self-clamps maxModels × timeoutMs ≤ 52s (Vercel Hobby).
     const { text, model, provider } = await callFreeAIFallbackChain(
       prompt,
       {
@@ -149,14 +156,15 @@ export async function generateNutritionPlanAI(
         temperature: 0.7,
         maxTokens: 4000,
         jsonMode: true,
-        timeoutMs: 55_000,
+        timeoutMs: 26_000,
+        maxModels: 2,
       },
     );
     const parsed = parseJSON<NutritionPlanContent>(text);
     if (parsed && parsed.meals && parsed.meals.length > 0) {
       return {
         title: `خطة تغذية - ${name}`,
-        content: normalizeNutritionPlan(parsed, overrides),
+        content: normalizeNutritionPlan(parsed, overrides, targets),
         source: `${provider}:${model}`,
       };
     }
@@ -168,7 +176,7 @@ export async function generateNutritionPlanAI(
   const local = generateNutritionPlan(ctx);
   return {
     title: `خطة تغذية - ${name}`,
-    content: normalizeNutritionPlan(local, overrides),
+    content: normalizeNutritionPlan(local, overrides, targets),
     source: "local-fallback",
   };
 }
@@ -188,7 +196,7 @@ export async function generateWorkoutPlanAI(
 ملاحظة: كل توليد يجب أن ينتج برنامج مختلف. استخدم تنويع ${seed} لاختيار تمارين جديدة.`;
 
   try {
-    // Use callFreeAIFallbackChain — interleaved OpenRouter + Groq (strongest models first)
+    // OpenRouter + Groq only (owner directive) — clamped ≤ 52s.
     const { text, model, provider } = await callFreeAIFallbackChain(
       prompt,
       {
@@ -196,7 +204,8 @@ export async function generateWorkoutPlanAI(
         temperature: 0.7,
         maxTokens: 4000,
         jsonMode: true,
-        timeoutMs: 55_000,
+        timeoutMs: 26_000,
+        maxModels: 2,
       },
     );
     const parsed = parseJSON<WorkoutPlanContent>(text);
@@ -275,7 +284,7 @@ ${coachNote ? `تعليمات الكوتش: ${coachNote}` : ""}
 تأكد أن مجموع سعرات الأصناف يساوي تقريباً ${totalCals}. استخدم أصناف عربية/مصرية متنوعة. لا تكرر نفس الأصناف الموجودة في الوجبة الحالية.`;
 
   try {
-    // Use callFreeAIFallbackChain — interleaved OpenRouter + Groq
+    // OpenRouter + Groq only — clamped ≤ 52s.
     const { text, model, provider } = await callFreeAIFallbackChain(
       prompt,
       {
@@ -283,7 +292,8 @@ ${coachNote ? `تعليمات الكوتش: ${coachNote}` : ""}
         temperature: 0.8,
         maxTokens: 1500,
         jsonMode: true,
-        timeoutMs: 30_000,
+        timeoutMs: 24_000,
+        maxModels: 2,
       },
     );
     const parsed = parseJSON<any>(text);
@@ -298,7 +308,143 @@ ${coachNote ? `تعليمات الكوتش: ${coachNote}` : ""}
   throw new Error("تعذّر إعادة توليد الوجبة. حاول مرة أخرى.");
 }
 
-/* ----------------------------- Prompts ----------------------------- */
+/* ----------------- Deterministic calorie/macro computation ----------------- */
+
+/**
+ * OWNER DIRECTIVE (#3, 2026-08-27): the AI must NOT compute calories/macros
+ * by itself — server-side math only. These targets are computed deterministically,
+ * injected into the prompt as MANDATORY values, and re-enforced on the parsed
+ * output in normalizeNutritionPlan() so whatever the model returns cannot
+ * overwrite them.
+ *
+ * Formulas (documented for the owner):
+ *   BMR   = Mifflin-St Jeor  → male: 10W + 6.25H - 5A + 5 | female: 10W + 6.25H - 5A - 161
+ *   TDEE  = BMR × activity multiplier (1.2 sedentary … 1.9 athlete)
+ *   Goal adjust: weight-loss −20% deficit · muscle-gain +10% surplus · else maintain
+ *   Macros (default): protein 2.0 g/kg · fat 25% of kcal · carbs = remaining kcal / 4
+ *     (protein set aside first at 4 kcal/g; coach overrides always win)
+ *   Body fat (optional): US Navy method when neck+waist(+hip for females) exist.
+ */
+export type NutritionTargets = {
+  gender: "male" | "female";
+  weightKg: number;
+  heightCm: number;
+  ageYears: number;
+  bmr: number;
+  tdee: number;
+  dailyCalories: number;
+  goalAdjustmentPct: number;
+  macros: { protein_g: number; carbs_g: number; fat_g: number };
+  bodyFatPct: number | null;
+};
+
+function numOr(v: any, fallback: number): number {
+  const n = parseFloat(String(v ?? "").replace(/[^\d.-]/g, ""));
+  return Number.isFinite(n) && n > 0 ? n : fallback;
+}
+
+/** Map questionnaire activity strings (AR or EN) to a TDEE multiplier. */
+function activityMultiplier(activity: any): number {
+  const a = String(activity || "").toLowerCase();
+  if (/sedentary|خفيف جدا|قليل الحركة|مكتبي/.test(a)) return 1.2;
+  if (/light|خفيف|1-3/.test(a)) return 1.375;
+  if (/moderate|متوسط|معتدل|3-5/.test(a)) return 1.55;
+  if (/very active|نشط جدا|6-7|رياضي ثقيل/.test(a)) return 1.725;
+  if (/athlete|extra active|رياضي محترف|تدريب يومي/.test(a)) return 1.9;
+  // Fallback heuristic on training days/week when activity label is vague.
+  return 1.55;
+}
+
+function computeNutritionTargets(ctx: ClientContext, overrides?: PlanOverrides): NutritionTargets {
+  const nutrition = ctx.nutrition || {};
+  const fitness = ctx.fitness || {};
+  const measurements = ctx.recent_measurements?.[0] || {};
+
+  const genderRaw = String(nutrition.gender || "male").toLowerCase();
+  const gender: "male" | "female" =
+    genderRaw.includes("f") || /أنثى|بنت|امرأة|إمرأة|حرم/.test(genderRaw)
+      ? "female"
+      : "male";
+
+  const weightKg = numOr(nutrition.weight ?? measurements.weight, 80);
+  const heightCm = numOr(nutrition.height, 175);
+  const ageYears = numOr(nutrition.age, 25);
+
+  // Coach overrides are authoritative when present.
+  const overrideCalories = numOr(overrides?.targetCalories, 0);
+
+  // 1. BMR — Mifflin-St Jeor (gender-correct constant).
+  const bmr = Math.round(
+    10 * weightKg + 6.25 * heightCm - 5 * ageYears + (gender === "male" ? 5 : -161),
+  );
+
+  // 2. TDEE — activity multiplier.
+  const tdee = Math.round(bmr * activityMultiplier(fitness.activity));
+
+  // 3. Goal adjustment.
+  const goal = String(fitness.goal || "").toLowerCase();
+  let goalAdjustmentPct = 0;
+  if (/weight.?loss|lose|fat loss|تخفيس|تنحيف|خسارة وزن|دهون/.test(goal)) {
+    goalAdjustmentPct = -20;
+  } else if (/muscle|gain|bulk|mass|ضخام|بناء عضل|زيادة وزن/.test(goal)) {
+    goalAdjustmentPct = +10;
+  }
+
+  let dailyCalories =
+    overrideCalories > 0 ? Math.round(overrideCalories) : Math.round(tdee * (1 + goalAdjustmentPct / 100));
+  // Safety floor: never below 1200 kcal (medical minimum).
+  dailyCalories = Math.max(1200, dailyCalories);
+
+  // 4. Macros — protein-first policy unless overridden.
+  const protein_g = overrides?.macros?.protein_g ?? Math.round(2.0 * weightKg);
+  const fat_g = overrides?.macros?.fat_g ?? Math.round((dailyCalories * 0.25) / 9);
+  const carbsFromProteinFat = dailyCalories - protein_g * 4 - fat_g * 9;
+  const carbs_g = overrides?.macros?.carbs_g ?? Math.max(50, Math.round(carbsFromProteinFat / 4));
+
+  // 5. Body fat — US Navy (optional inputs).
+  let bodyFatPct: number | null = null;
+  const neck = numOr(nutrition.neck, 0);
+  const waist = numOr(nutrition.waist ?? measurements.waist, 0);
+  const hip = numOr(nutrition.hip, 0);
+  if (neck > 0 && waist > 0) {
+    try {
+      bodyFatPct =
+        gender === "male"
+          ? 495 / (1.0324 - 0.19077 * Math.log10(waist - neck) + 0.15456 * Math.log10(heightCm)) - 450
+          : hip > 0
+            ? 495 / (1.29579 - 0.35004 * Math.log10(waist + hip - neck) + 0.221 * Math.log10(heightCm)) - 450
+            : null;
+      if (bodyFatPct !== null) bodyFatPct = Math.round(Math.max(3, Math.min(70, bodyFatPct)) * 10) / 10;
+    } catch {
+      bodyFatPct = null;
+    }
+  }
+
+  return { gender, weightKg, heightCm, ageYears, bmr, tdee, dailyCalories, goalAdjustmentPct, macros: { protein_g, carbs_g, fat_g }, bodyFatPct };
+}
+
+const ACTIVITY_AR: Record<string, string> = {
+  "1.2": "خفيف جداً (قليل الحركة)",
+  "1.375": "خفيف (١-٣ أيام تدريب)",
+  "1.55": "متوسط (٣-٥ أيام تدريب)",
+  "1.725": "نشط جداً (٦-٧ أيام)",
+  "1.9": "رياضي محترف / عمل بدني شاق",
+};
+
+function goalLabelAr(pct: number): string {
+  if (pct < 0) return `خسارة وزن (عجز حراري ${Math.abs(pct)}%)`;
+  if (pct > 0) return `بناء عضل (فائض حراري ${pct}%)`;
+  return "الحفاظ على الوزن";
+}
+
+function activityLabelAr(mult: number): string {
+  const entries = Object.entries(ACTIVITY_AR);
+  let best = entries[0];
+  for (const e of entries) {
+    if (Math.abs(parseFloat(e[0]) - mult) < Math.abs(parseFloat(best[0]) - mult)) best = e;
+  }
+  return best[1];
+}
 
 const NUTRITION_SYSTEM_PROMPT = `أنت أخصائي تغذية رياضية محترف يعمل في منصة MuscleHubEG.
 مهمتك: تصميم خطة تغذية مخصصة باللغة العربية بأسلوب احترافي يطابق شكل التقارير الطبية.
@@ -370,7 +516,8 @@ const NUTRITION_SYSTEM_PROMPT = `أنت أخصائي تغذية رياضية م�
 function buildNutritionPrompt(
   ctx: ClientContext,
   name: string,
-  overrides?: PlanOverrides,
+  overrides: PlanOverrides | undefined,
+  targets?: NutritionTargets,
 ): string {
   const nutrition = ctx.nutrition || {};
   const fitness = ctx.fitness || {};
@@ -402,6 +549,21 @@ ${overrides.notes ? `- ملاحظات إضافية: ${overrides.notes}` : ""}
 `
     : "";
 
+  // #3 FIX — deterministic server-computed targets are MANDATORY.
+  const targetsText = targets
+    ? `
+
+⚠ مهمة جداً — أرقام رسمية محسوبة مسبقاً من نظام المنصة (إلزامية):
+- BMR (Mifflin-St Jeor): ${targets.bmr} سعرة
+- TDEE: ${targets.tdee} سعرة
+- مستوى النشاط المعتمد: ${activityLabelAr(targets.tdee / Math.max(1, targets.bmr))}
+- الهدف المعتمد: ${goalLabelAr(targets.goalAdjustmentPct)}
+- daily_calories اليومية = ${targets.dailyCalories} سعرة (ضع هذا الرقم كما هو في المخرجات)
+- الماكروز الرسمية: بروتين ${targets.macros.protein_g}جم (${targets.macros.protein_g * 4} سعرة) / كارب ${targets.macros.carbs_g}جم (${targets.macros.carbs_g * 4} سعرة) / دهون ${targets.macros.fat_g}جم (${targets.macros.fat_g * 9} سعرة)
+${targets.bodyFatPct !== null ? `- body_fat_pct (US Navy): ~${targets.bodyFatPct}%` : ""}
+ممنوع تغيير هذه الأرقام أو إعادة حسابها. مهمتك الوحيدة: توزيع الوجبات والأصناف بحيث يقترب مجموع كل وجبة من حصتها من ${targets.dailyCalories} سعرة، مع ذكر سعرات تقديرية لكل صنف (تُدقق في المراجعة).`
+    : "";
+
   return `صمّم خطة تغذية يومية مخصصة باللغة العربية لعميل اسمه ${name}.
 
  بيانات العميل الأساسية:
@@ -420,12 +582,15 @@ ${hip ? `- محيط الورك: ${hip} سم` : ""}
 ${allergies ? `- حساسية: ${allergies}` : "- حساسية: لا يوجد"}
 ${disliked ? `- أطعمة غير مرغوبة: ${disliked}` : ""}
 ${health ? `- الحالة الصحية: ${health}` : ""}
+${(nutrition as any).notes ? `- ملاحظات إضافية من استبيان التغذية: ${(nutrition as any).notes}` : ""}
+${(fitness as any).notes && !(nutrition as any).notes ? `- ملاحظات إضافية من استبيان اللياقة: ${(fitness as any).notes}` : (fitness as any).notes ? `- ملاحظات اللياقة: ${(fitness as any).notes}` : ""}
 ${overridesText}
-احسب السعرات اليومية باستخدام معادلة Mifflin-St Jeor واحسب الماكروز حسب الهدف.
-احسب نسبة الدهون باستخدام معادلة US Navy إذا توفّرت محيطات الجسم.
+الأرقام الرسمية (daily_calories / الماكروز / BMR / TDEE) تم حسابها مسبقاً من نظام المنصة في قسم "أرقام رسمية" أعلاه — انسخها كما هي ولا تعيد حسابها.
+مهمتك هي فقط توزيع الوجبات والأصناف.
 وزّع السعرات على ${meals} وجبات بشكل مناسب (الفطار أكبر من السناك).
-لكل صنف: احسب الجرامات بالضبط لتطابق السعرات المستهدفة.
+لكل صنف: اذكر الكمية بالجرام والسعرات التقديرية بحيث يقترب مجموع الوجبة من حصتها.
 اذكر بدائل لكل صنف رئيسي.
+${targetsText}
 
 أعد النتيجة بصيغة JSON صالحة فقط (بدون نص إضافي، بدون أسوار markdown) بالتنسيق المحدد في تعليمات النظام.`;
 }
@@ -591,10 +756,17 @@ ${splitDescription}${safetyRules}
 /**
  * Normalize a nutrition plan to ensure all required fields exist and
  * totals are computed correctly. Applies coach overrides if provided.
+ *
+ * #3 FIX (2026-08-27): when deterministic targets are provided, the
+ * persisted numbers come from SERVER math, not the model:
+ *   - daily_calories ← targets (unless a coach override already won)
+ *   - macros g + kcal splits ← recomputed from the enforced calories/grams
+ *   - data_analysis.bmr/tdee/body_fat_pct ← server-computed values
  */
 function normalizeNutritionPlan(
   plan: any,
   overrides?: PlanOverrides,
+  targets?: NutritionTargets,
 ): NutritionPlanContent {
   const meals = (plan.meals || []).map((m: any) => {
     const items = (m.items || []).map((it: any) => ({
@@ -622,19 +794,49 @@ function normalizeNutritionPlan(
     };
   });
 
+  // ── Deterministic number enforcement (#3 fix) ──────────────────────
+  let daily_calories: number;
+  if (overrides?.targetCalories && overrides.targetCalories > 0) {
+    daily_calories = overrides.targetCalories;
+  } else if (targets) {
+    daily_calories = targets.dailyCalories; // server math wins over AI output
+  } else {
+    daily_calories =
+      typeof plan.daily_calories === "number" ? plan.daily_calories : 0;
+  }
+
+  const protein_g =
+    (overrides?.macros?.protein_g || targets?.macros.protein_g || plan.macros?.protein_g) ?? 0;
+  const carbs_g =
+    (overrides?.macros?.carbs_g || targets?.macros.carbs_g || plan.macros?.carbs_g) ?? 0;
+  const fat_g =
+    (overrides?.macros?.fat_g || targets?.macros.fat_g || plan.macros?.fat_g) ?? 0;
+
+  const data_analysis = targets
+    ? {
+        ...(plan.data_analysis || {}),
+        gender: targets.gender === "male" ? "ذكر" : "أنثى",
+        weight: `${targets.weightKg} كجم`,
+        height: `${targets.heightCm} سم`,
+        age: `${targets.ageYears} سنة`,
+        body_fat_pct:
+          targets.bodyFatPct !== null ? `~${targets.bodyFatPct}%` : (plan.data_analysis?.body_fat_pct ?? ""),
+        bmr: targets.bmr,
+        tdee: targets.tdee,
+      }
+    : plan.data_analysis;
+
   return {
     overview: plan.overview || "",
-    data_analysis: plan.data_analysis,
-    daily_calories:
-      overrides?.targetCalories ||
-      (typeof plan.daily_calories === "number" ? plan.daily_calories : 0),
+    data_analysis,
+    daily_calories,
     macros: {
-      protein_g: overrides?.macros?.protein_g || (plan.macros?.protein_g ?? 0),
-      carbs_g: overrides?.macros?.carbs_g || (plan.macros?.carbs_g ?? 0),
-      fat_g: overrides?.macros?.fat_g || (plan.macros?.fat_g ?? 0),
-      protein_cal: plan.macros?.protein_cal,
-      carbs_cal: plan.macros?.carbs_cal,
-      fat_cal: plan.macros?.fat_cal,
+      protein_g,
+      carbs_g,
+      fat_g,
+      protein_cal: protein_g * 4,
+      carbs_cal: carbs_g * 4,
+      fat_cal: fat_g * 9,
     },
     supplements: plan.supplements,
     health_notes: plan.health_notes,
@@ -824,7 +1026,7 @@ ${
 - أعد JSON صالح فقط (بدون نص إضافي، بدون أسوار markdown).`;
 
   try {
-    // Use callFreeAIFallbackChain — interleaved OpenRouter + Groq
+    // OpenRouter + Groq only — clamped ≤ 52s.
     const { text, model, provider } = await callFreeAIFallbackChain(
       prompt,
       {
@@ -833,7 +1035,8 @@ ${
         temperature: 0.3, // low temp for faithful extraction
         maxTokens: 4000,
         jsonMode: true,
-        timeoutMs: 55_000,
+        timeoutMs: 26_000,
+        maxModels: 2,
       },
     );
     const parsed = parseJSON<any>(text);
