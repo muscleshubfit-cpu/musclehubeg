@@ -2158,3 +2158,24 @@ Stage Summary:
 - Brand name consistent in print output.
 - Commit SHA: fa78120
 - Push status: pushed
+
+---
+Task ID: FIX-LANDING-DEADCODE-031
+Agent: Main (Z User)
+Task: Remove dead code (ImageStreamHero + streamImages) + fix food category card links + dynamic exercise counts.
+
+Work Log:
+- Removed unused ImageStreamHero import + streamImages array (12 images defined but never rendered — hero was replaced with static image in a previous commit).
+- Removed unused StreamImage type import.
+- LandingFoodCategoryCard: changed href from "/foods" (no filter) to `/foods?cat=${cat.slug}` so clicking "Protein" on the landing page filters to protein foods.
+- foods/page.tsx: added useSearchParams to read ?cat= param + initialize category state. Now when a user clicks a food category card on the landing page, the foods page opens with that category pre-selected.
+- Exercise category counts on landing page were hardcoded (6, 12, 9, 6). Replaced with dynamic counts: EXERCISES.filter(e => e.category === cat.slug).length. Now reflects actual dataset.
+- Imported EXERCISES in LandingView.
+- Verified: tsc 0 errors, eslint 0 errors, next build exit 0.
+
+Stage Summary:
+- Dead code removed (cleaner bundle, less confusion).
+- Food category cards now filter the foods page correctly.
+- Exercise counts on landing page are accurate (auto-update when dataset grows).
+- Commit SHA: (pending)
+- Push status: (pending)

@@ -11,8 +11,8 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { listBlogPosts, getCategoryLabel, type BlogPost } from "@/lib/blog";
+import { EXERCISES } from "@/lib/exercises";
 import { SiteHeader } from "@/components/SiteHeader";
-import { ImageStreamHero, type StreamImage } from "@/components/ui/image-stream-hero";
 import { getFAQSchema } from "@/lib/seo";
 
 // ============================================================
@@ -281,21 +281,8 @@ export function LandingView() {
     })();
   }, [lang]);
 
-  // Image stream corridor — includes hero athlete images for premium visual impact
-  const streamImages: StreamImage[] = [
-    { src: IMAGES.heroAthleteBiceps, alt: isAr ? "تمرين بايسبس" : "Bicep curl" },
-    { src: IMAGES.gym, alt: isAr ? "صالة ألعاب" : "Gym" },
-    { src: IMAGES.heroTrainerSpotting, alt: isAr ? "كوتشينج شخصي" : "Personal training" },
-    { src: IMAGES.meal, alt: isAr ? "تغذية" : "Nutrition" },
-    { src: IMAGES.heroAthleteFuturistic, alt: isAr ? "لياقة مستقبلية" : "Future fitness" },
-    { src: IMAGES.dumbbell, alt: isAr ? "قوة" : "Strength" },
-    { src: IMAGES.heroAthlete1, alt: isAr ? "رياضي" : "Athlete" },
-    { src: IMAGES.running, alt: isAr ? "كارديو" : "Cardio" },
-    { src: IMAGES.heroAthlete2, alt: isAr ? "رياضي" : "Athlete" },
-    { src: IMAGES.fitnessDark, alt: isAr ? "لياقة" : "Fitness" },
-    { src: IMAGES.mealBowl, alt: isAr ? "وجبة" : "Meal" },
-    { src: IMAGES.yoga, alt: isAr ? "يوجا" : "Yoga" },
-  ];
+  // Dead code removed: streamImages array was built but never used
+  // (hero was replaced with a static image — see comment below).
 
   const blogHref = isCoach ? "/admin/blog" : isAr ? "/ar/blog" : "/blog";
 
@@ -498,10 +485,10 @@ export function LandingView() {
           </div>
           <div className="mt-10 grid grid-cols-2 gap-4 md:grid-cols-4">
             {[
-              { emoji: "💪", labelAr: "صدر", labelEn: "Chest", slug: "chest", count: 6, image: "/images/categories/exercises/chest.png" },
-              { emoji: "🦵", labelAr: "أرجل", labelEn: "Legs", slug: "legs", count: 12, image: "/images/categories/exercises/legs.png" },
-              { emoji: "🎯", labelAr: "كور", labelEn: "Core", slug: "core", count: 9, image: "/images/categories/exercises/core.png" },
-              { emoji: "❤️", labelAr: "كارديو", labelEn: "Cardio", slug: "cardio", count: 6, image: "/images/categories/exercises/cardio.png" },
+              { emoji: "💪", labelAr: "صدر", labelEn: "Chest", slug: "chest", count: EXERCISES.filter(e => e.category === "chest").length, image: "/images/categories/exercises/chest.png" },
+              { emoji: "🦵", labelAr: "أرجل", labelEn: "Legs", slug: "legs", count: EXERCISES.filter(e => e.category === "legs").length, image: "/images/categories/exercises/legs.png" },
+              { emoji: "🎯", labelAr: "كور", labelEn: "Core", slug: "core", count: EXERCISES.filter(e => e.category === "core").length, image: "/images/categories/exercises/core.png" },
+              { emoji: "❤️", labelAr: "كارديو", labelEn: "Cardio", slug: "cardio", count: EXERCISES.filter(e => e.category === "cardio").length, image: "/images/categories/exercises/cardio.png" },
             ].map((cat, i) => (
               <Reveal key={cat.slug} delay={i * 80}>
                 <LandingExerciseCategoryCard cat={cat} isAr={isAr} />
@@ -1070,7 +1057,7 @@ function LandingFoodCategoryCard({ cat, isAr }: { cat: any; isAr: boolean }) {
   const [imgError, setImgError] = useState(false);
   return (
     <a
-      href="/foods"
+      href={`/foods?cat=${cat.slug}`}
       className="group block overflow-hidden rounded-3xl transition-all duration-300"
       style={{
         backgroundColor: PALETTE.tint,

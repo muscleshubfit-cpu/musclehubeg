@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect, useDeferredValue } from "react";
+import { useSearchParams } from "next/navigation";
 import { useI18n, type Lang } from "@/lib/i18n";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SearchX } from "lucide-react";
@@ -23,7 +24,10 @@ export default function FoodsPage({ lang: langProp }: { lang?: Lang } = {}) {
   const isAr = lang === "ar";
 
   const [search, setSearch] = useState("");
-  const [category, setCategory] = useState<FoodCategory | "all">("all");
+  // Read ?cat= param from URL (e.g. /foods?cat=protein) — set by landing page cards
+  const searchParams = useSearchParams();
+  const initialCat = searchParams.get("cat") as FoodCategory | null;
+  const [category, setCategory] = useState<FoodCategory | "all">(initialCat || "all");
   const [activeTags, setActiveTags] = useState<string[]>([]);
   const [minProtein, setMinProtein] = useState<string>("");
   const [maxCarbs, setMaxCarbs] = useState<string>("");
