@@ -2179,3 +2179,20 @@ Stage Summary:
 - Exercise counts on landing page are accurate (auto-update when dataset grows).
 - Commit SHA: (pending)
 - Push status: (pending)
+
+---
+Task ID: FIX-DEADCODE-032
+Agent: Main (Z User)
+Task: Remove dead code — PricingView, hreflang helper, exercises.ts IMAGE_BASE + getExerciseImageUrl.
+
+Work Log:
+- Deleted src/components/views/PricingView.tsx — defined but never imported (memberships page uses inline rendering).
+- Deleted src/lib/hreflang.ts — hreflangAlternates() exported but never called (pages set hreflang inline in generateMetadata).
+- Removed IMAGE_BASE constant + getExerciseImageUrl() from src/lib/exercises.ts — broken URL (double slash, missing repo name) + never imported (the canonical version in exercise-images.ts is used everywhere).
+- Verified: tsc 0 errors, next build exit 0.
+
+Stage Summary:
+- 2 dead files deleted + 1 dead function + 1 dead constant removed.
+- Cleaner codebase, smaller bundle, less confusion for future maintainers.
+- Commit SHA: (pending)
+- Push status: (pending)

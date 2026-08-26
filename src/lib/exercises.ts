@@ -44,7 +44,8 @@ export const CATEGORY_LABELS: Record<ExerciseCategory, { ar: string; en: string;
   cardio: { ar: "كارديو", en: "Cardio", emoji: "❤️", image: "/images/categories/exercises/cardio.png" },
 };
 
-const IMAGE_BASE = "https://raw.githubusercontent.com/yuhonas//main/exercises";
+// Dead code removed: IMAGE_BASE + getExerciseImageUrl (broken URL + unused).
+// The canonical version lives in src/lib/exercise-images.ts.
 
 export const EXERCISES: Exercise[] = [
   {
@@ -7017,9 +7018,4 @@ export function filterExercises(params: {
 }
 export function getRelatedExercises(exercise: Exercise, limit = 3): Exercise[] {
   return EXERCISES.filter((e) => e.category === exercise.category && e.slug !== exercise.slug).slice(0, limit);
-}
-export function getExerciseImageUrl(imagePath: string): string {
-  if (!imagePath) return "";
-  if (imagePath.startsWith("http")) return imagePath;
-  return `${IMAGE_BASE}/${imagePath}`;
 }
