@@ -357,6 +357,13 @@ export async function getReferralStats(userId: string): Promise<ReferralStats> {
 
 /**
  * Create a payout request (user asks to withdraw their earnings).
+ *
+ * C11 fix: instead of splitting earnings (which required changing
+ * amounts — blocked by the prevent_earnings_tamper trigger), we mark
+ * full earnings as "requested" and handle the overage in
+ * adminApprovePayout by creating a new "available" earning for the
+ * difference. This preserves the user's money without requiring
+ * amount changes on existing rows.
  */
 export async function createPayoutRequest(
   userId: string,
@@ -370,10 +377,10 @@ export async function createPayoutRequest(
   }
 
   if (isSupabaseConfigured && supabase) {
-    // Mark earnings as "requested"
+    // Mark earnings as "requested" (FIFO — oldest first)
     const { data: earnings } = await supabase
       .from("referral_earnings")
-      .select("id, amount")
+      .select("id, amount, referral_id")
       .eq("user_id", userId)
       .eq("status", "available")
       .order("created_at", { ascending: true });
@@ -387,26 +394,21 @@ export async function createPayoutRequest(
       throw new Error(`Requested amount exceeds available balance ($${totalAvailable})`);
     }
 
-    // Mark earnings as requested (FIFO — oldest first)
+    // Mark earnings as requested (FIFO) until the requested amount is covered.
+    // We mark FULL earnings (no splitting) — the overage is returned as a new
+    // "available" earning when the coach approves the payout.
     let remaining = amount;
+    const markedEarnings: Array<{ id: string; amount: number; referral_id: string | null }> = [];
     for (const e of earnings) {
       if (remaining <= 0) break;
       const eAmount = Number(e.amount);
-      if (eAmount <= remaining) {
-        await supabase
-          .from("referral_earnings")
-          .update({ status: "requested", requested_at: new Date().toISOString() })
-          .eq("id", e.id);
-        remaining -= eAmount;
-      } else {
-        // Split — partial
-        // For simplicity, mark the whole earning as requested and create a negative adjustment
-        await supabase
-          .from("referral_earnings")
-          .update({ status: "requested", requested_at: new Date().toISOString() })
-          .eq("id", e.id);
-        remaining -= eAmount;
-      }
+      const { error: updateErr } = await supabase
+        .from("referral_earnings")
+        .update({ status: "requested", requested_at: new Date().toISOString() })
+        .eq("id", e.id);
+      if (updateErr) throw new Error(updateErr.message);
+      markedEarnings.push({ id: e.id, amount: eAmount, referral_id: e.referral_id });
+      remaining -= eAmount;
     }
 
     // Create payout record
@@ -480,52 +482,79 @@ export async function adminGetAllPayouts(): Promise<ReferralPayout[]> {
 /**
  * Admin: approve a payout (mark as paid).
  * Also marks the linked earnings as paid.
+ * If total marked earnings exceed the payout amount, the overage is
+ * returned as a new "available" earning (C11 fix).
+ *
+ * C12 fix: adds .eq("status", "pending") to prevent re-approving
+ * already-processed payouts, and throws on DB errors instead of
+ * silently ignoring them.
  */
 export async function adminApprovePayout(payoutId: string, adminNote?: string): Promise<void> {
   if (!isSupabaseConfigured || !supabase) return;
 
   const { data: payout } = await supabase
     .from("referral_payouts")
-    .select("user_id, amount")
+    .select("user_id, amount, status")
     .eq("id", payoutId)
     .single();
 
-  if (!payout) return;
+  if (!payout) throw new Error("Payout not found");
+  if (payout.status !== "pending") throw new Error(`Payout is already ${payout.status}`);
 
-  // Mark payout as paid
-  await supabase
+  // Mark payout as paid (only if still pending — prevents double-approval)
+  const { error: payoutErr } = await supabase
     .from("referral_payouts")
     .update({
       status: "paid",
       admin_note: adminNote || null,
       processed_at: new Date().toISOString(),
     })
-    .eq("id", payoutId);
+    .eq("id", payoutId)
+    .eq("status", "pending");
+  if (payoutErr) throw new Error(payoutErr.message);
 
-  // Mark linked earnings as paid
-  const { data: earnings } = await supabase
+  // Mark linked earnings as paid (FIFO)
+  const { data: earnings, error: earningsErr } = await supabase
     .from("referral_earnings")
-    .select("id")
+    .select("id, amount, referral_id")
     .eq("user_id", payout.user_id)
     .eq("status", "requested")
     .order("requested_at", { ascending: true });
+  if (earningsErr) throw new Error(earningsErr.message);
 
   let remaining = Number(payout.amount);
+  let overage = 0;
+  let lastReferralId: string | null = null;
+
   for (const e of earnings || []) {
     if (remaining <= 0) break;
-    const { data: fullEarning } = await supabase
+    const eAmount = Number(e.amount);
+    const { error: updErr } = await supabase
       .from("referral_earnings")
-      .select("amount")
-      .eq("id", e.id)
-      .single();
+      .update({ status: "paid", paid_at: new Date().toISOString() })
+      .eq("id", e.id);
+    if (updErr) throw new Error(updErr.message);
 
-    if (fullEarning) {
-      await supabase
-        .from("referral_earnings")
-        .update({ status: "paid", paid_at: new Date().toISOString() })
-        .eq("id", e.id);
-      remaining -= Number(fullEarning.amount);
+    if (eAmount > remaining) {
+      // This earning was larger than what was needed — the overage
+      // should be returned as a new "available" earning
+      overage = eAmount - remaining;
+      lastReferralId = e.referral_id;
     }
+    remaining -= eAmount;
+  }
+
+  // Return the overage as a new "available" earning (C11 fix)
+  if (overage > 0) {
+    const { error: insErr } = await supabase
+      .from("referral_earnings")
+      .insert({
+        user_id: payout.user_id,
+        referral_id: lastReferralId,
+        amount: overage,
+        status: "available",
+      });
+    if (insErr) throw new Error(insErr.message);
   }
 
   // Notify user
@@ -544,43 +573,50 @@ export async function adminApprovePayout(payoutId: string, adminNote?: string): 
 /**
  * Admin: reject a payout.
  * Reverts earnings back to "available".
+ *
+ * C12 fix: adds .eq("status", "pending") + throws on DB errors.
  */
 export async function adminRejectPayout(payoutId: string, adminNote?: string): Promise<void> {
   if (!isSupabaseConfigured || !supabase) return;
 
   const { data: payout } = await supabase
     .from("referral_payouts")
-    .select("user_id, amount")
+    .select("user_id, amount, status")
     .eq("id", payoutId)
     .single();
 
-  if (!payout) return;
+  if (!payout) throw new Error("Payout not found");
+  if (payout.status !== "pending") throw new Error(`Payout is already ${payout.status}`);
 
-  // Mark payout as rejected
-  await supabase
+  // Mark payout as rejected (only if still pending)
+  const { error: payoutErr } = await supabase
     .from("referral_payouts")
     .update({
       status: "rejected",
       admin_note: adminNote || null,
       processed_at: new Date().toISOString(),
     })
-    .eq("id", payoutId);
+    .eq("id", payoutId)
+    .eq("status", "pending");
+  if (payoutErr) throw new Error(payoutErr.message);
 
-  // Revert earnings to available
-  const { data: earnings } = await supabase
+  // Revert earnings to available (FIFO)
+  const { data: earnings, error: earningsErr } = await supabase
     .from("referral_earnings")
     .select("id, amount")
     .eq("user_id", payout.user_id)
     .eq("status", "requested")
     .order("requested_at", { ascending: true });
+  if (earningsErr) throw new Error(earningsErr.message);
 
   let remaining = Number(payout.amount);
   for (const e of earnings || []) {
     if (remaining <= 0) break;
-    await supabase
+    const { error: updErr } = await supabase
       .from("referral_earnings")
       .update({ status: "available", requested_at: null })
       .eq("id", e.id);
+    if (updErr) throw new Error(updErr.message);
     remaining -= Number(e.amount);
   }
 

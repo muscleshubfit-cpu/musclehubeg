@@ -1616,3 +1616,23 @@ Stage Summary:
 - FOR UPDATE row lock prevents concurrent renewal races.
 - Commit SHA: (pending)
 - Push status: (pending)
+
+---
+Task ID: FIX-PAYOUT-006
+Agent: Main (Z User)
+Task: Fix C11 (payout split bug loses user funds) + C12 (admin approve/reject no status filter + silent errors).
+
+Work Log:
+- C11 root cause: createPayoutRequest marked the full earning as "requested" even when only a partial amount was needed. The comment said "create a negative adjustment" but never did. The remaining balance went negative and $5 vanished.
+- C11 fix: instead of splitting earnings (which would require changing `amount` — blocked by the prevent_earnings_tamper trigger from migration 0017), we mark FULL earnings as "requested" and handle the overage in adminApprovePayout. When the coach approves, if the total marked earnings exceed the payout amount, the overage is returned as a NEW "available" earning (INSERT, not UPDATE — trigger doesn't fire).
+- C12 fix in adminApprovePayout: (1) added `.eq("status", "pending")` to the payout UPDATE — prevents re-approving already-paid/rejected payouts (double-payment). (2) Added `if (!payout) throw` and `if (payout.status !== "pending") throw` — surfaces errors instead of silently returning. (3) Added error checking on every DB operation — throws instead of ignoring.
+- C12 fix in adminRejectPayout: same pattern — `.eq("status", "pending")` + throw on all DB errors.
+- Verified: tsc 0 errors, eslint 0 errors on referral.ts.
+
+Stage Summary:
+- Users no longer lose money on partial payouts — overage is returned as a new available earning.
+- Coaches can no longer double-approve or double-reject payouts.
+- All DB errors are surfaced (toast shows the error instead of fake success).
+- No migration needed — the fix is purely code-level, compatible with the existing trigger.
+- Commit SHA: (pending)
+- Push status: (pending)
