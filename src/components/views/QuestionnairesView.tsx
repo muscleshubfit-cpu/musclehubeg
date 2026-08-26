@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useState, useRef } from "react";
 import { Salad, Dumbbell, Lock, Send, ImagePlus, X, Loader2, Check, ChevronLeft, ChevronRight } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
@@ -497,7 +498,7 @@ export function QuestionnairesView() {
               <div className="mt-3 grid grid-cols-3 gap-2">
                 {nutritionForm.photos.map((url: string, i: number) => (
                   <div key={i} className="group relative aspect-square overflow-hidden rounded-lg border border-border">
-                    <img src={url} alt={`Progress ${i + 1}`} className="h-full w-full object-cover" />
+                    <Image src={url} alt={`Progress ${i + 1}`} fill className="object-cover" />
                     {!nutritionLocked && (
                       <button
                         type="button"

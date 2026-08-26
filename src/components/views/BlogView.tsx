@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useState } from "react";
 import { Calendar, ArrowRight, Tag } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
@@ -59,11 +60,12 @@ export function BlogView() {
  {posts.map((p) => (
  <Card key={p.id} className="group overflow-hidden p-0 shadow-card transition-all hover:shadow-glow">
  {p.cover_image && (
- <div className="aspect-video overflow-hidden">
- <img
+ <div className="relative aspect-video overflow-hidden">
+ <Image
  src={p.cover_image}
  alt={isAr ? p.title_ar : (p.title_en || p.title_ar)}
- className="h-full w-full object-cover transition-transform group-hover:scale-105"
+ fill
+ className="object-cover transition-transform group-hover:scale-105"
  loading="lazy"
  />
  </div>

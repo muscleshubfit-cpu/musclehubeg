@@ -679,6 +679,7 @@ function WorkoutContent({ content, onSwap, swapLoading, planId }: any) {
  <div className="mb-3 grid grid-cols-2 gap-2">
  {exImages.slice(0, 2).map((url: string, idx: number) => (
  <div key={idx} className="aspect-square overflow-hidden rounded-xl bg-muted">
+ {/* TODO: migrate to next/image with onError fallback */}
  <img
  src={url}
  alt={`${ex.name} ${idx + 1}`}

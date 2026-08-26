@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useState, useCallback, useRef } from "react";
 import { Save, Eye, Code, Sparkles, Loader2, ArrowLeft, Plus, X, CheckCircle, AlertCircle, Clock, Wand2, Settings2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -429,7 +430,9 @@ export function BlogEditorView({ mode, postId }: { mode: "new" | "edit"; postId?
  dir="ltr"
  />
  {post.featured_image && (
- <img src={post.featured_image} alt="preview" className="mt-2 h-32 w-full rounded-lg object-cover" />
+ <div className="relative mt-2 h-32 w-full overflow-hidden rounded-lg">
+ <Image src={post.featured_image} alt="preview" fill className="object-cover" />
+ </div>
  )}
  </div>
 

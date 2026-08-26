@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useState, useRef } from "react";
 import dynamic from "next/dynamic";
 import { Plus, TrendingDown, TrendingUp, Camera, Trash2, Loader2 } from "lucide-react";
@@ -263,8 +264,8 @@ export function ProgressView() {
  ) : (
  <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
  {photos.map((p) => (
- <div key={p.id} className="group relative overflow-hidden rounded-xl border border-border">
- <img src={p.url} alt={p.note ?? "progress"} className="aspect-square w-full object-cover" />
+ <div key={p.id} className="group relative aspect-square w-full overflow-hidden rounded-xl border border-border">
+ <Image src={p.url} alt={p.note ?? "progress"} fill className="object-cover" />
  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-2">
  <span className="text-xs text-white">
  {p.taken_on ? new Date(p.taken_on).toLocaleDateString() : ""}

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useState, useEffect, useRef } from "react";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/hooks/use-auth";
@@ -174,7 +175,7 @@ export default function ProfilePage() {
                 disabled={uploadingAvatar}
               >
                 {avatarUrl ? (
-                  <img src={avatarUrl} alt={fullName || "Avatar"} className="h-full w-full object-cover" />
+                  <Image src={avatarUrl} alt={fullName || "Avatar"} fill className="object-cover" />
                 ) : (
                   <div className="flex h-full w-full items-center justify-center bg-[#0071e3] text-3xl font-semibold text-white">
                     {(fullName || "U")[0].toUpperCase()}

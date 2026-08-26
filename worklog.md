@@ -2531,3 +2531,50 @@ Stage Summary:
 - onError fallback images remain as raw `<img>` because next/image doesn't support direct onError src replacement — needs a different pattern (e.g. state-based fallback like the LandingView cards already use, or `onLoadingComplete`/`onError` with `unoptimized` prop). Deferred to a follow-up batch.
 - Commit SHA: pending
 - Push status: pending
+
+
+---
+Task ID: FIX-NEXT-IMAGE-BATCH2-049
+Agent: Main (Z User)
+Task: Migrate remaining raw `<img>` tags to next/image `<Image>` component in Batch 2 (app/admin views). Continuation of FIX-NEXT-IMAGE-BATCH1-048 which already migrated Batch 1 (public-facing pages).
+
+Work Log:
+- Migrated 7 files in Batch 2 (app/admin views):
+  1. `src/app/profile/page.tsx` — 1 img (avatar inside `relative h-24 w-24` button). No onError. Migrated to `<Image fill className="object-cover" />`. Added `import Image from "next/image";`. avatarUrl can be a Supabase storage URL OR a base64 data URL (demo mode) — both work with next/image fill.
+  2. `src/components/views/CoachClientView.tsx` — 3 imgs total: 2 migrated (client nutrition photos at `aspect-square`, no onError) to `<Image fill className="object-cover" />` with `relative` added to parent `<a>` wrappers; 1 img with onError (exercise images inside plan editor, uses `getFallbackSVG` fallback) kept as `<img>` with `// TODO: migrate to next/image with onError fallback` comment. Added `import Image from "next/image";`. Did NOT touch the `imgHtml` template string used for print-window document.write.
+  3. `src/components/views/PlansView.tsx` — 1 img with onError (exercise images, uses `getFallbackSVG` fallback) kept as `<img>` with `// TODO: migrate to next/image with onError fallback` comment. Did NOT add `next/image` import (file has no `<Image>` usage). Did NOT touch the `imgHtml` template string.
+  4. `src/components/views/BlogView.tsx` — 1 img (blog post cover_image inside `aspect-video`) migrated to `<Image fill className="object-cover transition-transform group-hover:scale-105" loading="lazy" />` with `relative` added to parent. Added `import Image from "next/image";`.
+  5. `src/components/views/BlogEditorView.tsx` — 1 img (featured_image preview, was `h-32 w-full`) migrated. Wrapped in a new `<div className="relative mt-2 h-32 w-full overflow-hidden rounded-lg">` parent and used `<Image fill className="object-cover" />`. Added `import Image from "next/image";`.
+  6. `src/components/views/QuestionnairesView.tsx` — 1 img (progress photo, parent already had `relative aspect-square`) migrated to `<Image fill className="object-cover" />` (parent already had `relative`, only swapped the img tag). Added `import Image from "next/image";`.
+  7. `src/components/views/ProgressView.tsx` — 1 img (progress photo, parent had `relative` but no aspect class — image itself had `aspect-square w-full`). Migrated by moving `aspect-square w-full` to parent div and using `<Image fill className="object-cover" />`. Added `import Image from "next/image";`.
+
+- ESLint rule change: in `eslint.config.mjs`, changed `"@next/next/no-img-element": "off"` → `"@next/next/no-img-element": "warn"`. This surfaces warnings (not errors) for every remaining raw `<img>` tag in the codebase, including the 2 intentionally-kept onError imgs in Batch 2 (CoachClientView line 2108, PlansView line 683) and the 9 intentionally-kept onError imgs from Batch 1. Build still exits 0 because warnings don't fail the build.
+
+- next.config.ts remotePatterns: added `{ protocol: "https", hostname: "*.supabase.co" }` and `{ protocol: "https", hostname: "*.supabase.in" }` to `images.remotePatterns`. Required because Batch 2 migrations reference user-uploaded photos stored in Supabase Storage buckets (avatars, questionnaire-photos, progress photos). Without these patterns, next/image would return 400 errors at runtime for Supabase-hosted images.
+
+- Pattern used for fill migrations:
+  • Parent must have `position: relative` (added `relative` class where missing).
+  • Parent must have known dimensions — either fixed (`h-24 w-24`, `h-32 w-full`) or via aspect-ratio class (`aspect-square`, `aspect-video`, `aspect-[3/2]`).
+  • When the image element itself carried the aspect ratio (ProgressView case), moved `aspect-square w-full` from the `<img>` to the parent `<div>` so the parent has known dimensions for `fill` to work against.
+  • Removed redundant `h-full w-full` from `<Image>` className (next/image with `fill` is absolutely positioned to inset:0, so h-full w-full is a no-op).
+  • Kept `object-cover`/`object-contain` and any transition/scale classes on the `<Image>`.
+
+- Deferred migrations (kept as `<img>` with TODO):
+  • CoachClientView.tsx line 2108 — exercise images with `onError` that swaps `src` to a `getFallbackSVG(category)` data URL.
+  • PlansView.tsx line 683 — same pattern, exercise images with `onError` swapping to `getFallbackSVG(category)`.
+  These need a state-based fallback pattern (e.g. `onError` → setState to swap to fallback URL, or use `onError` prop on next/image which receives the error event but cannot directly mutate `src`). Deferred to a follow-up batch.
+
+- Did NOT touch `imgHtml` template strings (CoachClientView line 1311, PlansView line 309) — these build HTML strings passed to `document.write` for printable plan windows. next/image cannot be used in template strings.
+
+Verification:
+- `bunx tsc --noEmit` → exit code 0 (0 TypeScript errors).
+- `bunx next build` → exit code 0 (build passes; all 92 routes compiled successfully).
+- `bun run lint` → 0 errors, 551 warnings (524 pre-existing `any` warnings + 27 `no-img-element` warnings: 9 from Batch 1 onError imgs + 2 from Batch 2 onError imgs + 16 from other files not in scope of this batch). Lint passes because all are warnings, not errors.
+
+Stage Summary:
+- 7 files updated, 7 `<img>` tags migrated to `<Image fill>`, 2 `<img>` tags with onError handlers kept as-is with TODO comments.
+- ESLint `@next/next/no-img-element` rule promoted from `off` to `warn` — future raw `<img>` additions will surface as lint warnings.
+- Supabase storage hostnames added to next/image remotePatterns for runtime image optimization.
+- 2 deferred migrations (CoachClientView + PlansView exercise images with onError fallback) documented with TODO comments for follow-up.
+- Commit SHA: pending
+- Push status: pending

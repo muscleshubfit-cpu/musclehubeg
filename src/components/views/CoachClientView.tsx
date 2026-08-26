@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useState, useMemo } from "react";
 import {
  ArrowLeft,
@@ -1075,8 +1076,8 @@ function QuestionnaireCard({
  <Label className="text-xs text-muted-foreground">صور العميل</Label>
  <div className="mt-1 grid grid-cols-3 gap-2">
  {form.photos.map((url: string, i: number) => (
- <a key={i} href={url} target="_blank" rel="noreferrer" className="aspect-square overflow-hidden rounded-lg border border-border">
- <img src={url} alt={`صورة ${i + 1}`} className="h-full w-full object-cover" />
+ <a key={i} href={url} target="_blank" rel="noreferrer" className="relative aspect-square overflow-hidden rounded-lg border border-border">
+ <Image src={url} alt={`صورة ${i + 1}`} fill className="object-cover" />
  </a>
  ))}
  </div>
@@ -1112,8 +1113,8 @@ function QuestionnaireCard({
  <span className="text-muted-foreground">صور العميل:</span>
  <div className="mt-2 grid grid-cols-3 gap-2">
  {data.data.photos.map((url: string, i: number) => (
- <a key={i} href={url} target="_blank" rel="noreferrer" className="aspect-square overflow-hidden rounded-lg border border-border">
- <img src={url} alt={`صورة ${i + 1}`} className="h-full w-full object-cover" />
+ <a key={i} href={url} target="_blank" rel="noreferrer" className="relative aspect-square overflow-hidden rounded-lg border border-border">
+ <Image src={url} alt={`صورة ${i + 1}`} fill className="object-cover" />
  </a>
  ))}
  </div>
@@ -2103,6 +2104,7 @@ function PlanViewerModal({ plan, onClose, onRegenerate }: { plan: any; onClose: 
  <div className="mb-2 grid grid-cols-2 gap-2">
  {exImages.slice(0, 2).map((url: string, imgIdx: number) => (
  <div key={imgIdx} className="aspect-square overflow-hidden rounded-lg bg-muted">
+ {/* TODO: migrate to next/image with onError fallback */}
  <img
  src={url}
  alt={`${ex.name} ${imgIdx + 1}`}

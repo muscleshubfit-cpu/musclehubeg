@@ -30,6 +30,10 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "raw.githubusercontent.com" },
       { protocol: "https", hostname: "images.pexels.com" },
       { protocol: "https", hostname: "musclehubeg.vercel.app" },
+      // Supabase Storage — hosts user-uploaded avatars, questionnaire photos,
+      // and progress photos referenced via next/image in profile/admin views.
+      { protocol: "https", hostname: "*.supabase.co" },
+      { protocol: "https", hostname: "*.supabase.in" },
     ],
     minimumCacheTTL: 86400, // 24 hours
   },
