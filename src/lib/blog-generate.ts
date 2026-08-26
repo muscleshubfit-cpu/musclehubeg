@@ -791,24 +791,20 @@ export async function generateArticleBundle(
 
 
 /**
- * Step 2a: External Web Research.
- * Performs REAL external web search via z-ai web_search API.
- * Does NOT call any LLM. Does NOT generate pseudo-research.
+ * Step 2a: External Research (LLM-knowledge based).
  *
- * This function delegates to `externalSearch()` in `src/lib/external-search.ts`,
- * which is the project's official entry point for real external web search.
- * The delegation is intentional — both the blog pipeline (Step 2a) and the
- * manual `/api/ai/research-topic` route (used by AIGenerateModal) call the
- * SAME underlying implementation, so search behavior stays consistent.
+ * OWNER DIRECTIVE (2026-08-27): all AI calls go through OpenRouter / Groq.
+ * There is no live web-search integration anymore — the previous z-ai
+ * web_search era AND the later Gemini googleSearch-grounding era are both
+ * gone. `externalSearch()` now asks the unified chain to model the
+ * best-ranking coverage of the topic (trusted hosts only, no fabricated
+ * URLs are stored).
  *
- * The previous version of this function used raw `fetch()` against
- * `https://internal-api.z.ai/v1/functions/invoke` with the default `"Gemini"`
- * API key, which returns `invalid X-Token` on every call in production.
- * Using the `z-ai-web-dev-sdk` via `externalSearch()` fixes that — the SDK
- * uses an internal token and works in Vercel serverless environments.
+ * Delegation is intentional — both the blog pipeline (Step 2a) and the
+ * manual `/api/ai/research-topic` route call the SAME underlying
+ * implementation, so research behavior stays consistent.
  *
- * Returns { research, source } where research contains REAL URLs, hosts,
- * snippets from actual web search results.
+ * Returns { research, source } where source = "llm-research".
  */
 export async function generateExternalResearch(
   input: { topic?: string; focusKeyword?: string; category?: string },
@@ -817,7 +813,6 @@ export async function generateExternalResearch(
     topic: input.topic,
     focusKeyword: input.focusKeyword,
     maxResults: 10,
-    timeoutMs: 20_000,
   });
 
   console.log(
@@ -854,9 +849,12 @@ export async function generateEnglishArticle(
       temperature: 0.7,
       maxTokens: 6_000,
       jsonMode: true,
-      timeoutMs: 45_000,
+      // Vercel Hobby budget (2026-08-27): the chain self-clamps to
+      // maxModels × timeoutMs ≤ 52s; retries happen at the GitHub Actions
+      // orchestration level between separate HTTP calls.
+      timeoutMs: 26_000,
+      maxModels: 2,
     },
-    3, // maxOpenRouterModels=3 — try all 3 Nemotron before Groq fallback
   );
   // M62 fix: removed raw text logging (AGENTS.md §8 — never log AI response)
 
@@ -904,9 +902,9 @@ export async function generateArabicArticle(
       temperature: 0.7,
       maxTokens: 6_000,
       jsonMode: true,
-      timeoutMs: 45_000,
+      timeoutMs: 26_000,
+      maxModels: 2,
     },
-    3, // maxOpenRouterModels=3 — try all 3 Nemotron before Groq fallback
   );
   // M62 fix: removed raw text logging (AGENTS.md §8)
 
@@ -1025,9 +1023,9 @@ Return ONLY the JSON. No commentary, no markdown fences.`;
       temperature: 0.7,
       maxTokens: 2_500,
       jsonMode: true,
-      timeoutMs: 35_000,
+      timeoutMs: 22_000,
+      maxModels: 2,
     },
-    3, // maxOpenRouterModels=3 — try all 3 Nemotron before Groq fallback
   );
   // M62 fix: removed raw text logging
   const parsed = parseJSON<any>(text);

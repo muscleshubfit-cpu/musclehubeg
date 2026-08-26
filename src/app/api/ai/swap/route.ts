@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { callFreeOpenRouterRace, parseJSON } from "@/lib/ai-provider";
-import { callGeminiJSON } from "@/lib/gemini-wrapper";
 import { requireUser, isAuthConfigured } from "@/lib/auth-server";
 import { checkAndRecordSwap } from "@/lib/tier-limits";
 
 /**
  * Swap a meal or exercise for an alternative.
- * Uses Gemini first, with OpenRouter's best free models and local fallback.
+ * Uses OpenRouter's best free models (3-model parallel race) + local fallback.
+ *
+ * OWNER DIRECTIVE (2026-08-27): the previous "Gemini first, then OpenRouter"
+ * path is gone — /api/ai/swap now goes through OpenRouter/Groq only.
  *
  * POST /api/ai/swap
  * Body: { type, item, clientContext, note }
@@ -26,10 +28,12 @@ export async function POST(request: NextRequest) {
   try {
     // Any logged-in user — both coach and clients use swaps.
     let userId: string | undefined;
+    let authTier: string | undefined;
     if (isAuthConfigured) {
       const auth = await requireUser(request);
       if (auth instanceof Response) return auth;
       userId = auth.id;
+      authTier = auth.membership_tier; // already active + expiry filtered
     }
 
     const body = await request.json();
@@ -43,15 +47,12 @@ export async function POST(request: NextRequest) {
     }
 
     // C16 fix: server-side swap limit check + recording.
-    // Coaches bypass the limit (they can swap unlimited when editing
-    // a client's plan). Clients are limited by their tier.
-    // Note: we check is_coach via the auth helper — coaches have
-    // role='coach' in their profile. For simplicity here, we treat
-    // any authenticated user the same; the RLS policy on plan_swaps
-    // allows coaches to insert for any user_id.
+    // NOTE (2026-08-27): the previously documented "coach bypass" was never
+    // implemented and is now explicitly removed from docs — every user
+    // follows their tier limits.
     if (userId) {
       const swapType = type === "meal" ? "meal" : "exercise";
-      const limitCheck = await checkAndRecordSwap(userId, swapType);
+      const limitCheck = await checkAndRecordSwap(userId, swapType, authTier);
       if (!limitCheck.allowed) {
         const limitText = limitCheck.limit === 0
           ? "Swaps are available on Premium and higher tiers."
@@ -95,28 +96,8 @@ ${note ? `طلب العميل: ${note}` : ""}
  "notes": "ملاحظة قصيرة"
 }`;
 
-      // 1. Try Gemini first
-      try {
-        const { data: geminiMeal, model: geminiModel } = await callGeminiJSON<any>(
-          prompt,
-          {
-            systemPrompt: "أنت أخصائي تغذية محترف. أعد JSON صالح فقط.",
-            temperature: 0.7,
-            maxTokens: 1500,
-            timeoutMs: 25_000,
-          },
-        );
-        if (geminiMeal && geminiMeal.items && geminiMeal.items.length > 0) {
-          return NextResponse.json({
-            replacement: geminiMeal,
-            source: `gemini:${geminiModel}`,
-          });
-        }
-      } catch (gErr: any) {
-        console.warn("[api/ai/swap] Gemini meal notice, trying OpenRouter fallback:", gErr?.message);
-      }
-
-      // 2. Try OpenRouter free models (shared helper handles the iteration)
+      // 1. OpenRouter free models via the parallel race (owner directive:
+      //    OpenRouter/Groq only — the old Gemini-first attempt was removed).
       try {
         const { text, model } = await callFreeOpenRouterRace(
           prompt,
@@ -137,7 +118,7 @@ ${note ? `طلب العميل: ${note}` : ""}
           });
         }
       } catch (e: any) {
-        console.error("[api/ai/swap] meal OpenRouter failed:", e?.message);
+        console.error("[api/ai/swap] meal race failed:", e?.message);
       }
     } else if (type === "exercise") {
       const prompt = `أنت مدرب لياقة. استبدل التمرين التالي بتمرين بديل يستهدف نفس العضلة (${item.focus || "غير محدد"}) بنفس الحجم والشدة.
@@ -160,32 +141,12 @@ ${note ? `طلب العميل: ${note}` : ""}
  "sets": 4,
  "reps": "8-12",
  "rest": "90 ثانية",
- "notes": "نصيحة قصيرة",
- "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/..."
-}`;
+ "notes": "نصيحة قصيرة"
+}
 
-      // 1. Try Gemini first
-      try {
-        const { data: geminiEx, model: geminiModel } = await callGeminiJSON<any>(
-          prompt,
-          {
-            systemPrompt: "أنت مدرب لياقة محترف. أعد JSON صالح فقط.",
-            temperature: 0.7,
-            maxTokens: 800,
-            timeoutMs: 25_000,
-          },
-        );
-        if (geminiEx && geminiEx.name) {
-          return NextResponse.json({
-            replacement: geminiEx,
-            source: `gemini:${geminiModel}`,
-          });
-        }
-      } catch (gErr: any) {
-        console.warn("[api/ai/swap] Gemini exercise notice, trying OpenRouter fallback:", gErr?.message);
-      }
+ملاحظة: لا تضع حقل image — الصورة تُطابق تلقائياً من مكتبة التمارين بالسيرفر.`;
 
-      // 2. Try OpenRouter free models
+      // 1. OpenRouter free models via the parallel race.
       try {
         const { text, model } = await callFreeOpenRouterRace(
           prompt,
@@ -206,7 +167,7 @@ ${note ? `طلب العميل: ${note}` : ""}
           });
         }
       } catch (e: any) {
-        console.error("[api/ai/swap] exercise OpenRouter failed:", e?.message);
+        console.error("[api/ai/swap] exercise race failed:", e?.message);
       }
     }
 

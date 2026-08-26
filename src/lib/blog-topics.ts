@@ -542,7 +542,8 @@ IMPORTANT: Return the topic and focusKeyword in ${language === "ar" ? "ARABIC" :
         temperature: 0.85,
         maxTokens: 600,
         jsonMode: true,
-        timeoutMs: 30_000,
+        timeoutMs: 22_000,
+        maxModels: 2, // Vercel Hobby budget
       },
     );
     console.log(`[blog-topics] Topic pick raw response (language: ${language}, length: ${raw.length})`);

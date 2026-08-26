@@ -1,34 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
-import { parseJSON } from "@/lib/ai-provider";
-import { callGemini, getGeminiApiKey } from "@/lib/gemini-wrapper";
+import { callFreeAIFallbackChain, parseJSON } from "@/lib/ai-provider";
 import { requireCoach, isAuthConfigured } from "@/lib/auth-server";
 import { externalSearch } from "@/lib/external-search";
 
 /**
- * Topic Research endpoint — runs REAL external web search via
- * Google Search via Gemini to fetch actual URLs, titles, hosts, and
- * snippets from the web. Optionally enriches search intent / content
- * gaps via an LLM call (these fields cannot be derived from raw web
- * search results alone).
+ * Topic Research endpoint — runs the research stage via externalSearch()
+ * (OpenRouter/Groq unified chain — owner directive 2026-08-27), then
+ * optionally enriches with search intent / content gaps via a second
+ * chain call.
  *
- * The primary path is `externalSearch()` in `src/lib/external-search.ts`:
- *   - 3 parallel queries (main topic, comparison, how-to)
- *   - 8s timeout per query
- *   - Dedup by normalized URL
- *   - Filter reddit / quora / pinterest / facebook
- *   - Extract questions from snippets
- *   - Compute trending keywords from snippet word frequency
- *   - ZERO LLM calls inside the search path
- *
- * The LLM is used ONLY for fields that cannot be derived from raw
- * search results:
- *   - searchIntent (informational / commercial / transactional)
- *   - searcherGoal (free-text summary of what the searcher wants)
- *   - contentGaps (3-5 angles competitors are NOT covering well)
- *
- * If the LLM call fails or the OpenRouter key is missing, those fields
- * are returned as null/empty — the rest of the research (topArticles,
- * relatedQuestions, trendingKeywords) is still real and useful.
+ * KNOWN TRADE-OFF (owner-approved): research is model-knowledge-based —
+ * no live web grounding exists through OpenRouter/Groq. topArticles
+ * model best-ranking coverage (trusted hosts only, urls empty); nothing
+ * fabricated is ever published.
  *
  * POST /api/ai/research-topic
  * Body: { topic: string, focusKeyword?: string }
@@ -37,9 +21,7 @@ export const maxDuration = 60; // Vercel hobby plan limit
 
 export async function POST(request: NextRequest) {
   try {
-    // Coach-only — burns OpenRouter credits on the LLM enrichment call.
-    // The external search itself is free (uses Gemini's
-    // internal token, no key required).
+    // Coach-only — burns OpenRouter/Groq credits on both calls.
     if (isAuthConfigured) {
       const auth = await requireCoach(request);
       if (auth instanceof Response) return auth;
@@ -61,30 +43,24 @@ export async function POST(request: NextRequest) {
     const searchTerm = focusKeyword || topic || "";
 
     // ──────────────────────────────────────────────────────────────
-    // PRIMARY PATH — REAL external web search via Gemini SDK.
-    // No LLM. No OpenRouter. Returns real URLs, hosts, snippets.
+    // PRIMARY PATH — unified chain research (OpenRouter/Groq only).
     // ──────────────────────────────────────────────────────────────
     const research = await externalSearch({
       topic,
       focusKeyword,
       maxResults: 10,
-      timeoutMs: 8000,
     });
 
     // ──────────────────────────────────────────────────────────────
     // OPTIONAL ENRICHMENT — LLM-derived fields that cannot be
-    // extracted from raw search results. Only attempt if the OpenRouter
-    // key is configured AND we have real research to enrich. If the
-    // LLM call fails (rate-limit, 404, etc.), we still return the
-    // real research above with null enrichment fields.
+    // extracted from raw research. If the call fails we still return
+    // the research above with default enrichment values.
     // ──────────────────────────────────────────────────────────────
     let searchIntent: string | null = null;
     let searcherGoal: string | null = null;
     let contentGaps: string[] = [];
 
-    const canCallLLM = Boolean(getGeminiApiKey());
-
-    if (canCallLLM && research.totalResults > 0) {
+    if (research.totalResults > 0) {
       const enrichmentPrompt = buildEnrichmentPrompt(
         searchTerm,
         research.topArticles.slice(0, 5),
@@ -93,17 +69,17 @@ export async function POST(request: NextRequest) {
       );
 
       try {
-        const { text, model } = await callGemini(
+        const { text } = await callFreeAIFallbackChain(
           enrichmentPrompt,
           {
             systemPrompt:
-              "You are an expert SEO strategist. Analyze the provided REAL web search results and return JSON only with searchIntent, searcherGoal, and contentGaps fields. Do NOT fabricate URLs or article titles — use only the provided research.",
+              "You are an expert SEO strategist. Analyze the provided research results and return JSON only with searchIntent, searcherGoal, and contentGaps fields.",
             temperature: 0.4,
             maxTokens: 800,
             jsonMode: true,
             timeoutMs: 20_000,
+            maxModels: 2,
           },
-          2, // maxModels=2 — Vercel-safe (BLOG-PIPELINE-REDESIGN-001 Phase 1)
         );
 
         const parsed = parseJSON<any>(text);
@@ -131,16 +107,10 @@ export async function POST(request: NextRequest) {
               .slice(0, 5);
           }
         }
-        // Note: `model` is consumed for logging context but not surfaced
-        // to the caller — the response.source stays "z-ai-web-search"
-        // because the primary data is real web search, not LLM output.
-        void model;
       } catch (e: any) {
-        // LLM enrichment failed (rate-limit, 404, etc.) — return
-        // real research with null enrichment fields. Don't fail the
-        // whole request.
+        // Enrichment failed — return research with defaults. Don't fail.
         console.error(
-          "[research-topic] LLM enrichment failed (real research still returned):",
+          "[research-topic] LLM enrichment failed (research still returned):",
           e?.message,
         );
       }
@@ -159,7 +129,7 @@ export async function POST(request: NextRequest) {
       queryCount: research.queryCount,
       queriesSucceeded: research.successfulQueries,
       partialFailure: research.partialFailure,
-      source: "z-ai-web-search",
+      source: research.source, // "llm-research"
     });
   } catch (e: any) {
     console.error("[research-topic] Error:", e?.message || e);
@@ -171,9 +141,8 @@ export async function POST(request: NextRequest) {
 }
 
 /**
- * Build the LLM enrichment prompt. The LLM receives the REAL search
- * results and is asked to classify search intent + identify content
- * gaps. It is explicitly told NOT to fabricate URLs or titles.
+ * Build the LLM enrichment prompt. The LLM receives the research
+ * results and classifies search intent + identifies content gaps.
  */
 function buildEnrichmentPrompt(
   searchTerm: string,
@@ -184,7 +153,7 @@ function buildEnrichmentPrompt(
   const articlesBlock = topArticles
     .map(
       (a, i) =>
-        `${i + 1}. "${a.title}" (${a.host})\n   ${a.snippet}\n   URL: ${a.url}`,
+        `${i + 1}. "${a.title}" (${a.host})\n   ${a.snippet}`,
     )
     .join("\n\n");
 
@@ -194,23 +163,23 @@ function buildEnrichmentPrompt(
 
   const keywordsBlock = trendingKeywords.join(", ");
 
-  return `You are an expert SEO strategist analyzing REAL web search results for the search term "${searchTerm}".
+  return `You are an expert SEO strategist analyzing research results for the search term "${searchTerm}".
 
-REAL search results (titles + hosts + snippets — DO NOT fabricate URLs or invent new article titles):
+Research results (modeled top coverage — titles + hosts + snippets):
 ${articlesBlock}
 
-Related questions extracted from snippets:
+Related questions:
 ${questionsBlock}
 
-Trending keywords extracted from snippets:
+Trending keywords:
 ${keywordsBlock}
 
-Based on the REAL data above, return STRICT JSON only:
+Based on the data above, return STRICT JSON only:
 {
   "searchIntent": "informational | commercial | transactional",
   "searcherGoal": "one-sentence summary of what the searcher really wants to achieve",
   "contentGaps": [
-    "angle 1 that the existing top articles are NOT covering well — opportunity for our article",
+    "angle 1 that existing coverage is NOT covering well — opportunity for our article",
     "angle 2 ...",
     "angle 3 ..."
   ]

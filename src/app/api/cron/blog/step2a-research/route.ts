@@ -16,13 +16,14 @@ export const maxDuration = 60;
  * Step 2a: External Web Research (ISOLATED STAGE).
  *
  * Reads the queue item identified by `?queueId=<uuid>` (passed from
- * Step 1's response), performs REAL external web search via z-ai
- * web_search API, saves the results to article_bundle, and sets
- * status to "research_done".
+ * Step 1's response), runs the research stage via externalSearch()
+ * (unified OpenRouter/Groq chain — owner directive 2026-08-27),
+ * saves the results to article_bundle, and sets status to "research_done".
  *
- * This step does NOT call any LLM. It does NOT generate pseudo-research.
+ * NOTE: research is model-knowledge based now — there is NO live web
+ * grounding through OpenRouter/Groq. topArticles model best-ranking
+ * coverage with trusted hosts only; no fabricated URLs are stored.
  * It does NOT share execution with Step 2b (article generation).
- * It performs ONLY: web search → normalize → deduplicate → store → exit.
  *
  * Queue-item threading (MH-QUEUE-HANDOFF-007):
  *   The queueId is REQUIRED as a query parameter. The previous code

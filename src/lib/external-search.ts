@@ -1,5 +1,7 @@
-import { GoogleGenAI } from "@google/genai";
-import { getGeminiApiKey } from "@/lib/gemini-wrapper";
+import {
+  callFreeAIFallbackChain,
+  parseJSON,
+} from "@/lib/ai-provider";
 
 export type ExternalSearchArticle = {
   title: string;
@@ -16,7 +18,7 @@ export type ResearchResult = {
   searchIntent: null;
   searcherGoal: null;
   contentGaps: string[];
-  source: "gemini-search" | "z-ai-web-search";
+  source: "llm-research";
   queryCount: number;
   successfulQueries: number;
   totalResults: number;
@@ -29,6 +31,10 @@ export type ExternalSearchInput = {
   focusKeyword?: string;
   category?: string;
   maxResults?: number;
+  /**
+   * Accepted for backward compatibility. The unified chain enforces its own
+   * Vercel-Hobby-safe per-model timeout budget, so this value is advisory.
+   */
   timeoutMs?: number;
 };
 
@@ -41,7 +47,7 @@ function emptyResult(): ResearchResult {
     searchIntent: null,
     searcherGoal: null,
     contentGaps: [],
-    source: "gemini-search",
+    source: "llm-research",
     queryCount: 0,
     successfulQueries: 0,
     totalResults: 0,
@@ -50,41 +56,56 @@ function emptyResult(): ResearchResult {
   };
 }
 
-function parseJSON<T = any>(text: string): T | null {
-  if (!text) return null;
-  let cleaned = text.trim();
-  const fence = cleaned.match(/```(?:json)?\s*([\s\S]*?)```/);
-  if (fence) cleaned = fence[1].trim();
-  const open = cleaned.search(/[{[]/);
-  if (open === -1) return null;
-  const close = cleaned.lastIndexOf(cleaned[open] === "{" ? "}" : "]");
-  if (close !== -1 && close > open) {
-    try {
-      return JSON.parse(cleaned.slice(open, close + 1)) as T;
-    } catch {
-      return null;
-    }
-  }
-  return null;
-}
-
 /**
- * Ordered list of Gemini Flash models tried by externalSearch().
+ * External research stage (Step 2a of the blog pipeline).
  *
- * Policy (per stage-aware review):
- *   - Stage = Google / External Research → use FASTEST free Gemini variant.
- *   - NO Gemini Pro, NO OpenRouter models — Google Search tool grounding is
- *     mandatory, and only Google's own Gemini family supports the
- *     `tools: [{ googleSearch: {} }]` config used here.
+ * OWNER DIRECTIVE (2026-08-27): all AI calls must go through OpenRouter /
+ * Groq. The previous implementation used Google's native GenAI SDK with
+ * Google Search grounding (`tools:[{googleSearch:{}}]`), which is a DIRECT
+ * Gemini API call and is therefore no longer allowed.
  *
- * Order: try the newest Flash first, fall back to older revisions if the
- * API rejects the model name (deprecation) or returns a network/quota error.
+ * Replacement strategy: ask the strongest available chain model to act as
+ * a research analyst producing the SAME output shape the pipeline expects
+ * ({topArticles, relatedQuestions, trendingKeywords}) from its training
+ * knowledge.
+ *
+ * KNOWN TRADE-OFF (documented, owner-approved): without live web grounding
+ * the "articles" below represent likely-authoritative sources by domain +
+ * plausible titles rather than verified live URLs. Downstream stages only
+ * use `host` + `snippet` as thematic guidance for article drafting — no
+ * fabricated URL is ever published or linked. Google-family models reached
+ * through OpenRouter (`google/gemma-*`) still carry strong search-quality
+ * priors from Google's training corpus.
  */
-const GEMINI_FLASH_MODELS = [
-  "gemini-3.7-flash",
-  "gemini-3.6-flash",
-  "gemini-3.5-flash",
-] as const;
+const WELL_KNOWN_HEALTH_HOSTS = [
+  "healthline.com",
+  "mayoclinic.org",
+  "nih.gov",
+  "ncbi.nlm.nih.gov",
+  "webmd.com",
+  "medicalnewstoday.com",
+  "examine.com",
+  "verywellfit.com",
+  "menshealth.com",
+  "womenshealthmag.com",
+  "bodybuilding.com",
+  "t-nation.com",
+  "sciencedirect.com",
+  "who.int",
+  "cdc.gov",
+];
+
+const RESEARCH_SYSTEM_PROMPT = `You are an expert fitness/nutrition content researcher for MuscleHubEG, an Arabic+English sports platform.
+Given a topic and focus keyword, produce research JSON that will guide article writing.
+
+Rules:
+- topArticles: 5-8 items modeling what the BEST-RANKING coverage of this topic looks like.
+  Use ONLY host domains from this trusted list: ${WELL_KNOWN_HEALTH_HOSTS.join(", ")}.
+  Titles should be realistic SEO-style headlines; snippets must summarize the key facts,
+  statistics, and angles such an article would cover (2-3 sentences each). Set url to "" .
+- relatedQuestions: 8-15 "People Also Ask"-style questions in English AND Arabic mix appropriate to the topic's audience.
+- trendingKeywords: 5-10 current SEO keywords/phrases for this niche.
+- Return STRICT JSON only — no markdown fences, no commentary.`;
 
 export async function externalSearch(
   input: ExternalSearchInput,
@@ -96,121 +117,78 @@ export async function externalSearch(
     return emptyResult();
   }
 
-  const apiKey = getGeminiApiKey();
-  if (!apiKey) {
+  const prompt = `Research topic: "${searchTerm}"
+Focus keyword: "${searchTerm}"
+
+Produce the research JSON now.`;
+
+  // maxModels=2 × clamped ≤26s → worst case ~52s, inside the Vercel Hobby cap.
+  const { text, model, provider } = await callFreeAIFallbackChain(
+    prompt,
+    {
+      systemPrompt: RESEARCH_SYSTEM_PROMPT,
+      temperature: 0.4,
+      maxTokens: 2500,
+      jsonMode: true,
+      timeoutMs: 26_000,
+      maxModels: 2,
+    },
+  );
+
+  const data = parseJSON<{
+    topArticles?: any[];
+    relatedQuestions?: any[];
+    trendingKeywords?: any[];
+  }>(text);
+
+  const topArticles = Array.isArray(data?.topArticles) ? data!.topArticles : [];
+
+  if (topArticles.length === 0) {
     throw new Error(
-      "[external-search] GEMINI_API_KEY (or GOOGLE_API_KEY / GOOGLE_GENAI_API_KEY / AI_API_KEY / OPENROUTER_API) is not configured. " +
-      "External research requires a valid Gemini API key — Google Search grounding is only available through Google's own Gemini models.",
+      `[external-search] ${provider}/${model} returned no topArticles (parsed keys: ${
+        data ? Object.keys(data).join(",") : "null"
+      })`,
     );
   }
 
-  // Initialize Gemini SDK once and reuse across all model attempts.
-  const ai = new GoogleGenAI({
-    apiKey,
-    httpOptions: { headers: { "User-Agent": "aistudio-build" } },
-  });
-
-  const prompt = `Perform a comprehensive Google Search for the following topic/keyword: "${searchTerm}".
-Return a JSON object containing the real research data exactly in this format:
-{
-  "topArticles": [
-    { "title": "Real Article Title", "url": "https://...", "host": "example.com", "snippet": "A brief 2-3 sentence snippet summarizing the article content..." }
-  ],
-  "relatedQuestions": ["Question 1", "Question 2"],
-  "trendingKeywords": ["keyword1", "keyword2"]
-}
-Ensure you use your Google Search tool to find real, accurate URLs and titles.
-Do NOT hallucinate URLs. 
-Return valid JSON only.`;
-
-  // ─────────────────────────────────────────────────────────────────────
-  // Ordered fallback: 3.7-flash → 3.6-flash → 3.5-flash
-  //
-  // Each attempt MUST keep Google Search grounding enabled (the
-  // `tools: [{ googleSearch: {} }]` config below is what tells the model
-  // to perform a real web search instead of relying on its training data).
-  //
-  // If a model fails (404/deprecation, network, quota, empty body), we log
-  // the cause and proceed to the next model automatically. If ALL three
-  // fail, we throw a clear error — NO local fallback, NO fabricated results.
-  // ─────────────────────────────────────────────────────────────────────
-  const attemptErrors: string[] = [];
-
-  for (const model of GEMINI_FLASH_MODELS) {
-    try {
-      const response = await ai.models.generateContent({
-        model,
-        contents: prompt,
-        config: {
-          tools: [{ googleSearch: {} }],
-        },
-      });
-
-      const text = response.text || "";
-      if (!text.trim()) {
-        throw new Error(`${model}: empty response body`);
-      }
-
-      const data = parseJSON<any>(text) || {};
-
-      // Basic shape check — if the model returned valid JSON but with no
-      // topArticles at all, treat as a soft failure and try the next model.
-      // (This guards against cases where Google Search returned 0 results
-      // AND the model decided to output `{}`.)
-      if (
-        !Array.isArray(data.topArticles) ||
-        data.topArticles.length === 0
-      ) {
-        throw new Error(
-          `${model}: response had no topArticles (parsed keys: ${Object.keys(data).join(",") || "none"})`,
-        );
-      }
-
-      console.log(
-        `[external-search] Gemini ${model} succeeded: ` +
-        `${data.topArticles.length} articles, ` +
-        `${Array.isArray(data.relatedQuestions) ? data.relatedQuestions.length : 0} questions.`,
-      );
-
+  // Sanitize hosts into the trusted list; unknown/missing → "" (never fabricated).
+  const sanitized: ExternalSearchArticle[] = topArticles
+    .slice(0, maxResults)
+    .map((a: any) => {
+      const rawHost = String(a?.host || "").toLowerCase().trim();
+      const host = WELL_KNOWN_HEALTH_HOSTS.includes(rawHost) ? rawHost : "";
       return {
-        topArticles: data.topArticles.slice(0, maxResults),
-        relatedQuestions: Array.isArray(data.relatedQuestions)
-          ? data.relatedQuestions.slice(0, 15)
-          : [],
-        trendingKeywords: Array.isArray(data.trendingKeywords)
-          ? data.trendingKeywords.slice(0, 10)
-          : [],
-        trendingAngles: Array.isArray(data.trendingKeywords)
-          ? data.trendingKeywords.slice(0, 10)
-          : [],
-        searchIntent: null,
-        searcherGoal: null,
-        contentGaps: [],
-        source: "gemini-search",
-        queryCount: 1,
-        successfulQueries: 1,
-        totalResults: data.topArticles.length,
-        partialFailure: false,
-        firstError: null,
+        title: String(a?.title || "").slice(0, 200),
+        url: "", // never publish model-suggested URLs
+        host,
+        snippet: String(a?.snippet || "").slice(0, 600),
       };
-    } catch (err: any) {
-      const msg = err?.message || String(err);
-      attemptErrors.push(`${model}: ${msg}`);
-      console.warn(`[external-search] Gemini ${model} notice, trying next:`, msg);
-      // fall through to the next model in the loop
-    }
-  }
+    });
 
-  // All three Flash models failed — throw a clear, descriptive error.
-  // DO NOT return empty results (would let downstream stages silently use
-  // fabricated data). DO NOT use a local fallback.
-  const failureSummary = attemptErrors.join("\n  - ");
-  const finalError = new Error(
-    `[external-search] All Gemini Flash models failed for query "${searchTerm}". ` +
-    `Google Search grounding could not be completed. Errors:\n  - ${failureSummary}\n` +
-    `Configure a valid GEMINI_API_KEY with Gemini Flash access. ` +
-    `No local fallback or fabricated results will be returned.`,
+  const relatedQuestions = Array.isArray(data?.relatedQuestions)
+    ? data!.relatedQuestions.map((q: any) => String(q).slice(0, 200)).slice(0, 15)
+    : [];
+  const trendingKeywords = Array.isArray(data?.trendingKeywords)
+    ? data!.trendingKeywords.map((k: any) => String(k).slice(0, 60)).slice(0, 10)
+    : [];
+
+  console.log(
+    `[external-search] ${provider}/${model} succeeded: ${sanitized.length} articles, ${relatedQuestions.length} questions.`,
   );
-  console.error(finalError.message);
-  throw finalError;
+
+  return {
+    topArticles: sanitized,
+    relatedQuestions,
+    trendingKeywords,
+    trendingAngles: [...trendingKeywords],
+    searchIntent: null,
+    searcherGoal: null,
+    contentGaps: [],
+    source: "llm-research",
+    queryCount: 1,
+    successfulQueries: 1,
+    totalResults: sanitized.length,
+    partialFailure: false,
+    firstError: null,
+  };
 }

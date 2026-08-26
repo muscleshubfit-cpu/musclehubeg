@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { generateArticleBundle } from "@/lib/blog-generate";
 import { supabaseAdmin, isSupabaseAdminConfigured } from "@/lib/supabase/admin";
-import { parseJSON } from "@/lib/ai-provider";
-import { callGemini } from "@/lib/gemini-wrapper";
+import { callFreeAIFallbackChain, parseJSON } from "@/lib/ai-provider";
 
-export const maxDuration = 300; // 5 min — chunked generation needs headroom
+export const maxDuration = 60; // Vercel Hobby cap — one model window per request
 
 /**
  * Step 2: Generate article (the slow AI call).
@@ -16,6 +15,7 @@ export const maxDuration = 300; // 5 min — chunked generation needs headroom
 export async function GET(request: NextRequest) {
   const auth = request.headers.get("authorization");
   const expected = process.env.CRON_SECRET;
+  let currentQueueId: string | undefined;
   if (!expected || auth !== `Bearer ${expected}`) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   if (!isSupabaseAdminConfigured || !supabaseAdmin)
@@ -37,6 +37,7 @@ export async function GET(request: NextRequest) {
     }
 
     const qi = queueItem as any;
+    currentQueueId = qi.id;
 
     // Mark as "generating" so step 2 doesn't pick it up again
     await supabaseAdmin
@@ -71,14 +72,15 @@ Return STRICT JSON only:
   "searcherGoal": "what the searcher really wants to achieve"
 }`;
 
-      const { text: researchRaw } = await callGemini(
+      const { text: researchRaw } = await callFreeAIFallbackChain(
         researchPrompt,
         {
           systemPrompt: "You are an expert SEO strategist. Return JSON only.",
           temperature: 0.5,
           maxTokens: 2000,
           jsonMode: true,
-          timeoutMs: 45_000,
+          timeoutMs: 26_000,
+          maxModels: 2,
         },
       );
       research = parseJSON<any>(researchRaw);
@@ -122,12 +124,13 @@ Return STRICT JSON only:
     });
   } catch (e: any) {
     console.error("[blog/step2-generate] Error:", e?.message || e);
-    // Mark queue item as failed so step 1 can pick a new topic next time
+    // Mark THIS queue item as failed (scoped by id — the previous by-status
+    // update could clobber a concurrent row).
     try {
       await supabaseAdmin
         .from("blog_generation_queue" as any)
         .update({ status: "failed", error_message: e?.message || "Unknown" })
-        .eq("status", "generating");
+        .eq("id", currentQueueId || "");
     } catch {}
     return NextResponse.json({ error: e?.message || "Failed" }, { status: 500 });
   }

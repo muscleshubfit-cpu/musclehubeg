@@ -1,21 +1,24 @@
 /**
  * Blog featured image sourcing — generates AI cover images matching article
- * content as primary source, falling back to stock photos or Pollinations AI if needed.
+ * content as primary source, falling back to stock photos.
+ *
+ * OWNER DIRECTIVE (2026-08-27): all AI calls must go through OpenRouter / Groq.
+ * Google Imagen 3 (native Gemini SDK) was removed. Image generation now uses:
  *
  * Sources (in order of priority):
- *   1. AI Image Generation (Google Imagen 3 via @google/genai)
- *   2. Pollinations AI (Free high-speed AI image model)
- *   3. Unsplash API (free stock photos)
- *   4. Pexels API
- *   5. Pixabay API
+ *   1. Pollinations AI — free hosted flux endpoint (NOT a Gemini call; plain
+ *      CDN URL, no API key). Two attempts: model=flux then model=turbo with
+ *      a fresh seed.
+ *   2. Unsplash API (optional key)
+ *   3. Pexels API (optional key)
+ *   4. Pixabay API (optional key)
  */
-
-import { getGeminiApiKey, createGeminiClient } from "@/lib/gemini-wrapper";
 
 export type SourcedImage = { url: string; alt: string; credit: string } | null;
 
 /**
- * Generate an image using AI (Google Imagen 3 or Pollinations AI).
+ * Generate an image using Pollinations AI (flux → turbo fallback attempts).
+ * Shared by the blog publish pipeline and the /api/ai/generate-image route.
  */
 async function generateAIImage(query: string): Promise<SourcedImage> {
   const cleanQuery = query.trim().replace(/\s+/g, " ");
@@ -25,51 +28,26 @@ async function generateAIImage(query: string): Promise<SourcedImage> {
   // Only add visual quality modifiers, never override the subject matter.
   const prompt = `${cleanQuery}, ultra-realistic editorial photography, professional lighting, 8k, no text overlay, no watermark`;
   const encodedPrompt = encodeURIComponent(prompt);
-  const seed = Math.floor(Math.random() * 100000);
 
-  // 1. Primary: Pollinations AI (Instant, ultra-lightweight CDN URL string, 0ms DB bloat)
-  try {
-    const pollinationsUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=576&nologo=true&seed=${seed}&model=flux`;
-    const res = await fetch(pollinationsUrl, { signal: AbortSignal.timeout(10_000) });
-    if (res.ok) {
-      return {
-        url: pollinationsUrl,
-        alt: query,
-        credit: "AI Generated (Pollinations AI)",
-      };
-    }
-  } catch (pErr: any) {
-    console.warn("[blog-images] Pollinations notice, trying Imagen 3 fallback:", pErr?.message || pErr);
-  }
-
-  // 2. Secondary: Google Imagen 3 via Gemini SDK
-  try {
-    const apiKey = getGeminiApiKey();
-    if (apiKey) {
-      const ai = createGeminiClient(apiKey);
-      if (ai) {
-        const response = await ai.models.generateImages({
-          model: "imagen-3.0-generate-002",
-          prompt: prompt,
-          config: {
-            numberOfImages: 1,
-            outputMimeType: "image/png",
-            aspectRatio: "16:9",
-          },
-        });
-
-        const base64Image = response.generatedImages?.[0]?.image?.imageBytes;
-        if (base64Image) {
-          return {
-            url: `data:image/png;base64,${base64Image}`,
-            alt: query,
-            credit: "AI Generated (Google Imagen 3)",
-          };
-        }
+  for (const [model, credit] of [
+    ["flux", "AI Generated (Pollinations flux)"],
+    ["turbo", "AI Generated (Pollinations turbo)"],
+  ] as const) {
+    try {
+      const seed = Math.floor(Math.random() * 100000);
+      const pollinationsUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=576&nologo=true&seed=${seed}&model=${model}`;
+      const res = await fetch(pollinationsUrl, {
+        signal: AbortSignal.timeout(10_000),
+      });
+      if (res.ok) {
+        return { url: pollinationsUrl, alt: query, credit };
       }
+    } catch (pErr: any) {
+      console.warn(
+        `[blog-images] Pollinations ${model} notice:`,
+        pErr?.message || pErr,
+      );
     }
-  } catch (err: any) {
-    console.warn("[blog-images] Imagen 3 notice:", err?.message || err);
   }
 
   return null;
@@ -187,4 +165,16 @@ export async function fetchFeaturedImageMultiQuery(queries: string[]): Promise<S
     if (result) return result;
   }
   return null;
+}
+
+/**
+ * Generate an image from a free-text prompt and return its URL only.
+ * Shared public helper used by /api/ai/generate-image (coach editor flow).
+ */
+export async function generateImagePublic(
+  prompt: string,
+): Promise<{ url: string; source: string } | null> {
+  const result = await generateAIImage(prompt);
+  if (!result) return null;
+  return { url: result.url, source: "pollinations-ai" };
 }

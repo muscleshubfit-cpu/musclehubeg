@@ -349,10 +349,8 @@ export async function aiTool(
 
   const prompt = prompts[tool] || prompts.improve;
 
-  // Use callFreeAIFallbackChain — same model selection order as article
-  // generation. Tries OpenRouter Nemotron (ultra → super → lightning) first,
-  // then falls back to Groq (llama-3.3-70b → mixtral-8x7b) if all OpenRouter
-  // models fail. ~95% success rate across two independent providers.
+  // Use callFreeAIFallbackChain — OpenRouter + Groq interleaved by strength
+  // (owner directive 2026-08-27). maxModels × timeoutMs clamped ≤ 52s.
   try {
     const { text } = await callFreeAIFallbackChain(
       prompt,
@@ -360,9 +358,9 @@ export async function aiTool(
         temperature: 0.7,
         maxTokens: 1200,
         jsonMode: tool === "faq",
-        timeoutMs: 25_000,
+        timeoutMs: 22_000,
+        maxModels: 2, // Vercel Hobby budget
       },
-      3, // maxOpenRouterModels=3 — try all 3 Nemotron before Groq fallback
     );
     if (text && text.trim().length > 0) {
       return { text: text.trim() };
