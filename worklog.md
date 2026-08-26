@@ -1723,3 +1723,28 @@ Stage Summary:
 - Social shares show exercise-specific metadata instead of generic site title.
 - Commit SHA: (pending)
 - Push status: (pending)
+
+---
+Task ID: FIX-SEO-METADATA-011
+Agent: Main (Z User)
+Task: Complete C22 — refactor /foods/[slug] (8,830 pages) + /programs/[slug] to server components with per-page metadata.
+
+Work Log:
+- /foods/[slug]:
+  - Renamed page.tsx → FoodDetailClient.tsx.
+  - Removed useParams, useMemo, getBreadcrumbSchema imports. Changed signature to accept `{ food }` prop.
+  - Created new page.tsx (server): generateMetadata() with per-food title (e.g. "Chicken Breast — Calories, Macros & Nutrition per 100g | MuscleHubEG"), description with macros + serving, canonical, OG, Twitter. Breadcrumb JSON-LD in initial HTML.
+  - No generateStaticParams — 8,830 pages too many for build-time SSG. Pages render on-demand with ISR caching.
+- /programs/[slug]:
+  - Renamed page.tsx → ProgramDetailClient.tsx.
+  - Removed useParams, useMemo, getBreadcrumbSchema imports. Changed signature to accept `{ program }` prop.
+  - Created new page.tsx (server): generateMetadata() with per-program title, description (days + level + goal + location), canonical, OG with program image, Twitter card. generateStaticParams() for SSG (small dataset — ~7 programs). Breadcrumb JSON-LD in initial HTML.
+- Verified: tsc 0 errors, eslint 0 errors on all 4 files, next build exit 0. All routes registered (/foods/[slug], /programs/[slug]).
+
+Stage Summary:
+- 8,830 food pages + ~7 program pages now have unique <title>, meta description, canonical, OG tags, Twitter card, + Breadcrumb JSON-LD.
+- Combined with exercises (868 pages) — total ~9,705 detail pages now have per-page SEO metadata.
+- Google can now rank individual food/program pages for their name.
+- Social shares show food/program-specific metadata instead of generic site title.
+- Commit SHA: (pending)
+- Push status: (pending)
