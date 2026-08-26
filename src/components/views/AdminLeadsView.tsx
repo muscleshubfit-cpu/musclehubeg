@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useI18n } from "@/lib/i18n";
 import type { ToolLead } from "@/lib/supabase/types";
 import { toast } from "sonner";
-import { Mail, MessageCircle, Search, CheckCircle2, Circle, Download } from "lucide-react";
+import { Mail, MessageCircle, Search, CheckCircle2, Circle, Download, Trash2 } from "lucide-react";
 
 const TOOL_LABELS: Record<string, { ar: string; en: string; emoji: string }> = {
   "calorie-calculator": { ar: "حاسبة السعرات", en: "Calorie Calculator", emoji: "🔥" },
@@ -87,6 +87,23 @@ export function AdminLeadsView() {
       );
     } catch (e: any) {
       toast.error(e?.message || (isAr ? "فشل التحديث" : "Update failed"));
+    }
+  };
+
+  // M24 fix: delete a lead (GDPR / right-to-erasure)
+  const deleteLead = async (lead: ToolLead) => {
+    if (!confirm(isAr ? `حذف هذا الـ lead؟ (${lead.email})` : `Delete this lead? (${lead.email})`)) return;
+    try {
+      const res = await fetch(`/api/admin/leads?id=${lead.id}`, { method: "DELETE" });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        toast.error(err.error || (isAr ? "فشل الحذف" : "Delete failed"));
+        return;
+      }
+      toast.success(isAr ? "تم الحذف" : "Deleted");
+      setLeads((prev) => prev.filter((l) => l.id !== lead.id));
+    } catch (e: any) {
+      toast.error(e?.message || (isAr ? "فشل الحذف" : "Delete failed"));
     }
   };
 
@@ -240,6 +257,9 @@ export function AdminLeadsView() {
                   <th className="p-3 text-center text-xs font-normal uppercase tracking-wide text-[#6e6e73]">
                     {isAr ? "تحويل" : "Converted"}
                   </th>
+                  <th className="p-3 text-center text-xs font-normal uppercase tracking-wide text-[#6e6e73]">
+                    {isAr ? "حذف" : "Delete"}
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -316,6 +336,15 @@ export function AdminLeadsView() {
                           ) : (
                             <Circle className="h-5 w-5 text-[#d2d2d7]" />
                           )}
+                        </button>
+                      </td>
+                      <td className="p-3 text-center">
+                        <button
+                          onClick={() => deleteLead(lead)}
+                          className="inline-flex h-7 w-7 items-center justify-center text-[#ff3b30] hover:bg-[#ff3b30]/10 rounded-full transition-colors"
+                          title={isAr ? "حذف" : "Delete"}
+                        >
+                          <Trash2 className="h-4 w-4" />
                         </button>
                       </td>
                     </tr>

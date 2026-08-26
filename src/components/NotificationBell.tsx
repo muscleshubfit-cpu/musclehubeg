@@ -26,13 +26,31 @@ export function NotificationBell() {
  if (!profile) return;
  let interval: any;
  const load = async () => {
+ try {
  const data = await listNotifications(profile.id);
  setItems(data);
+ } catch (e) {
+ console.error("[NotificationBell] load failed:", e);
+ } finally {
  setLoading(false);
+ }
  };
  load();
+ // Poll every 30s, but pause when the tab is hidden (saves battery + bandwidth)
+ const handleVisibility = () => {
+ if (document.hidden) {
+ clearInterval(interval);
+ } else {
+ load();
+ interval = setInterval(load, 30000);
+ }
+ };
+ document.addEventListener("visibilitychange", handleVisibility);
  interval = setInterval(load, 30000); // refresh every 30s
- return () => clearInterval(interval);
+ return () => {
+ clearInterval(interval);
+ document.removeEventListener("visibilitychange", handleVisibility);
+ };
  }, [profile]);
 
  const unread = items.filter((n) => !n.read).length;

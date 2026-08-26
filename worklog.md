@@ -1971,3 +1971,23 @@ Stage Summary:
 - Slug validation prevents broken URLs, encoding issues, and confusing DB errors.
 - Commit SHA: (pending)
 - Push status: (pending)
+
+---
+Task ID: FIX-ADMIN-NOTIF-022
+Agent: Main (Z User)
+Task: Fix M24 (no DELETE for leads — PII cannot be purged) + NotificationBell polling efficiency.
+
+Work Log:
+- M24: added DELETE handler to /api/admin/leads route. Coach-only (requireCoach). Deletes by id query param.
+  - Also refactored GET + PATCH to use shared supabaseAdmin singleton instead of createClient per request (perf improvement).
+  - Added deleteLead() function to AdminLeadsView + Delete column header + Delete button (Trash2 icon) per row with confirm() dialog.
+  - Imported Trash2 from lucide-react.
+- NotificationBell: polling continued every 30s even when tab was in background (battery drain). Added visibilitychange listener — pauses polling when document.hidden, resumes on visible. Also wrapped load() in try/catch/finally so loading state always clears even on network error.
+- Verified: tsc 0 errors, eslint 0 errors, next build exit 0.
+
+Stage Summary:
+- Coach can now delete leads (GDPR / right-to-erasure compliance).
+- NotificationBell polling pauses in background tabs (saves battery + bandwidth).
+- Network errors in NotificationBell no longer leave it stuck on "Loading...".
+- Commit SHA: (pending)
+- Push status: (pending)

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireCoach, isAuthConfigured } from "@/lib/auth-server";
-import { createClient } from "@supabase/supabase-js";
+import { supabaseAdmin, isSupabaseAdminConfigured } from "@/lib/supabase/admin";
 
 /**
  * GET /api/admin/leads?tool=calorie-calculator
@@ -15,31 +15,24 @@ export async function GET(request: NextRequest) {
     if (auth instanceof Response) return auth;
   }
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-  if (!supabaseUrl || !serviceKey) {
+  if (!isSupabaseAdminConfigured || !supabaseAdmin) {
     return NextResponse.json(
       { error: "Server not configured" },
       { status: 500 },
     );
   }
 
-  const supabase = createClient(supabaseUrl, serviceKey, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
-
   const { searchParams } = new URL(request.url);
   const tool = searchParams.get("tool");
 
-  let q = supabase
+  let q = supabaseAdmin
     .from("tool_leads")
     .select("*")
     .order("created_at", { ascending: false })
     .limit(500);
 
   if (tool && tool !== "all") {
-    q = q.eq("tool_slug", tool);
+    q = q.eq("tool_slug", tool as any);
   }
 
   const { data, error } = await q;
@@ -63,10 +56,7 @@ export async function PATCH(request: NextRequest) {
     if (auth instanceof Response) return auth;
   }
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-  if (!supabaseUrl || !serviceKey) {
+  if (!isSupabaseAdminConfigured || !supabaseAdmin) {
     return NextResponse.json(
       { error: "Server not configured" },
       { status: 500 },
@@ -88,13 +78,9 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ error: "Nothing to update" }, { status: 400 });
   }
 
-  const supabase = createClient(supabaseUrl, serviceKey, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
-
-  const { data, error } = await supabase
+  const { data, error } = await supabaseAdmin
     .from("tool_leads")
-    .update(update)
+    .update(update as any)
     .eq("id", id)
     .select()
     .single();
@@ -104,4 +90,42 @@ export async function PATCH(request: NextRequest) {
   }
 
   return NextResponse.json({ lead: data });
+}
+
+/**
+ * DELETE /api/admin/leads?id=<uuid>
+ *
+ * Delete a lead (GDPR / right-to-erasure).
+ * M24 fix: previously no DELETE endpoint existed — PII could not be purged.
+ */
+export async function DELETE(request: NextRequest) {
+  if (isAuthConfigured) {
+    const auth = await requireCoach(request);
+    if (auth instanceof Response) return auth;
+  }
+
+  if (!isSupabaseAdminConfigured || !supabaseAdmin) {
+    return NextResponse.json(
+      { error: "Server not configured" },
+      { status: 500 },
+    );
+  }
+
+  const { searchParams } = new URL(request.url);
+  const id = searchParams.get("id");
+
+  if (!id) {
+    return NextResponse.json({ error: "id is required" }, { status: 400 });
+  }
+
+  const { error } = await supabaseAdmin
+    .from("tool_leads")
+    .delete()
+    .eq("id", id);
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  return NextResponse.json({ ok: true });
 }
