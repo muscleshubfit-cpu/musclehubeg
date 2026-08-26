@@ -2439,3 +2439,29 @@ Stage Summary:
 - next/image migration deferred (larger scope, needs per-image review).
 - Commit SHA: (pending)
 - Push status: (pending)
+
+---
+Task ID: FIX-TESTS-VITEST-045
+Agent: Main (Z User)
+Task: Decision 5 — Vitest setup + basic tests for memberships module.
+
+Work Log:
+- Decision 5: Installed vitest + @testing-library/react + @testing-library/jest-dom + jsdom.
+- Created vitest.config.ts (jsdom environment, @/ alias, setup file).
+- Created src/test/setup.ts (localStorage mock + jest-dom matchers).
+- Created src/lib/__tests__/memberships.test.ts — 14 tests covering:
+  - MEMBERSHIPS: 4 tiers, correct prices ($14.99/$29.99/$39.99), features AR+EN parity, coaching separate flag
+  - getLimits: free (10 EVO, 0 swaps), pro (unlimited EVO, 6 swaps), premium (unlimited EVO, 3 swaps)
+  - COMPARISON_ROWS: featureEn on every row
+  - translateCell: AR/EN/neutral values
+- Added "test" + "test:watch" scripts to package.json.
+- All 14 tests pass ✅.
+- Decision 7 (split data.ts): DEFERRED — data.ts is 1572 lines with 50+ exports used across the entire codebase. Splitting requires careful barrel-export setup + testing each import path. Better as a dedicated task with full regression testing.
+- Verified: tsc 0 errors, vitest 14/14 pass.
+
+Stage Summary:
+- Vitest framework set up + 14 tests passing.
+- Foundation for adding more tests (data.ts, referral.ts, ai-provider.ts).
+- data.ts split deferred (larger scope).
+- Commit SHA: (pending)
+- Push status: (pending)
