@@ -158,7 +158,11 @@ export function EvoChatProvider({ children }: { children: ReactNode }) {
         }
       } catch { /* non-blocking */ }
     }
-    setState((prev) => ({ ...prev, messages: [], dailyCount: 0, dailyCountDate: getTodayString() }));
+    setState((prev) => ({ ...prev, messages: [], isTyping: false }));
+    // M-audit fix: do NOT reset dailyCount on clearChat — prevents rate
+    // limit bypass (user could clear chat → reset counter → send more).
+    // The daily limit is also enforced server-side now (C15 fix), but
+    // keeping the client counter consistent is still important for UX.
   }, []);
 
   const dailyLimitReached = state.dailyCount >= DAILY_LIMIT;

@@ -2212,3 +2212,28 @@ Stage Summary:
 - Admin leads API supports pagination (offset + limit + total count).
 - Commit SHA: 7e9b8b1
 - Push status: pushed
+
+---
+Task ID: FIX-UNIFY-CHAT-034
+Agent: Main (Z User)
+Task: Fix M5 (unify chat codepaths) + clearChat dailyCount bypass.
+
+Work Log:
+- M5: ChatView had its own separate implementation (listChat, addChat, fetch /api/ai/chat, generateFallbackReply) that diverged from EvoChatContext (the floating widget's context). Two codepaths wrote to chat_messages with different field names (body vs content) and different persistence logic. Rewrote ChatView to use useEvoChat() from EvoChatContext:
+  - Replaced messages state with evoChat.messages
+  - Replaced send() with evoChat.sendMessage()
+  - Replaced sending with evoChat.isTyping
+  - Removed addChat/listChat calls (EvoChatContext handles persistence)
+  - Removed generateFallbackReply (EvoChatContext handles fallbacks)
+  - Added display for AI links (m.links) that EvoChatContext provides
+  - Added "Clear chat" button using evoChat.clearChat
+  - Kept swap quota display (unique to /chat page)
+- clearChat fix: EvoChatContext.clearChat reset dailyCount to 0, allowing users to bypass the rate limit by clearing chat. Changed to only clear messages + isTyping, preserving dailyCount. The daily limit is also enforced server-side (C15 fix), but keeping the client counter consistent is important for UX.
+- Verified: tsc 0 errors, eslint 0 errors, next build exit 0.
+
+Stage Summary:
+- Single source of truth for chat state (EvoChatContext used by both /chat page + floating widget).
+- Chat history is consistent between the two views.
+- clearChat no longer resets the daily message counter.
+- Commit SHA: (pending)
+- Push status: (pending)
