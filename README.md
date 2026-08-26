@@ -63,8 +63,9 @@ NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 
-# === AI (OpenRouter — free models work) ===
-OPENROUTER_API_KEY=sk-or-v1-xxxxxxxxxxxxx
+# === AI (OpenRouter + Groq ONLY — owner directive 2026-08-27) ===
+OPENROUTER_API=sk-or-v1-xxxxxxxxxxxxx
+GROQ_API_KEY=gsk_xxxxxxxxxxxxx
 
 # === Optional integrations ===
 NEXT_PUBLIC_ADSENSE_CLIENT=ca-pub-xxxxxxxxxxxx
@@ -238,7 +239,7 @@ musclehubeg/
 | **Framework** | Next.js 16 (App Router) |
 | **UI** | React 19, Tailwind CSS 4, shadcn/ui (new-york style, 50 components) |
 | **Backend** | Supabase (Postgres, Auth, Storage, RLS) |
-| **AI** | OpenRouter free models (6-model fallback + Promise.any race) |
+| **AI** | OpenRouter + Groq ONLY — interleaved strongest-chain + Promise.any race, budget-clamped ≤52s |
 | **Charts** | Recharts 3 (lazy-loaded) |
 | **Forms** | react-hook-form + zod |
 | **Analytics** | Vercel Analytics + Speed Insights + GA4 (optional) |
@@ -320,7 +321,7 @@ Performance optimizations were applied during Phase 6 (2026-08-19) and the
 project has been running in production since. For current performance
 metrics and any ongoing optimizations, see `worklog.md` recent entries.
 
-- AI chat uses an interleaved strongest-models chain (OpenRouter → Groq fallback)
+- AI chat uses an interleaved strongest-models chain (OpenRouter ↔ Groq, server-side usage ledger)
 - Image optimization: AVIF + WebP formats enabled
 - Static asset caching via service worker (PWA installable)
 - Blog generation runs every 2 hours via GitHub Actions cron (`0 */2 * * *`)
@@ -342,10 +343,14 @@ Two functions for different use cases (see [`DEVELOPER_GUIDE.md`](./DEVELOPER_GU
 | `callFreeOpenRouter()` | Plans, Articles, Research | Sequential — tries largest model first, falls back if fails |
 | `callFreeOpenRouterRace()` | EVO chat, Swap | Parallel — races top 3 models via `Promise.any()`, returns first success |
 
-The provider layer supports **6 providers** (OpenRouter, OpenAI, Gemini,
-Anthropic, Groq, DeepSeek) via the same OpenAI-compatible interface.
-Switching providers is a config change (env var or in-app AI Settings
-page) — no code changes required.
+**Owner directive (2026-08-27):** the platform uses **OpenRouter and Groq
+ONLY** through a single unified layer (`src/lib/ai-provider.ts`). The old
+direct Gemini SDK / OpenAI / Anthropic / DeepSeek integrations were removed;
+Google models are reachable via their OpenRouter slugs (`google/*`). Every
+sequential path is budget-clamped to `maxModels × timeoutMs ≤ 52s` so no
+request can exceed Vercel Hobby's 60s function cap; the GitHub Actions blog
+workflow adds an outer retry loop (3 attempts, 120s backoff) around each
+pipeline step.
 
 ---
 

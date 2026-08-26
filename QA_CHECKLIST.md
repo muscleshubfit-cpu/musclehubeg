@@ -217,3 +217,39 @@ If any step fails: STOP, preserve state, report the issue.
 - ✅ "ابدأ الآن" / "Start now" tier buttons → `/checkout?tier=X&months=1` (logged-in) or `/auth?mode=signup&next=/checkout%3Ftier%3DX%26months%3D1` (logged-out)
 - ✅ `next` URL param preserved across login form, signup form, and Google OAuth callback
 - ✅ After successful auth, user is redirected to the originally-requested checkout URL
+
+---
+
+## AI Provider Consolidation + Critical Fixes (2026-08-27)
+
+### Verification Protocol Evidence
+
+| Check | Command | Result |
+|---|---|---|
+| TypeScript | `npx tsc --noEmit` | ✅ 0 errors |
+| ESLint | `npx eslint .` | ✅ 0 errors (543 pre-existing warnings, untouched files) |
+| Tests | `npx vitest run` | ✅ 34/34 passed (3 files) |
+| Build | `npx next build` | ✅ Compiled successfully |
+| Sync | `git fetch && rev-parse HEAD vs origin/main` | SYNCED before work |
+
+### Scope executed (owner directives 1–6 + critical fixes)
+
+1. **Providers → OpenRouter + Groq only**: `AIProvider = "openrouter" | "groq"`; deleted `gemini-wrapper.ts`, `src/lib/ai.ts` (dead Z.ai), `openrouter-flash.ts` (dead); removed `@google/genai` dependency; rewrote `external-search.ts`, `blog-images.ts`, `/api/ai/generate-image`, swap/research/step2-generate routes onto the unified chain.
+2. **Per-language article generation preserved and fixed**: step2c now reads queue-row `topic_ar/focus_keyword_ar` (was reading nonexistent `bundle.topic_ar` → AR writer always received the EN topic); migration 0021 back-fills the columns.
+3. **Deterministic calories**: `computeNutritionTargets()` server math (Mifflin-St Jeor correct for females, activity multipliers, goal deficit/surplus, protein-first macros, US Navy body fat), mandatory injection into prompts, re-enforcement in `normalizeNutritionPlan()`. AI no longer decides the numbers.
+4. **EVO clear-chat button removed** (widget + /chat page) — quota evidence can no longer be wiped.
+5. **Vercel 60s cure**: chain self-clamps `maxModels × timeoutMs ≤ 52s`; all `maxDuration=300/180` clamped to 60; GHA workflow gives every pipeline step a 3-attempt retry loop with 120s backoff.
+6. **All Gemini via OpenRouter/Groq**: see #1 — no native Google SDK calls remain (`grep -r "@google/genai" src/` → empty).
+
+Critical findings fixed: G1/G2 (tamper-proof `evo_chat_usage` ledger, migration 0022, record-before-dispatch), G3/G4 (verified-session tier with active+expiry filters, admin-client fallback), G5 (subscriber gate by actual tier incl. logged-in free users), regenerate-meal quota (uses weekly meal-swap quota), ilike filter escaping in blog search, message/history length clamps, client renders/persists 429 correctly, step2d no longer overwrites per-language image/social data, female BMR constant fixed in ai-local, questionnaire notes now reach plan prompts.
+
+### Owner actions required after deploy
+
+1. Run on Supabase SQL Editor: `supabase/migrations/RUN_ON_SUPABASE_SECURITY_0017_0018.sql` (if not yet applied) **then** `0021_blog_queue_topic_ar.sql` then `0022_evo_chat_usage.sql`.
+2. After each: `NOTIFY pgrst, 'reload schema';`
+3. Verify Vercel env vars: `OPENROUTER_API` (or alias) + `GROQ_API_KEY` set; remove unused legacy keys.
+4. Trigger one manual `workflow_dispatch` of the blog pipeline and confirm steps 2a→3 go green with the new retry loops.
+
+### Known accepted trade-off (documented)
+
+Blog Step 2a research is model-knowledge based (no live web grounding — that requires the banned direct Gemini SDK). Only trusted health hosts are stored as `host`, URLs are never persisted or published.

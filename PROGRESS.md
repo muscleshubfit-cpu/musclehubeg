@@ -1,6 +1,6 @@
 # PROGRESS.md — MuscleHub Status Board
 
-> **آخر تحديث:** 2026-08-26 (مرحلة 13 — Security RLS Hardening, migration 0017)
+> **آخر تحديث:** 2026-08-27 (توجيهات المالك — قصر المزودين OpenRouter+Groq، إصلاحات EVO الحرجة، ميزانية ≤60s، migrations 0021+0022)
 > **قاعدة التحكم:** هذا الملف هو لوحة التحكم والتسليم المشتركة. لا ننتقل لأي خطوة قادمة دون تحديث هذا الملف والحصول على الموافقة البشرية.
 > **مصدر الحقيقة:** الكود الفعلي (`src/**` + `supabase/migrations/`) يتفوق على هذا الملف (§12.8). كل الأرقام في القسم 1 تم التحقق منها فعلياً في مهمة #4.
 > **الأرشيف الكامل:** المحتوى التاريخي التفصيلي منقول إلى `archive/PROGRESS_ARCHIVE.md`.
@@ -62,6 +62,29 @@
 | Step 2a empty research | يكتب `research_done` حتى مع 0 articles — quality gate في Step 2b يجب أن يلتقطها لكنه لم يُختبر runtime | `src/app/api/cron/blog/step2a-research/route.ts` | Medium |
 | M28 deferred | Blog article body is client-rendered only — requires larger refactor of BlogArticlePage from "use client" to server component | `src/components/blog/BlogArticlePage.tsx` | Medium |
 | M31 deferred | LanguageToggle doesn't navigate to /ar/ mirror — requires creating Arabic mirror routes for all public pages | `src/components/LanguageToggle.tsx` | Medium |
+
+### إصلاحات وتوجيهات 2026-08-27 (AI Provider Consolidation + Critical Fixes)
+
+| # | التوجيه/الإصلاح | الحالة |
+|---|---|---|
+| 1 | قصر المزودين على OpenRouter + Groq فقط — حذف Gemini SDK المباشر وOpenAI/Anthropic/DeepSeek من `ai-provider.ts` | ✅ |
+| 2 | كل استدعاءات Gemini الآن عبر OpenRouter (`google/*` slugs) أو Groq — حذف `gemini-wrapper.ts` والكود الميت (`ai.ts`, `openrouter-flash.ts`) وإزالة `@google/genai` من package.json | ✅ |
+| 3 | توليد المقالات منفصل لكل لغة (step2b EN / step2c AR موجودان أصلاً) + إصلاح جوهري: step2c كان يقرأ `bundle.topic_ar` غير الموجود → كان يستلم الموضوع الإنجليزياً دائماً؛ الآن يقرأ أعمدة الصف `topic_ar/focus_keyword_ar` | ✅ |
+| 4 | migration `0021_blog_queue_topic_ar.sql` للأعمدة الناقصة (كانت ستكسر Step 1 في بيئة نظيفة) | ⏳ المالك يشغّلها على Supabase |
+| 5 | حساب السعرات/Macros حتمي في السيرفر: `computeNutritionTargets()` (Mifflin-St Jeor صحيح للأنثى −161، مضاعفات النشاط AR/EN، عجز −20%/فائض +10%، بروتين 2g/kg، US Navy body fat) + حقن إلزامي في prompt + إنفاذ في normalizer — الـ AI لم يعد يحسب الأرقام بنفسه | ✅ |
+| 6 | إلغاء زر مسح محادثة EVO نهائياً (widget + صفحة /chat) | ✅ |
+| 7 | حرج G1/G2: دفتر استخدام غير قابل للعبث `evo_chat_usage` (migration 0022 — RLS بدون سياسات كتابة للمستخدم) يُسجَّل من السيرفر قبل استدعاء الـ AI | ✅ كود + ⏳ migration |
+| 8 | حرج G3/G4: resolveTier الآن يستخدم tier الجلسة الموثقة (active + expiry filtered) مع fallback عبر admin client بدلاً من browser client داخل route | ✅ |
+| 9 | حرج G5: بوابة ميزات المشتركين تطبق على الجميع بدون paid tier فعلي (حتى المسجلين Free) + system prompt لن يصف المستخدم بمشترك إلا فعلاً | ✅ |
+| 10 | حرج regenerate-meal: بلا quota سابقاً → الآن يستهلك نفس كوتا meal-swap الأسبوعية | ✅ |
+| 11 | حد Vercel 60s: السلسلة تضمن maxModels×timeoutMs≤52s داخلياً + clamping لكل maxDuration=300/180→60 + GHA retry loops (3 attempts، backoff 120s) لكل خطوات البايبلاين | ✅ |
+| 12 | HIGH: pollinations.ai/pixabay أُضيفت لـ next/image remotePatterns (الأغلفة كانت تفشل في العرض) | ✅ |
+| 13 | HIGH: توحيد اسم متغير OpenRouter — الكود يقرأ OPENROUTER_API ويقبل OPENROUTER_API_KEY alias؛ التوثيق موحّد | ✅ |
+| 14 | إصلاحات إضافية: escape فلتر ilike في بحث المدونة (injection)، clamp طول الرسالة/التاريخ، response.ok في العميل (لم تعد رسائل 429 تُخزن كردود)، step2d لم يعد يطمس imagePrompts/social الخاصة بكل لغة، إصلاح BMR الأنثى في ai-local، تمرير notes الاستبيانات للـ prompts، GHA صحّحت مزاعم z-ai القديمة | ✅ |
+
+**معروف ومقبول (Trade-off موثق بتوجيه المالك):** Step 2a research أصبح معرفياً
+بالنموذج (بدون Google Search grounding الحقيقي) لأن الـ grounding يتطلب SDK
+مباشر ممنوع بالتوجيه #6. hosts الموثوقة فقط ولا URLs مصطنعة تُخزن.
 
 ### إحصائيات المشروع المُتحقَّق منها (مهمة #3 + #4)
 

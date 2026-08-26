@@ -350,30 +350,44 @@ the membership_tier field.
 ### البنية
 
 ```
-EvoFloatingWidget (UI)
-  → EvoChatProvider (state — localStorage)
+EvoFloatingWidget / ChatView (UI)
+  → EvoChatProvider (state — localStorage + chat_messages sync للعرض فقط)
   → /api/ai/chat (server route)
-    → Anonymous: 10 msgs/day (localStorage counter)
-    → Subscriber: unlimited (gated by regex on message content)
-    → Platform search (exercises, foods, programs, blog)
-    → callFreeOpenRouter (6 free models fallback chain)
-    → Local fallback (ai-local.ts) when OpenRouter unconfigured
+    → Tier gate — auth.membership_tier من الجلسة الموثقة (active + غير منتهية)
+    → دفتر استخدام server-side غير قابل للعبث: evo_chat_usage (migration 0022)
+      يُسجَّل قبل استدعاء الـ AI — مسح المحادثة لا يؤثر على الحصة
+    → بوابة ميزات المشتركين (regex) على كل من ليس لديه paid tier فعلي
+      (بما في ذلك حسابات Free المسجلة — إصلاح G5)
+    → Platform search (تمارين، أكلات، برامج، أدوات) + بحث المدونة
+    → callFreeAIFallbackChain (OpenRouter + Groq interleaved، ≤52s budget)
+    → Local fallback عند عدم توفر المزودين
 ```
 
-### النماذج المستخدمة (بالتسلسل)
+> **2026-08-27:** زر "مسح المحادثة" أُزيل نهائياً من الـ widget وصفحة /chat
+> (توجيه المالك #4). كان يسمح بمسح صفوف chat_messages التي كان العداد
+> القديم يعتمد عليها → تجاوز الحد اليومي.
 
-1. `nvidia/nemotron-3-ultra-550b-a55b:free` (الأضخم)
-2. `nvidia/nemotron-3.5-lightning:free`
-3. `nvidia/nemotron-3-super-120b-a12b:free`
-4. `google/gemma-4-31b-it:free`
-5. `google/gemma-4-26b-a4b-it:free`
-6. `openai/gpt-oss-20b:free`
+### السلسلة المتشابكة (أقوى نموذج أولاً)
+
+1. `openrouter nvidia/nemotron-3-ultra-550b-a55b:free` (الأضخم — 550B)
+2. `groq openai/gpt-oss-120b`
+3. `openrouter google/gemma-4-31b-it` (عربي ممتاز)
+4. `groq openai/gpt-oss-20b`
+5. `openrouter google/gemma-4-26b-a4b-it`
+6. `groq qwen/qwen3.6-27b`
+7. `openrouter nvidia/nemotron-3-super-120b-a12b:free`
+8. `openrouter nvidia/nemotron-3.5-lightning:free`
+9. `groq compound-beta`
+
+المحادثة تستخدم maxModels=3؛ باقي المسارات maxModels=2 مع ضمانة أن
+maxModels × timeoutMs ≤ 52 ثانية داخلياً في `ai-provider.ts`.
 
 ### Subscriber Gating
 
-رسائل تحتوي على كلمات معينة (خطة، تبديل، regenerate) تتطلب Premium+:
-- regex patterns بالعربية + الإنجليزية
-- لو المستخدم Free → يرجّع رسالة مع رابط `/memberships`
+18 نمط regex بالعربية + الإنجليزية لميزات المشتركين (خطط/تبديل/regenerate):
+- تُطبق على **الجميع بدون paid tier فعلي** — بما فيهم حسابات Free المسجلة
+- paid tier = اشتراك active وغير منتهية (Premium/Pro/Coaching) من الجلسة الموثقة
+- لا اشتراك فعلي → رسالة مع رابط `/memberships`
 
 ---
 
@@ -393,8 +407,8 @@ Coach → /admin/blog/new → "Generate with AI" button
 ### التدفق الآلي (Cron)
 
 ```
-GitHub Actions (every 2 hours)
-  → Step 1: /api/cron/blog/step1-pick (pick topic)
+GitHub Actions (3x daily: 06/14/22 UTC + retry loops)
+  → Step 1: /api/cron/blog/step1-pick (pick EN + AR topics)
   → Step 2: /api/cron/blog/step2-generate (generate article)
   → Step 3: /api/cron/blog/step3-publish (publish)
   → Each step uses CRON_SECRET for auth
@@ -715,85 +729,55 @@ NOTIFY pgrst, 'reload schema';
 
 ---
 
-## 14. Phase 6: تسريع AI + إصلاح توليد المقالات (2026-08-19)
+## 14. ميزانية AI الزمنية + GHA Orchestration (محدّث 2026-08-27)
 
-### 1. EVO AI Chat — تسريع 5x
+> **Revised:** هذا القسم حلّ محل جدول Phase 6 القديم بعد توجيه المالك
+> 2026-08-27 (قصر المزودين + علاج حد Vercel 60s عبر GitHub Actions).
 
-**المشكلة:** EVO كان بياخد 18-25 ثانية + بيرجع thinking artifacts (numbered reasoning steps).
+### 1. قاعدة الميزانية الزمنية (Vercel Hobby = 60s)
 
-**الحل:**
-- `callFreeOpenRouterRace()` في `src/lib/ai-provider.ts` — Promise.any() بـ 3 نماذج بالتوازي
-- Cleanup قوي في `src/app/api/ai/chat/route.ts`:
-  - شطف `, <reasoning>, <reflection>, <analysis> tags
-  - شطف "Here's a thinking process:" / "Thinking process:" headers
-  - استخراج "Final Answer:" / "Draft:" markers
-  - شطف numbered reasoning steps + bullet-style reasoning
-  - fallback للـ local reply لو النص النظيف أقل من 10 أحرف
-- تحسين الـ system prompt بـ "ANSWER DIRECTLY" + أمثلة BAD/GOOD
+`callFreeAIFallbackChain()` في `src/lib/ai-provider.ts` يفرض داخلياً:
 
-**النتيجة:** 1.3-3.9 ثانية (5-7x أسرع) + ردود نظيفة.
-
-### 2. Plan Generation — تسريع 3x
-
-**المشكلة:** timeoutMs = 180s كان فوق حد Vercel Hobby (60s).
-
-**الإصلاح في `src/lib/plan-generator.ts`:**
-
-| الدالة | قبل | بعد |
-|---|---|---|
-| `generateNutritionPlanAI` | 180s, 8000 tokens | 60s, 4000 tokens |
-| `generateWorkoutPlanAI` | 180s, 8000 tokens | 60s, 4000 tokens |
-| `regenerateMeal` | 90s, 2000 tokens | 45s, 1500 tokens |
-| `normalizeCoachPlan` | 120s, 6000 tokens | 60s, 4000 tokens |
-
-**`src/app/api/ai/swap/route.ts`:** تحول لـ `callFreeOpenRouterRace` (3 models parallel) + maxDuration 180s → 60s.
-
-### 3. Article Generation — Chunked Generation
-
-**المشكلة:** توليد المقالات كان بيفشل بـ timeout + المقالات كانت قصيرة.
-
-**الحل في `src/lib/blog-generate.ts`:**
-
-تقسيم التوليد لـ 3 chunks:
-
-```typescript
-// Chunk 1 (50s): SEO + Research + English article (600-900 words, maxTokens 4000)
-const chunk1 = await callFreeOpenRouter(chunk1Prompt, {
-  maxTokens: 4000, timeoutMs: 50_000,
-});
-
-// Chunk 2 + 3 بالتوازي (Promise.all)
-const [chunk2, chunk3] = await Promise.all([
-  // Chunk 2 (50s): Arabic article + FAQ (500-800 words)
-  callFreeOpenRouter(chunk2Prompt, { maxTokens: 4000, timeoutMs: 50_000 }),
-  // Chunk 3 (40s): Links + image prompts + social posts
-  callFreeOpenRouter(chunk3Prompt, { maxTokens: 2500, timeoutMs: 40_000 }),
-]);
-
-// إدراج الروابط في المقالات
-const englishArticle = insertLinksIntoArticle(chunk1.englishArticle, links, false);
-const arabicArticle = insertLinksIntoArticle(chunk2.arabicArticle, links, true);
+```
+effTimeoutMs = min(callerTimeoutMs, floor(52_000 / maxModels))
+maxModels افتراضي = 2 (يمكن تمريره عبر options.maxModels)
 ```
 
-**`src/app/api/cron/blog/step2-generate/route.ts`:**
-- `maxDuration` 60s → **300s** (5 دقائق)
-- **دمج Research phase** قبل التوليد (45s timeout)
-- Graceful degradation لو الـ research فشل
+أي أنه مستحيل نظرياً أن يتجاوز مسار AI واحد الـ 55 ثانية داخل الدالة —
+كل الـ `maxDuration=300/180` القديمة تم clamping إلى 60.
 
-### 4. Vercel Hobby Plan Limits (مهم!)
+| المسار | maxModels | timeoutMs | Worst case |
+|---|---|---|---|
+| EVO chat | 3 | 16s | ~48s |
+| Article EN (step2b) | 2 | 26s | ~52s |
+| Article AR (step2c) | 2 | 26s | ~52s |
+| Links/social (step2d) | 2 | 22s | ~44s |
+| Topic pick | 2 | 22s | ~44s |
+| Research (LLM-based) | 2 | 26s | ~52s |
+| Plan nutrition/workout | 2 | 26s | ~52s |
+| regenerate-meal | 2 | 24s | ~48s |
+| normalize coach plan | 2 | 26s | ~52s |
+| Swap (race) | 3 متوازي | 30s | ~30s |
 
-| النوع | الحد | ملاحظة |
-|---|---|---|
-| Serverless Function timeout | 60s | يجب ضبط `maxDuration` |
-| Cron job timeout | 60s | يجب استخدام Background functions للعمليات الطويلة |
-| Build timeout | 45 min | كافٍ |
-| Bandwidth | 100 GB/شهر | — |
+### 2. دور GitHub Actions كطبقة إعادة المحاولة
 
-**للعمليات الطويلة (>60s):**
-- استخدم `maxDuration = 300` (Vercel Pro يدعم 900s)
-- أو قسم العملية لـ chunks (زي ما عملنا في توليد المقالات)
-- أو استخدم Background Functions (Pro plan)
+بما أن كل طلب HTTP يجب أن ينتهي <60s، فإن إعادة المحاولة تحدث **بين**
+الطلبات على مستوى orchestration في `.github/workflows/generate-blog-post.yml`:
+
+- كل خطوة من خطوات البايبلاين (1، 2a، 2b، 2c، 2d، 3) لها retry loop حتى
+  3 محاولات مع backoff 120 ثانية بينها.
+- M16 يجعل المسارات تقبل معالجة الصفوف status="failed" → إعادة المحاولة
+  فعالة فعلاً لا مجرد curl متكرر.
+- عند فشل نموذج داخل محاولة واحدة، تتولى المحاولة التالية (أو النموذج
+  التالي في السلسلة) بنافذة زمنية جديدة.
+
+### 3. الأسعار والتكلفة
+
+كل الموديلات المستخدمة ضمن FREE tiers من OpenRouter + Groq؛ الميزانية
+الزمنية فوق هي أيضاً سقف لاستهلاك rate limits.
 
 ---
 
-> **ملاحظة أخيرة:** هذا الدليل يتم تحديثه مع كل تغيير جوهري في المشروع. تأكد دائماً من مراجعة `PROGRESS.md` قبل البدء في أي عمل جديد.
+> **Deprecated (2026-08-27):** تفاصيل Phase 6 القديمة (callFreeOpenRouterRace
+> للمحادثة، timeouts 45/35s، Gemini SDK للتوليد) أصبحت تاريخية — الكود الفعلي
+> هو المرجع (§12.8). انظر أرشيف Git لإصدار ما قبل التوجيه إذا لزم.

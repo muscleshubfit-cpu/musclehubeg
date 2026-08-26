@@ -42,8 +42,8 @@ security model must therefore rely on:
 Any of the following:
 
 - Supabase URL, anon key, service-role key.
-- OpenRouter / OpenAI / Gemini / Anthropic / Groq / DeepSeek API
-  keys.
+- OpenRouter / Groq API keys (2026-08-27: these are the ONLY two AI
+  providers integrated — see §3.1).
 - `CRON_SECRET` (used to authenticate GitHub Actions → Vercel cron
   calls).
 - Vercel / GitHub personal access tokens.
@@ -91,11 +91,16 @@ Any of the following:
 
 ### 3.1 AI provider keys
 
-- Stored as server-side env vars only (`OPENROUTER_API_KEY`,
-  `OPENAI_API_KEY`, `GEMINI_API_KEY`, `ANTHROPIC_API_KEY`,
-  `GROQ_API_KEY`, `DEEPSEEK_API_KEY`, generic `AI_API_KEY`).
-- Read by `src/lib/ai-provider.ts` `getEnvConfig()` — server-only.
-  This file must NEVER be imported by a client component.
+> **Updated (2026-08-27, owner directive):** only TWO providers remain.
+
+- Stored as server-side env vars only (`OPENROUTER_API`, with
+  `OPENROUTER_API_KEY` accepted as an alias, and `GROQ_API_KEY`).
+- Gemini native SDK / OpenAI / Anthropic / DeepSeek integrations were
+  REMOVED from the codebase. Never reintroduce a direct third-party AI
+  HTTP call without owner approval (§7 category: new external call).
+- Read by `src/lib/ai-provider.ts` (`getOpenRouterKey()` /
+  `getGroqKey()` / `getEnvConfig()`) — server-only. This file must
+  NEVER be imported by a client component.
 - The "AI Settings" page (admin-only) stores per-admin overrides in
   HTTP-only cookies on the admin's browser. The override path:
   `mergeOverride()` in `ai-provider.ts`. The key is never returned

@@ -28,7 +28,7 @@ import { requireCoach, isAuthConfigured } from "@/lib/auth-server";
  *
  * Falls back to local rule-based generator if all OpenRouter models fail.
  */
-export const maxDuration = 300; // 5 min — long plans can be slow on free models
+export const maxDuration = 60; // Vercel Hobby cap — chain budget ≤52s enforced in ai-provider
 
 export async function POST(request: NextRequest) {
  try {

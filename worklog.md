@@ -2667,3 +2667,26 @@ Stage Summary:
 - All 58 exports preserved with identical function bodies (including 1-space indentation, Arabic UI strings, `supabase!` non-null assertion, `try/catch` swallow patterns, RLS-bypass `/api/notifications/admin` fetch in `createAdminNotification`).
 - All 20 consumer files (`tier-limits.ts`, `use-auth.tsx`, `use-membership-tier.ts`, `api/ai/chat/route.ts`, `meal-planner/page.tsx`, + 14 view/component files) continue to import from `@/lib/data` unchanged — the barrel makes the split transparent to consumers.
 - Net behavior change: ZERO. This is a pure refactor for maintainability.
+
+---
+Task ID: AI-CONSOLIDATION-CRITICAL-FIXES-2026-08-27
+Agent: Main (Super Z — Implementation Agent)
+Task: Owner directives #1–6 + all critical AI audit fixes (providers consolidation, per-language articles, deterministic calories, remove clear-chat, Vercel 60s cure via GHA, Gemini-via-OpenRouter/Groq, G1–G5)
+
+Work Log:
+- Verified SYNCED with origin/main before starting (AGENTS §3.7)
+- src/lib/ai-provider.ts: provider union → openrouter|groq only; getOpenRouterKey()/getGroqKey() helpers (OPENROUTER_API_KEY accepted as alias); getEnvConfig simplification; callAIWithFallback iterates allowed providers; DELETED dead callFreeOpenRouter/callFreeOpenRouterLimited; chain honors options.maxModels with hard clamp maxModels×timeoutMs≤52s
+- Deleted gemini-wrapper.ts / ai.ts / openrouter-flash.ts; removed @google/genai from package.json; rewrote external-search.ts (LLM-knowledge research, trusted hosts only, no fabricated URLs persisted); blog-images.ts Pollinations flux→turbo (Imagen removed); generate-image route reuses shared helper; swap route single race path; research-topic enrichment via chain; step2-generate via chain + by-id failure scoping
+- step2c-ar-article: reads qi.topic_ar/focus_keyword_ar from queue row (fixed EN-topic leak into AR writer); 0021 migration back-fills columns
+- plan-generator.ts: computeNutritionTargets() server-side BMR/TDEE/goal/macros/body-fat; mandatory target injection in prompt; normalizeNutritionPlan() re-enforces numbers; coach overrides authoritative; questionnaire notes now reach prompts; ai-local female BMR bug fixed (+5→−161)
+- regenerate-meal route: now consumes weekly meal-swap quota via checkAndRecordSwap (was zero-quota bypass); wikimedia image hallucination field removed from swap prompt
+- Chat criticals: tier from verified auth session (G3/G4); evo_chat_usage ledger inserted BEFORE dispatch, RLS has no user write policies (G1/G2, migration 0022); subscriber gate + system-prompt flag driven by real paid tier incl. logged-in free users (G5); message/history length clamps; blog ilike filter escaped; clear-chat button removed from widget+ChatView and context API; client renders 429 gracefully without persisting it as an assistant row (G9)
+- Vercel 60s: maxDuration clamps 300/180→60 on plan/normalize/generate-article/step2-generate; GHA workflow retry loops ×3 w/ 120s backoff for steps 1/2a/2b/2c/2d/3 + 5-min handoff (replaces 10-min) + docblock z-ai claims corrected
+- next.config.ts remotePatterns += image.pollinations.ai, pixabay.com, cdn.pixabay.com; step2d fills-missing instead of overwriting per-language image/social data
+- Docs updated: AGENTS §8 rewritten (revised 2026-08-27), README stack/env/strategy, DEVELOPER_GUIDE §6+§7+§14 rewrite, SECURITY §2.1+§3.1, PROGRESS new fixes table + trade-off note, .env.example AI section rewrite, QA_CHECKLIST evidence appended
+
+Stage Summary:
+- Verification: tsc 0 errors · eslint 0 errors · vitest 34/34 · next build ✓ compiled successfully
+- Migrations shipped but NOT applied to production (owner runs them): 0021_blog_queue_topic_ar.sql, 0022_evo_chat_usage.sql
+- Commit SHA: <filled at push>
+- Push status: pushed (origin/main)

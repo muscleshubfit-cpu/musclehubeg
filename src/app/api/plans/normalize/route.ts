@@ -22,7 +22,7 @@ import { requireCoach, isAuthConfigured } from "@/lib/auth-server";
  * The endpoint tries OpenRouter's best free models in order. If all fail,
  * it falls back to wrapping the raw text in a minimal structure.
  */
-export const maxDuration = 180;
+export const maxDuration = 60; // Vercel Hobby cap (2026-08-27) — was 180 which exceeds Hobby
 
 export async function POST(request: NextRequest) {
  try {

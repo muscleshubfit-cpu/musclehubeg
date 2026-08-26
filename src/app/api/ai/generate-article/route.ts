@@ -15,9 +15,10 @@ import { requireCoach, isAuthConfigured } from "@/lib/auth-server";
  * OPENROUTER_API env var is the only key needed.
  *
  * NOTE: long-form article generation can take 60-120 seconds on free models.
- * We set `maxDuration = 300` (5 min) so Vercel doesn't kill the request.
+ * maxDuration clamped to 60 (Vercel Hobby cap, 2026-08-27) — the internal
+ * chain budget is ≤52s; the manual modal retries per-language.
  */
-export const maxDuration = 300;
+export const maxDuration = 60; // Vercel Hobby cap (was 300 — invalid on Hobby)
 
 export async function POST(request: NextRequest) {
   try {

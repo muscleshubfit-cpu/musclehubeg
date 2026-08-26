@@ -272,22 +272,38 @@ Process:
 
 ## 8. Rules for AI Functionality Changes
 
+> **Revised (2026-08-27, owner directive):** the provider set and call
+> paths were consolidated. This section now reflects the ACTUAL
+> architecture in `src/lib/ai-provider.ts`.
+
 - The AI provider layer (`src/lib/ai-provider.ts`) is the SINGLE source
   of truth for how the app talks to AI providers. Do not duplicate
   fetch logic in route handlers.
+- **Allowed providers: OpenRouter + Groq ONLY.** Direct Gemini SDK /
+  OpenAI / Anthropic / DeepSeek integrations are removed. To reach a
+  Google model, use its OpenRouter slug (e.g. `google/gemma-4-31b-it`).
 - Two execution paths exist by design:
-  - `callFreeOpenRouter()` — sequential, best-quality first. Used for
-    plan/article/research generation.
-  - `callFreeOpenRouterRace()` — parallel, fastest-first-wins. Used for
-    chat and swap.
-  - Do not "simplify" by collapsing them into one — the trade-off is
-    intentional and documented in `DEVELOPER_GUIDE.md` §14.
+  - `callFreeAIFallbackChain()` — sequential interleaved strongest-first
+    chain (OpenRouter + Groq), budget-clamped so
+    `maxModels × timeoutMs ≤ 52s` (Vercel Hobby safe). Used by chat,
+    plans, articles, topics, research, admin tools.
+  - `callFreeOpenRouterRace()` — parallel fastest-wins via `Promise.any()`.
+    Used by swap only (speed-critical).
+  - Do not "simplify" by collapsing them — the trade-off is intentional.
 - Never log the AI response in production code paths (it can contain
   user PII or partial reasoning that should not be persisted).
 - Local fallbacks (`src/lib/ai-local.ts`) exist so the app degrades
-  gracefully when OpenRouter is down. Do not remove them.
+  gracefully when providers are down. Do not remove them.
 - Any change to the AI system prompt must be approved by the owner —
   it directly affects user-facing tone and quality.
+- EVO chat quota accounting MUST stay server-side in the tamper-proof
+  `evo_chat_usage` ledger (migration 0022). Never count client-written
+  rows again.
+
+> **Deprecated (2026-08-27):** the previous note describing
+> `callFreeOpenRouter()` / `callFreeOpenRouterLimited()` as one of the two
+> canonical paths — those functions were removed as dead code and the
+> documented trade-off now lives in `callFreeAIFallbackChain`.
 
 ---
 
