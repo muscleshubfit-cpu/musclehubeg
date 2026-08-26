@@ -2420,8 +2420,8 @@ Stage Summary:
 - Audit log will automatically track all changes to financial tables.
 - Coach client list will load in 1 query instead of 100+.
 - Code gracefully falls back if migrations not yet applied.
-- Commit SHA: (pending)
-- Push status: (pending)
+- Commit SHA: eb86594
+- Push status: pushed
 
 ---
 Task ID: FIX-CACHING-7B-044
@@ -2437,8 +2437,8 @@ Work Log:
 Stage Summary:
 - Blog server functions cached (1hr revalidate) — reduces Supabase queries.
 - next/image migration deferred (larger scope, needs per-image review).
-- Commit SHA: (pending)
-- Push status: (pending)
+- Commit SHA: 7b2a973
+- Push status: pushed
 
 ---
 Task ID: FIX-TESTS-VITEST-045
@@ -2463,5 +2463,5 @@ Stage Summary:
 - Vitest framework set up + 14 tests passing.
 - Foundation for adding more tests (data.ts, referral.ts, ai-provider.ts).
 - data.ts split deferred (larger scope).
-- Commit SHA: (pending)
-- Push status: (pending)
+- Commit SHA: 44496e2
+- Push status: pushed
