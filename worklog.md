@@ -1948,8 +1948,8 @@ Stage Summary:
 - Skip link + OtherTools arrow are RTL-aware.
 - Referral cookie has Secure flag on HTTPS.
 - Dead code removed.
-- Commit SHA: (pending)
-- Push status: (pending)
+- Commit SHA: e2ae247
+- Push status: pushed
 
 ---
 Task ID: FIX-BLOG-EDITOR-021
@@ -1969,8 +1969,8 @@ Work Log:
 Stage Summary:
 - Auto-save now fires reliably every 30s regardless of typing speed.
 - Slug validation prevents broken URLs, encoding issues, and confusing DB errors.
-- Commit SHA: (pending)
-- Push status: (pending)
+- Commit SHA: 00afb31
+- Push status: pushed
 
 ---
 Task ID: FIX-ADMIN-NOTIF-022
@@ -1989,5 +1989,5 @@ Stage Summary:
 - Coach can now delete leads (GDPR / right-to-erasure compliance).
 - NotificationBell polling pauses in background tabs (saves battery + bandwidth).
 - Network errors in NotificationBell no longer leave it stuck on "Loading...".
-- Commit SHA: (pending)
-- Push status: (pending)
+- Commit SHA: ba3cb0c
+- Push status: pushed
