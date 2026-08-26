@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { LanguageToggle } from "@/components/LanguageToggle";
+import { SiteHeader } from "@/components/SiteHeader";
 import { getBlogPost, getRelatedPosts, getLinkedPost, parseTableOfContents, renderMarkdown, getCategoryLabel, type BlogPost } from "@/lib/blog";
 import { BlogMembershipCard, SocialShare, ReadingProgress, TableOfContents } from "./BlogComponents";
 import { AdSenseAd } from "@/components/AdSenseAd";
@@ -76,27 +76,14 @@ export function BlogArticlePage({ lang, slug }: { lang: "en" | "ar"; slug: strin
     <div className="flex min-h-screen flex-col bg-white text-[#1d1d1f]" dir={isAr ? "rtl" : "ltr"}>
       <ReadingProgress />
 
-      <header className="sticky top-0 z-40 border-b border-[#d2d2d7] bg-white/80 backdrop-blur-xl">
-        <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between px-4 sm:px-6">
-          <a href="/" className="text-lg font-semibold tracking-tight">
-            MuscleHubEG
-          </a>
-          <div className="flex items-center gap-4">
-            <LanguageToggle />
-            <a
-              href={isAr ? "/ar/blog" : "/blog"}
-              className="text-sm font-normal text-[#0071e3] transition-opacity hover:opacity-70"
-            >
-              {isAr ? "‹ المدونة" : "‹ Blog"}
-            </a>
-          </div>
-        </div>
-      </header>
+      {/* M41 fix: use SiteHeader (full nav) instead of minimal header.
+          Blog readers can now navigate to exercises, foods, programs, etc.
+          without manually editing the URL. */}
+      <SiteHeader variant="landing" />
 
-      {/* hreflang alternate links (for SEO) */}
-      <link rel="alternate" hrefLang="en" href={`${baseUrl}/blog/${post.slug}`} />
-      {linkedUrl && <link rel="alternate" hrefLang="ar" href={linkedUrl} />}
-      <link rel="canonical" href={articleUrl} />
+      {/* M42 fix: removed <link rel="alternate"> + <link rel="canonical"> tags
+          from the body. These are now handled server-side in generateMetadata
+          (blog/[slug]/page.tsx) so they appear in <head>, not <body>. */}
 
       {/* JSON-LD schemas are injected server-side in /app/blog/[slug]/page.tsx
           and /app/ar/blog/[slug]/page.tsx (Article + Breadcrumb + FAQPage).

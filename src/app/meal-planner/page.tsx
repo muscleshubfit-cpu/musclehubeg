@@ -568,7 +568,7 @@ function ItemRow({
         <input
           type="number"
           value={item.grams || ""}
-          onChange={(e) => onUpdateGrams(parseInt(e.target.value) || 0)}
+          onChange={(e) => onUpdateGrams(Math.max(0, parseFloat(e.target.value) || 0))}
           placeholder="100"
           className="w-20 rounded-full border border-[#d2d2d7] bg-[#f5f5f7] px-3 py-1.5 text-sm font-medium text-center outline-none focus:border-[#0071e3]"
           dir="ltr"

@@ -2079,3 +2079,23 @@ Stage Summary:
 - Meal planner draft survives refreshes (localStorage persistence).
 - Commit SHA: ce8199d
 - Push status: pushed
+
+---
+Task ID: FIX-BLOG-MEAL-027
+Agent: Main (Z User)
+Task: Fix M41 (blog article header no nav) + M42 (link tags in body) + M48 (meal planner parseInt).
+
+Work Log:
+- M41: BlogArticlePage had a minimal header with only "MuscleHubEG" text + LanguageToggle + "Blog" link. Blog readers couldn't navigate to other site sections (exercises, foods, programs, coaching, memberships). Replaced with <SiteHeader variant="landing" /> (full nav with hamburger drawer).
+- M42: BlogArticlePage rendered <link rel="alternate"> + <link rel="canonical"> tags inside the <body> (inside a <div dir> wrapper). Invalid HTML placement. Removed them — these are now handled server-side in generateMetadata (blog/[slug]/page.tsx) so they appear in <head> where they belong (fixed in C24).
+- Removed unused LanguageToggle import (SiteHeader includes its own).
+- M48: meal-planner grams input used parseInt — couldn't accept decimals (e.g. 1.5g). Changed to parseFloat + Math.max(0, ...) to prevent negatives.
+- M36: verified already fixed in C24 (EN blog generateMetadata has full hreflang + x-default).
+- Verified: tsc 0 errors, eslint 0 errors, next build exit 0.
+
+Stage Summary:
+- Blog readers can now navigate the full site from article pages.
+- SEO link tags are in <head> (server-side), not <body>.
+- Meal planner accepts fractional grams + blocks negative values.
+- Commit SHA: (pending)
+- Push status: (pending)
