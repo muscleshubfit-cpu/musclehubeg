@@ -4,10 +4,12 @@ import { useEffect, useState } from "react";
 import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { listAllTickets, listTicketMessages, addTicketMessage } from "@/lib/data";
+import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
 
 export function CoachSupportView() {
   const { t } = useI18n();
+  const { profile } = useAuth();
   const [tickets, setTickets] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [active, setActive] = useState<any | null>(null);
@@ -71,7 +73,7 @@ export function CoachSupportView() {
         {/* Detail */}
         <div className={cn("rounded-3xl bg-[#f5f5f7]", !active && "hidden md:block")}>
           {active ? (
-            <TicketDetail ticket={active} onClose={() => setActive(null)} onReplied={load} />
+            <TicketDetail ticket={active} onClose={() => setActive(null)} onReplied={load} coachId={profile?.id || ""} />
           ) : (
             <div className="grid h-[60vh] place-items-center text-base font-normal text-[#6e6e73]">
               {t("support.noTickets")}
@@ -97,7 +99,7 @@ function StatusPill({ status, t }: { status: string; t: (k: string) => string })
   );
 }
 
-function TicketDetail({ ticket, onClose, onReplied }: { ticket: any; onClose: () => void; onReplied: () => void }) {
+function TicketDetail({ ticket, onClose, onReplied, coachId }: { ticket: any; onClose: () => void; onReplied: () => void; coachId: string }) {
   const { t } = useI18n();
   const [messages, setMessages] = useState<any[]>([]);
   const [input, setInput] = useState("");
@@ -118,7 +120,9 @@ function TicketDetail({ ticket, onClose, onReplied }: { ticket: any; onClose: ()
     const text = input.trim();
     setInput("");
     try {
-      await addTicketMessage(ticket.id, ticket.client_id, text);
+      // Use the coach's own profile.id as sender_id — not the client's ID.
+      // RLS on ticket_messages requires sender_id = auth.uid() (C14 fix).
+      await addTicketMessage(ticket.id, coachId, text);
       onReplied();
     } catch (e: any) {
       toast.error(e.message || t("common.error"));

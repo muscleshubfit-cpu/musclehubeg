@@ -1554,3 +1554,19 @@ Stage Summary:
 - 3 open-redirect vectors closed via safeNext utility.
 - Commit SHA: (pending)
 - Push status: (pending)
+
+---
+Task ID: FIX-CHAT-SUPPORT-003
+Agent: Main (Z User)
+Task: Fix two broken core features — /chat page not displaying AI responses (C13) + coach support replies never persisted (C14).
+
+Work Log:
+- C13: ChatView.tsx:74 — changed `data.reply` to `data.response`. The /api/ai/chat endpoint returns `{ response: "..." }` but ChatView read `data.reply` (always undefined), causing every AI response to be replaced with the "Sorry, I couldn't respond" fallback. The fallback was then persisted to chat_messages, polluting the user's history.
+- C14: CoachSupportView.tsx:121 — changed `addTicketMessage(ticket.id, ticket.client_id, text)` to `addTicketMessage(ticket.id, coachId, text)`. The RLS policy on ticket_messages requires `sender_id = auth.uid()`. Passing the client's ID as sender_id caused every coach reply to be rejected by RLS. Added `useAuth` import + `profile` destructuring + `coachId` prop on TicketDetail component.
+- Verified: tsc 0 errors, eslint 0 errors on both files.
+
+Stage Summary:
+- /chat page now displays real AI responses instead of "Sorry" fallback.
+- Coach support replies now persist to the database and are visible to clients.
+- Commit SHA: (pending)
+- Push status: (pending)

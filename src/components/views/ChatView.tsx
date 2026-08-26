@@ -71,7 +71,7 @@ export function ChatView() {
       let reply: string;
       if (res.ok) {
         const data = await res.json();
-        reply = data.reply || (isAr ? "عذراً، لم أتمكن من الرد الآن." : "Sorry, I couldn't respond right now.");
+        reply = data.response || (isAr ? "عذراً، لم أتمكن من الرد الآن." : "Sorry, I couldn't respond right now.");
       } else {
         reply = generateFallbackReply(text);
       }
