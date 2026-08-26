@@ -191,8 +191,16 @@ export function ProgressView() {
  )}
  </div>
  <div className="mt-6 h-64">
- {chartData.length > 0 ? (
+ {chartData.length > 1 ? (
  <WeightChart data={chartData} />
+ ) : chartData.length === 1 ? (
+ // M50 fix: single entry — show a message instead of a broken chart sliver
+ <div className="flex h-full flex-col items-center justify-center gap-2 text-center">
+ <p className="text-sm font-normal text-[#6e6e73]">
+ {isAr ? "عندك قياس واحد. أضف قياس تاني لرؤية التوجه." : "You have one entry. Add another to see your trend."}
+ </p>
+ <p className="text-2xl font-semibold text-[#0071e3]">{chartData[0].weight} {t("common.kg")}</p>
+ </div>
  ) : (
  <div className="flex h-full items-center justify-center text-sm font-normal text-[#6e6e73]">
  {t("prog.noEntries")}

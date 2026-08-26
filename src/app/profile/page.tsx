@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState, useEffect, useRef } from "react";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/hooks/use-auth";
@@ -314,14 +315,14 @@ export default function ProfilePage() {
           ].map((link, i) => {
             const Icon = link.icon;
             return (
-              <a
+              <Link
                 key={i}
                 href={link.href}
                 className="flex items-center gap-2 rounded-2xl bg-white p-4 text-sm font-medium transition-colors hover:bg-[#f5f5f7]"
               >
                 <Icon className="h-4 w-4 text-[#6e6e73]" />
                 {link.label}
-              </a>
+              </Link>
             );
           })}
         </div>

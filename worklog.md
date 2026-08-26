@@ -2120,3 +2120,23 @@ Stage Summary:
 - Progress data is validated (no NaN, no impossible values).
 - Commit SHA: 3d6708b
 - Push status: pushed
+
+---
+Task ID: FIX-UX-BATCH-029
+Agent: Main (Z User)
+Task: Fix M44 (profile quick links full reload) + M49 (dashboard weight color) + M50 (WeightChart single entry) + M52 (EVO backdrop).
+
+Work Log:
+- M44: profile/page.tsx quick links used raw <a href> → full page reload on every click. Changed to Next.js <Link> for SPA navigation. Added `import Link from "next/link"`.
+- M49: DashboardView weight change color: weightChange < 0 (loss) was blue, > 0 (gain) was gray. Assumes loss is always good — wrong for bulking users. Changed: loss → green (#34c759), gain → orange (#ff9500). Both are now visually distinct (neutral signaling).
+- M50: WeightChart with single data point rendered a broken flat sliver. Added chartData.length === 1 check in ProgressView → shows "You have one entry. Add another to see your trend" + the single weight value in large text instead of the chart.
+- M52: EvoFloatingWidget backdrop was bg-black/5 (5% opacity — barely visible). Changed to bg-black/20 so users can tell the page behind is non-interactive.
+- Verified: tsc 0 errors, eslint 0 errors, next build exit 0.
+
+Stage Summary:
+- Profile quick links use SPA navigation (no full reload).
+- Weight change colors are now goal-neutral (green=loss, orange=gain).
+- Single-entry chart shows a helpful message instead of a broken visual.
+- EVO chat backdrop is visible enough to indicate modal state.
+- Commit SHA: (pending)
+- Push status: (pending)

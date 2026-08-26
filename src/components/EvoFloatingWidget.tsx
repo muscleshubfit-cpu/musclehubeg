@@ -99,7 +99,7 @@ export function EvoFloatingWidget() {
         <>
           {/* Backdrop (transparent — doesn't block interaction with page) */}
           <div
-            className="fixed inset-0 z-40 bg-black/5"
+            className="fixed inset-0 z-40 bg-black/20"
             onClick={closeChat}
           />
 

@@ -141,7 +141,7 @@ export function DashboardView() {
               {weightChange !== null && weightChange !== 0 && (
                 <p
                   className={`mt-1 text-xs font-normal ${
-                    weightChange < 0 ? "text-[#0071e3]" : "text-[#6e6e73]"
+                    weightChange < 0 ? "text-[#34c759]" : "text-[#ff9500]"
                   }`}
                 >
                   {weightChange < 0 ? "↓" : "↑"} {Math.abs(weightChange).toFixed(1)} {t("common.kg")}{" "}
