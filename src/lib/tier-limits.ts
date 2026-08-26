@@ -34,7 +34,9 @@ async function resolveTier(userId: string): Promise<MembershipTier> {
  */
 export function evoChatLimitFor(tier: MembershipTier): number | null {
   const m = MEMBERSHIPS.find((x) => x.id === tier);
-  return m?.limits.evoChatDailyLimit ?? 10;
+  const limit = m?.limits.evoChatDailyLimit;
+  // null = unlimited; if tier not found, default to 10 (free tier limit)
+  return limit === undefined ? 10 : limit;
 }
 
 /**

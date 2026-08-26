@@ -2482,3 +2482,22 @@ Stage Summary:
 - Graceful fallback if RPC not available.
 - Commit SHA: (pending)
 - Push status: (pending)
+
+---
+Task ID: FIX-TESTS-EXPANDED-047
+Agent: Main (Z User)
+Task: Add tests for safe-redirect + tier-limits modules + fix evoChatLimitFor null bug.
+
+Work Log:
+- Created src/lib/__tests__/safe-redirect.test.ts — 12 tests covering: null/undefined/empty input, valid relative paths, query params, hash, and security (open-redirect prevention: https://, http://, //, /\, javascript:).
+- Created src/lib/__tests__/tier-limits.test.ts — 8 tests covering: evoChatLimitFor (free=10, premium/pro/coaching=null), swapLimitForTier (free=0, premium=3, pro=6, coaching=3).
+- Fixed bug in evoChatLimitFor(): used `?? 10` which returns 10 when evoChatDailyLimit is null (should return null = unlimited). Changed to explicit undefined check: `limit === undefined ? 10 : limit`.
+- Total: 34 tests across 3 modules, all passing.
+- Verified: tsc 0 errors, vitest 34/34 pass.
+
+Stage Summary:
+- safe-redirect has comprehensive security tests (open-redirect prevention verified).
+- tier-limits has correct tier→limit mapping tests.
+- Fixed a real bug: evoChatLimitFor was returning 10 for premium/pro/coaching instead of null (unlimited).
+- Commit SHA: (pending)
+- Push status: (pending)
