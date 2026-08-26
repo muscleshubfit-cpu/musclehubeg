@@ -552,8 +552,13 @@ export type FallbackChainOptions = CallAIOptions & {
   maxModels?: number;
 };
 
-/** Total time budget reserved for the whole chain (Vercel Hobby-safe). */
-const CHAIN_TOTAL_BUDGET_MS = 52_000;
+/** Total time budget reserved for the whole chain (Vercel Hobby-safe).
+ *  Override ONLY in non-Vercel execution contexts (native GitHub Actions
+ *  runner via scripts/blog-runner) by setting AI_CHAIN_TOTAL_BUDGET_MS
+ *  (e.g. 180000) so full-length articles are generated without the 52s
+ *  Hobby clamp. Default stays 52_000 — Vercel behavior unchanged. */
+const CHAIN_TOTAL_BUDGET_MS =
+  Number(process.env.AI_CHAIN_TOTAL_BUDGET_MS) || 52_000;
 const DEFAULT_CHAIN_MODELS = 2;
 
 /**

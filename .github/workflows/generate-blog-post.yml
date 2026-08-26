@@ -1,170 +1,121 @@
-name: Auto-generate blog post (multi-step pipeline)
+name: Auto-generate blog post (native GHA pipeline)
+
+# ============================================================
+# 2026-08-27 — NATIVE EXECUTION (Owner directive: run AI calls
+# inside GitHub Actions, all keys from GitHub Secrets; EVO chat
+# stays on Vercel streaming).
+#
+# The job imports the SAME Next.js route handlers in-process
+# (scripts/blog-runner/run-step.mts) — no HTTP hop to Vercel, no
+# 60-second Hobby cap. AI_CHAIN_TOTAL_BUDGET_MS=180000 lets each
+# fallback chain run full-length completions instead of the 52s
+# Vercel clamp. Vercel cron routes remain available for manual
+# pings / the in-app editor, unchanged.
+#
+# Retry policy preserved: up to 3 attempts per step with linear
+# backoff (2 min + 4 min), plus the Step1 → Step2a stabilization
+# handoff buffer.
+# ============================================================
 
 on:
   schedule:
     - cron: "0 6,14,22 * * *"
   workflow_dispatch: {}
 
+concurrency:
+  group: blog-pipeline
+  cancel-in-progress: false
+
 jobs:
   generate:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
-    steps:
-      # ============================================================
-      # STEP RETRY POLICY (2026-08-27 — Vercel Hobby timeout cure)
-      #
-      # Each Vercel serverless request is hard-capped at 60s, and the
-      # in-app AI fallback chain is budget-clamped to ≤52s. The GHA job
-      # provides the OUTER retry loop between separate HTTP calls:
-      # every pipeline step gets up to 3 attempts with a 120s backoff
-      # (M16 lets the routes re-process "failed" queue rows).
-      # ============================================================
+    timeout-minutes: 120
 
-      # ============================================================
-      # Step 1 — Pick topic (controlled retry, max 3 attempts)
-      #   - Attempt 1: immediate
-      #   - On failure: wait 2 minutes, then Attempt 2
-      #   - On failure: wait 4 minutes, then Attempt 3
-      #   - On final failure: exit 1 → job stops, Step 2a+ are SKIPPED
-      #   - On any success: capture queueId from JSON response,
-      #     write to GITHUB_ENV so subsequent steps can use it.
-      # ============================================================
-      - name: Step 1 — Pick topic (controlled retry, max 3 attempts)
+    env:
+      # ── Native-execution budget override (default on Vercel: 52000) ──
+      AI_CHAIN_TOTAL_BUDGET_MS: "180000"
+
+      # ── Required secrets (fail-fast preflight below) ────────────────
+      # Code accepts either OPENROUTER_API or OPENROUTER_API_KEY, so both
+      # are mapped independently — whichever exists will be picked up.
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      CRON_SECRET: ${{ secrets.CRON_SECRET }}
+      OPENROUTER_API: ${{ secrets.OPENROUTER_API }}
+      OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+      GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+
+      # ── Optional image-provider fallbacks (pollinations is keyless) ──
+      UNSPLASH_ACCESS_KEY: ${{ secrets.UNSPLASH_ACCESS_KEY }}
+      PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
+      PIXABAY_API_KEY: ${{ secrets.PIXABAY_API_KEY }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Preflight — required secrets present (fails fast, names the missing ones)
         run: |
-          echo "=== Step 1: Picking topic (controlled retry: max 3 attempts, 2m + 4m backoff) ==="
-          MAX_ATTEMPTS=3
-          attempt=1
-          QUEUE_ID=""
-          while [ "$attempt" -le "$MAX_ATTEMPTS" ]; do
-            echo "--- Step 1 attempt $attempt / $MAX_ATTEMPTS ---"
-            HTTP_CODE=$(curl --silent --show-error --max-time 55 -o /tmp/step1.json -w "%{http_code}" \
-              -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
-              "${{ vars.SITE_URL }}/api/cron/blog/step1-pick")
-            echo "HTTP status: $HTTP_CODE"
-            cat /tmp/step1.json
-            echo ""
-            if [ "$HTTP_CODE" -lt 400 ]; then
-              echo "✓ Step 1 SUCCEEDED on attempt $attempt — stopping retry, queue item inserted"
-              QUEUE_ID=$(python3 -c "import json; d=json.load(open('/tmp/step1.json')); print(d.get('queueId',''))" 2>/dev/null || echo "")
-              if [ -z "$QUEUE_ID" ]; then
-                echo "❌ Step 1 returned HTTP $HTTP_CODE but no queueId in response — aborting"
-                exit 1
-              fi
-              echo "QUEUE_ID=$QUEUE_ID" >> "$GITHUB_ENV"
-              echo "✓ Captured queueId: $QUEUE_ID"
-              break
+          echo "=== Preflight: checking required GitHub Secrets ==="
+          missing=0
+          for v in NEXT_PUBLIC_SUPABASE_URL SUPABASE_SERVICE_ROLE_KEY CRON_SECRET GROQ_API_KEY; do
+            if [ -z "${!v}" ]; then
+              echo "❌ Missing secret: $v"
+              echo "   → add it under: Settings ▸ Secrets and variables ▸ Actions ▸ New repository secret"
+              missing=1
             fi
-            echo "❌ Step 1 FAILED on attempt $attempt (HTTP $HTTP_CODE)"
-            if [ "$attempt" -lt "$MAX_ATTEMPTS" ]; then
-              if [ "$attempt" -eq 1 ]; then
-                WAIT_SECONDS=120
-                WAIT_LABEL="2 minutes"
-              else
-                WAIT_SECONDS=240
-                WAIT_LABEL="4 minutes"
-              fi
-              echo "↻ Waiting ${WAIT_LABEL} before retrying (backoff) — avoiding provider spam"
-              sleep "$WAIT_SECONDS"
-            fi
-            attempt=$((attempt + 1))
           done
-          if [ "$attempt" -gt "$MAX_ATTEMPTS" ]; then
-            echo "❌ Step 1 FAILED after $MAX_ATTEMPTS attempts — Step 2a will NOT run (no queue item to consume)"
+          if [ -z "$OPENROUTER_API" ] && [ -z "$OPENROUTER_API_KEY" ]; then
+            echo "❌ Missing AI provider key — provide a secret named OPENROUTER_API (or OPENROUTER_API_KEY)"
+            missing=1
+          fi
+          if [ "$missing" -eq 1 ]; then
+            echo "❌ Preflight failed — fix the secrets above and re-run."
             exit 1
           fi
+          echo "✓ All required secrets present"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # NOTE: repo has NO package-lock.json → npm install (not npm ci)
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
 
       # ============================================================
-      # Handoff — stabilization buffer between Step 1 success and Step 2a.
-      # Runs at the GitHub Actions orchestration level (NOT inside any
-      # Vercel function — Vercel Hobby's 60s cap is never touched).
+      # Step 1 — Pick topics (EN + AR), controlled retry ×3
+      # Success captures queueId into GITHUB_ENV for later steps.
       # ============================================================
+      - name: Step 1 — Pick topics EN + AR (retry ×3)
+        run: bash scripts/blog-runner/run-step.sh step1-pick 3
+
+      # Stabilization handoff (orchestration-level sleep) — kept from
+      # the previous design to let Supabase settle before research.
       - name: Wait 5 minutes — Step 1 → Step 2a stabilization handoff
         run: |
-          echo "=== Handoff: waiting 5 minutes before Step 2a (orchestration-level sleep, NOT inside Vercel) ==="
+          echo "=== Handoff: waiting 5 minutes before Step 2a ==="
           sleep 300
-          echo "✓ 5-minute handoff buffer elapsed — proceeding to Step 2a"
+          echo "✓ Handoff buffer elapsed"
 
-      - name: Step 2a — Research (retry ×3, 120s backoff)
-        run: |
-          run_step() {
-            curl --silent --show-error --max-time 55 -o /tmp/step2a.json -w "%{http_code}" \
-              -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
-              "${{ vars.SITE_URL }}/api/cron/blog/step2a-research?queueId=$QUEUE_ID"
-          }
-          MAX_ATTEMPTS=3; attempt=1; HTTP_CODE=""
-          while [ "$attempt" -le "$MAX_ATTEMPTS" ]; do
-            echo "--- Step 2a attempt $attempt / $MAX_ATTEMPTS ---"
-            HTTP_CODE=$(run_step); echo "HTTP status: $HTTP_CODE"; cat /tmp/step2a.json; echo ""
-            if [ "$HTTP_CODE" -lt 400 ]; then echo "✓ Step 2a done"; break; fi
-            if [ "$attempt" -lt "$MAX_ATTEMPTS" ]; then echo "↻ Retrying in 120s"; sleep 120; fi
-            attempt=$((attempt + 1))
-          done
-          if [ "$HTTP_CODE" -ge 400 ]; then echo "❌ Step 2a failed after $MAX_ATTEMPTS attempts"; exit 1; fi
+      - name: Step 2a — Research (retry ×3)
+        run: bash scripts/blog-runner/run-step.sh step2a-research 3
 
-      - name: Step 2b — English article + SEO (retry ×3, 120s backoff)
-        run: |
-          run_step() {
-            curl --silent --show-error --max-time 55 -o /tmp/step2b.json -w "%{http_code}" \
-              -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
-              "${{ vars.SITE_URL }}/api/cron/blog/step2b-en-article?queueId=$QUEUE_ID"
-          }
-          MAX_ATTEMPTS=3; attempt=1; HTTP_CODE=""
-          while [ "$attempt" -le "$MAX_ATTEMPTS" ]; do
-            echo "--- Step 2b attempt $attempt / $MAX_ATTEMPTS ---"
-            HTTP_CODE=$(run_step); echo "HTTP status: $HTTP_CODE"; cat /tmp/step2b.json; echo ""
-            if [ "$HTTP_CODE" -lt 400 ]; then echo "✓ Step 2b done"; break; fi
-            if [ "$attempt" -lt "$MAX_ATTEMPTS" ]; then echo "↻ Retrying in 120s"; sleep 120; fi
-            attempt=$((attempt + 1))
-          done
-          if [ "$HTTP_CODE" -ge 400 ]; then echo "❌ Step 2b failed after $MAX_ATTEMPTS attempts"; exit 1; fi
+      - name: Step 2b — English article + SEO (retry ×3)
+        run: bash scripts/blog-runner/run-step.sh step2b-en-article 3
 
-      - name: Step 2c — Arabic article + FAQ (retry ×3, 120s backoff)
-        run: |
-          run_step() {
-            curl --silent --show-error --max-time 55 -o /tmp/step2c.json -w "%{http_code}" \
-              -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
-              "${{ vars.SITE_URL }}/api/cron/blog/step2c-ar-article?queueId=$QUEUE_ID"
-          }
-          MAX_ATTEMPTS=3; attempt=1; HTTP_CODE=""
-          while [ "$attempt" -le "$MAX_ATTEMPTS" ]; do
-            echo "--- Step 2c attempt $attempt / $MAX_ATTEMPTS ---"
-            HTTP_CODE=$(run_step); echo "HTTP status: $HTTP_CODE"; cat /tmp/step2c.json; echo ""
-            if [ "$HTTP_CODE" -lt 400 ]; then echo "✓ Step 2c done"; break; fi
-            if [ "$attempt" -lt "$MAX_ATTEMPTS" ]; then echo "↻ Retrying in 120s"; sleep 120; fi
-            attempt=$((attempt + 1))
-          done
-          if [ "$HTTP_CODE" -ge 400 ]; then echo "❌ Step 2c failed after $MAX_ATTEMPTS attempts"; exit 1; fi
+      - name: Step 2c — Arabic article + FAQ (retry ×3)
+        run: bash scripts/blog-runner/run-step.sh step2c-ar-article 3
 
-      - name: Step 2d — Links + images + social (retry ×3, 120s backoff)
-        run: |
-          run_step() {
-            curl --silent --show-error --max-time 55 -o /tmp/step2d.json -w "%{http_code}" \
-              -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
-              "${{ vars.SITE_URL }}/api/cron/blog/step2d-links?queueId=$QUEUE_ID"
-          }
-          MAX_ATTEMPTS=3; attempt=1; HTTP_CODE=""
-          while [ "$attempt" -le "$MAX_ATTEMPTS" ]; do
-            echo "--- Step 2d attempt $attempt / $MAX_ATTEMPTS ---"
-            HTTP_CODE=$(run_step); echo "HTTP status: $HTTP_CODE"; cat /tmp/step2d.json; echo ""
-            if [ "$HTTP_CODE" -lt 400 ]; then echo "✓ Step 2d done"; break; fi
-            if [ "$attempt" -lt "$MAX_ATTEMPTS" ]; then echo "↻ Retrying in 120s"; sleep 120; fi
-            attempt=$((attempt + 1))
-          done
-          if [ "$HTTP_CODE" -ge 400 ]; then echo "❌ Step 2d failed after $MAX_ATTEMPTS attempts"; exit 1; fi
+      - name: Step 2d — Links + images + social (retry ×3)
+        run: bash scripts/blog-runner/run-step.sh step2d-links 3
 
-      - name: Step 3 — Publish (retry ×3, 120s backoff)
+      - name: Step 3 — Publish (retry ×3)
+        run: bash scripts/blog-runner/run-step.sh step3-publish 3
+
+      - name: Summary
+        if: always()
         run: |
-          run_step() {
-            curl --silent --show-error --max-time 55 -o /tmp/step3.json -w "%{http_code}" \
-              -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
-              "${{ vars.SITE_URL }}/api/cron/blog/step3-publish?queueId=$QUEUE_ID"
-          }
-          MAX_ATTEMPTS=3; attempt=1; HTTP_CODE=""
-          while [ "$attempt" -le "$MAX_ATTEMPTS" ]; do
-            echo "--- Step 3 attempt $attempt / $MAX_ATTEMPTS ---"
-            HTTP_CODE=$(run_step); echo "HTTP status: $HTTP_CODE"; cat /tmp/step3.json; echo ""
-            if [ "$HTTP_CODE" -lt 400 ]; then echo "✓ Step 3 done — article published!"; break; fi
-            if [ "$attempt" -lt "$MAX_ATTEMPTS" ]; then echo "↻ Retrying in 120s"; sleep 120; fi
-            attempt=$((attempt + 1))
-          done
-          if [ "$HTTP_CODE" -ge 400 ]; then echo "❌ Step 3 failed after $MAX_ATTEMPTS attempts"; exit 1; fi
+          echo "=== Pipeline run summary ==="
+          echo "QUEUE_ID processed: ${QUEUE_ID:-<none>}"
+          echo "Full logs above — green ✓ = published, red ❌ = copy last lines and report."

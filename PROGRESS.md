@@ -318,6 +318,7 @@
 | Phase 10 | 2026-08-24 | PayPal integration (PRIMARY payment method — `src/lib/paypal.ts` + 3 API routes + migration 0016 + idempotency + webhook signature verification) + checkout flow hardening + affiliate engine (migration 0015) |
 | Phase 11 | 2026-08-25 | PROGRESS.md restructure into clean status board (هذه المهمة #4) |
 | Phase 12 | 2026-08-26 | UI palette unification — extracted Gemini-card palette + applied site-wide via `PALETTE` const in `LandingView.tsx`. Redesigned Premium Memberships cards (were broken: `bg-white/5` invisible + `text-gray-400/300` on light bg). All landing text now WCAG AAA (≥7:1). Commits: `8aff772` (initial palette), `1447a0b` (deepen text colors to AAA), `2a449d5` (site-wide unification + memberships redesign) |
+| Phase 13 | 2026-08-27 | Native GHA AI execution (owner directive) — blog pipeline moved INTO GitHub Actions (`scripts/blog-runner/run-step.mts` imports route handlers in-process, no Vercel hop / no 60s cap); `AI_CHAIN_TOTAL_BUDGET_MS` override added to ai-provider (default 52s unchanged); keys centralized in GitHub Secrets; EVO chat stays on Vercel streaming |
 
 ---
 

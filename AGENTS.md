@@ -303,6 +303,16 @@ Process:
   - `callFreeOpenRouterRace()` — parallel fastest-wins via `Promise.any()`.
     Used by swap only (speed-critical).
   - Do not "simplify" by collapsing them — the trade-off is intentional.
+- **Native GitHub Actions execution (2026-08-27 owner directive):** the
+  scheduled blog pipeline runs INSIDE the Actions job via
+  `scripts/blog-runner/run-step.mts` (imports the same route handlers
+  in-process — no Vercel hop). In that context only,
+  `AI_CHAIN_TOTAL_BUDGET_MS` overrides the 52s clamp (workflow sets
+  180000) for full-length articles. AI keys come from GitHub Secrets;
+  EVO chat stays on Vercel streaming. The `/api/cron/blog/*` routes
+  remain valid for manual pings and the in-app editor; do not delete
+  them. Any new scheduled/batch AI work MUST follow this native-GHA
+  pattern instead of adding Vercel-capped endpoints.
 - Never log the AI response in production code paths (it can contain
   user PII or partial reasoning that should not be persisted).
 - Local fallbacks (`src/lib/ai-local.ts`) exist so the app degrades
