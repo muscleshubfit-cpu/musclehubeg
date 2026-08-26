@@ -2335,8 +2335,8 @@ Stage Summary:
 - Coach client detail page bundle reduced by ~600KB (recharts lazy-loaded).
 - ESLint now surfaces `any` usage as warnings (visibility for future cleanup).
 - All primary CTAs now use `font-medium` (stronger visual hierarchy).
-- Commit SHA: (pending)
-- Push status: (pending)
+- Commit SHA: 78d8d4f
+- Push status: pushed
 
 ---
 Task ID: FIX-AUDIT-BATCH-6B-040
@@ -2351,8 +2351,8 @@ Work Log:
 Stage Summary:
 - Blog pages use ISR (1hr cache) — reduced Vercel function invocations.
 - 3 detail pages (exercises, foods, programs) now have visible breadcrumbs.
-- Commit SHA: (pending)
-- Push status: (pending)
+- Commit SHA: 09caf4c
+- Push status: pushed
 
 ---
 Task ID: FIX-AUDIT-BATCH-6C-041
@@ -2367,5 +2367,5 @@ Work Log:
 Stage Summary:
 - Footer now has WhatsApp + InstaPay contact info (trust element).
 - Public lead endpoint is rate limited (5 req / 10 min / IP).
-- Commit SHA: (pending)
-- Push status: (pending)
+- Commit SHA: 95cfc2b
+- Push status: pushed
