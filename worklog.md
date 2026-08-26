@@ -2422,3 +2422,20 @@ Stage Summary:
 - Code gracefully falls back if migrations not yet applied.
 - Commit SHA: (pending)
 - Push status: (pending)
+
+---
+Task ID: FIX-CACHING-7B-044
+Agent: Main (Z User)
+Task: Decision 2 (caching — unstable_cache on blog server functions).
+
+Work Log:
+- Decision 2: wrapped fetchBlogForOG + fetchBlogPostFull in unstable_cache with 1-hour revalidate. Blog posts change rarely — caching reduces Supabase queries significantly on every page load.
+- Pattern: renamed original functions to *Uncached, then exported cached wrappers via unstable_cache with key tags ["blog-og"] / ["blog-full"].
+- Decision 6 (next/image migration): DEFERRED — 7 raw <img> tags in LandingView alone, each needs manual width/height or fill config. This is a larger refactor that should be done file-by-file with visual testing. next.config.ts already has the correct image config (formats, remotePatterns, minimumCacheTTL) — only the component code needs migration.
+- Verified: tsc 0 errors, next build exit 0.
+
+Stage Summary:
+- Blog server functions cached (1hr revalidate) — reduces Supabase queries.
+- next/image migration deferred (larger scope, needs per-image review).
+- Commit SHA: (pending)
+- Push status: (pending)

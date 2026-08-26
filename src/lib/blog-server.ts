@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { unstable_cache } from "next/cache";
 
 /**
  * Server-side blog helpers — for route handlers and server components.
@@ -67,10 +68,12 @@ export type BlogOGData = {
  * Centralizing this here so the three previous copies of the same REST
  * query don't drift apart.
  */
-export async function fetchBlogForOG(
+// Decision 2 fix: wrap fetchBlogForOG in unstable_cache for 1-hour ISR.
+// Blog posts change rarely — caching reduces Supabase queries significantly.
+const fetchBlogForOGUncached = async (
   slug: string,
   lang: "en" | "ar",
-): Promise<BlogOGData | null> {
+): Promise<BlogOGData | null> => {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   if (!supabaseUrl || !supabaseAnonKey) return null;
@@ -102,7 +105,14 @@ export async function fetchBlogForOG(
   } catch {
     return null;
   }
-}
+};
+
+// Cached wrapper — 1 hour revalidate
+export const fetchBlogForOG = unstable_cache(
+  fetchBlogForOGUncached,
+  ["blog-og"],
+  { revalidate: 3600 },
+);
 
 /**
  * M28 fix: fetch a published blog post's FULL content server-side.
@@ -115,10 +125,10 @@ export async function fetchBlogForOG(
  * Returns null when Supabase isn't configured, the post doesn't exist,
  * or the request fails.
  */
-export async function fetchBlogPostFull(
+const fetchBlogPostFullUncached = async (
   slug: string,
   lang: "en" | "ar",
-): Promise<any | null> {
+): Promise<any | null> => {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   if (!supabaseUrl || !supabaseAnonKey) return null;
@@ -139,7 +149,14 @@ export async function fetchBlogPostFull(
   } catch {
     return null;
   }
-}
+};
+
+// Cached wrapper — 1 hour revalidate (blog posts change rarely)
+export const fetchBlogPostFull = unstable_cache(
+  fetchBlogPostFullUncached,
+  ["blog-full"],
+  { revalidate: 3600 },
+);
 
 export type BlogPostFull = {
   id: string;
