@@ -2177,8 +2177,8 @@ Stage Summary:
 - Dead code removed (cleaner bundle, less confusion).
 - Food category cards now filter the foods page correctly.
 - Exercise counts on landing page are accurate (auto-update when dataset grows).
-- Commit SHA: (pending)
-- Push status: (pending)
+- Commit SHA: f1d14ea
+- Push status: pushed
 
 ---
 Task ID: FIX-DEADCODE-032
@@ -2194,5 +2194,5 @@ Work Log:
 Stage Summary:
 - 2 dead files deleted + 1 dead function + 1 dead constant removed.
 - Cleaner codebase, smaller bundle, less confusion for future maintainers.
-- Commit SHA: (pending)
-- Push status: (pending)
+- Commit SHA: acf57cb
+- Push status: pushed

@@ -30,9 +30,9 @@
 
 | ID | الوصف | الملف | الأولوية |
 |---|---|---|---|
-| — | لا توجد bugs حرجة أو عالية الأولوية مفتوحة في الكود الحالي — تم إصلاح 78 مشكلة في 2026-08-26 (انظر القسم أدناه) | — | — |
+| — | لا توجد bugs حرجة أو عالية الأولوية مفتوحة في الكود الحالي — تم إصلاح 84 مشكلة في 2026-08-26 (انظر القسم أدناه) | — | — |
 
-### إصلاحات 2026-08-26 (78 مشكلة عبر 38 commit)
+### إصلاحات 2026-08-26 (84 مشكلة عبر 41 commit)
 
 | الفئة | المشاكل | Commits |
 |---|---|---|
@@ -44,7 +44,7 @@
 | 🎨 UI | C19 (affiliate share), C20 (memberships comparison), C21 (/ar/coaching), M25-M27 (invisible text), M35 (French word), M37 (cookie flash), M38 (duplicated muscles) | b48e669, a526826 |
 | 🛡️ Coach/Admin | M3 (expired subs), M8 (PayPal amount), M10 (review status), M18 (client validation), M20 (support polling), M19 (close-ticket), M7 (upload validation), M9 (subreq dedupe), M15 (slug validation), M17 (auto-save), M24 (leads DELETE), M16 (cron retry) | 39c8cf5, 75a55bb, 7277ce6, 8ab78fb, 00afb31, ba3cb0c, 178457b |
 | 📝 محتوى | M32-M34 (FAQ PayPal + tiers) | 8ab78fb |
-| 🔧 Minor/Polish | dead code, brand name, RTL, ShareButtons aria, OtherTools, referral cookie Secure, package.json name, NotificationBell polling | e2ae247, ba3cb0c |
+| 🔧 Minor/Polish | dead code, brand name, RTL, ShareButtons aria, OtherTools, referral cookie Secure, package.json name, NotificationBell polling, landing dead code, food card links, exercise counts, PricingView/hreflang/exercises dead code | e2ae247, ba3cb0c, f1d14ea, acf57cb |
 | 👤 Auth | M6 (email confirmation redirect bug), M2 (swap race condition) | dbc81e8 |
 | 📊 UX | M4 (profile stats dynamic), M14 (plans empty state guidance), M40 (Arabic detection), M39 (404 bilingual), M43 (meal planner persistence), M41 (blog header nav), M42 (link tags in body), M48 (meal planner grams), M46 (progress date picker), M45 (progress validation), M44 (profile SPA links), M49 (weight color), M50 (chart single-entry), M52 (EVO backdrop) | 702340d, ce8199d, 267fde0, 3d6708b, 3023099 |
 | 🔒 XSS | M53 (print modal escapeHtml) | fa78120 |
