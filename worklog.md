@@ -2279,3 +2279,21 @@ Stage Summary:
 - Console.error logs the failure for debugging.
 - Commit SHA: a9b229d
 - Push status: pushed
+
+---
+Task ID: FIX-MINOR-BATCH-037
+Agent: Main (Z User)
+Task: Fix M58 (generate-image GET→POST) + M62 (blog-generate raw text logs) + M55 (reject reason).
+
+Work Log:
+- M58: /api/ai/generate-image used GET with prompt as query param — logged in Vercel access logs (may contain PII). Changed to POST with JSON body. No client callers found (endpoint is called directly from cron/admin scripts).
+- M62: blog-generate.ts had 7 console.log/console.error calls that logged raw AI response text (first 500/1000 chars). AGENTS.md §8 prohibits logging AI responses. Replaced all with metadata-only comments. Also removed raw text from error messages (kept provider + model + parsed keys).
+- M55: CoachPaymentsView reject flow didn't ask for a reason — client got generic "تم رفض طلب الاشتراك" with no actionable feedback. Added prompt() for rejection reason (optional). Updated reviewSubscriptionRequest to accept adminNote param + include it in the client notification.
+- Verified: tsc 0 errors, eslint 0 errors, next build exit 0.
+
+Stage Summary:
+- Image generation prompt no longer leaks to Vercel logs.
+- AI response text no longer logged (AGENTS.md §8 compliance).
+- Clients get rejection reasons in their notification (actionable feedback).
+- Commit SHA: (pending)
+- Push status: (pending)

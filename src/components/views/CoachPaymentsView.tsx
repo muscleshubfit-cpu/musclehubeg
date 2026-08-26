@@ -32,9 +32,14 @@ export function CoachPaymentsView() {
   }, [filter]);
 
   const review = async (id: string, action: "approve" | "reject") => {
+    // M55 fix: ask for rejection reason so the client gets actionable feedback
+    let adminNote: string | undefined;
+    if (action === "reject") {
+      adminNote = prompt(isAr ? "سبب الرفض (اختياري):" : "Rejection reason (optional):") || undefined;
+    }
     setReviewing(id);
     try {
-      await reviewSubscriptionRequest(id, action);
+      await reviewSubscriptionRequest(id, action, adminNote);
       toast.success(action === "approve" ? t("admin.approvedToast") : t("admin.rejectedToast"));
       await load();
     } catch (e: any) {

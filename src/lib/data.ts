@@ -1161,7 +1161,7 @@ export async function submitSubscriptionRequest(req: any) {
  return row;
 }
 
-export async function reviewSubscriptionRequest(id: string, action: "approve" | "reject") {
+export async function reviewSubscriptionRequest(id: string, action: "approve" | "reject", adminNote?: string) {
  if (isSupabaseConfigured && supabase) {
  // M10 fix: only update if status is still "pending" — prevents re-approving
  // or re-rejecting an already-processed request (double-commission, etc.)
@@ -1210,7 +1210,9 @@ export async function reviewSubscriptionRequest(id: string, action: "approve" | 
  console.error("[reviewSubscriptionRequest] Affiliate commission error:", e);
  }
  } else {
- await createNotification(data.user_id, "subscription_rejected", "تم رفض طلب الاشتراك", "تم رفض طلب اشتراكك. يرجى التواصل مع الدعم.", "/memberships");
+ // M55 fix: include rejection reason in the notification if provided
+ const reasonText = adminNote ? ` (${adminNote})` : "";
+ await createNotification(data.user_id, "subscription_rejected", "تم رفض طلب الاشتراك", `تم رفض طلب اشتراكك.${reasonText} يرجى التواصل مع الدعم.`, "/memberships");
  }
  return data;
  }

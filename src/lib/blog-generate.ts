@@ -858,13 +858,13 @@ export async function generateEnglishArticle(
     },
     3, // maxOpenRouterModels=3 — try all 3 Nemotron before Groq fallback
   );
-  console.log(`[blog-generate] EN raw response (provider: ${provider}, model: ${model}, length: ${text.length})`);
+  // M62 fix: removed raw text logging (AGENTS.md §8 — never log AI response)
 
   const parsed = parseJSON<any>(text);
   if (!parsed || !parsed.englishArticle || !parsed.seo) {
     console.error(`[blog-generate] EN article FAILED — model: ${model}, provider: ${provider}`);
     console.error(`[blog-generate] EN parsed keys: ${parsed ? Object.keys(parsed).join(", ") : "null"}`);
-    console.error(`[blog-generate] EN raw text (first 1000): ${text.slice(0, 1000)}`);
+    // M62 fix: removed raw text logging
     throw new Error(`English article chunk returned invalid data — missing englishArticle or seo. Provider: ${provider}, Model: ${model}. Parsed keys: ${parsed ? Object.keys(parsed).join(", ") : "null"}`);
   }
   console.log(`[blog-generate] EN article done (model: ${model}, provider: ${provider}, words: ${parsed.englishArticle.split(/\s+/).length})`);
@@ -908,8 +908,7 @@ export async function generateArabicArticle(
     },
     3, // maxOpenRouterModels=3 — try all 3 Nemotron before Groq fallback
   );
-  console.log(`[blog-generate] AR raw response (provider: ${provider}, model: ${model}, length: ${text.length})`);
-  console.log(`[blog-generate] AR raw text first 500 chars: ${text.slice(0, 500)}`);
+  // M62 fix: removed raw text logging (AGENTS.md §8)
 
   const parsed = parseJSON<any>(text);
 
@@ -918,8 +917,8 @@ export async function generateArabicArticle(
   if (!parsed || !arabicArticle) {
     console.error(`[blog-generate] AR article FAILED — model: ${model}, provider: ${provider}`);
     console.error(`[blog-generate] AR parsed keys: ${parsed ? Object.keys(parsed).join(", ") : "null"}`);
-    console.error(`[blog-generate] AR raw text (first 1000): ${text.slice(0, 1000)}`);
-    throw new Error(`Arabic article chunk returned invalid data — missing arabicArticle. Provider: ${provider}, Model: ${model}. Parsed keys: ${parsed ? Object.keys(parsed).join(", ") : "null"}. Raw text first 500: ${text.slice(0, 500)}`);
+    // M62 fix: removed raw text from error message
+    throw new Error(`Arabic article chunk returned invalid data — missing arabicArticle. Provider: ${provider}, Model: ${model}. Parsed keys: ${parsed ? Object.keys(parsed).join(", ") : "null"}.`);
   }
   console.log(`[blog-generate] AR article done (model: ${model}, provider: ${provider}, words: ${arabicArticle.split(/\s+/).length})`);
   return {
@@ -1030,11 +1029,11 @@ Return ONLY the JSON. No commentary, no markdown fences.`;
     },
     3, // maxOpenRouterModels=3 — try all 3 Nemotron before Groq fallback
   );
-  console.log(`[blog-generate] Links raw response (provider: ${provider}, model: ${model}, length: ${text.length})`);
+  // M62 fix: removed raw text logging
   const parsed = parseJSON<any>(text);
   if (!parsed) {
     console.error(`[blog-generate] Links FAILED — model: ${model}, provider: ${provider}`);
-    console.error(`[blog-generate] Links raw text (first 1000): ${text.slice(0, 1000)}`);
+    // M62 fix: removed raw text logging
     throw new Error(`Links + social chunk returned invalid JSON. Provider: ${provider}, Model: ${model}`);
   }
 

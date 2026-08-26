@@ -5,15 +5,16 @@ import { getGeminiApiKey } from "@/lib/gemini-wrapper";
 
 export const maxDuration = 60;
 
-export async function GET(request: NextRequest) {
+// M58 fix: changed from GET to POST — prompt was in the URL (logged in
+// Vercel access logs, may contain PII if coach pastes a client's name).
+export async function POST(request: NextRequest) {
   if (isAuthConfigured) {
     const auth = await requireCoach(request);
     if (auth instanceof Response) return auth;
   }
 
-  const url = new URL(request.url);
-  const prompt = url.searchParams.get("prompt");
-  const aspectRatio = url.searchParams.get("aspectRatio") || "16:9";
+  const body = await request.json().catch(() => ({}));
+  const { prompt, aspectRatio = "16:9" } = body;
 
   if (!prompt) {
     return NextResponse.json({ error: "Missing 'prompt' parameter" }, { status: 400 });
