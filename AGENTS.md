@@ -229,6 +229,19 @@ this rule is non-negotiable.
 - Migrations MUST include RLS policies for any new table.
 - The agent MUST NOT apply migrations to production. The owner runs
   them via the Supabase SQL Editor.
+- **RAW-SQL-LINK RULE (FIXED — BINDING FOR ALL CLIENTS/PROJECTS):**
+  whenever a task touches the database schema or produces SQL the
+  owner must execute manually, the agent MUST write ready-to-run SQL
+  and attach its RAW GitHub link in the format
+  `https://raw.githubusercontent.com/<org>/<repo>/<branch>/<path>`
+  so the owner can open it and paste it straight into the Supabase SQL
+  Editor with zero downloads. Describing the SQL without attaching the
+  runnable file + raw link is an INVALID delivery.
+- For every migration batch, additionally create ONE consolidated
+  paste-ready script `supabase/migrations/RUN_ON_SUPABASE_<IDs>.sql`
+  containing all steps, the closing `NOTIFY pgrst, 'reload schema';`,
+  and a VERIFY query block — following the existing
+  `RUN_ON_SUPABASE_*` pattern — and attach its raw link too.
 - After applying a migration, the owner MUST run
   `NOTIFY pgrst, 'reload schema';` so PostgREST picks up the change.
 - If a migration introduces a column that previously was created
@@ -500,6 +513,8 @@ After every task, deliver a brief report containing only:
 - Commit SHA
 - Push status
 - Next task
+- Raw SQL links to run on Supabase (mandatory whenever the task
+  produced schema/DB changes — see §6 RAW-SQL-LINK RULE)
 
 ### 12.10 Out-of-Scope Prohibited
 
