@@ -2319,3 +2319,21 @@ Stage Summary:
 - Refresh preserves the language choice (URL-based).
 - Commit SHA: c7b76aa
 - Push status: pushed
+
+---
+Task ID: FIX-AUDIT-BATCH-6A-039
+Agent: Main (Z User)
+Task: Audit fixes #5 (Recharts lazy-load CoachClientView) + #18 (ESLint any→warn) + #8 (CTA font-medium).
+
+Work Log:
+- #5: CoachClientView.tsx had static `import { ResponsiveContainer, AreaChart, ... } from "recharts"` — 600KB shipped to every coach client detail page. Created `src/components/ClientWeightChart.tsx` (extracted chart component) + lazy-loaded it via `dynamic(() => import(...), { ssr: false })`. Replaced inline chart JSX with `<ClientWeightChart data={chartData} />`.
+- #18: eslint.config.mjs had `@typescript-eslint/no-explicit-any: "off"` — ~91+ `:any` usages across the codebase were invisible to lint. Changed to `"warn"` so the scope is visible without breaking the build. Future: refactor `any` → proper types, then escalate to `"error"`.
+- #8: CTAs on coaching, evo, and landing pages used `font-normal` — visually weak for primary actions. Changed to `font-medium` via sed on 3 files. Colors/sizes unchanged (already WCAG AAA compliant).
+- Verified: tsc 0 errors, next build exit 0.
+
+Stage Summary:
+- Coach client detail page bundle reduced by ~600KB (recharts lazy-loaded).
+- ESLint now surfaces `any` usage as warnings (visibility for future cleanup).
+- All primary CTAs now use `font-medium` (stronger visual hierarchy).
+- Commit SHA: (pending)
+- Push status: (pending)

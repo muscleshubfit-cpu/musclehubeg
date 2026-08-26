@@ -181,7 +181,7 @@ export default function CoachingPage() {
             <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
               <button
                 onClick={scrollToPricing}
-                className="rounded-full bg-[#0071e3] px-7 py-3 text-base font-normal text-white transition-opacity hover:opacity-90"
+                className="rounded-full bg-[#0071e3] px-7 py-3 text-base font-medium text-white transition-opacity hover:opacity-90"
               >
                 {isAr ? "ابدأ تحوّلك" : "Start your transformation"}
               </button>
@@ -282,14 +282,14 @@ export default function CoachingPage() {
             <div className="mt-6 flex flex-wrap items-center justify-center gap-4">
               <a
                 href="/evo"
-                className="inline-flex items-center gap-2 rounded-full bg-[#0071e3] px-7 py-3.5 text-base font-normal text-white transition-opacity hover:opacity-90"
+                className="inline-flex items-center gap-2 rounded-full bg-[#0071e3] px-7 py-3.5 text-base font-medium text-white transition-opacity hover:opacity-90"
               >
                 {isAr ? "اعرف أكثر عن EVO" : "Learn more about EVO"}
                 <ArrowRight className="h-4 w-4 rtl:rotate-180" />
               </a>
               <a
                 href="/chat"
-                className="inline-flex items-center gap-2 rounded-full bg-[#1d1d1f] px-7 py-3.5 text-base font-normal text-white transition-opacity hover:opacity-90"
+                className="inline-flex items-center gap-2 rounded-full bg-[#1d1d1f] px-7 py-3.5 text-base font-medium text-white transition-opacity hover:opacity-90"
               >
                 {isAr ? "ابدأ المحادثة" : "Start chatting"}
               </a>
@@ -480,7 +480,7 @@ export default function CoachingPage() {
             <div className="mt-8 flex flex-wrap items-center justify-center gap-4 md:gap-6">
               <button
                 onClick={scrollToPricing}
-                className="rounded-full bg-[#0071e3] px-7 py-3 text-base font-normal text-white transition-opacity hover:opacity-90"
+                className="rounded-full bg-[#0071e3] px-7 py-3 text-base font-medium text-white transition-opacity hover:opacity-90"
               >
                 {isAr ? "ابدأ تحوّلي" : "Start my transformation"}
               </button>

@@ -324,7 +324,7 @@ export function LandingView() {
             <div className="mt-8 flex flex-wrap items-center justify-center gap-3 md:justify-start md:gap-5">
               <a
                 href="/memberships"
-                className="rounded-full px-7 py-3.5 font-normal text-white transition-opacity hover:opacity-90 md:text-base"
+                className="rounded-full px-7 py-3.5 font-medium text-white transition-opacity hover:opacity-90 md:text-base"
                 style={{ backgroundColor: PALETTE.brand }}
               >
                 {isAr ? "ابدأ مجاناً" : "Start for free"}
@@ -403,7 +403,7 @@ export function LandingView() {
             <div className="mt-6 flex flex-wrap items-center justify-center gap-4">
               <a
                 href="/chat"
-                className="inline-flex items-center gap-2 rounded-full px-7 py-3.5 text-base font-normal text-white transition-opacity hover:opacity-90"
+                className="inline-flex items-center gap-2 rounded-full px-7 py-3.5 text-base font-medium text-white transition-opacity hover:opacity-90"
                 style={{ backgroundColor: PALETTE.brand }}
               >
                 {isAr ? "ابدأ المحادثة" : "Start chatting"}
@@ -496,7 +496,7 @@ export function LandingView() {
             ))}
           </div>
           <div className="mt-8 text-center">
-            <a href="/exercises" className="inline-block rounded-full px-6 py-2.5 text-sm font-normal text-white transition-opacity hover:opacity-90" style={{ backgroundColor: PALETTE.textPrim }}>
+            <a href="/exercises" className="inline-block rounded-full px-6 py-2.5 text-sm font-medium text-white transition-opacity hover:opacity-90" style={{ backgroundColor: PALETTE.textPrim }}>
               {isAr ? "تصفّح كل التمارين ›" : "Browse all exercises ›"}
             </a>
           </div>
@@ -531,7 +531,7 @@ export function LandingView() {
             ))}
           </div>
           <div className="mt-8 text-center">
-            <a href="/programs" className="inline-block rounded-full px-6 py-2.5 text-sm font-normal text-white transition-opacity hover:opacity-90" style={{ backgroundColor: PALETTE.textPrim }}>
+            <a href="/programs" className="inline-block rounded-full px-6 py-2.5 text-sm font-medium text-white transition-opacity hover:opacity-90" style={{ backgroundColor: PALETTE.textPrim }}>
               {isAr ? "كل البرامج ›" : "View all programs ›"}
             </a>
           </div>
@@ -567,7 +567,7 @@ export function LandingView() {
             ))}
           </div>
           <div className="mt-8 text-center">
-            <a href="/foods" className="inline-block rounded-full px-6 py-2.5 text-sm font-normal text-white transition-opacity hover:opacity-90" style={{ backgroundColor: PALETTE.textPrim }}>
+            <a href="/foods" className="inline-block rounded-full px-6 py-2.5 text-sm font-medium text-white transition-opacity hover:opacity-90" style={{ backgroundColor: PALETTE.textPrim }}>
               {isAr ? "تصفّح كل الأكلات ›" : "Browse all foods ›"}
             </a>
           </div>
@@ -636,7 +636,7 @@ export function LandingView() {
               <div className="mt-6 flex flex-wrap items-center justify-center gap-4">
                 <a
                   href="/coaching"
-                  className="rounded-full px-6 py-2.5 text-sm font-normal text-white transition-opacity hover:opacity-90"
+                  className="rounded-full px-6 py-2.5 text-sm font-medium text-white transition-opacity hover:opacity-90"
                   style={{ backgroundColor: PALETTE.brand }}
                 >
                   {isAr ? "اعرف أكثر ›" : "Learn more ›"}
@@ -831,7 +831,7 @@ export function LandingView() {
           <div className="mt-8 flex flex-wrap items-center justify-center gap-4 md:gap-6">
             <a
               href="/memberships"
-              className="rounded-full px-7 py-3 text-base font-normal text-white transition-opacity hover:opacity-90"
+              className="rounded-full px-7 py-3 text-base font-medium text-white transition-opacity hover:opacity-90"
               style={{ backgroundColor: PALETTE.brand }}
             >
               {isAr ? "ابدأ مجاناً" : "Start for free"}

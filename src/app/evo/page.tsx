@@ -152,7 +152,7 @@ export default function EvoPage() {
             {/* Start Conversation — with EVO profile image */}
             <a
               href="/chat"
-              className="group inline-flex items-center gap-3 rounded-full bg-[#0071e3] px-6 py-3 text-base font-normal text-white transition-opacity hover:opacity-90"
+              className="group inline-flex items-center gap-3 rounded-full bg-[#0071e3] px-6 py-3 text-base font-medium text-white transition-opacity hover:opacity-90"
             >
               <img
                 src="/images/evo-standalone.jpg"
@@ -458,7 +458,7 @@ export default function EvoPage() {
           <h2 className="text-2xl font-semibold tracking-tight md:text-3xl">
             {isAr ? "اشتراك واحد. كل الخدمات." : "One subscription. Everything."}
           </h2>
-          <p className="mx-auto mt-4 max-w-md text-base font-normal text-white/80">
+          <p className="mx-auto mt-4 max-w-md text-base font-medium text-white/80">
             {isAr
               ? "اشتراك الكوتشينج بيشمل: EVO بكل ميزاته + خطط تغذية مخصصة + برامج تمارين + متابعة شخصية + كل أدوات المنصة. مفيش زيادة في السعر."
               : "Coaching subscription includes: EVO with full features + personalized nutrition plans + workout programs + personal follow-up + all platform tools. No extra cost."}
@@ -476,7 +476,7 @@ export default function EvoPage() {
           <h2 className="text-2xl font-semibold tracking-tight md:text-3xl">
             {isAr ? "جاهز تجرب EVO؟" : "Ready to try EVO?"}
           </h2>
-          <p className="mx-auto mt-3 max-w-md text-base font-normal text-white/80">
+          <p className="mx-auto mt-3 max-w-md text-base font-medium text-white/80">
             {isAr
               ? "ابدأ المحادثة دلوقتي — بدون تسجيل. لو عايز كل الميزات، اشترك في الكوتشينج."
               : "Start chatting now — no signup. For full features, subscribe to coaching."}
@@ -496,7 +496,7 @@ export default function EvoPage() {
             </a>
             <a
               href="/coaching"
-              className="inline-flex items-center gap-2 rounded-full border border-white/30 px-6 py-3 text-base font-normal text-white transition-colors hover:bg-white/10"
+              className="inline-flex items-center gap-2 rounded-full border border-white/30 px-6 py-3 text-base font-medium text-white transition-colors hover:bg-white/10"
             >
               <span>{isAr ? "اعرف عن الكوتشينج" : "Learn about coaching"}</span>
             </a>
