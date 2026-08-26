@@ -938,7 +938,16 @@ export type Database = {
       };
     };
     Views: {};
-    Functions: {};
+    Functions: {
+      auto_promote_coach_if_allowed: {
+        Args: Record<string, never>;
+        Returns: boolean;
+      };
+      get_profile_role: {
+        Args: { p_user_id: string };
+        Returns: "client" | "coach";
+      };
+    };
     Enums: {
       user_role: "client" | "coach";
       questionnaire_status: "draft" | "submitted" | "approved" | "needs_info";

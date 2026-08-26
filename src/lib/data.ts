@@ -202,11 +202,16 @@ export async function fetchProfile(userId: string): Promise<Profile | null> {
  const coachEmails = (process.env.COACH_EMAILS || "speerr@gmail.com").split(",").map((e: string) => e.trim().toLowerCase());
  const isCoachEmail = coachEmails.includes(data.email?.toLowerCase() || "");
  if (isCoachEmail) {
+ // Call the SECURITY DEFINER RPC that bypasses RLS to set role='coach'.
+ // Direct client UPDATE is now blocked by the profiles_update_self
+ // WITH CHECK (migration 0017). The RPC validates the email against
+ // the coach_emails table server-side.
+ await supabase.rpc("auto_promote_coach_if_allowed");
+ // Re-fetch to return the updated profile
  const { data: updated } = await supabase
  .from("profiles")
- .update({ role: "coach" })
- .eq("id", userId)
  .select()
+ .eq("id", userId)
  .single();
  return updated as Profile;
  }
@@ -538,8 +543,9 @@ export async function activatePlan(planId: string, clientId: string) {
 /** Record a swap and check daily limit (tier-dependent). Returns { allowed, used, limit }. */
 export async function recordSwap(userId: string, planId: string, swapType: "meal" | "exercise") {
  // Determine limit from user's subscription tier
- const subs = await listAllSubscriptions();
- const userSub = subs.find((s: any) => s.client_id === userId);
+ // Use getSubscriptionForClient (filtered by RLS to the caller's own rows)
+ // instead of listAllSubscriptions (which fetches all visible rows).
+ const userSub = await getSubscriptionForClient(userId);
  const tierId = (userSub?.tier as any) || "starter";
  const DAILY_LIMIT = swapLimitFor(tierId) ?? 2; // null = unlimited → use large number
 
@@ -590,8 +596,9 @@ export async function recordSwap(userId: string, planId: string, swapType: "meal
 /** Get current swap usage for today (for displaying remaining quota). */
 export async function getSwapUsage(userId: string) {
  // Determine limit from user's subscription tier
- const subs = await listAllSubscriptions();
- const userSub = subs.find((s: any) => s.client_id === userId);
+ // Use getSubscriptionForClient (filtered by RLS to the caller's own rows)
+ // instead of listAllSubscriptions (which fetches all visible rows).
+ const userSub = await getSubscriptionForClient(userId);
  const tierId = (userSub?.tier as any) || "starter";
  const LIMIT = swapLimitFor(tierId); // null = unlimited
  if (isSupabaseConfigured && supabase) {

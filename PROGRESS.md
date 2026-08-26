@@ -1,6 +1,6 @@
 # PROGRESS.md — MuscleHub Status Board
 
-> **آخر تحديث:** 2026-08-26 (مرحلة 12 — توحيد PALETTE + إعادة تصميم كروت العضويات)
+> **آخر تحديث:** 2026-08-26 (مرحلة 13 — Security RLS Hardening, migration 0017)
 > **قاعدة التحكم:** هذا الملف هو لوحة التحكم والتسليم المشتركة. لا ننتقل لأي خطوة قادمة دون تحديث هذا الملف والحصول على الموافقة البشرية.
 > **مصدر الحقيقة:** الكود الفعلي (`src/**` + `supabase/migrations/`) يتفوق على هذا الملف (§12.8). كل الأرقام في القسم 1 تم التحقق منها فعلياً في مهمة #4.
 > **الأرشيف الكامل:** المحتوى التاريخي التفصيلي منقول إلى `archive/PROGRESS_ARCHIVE.md`.
@@ -30,6 +30,7 @@
 
 | ID | الوصف | الملف | الأولوية |
 |---|---|---|---|
+| C1-C4 (fixed) | RLS security gaps — profiles self-promotion, referral_earnings tampering, subscriptions self-upgrade | migration `0017` + `data.ts` | ✅ Fixed (2026-08-26) |
 | — | لا توجد bugs حرجة أو عالية الأولوية مفتوحة في الكود الحالي | — | — |
 | ESLint debt | 4 errors + 5 warnings في 7 ملفات `src/` لم تُلمَس (CookieConsent, SaveResultButton, BlogAdminView, checkout/page, foods/[slug], water-tracker, AdSenseAd) — لا تؤثر على production build (Next.js 16 dropped ESLint from build config) | (7 ملفات) | Low (tech-debt) |
 | Tests | 0 ملفات اختبار (unit/integration/E2E) — لا يوجد إطار اختبار | — | Low (tech-debt) |
@@ -48,7 +49,7 @@
 | API routes | **36** | `find src/app/api -name "route.ts*" \| wc -l` |
 | مكونات shadcn UI | **51** | `find src/components/ui -name "*.tsx" \| wc -l` |
 | Views (`src/components/views/`) | **25** | `find src/components/views -name "*.tsx" \| wc -l` |
-| Migrations | **16** (`0001` → `0016`) | `ls supabase/migrations/` |
+| Migrations | **17** (`0001` → `0017`) | `ls supabase/migrations/` |
 | Tables مُعرّفة في migrations | **22** | `grep -hE "^create table" supabase/migrations/*.sql \| wc -l` |
 | Routes عربية `/ar/*` | **6** | `/ar`, `/ar/blog`, `/ar/blog/[slug]`, `/ar/exercises`, `/ar/foods`, `/ar/memberships` |
 | Blog cron routes | **7** | step1-pick + step2-generate (legacy) + step2a-research + step2b-en-article + step2c-ar-article + step2d-links + step3-publish |

@@ -1503,3 +1503,32 @@ Stage Summary:
 - Commit SHA: 2a449d5
 - Push status: pushed, synced with origin/main
 - Live deployment verified at https://musclehubeg.vercel.app/
+
+---
+Task ID: SEC-RLS-001
+Agent: Main (Z User)
+Task: Security RLS Hardening — fix 3 critical RLS gaps (C1: profiles self-promotion, C2: referral_earnings tampering, C3: subscriptions self-upgrade) + replace client-side listAllSubscriptions calls.
+
+Work Log:
+- Read migrations 0001_init.sql + 0004_referral_commission_system.sql to verify current RLS policy state.
+- Created `supabase/migrations/0017_security_rls_hardening.sql`:
+  - `coach_emails` table (authoritative allowlist, RLS coach-only SELECT, seeded with speerr@gmail.com).
+  - `get_profile_role(uuid)` SECURITY DEFINER helper — reads OLD role without RLS recursion.
+  - `auto_promote_coach_if_allowed()` SECURITY DEFINER RPC — bypasses RLS to set role='coach' for emails in coach_emails table.
+  - Tightened `profiles_update_self` WITH CHECK: NEW.role must match OLD role (via get_profile_role).
+  - `prevent_earnings_tamper()` trigger on referral_earnings: blocks amount/user_id/referral_id changes for non-coaches; restricts status transitions to available→requested.
+  - Tightened `subs_update_self_or_coach`: UPDATE is now coach-only (users can still INSERT + SELECT own rows).
+- Edited `src/lib/data.ts:204-216`: replaced direct `supabase.from("profiles").update({role:"coach"})` with `supabase.rpc("auto_promote_coach_if_allowed")` + re-fetch.
+- Edited `src/lib/data.ts:544-549` (recordSwap): replaced `listAllSubscriptions()` + `.find()` with `getSubscriptionForClient(userId)` — defense in depth, avoids fetching all visible rows.
+- Edited `src/lib/data.ts:597-602` (getSwapUsage): same replacement.
+- Added `auto_promote_coach_if_allowed` + `get_profile_role` function types to `src/lib/supabase/types.ts` (Functions section was empty `{}`).
+- Verified: `bunx tsc --noEmit` → 0 errors. `bunx eslint .` → 0 errors (6 pre-existing warnings). `bunx next build` → exit 0, all routes registered.
+- Updated PROGRESS.md: migration count 16→17, added C1-C4 fixed entry.
+
+Stage Summary:
+- Migration 0017 ships 3 RLS hardening fixes + 2 SECURITY DEFINER functions + 1 trigger + coach_emails table.
+- Code changes: 3 edits in data.ts (RPC call + 2 listAllSubscriptions replacements), 1 edit in types.ts.
+- listAllSubscriptions still exists for coach-side use (CoachView + CoachClientView) — correct, coaches can see all subs per RLS.
+- Owner must run migration 0017 in Supabase SQL Editor + `NOTIFY pgrst, 'reload schema';` before deploying the code changes.
+- Commit SHA: (pending)
+- Push status: (pending)
