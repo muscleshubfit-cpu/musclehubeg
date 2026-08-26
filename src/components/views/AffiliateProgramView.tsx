@@ -360,12 +360,12 @@ export function AffiliateProgramView() {
 
         {/* ─── SHARE SECTION (authenticated users only) ─── */}
         {profile && affiliateUrl && (
-          <section className="border-t border-[#d2d2d7] bg-[#f5f5f7]">
+          <section className="border-t border-[#d2d2d7] bg-[#1d1d1f]">
             <div className="mx-auto w-full max-w-3xl px-4 py-16 text-center text-white sm:px-6 md:py-20">
               <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl md:text-4xl">
                 {isAr ? "شارك رابطك الآن" : "Share Your Link Now"}
               </h2>
-              <p className="mx-auto mt-3 max-w-xl text-sm font-normal text-[#6e6e73] sm:text-base">
+              <p className="mx-auto mt-3 max-w-xl text-sm font-normal text-white/70 sm:text-base">
                 {isAr
                   ? "انسخ رابطك أو شاركه مباشرة على منصاتك المفضلة."
                   : "Copy your link or share it directly to your favourite platforms."}

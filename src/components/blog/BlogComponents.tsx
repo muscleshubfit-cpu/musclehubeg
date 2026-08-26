@@ -36,7 +36,7 @@ export function BlogMembershipCard({ lang }: { lang: "en" | "ar" }) {
  : "Get a personalized plan from a certified coach — nutrition + training + weekly tracking. Start your journey today."}
  </p>
  <a
- href={isAr ? "/ar/coaching" : "/coaching"}
+ href="/coaching"
  className="mt-5 inline-flex items-center gap-2 rounded-full bg-[#0071e3] px-6 py-2.5 text-sm font-normal text-white transition-opacity hover:opacity-90"
  >
  {isAr ? "احجز جلسة الآن" : "Book a session"}

@@ -7,6 +7,7 @@ import { ShareButtons } from "@/components/ShareButtons";
 import {
   MEMBERSHIPS,
   COMPARISON_ROWS,
+  translateCell,
   type MembershipTier,
 } from "@/lib/memberships";
 import { Check, X, ShieldCheck, Sparkles } from "lucide-react";
@@ -266,14 +267,14 @@ export default function MembershipsPage({ lang: langProp }: { lang?: Lang } = {}
               <tbody>
                 {COMPARISON_ROWS.map((row, i) => (
                   <tr key={i} className="border-t border-[#d2d2d7]/60">
-                    <td className="p-4 text-start font-medium">{row.feature}</td>
+                    <td className="p-4 text-start font-medium">{isAr ? row.feature : row.featureEn}</td>
                     <td className="p-4 text-center">
                       {row.free === "✓" ? (
                         <Check className="mx-auto h-4 w-4 text-[#34c759]" />
                       ) : row.free === "—" ? (
                         <X className="mx-auto h-4 w-4 text-[#d2d2d7]" />
                       ) : (
-                        <span className="text-xs font-normal text-[#6e6e73]">{row.free}</span>
+                        <span className="text-xs font-normal text-[#6e6e73]">{translateCell(row.free, isAr)}</span>
                       )}
                     </td>
                     <td className="p-4 text-center bg-[#0071e3]/[0.03]">
@@ -282,7 +283,7 @@ export default function MembershipsPage({ lang: langProp }: { lang?: Lang } = {}
                       ) : row.premium === "—" ? (
                         <X className="mx-auto h-4 w-4 text-[#d2d2d7]" />
                       ) : (
-                        <span className="text-xs font-medium text-[#0071e3]">{row.premium}</span>
+                        <span className="text-xs font-medium text-[#0071e3]">{translateCell(row.premium, isAr)}</span>
                       )}
                     </td>
                     <td className="p-4 text-center">
@@ -291,7 +292,7 @@ export default function MembershipsPage({ lang: langProp }: { lang?: Lang } = {}
                       ) : row.pro === "—" ? (
                         <X className="mx-auto h-4 w-4 text-[#d2d2d7]" />
                       ) : (
-                        <span className="text-xs font-medium">{row.pro}</span>
+                        <span className="text-xs font-medium">{translateCell(row.pro, isAr)}</span>
                       )}
                     </td>
                     <td className="p-4 text-center">
@@ -300,7 +301,7 @@ export default function MembershipsPage({ lang: langProp }: { lang?: Lang } = {}
                       ) : row.coaching === "—" ? (
                         <X className="mx-auto h-4 w-4 text-[#d2d2d7]" />
                       ) : (
-                        <span className="text-xs font-medium text-[#8b5cf6]">{row.coaching}</span>
+                        <span className="text-xs font-medium text-[#8b5cf6]">{translateCell(row.coaching, isAr)}</span>
                       )}
                     </td>
                   </tr>

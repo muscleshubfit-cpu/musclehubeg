@@ -1570,3 +1570,21 @@ Stage Summary:
 - Coach support replies now persist to the database and are visible to clients.
 - Commit SHA: (pending)
 - Push status: (pending)
+
+---
+Task ID: UI-FIX-004
+Agent: Main (Z User)
+Task: Fix 3 conversion-blocking UI issues — Affiliate share section invisible (C19), memberships comparison table Arabic-only (C20), /ar/coaching broken link (C21).
+
+Work Log:
+- C19: AffiliateProgramView.tsx:363 — section had `bg-[#f5f5f7]` (light gray) with `text-white` + `bg-white/10` inputs → contrast < 1.2:1, entire share section invisible. Changed section bg to `bg-[#1d1d1f]` (dark) to match white text. Also changed description `text-[#6e6e73]` → `text-white/70` for visibility on dark bg.
+- C20: memberships.ts COMPARISON_ROWS — every `feature` was Arabic-only on the English /memberships page. Added `featureEn` field to all 16 rows + created `translateCell()` helper with 9 Arabic→English cell-value translations (e.g., "غير محدود" → "Unlimited", "3/شهر" → "3/mo"). Updated memberships/page.tsx rendering to use `{isAr ? row.feature : row.featureEn}` and `translateCell(row.X, isAr)` for all 4 tier columns.
+- C21: BlogComponents.tsx:39 — `href={isAr ? "/ar/coaching" : "/coaching"}` pointed to `/ar/coaching` which doesn't exist (404). Changed to `href="/coaching"` (the coaching page is already bilingual via useI18n).
+- Verified: tsc 0 errors, eslint 0 errors on all 4 files.
+
+Stage Summary:
+- Affiliate share section now visible (dark bg + white text).
+- Memberships comparison table now fully bilingual (EN + AR).
+- Blog article coaching CTA no longer 404s for Arabic readers.
+- Commit SHA: (pending)
+- Push status: (pending)

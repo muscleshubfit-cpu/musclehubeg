@@ -300,9 +300,12 @@ export function getPriceString(m: MembershipInfo): { monthly: string; yearly?: s
 
 /**
  * Comparison table data for display.
+ * Each row has `feature` (Arabic) and `featureEn` (English).
+ * Cell values are Arabic; use `translateCell()` to get English.
  */
 export const COMPARISON_ROWS: Array<{
   feature: string;
+  featureEn: string;
   free: string;
   premium: string;
   pro: string;
@@ -310,6 +313,7 @@ export const COMPARISON_ROWS: Array<{
 }> = [
   {
     feature: "مكتبة التمارين (868+)",
+    featureEn: "Exercise Library (868+)",
     free: "✓",
     premium: "✓",
     pro: "✓",
@@ -317,6 +321,7 @@ export const COMPARISON_ROWS: Array<{
   },
   {
     feature: "قاعدة بيانات الأكلات (8830+)",
+    featureEn: "Food Database (8830+)",
     free: "✓",
     premium: "✓",
     pro: "✓",
@@ -324,6 +329,7 @@ export const COMPARISON_ROWS: Array<{
   },
   {
     feature: "حاسبات اللياقة",
+    featureEn: "Fitness Calculators",
     free: "✓",
     premium: "✓",
     pro: "✓",
@@ -331,6 +337,7 @@ export const COMPARISON_ROWS: Array<{
   },
   {
     feature: "EVO: المحادثة",
+    featureEn: "EVO: Chat",
     free: "10/يوم",
     premium: "غير محدود",
     pro: "غير محدود",
@@ -338,6 +345,7 @@ export const COMPARISON_ROWS: Array<{
   },
   {
     feature: "EVO: خطط تغذية",
+    featureEn: "EVO: Meal Plans",
     free: "—",
     premium: "3/شهر",
     pro: "6/شهر",
@@ -345,6 +353,7 @@ export const COMPARISON_ROWS: Array<{
   },
   {
     feature: "EVO: خطط تمرين",
+    featureEn: "EVO: Workout Plans",
     free: "—",
     premium: "3/شهر",
     pro: "6/شهر",
@@ -352,6 +361,7 @@ export const COMPARISON_ROWS: Array<{
   },
   {
     feature: "EVO: تبديلات",
+    featureEn: "EVO: Swaps",
     free: "—",
     premium: "3/أسبوع",
     pro: "6/أسبوع",
@@ -359,6 +369,7 @@ export const COMPARISON_ROWS: Array<{
   },
   {
     feature: "EVO: تحليل الأنماط",
+    featureEn: "EVO: Pattern Analysis",
     free: "—",
     premium: "—",
     pro: "✓",
@@ -366,6 +377,7 @@ export const COMPARISON_ROWS: Array<{
   },
   {
     feature: "EVO: ذاكرة دائمة",
+    featureEn: "EVO: Persistent Memory",
     free: "—",
     premium: "✓",
     pro: "✓",
@@ -373,6 +385,7 @@ export const COMPARISON_ROWS: Array<{
   },
   {
     feature: "مخطط الوجبات",
+    featureEn: "Meal Planner",
     free: "3 وجبات، 1 حفظ",
     premium: "6 وجبات، 10 حفظ",
     pro: "8 وجبات، 50 حفظ",
@@ -380,6 +393,7 @@ export const COMPARISON_ROWS: Array<{
   },
   {
     feature: "حفظ نتائج الأدوات",
+    featureEn: "Save Tool Results",
     free: "3",
     premium: "50",
     pro: "200",
@@ -387,6 +401,7 @@ export const COMPARISON_ROWS: Array<{
   },
   {
     feature: "تحميل النتائج",
+    featureEn: "Export Results",
     free: "—",
     premium: "✓",
     pro: "✓",
@@ -394,6 +409,7 @@ export const COMPARISON_ROWS: Array<{
   },
   {
     feature: "محتوى مميز",
+    featureEn: "Premium Content",
     free: "—",
     premium: "—",
     pro: "✓",
@@ -401,6 +417,7 @@ export const COMPARISON_ROWS: Array<{
   },
   {
     feature: "مدرب بشري",
+    featureEn: "Human Coach",
     free: "—",
     premium: "—",
     pro: "—",
@@ -408,6 +425,7 @@ export const COMPARISON_ROWS: Array<{
   },
   {
     feature: "متابعة أسبوعية",
+    featureEn: "Weekly Check-ins",
     free: "—",
     premium: "—",
     pro: "—",
@@ -415,9 +433,32 @@ export const COMPARISON_ROWS: Array<{
   },
   {
     feature: "دعم أولوية",
+    featureEn: "Priority Support",
     free: "—",
     premium: "—",
     pro: "—",
     coaching: "✓",
   },
 ];
+
+/**
+ * Translate a comparison table cell value to the requested language.
+ * Arabic values are stored in the data; this maps them to English.
+ * Language-neutral values (✓, —, numbers) pass through unchanged.
+ */
+const CELL_TRANSLATIONS: Record<string, string> = {
+  "10/يوم": "10/day",
+  "غير محدود": "Unlimited",
+  "3/شهر": "3/mo",
+  "6/شهر": "6/mo",
+  "3/أسبوع": "3/wk",
+  "6/أسبوع": "6/wk",
+  "3 وجبات، 1 حفظ": "3 meals, 1 save",
+  "6 وجبات، 10 حفظ": "6 meals, 10 saves",
+  "8 وجبات، 50 حفظ": "8 meals, 50 saves",
+};
+
+export function translateCell(value: string, isAr: boolean): string {
+  if (isAr) return value;
+  return CELL_TRANSLATIONS[value] ?? value;
+}
