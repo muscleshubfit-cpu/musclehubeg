@@ -2277,5 +2277,5 @@ Stage Summary:
 - 4 views now handle network errors gracefully (loading state always clears).
 - Users see "Loading..." temporarily on error, not forever.
 - Console.error logs the failure for debugging.
-- Commit SHA: (pending)
-- Push status: (pending)
+- Commit SHA: a9b229d
+- Push status: pushed
