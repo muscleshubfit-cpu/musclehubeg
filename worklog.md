@@ -2529,8 +2529,8 @@ Stage Summary:
 - 9 files updated, 13 `<img>` tags migrated to `<Image>` (11 fill + 2 with explicit width/height), 9 `<img>` tags with onError handlers kept as-is with TODO comments.
 - next/image will now optimize and serve modern formats (avif/webp) for all migrated images.
 - onError fallback images remain as raw `<img>` because next/image doesn't support direct onError src replacement — needs a different pattern (e.g. state-based fallback like the LandingView cards already use, or `onLoadingComplete`/`onError` with `unoptimized` prop). Deferred to a follow-up batch.
-- Commit SHA: pending
-- Push status: pending
+- Commit SHA: dd9e80b
+- Push status: pushed
 
 
 ---
@@ -2576,8 +2576,8 @@ Stage Summary:
 - ESLint `@next/next/no-img-element` rule promoted from `off` to `warn` — future raw `<img>` additions will surface as lint warnings.
 - Supabase storage hostnames added to next/image remotePatterns for runtime image optimization.
 - 2 deferred migrations (CoachClientView + PlansView exercise images with onError fallback) documented with TODO comments for follow-up.
-- Commit SHA: pending
-- Push status: pending
+- Commit SHA: dd9e80b
+- Push status: pushed
 
 
 ---
@@ -2621,5 +2621,5 @@ Stage Summary:
 - next/image now optimizes and serves modern formats (avif/webp) for ALL images on the public-facing pages — no more raw `<img>` tags in the migrated views.
 - The 2 deferred migrations from BATCH2 (CoachClientView + PlansView exercise images with onError) are now complete.
 - Existing `getFallbackSVG` SVG markup strings continue to work as `<Image src>` (same as the existing pre-migration pattern in exercises/page.tsx and ExerciseDetailClient.tsx that already passed `getFallbackSVG` directly to `<Image src>`).
-- Commit SHA: pending
-- Push status: pending
+- Commit SHA: dd9e80b
+- Push status: pushed
