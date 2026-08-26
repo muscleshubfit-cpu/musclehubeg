@@ -1805,3 +1805,27 @@ Stage Summary:
 - Google will stop indexing invalid blog URLs, preserving crawl budget for real content.
 - Commit SHA: (pending)
 - Push status: (pending)
+
+---
+Task ID: FIX-COACH-ADMIN-015
+Agent: Main (Z User)
+Task: Fix M18 (CoachClientView no clientId validation) + M20 (CoachSupportView messages don't refresh). M21 already fixed by C12.
+
+Work Log:
+- M18: CoachClientView didn't check if clientId exists or if the user is actually a client. A coach navigating to /coach/<invalid-id> saw an empty page with empty fields. A coach navigating to /coach/<other_coach_id> could see another coach's data (RLS allows coaches to read any user's data).
+  - Added `notFound` + `notClient` state variables.
+  - After fetchProfile, check if `c` is null → setNotFound(true). Check if `c.role !== "client"` → setNotClient(true).
+  - Added render blocks for both states with clear error messages + "Back to client list" CTA.
+  - Added `isAr` variable (was missing — only `lang` was destructured).
+- M20: CoachSupportView TicketDetail loaded messages once on mount. If the client sent a new message while the coach had the ticket open, the coach wouldn't see it until navigating away and back.
+  - Added 10-second polling interval that re-fetches listTicketMessages(ticket.id).
+  - Cleanup on unmount via clearInterval.
+- M21: verified already fixed by C12 — adminApprovePayout/adminRejectPayout now throw on DB errors, and AdminReferralsView's try/catch displays toast.error. No additional changes needed.
+- Verified: tsc 0 errors, eslint 0 errors, next build exit 0.
+
+Stage Summary:
+- Coaches see clear "Client not found" / "Not a client" errors instead of empty pages.
+- Cross-coach data exposure is prevented at the UI level (defense-in-depth on top of RLS).
+- Coach support ticket messages auto-refresh every 10s — real-time replies visible.
+- Commit SHA: (pending)
+- Push status: (pending)

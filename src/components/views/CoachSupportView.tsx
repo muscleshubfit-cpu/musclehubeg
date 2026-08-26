@@ -110,6 +110,13 @@ function TicketDetail({ ticket, onClose, onReplied, coachId }: { ticket: any; on
       const data = await listTicketMessages(ticket.id);
       setMessages(data);
     })();
+    // M20 fix: poll for new messages every 10s while the ticket is open
+    // so the coach sees client replies in real-time.
+    const interval = setInterval(async () => {
+      const data = await listTicketMessages(ticket.id);
+      setMessages(data);
+    }, 10000);
+    return () => clearInterval(interval);
   }, [ticket.id]);
 
   const send = async () => {

@@ -78,6 +78,7 @@ const ALL_TIERS: Array<{ id: string; nameAr: string; nameEn: string }> = [
 
 export function CoachClientView({ clientId }: { clientId: string }) {
  const { t, dir, lang } = useI18n();
+ const isAr = lang === "ar";
  const { navigate } = useNav();
  const [client, setClient] = useState<any | null>(null);
  const [sub, setSub] = useState<any | null>(null);
@@ -107,6 +108,10 @@ export function CoachClientView({ clientId }: { clientId: string }) {
  const [approving, setApproving] = useState<string | null>(null);
  const [viewingPlan, setViewingPlan] = useState<any | null>(null);
 
+ // M18 fix: error states for invalid clientId
+ const [notFound, setNotFound] = useState(false);
+ const [notClient, setNotClient] = useState(false);
+
  useEffect(() => {
  (async () => {
  const [c, subs, p, pl, n, f] = await Promise.all([
@@ -117,6 +122,17 @@ export function CoachClientView({ clientId }: { clientId: string }) {
  getQuestionnaire(clientId, "nutrition"),
  getQuestionnaire(clientId, "fitness"),
  ]);
+ // M18 fix: handle non-existent or non-client clientId
+ if (!c) {
+ setLoading(false);
+ setNotFound(true);
+ return;
+ }
+ if (c.role !== "client") {
+ setLoading(false);
+ setNotClient(true);
+ return;
+ }
  setClient(c);
  // Get ALL subs for this client (multiple allowed now)
  const clientSubs = subs.filter((x) => x.client_id === clientId);
@@ -263,6 +279,26 @@ export function CoachClientView({ clientId }: { clientId: string }) {
 
 
  if (loading) return <div className="text-muted-foreground">{t("common.loading")}</div>;
+
+ // M18 fix: render clear error states for invalid clientId
+ if (notFound) {
+ return (
+ <div className="py-20 text-center">
+ <h2 className="text-xl font-semibold">{isAr ? "العميل غير موجود" : "Client not found"}</h2>
+ <p className="mt-2 text-sm text-[#6e6e73]">{isAr ? "هذا العميل غير موجود أو تم حذفه." : "This client does not exist or has been deleted."}</p>
+ <a href="/coach" className="mt-4 inline-block rounded-full bg-[#0071e3] px-5 py-2 text-sm text-white">{isAr ? "العودة لقائمة العملاء" : "Back to client list"}</a>
+ </div>
+ );
+ }
+ if (notClient) {
+ return (
+ <div className="py-20 text-center">
+ <h2 className="text-xl font-semibold">{isAr ? "هذا المستخدم ليس عميلاً" : "This user is not a client"}</h2>
+ <p className="mt-2 text-sm text-[#6e6e73]">{isAr ? "لا يمكن عرض بيانات مدرب آخر." : "Cannot view another coach's data."}</p>
+ <a href="/coach" className="mt-4 inline-block rounded-full bg-[#0071e3] px-5 py-2 text-sm text-white">{isAr ? "العودة لقائمة العملاء" : "Back to client list"}</a>
+ </div>
+ );
+ }
 
  const chartData = progress
  .filter((e) => e.weight != null)
