@@ -8,6 +8,9 @@ import { useNav } from "@/hooks/use-nav";
 import { SiteHeader } from "@/components/SiteHeader";
 import { supabase } from "@/lib/supabase/client";
 import { MEMBERSHIPS, getLimits, type MembershipTier } from "@/lib/memberships";
+import { EXERCISES } from "@/lib/exercises";
+import { FOODS } from "@/lib/foods";
+import { WORKOUT_PROGRAMS } from "@/lib/workout-programs";
 import {
   User,
   Camera,
@@ -146,12 +149,12 @@ export default function ProfilePage() {
     );
   }
 
-  // Stats cards
+  // Stats cards — M4 fix: dynamic counts from actual datasets
   const stats = [
-    { icon: Dumbbell, label: isAr ? "تمارين" : "Exercises", value: "868+", color: "#0071e3" },
-    { icon: Apple, label: isAr ? "أكلات" : "Foods", value: "8,830+", color: "#34c759" },
+    { icon: Dumbbell, label: isAr ? "تمارين" : "Exercises", value: `${EXERCISES.length}+`, color: "#0071e3" },
+    { icon: Apple, label: isAr ? "أكلات" : "Foods", value: `${FOODS.length.toLocaleString()}+`, color: "#34c759" },
     { icon: Calculator, label: isAr ? "أدوات" : "Tools", value: "6", color: "#ff9500" },
-    { icon: FileText, label: isAr ? "برامج" : "Programs", value: "7", color: "#8b5cf6" },
+    { icon: FileText, label: isAr ? "برامج" : "Programs", value: `${WORKOUT_PROGRAMS.length}`, color: "#8b5cf6" },
   ];
 
   return (

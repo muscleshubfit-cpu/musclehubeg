@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Salad, Dumbbell, FileText, Download, Printer, RefreshCw, Loader2, Info } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/hooks/use-auth";
+import { useNav } from "@/hooks/use-nav";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -374,15 +375,28 @@ export function PlansView() {
 }
 
 function EmptyCard({ text }: { text: string }) {
+ const { t, lang } = useI18n();
+ const isAr = lang === "ar";
+ const { navigate } = useNav();
  return (
- <div className="rounded-2xl bg-[#f5f5f7] p-12 text-center text-base font-normal text-[#6e6e73]">
- {text}
+ <div className="rounded-2xl bg-[#f5f5f7] p-12 text-center">
+ <p className="text-base font-normal text-[#6e6e73]">{text}</p>
+ <p className="mt-2 text-sm font-normal text-[#6e6e73]">
+ {isAr ? "املأ استبيانك ليتمكن الكوتش من تجهيز خطتك المخصصة." : "Fill out your questionnaire so the coach can prepare your personalized plan."}
+ </p>
+ <button
+ onClick={() => navigate("questionnaires")}
+ className="mt-4 rounded-full bg-[#0071e3] px-5 py-2 text-sm font-normal text-white transition-opacity hover:opacity-90"
+ >
+ {isAr ? "املأ الاستبيان ›" : "Fill questionnaire ›"}
+ </button>
  </div>
  );
 }
 
 function PlanCard({ plan, onClick }: { plan: any; onClick: () => void }) {
- const { t } = useI18n();
+ const { t, lang } = useI18n();
+ const isAr = lang === "ar";
  return (
  <Card className="group cursor-pointer p-5 shadow-card transition-all hover:shadow-glow" onClick={onClick}>
  <div className="flex items-start justify-between gap-3">
@@ -407,7 +421,7 @@ function PlanCard({ plan, onClick }: { plan: any; onClick: () => void }) {
  )}
  {plan.content?.days && (
  <div className="mt-3 text-xs text-muted-foreground">
- {plan.content.days.length} {t("pricing.months").includes("أ") ? "أيام" : "days"}
+ {plan.content.days.length} {isAr ? "أيام" : "days"}
  </div>
  )}
  </Card>

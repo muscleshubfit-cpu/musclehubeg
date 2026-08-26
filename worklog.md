@@ -2041,3 +2041,22 @@ Stage Summary:
 - The owner can manually retry by calling the cron route with CRON_SECRET.
 - Commit SHA: 178457b
 - Push status: pushed
+
+---
+Task ID: FIX-PROFILE-PLANS-025
+Agent: Main (Z User)
+Task: Fix M4 (profile stats hardcoded) + M14 (plans empty state no guidance) + M40 (PlansView Arabic detection hack).
+
+Work Log:
+- M4: profile/page.tsx stats were hardcoded ("868+", "8,830+", "6", "7"). If datasets grow, stats go stale. Replaced with dynamic counts: EXERCISES.length, FOODS.length.toLocaleString(), WORKOUT_PROGRAMS.length. Imported the 3 datasets.
+- M14: PlansView EmptyCard showed only "No plans yet" (t("plans.empty")). New users don't know why they have no plans. Enhanced EmptyCard: added explanatory text ("Fill out your questionnaire so the coach can prepare your personalized plan") + CTA button linking to /questionnaires. Bilingual.
+- M40: PlansView PlanCard detected Arabic via `t("pricing.months").includes("أ")` — fragile hack that breaks if the translation changes. Replaced with `isAr = lang === "ar"` from useI18n.
+- Added useNav import to PlansView (was missing).
+- Verified: tsc 0 errors, eslint 0 errors, next build exit 0.
+
+Stage Summary:
+- Profile stats now reflect actual dataset sizes (auto-updates when datasets grow).
+- Plans empty state guides users to fill their questionnaire (reduces support tickets).
+- Arabic detection in PlansView is now robust (uses lang, not string inspection).
+- Commit SHA: (pending)
+- Push status: (pending)
