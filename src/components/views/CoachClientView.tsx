@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { ImageWithFallback } from "@/components/ui/image-with-fallback";
 import { useEffect, useState, useMemo } from "react";
 import {
  ArrowLeft,
@@ -2103,16 +2104,13 @@ function PlanViewerModal({ plan, onClose, onRegenerate }: { plan: any; onClose: 
  {!editMode && exImages.length > 0 && (
  <div className="mb-2 grid grid-cols-2 gap-2">
  {exImages.slice(0, 2).map((url: string, imgIdx: number) => (
- <div key={imgIdx} className="aspect-square overflow-hidden rounded-lg bg-muted">
- {/* TODO: migrate to next/image with onError fallback */}
- <img
+ <div key={imgIdx} className="relative aspect-square overflow-hidden rounded-lg bg-muted">
+ <ImageWithFallback
  src={url}
  alt={`${ex.name} ${imgIdx + 1}`}
- className="h-full w-full object-contain"
- loading="lazy"
- onError={(e) => {
- (e.target as HTMLImageElement).src = getFallbackSVG(exLib?.category || "default");
- }}
+ fill
+ className="object-contain"
+ fallbackSrc={getFallbackSVG(exLib?.category || "default")}
  />
  </div>
  ))}

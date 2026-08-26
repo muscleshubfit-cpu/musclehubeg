@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { useI18n, type Lang } from "@/lib/i18n";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SearchX } from "lucide-react";
+import { ImageWithFallback } from "@/components/ui/image-with-fallback";
 import {
   FOODS,
   CATEGORY_LABELS,
@@ -320,7 +321,6 @@ function FoodCategoryPill({
   isAr: boolean;
   onClick: () => void;
 }) {
-  const [imgError, setImgError] = useState(false);
   const isAll = cat === "all";
   const label = isAll ? (isAr ? "الكل" : "All") : (isAr ? CATEGORY_LABELS[cat].ar : CATEGORY_LABELS[cat].en);
   return (
@@ -338,19 +338,20 @@ function FoodCategoryPill({
         <span className="flex h-16 w-16 items-center justify-center rounded-xl bg-[#0071e3] text-white text-sm font-bold">
           {isAr ? "الكل" : "All"}
         </span>
-      ) : imgError ? (
-        <span className="flex h-16 w-16 items-center justify-center rounded-xl bg-[#0071e3]/10 text-2xl">
-          {CATEGORY_LABELS[cat].emoji}
-        </span>
       ) : (
-        // TODO: migrate to next/image with onError fallback
-        <img
-          src={CATEGORY_LABELS[cat].image}
-          alt={label}
-          loading="lazy"
-          className="h-16 w-16 rounded-xl object-cover ring-1 ring-black/5"
-          onError={() => setImgError(true)}
-        />
+        <span className="relative block h-16 w-16">
+          <ImageWithFallback
+            src={CATEGORY_LABELS[cat].image}
+            alt={label}
+            fill
+            className="rounded-xl object-cover ring-1 ring-black/5"
+            fallbackElement={
+              <span className="flex h-16 w-16 items-center justify-center rounded-xl bg-[#0071e3]/10 text-2xl">
+                {CATEGORY_LABELS[cat].emoji}
+              </span>
+            }
+          />
+        </span>
       )}
       <span className="text-center text-[11px] font-medium leading-tight">
         {label}

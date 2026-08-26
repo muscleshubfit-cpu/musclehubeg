@@ -6,6 +6,7 @@ import { SiteHeader } from "@/components/SiteHeader";
 import { getExerciseImages, getFallbackSVG, getExerciseImageUrl } from "@/lib/exercise-images";
 import { SearchX } from "lucide-react";
 import Image from "next/image";
+import { ImageWithFallback } from "@/components/ui/image-with-fallback";
 import {
   EXERCISES,
   CATEGORY_LABELS,
@@ -220,17 +221,15 @@ export default function ExercisesPage({ lang: langProp }: { lang?: Lang } = {}) 
                       {imgUrls.length > 0 ? (
                         <div className="grid h-full grid-cols-2 gap-0.5">
                           {imgUrls.slice(0, 2).map((url, idx) => (
-                            // TODO: migrate to next/image with onError fallback
-                            <img
-                              key={idx}
-                              src={url}
-                              alt={`${isAr ? exercise.nameAr : exercise.nameEn} ${idx + 1}`}
-                              className="h-full w-full object-contain"
-                              loading="lazy"
-                              onError={(e) => {
-                                (e.target as HTMLImageElement).src = getFallbackSVG(exercise.category);
-                              }}
-                            />
+                            <div key={idx} className="relative">
+                              <ImageWithFallback
+                                src={url}
+                                alt={`${isAr ? exercise.nameAr : exercise.nameEn} ${idx + 1}`}
+                                fill
+                                className="object-contain"
+                                fallbackSrc={getFallbackSVG(exercise.category)}
+                              />
+                            </div>
                           ))}
                         </div>
                       ) : (
@@ -305,7 +304,6 @@ function ExerciseCategoryPill({
   isAr: boolean;
   onClick: () => void;
 }) {
-  const [imgError, setImgError] = useState(false);
   const isAll = cat === "all";
   const label = isAll ? (isAr ? "الكل" : "All") : (isAr ? CATEGORY_LABELS[cat].ar : CATEGORY_LABELS[cat].en);
   return (
@@ -323,19 +321,20 @@ function ExerciseCategoryPill({
         <span className="flex h-16 w-16 items-center justify-center rounded-xl bg-[#0071e3] text-white text-sm font-bold">
           {isAr ? "الكل" : "All"}
         </span>
-      ) : imgError ? (
-        <span className="flex h-16 w-16 items-center justify-center rounded-xl bg-[#0071e3]/10 text-2xl">
-          {CATEGORY_LABELS[cat].emoji}
-        </span>
       ) : (
-        // TODO: migrate to next/image with onError fallback
-        <img
-          src={getExerciseImageUrl(CATEGORY_LABELS[cat].image)}
-          alt={label}
-          loading="lazy"
-          className="h-16 w-16 rounded-xl object-cover ring-1 ring-black/5"
-          onError={() => setImgError(true)}
-        />
+        <span className="relative block h-16 w-16">
+          <ImageWithFallback
+            src={getExerciseImageUrl(CATEGORY_LABELS[cat].image)}
+            alt={label}
+            fill
+            className="rounded-xl object-cover ring-1 ring-black/5"
+            fallbackElement={
+              <span className="flex h-16 w-16 items-center justify-center rounded-xl bg-[#0071e3]/10 text-2xl">
+                {CATEGORY_LABELS[cat].emoji}
+              </span>
+            }
+          />
+        </span>
       )}
       <span className="text-center text-[11px] font-medium leading-tight">
         {label}

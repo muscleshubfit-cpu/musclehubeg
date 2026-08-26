@@ -13,6 +13,7 @@ import {
 } from "@/lib/exercises";
 import { ArrowLeft, Dumbbell, Target, AlertCircle, CheckCircle2 } from "lucide-react";
 import Image from "next/image";
+import { ImageWithFallback } from "@/components/ui/image-with-fallback";
 
 /**
  * Client component for exercise detail page.
@@ -77,15 +78,12 @@ export default function ExerciseDetailClient({
               {imgUrls.length > 0 ? (
                 imgUrls.map((url, idx) => (
                   <div key={idx} className="relative aspect-square w-full">
-                    {/* TODO: migrate to next/image with onError fallback */}
-                    <img
+                    <ImageWithFallback
                       src={url}
                       alt={`${isAr ? exercise.nameAr : exercise.nameEn} — ${idx === 0 ? (isAr ? "البداية" : "Start") : (isAr ? "النهاية" : "End")}`}
-                      className="h-full w-full object-contain"
-                      loading="lazy"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).src = getFallbackSVG(exercise.category);
-                      }}
+                      fill
+                      className="object-contain"
+                      fallbackSrc={getFallbackSVG(exercise.category)}
                     />
                   </div>
                 ))
@@ -241,15 +239,12 @@ export default function ExerciseDetailClient({
                   >
                     <div className="relative aspect-square w-full bg-white">
                       {relImg ? (
-                        // TODO: migrate to next/image with onError fallback
-                        <img
+                        <ImageWithFallback
                           src={relImg}
                           alt={isAr ? rel.nameAr : rel.nameEn}
-                          className="h-full w-full object-contain"
-                          loading="lazy"
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).src = getFallbackSVG(rel.category);
-                          }}
+                          fill
+                          className="object-contain"
+                          fallbackSrc={getFallbackSVG(rel.category)}
                         />
                       ) : (
                         <Image

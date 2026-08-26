@@ -12,6 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { listPlans, getPlanFileUrl, getSwapUsage } from "@/lib/data";
 import { resolveExerciseImage, getExerciseImage, getExerciseImages, getFallbackSVG } from "@/lib/exercise-images";
 import { EXERCISES } from "@/lib/exercises";
+import { ImageWithFallback } from "@/components/ui/image-with-fallback";
 import { toast } from "sonner";
 
 // M53 fix: escape HTML to prevent XSS in print window
@@ -678,16 +679,13 @@ function WorkoutContent({ content, onSwap, swapLoading, planId }: any) {
  {exImages.length > 0 && (
  <div className="mb-3 grid grid-cols-2 gap-2">
  {exImages.slice(0, 2).map((url: string, idx: number) => (
- <div key={idx} className="aspect-square overflow-hidden rounded-xl bg-muted">
- {/* TODO: migrate to next/image with onError fallback */}
- <img
+ <div key={idx} className="relative aspect-square overflow-hidden rounded-xl bg-muted">
+ <ImageWithFallback
  src={url}
  alt={`${ex.name} ${idx + 1}`}
- className="h-full w-full object-contain"
- loading="lazy"
- onError={(e) => {
- (e.target as HTMLImageElement).src = getFallbackSVG(exLib?.category || "default");
- }}
+ fill
+ className="object-contain"
+ fallbackSrc={getFallbackSVG(exLib?.category || "default")}
  />
  </div>
  ))}

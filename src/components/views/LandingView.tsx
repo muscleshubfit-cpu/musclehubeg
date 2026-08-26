@@ -15,6 +15,7 @@ import { EXERCISES } from "@/lib/exercises";
 import { SiteHeader } from "@/components/SiteHeader";
 import { getFAQSchema } from "@/lib/seo";
 import Image from "next/image";
+import { ImageWithFallback } from "@/components/ui/image-with-fallback";
 
 // ============================================================
 // Site palette — Gemini-card palette extended to all landing sections
@@ -932,7 +933,6 @@ export function LandingView() {
 // ─── Helper components (conditional rendering — no display:none in DOM) ───
 
 function LandingToolCard({ tool, isAr }: { tool: any; isAr: boolean }) {
-  const [imgError, setImgError] = useState(false);
   return (
     <a
       href={tool.href}
@@ -950,19 +950,14 @@ function LandingToolCard({ tool, isAr }: { tool: any; isAr: boolean }) {
         e.currentTarget.style.transform = "translateY(0)";
       }}
     >
-      <span className="grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-2xl text-2xl" style={{ backgroundColor: `${tool.color}15` }}>
-        {imgError ? (
-          <span>{tool.emoji}</span>
-        ) : (
-          // TODO: migrate to next/image with onError fallback
-          <img
-            src={tool.image}
-            alt={isAr ? tool.nameAr : tool.nameEn}
-            loading="lazy"
-            className="h-full w-full object-cover"
-            onError={() => setImgError(true)}
-          />
-        )}
+      <span className="relative grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-2xl text-2xl" style={{ backgroundColor: `${tool.color}15` }}>
+        <ImageWithFallback
+          src={tool.image}
+          alt={isAr ? tool.nameAr : tool.nameEn}
+          fill
+          className="object-cover"
+          fallbackElement={<span>{tool.emoji}</span>}
+        />
       </span>
       <div className="min-w-0 flex-1">
         <h3 className="text-lg font-semibold tracking-tight" style={{ color: PALETTE.textPrim }}>{isAr ? tool.nameAr : tool.nameEn}</h3>
@@ -974,7 +969,6 @@ function LandingToolCard({ tool, isAr }: { tool: any; isAr: boolean }) {
 }
 
 function LandingExerciseCategoryCard({ cat, isAr }: { cat: any; isAr: boolean }) {
-  const [imgError, setImgError] = useState(false);
   return (
     <a
       href={`/exercises?cat=${cat.slug}`}
@@ -992,21 +986,18 @@ function LandingExerciseCategoryCard({ cat, isAr }: { cat: any; isAr: boolean })
         e.currentTarget.style.transform = "translateY(0)";
       }}
     >
-      <div className="aspect-[4/3] w-full overflow-hidden bg-white">
-        {imgError ? (
-          <div className="flex h-full w-full items-center justify-center">
-            <span className="text-4xl">{cat.emoji}</span>
-          </div>
-        ) : (
-          // TODO: migrate to next/image with onError fallback
-          <img
-            src={cat.image}
-            alt={isAr ? cat.labelAr : cat.labelEn}
-            loading="lazy"
-            className="h-full w-full object-contain"
-            onError={() => setImgError(true)}
-          />
-        )}
+      <div className="relative aspect-[4/3] w-full overflow-hidden bg-white">
+        <ImageWithFallback
+          src={cat.image}
+          alt={isAr ? cat.labelAr : cat.labelEn}
+          fill
+          className="object-contain"
+          fallbackElement={
+            <div className="flex h-full w-full items-center justify-center">
+              <span className="text-4xl">{cat.emoji}</span>
+            </div>
+          }
+        />
       </div>
       <div className="p-4">
         <h3 className="text-base font-semibold tracking-tight" style={{ color: PALETTE.textPrim }}>{isAr ? cat.labelAr : cat.labelEn}</h3>
@@ -1017,7 +1008,6 @@ function LandingExerciseCategoryCard({ cat, isAr }: { cat: any; isAr: boolean })
 }
 
 function LandingProgramCard({ prog, isAr }: { prog: any; isAr: boolean }) {
-  const [imgError, setImgError] = useState(false);
   return (
     <a
       href={`/programs/${prog.slug}`}
@@ -1035,21 +1025,18 @@ function LandingProgramCard({ prog, isAr }: { prog: any; isAr: boolean }) {
         e.currentTarget.style.transform = "translateY(0)";
       }}
     >
-      <div className="aspect-[16/10] w-full overflow-hidden">
-        {imgError ? (
-          <div className="flex h-full w-full items-center justify-center bg-[#f5f5f7]">
-            <span className="text-4xl">{prog.emoji}</span>
-          </div>
-        ) : (
-          // TODO: migrate to next/image with onError fallback
-          <img
-            src={prog.image}
-            alt={isAr ? prog.titleAr : prog.titleEn}
-            loading="lazy"
-            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-            onError={() => setImgError(true)}
-          />
-        )}
+      <div className="relative aspect-[16/10] w-full overflow-hidden">
+        <ImageWithFallback
+          src={prog.image}
+          alt={isAr ? prog.titleAr : prog.titleEn}
+          fill
+          className="object-cover transition-transform duration-500 group-hover:scale-105"
+          fallbackElement={
+            <div className="flex h-full w-full items-center justify-center bg-[#f5f5f7]">
+              <span className="text-4xl">{prog.emoji}</span>
+            </div>
+          }
+        />
       </div>
       <div className="p-6">
         <h3 className="text-lg font-semibold tracking-tight" style={{ color: PALETTE.textPrim }}>{isAr ? prog.titleAr : prog.titleEn}</h3>
@@ -1061,7 +1048,6 @@ function LandingProgramCard({ prog, isAr }: { prog: any; isAr: boolean }) {
 }
 
 function LandingFoodCategoryCard({ cat, isAr }: { cat: any; isAr: boolean }) {
-  const [imgError, setImgError] = useState(false);
   return (
     <a
       href={`/foods?cat=${cat.slug}`}
@@ -1079,21 +1065,18 @@ function LandingFoodCategoryCard({ cat, isAr }: { cat: any; isAr: boolean }) {
         e.currentTarget.style.transform = "translateY(0)";
       }}
     >
-      <div className="aspect-square w-full overflow-hidden">
-        {imgError ? (
-          <div className="flex h-full w-full items-center justify-center" style={{ backgroundColor: PALETTE.tint }}>
-            <span className="text-4xl">{cat.emoji}</span>
-          </div>
-        ) : (
-          // TODO: migrate to next/image with onError fallback
-          <img
-            src={cat.image}
-            alt={isAr ? cat.titleAr : cat.titleEn}
-            loading="lazy"
-            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-            onError={() => setImgError(true)}
-          />
-        )}
+      <div className="relative aspect-square w-full overflow-hidden">
+        <ImageWithFallback
+          src={cat.image}
+          alt={isAr ? cat.titleAr : cat.titleEn}
+          fill
+          className="object-cover transition-transform duration-500 group-hover:scale-105"
+          fallbackElement={
+            <div className="flex h-full w-full items-center justify-center" style={{ backgroundColor: PALETTE.tint }}>
+              <span className="text-4xl">{cat.emoji}</span>
+            </div>
+          }
+        />
       </div>
       <div className="p-4 text-center">
         <h3 className="text-base font-semibold tracking-tight" style={{ color: PALETTE.textPrim }}>{isAr ? cat.titleAr : cat.titleEn}</h3>

@@ -15,6 +15,7 @@ import { getExerciseImages, getFallbackSVG } from "@/lib/exercise-images";
 import { EXERCISES } from "@/lib/exercises";
 import { ArrowLeft, Clock, Calendar, Dumbbell, Coffee } from "lucide-react";
 import Image from "next/image";
+import { ImageWithFallback } from "@/components/ui/image-with-fallback";
 
 /**
  * Client component for program detail page.
@@ -197,17 +198,15 @@ export default function ProgramDetailClient({ program }: { program: WorkoutProgr
                           {imgUrls.length > 0 && (
                             <div className="flex h-24 w-full items-center justify-center gap-1 bg-[#f5f5f7]">
                               {imgUrls.slice(0, 2).map((url, idx) => (
-                                // TODO: migrate to next/image with onError fallback
-                                <img
-                                  key={idx}
-                                  src={url}
-                                  alt={`${isAr ? ex.nameAr : ex.nameEn} ${idx + 1}`}
-                                  className="h-full w-1/2 object-contain"
-                                  loading="lazy"
-                                  onError={(e) => {
-                                    (e.target as HTMLImageElement).src = getFallbackSVG(exerciseData?.category || "default");
-                                  }}
-                                />
+                                <div key={idx} className="relative h-full w-1/2">
+                                  <ImageWithFallback
+                                    src={url}
+                                    alt={`${isAr ? ex.nameAr : ex.nameEn} ${idx + 1}`}
+                                    fill
+                                    className="object-contain"
+                                    fallbackSrc={getFallbackSVG(exerciseData?.category || "default")}
+                                  />
+                                </div>
                               ))}
                             </div>
                           )}

@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
 import { useI18n } from "@/lib/i18n";
 import { SiteHeader } from "@/components/SiteHeader";
+import { ImageWithFallback } from "@/components/ui/image-with-fallback";
 
 // Each tool has a local AI-generated thumbnail (Apple iPhone style).
 // Emojis are kept as fallback (shown if the image fails to load).
@@ -100,28 +100,22 @@ export default function ToolsPage() {
 }
 
 function ToolCard({ tool, isAr }: { tool: typeof tools[number]; isAr: boolean }) {
-  const [imgError, setImgError] = useState(false);
   return (
     <a
       href={tool.slug.startsWith("/") ? tool.slug : `/tools/${tool.slug}`}
       className="group flex items-center gap-4 rounded-3xl bg-[#f5f5f7] p-6 transition-opacity hover:opacity-90"
     >
       <span
-        className="grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-2xl text-2xl"
+        className="relative grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-2xl text-2xl"
         style={{ backgroundColor: `${tool.color}15` }}
       >
-        {imgError ? (
-          <span>{tool.emoji}</span>
-        ) : (
-          // TODO: migrate to next/image with onError fallback
-          <img
-            src={tool.image}
-            alt={isAr ? tool.nameAr : tool.nameEn}
-            loading="lazy"
-            className="h-full w-full object-cover"
-            onError={() => setImgError(true)}
-          />
-        )}
+        <ImageWithFallback
+          src={tool.image}
+          alt={isAr ? tool.nameAr : tool.nameEn}
+          fill
+          className="object-cover"
+          fallbackElement={<span>{tool.emoji}</span>}
+        />
       </span>
       <div className="min-w-0 flex-1">
         <h3 className="text-lg font-semibold tracking-tight">
