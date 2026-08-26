@@ -2317,5 +2317,5 @@ Stage Summary:
 - URL matches the selected language (shareable, bookmarkable).
 - Content-Language header + <html lang> are consistent with the URL.
 - Refresh preserves the language choice (URL-based).
-- Commit SHA: (pending)
-- Push status: (pending)
+- Commit SHA: c7b76aa
+- Push status: pushed
