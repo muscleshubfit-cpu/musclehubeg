@@ -1,26 +1,29 @@
 import type { Metadata } from "next";
 import { getEVOApplicationSchema } from "@/lib/seo";
 
+/**
+ * M30 fix: English-first metadata for /evo.
+ */
 export const metadata: Metadata = {
-  title: "EVO — كوتش ذكاء اصطناعي | MuscleHubEG",
+  title: "EVO — AI Fitness Coach | MuscleHubEG",
   description:
-    "EVO محرك أداء ذكي — مش مجرد شات بوت. يحلل بياناتك الصحية، يتنبأ بنتائجك، يحدّث خططك تلقائياً، ويوفر استشارات لياقة وتغذية 24/7 عبر الذكاء الاصطناعي. مجاني للجميع.",
+    "EVO is an intelligent performance engine — not just a chatbot. It analyzes your health data, predicts results, updates plans automatically, and provides 24/7 fitness and nutrition consulting via AI. Free for everyone.",
   keywords: [
     "EVO AI coach",
-    "كوتش ذكاء اصطناعي",
-    "مساعد رياضي ذكي",
     "AI fitness coach",
-    "محرك أداء ذكي",
-    "استشارات لياقة",
-    "استشارات تغذية",
-    "ذكاء اصطناعي رياضي",
+    "intelligent performance engine",
+    "AI workout assistant",
+    "AI nutrition consultant",
+    "fitness AI",
+    "smart fitness coach",
   ],
   openGraph: {
-    title: "EVO — كوتش ذكاء اصطناعي | MuscleHubEG",
+    title: "EVO — AI Fitness Coach | MuscleHubEG",
     description:
-      "محرك أداء ذكي يحلل بياناتك ويحدّث خططك تلقائياً. مجاني للجميع.",
+      "An intelligent engine that analyzes your data and updates plans automatically. Free for everyone.",
     type: "website",
-    locale: "ar_EG",
+    locale: "en_US",
+    url: "https://musclehubeg.vercel.app/evo",
   },
   alternates: {
     canonical: "https://musclehubeg.vercel.app/evo",

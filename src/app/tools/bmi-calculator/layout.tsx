@@ -1,23 +1,26 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "حاسبة مؤشر كتلة الجسم BMI | MuscleHubEG — احسب وزنك المثالي",
+  title: "BMI Calculator | MuscleHubEG — Calculate Your Ideal Weight",
   description:
-    "احسب مؤشر كتلة الجسم (BMI) مجاناً. اعرف هل وزنك مثالي أم زائد أم ناقص. حاسبة BMI دقيقة وسهلة الاستخدام مع تفسير النتائج.",
+    "Calculate your Body Mass Index (BMI) for free. Find out if your weight is ideal, overweight, or underweight. Accurate and easy-to-use BMI calculator with result interpretation.",
   keywords: [
-    "حاسبة BMI",
-    "مؤشر كتلة الجسم",
-    "حساب الوزن المثالي",
     "BMI calculator",
-    "حاسبة وزن",
     "Body Mass Index",
-    "حساب مؤشر الكتلة",
+    "ideal weight calculator",
+    "BMI calculation",
+    "weight calculator",
+    "healthy weight",
   ],
+  alternates: {
+    canonical: "https://musclehubeg.vercel.app/tools/bmi-calculator",
+  },
   openGraph: {
-    title: "حاسبة مؤشر كتلة الجسم BMI | MuscleHubEG",
-    description: "احسب مؤشر كتلة الجسم (BMI) مجاناً واعرف وزنك المثالي.",
+    title: "BMI Calculator | MuscleHubEG",
+    description: "Calculate your Body Mass Index (BMI) for free and find your ideal weight.",
     type: "website",
-    locale: "ar_EG",
+    locale: "en_US",
+    url: "https://musclehubeg.vercel.app/tools/bmi-calculator",
   },
 };
 

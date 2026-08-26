@@ -1,23 +1,31 @@
 import type { Metadata } from "next";
 
+/**
+ * M30 fix: English-first metadata for /programs and /programs/[slug].
+ * Arabic mirrors (/ar/programs) have their own layout with Arabic metadata.
+ */
 export const metadata: Metadata = {
-  title: "برامج التدريب | MuscleHubEG",
+  title: "Workout Programs | MuscleHubEG",
   description:
-    "برامج تدريبية جاهزة لكل المستويات والأهداف. برامج منزلية بدون معدات، برامج بدمبل في المنزل، وبرامج جيم كاملة. ابدأ رحلتك الرياضية اليوم.",
+    "Ready-made workout programs for all levels and goals. Home workouts without equipment, dumbbell programs, and full gym programs. Start your fitness journey today.",
   keywords: [
-    "برامج تدريب",
-    "برنامج تمارين",
     "workout programs",
     "training programs",
-    "برنامج منزلي",
-    "برنامج جيم",
-    "تمارين بدون معدات",
+    "home workout",
+    "gym program",
+    "bodyweight workout",
+    "dumbbell program",
+    "fitness plan",
   ],
+  alternates: {
+    canonical: "https://musclehubeg.vercel.app/programs",
+  },
   openGraph: {
-    title: "برامج التدريب | MuscleHubEG",
-    description: "برامج تدريبية جاهزة لكل المستويات والأهداف.",
+    title: "Workout Programs | MuscleHubEG",
+    description: "Ready-made workout programs for all levels and goals.",
     type: "website",
-    locale: "ar_EG",
+    locale: "en_US",
+    url: "https://musclehubeg.vercel.app/programs",
   },
 };
 

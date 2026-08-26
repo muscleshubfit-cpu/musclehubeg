@@ -1,23 +1,30 @@
 import type { Metadata } from "next";
 
+/**
+ * M30 fix: English-first metadata for /tools.
+ */
 export const metadata: Metadata = {
-  title: "الأدوات المجانية | MuscleHubEG — حاسبات لياقة وتغذية",
+  title: "Free Fitness Tools | MuscleHubEG — Calculators & Trackers",
   description:
-    "أدوات مجانية لللياقة والتغذية: حاسبة السعرات الحرارية، حاسبة BMI، حاسبة الماكروز، حاسبة نسبة الدهون.",
+    "Free fitness and nutrition tools: calorie calculator, BMI calculator, macro calculator, body fat calculator, water tracker, and meal planner.",
   keywords: [
-    "أدوات رياضية مجانية",
-    "حاسبات لياقة",
     "free fitness tools",
-    "حاسبة سعرات",
-    "حاسبة BMI",
-    "حاسبة ماكروز",
-    "حاسبة دهون",
+    "fitness calculators",
+    "calorie calculator",
+    "BMI calculator",
+    "macro calculator",
+    "body fat calculator",
+    "water tracker",
   ],
+  alternates: {
+    canonical: "https://musclehubeg.vercel.app/tools",
+  },
   openGraph: {
-    title: "الأدوات المجانية | MuscleHubEG",
-    description: "حاسبات لياقة وتغذية مجانية لرحلتك الرياضية.",
+    title: "Free Fitness Tools | MuscleHubEG",
+    description: "Free fitness and nutrition calculators for your journey.",
     type: "website",
-    locale: "ar_EG",
+    locale: "en_US",
+    url: "https://musclehubeg.vercel.app/tools",
   },
 };
 

@@ -1,23 +1,31 @@
 import type { Metadata } from "next";
 
+/**
+ * M30 fix: English-first metadata for /foods and /foods/[slug].
+ * Arabic mirrors (/ar/foods) have their own layout with Arabic metadata.
+ */
 export const metadata: Metadata = {
-  title: "مكتبة الأكلات | MuscleHubEG",
+  title: "Food Database | MuscleHubEG",
   description:
-    "مكتبة أطعمة كاملة بالسعرات والماكروز لكل 100 جرام. ابحث عن الأكلات، صفّي حسب البروتين والكارب والدهون، واحسب الجرامات اللي محتاجها.",
+    "Complete food database with calories and macros per 100g. Search foods, filter by protein/carbs/fat, and calculate the grams you need for your goals.",
   keywords: [
-    "مكتبة أطعمة",
-    "سعرات حرارية",
-    "ماكروز",
     "food database",
     "calories",
     "macros",
-    "حاسبة جرامات",
+    "nutrition facts",
+    "protein foods",
+    "food calories",
+    "macro calculator",
   ],
+  alternates: {
+    canonical: "https://musclehubeg.vercel.app/foods",
+  },
   openGraph: {
-    title: "مكتبة الأكلات | MuscleHubEG",
-    description: "مكتبة أطعمة كاملة بالسعرات والماكروز. ابحث وصفّي واحسب الجرامات.",
+    title: "Food Database | MuscleHubEG",
+    description: "Complete food database with calories and macros. Search, filter, and calculate grams.",
     type: "website",
-    locale: "ar_EG",
+    locale: "en_US",
+    url: "https://musclehubeg.vercel.app/foods",
   },
 };
 

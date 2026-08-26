@@ -1,28 +1,29 @@
 import type { Metadata } from "next";
 import { getCoachingServiceSchema } from "@/lib/seo";
 
+/**
+ * M30 fix: English-first metadata for /coaching.
+ */
 export const metadata: Metadata = {
-  title: "الكوتشينج أونلاين | MuscleHubEG — مدربين وأخصائيين تغذية",
+  title: "Online Coaching | MuscleHubEG — Coaches & Nutrition Specialists",
   description:
-    "كوتشينج أونلاين مع مدربين وأخصائيين تغذية محترفين. خطط تغذية مخصصة، برامج تمارين متكيفة، متابعة شخصية، ومساعد ذكاء اصطناعي (EVO) متاح 24/7. ابدأ رحلتك اليوم.",
+    "Online coaching with professional coaches and nutrition specialists. Personalized meal plans, adaptive workout programs, personal follow-up, and EVO AI assistant available 24/7. Start your journey today.",
   keywords: [
-    "كوتشينج أونلاين",
-    "مدربين تغذية",
-    "أخصائيين تغذية",
-    "خطط تغذية مخصصة",
-    "برامج تمارين شخصية",
-    "متابعة شخصية",
     "online coaching",
     "nutrition coaching",
     "personalized meal plans",
     "custom workout programs",
+    "personal coaching",
+    "fitness coach online",
+    "nutrition specialist",
   ],
   openGraph: {
-    title: "الكوتشينج أونلاين | MuscleHubEG — مدربين وأخصائيين تغذية",
+    title: "Online Coaching | MuscleHubEG — Coaches & Nutrition Specialists",
     description:
-      "خطط تغذية مخصصة، برامج تمارين متكيفة، متابعة شخصية، و EVO AI متاح 24/7.",
+      "Personalized meal plans, adaptive workouts, personal follow-up, and EVO AI available 24/7.",
     type: "website",
-    locale: "ar_EG",
+    locale: "en_US",
+    url: "https://musclehubeg.vercel.app/coaching",
   },
   alternates: {
     canonical: "https://musclehubeg.vercel.app/coaching",

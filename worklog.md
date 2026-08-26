@@ -1874,3 +1874,32 @@ Stage Summary:
 - Ticket updated_at is refreshed on each reply (inbox sorting is now correct).
 - Commit SHA: (pending)
 - Push status: (pending)
+
+---
+Task ID: FIX-METADATA-I18N-018
+Agent: Main (Z User)
+Task: Fix M30 — English-default routes had Arabic-only metadata (title, description, OG locale). M31 (language toggle URL) deferred — requires creating Arabic mirror routes for all public pages (larger scope).
+
+Work Log:
+- M30: converted 8 layout files from Arabic-only static metadata to English-first metadata:
+  - exercises/layout.tsx: "Exercise Library | MuscleHubEG" + English description + en_US locale + canonical URL.
+  - foods/layout.tsx: "Food Database | MuscleHubEG" + English description.
+  - programs/layout.tsx: "Workout Programs | MuscleHubEG" + English description.
+  - evo/layout.tsx: "EVO — AI Fitness Coach | MuscleHubEG" + English description.
+  - coaching/layout.tsx: "Online Coaching | MuscleHubEG" + English description.
+  - tools/layout.tsx: "Free Fitness Tools | MuscleHubEG" + English description.
+  - tools/calorie-calculator/layout.tsx: "Calorie Calculator | MuscleHubEG" + English description.
+  - tools/bmi-calculator/layout.tsx: "BMI Calculator | MuscleHubEG" + English description.
+  - tools/macro-calculator/layout.tsx: "Macro Calculator | MuscleHubEG" + English description.
+  - tools/body-fat-calculator/layout.tsx: "Body Fat Calculator | MuscleHubEG" + English description.
+  - All now have: English title, English description, en_US OG locale, canonical URL.
+  - Arabic mirrors (/ar/*) retain their Arabic metadata via their own layouts.
+- M31 (LanguageToggle doesn't navigate to /ar/ mirror): deferred — requires creating Arabic mirror routes for all public pages (currently only /ar, /ar/blog, /ar/exercises, /ar/foods, /ar/memberships exist). Larger scope, will tackle separately.
+- Verified: tsc 0 errors, next build exit 0.
+
+Stage Summary:
+- English-default routes now have English metadata (title, description, OG locale) — Google sees consistent language signals.
+- Browser tab titles + social share previews are now in English for English URLs.
+- 10 layout files updated.
+- Commit SHA: (pending)
+- Push status: (pending)

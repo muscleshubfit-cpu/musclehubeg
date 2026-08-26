@@ -1,29 +1,35 @@
 import type { Metadata } from "next";
 
+/**
+ * M30 fix: English-first metadata for /tools/calorie-calculator.
+ */
 export const metadata: Metadata = {
-  title: "حاسبة السعرات الحرارية | MuscleHubEG — احسب احتياجك اليومي",
+  title: "Calorie Calculator | MuscleHubEG — Calculate Your Daily Needs",
   description:
-    "احسب سعراتك الحرارية اليومية والماكروز (بروتين، كارب، دهون) بناءً على وزنك وطولك وعرك ومستوى نشاطك. حاسبة مجانية ودقيقة باستخدام معادلة Mifflin-St Jeor.",
+    "Calculate your daily calorie needs and macros (protein, carbs, fat) based on your weight, height, age, and activity level. Free and accurate using the Mifflin-St Jeor equation.",
   keywords: [
-    "حاسبة السعرات الحرارية",
-    "حساب السعرات",
-    "حاسبة ماكروز",
-    "TDEE calculator",
     "calorie calculator",
-    "حاسبة احتياج يومي",
+    "TDEE calculator",
     "BMR calculator",
-    "حساب البروتين اليومي",
+    "macro calculator",
+    "daily calorie needs",
+    "Mifflin-St Jeor",
+    "protein calculator",
   ],
+  alternates: {
+    canonical: "https://musclehubeg.vercel.app/tools/calorie-calculator",
+  },
   openGraph: {
-    title: "حاسبة السعرات الحرارية | MuscleHubEG",
-    description: "احسب احتياجك اليومي من السعرات والماكروز مجاناً.",
+    title: "Calorie Calculator | MuscleHubEG",
+    description: "Calculate your daily calorie needs and macros for free.",
     type: "website",
-    locale: "ar_EG",
+    locale: "en_US",
+    url: "https://musclehubeg.vercel.app/tools/calorie-calculator",
   },
   twitter: {
     card: "summary_large_image",
-    title: "حاسبة السعرات الحرارية | MuscleHubEG",
-    description: "احسب احتياجك اليومي من السعرات والماكروز مجاناً.",
+    title: "Calorie Calculator | MuscleHubEG",
+    description: "Calculate your daily calorie needs and macros for free.",
   },
 };
 

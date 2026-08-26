@@ -1,22 +1,26 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "حاسبة الماكروز | MuscleHubEG — احسب البروتين والكارب والدهون",
+  title: "Macro Calculator | MuscleHubEG — Calculate Protein, Carbs & Fat",
   description:
-    "احسب احتياجك اليومي من الماكروز (بروتين، كاربوهيدرات، دهون) بناءً على السعرات الحرارية وهدفك. حاسبة ماكروز مجانية ودقيقة.",
+    "Calculate your daily macro needs (protein, carbohydrates, fat) based on your calories and goals. Free and accurate macro calculator.",
   keywords: [
-    "حاسبة ماكروز",
-    "حساب البروتين اليومي",
     "macro calculator",
-    "حاسبة بروتين كارب دهون",
     "macros calculator",
-    "حساب الكاربوهيدرات",
+    "protein calculator",
+    "carb calculator",
+    "fat calculator",
+    "daily macros",
   ],
+  alternates: {
+    canonical: "https://musclehubeg.vercel.app/tools/macro-calculator",
+  },
   openGraph: {
-    title: "حاسبة الماكروز | MuscleHubEG",
-    description: "احسب احتياجك اليومي من البروتين والكارب والدهون مجاناً.",
+    title: "Macro Calculator | MuscleHubEG",
+    description: "Calculate your daily protein, carbs, and fat needs for free.",
     type: "website",
-    locale: "ar_EG",
+    locale: "en_US",
+    url: "https://musclehubeg.vercel.app/tools/macro-calculator",
   },
 };
 

@@ -1,22 +1,25 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "حاسبة نسبة الدهون | MuscleHubEG — احسب دهون جسمك",
+  title: "Body Fat Calculator | MuscleHubEG — Calculate Your Body Fat %",
   description:
-    "احسب نسبة الدهون في جسمك باستخدام طريقة البحرية الأمريكية (Navy Method). حاسبة مجانية تعتمد على محيط الخصر والرقبة والورك.",
+    "Calculate your body fat percentage using the U.S. Navy Method. Free calculator based on waist, neck, and hip circumference measurements.",
   keywords: [
-    "حاسبة نسبة الدهون",
-    "حساب دهون الجسم",
     "body fat calculator",
-    "حاسبة دهون",
+    "body fat percentage",
     "Navy method body fat",
-    "نسبة الدهون في الجسم",
+    "fat calculator",
+    "body composition",
   ],
+  alternates: {
+    canonical: "https://musclehubeg.vercel.app/tools/body-fat-calculator",
+  },
   openGraph: {
-    title: "حاسبة نسبة الدهون | MuscleHubEG",
-    description: "احسب نسبة الدهون في جسمك مجاناً.",
+    title: "Body Fat Calculator | MuscleHubEG",
+    description: "Calculate your body fat percentage for free using the Navy Method.",
     type: "website",
-    locale: "ar_EG",
+    locale: "en_US",
+    url: "https://musclehubeg.vercel.app/tools/body-fat-calculator",
   },
 };
 
