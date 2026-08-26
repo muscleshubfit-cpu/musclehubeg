@@ -12,6 +12,7 @@ import {
   type Exercise,
 } from "@/lib/exercises";
 import { ArrowLeft, Dumbbell, Target, AlertCircle, CheckCircle2 } from "lucide-react";
+import Image from "next/image";
 
 /**
  * Client component for exercise detail page.
@@ -75,7 +76,8 @@ export default function ExerciseDetailClient({
             <div className="grid grid-cols-2 gap-1">
               {imgUrls.length > 0 ? (
                 imgUrls.map((url, idx) => (
-                  <div key={idx} className="aspect-square w-full">
+                  <div key={idx} className="relative aspect-square w-full">
+                    {/* TODO: migrate to next/image with onError fallback */}
                     <img
                       src={url}
                       alt={`${isAr ? exercise.nameAr : exercise.nameEn} — ${idx === 0 ? (isAr ? "البداية" : "Start") : (isAr ? "النهاية" : "End")}`}
@@ -88,11 +90,12 @@ export default function ExerciseDetailClient({
                   </div>
                 ))
               ) : (
-                <div className="col-span-2 aspect-square w-full">
-                  <img
+                <div className="relative col-span-2 aspect-square w-full">
+                  <Image
                     src={getFallbackSVG(exercise.category)}
                     alt={isAr ? exercise.nameAr : exercise.nameEn}
-                    className="h-full w-full object-contain"
+                    fill
+                    className="object-contain"
                   />
                 </div>
               )}
@@ -236,8 +239,9 @@ export default function ExerciseDetailClient({
                     href={`/exercises/${rel.slug}`}
                     className="group overflow-hidden rounded-2xl bg-[#f5f5f7] transition-opacity hover:opacity-90"
                   >
-                    <div className="aspect-square w-full bg-white">
+                    <div className="relative aspect-square w-full bg-white">
                       {relImg ? (
+                        // TODO: migrate to next/image with onError fallback
                         <img
                           src={relImg}
                           alt={isAr ? rel.nameAr : rel.nameEn}
@@ -248,10 +252,11 @@ export default function ExerciseDetailClient({
                           }}
                         />
                       ) : (
-                        <img
+                        <Image
                           src={getFallbackSVG(rel.category)}
                           alt={isAr ? rel.nameAr : rel.nameEn}
-                          className="h-full w-full object-contain"
+                          fill
+                          className="object-contain"
                         />
                       )}
                     </div>

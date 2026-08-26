@@ -17,6 +17,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
 import { listBlogPosts, getCategoryLabel, type BlogPost } from "@/lib/blog";
 import { Dumbbell, Apple, BarChart3, Bot, Check, ArrowRight, Sparkles } from "lucide-react";
+import Image from "next/image";
 
 const testimonialsData = [
   { name: "Mohamed ElAshry", username: "@mohamed", body: "Lost 12kg in 3 months. EVO answers my questions anytime!", img: "https://randomuser.me/api/portraits/men/32.jpg", country: "🇪🇬 Egypt" },
@@ -165,11 +166,12 @@ export default function CoachingPage() {
               {isAr ? "تغذية محترفين." : "Specialists."}
             </h1>
             {/* Image 1 — directly under the hero title */}
-            <div className="mt-8">
-              <img
+            <div className="relative mt-8 aspect-[3/2] w-full overflow-hidden rounded-3xl shadow-2xl">
+              <Image
                 src="/images/hero/coaching-1.jpg"
                 alt={isAr ? "منصة MuscleHubEG الذكية" : "MuscleHubEG smart platform"}
-                className="aspect-[3/2] w-full rounded-3xl object-cover shadow-2xl"
+                fill
+                className="object-cover"
                 loading="eager"
               />
             </div>
@@ -258,11 +260,12 @@ export default function CoachingPage() {
         {/* ===================== COACHING VISUALS ===================== */}
         {/* Image 2 (coaching-2) — placed between Features and EVO sections */}
         <section className="bg-white px-4 py-12 md:py-20">
-          <div className="mx-auto max-w-4xl">
-            <img
+          <div className="relative mx-auto aspect-[3/2] w-full max-w-4xl overflow-hidden rounded-3xl shadow-2xl">
+            <Image
               src="/images/hero/coaching-2.jpg"
               alt={isAr ? "تدريب احترافي بالذكاء الاصطناعي" : "Professional AI-assisted training"}
-              className="aspect-[3/2] w-full rounded-3xl object-cover shadow-2xl"
+              fill
+              className="object-cover"
               loading="lazy"
             />
           </div>

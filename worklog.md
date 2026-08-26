@@ -2501,3 +2501,33 @@ Stage Summary:
 - Fixed a real bug: evoChatLimitFor was returning 10 for premium/pro/coaching instead of null (unlimited).
 - Commit SHA: 90f075a
 - Push status: pushed
+
+---
+Task ID: FIX-NEXT-IMAGE-BATCH1-048
+Agent: Image Migrator (subagent)
+Task: Migrate raw `<img>` tags to `next/image` `<Image>` component in Batch 1 public pages (9 files).
+
+Work Log:
+- Migrated 9 files in Batch 1 (public-facing pages only):
+  1. `src/components/views/LandingView.tsx` — 7 imgs total: 3 migrated to `<Image fill>` (blog featured image at aspect-[16/10], hero-athlete.jpg at aspect-[3/2], evo-1.jpg at aspect-[3/2]); 4 imgs with `onError` handlers (LandingToolCard, LandingExerciseCategoryCard, LandingProgramCard, LandingFoodCategoryCard) kept as `<img>` with `// TODO: migrate to next/image with onError fallback` comment.
+  2. `src/app/exercises/page.tsx` — 3 imgs total: 1 migrated (fallback SVG img, no onError, parent aspect-[4/3]); 2 with onError kept as `<img>` with TODO.
+  3. `src/app/exercises/[slug]/ExerciseDetailClient.tsx` — 4 imgs total: 2 migrated (fallback SVG imgs without onError, parent aspect-square); 2 with onError kept as `<img>` with TODO.
+  4. `src/app/coaching/page.tsx` — 2 imgs migrated (coaching-1.jpg, coaching-2.jpg) to `<Image fill>` with aspect-[3/2] on parent.
+  5. `src/app/evo/page.tsx` — 3 imgs migrated (all `/images/evo-standalone.jpg`) to `<Image>` with explicit `width`/`height` props (80×80 for h-20 w-20, 32×32 for h-8 w-8) since these have fixed CSS dimensions, not parent aspect ratios.
+  6. `src/app/programs/page.tsx` — 1 img migrated (program.image) to `<Image fill>` with parent aspect-[4/3].
+  7. `src/app/programs/[slug]/ProgramDetailClient.tsx` — 3 imgs total: 2 migrated (program.image at aspect-[16/9], rel.image at aspect-video); 1 with onError kept as `<img>` with TODO.
+  8. `src/app/foods/page.tsx` — 1 img with onError (FoodCategoryPill) kept as `<img>` with TODO comment. No `<Image>` usage so no `next/image` import added (would cause unused-import lint warning).
+  9. `src/app/tools/page.tsx` — 1 img with onError (ToolCard) kept as `<img>` with TODO comment. No `<Image>` usage so no `next/image` import added.
+- Added `import Image from "next/image";` to 7 files that actually use `<Image>` (LandingView, exercises/page, ExerciseDetailClient, coaching/page, evo/page, programs/page, ProgramDetailClient). Did NOT add the import to foods/page.tsx and tools/page.tsx since they only have onError imgs (kept as `<img>`) — adding an unused import would fail lint.
+- For fill migrations: moved aspect ratio class from `<img>` to parent div, added `relative` to parent, removed `h-full w-full` from `<Image>` className, kept `object-cover`/`object-contain`.
+- For fixed-dimension migrations (evo/page.tsx): kept the existing `h-X w-X` className (CSS sizing) and added `width`/`height` props matching the same pixel dimensions so next/image knows the intrinsic aspect ratio for optimization and to prevent layout shift.
+- Verified: `bunx tsc --noEmit` → exit code 0 (0 errors).
+- Verified: `bunx next build` → exit code 0 (build passes).
+- Verified: `bun run lint` → 0 errors (524 pre-existing `any` warnings unrelated to this task; migrated files have no new lint issues).
+
+Stage Summary:
+- 9 files updated, 13 `<img>` tags migrated to `<Image>` (11 fill + 2 with explicit width/height), 9 `<img>` tags with onError handlers kept as-is with TODO comments.
+- next/image will now optimize and serve modern formats (avif/webp) for all migrated images.
+- onError fallback images remain as raw `<img>` because next/image doesn't support direct onError src replacement — needs a different pattern (e.g. state-based fallback like the LandingView cards already use, or `onLoadingComplete`/`onError` with `unoptimized` prop). Deferred to a follow-up batch.
+- Commit SHA: pending
+- Push status: pending

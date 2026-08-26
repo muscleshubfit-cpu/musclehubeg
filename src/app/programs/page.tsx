@@ -13,6 +13,7 @@ import {
   type ProgramLevel,
   type ProgramGoal,
 } from "@/lib/workout-programs";
+import Image from "next/image";
 
 export default function ProgramsPage() {
   const { lang } = useI18n();
@@ -154,11 +155,12 @@ export default function ProgramsPage() {
                 className="group overflow-hidden rounded-3xl bg-[#f5f5f7] transition-opacity hover:opacity-90"
               >
                 {/* Image */}
-                <div className="aspect-[4/3] w-full overflow-hidden bg-white">
-                  <img
+                <div className="relative aspect-[4/3] w-full overflow-hidden bg-white">
+                  <Image
                     src={program.image}
                     alt={isAr ? program.imageAltAr : program.imageAltEn}
-                    className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                    fill
+                    className="object-cover transition-transform duration-300 group-hover:scale-105"
                     loading="lazy"
                   />
                 </div>

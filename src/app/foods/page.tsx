@@ -343,6 +343,7 @@ function FoodCategoryPill({
           {CATEGORY_LABELS[cat].emoji}
         </span>
       ) : (
+        // TODO: migrate to next/image with onError fallback
         <img
           src={CATEGORY_LABELS[cat].image}
           alt={label}

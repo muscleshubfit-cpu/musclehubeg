@@ -5,6 +5,7 @@ import { useI18n, type Lang } from "@/lib/i18n";
 import { SiteHeader } from "@/components/SiteHeader";
 import { getExerciseImages, getFallbackSVG, getExerciseImageUrl } from "@/lib/exercise-images";
 import { SearchX } from "lucide-react";
+import Image from "next/image";
 import {
   EXERCISES,
   CATEGORY_LABELS,
@@ -215,10 +216,11 @@ export default function ExercisesPage({ lang: langProp }: { lang?: Lang } = {}) 
                     className="card-hover group overflow-hidden rounded-3xl bg-[#f5f5f7]"
                   >
                     {/* Images — show both side by side */}
-                    <div className="aspect-[4/3] w-full overflow-hidden bg-white">
+                    <div className="relative aspect-[4/3] w-full overflow-hidden bg-white">
                       {imgUrls.length > 0 ? (
                         <div className="grid h-full grid-cols-2 gap-0.5">
                           {imgUrls.slice(0, 2).map((url, idx) => (
+                            // TODO: migrate to next/image with onError fallback
                             <img
                               key={idx}
                               src={url}
@@ -232,10 +234,11 @@ export default function ExercisesPage({ lang: langProp }: { lang?: Lang } = {}) 
                           ))}
                         </div>
                       ) : (
-                        <img
+                        <Image
                           src={getFallbackSVG(exercise.category)}
                           alt={isAr ? exercise.nameAr : exercise.nameEn}
-                          className="h-full w-full object-contain"
+                          fill
+                          className="object-contain"
                         />
                       )}
                     </div>
@@ -325,6 +328,7 @@ function ExerciseCategoryPill({
           {CATEGORY_LABELS[cat].emoji}
         </span>
       ) : (
+        // TODO: migrate to next/image with onError fallback
         <img
           src={getExerciseImageUrl(CATEGORY_LABELS[cat].image)}
           alt={label}

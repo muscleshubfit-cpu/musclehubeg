@@ -19,6 +19,7 @@ import {
   Clock,
   Shield,
 } from "lucide-react";
+import Image from "next/image";
 
 export default function EvoPage() {
   const { lang } = useI18n();
@@ -132,9 +133,11 @@ export default function EvoPage() {
         {/* Hero */}
         <section className="text-center">
           <div className="mx-auto mb-6 flex h-24 w-24 items-center justify-center rounded-3xl bg-gradient-to-br from-[#0071e3] to-[#8b5cf6]">
-            <img
+            <Image
               src="/images/evo-standalone.jpg"
               alt="EVO"
+              width={80}
+              height={80}
               className="h-20 w-20 rounded-2xl object-cover"
             />
           </div>
@@ -154,9 +157,11 @@ export default function EvoPage() {
               href="/chat"
               className="group inline-flex items-center gap-3 rounded-full bg-[#0071e3] px-6 py-3 text-base font-medium text-white transition-opacity hover:opacity-90"
             >
-              <img
+              <Image
                 src="/images/evo-standalone.jpg"
                 alt="EVO"
+                width={32}
+                height={32}
                 className="h-8 w-8 rounded-full object-cover ring-2 ring-white/30"
               />
               <span>{isAr ? "ابدأ المحادثة مع EVO" : "Start chatting with EVO"}</span>
@@ -486,9 +491,11 @@ export default function EvoPage() {
               href="/chat"
               className="inline-flex items-center gap-3 rounded-full bg-white px-6 py-3 text-base font-normal text-[#0071e3] transition-opacity hover:opacity-90"
             >
-              <img
+              <Image
                 src="/images/evo-standalone.jpg"
                 alt="EVO"
+                width={32}
+                height={32}
                 className="h-8 w-8 rounded-full object-cover ring-2 ring-[#0071e3]/20"
               />
               <span>{isAr ? "ابدأ المحادثة" : "Start chatting"}</span>

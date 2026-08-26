@@ -14,6 +14,7 @@ import { listBlogPosts, getCategoryLabel, type BlogPost } from "@/lib/blog";
 import { EXERCISES } from "@/lib/exercises";
 import { SiteHeader } from "@/components/SiteHeader";
 import { getFAQSchema } from "@/lib/seo";
+import Image from "next/image";
 
 // ============================================================
 // Site palette — Gemini-card palette extended to all landing sections
@@ -206,11 +207,12 @@ function BlogCarousel({
             }}
           >
             {post.featured_image && (
-              <div className="aspect-[16/10] w-full overflow-hidden">
-                <img
+              <div className="relative aspect-[16/10] w-full overflow-hidden">
+                <Image
                   src={post.featured_image}
                   alt={post.cover_alt || post.title}
-                  className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                  fill
+                  className="object-cover transition-transform duration-300 group-hover:scale-105"
                   loading="lazy"
                 />
               </div>
@@ -347,11 +349,12 @@ export function LandingView() {
           </div>
           {/* Image — visible on ALL screen sizes (mobile + desktop).
               On mobile: full-width below text. On desktop: right column. */}
-          <div className="relative">
-            <img
+          <div className="relative aspect-[3/2] w-full overflow-hidden rounded-3xl shadow-2xl">
+            <Image
               src="/images/hero/hero-athlete.jpg"
               alt={isAr ? "رياضي يعمل تمرين بايسبس" : "Athlete performing bicep curls"}
-              className="aspect-[3/2] w-full rounded-3xl object-cover shadow-2xl"
+              fill
+              className="object-cover"
               loading="eager"
             />
           </div>
@@ -418,11 +421,12 @@ export function LandingView() {
             </div>
           </div>
           {/* Image — single premium EVO visual */}
-          <div className="mt-10">
-            <img
+          <div className="relative mt-10 aspect-[3/2] w-full overflow-hidden rounded-3xl">
+            <Image
               src="/images/hero/evo-1.jpg"
               alt={isAr ? "EVO — واجهة ذكاء اصطناعي" : "EVO — AI interface"}
-              className="aspect-[3/2] w-full rounded-3xl object-cover"
+              fill
+              className="object-cover"
               loading="lazy"
             />
           </div>
@@ -950,6 +954,7 @@ function LandingToolCard({ tool, isAr }: { tool: any; isAr: boolean }) {
         {imgError ? (
           <span>{tool.emoji}</span>
         ) : (
+          // TODO: migrate to next/image with onError fallback
           <img
             src={tool.image}
             alt={isAr ? tool.nameAr : tool.nameEn}
@@ -993,6 +998,7 @@ function LandingExerciseCategoryCard({ cat, isAr }: { cat: any; isAr: boolean })
             <span className="text-4xl">{cat.emoji}</span>
           </div>
         ) : (
+          // TODO: migrate to next/image with onError fallback
           <img
             src={cat.image}
             alt={isAr ? cat.labelAr : cat.labelEn}
@@ -1035,6 +1041,7 @@ function LandingProgramCard({ prog, isAr }: { prog: any; isAr: boolean }) {
             <span className="text-4xl">{prog.emoji}</span>
           </div>
         ) : (
+          // TODO: migrate to next/image with onError fallback
           <img
             src={prog.image}
             alt={isAr ? prog.titleAr : prog.titleEn}
@@ -1078,6 +1085,7 @@ function LandingFoodCategoryCard({ cat, isAr }: { cat: any; isAr: boolean }) {
             <span className="text-4xl">{cat.emoji}</span>
           </div>
         ) : (
+          // TODO: migrate to next/image with onError fallback
           <img
             src={cat.image}
             alt={isAr ? cat.titleAr : cat.titleEn}

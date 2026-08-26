@@ -14,6 +14,7 @@ import {
 import { getExerciseImages, getFallbackSVG } from "@/lib/exercise-images";
 import { EXERCISES } from "@/lib/exercises";
 import { ArrowLeft, Clock, Calendar, Dumbbell, Coffee } from "lucide-react";
+import Image from "next/image";
 
 /**
  * Client component for program detail page.
@@ -67,11 +68,12 @@ export default function ProgramDetailClient({ program }: { program: WorkoutProgr
 
         {/* Header */}
         <div className="mt-6 overflow-hidden rounded-3xl bg-[#f5f5f7]">
-          <div className="aspect-[16/9] w-full">
-            <img
+          <div className="relative aspect-[16/9] w-full">
+            <Image
               src={program.image}
               alt={isAr ? program.imageAltAr : program.imageAltEn}
-              className="h-full w-full object-cover"
+              fill
+              className="object-cover"
             />
           </div>
           <div className="p-6 md:p-8">
@@ -195,6 +197,7 @@ export default function ProgramDetailClient({ program }: { program: WorkoutProgr
                           {imgUrls.length > 0 && (
                             <div className="flex h-24 w-full items-center justify-center gap-1 bg-[#f5f5f7]">
                               {imgUrls.slice(0, 2).map((url, idx) => (
+                                // TODO: migrate to next/image with onError fallback
                                 <img
                                   key={idx}
                                   src={url}
@@ -278,11 +281,12 @@ export default function ProgramDetailClient({ program }: { program: WorkoutProgr
                   href={`/programs/${rel.slug}`}
                   className="group overflow-hidden rounded-2xl bg-[#f5f5f7] transition-opacity hover:opacity-90"
                 >
-                  <div className="aspect-video w-full overflow-hidden">
-                    <img
+                  <div className="relative aspect-video w-full overflow-hidden">
+                    <Image
                       src={rel.image}
                       alt={isAr ? rel.imageAltAr : rel.imageAltEn}
-                      className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                      fill
+                      className="object-cover transition-transform duration-300 group-hover:scale-105"
                       loading="lazy"
                     />
                   </div>

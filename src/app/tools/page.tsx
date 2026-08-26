@@ -113,6 +113,7 @@ function ToolCard({ tool, isAr }: { tool: typeof tools[number]; isAr: boolean })
         {imgError ? (
           <span>{tool.emoji}</span>
         ) : (
+          // TODO: migrate to next/image with onError fallback
           <img
             src={tool.image}
             alt={isAr ? tool.nameAr : tool.nameEn}
