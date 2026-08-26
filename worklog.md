@@ -1701,3 +1701,25 @@ Stage Summary:
 - Google can now correctly associate EN ↔ AR blog articles via hreflang + x-default.
 - Commit SHA: (pending)
 - Push status: (pending)
+
+---
+Task ID: FIX-SEO-METADATA-010
+Agent: Main (Z User)
+Task: Fix C22 — refactor dynamic detail pages to server components so they can export generateMetadata. Started with /exercises/[slug] (868 pages).
+
+Work Log:
+- Renamed `src/app/exercises/[slug]/page.tsx` → `ExerciseDetailClient.tsx`.
+- Edited ExerciseDetailClient: removed `"use client"`-specific imports (useParams, useMemo, getHowToSchema, getBreadcrumbSchema). Changed signature to accept `{ exercise, slug }` props instead of reading params. Removed inline JSON-LD schema rendering (now done server-side).
+- Created new `src/app/exercises/[slug]/page.tsx` (server component):
+  - `generateMetadata()`: per-exercise title (e.g. "Bench Press — Proper Form & Instructions | MuscleHubEG"), description with target muscles + equipment + level, canonical URL, OG tags, Twitter card.
+  - `generateStaticParams()`: pre-generates all 868 exercise slugs at build time for SSG.
+  - Default export: fetches exercise server-side, generates HowTo + Breadcrumb JSON-LD schemas in initial HTML, renders ExerciseDetailClient with exercise as prop.
+- Verified: tsc 0 errors, eslint 0 errors, next build exit 0. 951 static pages generated (868 exercises + others). `/exercises/[slug]` route registered.
+- Will apply same pattern to /foods/[slug] and /programs/[slug] in next commits.
+
+Stage Summary:
+- 868 exercise pages now have unique <title>, meta description, canonical, OG tags, Twitter card, + JSON-LD schemas — all in initial server-rendered HTML.
+- Google can now rank individual exercise pages for their name.
+- Social shares show exercise-specific metadata instead of generic site title.
+- Commit SHA: (pending)
+- Push status: (pending)
