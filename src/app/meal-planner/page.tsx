@@ -97,13 +97,48 @@ export default function MealPlannerPage() {
     });
   }, [profile]);
 
-  // Meals state — start with 1 empty meal
-  const [meals, setMeals] = useState<Meal[]>([
-    { id: newId(), name: isAr ? "الفطار" : "Breakfast", items: [] },
-  ]);
-  const [planTitle, setPlanTitle] = useState("");
+  // M43 fix: persist meal planner draft to localStorage so it survives refreshes.
+  const DRAFT_KEY = "mhe:meal-planner-draft";
+
+  // Meals state — start with 1 empty meal OR restore from localStorage
+  const [meals, setMeals] = useState<Meal[]>(() => {
+    if (typeof window === "undefined") {
+      return [{ id: newId(), name: isAr ? "الفطار" : "Breakfast", items: [] }];
+    }
+    try {
+      const saved = localStorage.getItem(DRAFT_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.meals && Array.isArray(parsed.meals) && parsed.meals.length > 0) {
+          return parsed.meals;
+        }
+      }
+    } catch {}
+    return [{ id: newId(), name: isAr ? "الفطار" : "Breakfast", items: [] }];
+  });
+  const [planTitle, setPlanTitle] = useState(() => {
+    if (typeof window === "undefined") return "";
+    try {
+      const saved = localStorage.getItem(DRAFT_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.planTitle) return parsed.planTitle;
+      }
+    } catch {}
+    return "";
+  });
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+
+  // Debounced save to localStorage
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      try {
+        localStorage.setItem(DRAFT_KEY, JSON.stringify({ meals, planTitle }));
+      } catch {}
+    }, 500);
+    return () => clearTimeout(timeout);
+  }, [meals, planTitle]);
 
   // Add a new meal (respect maxMeals limit)
   const addMeal = () => {

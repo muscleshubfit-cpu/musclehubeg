@@ -2060,3 +2060,22 @@ Stage Summary:
 - Arabic detection in PlansView is now robust (uses lang, not string inspection).
 - Commit SHA: (pending)
 - Push status: (pending)
+
+---
+Task ID: FIX-404-MEALPLANNER-026
+Agent: Main (Z User)
+Task: Fix M39 (404 page English-only) + M43 (meal planner no localStorage persistence).
+
+Work Log:
+- M39: not-found.tsx was English-only ("This page could not be found" + "Go back home →"). Arabic users hitting /ar/nonexistent saw English 404. Converted to async server component that reads x-pathname header (set by middleware) to detect /ar/* prefix. Now shows bilingual text + links to /ar (Arabic) or / (English). Also changed border-right → border-inline-end (RTL-aware) and removed margin-right in favor of logical properties.
+- M43: meal-planner/page.tsx initialized meals + planTitle fresh on every page load. A user who built a 10-meal plan + accidentally refreshed lost everything. Added localStorage persistence:
+  - useState initializers read from localStorage (mhe:meal-planner-draft) on mount.
+  - Debounced useEffect saves meals + planTitle 500ms after changes.
+  - SSR-safe (typeof window check).
+- Verified: tsc 0 errors, eslint 0 errors, next build exit 0.
+
+Stage Summary:
+- 404 page is now bilingual + RTL-aware.
+- Meal planner draft survives refreshes (localStorage persistence).
+- Commit SHA: (pending)
+- Push status: (pending)
