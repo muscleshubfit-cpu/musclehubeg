@@ -2017,8 +2017,8 @@ Stage Summary:
 - Email confirmation users see a clear "Check your email" screen instead of a confusing redirect loop.
 - Swap recording is now atomic (server-side only) — no race conditions, no double-recording.
 - PlansView swap state mutation fixed (deep copy of meals/days arrays).
-- Commit SHA: (pending)
-- Push status: (pending)
+- Commit SHA: dbc81e8
+- Push status: pushed
 
 ---
 Task ID: FIX-BLOG-CRON-RETRY-024
@@ -2039,5 +2039,5 @@ Stage Summary:
 - Failed blog queue items can now be retried by re-running the appropriate cron step.
 - A transient AI failure (e.g. OpenRouter 429) no longer permanently blocks an article.
 - The owner can manually retry by calling the cron route with CRON_SECRET.
-- Commit SHA: (pending)
-- Push status: (pending)
+- Commit SHA: 178457b
+- Push status: pushed

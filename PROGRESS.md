@@ -30,9 +30,9 @@
 
 | ID | الوصف | الملف | الأولوية |
 |---|---|---|---|
-| — | لا توجد bugs حرجة أو عالية الأولوية مفتوحة في الكود الحالي — تم إصلاح 56 مشكلة في 2026-08-26 (انظر القسم أدناه) | — | — |
+| — | لا توجد bugs حرجة أو عالية الأولوية مفتوحة في الكود الحالي — تم إصلاح 60 مشكلة في 2026-08-26 (انظر القسم أدناه) | — | — |
 
-### إصلاحات 2026-08-26 (56 مشكلة عبر 24 commit)
+### إصلاحات 2026-08-26 (60 مشكلة عبر 28 commit)
 
 | الفئة | المشاكل | Commits |
 |---|---|---|
@@ -42,9 +42,10 @@
 | ⏱️ حدود server-side | C15 (EVO chat limit), C16 (swap limit) | 8a065c0 |
 | 🔍 SEO | C22 (9,705 pages metadata), C23 (skip-to-content), C24 (hreflang), M29 (blog 404), M30 (metadata i18n) | f502b68, 0778277, d0d2cbf, e0b2b63, 4aaa68a |
 | 🎨 UI | C19 (affiliate share), C20 (memberships comparison), C21 (/ar/coaching), M25-M27 (invisible text), M35 (French word), M37 (cookie flash), M38 (duplicated muscles) | b48e669, a526826 |
-| 🛡️ Coach/Admin | M3 (expired subs), M8 (PayPal amount), M10 (review status), M18 (client validation), M20 (support polling), M19 (close-ticket), M7 (upload validation), M9 (subreq dedupe), M15 (slug validation), M17 (auto-save), M24 (leads DELETE) | 39c8cf5, 75a55bb, 7277ce6, 8ab78fb, 00afb31, ba3cb0c |
+| 🛡️ Coach/Admin | M3 (expired subs), M8 (PayPal amount), M10 (review status), M18 (client validation), M20 (support polling), M19 (close-ticket), M7 (upload validation), M9 (subreq dedupe), M15 (slug validation), M17 (auto-save), M24 (leads DELETE), M16 (cron retry) | 39c8cf5, 75a55bb, 7277ce6, 8ab78fb, 00afb31, ba3cb0c, 178457b |
 | 📝 محتوى | M32-M34 (FAQ PayPal + tiers) | 8ab78fb |
 | 🔧 Minor/Polish | dead code, brand name, RTL, ShareButtons aria, OtherTools, referral cookie Secure, package.json name, NotificationBell polling | e2ae247, ba3cb0c |
+| 👤 Auth | M6 (email confirmation redirect bug), M2 (swap race condition) | dbc81e8 |
 
 **Migrations المطلوبة على Supabase الإنتاج:**
 - `0017_security_rls_hardening.sql` — RLS + trigger + 2 SECURITY DEFINER functions
