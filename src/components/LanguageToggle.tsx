@@ -7,12 +7,22 @@ import { usePathname, useRouter } from "next/navigation";
 import { getBlogPost, getLinkedPost } from "@/lib/blog";
 
 /**
- * Site-wide language toggle. On most pages it just flips the UI language
- * (useI18n). On blog pages it ALSO navigates to the corresponding blog
- * route in the new language, so switching language while reading an
- * article actually shows that article's translated version (via
- * linked_post_id) instead of leaving you on an English URL with Arabic
- * chrome around it.
+ * Site-wide language toggle. M31 fix: now navigates to the /ar/ mirror
+ * (or back to the English URL) when a mirror exists, so the URL matches
+ * the language and can be shared/bookmarked correctly.
+ *
+ * Pages with Arabic mirrors (/ar/*):
+ *   /            <-> /ar
+ *   /blog        <-> /ar/blog
+ *   /blog/[slug] <-> /ar/blog/[slug] (via linked_post_id)
+ *   /exercises   <-> /ar/exercises
+ *   /foods       <-> /ar/foods
+ *   /memberships <-> /ar/memberships
+ *
+ * Pages without Arabic mirrors (e.g. /coaching, /evo, /tools/*, /about,
+ * /faq, /privacy, /terms, /contact, /meal-planner, /affiliate): just
+ * toggle the UI language (the page content is already bilingual via
+ * useI18n, so the user sees the new language without a URL change).
  */
 export function LanguageToggle() {
  const { lang, setLang } = useI18n();
@@ -22,14 +32,7 @@ export function LanguageToggle() {
  const handleToggle = async () => {
  const nextLang = lang === "ar" ? "en" : "ar";
 
- // Blog list page: /blog <-> /ar/blog
- if (pathname === "/blog" || pathname === "/ar/blog") {
- setLang(nextLang);
- router.push(nextLang === "ar" ? "/ar/blog" : "/blog");
- return;
- }
-
- // Blog article page: /blog/[slug] <-> /ar/blog/[slug]
+ // Blog article page: /blog/[slug] <-> /ar/blog/[slug] (via linked_post_id)
  const enMatch = pathname.match(/^\/blog\/([^/]+)$/);
  const arMatch = pathname.match(/^\/ar\/blog\/([^/]+)$/);
  if (enMatch || arMatch) {
@@ -51,7 +54,31 @@ export function LanguageToggle() {
  return;
  }
 
- // Everywhere else: just toggle the UI language.
+ // M31 fix: routes with known Arabic mirrors — navigate to the mirror URL.
+ const MIRROR_ROUTES = [
+ { en: "/", ar: "/ar" },
+ { en: "/blog", ar: "/ar/blog" },
+ { en: "/exercises", ar: "/ar/exercises" },
+ { en: "/foods", ar: "/ar/foods" },
+ { en: "/memberships", ar: "/ar/memberships" },
+ ];
+
+ for (const route of MIRROR_ROUTES) {
+ if (pathname === route.en) {
+ setLang(nextLang);
+ router.push(nextLang === "ar" ? route.ar : route.en);
+ return;
+ }
+ if (pathname === route.ar) {
+ setLang(nextLang);
+ router.push(nextLang === "ar" ? route.ar : route.en);
+ return;
+ }
+ }
+
+ // Pages without Arabic mirrors: just toggle the UI language.
+ // The page content is already bilingual via useI18n, so the user sees
+ // the new language immediately without a URL change.
  setLang(nextLang);
  };
 

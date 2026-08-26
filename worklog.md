@@ -2297,3 +2297,25 @@ Stage Summary:
 - Clients get rejection reasons in their notification (actionable feedback).
 - Commit SHA: 9498aba
 - Push status: pushed
+
+---
+Task ID: FIX-LANG-TOGGLE-038
+Agent: Main (Z User)
+Task: Fix M31 — LanguageToggle didn't navigate to /ar/ mirror on most routes.
+
+Work Log:
+- LanguageToggle only navigated on blog routes (/blog, /ar/blog, /blog/[slug], /ar/blog/[slug]). On all other pages (/, /exercises, /foods, /memberships), it just flipped the UI language — the URL stayed English even when Arabic was selected. This caused:
+  - Content-Language header mismatch (middleware sets based on URL)
+  - URL not shareable in the selected language
+  - Refresh loses the language choice
+- Added MIRROR_ROUTES array with 5 routes that have Arabic mirrors: /, /blog, /exercises, /foods, /memberships. For each, the toggle now navigates to the mirror URL in the new language.
+- Pages without Arabic mirrors (/coaching, /evo, /tools/*, /about, /faq, /privacy, /terms, /contact, /meal-planner, /affiliate) still just toggle the UI language — their content is already bilingual via useI18n.
+- Verified: tsc 0 errors, next build exit 0.
+
+Stage Summary:
+- Language toggle now navigates to the correct /ar/ mirror URL on 5 public pages.
+- URL matches the selected language (shareable, bookmarkable).
+- Content-Language header + <html lang> are consistent with the URL.
+- Refresh preserves the language choice (URL-based).
+- Commit SHA: (pending)
+- Push status: (pending)
