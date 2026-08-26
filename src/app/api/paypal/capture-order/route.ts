@@ -32,7 +32,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { requireUser } from "@/lib/auth-server";
-import { capturePayPalOrder, isPaypalConfigured } from "@/lib/paypal";
+import { capturePayPalOrder, isPaypalConfigured, resolvePlanPrice } from "@/lib/paypal";
 import { supabaseAdmin, isSupabaseAdminConfigured } from "@/lib/supabase/admin";
 
 // Commission rate — same value as in src/lib/referral.ts (0.20 = 20%)
@@ -400,6 +400,21 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       { error: "This payment does not belong to your account." },
       { status: 403 },
+    );
+  }
+
+  // 7.5. M8 fix: verify the captured amount matches the expected price.
+  // Defense-in-depth — prevents a bug in create-order or a PayPal API
+  // change from granting a subscription without full payment.
+  const expectedPrice = resolvePlanPrice(plan_tier, duration_months);
+  const capturedAmount = captureResult.amount ? parseFloat(captureResult.amount.value) : 0;
+  if (expectedPrice === null || Math.abs(capturedAmount - expectedPrice) > 0.01) {
+    console.error(
+      `[paypal/capture-order] Amount mismatch: expected $${expectedPrice}, captured $${capturedAmount}. Order: ${orderId}`,
+    );
+    return NextResponse.json(
+      { error: "Payment amount mismatch. Please contact support." },
+      { status: 409 },
     );
   }
 

@@ -113,9 +113,10 @@ export async function getAuthUser(
   } else {
     const { data: subs } = await supabase
       .from("subscriptions")
-      .select("tier, status")
+      .select("tier, status, end_date")
       .eq("client_id", user.id)
-      .eq("status", "active");
+      .eq("status", "active")
+      .gt("end_date", new Date().toISOString());
     if (subs && subs.length > 0) {
       // Separate coaching from memberships
       const hasCoaching = subs.some((s: any) => s.tier === "coaching");
@@ -225,9 +226,10 @@ export async function getAuthUserFromHeaders(): Promise<AuthUser | null> {
   } else {
     const { data: subs } = await supabase
       .from("subscriptions")
-      .select("tier, status")
+      .select("tier, status, end_date")
       .eq("client_id", user.id)
-      .eq("status", "active");
+      .eq("status", "active")
+      .gt("end_date", new Date().toISOString());
     if (subs && subs.length > 0) {
       // Separate coaching from memberships
       const hasCoaching = subs.some((s: any) => s.tier === "coaching");

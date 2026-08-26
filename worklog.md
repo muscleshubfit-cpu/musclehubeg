@@ -1769,3 +1769,21 @@ Stage Summary:
 - Exercise muscle chips no longer show "Abs, Abs" — clean "Abs".
 - Commit SHA: (pending)
 - Push status: (pending)
+
+---
+Task ID: FIX-SEC-HARDEN-013
+Agent: Main (Z User)
+Task: Fix 3 security issues — expired subscriptions still grant premium (M3), PayPal capture doesn't verify amount (M8), reviewSubscriptionRequest no status filter (M10).
+
+Work Log:
+- M3: auth-server.ts — both requireUser() and getAuthUserFromHeaders() queried subscriptions with .eq("status", "active") but no end_date check. Expired subscriptions (status=active but end_date < now) still granted premium tier. Added .gt("end_date", new Date().toISOString()) to both queries. Also added end_date to the select clause.
+- M8: paypal/capture-order/route.ts — after capture status check, the route never compared capturedAmount to expectedPrice. Added resolvePlanPrice() call + Math.abs(capturedAmount - expectedPrice) > 0.01 check. Returns 409 on mismatch. Imported resolvePlanPrice from paypal.ts.
+- M10: data.ts reviewSubscriptionRequest — the UPDATE was .eq("id", id) only. A coach could re-approve an already-approved request (double-commission) or "approve" a rejected one. Added .eq("status", "pending") + null check with "already processed" error.
+- Verified: tsc 0 errors, eslint 0 errors, next build exit 0.
+
+Stage Summary:
+- Expired subscriptions no longer grant premium access (end_date checked server-side on every auth).
+- PayPal capture now verifies the captured amount matches the expected price (defense-in-depth).
+- Payment requests can no longer be double-approved or re-approved after rejection.
+- Commit SHA: (pending)
+- Push status: (pending)

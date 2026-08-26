@@ -1066,13 +1066,17 @@ export async function submitSubscriptionRequest(req: any) {
 
 export async function reviewSubscriptionRequest(id: string, action: "approve" | "reject") {
  if (isSupabaseConfigured && supabase) {
+ // M10 fix: only update if status is still "pending" — prevents re-approving
+ // or re-rejecting an already-processed request (double-commission, etc.)
  const { data, error } = await supabase
  .from("subscription_requests")
  .update({ status: action === "approve" ? "approved" : "rejected", reviewed_at: new Date().toISOString() })
  .eq("id", id)
+ .eq("status", "pending")
  .select()
  .single();
  if (error) throw new Error(error.message);
+ if (!data) throw new Error("Subscription request not found or already processed");
 
  // If approved, create a subscription for the user
  if (action === "approve") {
