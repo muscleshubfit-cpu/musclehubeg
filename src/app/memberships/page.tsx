@@ -57,35 +57,38 @@ export default function MembershipsPage({ lang: langProp }: { lang?: Lang } = {}
           </p>
         </div>
 
-        {/* Pricing cards — show BOTH monthly + yearly on the same card */}
+        {/* Pricing cards — redesigned for higher conversion */}
         <div className="mt-10 grid grid-cols-1 gap-5 md:grid-cols-3">
           {tiers.map((tier) => {
             const isFree = tier.id === "free";
             const isPro = tier.id === "pro";
+            const isPremium = tier.id === "premium";
             const hasYearly = tier.priceYearly !== null && tier.priceYearly !== undefined;
 
             return (
               <div
                 key={tier.id}
-                className={`relative flex flex-col rounded-3xl p-6 md:p-8 ${
+                className={`relative flex flex-col rounded-3xl p-6 md:p-8 transition-all duration-300 hover:scale-[1.02] ${
                   isPro
-                    ? "bg-[#1d1d1f] text-white ring-2 ring-[#0071e3]"
-                    : "bg-[#f5f5f7] text-[#1d1d1f]"
+                    ? "bg-gradient-to-b from-[#1d1d1f] to-[#2a2a2e] text-white ring-2 ring-[#0071e3] shadow-2xl shadow-[#0071e3]/20 md:scale-105"
+                    : isPremium
+                    ? "bg-white text-[#1d1d1f] ring-1 ring-[#0071e3]/30 shadow-lg shadow-[#0071e3]/10"
+                    : "bg-[#f5f5f7] text-[#1d1d1f] ring-1 ring-[#d2d2d7]"
                 }`}
               >
                 {isPro && (
-                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-[#0071e3] px-4 py-1 text-xs font-semibold text-white">
-                    {isAr ? "الأكثر شعبية" : "Most Popular"}
+                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-gradient-to-r from-[#0071e3] to-[#0090e3] px-5 py-1.5 text-xs font-bold text-white shadow-lg">
+                    ⭐ {isAr ? "الأكثر شعبية" : "Most Popular"}
                   </span>
                 )}
 
                 {/* Tier name + badge */}
                 <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-semibold tracking-tight">
+                  <h3 className="text-xl font-bold tracking-tight">
                     {isAr ? tier.nameAr : tier.nameEn}
                   </h3>
                   {isFree && (
-                    <span className="rounded-full bg-[#34c759]/15 px-2.5 py-0.5 text-[10px] font-medium text-[#34c759]">
+                    <span className="rounded-full bg-[#34c759]/15 px-3 py-1 text-[10px] font-bold text-[#34c759]">
                       {isAr ? "مجاني للأبد" : "Free forever"}
                     </span>
                   )}
@@ -143,14 +146,14 @@ export default function MembershipsPage({ lang: langProp }: { lang?: Lang } = {}
                   ))}
                 </ul>
 
-                {/* CTA buttons — for paid tiers show BOTH monthly + yearly CTAs */}
+                {/* CTA buttons — clear "Subscribe Now" for higher conversion */}
                 <div className="mt-6 space-y-2">
                   {isFree ? (
                     <a
                       href={ctaHref(tier.id, 1)}
-                      className={`block w-full rounded-full px-6 py-3 text-center text-sm font-normal transition-opacity hover:opacity-90 ${
+                      className={`block w-full rounded-full px-6 py-3.5 text-center text-sm font-bold transition-all hover:scale-[1.02] ${
                         isPro
-                          ? "bg-white text-[#1d1d1f]"
+                          ? "bg-white text-[#1d1d1f] shadow-lg"
                           : "bg-[#f5f5f7] text-[#1d1d1f] border border-[#d2d2d7]"
                       }`}
                     >
@@ -158,28 +161,31 @@ export default function MembershipsPage({ lang: langProp }: { lang?: Lang } = {}
                     </a>
                   ) : (
                     <>
-                      {/* Monthly CTA */}
+                      {/* Monthly CTA — primary action */}
                       <a
                         href={ctaHref(tier.id, 1)}
-                        className={`block w-full rounded-full px-6 py-3 text-center text-sm font-normal transition-opacity hover:opacity-90 ${
+                        className={`block w-full rounded-full px-6 py-3.5 text-center text-sm font-bold transition-all hover:scale-[1.02] ${
                           isPro
-                            ? "bg-white text-[#1d1d1f]"
-                            : "bg-[#0071e3] text-white"
+                            ? "bg-gradient-to-r from-[#0071e3] to-[#0090e3] text-white shadow-lg shadow-[#0071e3]/30"
+                            : "bg-[#0071e3] text-white shadow-md shadow-[#0071e3]/20"
                         }`}
                       >
-                        {isAr ? `اشتراك شهري - $${tier.priceMonthly!.toFixed(2)}` : `Monthly - $${tier.priceMonthly!.toFixed(2)}`}
+                        {isAr ? `اشترك الآن - $${tier.priceMonthly!.toFixed(2)}/شهر` : `Subscribe Now - $${tier.priceMonthly!.toFixed(2)}/mo`}
                       </a>
-                      {/* Yearly CTA */}
+                      {/* Yearly CTA — secondary with savings badge */}
                       {hasYearly && (
                         <a
                           href={ctaHref(tier.id, 12)}
-                          className={`block w-full rounded-full px-6 py-3 text-center text-sm font-normal transition-opacity hover:opacity-90 border ${
+                          className={`flex items-center justify-center gap-2 w-full rounded-full px-6 py-3 text-center text-sm font-bold transition-all hover:scale-[1.02] border ${
                             isPro
-                              ? "border-white/20 bg-white/5 text-white"
-                              : "border-[#34c759]/30 bg-[#34c759]/5 text-[#34c759]"
+                              ? "border-white/20 bg-white/10 text-white"
+                              : "border-[#34c759]/40 bg-[#34c759]/5 text-[#34c759]"
                           }`}
                         >
-                          {isAr ? `سنوي - $${tier.priceYearly!.toFixed(2)}` : `Yearly - $${tier.priceYearly!.toFixed(2)}`}
+                          <span>{isAr ? `سنوي - $${tier.priceYearly!.toFixed(2)}` : `Yearly - $${tier.priceYearly!.toFixed(2)}`}</span>
+                          <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${isPro ? "bg-white/20 text-white" : "bg-[#34c759] text-white"}`}>
+                            -33%
+                          </span>
                         </a>
                       )}
                     </>
@@ -207,28 +213,28 @@ export default function MembershipsPage({ lang: langProp }: { lang?: Lang } = {}
           </div>
         </div>
 
-        {/* Coaching — separate section */}
+        {/* Coaching — separate section, redesigned for higher conversion */}
         {coaching && (
-          <div className="mt-12 rounded-3xl border border-[#d2d2d7] p-6 md:p-10">
+          <div className="mt-12 overflow-hidden rounded-3xl bg-gradient-to-br from-[#8b5cf6] to-[#7c3aed] p-6 text-white shadow-2xl shadow-[#8b5cf6]/20 md:p-10">
             <div className="flex flex-col items-center text-center md:flex-row md:items-start md:text-start md:justify-between">
               <div className="flex-1">
                 <div className="flex items-center gap-2">
-                  <span className="rounded-full bg-[#8b5cf6]/10 px-3 py-1 text-xs font-medium text-[#8b5cf6]">
-                    {isAr ? "منفصل" : "Separate"}
+                  <span className="rounded-full bg-white/20 px-3 py-1 text-xs font-bold text-white backdrop-blur">
+                    {isAr ? "كوتش بشري" : "Human Coach"}
                   </span>
-                  <h3 className="text-xl font-semibold tracking-tight">
+                  <h3 className="text-2xl font-bold tracking-tight">
                     {isAr ? coaching.nameAr : coaching.nameEn}
                   </h3>
                 </div>
-                <p className="mt-2 text-sm font-normal text-[#6e6e73]">
+                <p className="mt-3 text-sm font-normal text-white/80">
                   {isAr
-                    ? "كوتشينج بشري مع مدربين وأخصائيين تغذية. منفصل تماماً عن العضويات."
-                    : "Human coaching with real coaches and nutrition specialists. Completely separate from memberships."}
+                    ? "كوتشينج بشري مع مدربين وأخصائيين تغذية محترفين. خطط مخصصة + متابعة شخصية."
+                    : "Human coaching with professional coaches and nutrition specialists. Personalized plans + personal follow-up."}
                 </p>
                 <ul className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
                   {(isAr ? coaching.features : coaching.featuresEn).map((f, j) => (
                     <li key={j} className="flex items-start gap-2">
-                      <Check className="mt-0.5 h-4 w-4 shrink-0 text-[#8b5cf6]" />
+                      <Check className="mt-0.5 h-4 w-4 shrink-0 text-white" />
                       <span className="text-sm font-normal">{f}</span>
                     </li>
                   ))}
@@ -237,9 +243,9 @@ export default function MembershipsPage({ lang: langProp }: { lang?: Lang } = {}
               <div className="mt-6 shrink-0 md:ms-8 md:mt-0">
                 <a
                   href="/coaching"
-                  className="inline-block rounded-full bg-[#8b5cf6] px-6 py-3 text-sm font-normal text-white transition-opacity hover:opacity-90"
+                  className="inline-flex items-center gap-2 rounded-full bg-white px-8 py-4 text-sm font-bold text-[#8b5cf6] shadow-lg transition-all hover:scale-[1.05]"
                 >
-                  {isAr ? "اعرف أكثر ›" : "Learn more ›"}
+                  {isAr ? "ابدأ الآن ›" : "Get Started ›"}
                 </a>
               </div>
             </div>

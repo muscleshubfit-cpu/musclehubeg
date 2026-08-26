@@ -2369,3 +2369,35 @@ Stage Summary:
 - Public lead endpoint is rate limited (5 req / 10 min / IP).
 - Commit SHA: 95cfc2b
 - Push status: pushed
+
+---
+Task ID: FIX-UI-CONVERSION-042
+Agent: Main (Z User)
+Task: Remove WhatsApp/InstaPay from footer + redesign memberships + coaching cards for higher conversion.
+
+Work Log:
+- Removed WhatsApp + InstaPay contact info from footer (not needed per Owner).
+- Memberships cards redesigned:
+  - Pro card: gradient background (from-[#1d1d1f] to-[#2a2a2e]) + ring-2 + shadow-2xl + scale-105 (stands out)
+  - Premium card: white bg + ring blue + shadow-lg
+  - Free card: light gray + ring
+  - All cards: hover:scale-[1.02] for interactivity
+  - "Most Popular" badge: gradient + ⭐ emoji + shadow
+  - Tier names: font-bold (was font-semibold)
+  - CTA buttons: "اشترك الآن" / "Subscribe Now" with price inline + font-bold + gradient on Pro + shadow
+  - Yearly CTA: savings badge "-33%" inline
+  - Button padding: py-3.5 (was py-3) for bigger touch target
+- Coaching card redesigned:
+  - Full purple gradient (from-[#8b5cf6] to-[#7c3aed]) + shadow-2xl
+  - White text on purple
+  - "Human Coach" badge (was "Separate")
+  - CTA: "ابدأ الآن" / "Get Started" (was "Learn more") + white bg + py-4 + hover:scale-[1.05]
+- Verified: tsc 0 errors, next build exit 0.
+
+Stage Summary:
+- Footer cleaned (no fake contact info).
+- Memberships cards more attractive (gradients, shadows, scale effects).
+- "اشترك الآن" / "Subscribe Now" CTAs are clear + bold + prominent.
+- Coaching card is visually striking (purple gradient) with "ابدأ الآن" CTA.
+- Commit SHA: (pending)
+- Push status: (pending)

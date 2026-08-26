@@ -855,17 +855,6 @@ export function LandingView() {
             <div>
               <p className="text-sm font-semibold text-[#1d1d1f]">MuscleHubEG</p>
               <p className="mt-2 text-xs font-normal">{isAr ? "منصة رياضية شاملة." : "Comprehensive sports platform."}</p>
-              {/* #9 fix: contact info in footer */}
-              <div className="mt-3 space-y-1 text-[10px] font-normal text-[#8e8e93]">
-                <p className="flex items-center gap-1.5">
-                  <span>{isAr ? "واتساب:" : "WhatsApp:"}</span>
-                  <a href="https://wa.me/201000000000" className="text-[#0071e3] hover:underline" target="_blank" rel="noopener noreferrer">+20 100 000 0000</a>
-                </p>
-                <p className="flex items-center gap-1.5">
-                  <span>{isAr ? "إنستاباي:" : "InstaPay:"}</span>
-                  <span className="text-[#6e6e73]">@musclehubeg</span>
-                </p>
-              </div>
               <p className="mt-3 text-[10px] font-normal text-[#8e8e93]">{isAr ? "© 2026 جميع الحقوق محفوظة" : "© 2026 All rights reserved"}</p>
             </div>
 
