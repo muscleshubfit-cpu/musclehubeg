@@ -110,7 +110,18 @@ export async function GET(request: NextRequest) {
         bundle.arabicArticle || "",
       );
 
-    const updatedBundle = JSON.stringify({ ...bundle, internalLinks, externalLinks, imagePrompts, socialPosts, estimatedReadingTime });
+    // 2026-08-27 FIX: only FILL MISSING image/social/reading-time fields.
+    // Step 2b/2c already generated their own (per-language) values — blindly
+    // overwriting them here wasted a generation and could mismatch the
+    // articles' actual content.
+    const updatedBundle = JSON.stringify({
+      ...bundle,
+      internalLinks,
+      externalLinks,
+      imagePrompts: bundle.imagePrompts ?? imagePrompts,
+      socialPosts: bundle.socialPosts ?? socialPosts,
+      estimatedReadingTime: bundle.estimatedReadingTime ?? estimatedReadingTime,
+    });
     const updateErr = await updateQueueItem(qi.id, { status: "generated", article_bundle: updatedBundle });
     if (updateErr) throw new Error(updateErr);
 

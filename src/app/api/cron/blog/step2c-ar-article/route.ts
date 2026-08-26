@@ -95,10 +95,12 @@ export async function GET(request: NextRequest) {
     const researchingErr = await updateQueueItem(qi.id, { status: "generating_ar" });
     if (researchingErr) throw new Error(researchingErr);
 
-    // EN/AR SEPARATION: use AR topic from queue (topic_ar), not EN topic.
-    // Falls back to EN topic if topic_ar is missing (old queue rows).
-    const arTopic = bundle.topic_ar || qi.topic;
-    const arFocusKw = bundle.focus_keyword_ar || qi.focus_keyword;
+    // EN/AR SEPARATION FIX (2026-08-27): read the AR topic from the QUEUE ROW
+    // columns (topic_ar / focus_keyword_ar — set by step1-pick). The previous
+    // code read bundle.topic_ar which never exists in article_bundle, so the
+    // EN fallback ALWAYS fired and the AR writer received the English topic.
+    const arTopic = qi.topic_ar?.trim() || qi.topic;
+    const arFocusKw = qi.focus_keyword_ar?.trim() || qi.focus_keyword;
 
     const arResult = await generateArabicArticle(
       { topic: arTopic, focusKeyword: arFocusKw, category: qi.category },

@@ -8,20 +8,30 @@ on:
 jobs:
   generate:
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 45
     steps:
       # ============================================================
-      # Step 1 — Pick topic (with CONTROLLED RETRY, max 3 attempts)
+      # STEP RETRY POLICY (2026-08-27 — Vercel Hobby timeout cure)
+      #
+      # Each Vercel serverless request is hard-capped at 60s, and the
+      # in-app AI fallback chain is budget-clamped to ≤52s. The GHA job
+      # provides the OUTER retry loop between separate HTTP calls:
+      # every pipeline step gets up to 3 attempts with a 120s backoff
+      # (M16 lets the routes re-process "failed" queue rows).
+      # ============================================================
+
+      # ============================================================
+      # Step 1 — Pick topic (controlled retry, max 3 attempts)
       #   - Attempt 1: immediate
-      #   - On failure: wait 5 minutes, then Attempt 2
-      #   - On failure: wait 10 minutes, then Attempt 3
+      #   - On failure: wait 2 minutes, then Attempt 2
+      #   - On failure: wait 4 minutes, then Attempt 3
       #   - On final failure: exit 1 → job stops, Step 2a+ are SKIPPED
       #   - On any success: capture queueId from JSON response,
       #     write to GITHUB_ENV so subsequent steps can use it.
       # ============================================================
       - name: Step 1 — Pick topic (controlled retry, max 3 attempts)
         run: |
-          echo "=== Step 1: Picking topic (controlled retry: max 3 attempts, 5m + 10m backoff) ==="
+          echo "=== Step 1: Picking topic (controlled retry: max 3 attempts, 2m + 4m backoff) ==="
           MAX_ATTEMPTS=3
           attempt=1
           QUEUE_ID=""
@@ -35,12 +45,6 @@ jobs:
             echo ""
             if [ "$HTTP_CODE" -lt 400 ]; then
               echo "✓ Step 1 SUCCEEDED on attempt $attempt — stopping retry, queue item inserted"
-              # Extract queueId from JSON response and export to GITHUB_ENV
-              # so subsequent steps can pass it as ?queueId=<uuid>.
-              # This is the MH-QUEUE-HANDOFF-007 fix: thread the EXACT
-              # queue item id through the whole pipeline (Step 2a → 2b →
-              # 2c → 2d → 3) so no step can accidentally consume a
-              # different/older queue item.
               QUEUE_ID=$(python3 -c "import json; d=json.load(open('/tmp/step1.json')); print(d.get('queueId',''))" 2>/dev/null || echo "")
               if [ -z "$QUEUE_ID" ]; then
                 echo "❌ Step 1 returned HTTP $HTTP_CODE but no queueId in response — aborting"
@@ -53,13 +57,13 @@ jobs:
             echo "❌ Step 1 FAILED on attempt $attempt (HTTP $HTTP_CODE)"
             if [ "$attempt" -lt "$MAX_ATTEMPTS" ]; then
               if [ "$attempt" -eq 1 ]; then
-                WAIT_SECONDS=300
-                WAIT_LABEL="5 minutes"
+                WAIT_SECONDS=120
+                WAIT_LABEL="2 minutes"
               else
-                WAIT_SECONDS=600
-                WAIT_LABEL="10 minutes"
+                WAIT_SECONDS=240
+                WAIT_LABEL="4 minutes"
               fi
-              echo "↻ Waiting ${WAIT_LABEL} before retrying (backoff) — avoiding OpenRouter spam"
+              echo "↻ Waiting ${WAIT_LABEL} before retrying (backoff) — avoiding provider spam"
               sleep "$WAIT_SECONDS"
             fi
             attempt=$((attempt + 1))
@@ -70,102 +74,97 @@ jobs:
           fi
 
       # ============================================================
-      # Handoff — 10-minute stabilization buffer between Step 1
-      # success and Step 2a. Runs at the GitHub Actions orchestration
-      # level (NOT inside any Vercel function — Vercel Hobby's 60s cap
-      # is never touched). Only runs if Step 1 succeeded (because Step
-      # 1 failure exits the job).
-      #
-      # Purpose of this buffer: a stabilization/handoff window between
-      # the end of Step 1 (topic picked) and the start of Step 2a
-      # (external research). It is NOT for OpenRouter — Step 2a does
-      # NOT use OpenRouter. OpenRouter 429 handling is the
-      # responsibility of the Step 1 retry loop above, not this
-      # buffer. Step 2a uses external web search via Z.ai only.
+      # Handoff — stabilization buffer between Step 1 success and Step 2a.
+      # Runs at the GitHub Actions orchestration level (NOT inside any
+      # Vercel function — Vercel Hobby's 60s cap is never touched).
       # ============================================================
-      - name: Wait 10 minutes — Step 1 → Step 2a stabilization handoff
+      - name: Wait 5 minutes — Step 1 → Step 2a stabilization handoff
         run: |
-          echo "=== Handoff: waiting 10 minutes before Step 2a (orchestration-level sleep, NOT inside Vercel) ==="
-          echo "Purpose: stabilization buffer between Step 1 success and Step 2a start. Step 2a uses Z.ai external web search (NOT OpenRouter). OpenRouter 429 is handled by the Step 1 retry loop above."
-          sleep 600
-          echo "✓ 10-minute handoff buffer elapsed — proceeding to Step 2a"
+          echo "=== Handoff: waiting 5 minutes before Step 2a (orchestration-level sleep, NOT inside Vercel) ==="
+          sleep 300
+          echo "✓ 5-minute handoff buffer elapsed — proceeding to Step 2a"
 
-      - name: Step 2a — Research
+      - name: Step 2a — Research (retry ×3, 120s backoff)
         run: |
-          echo "=== Step 2a: Researching topic via EXTERNAL web search (z-ai web_search, 3 parallel queries, 8s timeout each, NO LLM, NO OpenRouter) ==="
-          echo "Processing queueId: $QUEUE_ID"
-          HTTP_CODE=$(curl --silent --show-error --max-time 55 -o /tmp/step2a.json -w "%{http_code}" \
-            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
-            "${{ vars.SITE_URL }}/api/cron/blog/step2a-research?queueId=$QUEUE_ID")
-          echo "HTTP status: $HTTP_CODE"
-          cat /tmp/step2a.json
-          echo ""
-          if [ "$HTTP_CODE" -ge 400 ]; then
-            echo "❌ Step 2a failed"
-            exit 1
-          fi
-          echo "✓ Step 2a done"
+          run_step() {
+            curl --silent --show-error --max-time 55 -o /tmp/step2a.json -w "%{http_code}" \
+              -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+              "${{ vars.SITE_URL }}/api/cron/blog/step2a-research?queueId=$QUEUE_ID"
+          }
+          MAX_ATTEMPTS=3; attempt=1; HTTP_CODE=""
+          while [ "$attempt" -le "$MAX_ATTEMPTS" ]; do
+            echo "--- Step 2a attempt $attempt / $MAX_ATTEMPTS ---"
+            HTTP_CODE=$(run_step); echo "HTTP status: $HTTP_CODE"; cat /tmp/step2a.json; echo ""
+            if [ "$HTTP_CODE" -lt 400 ]; then echo "✓ Step 2a done"; break; fi
+            if [ "$attempt" -lt "$MAX_ATTEMPTS" ]; then echo "↻ Retrying in 120s"; sleep 120; fi
+            attempt=$((attempt + 1))
+          done
+          if [ "$HTTP_CODE" -ge 400 ]; then echo "❌ Step 2a failed after $MAX_ATTEMPTS attempts"; exit 1; fi
 
-      - name: Step 2b — English article + SEO
+      - name: Step 2b — English article + SEO (retry ×3, 120s backoff)
         run: |
-          echo "=== Step 2b: Generating English article + SEO ==="
-          echo "Processing queueId: $QUEUE_ID"
-          HTTP_CODE=$(curl --silent --show-error --max-time 55 -o /tmp/step2b.json -w "%{http_code}" \
-            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
-            "${{ vars.SITE_URL }}/api/cron/blog/step2b-en-article?queueId=$QUEUE_ID")
-          echo "HTTP status: $HTTP_CODE"
-          cat /tmp/step2b.json
-          echo ""
-          if [ "$HTTP_CODE" -ge 400 ]; then
-            echo "❌ Step 2b failed"
-            exit 1
-          fi
-          echo "✓ Step 2b done"
+          run_step() {
+            curl --silent --show-error --max-time 55 -o /tmp/step2b.json -w "%{http_code}" \
+              -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+              "${{ vars.SITE_URL }}/api/cron/blog/step2b-en-article?queueId=$QUEUE_ID"
+          }
+          MAX_ATTEMPTS=3; attempt=1; HTTP_CODE=""
+          while [ "$attempt" -le "$MAX_ATTEMPTS" ]; do
+            echo "--- Step 2b attempt $attempt / $MAX_ATTEMPTS ---"
+            HTTP_CODE=$(run_step); echo "HTTP status: $HTTP_CODE"; cat /tmp/step2b.json; echo ""
+            if [ "$HTTP_CODE" -lt 400 ]; then echo "✓ Step 2b done"; break; fi
+            if [ "$attempt" -lt "$MAX_ATTEMPTS" ]; then echo "↻ Retrying in 120s"; sleep 120; fi
+            attempt=$((attempt + 1))
+          done
+          if [ "$HTTP_CODE" -ge 400 ]; then echo "❌ Step 2b failed after $MAX_ATTEMPTS attempts"; exit 1; fi
 
-      - name: Step 2c — Arabic article + FAQ
+      - name: Step 2c — Arabic article + FAQ (retry ×3, 120s backoff)
         run: |
-          echo "=== Step 2c: Generating Arabic article + FAQ ==="
-          echo "Processing queueId: $QUEUE_ID"
-          HTTP_CODE=$(curl --silent --show-error --max-time 55 -o /tmp/step2c.json -w "%{http_code}" \
-            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
-            "${{ vars.SITE_URL }}/api/cron/blog/step2c-ar-article?queueId=$QUEUE_ID")
-          echo "HTTP status: $HTTP_CODE"
-          cat /tmp/step2c.json
-          echo ""
-          if [ "$HTTP_CODE" -ge 400 ]; then
-            echo "❌ Step 2c failed"
-            exit 1
-          fi
-          echo "✓ Step 2c done"
+          run_step() {
+            curl --silent --show-error --max-time 55 -o /tmp/step2c.json -w "%{http_code}" \
+              -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+              "${{ vars.SITE_URL }}/api/cron/blog/step2c-ar-article?queueId=$QUEUE_ID"
+          }
+          MAX_ATTEMPTS=3; attempt=1; HTTP_CODE=""
+          while [ "$attempt" -le "$MAX_ATTEMPTS" ]; do
+            echo "--- Step 2c attempt $attempt / $MAX_ATTEMPTS ---"
+            HTTP_CODE=$(run_step); echo "HTTP status: $HTTP_CODE"; cat /tmp/step2c.json; echo ""
+            if [ "$HTTP_CODE" -lt 400 ]; then echo "✓ Step 2c done"; break; fi
+            if [ "$attempt" -lt "$MAX_ATTEMPTS" ]; then echo "↻ Retrying in 120s"; sleep 120; fi
+            attempt=$((attempt + 1))
+          done
+          if [ "$HTTP_CODE" -ge 400 ]; then echo "❌ Step 2c failed after $MAX_ATTEMPTS attempts"; exit 1; fi
 
-      - name: Step 2d — Links + images + social
+      - name: Step 2d — Links + images + social (retry ×3, 120s backoff)
         run: |
-          echo "=== Step 2d: Generating links + images + social ==="
-          echo "Processing queueId: $QUEUE_ID"
-          HTTP_CODE=$(curl --silent --show-error --max-time 55 -o /tmp/step2d.json -w "%{http_code}" \
-            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
-            "${{ vars.SITE_URL }}/api/cron/blog/step2d-links?queueId=$QUEUE_ID")
-          echo "HTTP status: $HTTP_CODE"
-          cat /tmp/step2d.json
-          echo ""
-          if [ "$HTTP_CODE" -ge 400 ]; then
-            echo "❌ Step 2d failed"
-            exit 1
-          fi
-          echo "✓ Step 2d done"
+          run_step() {
+            curl --silent --show-error --max-time 55 -o /tmp/step2d.json -w "%{http_code}" \
+              -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+              "${{ vars.SITE_URL }}/api/cron/blog/step2d-links?queueId=$QUEUE_ID"
+          }
+          MAX_ATTEMPTS=3; attempt=1; HTTP_CODE=""
+          while [ "$attempt" -le "$MAX_ATTEMPTS" ]; do
+            echo "--- Step 2d attempt $attempt / $MAX_ATTEMPTS ---"
+            HTTP_CODE=$(run_step); echo "HTTP status: $HTTP_CODE"; cat /tmp/step2d.json; echo ""
+            if [ "$HTTP_CODE" -lt 400 ]; then echo "✓ Step 2d done"; break; fi
+            if [ "$attempt" -lt "$MAX_ATTEMPTS" ]; then echo "↻ Retrying in 120s"; sleep 120; fi
+            attempt=$((attempt + 1))
+          done
+          if [ "$HTTP_CODE" -ge 400 ]; then echo "❌ Step 2d failed after $MAX_ATTEMPTS attempts"; exit 1; fi
 
-      - name: Step 3 — Publish
+      - name: Step 3 — Publish (retry ×3, 120s backoff)
         run: |
-          echo "=== Step 3: Publishing ==="
-          echo "Processing queueId: $QUEUE_ID"
-          HTTP_CODE=$(curl --silent --show-error --max-time 55 -o /tmp/step3.json -w "%{http_code}" \
-            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
-            "${{ vars.SITE_URL }}/api/cron/blog/step3-publish?queueId=$QUEUE_ID")
-          echo "HTTP status: $HTTP_CODE"
-          cat /tmp/step3.json
-          echo ""
-          if [ "$HTTP_CODE" -ge 400 ]; then
-            echo "❌ Step 3 failed"
-            exit 1
-          fi
-          echo "✓ Step 3 done — article published!"
+          run_step() {
+            curl --silent --show-error --max-time 55 -o /tmp/step3.json -w "%{http_code}" \
+              -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+              "${{ vars.SITE_URL }}/api/cron/blog/step3-publish?queueId=$QUEUE_ID"
+          }
+          MAX_ATTEMPTS=3; attempt=1; HTTP_CODE=""
+          while [ "$attempt" -le "$MAX_ATTEMPTS" ]; do
+            echo "--- Step 3 attempt $attempt / $MAX_ATTEMPTS ---"
+            HTTP_CODE=$(run_step); echo "HTTP status: $HTTP_CODE"; cat /tmp/step3.json; echo ""
+            if [ "$HTTP_CODE" -lt 400 ]; then echo "✓ Step 3 done — article published!"; break; fi
+            if [ "$attempt" -lt "$MAX_ATTEMPTS" ]; then echo "↻ Retrying in 120s"; sleep 120; fi
+            attempt=$((attempt + 1))
+          done
+          if [ "$HTTP_CODE" -ge 400 ]; then echo "❌ Step 3 failed after $MAX_ATTEMPTS attempts"; exit 1; fi

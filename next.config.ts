@@ -30,6 +30,12 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "raw.githubusercontent.com" },
       { protocol: "https", hostname: "images.pexels.com" },
       { protocol: "https", hostname: "musclehubeg.vercel.app" },
+      // Blog cover pipeline (2026-08-27): Pollinations is the PRIMARY featured
+      // image source and Pixabay a fallback — without these entries next/image
+      // threw hostname errors on every published cover.
+      { protocol: "https", hostname: "image.pollinations.ai" },
+      { protocol: "https", hostname: "pixabay.com" },
+      { protocol: "https", hostname: "cdn.pixabay.com" },
       // Supabase Storage — hosts user-uploaded avatars, questionnaire photos,
       // and progress photos referenced via next/image in profile/admin views.
       { protocol: "https", hostname: "*.supabase.co" },
