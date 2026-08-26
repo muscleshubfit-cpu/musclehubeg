@@ -2295,5 +2295,5 @@ Stage Summary:
 - Image generation prompt no longer leaks to Vercel logs.
 - AI response text no longer logged (AGENTS.md §8 compliance).
 - Clients get rejection reasons in their notification (actionable feedback).
-- Commit SHA: (pending)
-- Push status: (pending)
+- Commit SHA: 9498aba
+- Push status: pushed
