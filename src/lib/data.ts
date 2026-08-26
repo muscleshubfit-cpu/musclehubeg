@@ -953,6 +953,35 @@ export async function listAllClients() {
  return Object.values(profiles).filter((p) => p.role === "client");
 }
 
+/**
+ * Decision 1 fix: fetch all coach client data in ONE query via RPC.
+ * Replaces the N+1 pattern in CoachView (listAllClients +
+ * listAllSubscriptions + listSubscriptionRequests + per-client
+ * getQuestionnaire × 2 = 2N+3 queries).
+ *
+ * Returns: client profile + latest sub + pending payments + questionnaire
+ * status for every client, in a single round-trip.
+ *
+ * Falls back to the old multi-query path if the RPC is not available
+ * (e.g. migration not yet applied to production).
+ */
+export async function getCoachClientListOptimized() {
+ if (isSupabaseConfigured && supabase) {
+ try {
+ const { data, error } = await supabase.rpc("get_coach_client_list");
+ if (!error && data) {
+ return data;
+ }
+ // RPC not available — fall through to old path
+ console.warn("[data] get_coach_client_list RPC not available, using fallback");
+ } catch (e) {
+ console.warn("[data] get_coach_client_list RPC failed, using fallback:", e);
+ }
+ }
+ // Fallback: return null so caller uses the old multi-query path
+ return null;
+}
+
 // ---------------------------------------------------------------------------
 // Progress Photos
 // ---------------------------------------------------------------------------

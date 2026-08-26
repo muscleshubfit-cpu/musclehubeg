@@ -966,6 +966,24 @@ export type Database = {
           created_at: string;
         };
       };
+      get_coach_client_list: {
+        Args: Record<string, never>;
+        Returns: {
+          client_id: string;
+          client_email: string;
+          client_full_name: string;
+          client_phone: string;
+          client_avatar_url: string;
+          client_created_at: string;
+          sub_tier: string;
+          sub_status: string;
+          sub_end_date: string;
+          sub_months: number;
+          pending_payments: number;
+          nutri_q_status: string;
+          fit_q_status: string;
+        }[];
+      };
     };
     Enums: {
       user_role: "client" | "coach";

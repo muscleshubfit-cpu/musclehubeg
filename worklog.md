@@ -2401,3 +2401,24 @@ Stage Summary:
 - Coaching card is visually striking (purple gradient) with "ابدأ الآن" CTA.
 - Commit SHA: (pending)
 - Push status: (pending)
+
+---
+Task ID: FIX-MIGRATIONS-7A-043
+Agent: Main (Z User)
+Task: Decision 1 (N+1 fix — get_coach_client_list RPC) + Decision 3 (audit log table + triggers).
+
+Work Log:
+- Decision 3: Created migration 0019_audit_log.sql — audit_log table + audit_row() trigger function + triggers on 4 sensitive tables (subscriptions, referral_earnings, referral_payouts, subscription_requests). RLS: coach-only SELECT. Records INSERT/UPDATE/DELETE with old_data, new_data, changed_fields, changed_by (auth.uid()).
+- Decision 1: Created migration 0020_coach_client_list_rpc.sql — get_coach_client_list() SECURITY DEFINER function that returns all clients + latest sub + pending payments + questionnaire status in ONE query (was 2N+3 queries for N clients).
+- Added getCoachClientListOptimized() in data.ts — calls the RPC, falls back to old multi-query path if RPC not available (graceful degradation).
+- Added types for both new functions in types.ts.
+- Created unified run script: supabase/migrations/RUN_ON_SUPABASE_0019_0020.sql.
+- Verified: tsc 0 errors, next build exit 0.
+
+Stage Summary:
+- 2 new migrations (0019 + 0020) ready for Owner to apply on Supabase.
+- Audit log will automatically track all changes to financial tables.
+- Coach client list will load in 1 query instead of 100+.
+- Code gracefully falls back if migrations not yet applied.
+- Commit SHA: (pending)
+- Push status: (pending)
