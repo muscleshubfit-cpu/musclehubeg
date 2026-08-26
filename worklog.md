@@ -1684,3 +1684,20 @@ Stage Summary:
 - No migration needed — uses existing chat_messages + plan_swaps tables.
 - Commit SHA: (pending)
 - Push status: (pending)
+
+---
+Task ID: FIX-SEO-A11Y-009
+Agent: Main (Z User)
+Task: Fix C23 (skip-to-content link target missing on public pages) + C24 (English blog articles missing hreflang alternates + no x-default anywhere).
+
+Work Log:
+- C23: root layout's skip link pointed to `#main-content` but that id only existed in AppLayout (authenticated routes). All public pages (homepage, blog, exercises, foods, programs, evo, tools, faq, about, privacy, terms, contact) had no target — keyboard users pressing Tab + Enter saw nothing happen. Wrapped `{children}` in `<div id="main-content-skip">` in root layout + changed skip link href to `#main-content-skip`. Now the target exists on EVERY page without conflicting with AppLayout's `<main id="main-content">`.
+- C24a: English blog article page (`/blog/[slug]`) had only `canonical` — no `alternates.languages`. Google couldn't determine the EN article has an AR counterpart. Added `languages: { en, ar, "x-default": en }` to the EN generateMetadata.
+- C24b: Arabic blog article page (`/ar/blog/[slug]`) had `en` + `ar` but no `x-default`. Added `"x-default": en` (English is the primary/default locale).
+- Verified: tsc 0 errors, eslint 0 errors on all 3 files, next build exit 0.
+
+Stage Summary:
+- Skip-to-content link now works on all pages (WCAG 2.4.1 Level A compliance).
+- Google can now correctly associate EN ↔ AR blog articles via hreflang + x-default.
+- Commit SHA: (pending)
+- Push status: (pending)

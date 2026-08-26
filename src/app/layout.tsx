@@ -108,7 +108,7 @@ export default async function RootLayout({
         />
       </head>
       <body className="antialiased bg-background text-foreground">
-        <a href="#main-content" className="sr-only-focusable">
+        <a href="#main-content-skip" className="sr-only-focusable">
           Skip to content
         </a>
         <ReferralCookieChecker />
@@ -116,7 +116,13 @@ export default async function RootLayout({
         <I18nProvider>
           <AuthProvider>
             <EvoChatProvider>
-              <Suspense fallback={null}>{children}</Suspense>
+              {/* C23 fix: wrap children in a div with id="main-content-skip"
+                  so the skip-to-content link always has a target, on both
+                  public pages (no <main id="main-content">) and app pages
+                  (AppLayout has its own <main id="main-content">). */}
+              <div id="main-content-skip">
+                <Suspense fallback={null}>{children}</Suspense>
+              </div>
               {/* EVO Floating Widget — appears on all pages */}
               <EvoFloatingWidget />
             </EvoChatProvider>

@@ -29,7 +29,16 @@ export async function generateMetadata({
   return {
     title: og.title,
     description: og.description,
-    alternates: { canonical: og.articleUrl },
+    alternates: {
+      canonical: og.articleUrl,
+      // C24 fix: declare hreflang alternates so Google knows the EN article
+      // has an AR counterpart (and vice versa). x-default = EN (primary).
+      languages: {
+        "en": og.articleUrl,
+        "ar": `https://musclehubeg.vercel.app/ar/blog/${slug}`,
+        "x-default": og.articleUrl,
+      },
+    },
     openGraph: {
       type: "article",
       url: og.articleUrl,

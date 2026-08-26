@@ -27,9 +27,11 @@ export async function generateMetadata({
     alternates: {
       canonical: og.articleUrl,
       // Correct hreflang — point en + ar to their own URLs (not the same URL).
+      // C24 fix: add x-default = EN (primary) for users without a matching locale.
       languages: {
         "en": `https://musclehubeg.vercel.app/blog/${slug}`,
         "ar": og.articleUrl,
+        "x-default": `https://musclehubeg.vercel.app/blog/${slug}`,
       },
     },
     openGraph: {
