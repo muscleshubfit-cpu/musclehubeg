@@ -2,13 +2,38 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
 /**
+ * #2 fix: simple in-memory rate limiting for public endpoint.
+ * Limits: 5 requests per IP per 10 minutes (prevents lead spam).
+ * Note: this is per-instance (Vercel serverless may have multiple
+ * instances), but it raises the bar significantly for casual abuse.
+ * For production-grade rate limiting, use Upstash Redis.
+ */
+const RATE_LIMIT_WINDOW = 10 * 60 * 1000; // 10 minutes
+const RATE_LIMIT_MAX = 5; // 5 requests per window per IP
+const ipRequests = new Map<string, { count: number; resetAt: number }>();
+
+function checkRateLimit(ip: string): { allowed: boolean; remaining: number; resetAt: number } {
+  const now = Date.now();
+  const entry = ipRequests.get(ip);
+  if (!entry || now > entry.resetAt) {
+    ipRequests.set(ip, { count: 1, resetAt: now + RATE_LIMIT_WINDOW });
+    return { allowed: true, remaining: RATE_LIMIT_MAX - 1, resetAt: now + RATE_LIMIT_WINDOW };
+  }
+  if (entry.count >= RATE_LIMIT_MAX) {
+    return { allowed: false, remaining: 0, resetAt: entry.resetAt };
+  }
+  entry.count++;
+  return { allowed: true, remaining: RATE_LIMIT_MAX - entry.count, resetAt: entry.resetAt };
+}
+
+/**
  * POST /api/tools/lead
  *
  * Saves an email lead (newsletter signup) from one of the free tools.
  * The lead is stored in the `tool_leads` table. The coach can later
  * export these emails for newsletter campaigns.
  *
- * Public endpoint (no auth required).
+ * Public endpoint (no auth required). Rate limited: 5 req / 10 min / IP.
  *
  * Body:
  *   {
@@ -23,6 +48,23 @@ import { createClient } from "@supabase/supabase-js";
  *   { ok: true, id: string }
  */
 export async function POST(request: NextRequest) {
+  // #2 fix: rate limit check
+  const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+  const rateLimit = checkRateLimit(ip);
+  if (!rateLimit.allowed) {
+    return NextResponse.json(
+      { error: "Too many requests. Please try again later." },
+      {
+        status: 429,
+        headers: {
+          "Retry-After": String(Math.ceil((rateLimit.resetAt - Date.now()) / 1000)),
+          "X-RateLimit-Remaining": "0",
+          "X-RateLimit-Reset": String(rateLimit.resetAt),
+        },
+      },
+    );
+  }
+
   try {
     const body = await request.json();
     const {

@@ -2353,3 +2353,19 @@ Stage Summary:
 - 3 detail pages (exercises, foods, programs) now have visible breadcrumbs.
 - Commit SHA: (pending)
 - Push status: (pending)
+
+---
+Task ID: FIX-AUDIT-BATCH-6C-041
+Agent: Main (Z User)
+Task: Audit fixes #9 (footer contact info) + #2 (rate limit public API routes).
+
+Work Log:
+- #9: LandingView footer had no contact info — users had no way to reach the team without going to /contact. Added WhatsApp link + InstaPay handle in the footer Brand section. Bilingual labels. WhatsApp uses wa.me link with target="_blank" + rel="noopener".
+- #2: /api/tools/lead was a public endpoint with no rate limiting — a bot could spam the tool_leads table. Added simple in-memory rate limiting: 5 requests per IP per 10 minutes. Returns 429 + Retry-After + X-RateLimit headers when exceeded. Note: this is per-instance (Vercel serverless may have multiple instances), but raises the bar significantly for casual abuse. For production-grade rate limiting, Upstash Redis is recommended.
+- Verified: tsc 0 errors, next build exit 0.
+
+Stage Summary:
+- Footer now has WhatsApp + InstaPay contact info (trust element).
+- Public lead endpoint is rate limited (5 req / 10 min / IP).
+- Commit SHA: (pending)
+- Push status: (pending)
