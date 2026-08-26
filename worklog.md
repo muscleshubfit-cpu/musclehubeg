@@ -2235,5 +2235,5 @@ Stage Summary:
 - Single source of truth for chat state (EvoChatContext used by both /chat page + floating widget).
 - Chat history is consistent between the two views.
 - clearChat no longer resets the daily message counter.
-- Commit SHA: (pending)
-- Push status: (pending)
+- Commit SHA: 0bdcaef
+- Push status: pushed
