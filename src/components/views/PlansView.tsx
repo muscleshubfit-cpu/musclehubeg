@@ -37,13 +37,18 @@ export function PlansView() {
  useEffect(() => {
  if (!profile) return;
  (async () => {
+ try {
  const [data, usage] = await Promise.all([
  listPlans(profile.id),
  getSwapUsage(profile.id),
  ]);
  setPlans(data);
  setSwapUsage(usage);
+ } catch (e: any) {
+ console.error("[PlansView] load failed:", e?.message);
+ } finally {
  setLoading(false);
+ }
  })();
  }, [profile]);
 

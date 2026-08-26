@@ -40,9 +40,14 @@ export function SupportView() {
  const load = async () => {
  if (!profile) return;
  setLoading(true);
+ try {
  const data = await listTickets(profile.id);
  setTickets(data);
+ } catch (e: any) {
+ console.error("[SupportView] load failed:", e?.message);
+ } finally {
  setLoading(false);
+ }
  };
 
  useEffect(() => {

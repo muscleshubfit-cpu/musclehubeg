@@ -49,13 +49,18 @@ export function ReferralView() {
   const load = async () => {
     if (!profile) return;
     setLoading(true);
-    const [s, affS] = await Promise.all([
-      getReferralStats(profile.id),
-      getAffiliateStats(profile.id),
-    ]);
-    setStats(s);
-    setAffiliateStats(affS);
-    setLoading(false);
+    try {
+      const [s, affS] = await Promise.all([
+        getReferralStats(profile.id),
+        getAffiliateStats(profile.id),
+      ]);
+      setStats(s);
+      setAffiliateStats(affS);
+    } catch (e: any) {
+      console.error("[ReferralView] load failed:", e?.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {

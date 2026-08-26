@@ -2259,3 +2259,23 @@ Stage Summary:
 - Falls back to client-side fetch if server fetch fails (graceful degradation).
 - Commit SHA: fc1fe05
 - Push status: pushed
+
+---
+Task ID: FIX-ERROR-CATCH-036
+Agent: Main (Z User)
+Task: Add try/catch/finally to 4 views that had no error handling in their load() functions.
+
+Work Log:
+- ReferralView.tsx: load() had no try/catch — network error left loading=true forever. Added try/catch/finally with console.error.
+- SupportView.tsx: same pattern — added try/catch/finally.
+- ProgressView.tsx: same pattern — added try/catch/finally.
+- PlansView.tsx: load useEffect had no try/catch — same fix.
+- DashboardView.tsx + QuestionnairesView.tsx already had try/finally (verified — no changes needed).
+- Verified: tsc 0 errors, next build exit 0.
+
+Stage Summary:
+- 4 views now handle network errors gracefully (loading state always clears).
+- Users see "Loading..." temporarily on error, not forever.
+- Console.error logs the failure for debugging.
+- Commit SHA: (pending)
+- Push status: (pending)

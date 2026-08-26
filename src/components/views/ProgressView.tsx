@@ -49,13 +49,18 @@ export function ProgressView() {
  const load = async () => {
  if (!profile) return;
  setLoading(true);
+ try {
  const [p, ph] = await Promise.all([
  listProgress(profile.id),
  listPhotos(profile.id),
  ]);
  setEntries(p);
  setPhotos(ph);
+ } catch (e: any) {
+ console.error("[ProgressView] load failed:", e?.message);
+ } finally {
  setLoading(false);
+ }
  };
 
  useEffect(() => {
