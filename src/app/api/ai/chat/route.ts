@@ -4,6 +4,7 @@ import { generateChatReply } from "@/lib/ai-local";
 import { listPlans, listProgress, getQuestionnaire, getSubscriptionForClient } from "@/lib/data";
 import { getTier } from "@/lib/plans";
 import { requireUser, isAuthConfigured } from "@/lib/auth-server";
+import { checkEvoChatLimit } from "@/lib/tier-limits";
 import {
   searchPlatform,
   getFoodNutrition,
@@ -42,6 +43,35 @@ export async function POST(request: NextRequest) {
         userName = auth.full_name || auth.email || undefined;
       }
       // If auth fails (401), we continue as anonymous — EVO is free for all
+    }
+
+    // 1.5. Server-side daily limit check for authenticated users (C15 fix).
+    // Anonymous users are rate-limited by the client-side localStorage counter
+    // (best-effort) + the subscriber-only patterns gate below. Authenticated
+    // users get a hard server-side limit based on their tier.
+    if (userId) {
+      const limitCheck = await checkEvoChatLimit(userId);
+      if (!limitCheck.allowed) {
+        const isUnlimited = limitCheck.unlimited;
+        const resetMsg = isUnlimited
+          ? ""
+          : limitCheck.limit !== null
+            ? `\n\n${`You've used ${limitCheck.used}/${limitCheck.limit} messages today. The limit resets at midnight.`}`
+            : "";
+        return NextResponse.json({
+          response: `⏰ ${`You've reached today's EVO chat limit.`}${resetMsg}\n\n${`Upgrade to Premium for 50 messages/day, or Pro for unlimited.`}`,
+          links: [
+            {
+              label: "View membership plans →",
+              url: "/memberships",
+            },
+          ],
+          source: "rate-limit",
+          rateLimited: true,
+          used: limitCheck.used,
+          limit: limitCheck.limit,
+        }, { status: 429, headers: { "Retry-After": "3600" } });
+      }
     }
 
     const body = await request.json().catch(() => ({}));

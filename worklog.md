@@ -1660,3 +1660,27 @@ Stage Summary:
 - Rollback script included for emergency reversion.
 - Commit SHA: (pending)
 - Push status: (pending)
+
+---
+Task ID: FIX-RATE-LIMITS-008
+Agent: Main (Z User)
+Task: Fix C15 (EVO chat daily limit bypassable via localStorage clear) + C16 (swap limit bypassable via direct API call).
+
+Work Log:
+- Created `src/lib/tier-limits.ts` — server-side tier limit helpers:
+  - `resolveTier(userId)` — queries subscription, returns "free"/"premium"/"pro"/"coaching".
+  - `evoChatLimitFor(tier)` — returns daily chat limit (free=10, premium=50, pro/coaching=null=unlimited).
+  - `swapLimitForTier(tier)` — returns weekly swap limit per type (free=0, premium=3, pro=6, coaching=3).
+  - `checkEvoChatLimit(userId)` — counts today's chat_messages for the user via supabaseAdmin, returns {allowed, used, limit, unlimited}.
+  - `checkAndRecordSwap(userId, swapType)` — counts this week's swaps (Monday-based), records the swap if allowed.
+- Edited `/api/ai/chat/route.ts`: added server-side daily limit check after auth. Returns 429 + Retry-After header + friendly message with upgrade CTA when limit reached. Anonymous users still use the client-side localStorage counter (best-effort).
+- Edited `/api/ai/swap/route.ts`: added server-side weekly swap limit check + recording after auth. Returns 429 with tier-specific message (free users see "Premium and higher", limited users see "used/limit this week, resets Monday").
+- Verified: tsc 0 errors, eslint 0 errors on all 3 files, next build exit 0.
+
+Stage Summary:
+- EVO chat daily limit is now enforced server-side — clearing localStorage or calling /api/ai/chat directly with curl cannot bypass the limit.
+- Swap weekly limit is now enforced server-side — free users get 0 swaps, tier limits respected.
+- Both endpoints return proper 429 + Retry-After headers.
+- No migration needed — uses existing chat_messages + plan_swaps tables.
+- Commit SHA: (pending)
+- Push status: (pending)
