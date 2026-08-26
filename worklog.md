@@ -1991,3 +1991,31 @@ Stage Summary:
 - Network errors in NotificationBell no longer leave it stuck on "Loading...".
 - Commit SHA: ba3cb0c
 - Push status: pushed
+
+---
+Task ID: FIX-AUTH-SWAP-023
+Agent: Main (Z User)
+Task: Fix M6 (signUpEmail email confirmation redirect bug) + M2 (recordSwap race condition + double recording).
+
+Work Log:
+- M6: signUpEmail returned { error: null, profile } even when data.session was null (email confirmation required). AuthView then called goAfterLogin → redirected to /dashboard → AuthGate bounced back to /auth (user not logged in). Fixed:
+  - signUpEmail now detects data.session === null and returns { needsConfirmation: true } instead of a profile.
+  - Updated return type + useAuth signUp wrapper to pass needsConfirmation through.
+  - AuthView: added needsConfirmation state + dedicated "Check your email" screen with bilingual message + "Back to login" button.
+  - Referral tracking still happens before returning (cookie may expire by confirmation time).
+  - Coach gets a "pending confirmation" admin notification.
+- M2: recordSwap was called client-side (count + insert, non-atomic) THEN /api/ai/swap was called (which also does checkAndRecordSwap server-side). This caused double-recording + race condition. Fixed:
+  - Removed client-side recordSwap call from swapMeal + swapExercise in PlansView.
+  - Now relies entirely on server-side checkAndRecordSwap in /api/ai/swap (atomic).
+  - Handles 429 rate-limit response: shows error toast + refreshes swap usage from server.
+  - After successful swap, refreshes getSwapUsage to get accurate remaining count.
+  - Also fixed shallow-copy mutation bug (newContent.meals = [...p.content.meals] instead of {...p.content}.meals).
+  - Removed unused recordSwap import.
+- Verified: tsc 0 errors, eslint 0 errors, next build exit 0.
+
+Stage Summary:
+- Email confirmation users see a clear "Check your email" screen instead of a confusing redirect loop.
+- Swap recording is now atomic (server-side only) — no race conditions, no double-recording.
+- PlansView swap state mutation fixed (deep copy of meals/days arrays).
+- Commit SHA: (pending)
+- Push status: (pending)

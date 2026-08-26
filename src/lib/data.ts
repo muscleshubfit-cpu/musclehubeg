@@ -79,7 +79,7 @@ export async function signUpEmail(
  password: string,
  fullName: string,
  phone: string,
-): Promise<{ error: string | null; profile: Profile | null }> {
+): Promise<{ error: string | null; profile: Profile | null; needsConfirmation?: boolean }> {
  if (isSupabaseConfigured && supabase) {
  const { data, error } = await supabase.auth.signUp({
  email,
@@ -88,6 +88,32 @@ export async function signUpEmail(
  });
  if (error) return { error: error.message, profile: null };
  if (data.user) {
+ // M6 fix: detect email confirmation requirement.
+ // When Supabase requires email confirmation, data.session is null
+ // but data.user is set. Returning a profile here would cause the
+ // caller (AuthView) to redirect to /dashboard — but the user
+ // isn't actually logged in, so AuthGate bounces them back to /auth.
+ // Instead, return needsConfirmation=true so the caller shows a
+ // "Check your email" screen.
+ if (!data.session) {
+ // Track referral before returning — the cookie may expire by the
+ // time the user confirms their email.
+ try {
+ const refCode = getReferralCookie();
+ if (refCode) {
+ await trackReferral(refCode, data.user.id, email);
+ clearReferralCookie();
+ }
+ } catch {}
+ // Notify coach about new pending client
+ await createAdminNotification(
+ "new_client",
+ "عميل جديد سجّل (بانتظار التأكيد)! ",
+ `${fullName} (${email}) انضم للمنصة — في انتظار تأكيد البريد الإلكتروني.`,
+ "coach",
+ ).catch(() => {});
+ return { error: null, profile: null, needsConfirmation: true };
+ }
  const profile: Profile = {
  id: data.user.id,
  email: data.user.email ?? null,

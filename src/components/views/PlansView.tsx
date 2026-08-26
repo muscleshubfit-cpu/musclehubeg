@@ -8,7 +8,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { listPlans, getPlanFileUrl, recordSwap, getSwapUsage } from "@/lib/data";
+import { listPlans, getPlanFileUrl, getSwapUsage } from "@/lib/data";
 import { resolveExerciseImage, getExerciseImage, getExerciseImages, getFallbackSVG } from "@/lib/exercise-images";
 import { EXERCISES } from "@/lib/exercises";
 import { toast } from "sonner";
@@ -47,23 +47,13 @@ export function PlansView() {
 
  const swapMeal = async (planId: string, mealIndex: number) => {
  if (!profile) return;
- // Check daily limit first
+ // Check daily limit first (client-side hint — server enforces too)
  if (swapUsage.meal.remaining <= 0) {
  toast.error(`${t("plans.swaps.mealExhausted")} (${swapUsage.meal.limit}/${swapUsage.meal.limit})`);
  return;
  }
  setSwapLoading(`meal-${planId}-${mealIndex}`);
  try {
- // Record the swap (checks limit server-side too)
- const swapResult = await recordSwap(profile.id, planId, "meal");
- if (!swapResult.allowed) {
- toast.error(`${t("plans.swaps.mealLimitReached")} (${(swapResult.limit || 0)})`);
- setSwapUsage((prev) => ({ ...prev, meal: { used: swapResult.used, limit: (swapResult.limit || 0), remaining: 0 } }));
- return;
- }
- // Update usage display
- setSwapUsage((prev) => ({ ...prev, meal: { used: swapResult.used, limit: (swapResult.limit || 0), remaining: (swapResult.limit || 0) - swapResult.used } }));
-
  const plan = plans.find((p) => p.id === planId);
  if (!plan?.content?.meals?.[mealIndex]) throw new Error("Meal not found");
  const mealItem = plan.content.meals[mealIndex];
@@ -72,12 +62,24 @@ export function PlansView() {
  headers: { "Content-Type": "application/json" },
  body: JSON.stringify({ type: "meal", item: mealItem, clientContext: { name: profile?.full_name } }),
  });
+ // M2 fix: server-side check + record is atomic. Handle 429 rate limit.
+ if (res.status === 429) {
+ const data = await res.json().catch(() => ({}));
+ toast.error(data.error || t("plans.swaps.mealLimitReached"));
+ // Refresh swap usage from server
+ const usage = await getSwapUsage(profile.id);
+ setSwapUsage(usage);
+ return;
+ }
  if (!res.ok) throw new Error("Swap failed");
  const { replacement } = await res.json();
+ // Update usage display (server recorded the swap)
+ const usage = await getSwapUsage(profile.id);
+ setSwapUsage(usage);
  // Update the plan content locally
  const updatedPlans = plans.map((p) => {
  if (p.id !== planId) return p;
- const newContent = { ...p.content };
+ const newContent = { ...p.content, meals: [...p.content.meals] };
  newContent.meals[mealIndex] = replacement;
  return { ...p, content: newContent };
  });
@@ -86,7 +88,7 @@ export function PlansView() {
  const newActive = updatedPlans.find((p) => p.id === planId);
  if (newActive) setActive(newActive);
  }
- toast.success(`${t("plans.swaps.mealSwapped")} ${(swapResult.limit || 0) - swapResult.used} ${t("plans.swaps.swapsLeftToday")}`);
+ toast.success(`${t("plans.swaps.mealSwapped")} ${usage.meal.remaining} ${t("plans.swaps.swapsLeftToday")}`);
  } catch (e: any) {
  toast.error(e.message || t("common.error"));
  } finally {
@@ -96,21 +98,13 @@ export function PlansView() {
 
  const swapExercise = async (planId: string, dayIndex: number, exIndex: number) => {
  if (!profile) return;
- // Check daily limit first
+ // Check daily limit first (client-side hint — server enforces too)
  if (swapUsage.exercise.remaining <= 0) {
  toast.error(`${t("plans.swaps.exerciseExhausted")} (${swapUsage.exercise.limit}/${swapUsage.exercise.limit})`);
  return;
  }
  setSwapLoading(`ex-${planId}-${dayIndex}-${exIndex}`);
  try {
- const swapResult = await recordSwap(profile.id, planId, "exercise");
- if (!swapResult.allowed) {
- toast.error(`${t("plans.swaps.exerciseLimitReached")} (${(swapResult.limit || 0)})`);
- setSwapUsage((prev) => ({ ...prev, exercise: { used: swapResult.used, limit: (swapResult.limit || 0), remaining: 0 } }));
- return;
- }
- setSwapUsage((prev) => ({ ...prev, exercise: { used: swapResult.used, limit: (swapResult.limit || 0), remaining: (swapResult.limit || 0) - swapResult.used } }));
-
  const plan = plans.find((p) => p.id === planId);
  if (!plan?.content?.days?.[dayIndex]?.exercises?.[exIndex]) throw new Error("Exercise not found");
  const exercise = plan.content.days[dayIndex].exercises[exIndex];
@@ -120,11 +114,22 @@ export function PlansView() {
  headers: { "Content-Type": "application/json" },
  body: JSON.stringify({ type: "exercise", item: { ...exercise, focus }, clientContext: { name: profile?.full_name } }),
  });
+ // M2 fix: server-side check + record is atomic. Handle 429 rate limit.
+ if (res.status === 429) {
+ const data = await res.json().catch(() => ({}));
+ toast.error(data.error || t("plans.swaps.exerciseLimitReached"));
+ const usage = await getSwapUsage(profile.id);
+ setSwapUsage(usage);
+ return;
+ }
  if (!res.ok) throw new Error("Swap failed");
  const { replacement } = await res.json();
+ const usage = await getSwapUsage(profile.id);
+ setSwapUsage(usage);
  const updatedPlans = plans.map((p) => {
  if (p.id !== planId) return p;
- const newContent = { ...p.content };
+ const newContent = { ...p.content, days: [...p.content.days] };
+ newContent.days[dayIndex] = { ...newContent.days[dayIndex], exercises: [...newContent.days[dayIndex].exercises] };
  newContent.days[dayIndex].exercises[exIndex] = replacement;
  return { ...p, content: newContent };
  });
@@ -133,7 +138,7 @@ export function PlansView() {
  const newActive = updatedPlans.find((p) => p.id === planId);
  if (newActive) setActive(newActive);
  }
- toast.success(`${t("plans.swaps.exerciseSwapped")} ${(swapResult.limit || 0) - swapResult.used} ${t("plans.swaps.swapsLeftToday")}`);
+ toast.success(`${t("plans.swaps.exerciseSwapped")} ${usage.exercise.remaining} ${t("plans.swaps.swapsLeftToday")}`);
  } catch (e: any) {
  toast.error(e.message || t("common.error"));
  } finally {

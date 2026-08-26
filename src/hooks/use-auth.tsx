@@ -23,7 +23,7 @@ type AuthCtx = {
  profile: Profile | null;
  loading: boolean;
  isCoach: boolean;
- signUp: (email: string, password: string, fullName: string, phone: string) => Promise<{ error: string | null }>;
+ signUp: (email: string, password: string, fullName: string, phone: string) => Promise<{ error: string | null; needsConfirmation?: boolean }>;
  signIn: (email: string, password: string) => Promise<{ error: string | null; profile: Profile | null }>;
  signInGoogle: (nextPath?: string) => Promise<{ error: string | null }>;
  signOutAsync: () => Promise<void>;
@@ -70,9 +70,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
  const signUp = useCallback(
  async (email: string, password: string, fullName: string, phone: string) => {
- const { error, profile: p } = await signUpEmail(email, password, fullName, phone);
+ const { error, profile: p, needsConfirmation } = await signUpEmail(email, password, fullName, phone);
  if (!error && p) setProfile(p);
- return { error };
+ return { error, needsConfirmation };
  },
  [],
  );

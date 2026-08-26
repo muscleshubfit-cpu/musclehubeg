@@ -25,6 +25,7 @@ export function AuthView({ mode, next }: { mode: "login" | "signup"; next?: stri
   const [phone, setPhone] = useState("");
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [needsConfirmation, setNeedsConfirmation] = useState(false);
 
   // After a successful login, redirect to `next` if provided (e.g. /checkout),
   // otherwise fall back to the coach/client dashboard.
@@ -43,9 +44,13 @@ export function AuthView({ mode, next }: { mode: "login" | "signup"; next?: stri
     setLoading(true);
     try {
       if (isSignup) {
-        const { error } = await signUp(email, password, fullName, phone);
+        const { error, needsConfirmation: needsConf } = await signUp(email, password, fullName, phone);
         if (error) {
           toast.error(error);
+        } else if (needsConf) {
+          // M6 fix: email confirmation required — don't redirect to dashboard.
+          // Show a "check your email" screen instead.
+          setNeedsConfirmation(true);
         } else {
           toast.success(t("auth.accountCreated"));
           goAfterLogin(false);
@@ -77,6 +82,38 @@ export function AuthView({ mode, next }: { mode: "login" | "signup"; next?: stri
       toast.error(t("auth.googleError"));
     }
   };
+
+  // M6 fix: show "check your email" screen when email confirmation is required
+  if (needsConfirmation) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center bg-white px-4 text-center text-[#1d1d1f]">
+        <div className="mx-auto max-w-md">
+          <div className="mb-6 grid h-16 w-16 mx-auto place-items-center rounded-full bg-[#0071e3]/10">
+            <svg className="h-8 w-8 text-[#0071e3]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+            </svg>
+          </div>
+          <h1 className="text-2xl font-semibold tracking-tight">
+            {isAr ? "تحقق من بريدك الإلكتروني" : "Check your email"}
+          </h1>
+          <p className="mt-3 text-sm font-normal text-[#6e6e73]">
+            {isAr
+              ? `أرسلنا رابط تأكيد إلى ${email}. اضغط على الرابط لتفعيل حسابك ثم سجّل الدخول.`
+              : `We sent a confirmation link to ${email}. Click the link to activate your account, then sign in.`}
+          </p>
+          <button
+            onClick={() => {
+              setNeedsConfirmation(false);
+              navigate("auth", { mode: "login" });
+            }}
+            className="mt-6 rounded-full bg-[#0071e3] px-6 py-2.5 text-sm font-normal text-white transition-opacity hover:opacity-90"
+          >
+            {isAr ? "العودة لتسجيل الدخول" : "Back to login"}
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen flex-col bg-white text-[#1d1d1f]">
