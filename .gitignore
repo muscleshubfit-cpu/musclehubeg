@@ -44,7 +44,10 @@ pnpm-lock.yaml
 # Original cloned repo (kept locally for reference, NOT pushed to GitHub)
 /repo/
 /tool-results/
-/scripts/
+# Everything under /scripts is local tooling/logs EXCEPT the blog-pipeline
+# GHA runner, which MUST be versioned (generate-blog-post.yml depends on it)
+/scripts/*
+!/scripts/blog-runner/
 /skills/
 /tests/
 /examples/
