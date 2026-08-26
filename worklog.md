@@ -2140,3 +2140,21 @@ Stage Summary:
 - EVO chat backdrop is visible enough to indicate modal state.
 - Commit SHA: (pending)
 - Push status: (pending)
+
+---
+Task ID: FIX-PRINT-XSS-030
+Agent: Main (Z User)
+Task: Fix M53 — PlansView print modal writes user-derived HTML to new window without escaping (XSS risk).
+
+Work Log:
+- M53: printPlan() interpolates plan content (meal names, food items, exercise names, notes, sets/reps/rest) directly into HTML string via w.document.write(html). If AI returns a meal name containing <script>alert(1)</script>, it executes in the print window's context (same origin as the app).
+- Added escapeHtml() helper function that escapes &, <, >, ", '.
+- Applied escapeHtml to all user-derived interpolations: plan.title, content.overview, meal names, meal times, food names, amounts, calories, alternatives, exercise names, notes, sets, reps, rest.
+- Also fixed brand name "MuscleHub" → "MuscleHubEG" in the print template.
+- Verified: tsc 0 errors, eslint 0 errors, next build exit 0.
+
+Stage Summary:
+- Print modal is now XSS-safe — all user/AI-derived content is HTML-escaped.
+- Brand name consistent in print output.
+- Commit SHA: (pending)
+- Push status: (pending)

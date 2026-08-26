@@ -14,6 +14,17 @@ import { resolveExerciseImage, getExerciseImage, getExerciseImages, getFallbackS
 import { EXERCISES } from "@/lib/exercises";
 import { toast } from "sonner";
 
+// M53 fix: escape HTML to prevent XSS in print window
+function escapeHtml(str: string | undefined | null): string {
+ if (!str) return "";
+ return String(str)
+ .replace(/&/g, "&amp;")
+ .replace(/</g, "&lt;")
+ .replace(/>/g, "&gt;")
+ .replace(/"/g, "&quot;")
+ .replace(/'/g, "&#039;");
+}
+
 export function PlansView() {
  const { t } = useI18n();
  const { profile } = useAuth();
@@ -190,13 +201,13 @@ export function PlansView() {
 <div class="brand">
  <div class="brand-logo">MH</div>
  <div>
- <div class="brand-name">MuscleHub</div>
+ <div class="brand-name">MuscleHubEG</div>
  <div class="brand-tag">كوتش أونلاين للتغذية واللياقة | musclehubeg.vercel.app</div>
  </div>
 </div>
-<h1>${plan.title}</h1>`;
+<h1>${escapeHtml(plan.title)}</h1>`;
  if (content) {
- if (content.overview) html += `<p style="white-space:pre-line">${content.overview}</p>`;
+ if (content.overview) html += `<p style="white-space:pre-line">${escapeHtml(content.overview)}</p>`;
 
  if (!isWorkout) {
  // Data analysis
@@ -256,10 +267,10 @@ export function PlansView() {
  if (content.meals) {
  html += `<h2> النظام الغذائي</h2>`;
  for (const m of content.meals) {
- html += `<h3>${m.name}${m.time ? ` <span style="font-size:11px;color:#666;font-weight:400">${m.time}</span>` : ""}</h3>`;
+ html += `<h3>${escapeHtml(m.name)}${m.time ? ` <span style="font-size:11px;color:#666;font-weight:400">${escapeHtml(m.time)}</span>` : ""}</h3>`;
  html += `<table><tr><th style="width:30px">#</th><th>المكون</th><th>الكمية</th><th>السعرات</th><th>البدائل</th></tr>`;
  (m.items || []).forEach((it: any, i: number) => {
- html += `<tr><td>${i + 1}</td><td>${it.food}</td><td>${it.amount}</td><td>${it.calories}</td><td style="font-size:11px;color:#666">${it.alternatives || "—"}</td></tr>`;
+ html += `<tr><td>${i + 1}</td><td>${escapeHtml(it.food)}</td><td>${escapeHtml(it.amount)}</td><td>${escapeHtml(String(it.calories))}</td><td style="font-size:11px;color:#666">${escapeHtml(it.alternatives) || "—"}</td></tr>`;
  });
  if (m.total_calories || m.total_protein_g) {
  html += `<tr class="meal-total"><td colspan="3">إجمالي الوجبة: ~${m.total_calories || (m.items || []).reduce((s: number, i: any) => s + (i.calories || 0), 0)} سعرة</td><td>${m.total_protein_g || ""} ${m.total_protein_g ? "جم بروتين" : ""}</td><td></td></tr>`;
@@ -290,11 +301,11 @@ export function PlansView() {
  if (exImages.length > 0) {
  imgHtml = `<div style="display:flex;gap:4px;margin-bottom:4px">`;
  exImages.slice(0, 2).forEach((url: string) => {
- imgHtml += `<img src="${url}" alt="${ex.name}" style="width:60px;height:60px;object-fit:contain;border:1px solid #e2e2e2;border-radius:6px;background:#fafafa" onerror="this.style.display='none'">`;
+ imgHtml += `<img src="${url}" alt="${escapeHtml(ex.name)}" style="width:60px;height:60px;object-fit:contain;border:1px solid #e2e2e2;border-radius:6px;background:#fafafa" onerror="this.style.display='none'">`;
  });
  imgHtml += `</div>`;
  }
- html += `<tr><td>${i + 1}</td><td>${imgHtml}<strong>${ex.name}</strong>${ex.notes ? `<br><span style="font-size:11px;color:#666">${ex.notes}</span>` : ""}</td><td style="color:#0071e3;font-weight:700">${ex.sets}</td><td style="color:#34c759;font-weight:700">${ex.reps}</td><td style="color:#ff9500;font-weight:700">${ex.rest}</td></tr>`;
+ html += `<tr><td>${i + 1}</td><td>${imgHtml}<strong>${escapeHtml(ex.name)}</strong>${ex.notes ? `<br><span style="font-size:11px;color:#666">${escapeHtml(ex.notes)}</span>` : ""}</td><td style="color:#0071e3;font-weight:700">${escapeHtml(String(ex.sets))}</td><td style="color:#34c759;font-weight:700">${escapeHtml(String(ex.reps))}</td><td style="color:#ff9500;font-weight:700">${escapeHtml(ex.rest)}</td></tr>`;
  });
  html += `</table>`;
  }
