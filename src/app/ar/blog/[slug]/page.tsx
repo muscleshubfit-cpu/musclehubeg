@@ -1,3 +1,4 @@
+import { notFound } from "next/navigation";
 import { BlogArticlePage } from "@/components/blog/BlogArticlePage";
 import { fetchBlogForOG } from "@/lib/blog-server";
 import { getArticleSchema, getBreadcrumbSchema } from "@/lib/seo";
@@ -56,6 +57,11 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
   const { slug } = await params;
 
   const og = await fetchBlogForOG(slug, "ar");
+
+  // M29 fix: return proper 404 when the post doesn't exist.
+  if (!og) {
+    notFound();
+  }
 
   const articleSchema = og
     ? getArticleSchema({

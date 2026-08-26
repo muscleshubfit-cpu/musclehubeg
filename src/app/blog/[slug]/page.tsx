@@ -1,3 +1,4 @@
+import { notFound } from "next/navigation";
 import { BlogArticlePage } from "@/components/blog/BlogArticlePage";
 import { fetchBlogForOG } from "@/lib/blog-server";
 import { getArticleSchema, getBreadcrumbSchema } from "@/lib/seo";
@@ -62,6 +63,13 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
 
   // Fetch blog data for Article schema
   const og = await fetchBlogForOG(slug, "en");
+
+  // M29 fix: return proper 404 (not soft-404 HTTP 200) when the post
+  // doesn't exist. This triggers Next.js's not-found page with status 404,
+  // preventing Google from indexing invalid blog URLs as soft-404s.
+  if (!og) {
+    notFound();
+  }
 
   const articleSchema = og
     ? getArticleSchema({

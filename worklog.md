@@ -1787,3 +1787,21 @@ Stage Summary:
 - Payment requests can no longer be double-approved or re-approved after rejection.
 - Commit SHA: (pending)
 - Push status: (pending)
+
+---
+Task ID: FIX-BLOG-SEO-014
+Agent: Main (Z User)
+Task: Fix M29 — blog article pages returned HTTP 200 for invalid slugs (soft-404). M28 (server-render article body) deferred — requires larger refactor.
+
+Work Log:
+- M29: both /blog/[slug]/page.tsx and /ar/blog/[slug]/page.tsx rendered <BlogArticlePage> even when fetchBlogForOG returned null. The client component would fetch, get null, show "Article not found" — but HTTP status stayed 200. Google classified these as soft-404s (worse than real 404s — dilutes crawl budget).
+- Added notFound() call (from next/navigation) in both server components when og === null. This triggers Next.js's 404 page with proper HTTP 404 status code.
+- Imported notFound in both files.
+- M28 (blog article body is client-rendered only) deferred — requires converting BlogArticlePage from "use client" to server component or splitting into server+client. Larger refactor, will tackle separately.
+- Verified: tsc 0 errors, next build exit 0.
+
+Stage Summary:
+- Invalid blog URLs now return proper HTTP 404 (not soft-404 HTTP 200).
+- Google will stop indexing invalid blog URLs, preserving crawl budget for real content.
+- Commit SHA: (pending)
+- Push status: (pending)
