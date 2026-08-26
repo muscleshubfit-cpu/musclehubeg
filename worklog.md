@@ -1748,3 +1748,24 @@ Stage Summary:
 - Social shares show food/program-specific metadata instead of generic site title.
 - Commit SHA: (pending)
 - Push status: (pending)
+
+---
+Task ID: FIX-UI-QUICK-012
+Agent: Main (Z User)
+Task: Fix 6 quick UI issues — invisible text + French word + cookie flash + duplicated muscles.
+
+Work Log:
+- M25: programs/[slug] CTA description `text-gray-300` → `text-[#6e6e73]` (contrast 1.4:1 → 4.6:1).
+- M26: evo/page.tsx "How does EVO work" — number circles `bg-white/10` → `bg-[#1d1d1f] text-white`, descriptions `text-gray-400` → `text-[#6e6e73]`.
+- M27: coaching/page.tsx "Start chatting" button — was `border + text-white` (invisible). Changed to `bg-[#1d1d1f] text-white` (solid dark button).
+- M35: StaticPageView terms — French word "accès" → "وصول" (Arabic).
+- M37: CookieConsent — default state `"ar"` → `"en"` (matches site's primary language, prevents Arabic flash for English users).
+- M38: exercises.ts — 2,565 duplicated muscle entries (e.g. ["Abs, Abs"] → ["Abs"]). Ran fix_duplicated_muscles.py script.
+- Verified: tsc 0 errors, eslint 0 errors (2 pre-existing warnings), next build exit 0.
+
+Stage Summary:
+- 3 invisible-text bugs fixed (programs CTA, EVO steps, coaching button).
+- Cookie consent no longer flashes Arabic for English visitors.
+- Exercise muscle chips no longer show "Abs, Abs" — clean "Abs".
+- Commit SHA: (pending)
+- Push status: (pending)

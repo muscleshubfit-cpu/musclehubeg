@@ -31,7 +31,7 @@ function updateConsent(granted: boolean) {
 
 export function CookieConsent() {
   const [show, setShow] = useState(false);
-  const [lang, setLang] = useState<"ar" | "en">("ar");
+  const [lang, setLang] = useState<"ar" | "en">("en");
 
   useEffect(() => {
     // Detect language from <html lang="...">

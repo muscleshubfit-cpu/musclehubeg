@@ -302,14 +302,14 @@ export default function EvoPage() {
               },
             ].map((step, i) => (
               <div key={i} className="flex gap-4">
-                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-white/10 text-sm font-semibold">
+                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[#1d1d1f] text-sm font-semibold text-white">
                   {step.num}
                 </span>
                 <div>
                   <h3 className="text-base font-semibold">
                     {isAr ? step.titleAr : step.titleEn}
                   </h3>
-                  <p className="mt-1 text-sm font-normal text-gray-400">
+                  <p className="mt-1 text-sm font-normal text-[#6e6e73]">
                     {isAr ? step.descAr : step.descEn}
                   </p>
                 </div>

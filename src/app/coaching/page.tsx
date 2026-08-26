@@ -289,7 +289,7 @@ export default function CoachingPage() {
               </a>
               <a
                 href="/chat"
-                className="inline-flex items-center gap-2 rounded-full border border-[#d2d2d7] px-7 py-3.5 text-base font-normal text-white transition-colors hover:bg-[#e5e5e7]"
+                className="inline-flex items-center gap-2 rounded-full bg-[#1d1d1f] px-7 py-3.5 text-base font-normal text-white transition-opacity hover:opacity-90"
               >
                 {isAr ? "ابدأ المحادثة" : "Start chatting"}
               </a>
