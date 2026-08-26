@@ -2099,3 +2099,24 @@ Stage Summary:
 - Meal planner accepts fractional grams + blocks negative values.
 - Commit SHA: (pending)
 - Push status: (pending)
+
+---
+Task ID: FIX-PROGRESS-VALIDATION-028
+Agent: Main (Z User)
+Task: Fix M46 (progress no date picker) + M45 (progress NaN + no range validation).
+
+Work Log:
+- M46: ProgressView "Add Entry" form had no date picker. Users who forgot to log yesterday's weigh-in couldn't back-date. Added date input (type="date") defaulting to today, max=today (no future dates). Passes entry_date to addProgress as created_at.
+- M45: ProgressView submit() converted inputs via Number(form[k]) with no validation. Typing "abc" → NaN stored. Weight of -50 or 9999 passed. Added:
+  - isNaN check → "invalid number" error
+  - Weight range: 20-400 kg
+  - Energy range: 1-10
+  - All errors show bilingual toast + abort save.
+- Added isAr variable to ProgressView scope (was missing).
+- Verified: tsc 0 errors, eslint 0 errors, next build exit 0.
+
+Stage Summary:
+- Users can back-date progress entries (date picker, max=today).
+- Progress data is validated (no NaN, no impossible values).
+- Commit SHA: (pending)
+- Push status: (pending)

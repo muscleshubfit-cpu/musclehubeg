@@ -30,6 +30,7 @@ const WeightChart = dynamic(
 
 export function ProgressView() {
  const { t, lang } = useI18n();
+ const isAr = lang === "ar";
  const { profile } = useAuth();
  const [entries, setEntries] = useState<any[]>([]);
  const [photos, setPhotos] = useState<any[]>([]);
@@ -66,8 +67,29 @@ export function ProgressView() {
  setSaving(true);
  try {
  const entry: any = { client_id: profile.id };
+ // M46 fix: allow back-dating entries (default = today, max = today)
+ if (form.entry_date) entry.created_at = form.entry_date;
  for (const k of ["weight", "waist", "chest", "hips", "arm", "neck", "energy", "adherence"]) {
- if (form[k]) entry[k] = Number(form[k]);
+ if (form[k]) {
+ const num = Number(form[k]);
+ // M45 fix: validate ranges to prevent NaN + impossible values
+ if (isNaN(num)) {
+ toast.error(`${k}: invalid number`);
+ setSaving(false);
+ return;
+ }
+ if (k === "weight" && (num < 20 || num > 400)) {
+ toast.error(isAr ? "الوزن يجب أن يكون بين 20 و 400 كجم" : "Weight must be between 20 and 400 kg");
+ setSaving(false);
+ return;
+ }
+ if (k === "energy" && (num < 1 || num > 10)) {
+ toast.error(isAr ? "الطاقة يجب أن تكون بين 1 و 10" : "Energy must be between 1 and 10");
+ setSaving(false);
+ return;
+ }
+ entry[k] = num;
+ }
  }
  if (form.notes) entry.notes = form.notes;
  await addProgress(entry);
@@ -256,6 +278,18 @@ export function ProgressView() {
  <DialogTitle>{t("prog.newEntry")}</DialogTitle>
  </DialogHeader>
  <div className="grid gap-3 sm:grid-cols-2">
+ {/* M46 fix: date picker for back-dating entries */}
+ <div className="sm:col-span-2">
+ <Label htmlFor="entry_date">{isAr ? "التاريخ" : "Date"}</Label>
+ <Input
+ id="entry_date"
+ type="date"
+ value={form.entry_date ?? new Date().toISOString().slice(0, 10)}
+ max={new Date().toISOString().slice(0, 10)}
+ onChange={(e) => setForm((p) => ({ ...p, entry_date: e.target.value }))}
+ className="mt-1.5"
+ />
+ </div>
  {fields.map((f) => (
  <div key={f.key}>
  <Label htmlFor={f.key}>{f.label}</Label>
