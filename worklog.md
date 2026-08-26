@@ -2480,8 +2480,8 @@ Work Log:
 Stage Summary:
 - Coach client list now loads in 2 queries (was 100+ for 50 clients).
 - Graceful fallback if RPC not available.
-- Commit SHA: (pending)
-- Push status: (pending)
+- Commit SHA: 8c491e9
+- Push status: pushed
 
 ---
 Task ID: FIX-TESTS-EXPANDED-047
@@ -2499,5 +2499,5 @@ Stage Summary:
 - safe-redirect has comprehensive security tests (open-redirect prevention verified).
 - tier-limits has correct tier→limit mapping tests.
 - Fixed a real bug: evoChatLimitFor was returning 10 for premium/pro/coaching instead of null (unlimited).
-- Commit SHA: (pending)
-- Push status: (pending)
+- Commit SHA: 90f075a
+- Push status: pushed
