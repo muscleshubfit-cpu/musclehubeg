@@ -9,6 +9,7 @@ import {
   listAllSubscriptions,
   listSubscriptionRequests,
   getQuestionnaire,
+  getCoachClientListOptimized,
 } from "@/lib/data";
 import { getTier } from "@/lib/plans";
 import { MEMBERSHIPS } from "@/lib/memberships";
@@ -66,17 +67,64 @@ export function CoachView() {
   useEffect(() => {
     (async () => {
       try {
+        // Decision 1 fix: try the optimized RPC first (1 query instead of 2N+3)
+        const optimized = await getCoachClientListOptimized();
+
+        if (optimized && optimized.length >= 0) {
+          // RPC returned data — build client list from the single query result
+          const now = Date.now();
+          const enriched: ClientWithMeta[] = optimized.map((row: any) => {
+            const sub = row.sub_tier
+              ? {
+                  tier: row.sub_tier,
+                  status: row.sub_status,
+                  end_date: row.sub_end_date,
+                  months: row.sub_months,
+                  client_id: row.client_id,
+                }
+              : undefined;
+            const isActive =
+              sub && sub.status === "active" && sub.end_date && new Date(sub.end_date).getTime() > now;
+            const isExpiring =
+              isActive && sub.end_date && new Date(sub.end_date).getTime() - now < 14 * 864e5;
+            const isExpired =
+              sub && (sub.status !== "active" || (sub.end_date && new Date(sub.end_date).getTime() <= now));
+            const hasSub = !!sub;
+
+            return {
+              id: row.client_id,
+              full_name: row.client_full_name,
+              email: row.client_email,
+              phone: row.client_phone,
+              created_at: row.client_created_at,
+              sub,
+              isActive: !!isActive,
+              isExpiring: !!isExpiring,
+              isExpired: !!isExpired,
+              hasSub,
+              hasNutriQ: !!row.nutri_q_status,
+              hasFitQ: !!row.fit_q_status,
+              hasPendingPayment: (row.pending_payments || 0) > 0,
+            } as ClientWithMeta;
+          });
+          setClients(enriched);
+          // Still need pending requests for the payments UI
+          const reqs = await listSubscriptionRequests("pending");
+          setPendingRequests(reqs as any[]);
+          setLoading(false);
+          return;
+        }
+
+        // Fallback: old N+1 path (RPC not available or failed)
         const [c, s, reqs] = await Promise.all([
           listAllClients(),
           listAllSubscriptions(),
           listSubscriptionRequests("pending"),
         ]);
 
-        // Fetch questionnaire + plan status for each client (parallel)
-        const enriched = await Promise.all(
+        const enrichedFallback = await Promise.all(
           (c as any[]).map(async (client) => {
             const sub = (s as any[]).find((x) => x.client_id === client.id);
-            const now = Date.now();
             const isActive =
               sub && sub.status === "active" && new Date(sub.end_date).getTime() > now;
             const isExpiring =
@@ -85,7 +133,6 @@ export function CoachView() {
               sub && (sub.status !== "active" || new Date(sub.end_date).getTime() <= now);
             const hasSub = !!sub;
 
-            // Fetch questionnaires (parallel)
             const [nutriQ, fitQ] = await Promise.all([
               getQuestionnaire(client.id, "nutrition").catch(() => null),
               getQuestionnaire(client.id, "fitness").catch(() => null),
@@ -113,7 +160,7 @@ export function CoachView() {
           }),
         );
 
-        setClients(enriched);
+        setClients(enrichedFallback);
         setPendingRequests(reqs as any[]);
       } catch (e) {
         console.error("[CoachView] load failed", e);

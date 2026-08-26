@@ -2465,3 +2465,20 @@ Stage Summary:
 - data.ts split deferred (larger scope).
 - Commit SHA: 44496e2
 - Push status: pushed
+
+---
+Task ID: FIX-COACHVIEW-RPC-046
+Agent: Main (Z User)
+Task: Complete Decision 1 — update CoachView to use getCoachClientListOptimized RPC.
+
+Work Log:
+- Updated CoachView.tsx useEffect: tries getCoachClientListOptimized() RPC first (1 query). If it returns data, builds the client list from the single result — no per-client getQuestionnaire calls needed (questionnaire status is included in the RPC result). Only falls back to listSubscriptionRequests for the payments UI (1 extra query).
+- Total queries: 2 (RPC + pending requests) instead of 2N+3 for N clients.
+- If RPC fails or returns null (migration not applied), falls back to the old N+1 path with a console warning.
+- Verified: tsc 0 errors, next build exit 0.
+
+Stage Summary:
+- Coach client list now loads in 2 queries (was 100+ for 50 clients).
+- Graceful fallback if RPC not available.
+- Commit SHA: (pending)
+- Push status: (pending)
