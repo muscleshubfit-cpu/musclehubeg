@@ -1431,18 +1431,19 @@ export async function listSubscriptionsForClient(clientId: string) {
  return read<any[]>(LS_SUBS, []).filter((s) => s.client_id === clientId);
 }
 
-export async function upsertSubscription(clientId: string, tier: string, months: number, startDate: string, endDate: string) {
+export async function upsertSubscription(clientId: string, tier: string, months: number, startDate?: string, endDate?: string) {
  if (isSupabaseConfigured && supabase) {
- // Determine subscription_type from tier
+ // Use migration 0018's extend_subscription() RPC which atomically
+ // extends an existing subscription (preserving remaining paid days)
+ // instead of overwriting it. Fixes C10 (early renewal lost paid days).
  const subscriptionType = tier === "coaching" ? "coaching" : "membership";
  const { data, error } = await supabase
- .from("subscriptions")
- .upsert(
- { client_id: clientId, tier, months, start_date: startDate, end_date: endDate, status: "active", subscription_type: subscriptionType },
- { onConflict: "client_id,tier" },
- )
- .select()
- .single();
+ .rpc("extend_subscription", {
+ p_client_id: clientId,
+ p_tier: tier,
+ p_months: months,
+ p_subscription_type: subscriptionType,
+ });
  if (error) throw new Error(error.message);
  return data;
  }

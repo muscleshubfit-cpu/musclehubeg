@@ -1588,3 +1588,31 @@ Stage Summary:
 - Blog article coaching CTA no longer 404s for Arabic readers.
 - Commit SHA: (pending)
 - Push status: (pending)
+
+---
+Task ID: FIX-PAYPAL-SUB-005
+Agent: Main (Z User)
+Task: Fix C10 — PayPal capture + manual approval overwrote active subscriptions, causing users to lose remaining paid days on early renewal.
+
+Work Log:
+- Root cause: `serverUpsertSubscription` (capture-order/route.ts) and `upsertSubscription` (data.ts) both used `.upsert({start_date: now, end_date: now+months}, {onConflict: "client_id,tier"})`. If a user with 6 months left paid for another month, the upsert replaced the row — start_date=now, end_date=now+1month. The user lost 6 months of paid access.
+- Created `supabase/migrations/0018_extend_subscription.sql`:
+  - `extend_subscription(p_client_id, p_tier, p_months, p_subscription_type)` SECURITY DEFINER function.
+  - Fetches existing subscription with `FOR UPDATE` row lock (prevents concurrent races).
+  - If exists and end_date > now: new_end = existing.end_date + months (preserves remaining days).
+  - If exists but expired: new_end = now + months.
+  - If new: insert with start_date=now, end_date=now+months.
+  - Returns the updated/inserted row.
+- Edited `capture-order/route.ts:serverUpsertSubscription`: removed `startDate`/`endDate` params, replaced `.upsert()` with `.rpc("extend_subscription", {...})`.
+- Edited `data.ts:upsertSubscription`: same RPC replacement. Made `startDate`/`endDate` params optional (backward compat with callers that still pass them — they're now ignored, the RPC computes dates atomically).
+- Added `extend_subscription` function type to `src/lib/supabase/types.ts`.
+- Removed unused `start`/`end` date variables from capture-order route.
+- Updated PROGRESS.md: migration count 17→18.
+- Verified: tsc 0 errors, eslint 0 errors, next build exit 0.
+
+Stage Summary:
+- Users who renew early now get their remaining days added to the new period.
+- Both PayPal capture (server-side admin) and manual approval (coach-side client) use the same atomic RPC.
+- FOR UPDATE row lock prevents concurrent renewal races.
+- Commit SHA: (pending)
+- Push status: (pending)

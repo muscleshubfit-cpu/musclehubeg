@@ -49,7 +49,7 @@
 | API routes | **36** | `find src/app/api -name "route.ts*" \| wc -l` |
 | مكونات shadcn UI | **51** | `find src/components/ui -name "*.tsx" \| wc -l` |
 | Views (`src/components/views/`) | **25** | `find src/components/views -name "*.tsx" \| wc -l` |
-| Migrations | **17** (`0001` → `0017`) | `ls supabase/migrations/` |
+| Migrations | **18** (`0001` → `0018`) | `ls supabase/migrations/` |
 | Tables مُعرّفة في migrations | **22** | `grep -hE "^create table" supabase/migrations/*.sql \| wc -l` |
 | Routes عربية `/ar/*` | **6** | `/ar`, `/ar/blog`, `/ar/blog/[slug]`, `/ar/exercises`, `/ar/foods`, `/ar/memberships` |
 | Blog cron routes | **7** | step1-pick + step2-generate (legacy) + step2a-research + step2b-en-article + step2c-ar-article + step2d-links + step3-publish |

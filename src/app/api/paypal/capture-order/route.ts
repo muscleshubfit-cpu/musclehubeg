@@ -50,30 +50,27 @@ export const runtime = "nodejs";
 // ─────────────────────────────────────────────────────────────────────────
 
 /**
- * Server-side subscription upsert using supabaseAdmin (service-role).
- * Replicates the exact same logic as upsertSubscription() in data.ts
- * but uses the admin client to bypass RLS (safe — we already verified
- * the user's identity via requireUser + PayPal's custom_id IDOR check).
+ * Server-side subscription extension using supabaseAdmin (service-role).
+ * Uses migration 0018's extend_subscription() RPC which atomically
+ * extends an existing subscription (preserving remaining paid days)
+ * instead of overwriting it. Fixes C10 (early renewal lost paid days).
  */
 async function serverUpsertSubscription(
   clientId: string,
   tier: string,
   months: number,
-  startDate: string,
-  endDate: string,
 ) {
   if (!isSupabaseAdminConfigured || !supabaseAdmin) {
     throw new Error("Supabase admin client not configured");
   }
   const subscriptionType = tier === "coaching" ? "coaching" : "membership";
   const { data, error } = await supabaseAdmin
-    .from("subscriptions")
-    .upsert(
-      { client_id: clientId, tier, months, start_date: startDate, end_date: endDate, status: "active", subscription_type: subscriptionType },
-      { onConflict: "client_id,tier" },
-    )
-    .select()
-    .single();
+    .rpc("extend_subscription", {
+      p_client_id: clientId,
+      p_tier: tier,
+      p_months: months,
+      p_subscription_type: subscriptionType,
+    });
   if (error) throw new Error(error.message);
   return data;
 }
@@ -412,18 +409,13 @@ export async function POST(request: NextRequest) {
   // function which handles RLS internally via the authenticated coach
   // session — but for PayPal, we don't have a coach session, so we use
   // the admin client).
-  const start = new Date();
-  const end = new Date();
-  end.setMonth(end.getMonth() + duration_months);
-
   try {
-    // Server-side subscription upsert (uses supabaseAdmin, not client supabase)
+    // Server-side subscription extension (uses supabaseAdmin + extend_subscription RPC)
+    // The RPC handles start_date and end_date computation atomically.
     await serverUpsertSubscription(
       user_id,
       plan_tier,
       duration_months,
-      start.toISOString(),
-      end.toISOString(),
     );
 
     // Notify the user that their subscription is active

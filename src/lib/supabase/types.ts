@@ -947,6 +947,25 @@ export type Database = {
         Args: { p_user_id: string };
         Returns: "client" | "coach";
       };
+      extend_subscription: {
+        Args: {
+          p_client_id: string;
+          p_tier: string;
+          p_months: number;
+          p_subscription_type?: string;
+        };
+        Returns: {
+          id: string;
+          client_id: string;
+          tier: string;
+          months: number;
+          start_date: string | null;
+          end_date: string | null;
+          status: "active" | "expired" | "pending";
+          subscription_type: string | null;
+          created_at: string;
+        };
+      };
     };
     Enums: {
       user_role: "client" | "coach";
