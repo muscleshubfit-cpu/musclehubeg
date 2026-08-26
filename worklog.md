@@ -2257,5 +2257,5 @@ Stage Summary:
 - Googlebot can index full article content without JS execution.
 - Social previews that don't run JS (Bing, some scrapers) now see the article.
 - Falls back to client-side fetch if server fetch fails (graceful degradation).
-- Commit SHA: (pending)
-- Push status: (pending)
+- Commit SHA: fc1fe05
+- Push status: pushed
