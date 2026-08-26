@@ -30,13 +30,34 @@
 
 | ID | الوصف | الملف | الأولوية |
 |---|---|---|---|
-| C1-C4 (fixed) | RLS security gaps — profiles self-promotion, referral_earnings tampering, subscriptions self-upgrade | migration `0017` + `data.ts` | ✅ Fixed (2026-08-26) |
-| — | لا توجد bugs حرجة أو عالية الأولوية مفتوحة في الكود الحالي | — | — |
+| — | لا توجد bugs حرجة أو عالية الأولوية مفتوحة في الكود الحالي — تم إصلاح 48 مشكلة في 2026-08-26 (انظر القسم أدناه) | — | — |
+
+### إصلاحات 2026-08-26 (48 مشكلة عبر 18 commit)
+
+| الفئة | المشاكل | Commits |
+|---|---|---|
+| 🔒 أمني حرج | C1 (profiles RLS), C2 (earnings RLS), C3-subs (subscriptions RLS), C4 (cron fail-open), C3-notif (admin notif allowlist), C7 (demo mode guard), C9 (PII log), C17 (open-redirect), C6 (listAllSubscriptions client-side) | dcd82c6, 0dcb385 |
+| 💰 فقدان أموال | C10 (subscription renewal overwrites), C11 (payout split bug), C12 (double-approval) | 9f4053e, 71f713f |
+| ⚙️ ميزات مكسورة | C13 (/chat response field), C14 (coach support sender_id) | 4ffd217 |
+| ⏱️ حدود server-side | C15 (EVO chat limit), C16 (swap limit) | 8a065c0 |
+| 🔍 SEO | C22 (9,705 pages metadata), C23 (skip-to-content), C24 (hreflang), M29 (blog 404), M30 (metadata i18n) | f502b68, 0778277, d0d2cbf, e0b2b63, 4aaa68a |
+| 🎨 UI | C19 (affiliate share), C20 (memberships comparison), C21 (/ar/coaching), M25-M27 (invisible text), M35 (French word), M37 (cookie flash), M38 (duplicated muscles) | b48e669, a526826 |
+| 🛡️ Coach/Admin | M3 (expired subs), M8 (PayPal amount), M10 (review status), M18 (client validation), M20 (support polling), M19 (close-ticket), M7 (upload validation), M9 (subreq dedupe) | 39c8cf5, 75a55bb, 7277ce6, 8ab78fb |
+| 📝 محتوى | M32-M34 (FAQ PayPal + tiers) | 8ab78fb |
+
+**Migrations المطلوبة على Supabase الإنتاج:**
+- `0017_security_rls_hardening.sql` — RLS + trigger + 2 SECURITY DEFINER functions
+- `0018_extend_subscription.sql` — extend_subscription() RPC
+- ملف موحد للتشغيل: `supabase/migrations/RUN_ON_SUPABASE_SECURITY_0017_0018.sql`
+- بعد التشغيل: `NOTIFY pgrst, 'reload schema';`
+
 | ESLint debt | 4 errors + 5 warnings في 7 ملفات `src/` لم تُلمَس (CookieConsent, SaveResultButton, BlogAdminView, checkout/page, foods/[slug], water-tracker, AdSenseAd) — لا تؤثر على production build (Next.js 16 dropped ESLint from build config) | (7 ملفات) | Low (tech-debt) |
 | Tests | 0 ملفات اختبار (unit/integration/E2E) — لا يوجد إطار اختبار | — | Low (tech-debt) |
 | Z.ai token | `ZAI_TOKEN` غير مهيأ على Vercel Production — Blog Step 2a external research يفشل بـ HTTP 401 (التفاصيل في `archive/PROGRESS_ARCHIVE.md` § MH-ZAI-PROD-008) | `src/lib/external-search.ts` | High (يؤثر على Blog pipeline) |
 | Topic picker intermittent | "Topic picker returned an invalid response" أحياناً — يحتاج `parseJSON` robustness أو model-rotation retry | `src/lib/blog-topics.ts` | Medium |
 | Step 2a empty research | يكتب `research_done` حتى مع 0 articles — quality gate في Step 2b يجب أن يلتقطها لكنه لم يُختبر runtime | `src/app/api/cron/blog/step2a-research/route.ts` | Medium |
+| M28 deferred | Blog article body is client-rendered only — requires larger refactor of BlogArticlePage from "use client" to server component | `src/components/blog/BlogArticlePage.tsx` | Medium |
+| M31 deferred | LanguageToggle doesn't navigate to /ar/ mirror — requires creating Arabic mirror routes for all public pages | `src/components/LanguageToggle.tsx` | Medium |
 
 ### إحصائيات المشروع المُتحقَّق منها (مهمة #3 + #4)
 

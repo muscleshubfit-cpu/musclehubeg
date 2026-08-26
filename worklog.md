@@ -1530,8 +1530,8 @@ Stage Summary:
 - Code changes: 3 edits in data.ts (RPC call + 2 listAllSubscriptions replacements), 1 edit in types.ts.
 - listAllSubscriptions still exists for coach-side use (CoachView + CoachClientView) — correct, coaches can see all subs per RLS.
 - Owner must run migration 0017 in Supabase SQL Editor + `NOTIFY pgrst, 'reload schema';` before deploying the code changes.
-- Commit SHA: (pending)
-- Push status: (pending)
+- Commit SHA: dcd82c6
+- Push status: pushed
 
 ---
 Task ID: SEC-AUTH-002
@@ -1552,8 +1552,8 @@ Stage Summary:
 - 1 demo-mode production guard added.
 - 1 PII log removed.
 - 3 open-redirect vectors closed via safeNext utility.
-- Commit SHA: (pending)
-- Push status: (pending)
+- Commit SHA: 0dcb385
+- Push status: pushed
 
 ---
 Task ID: FIX-CHAT-SUPPORT-003
@@ -1568,8 +1568,8 @@ Work Log:
 Stage Summary:
 - /chat page now displays real AI responses instead of "Sorry" fallback.
 - Coach support replies now persist to the database and are visible to clients.
-- Commit SHA: (pending)
-- Push status: (pending)
+- Commit SHA: 4ffd217
+- Push status: pushed
 
 ---
 Task ID: UI-FIX-004
@@ -1586,8 +1586,8 @@ Stage Summary:
 - Affiliate share section now visible (dark bg + white text).
 - Memberships comparison table now fully bilingual (EN + AR).
 - Blog article coaching CTA no longer 404s for Arabic readers.
-- Commit SHA: (pending)
-- Push status: (pending)
+- Commit SHA: b48e669
+- Push status: pushed
 
 ---
 Task ID: FIX-PAYPAL-SUB-005
@@ -1614,8 +1614,8 @@ Stage Summary:
 - Users who renew early now get their remaining days added to the new period.
 - Both PayPal capture (server-side admin) and manual approval (coach-side client) use the same atomic RPC.
 - FOR UPDATE row lock prevents concurrent renewal races.
-- Commit SHA: (pending)
-- Push status: (pending)
+- Commit SHA: 9f4053e
+- Push status: pushed
 
 ---
 Task ID: FIX-PAYOUT-006
@@ -1634,8 +1634,8 @@ Stage Summary:
 - Coaches can no longer double-approve or double-reject payouts.
 - All DB errors are surfaced (toast shows the error instead of fake success).
 - No migration needed — the fix is purely code-level, compatible with the existing trigger.
-- Commit SHA: (pending)
-- Push status: (pending)
+- Commit SHA: 71f713f
+- Push status: pushed
 
 ---
 Task ID: DOCS-SUPABASE-RUN-007
@@ -1658,8 +1658,8 @@ Stage Summary:
 - Covers all 5 security fixes (C1, C2, C3-subs, C6, C10) + 2 migrations.
 - Verification queries let the Owner confirm success without guessing.
 - Rollback script included for emergency reversion.
-- Commit SHA: (pending)
-- Push status: (pending)
+- Commit SHA: 313eb65
+- Push status: pushed
 
 ---
 Task ID: FIX-RATE-LIMITS-008
@@ -1682,8 +1682,8 @@ Stage Summary:
 - Swap weekly limit is now enforced server-side — free users get 0 swaps, tier limits respected.
 - Both endpoints return proper 429 + Retry-After headers.
 - No migration needed — uses existing chat_messages + plan_swaps tables.
-- Commit SHA: (pending)
-- Push status: (pending)
+- Commit SHA: 8a065c0
+- Push status: pushed
 
 ---
 Task ID: FIX-SEO-A11Y-009
@@ -1699,8 +1699,8 @@ Work Log:
 Stage Summary:
 - Skip-to-content link now works on all pages (WCAG 2.4.1 Level A compliance).
 - Google can now correctly associate EN ↔ AR blog articles via hreflang + x-default.
-- Commit SHA: (pending)
-- Push status: (pending)
+- Commit SHA: d0d2cbf
+- Push status: pushed
 
 ---
 Task ID: FIX-SEO-METADATA-010
@@ -1721,8 +1721,8 @@ Stage Summary:
 - 868 exercise pages now have unique <title>, meta description, canonical, OG tags, Twitter card, + JSON-LD schemas — all in initial server-rendered HTML.
 - Google can now rank individual exercise pages for their name.
 - Social shares show exercise-specific metadata instead of generic site title.
-- Commit SHA: (pending)
-- Push status: (pending)
+- Commit SHA: f502b68
+- Push status: pushed
 
 ---
 Task ID: FIX-SEO-METADATA-011
@@ -1746,8 +1746,8 @@ Stage Summary:
 - Combined with exercises (868 pages) — total ~9,705 detail pages now have per-page SEO metadata.
 - Google can now rank individual food/program pages for their name.
 - Social shares show food/program-specific metadata instead of generic site title.
-- Commit SHA: (pending)
-- Push status: (pending)
+- Commit SHA: 0778277
+- Push status: pushed
 
 ---
 Task ID: FIX-UI-QUICK-012
@@ -1767,8 +1767,8 @@ Stage Summary:
 - 3 invisible-text bugs fixed (programs CTA, EVO steps, coaching button).
 - Cookie consent no longer flashes Arabic for English visitors.
 - Exercise muscle chips no longer show "Abs, Abs" — clean "Abs".
-- Commit SHA: (pending)
-- Push status: (pending)
+- Commit SHA: a526826
+- Push status: pushed
 
 ---
 Task ID: FIX-SEC-HARDEN-013
@@ -1785,8 +1785,8 @@ Stage Summary:
 - Expired subscriptions no longer grant premium access (end_date checked server-side on every auth).
 - PayPal capture now verifies the captured amount matches the expected price (defense-in-depth).
 - Payment requests can no longer be double-approved or re-approved after rejection.
-- Commit SHA: (pending)
-- Push status: (pending)
+- Commit SHA: 39c8cf5
+- Push status: pushed
 
 ---
 Task ID: FIX-BLOG-SEO-014
@@ -1803,8 +1803,8 @@ Work Log:
 Stage Summary:
 - Invalid blog URLs now return proper HTTP 404 (not soft-404 HTTP 200).
 - Google will stop indexing invalid blog URLs, preserving crawl budget for real content.
-- Commit SHA: (pending)
-- Push status: (pending)
+- Commit SHA: e0b2b63
+- Push status: pushed
 
 ---
 Task ID: FIX-COACH-ADMIN-015
@@ -1827,8 +1827,8 @@ Stage Summary:
 - Coaches see clear "Client not found" / "Not a client" errors instead of empty pages.
 - Cross-coach data exposure is prevented at the UI level (defense-in-depth on top of RLS).
 - Coach support ticket messages auto-refresh every 10s — real-time replies visible.
-- Commit SHA: (pending)
-- Push status: (pending)
+- Commit SHA: 75a55bb
+- Push status: pushed
 
 ---
 Task ID: FIX-FAQ-DEDUP-016
@@ -1846,8 +1846,8 @@ Stage Summary:
 - Users can no longer spam pending subscription requests.
 - All FAQ sections now consistently mention PayPal as primary payment method.
 - Swap limits now reference correct tiers (Free/Premium/Pro/Coaching) with weekly cadence.
-- Commit SHA: (pending)
-- Push status: (pending)
+- Commit SHA: 8ab78fb
+- Push status: pushed
 
 ---
 Task ID: FIX-UPLOAD-TICKET-017
@@ -1872,8 +1872,8 @@ Stage Summary:
 - Coaches can now close and reopen support tickets.
 - Ticket status auto-updates to "pending" when coach replies (client knows there's a new message).
 - Ticket updated_at is refreshed on each reply (inbox sorting is now correct).
-- Commit SHA: (pending)
-- Push status: (pending)
+- Commit SHA: 7277ce6
+- Push status: pushed
 
 ---
 Task ID: FIX-METADATA-I18N-018
@@ -1901,5 +1901,25 @@ Stage Summary:
 - English-default routes now have English metadata (title, description, OG locale) — Google sees consistent language signals.
 - Browser tab titles + social share previews are now in English for English URLs.
 - 10 layout files updated.
+- Commit SHA: 4aaa68a
+- Push status: pushed
+
+---
+Task ID: DOC-VERIFY-019
+Agent: Main (Z User)
+Task: Final documentation verification — update all worklog entries with actual Commit SHA + Push status, update PROGRESS.md with full fix summary.
+
+Work Log:
+- Ran update_worklog_shas.py script to replace 'Commit SHA: (pending)' + 'Push status: (pending)' with actual SHAs + 'pushed' for all 18 session worklog entries.
+- Verified: 0 pending placeholders remain in worklog.md.
+- Verified: all 18 SHAs (dcd82c6 → 4aaa68a) match actual git commits.
+- Updated PROGRESS.md: added comprehensive "إصلاحات 2026-08-26" section with 48 issues categorized by type + commit SHAs + migration instructions.
+- Added M28 + M31 to deferred issues list in PROGRESS.md.
+
+Stage Summary:
+- All 18 worklog entries now have correct Commit SHA + Push status: pushed.
+- PROGRESS.md reflects the full scope of fixes (48 issues, 18 commits, 2 migrations).
+- Git sync verified: HEAD = origin/main = 4aaa68a.
+- Working tree clean (after this commit).
 - Commit SHA: (pending)
 - Push status: (pending)
