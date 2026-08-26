@@ -2019,3 +2019,25 @@ Stage Summary:
 - PlansView swap state mutation fixed (deep copy of meals/days arrays).
 - Commit SHA: (pending)
 - Push status: (pending)
+
+---
+Task ID: FIX-BLOG-CRON-RETRY-024
+Agent: Main (Z User)
+Task: Fix M16 — blog cron pipeline failed steps (2b, 2c, 2d, 3) could not be retried.
+
+Work Log:
+- M16: Step 2a already allowed retry from "failed" status (line 120-122). Steps 2b, 2c, 2d, 3 only accepted the exact expected status or the next status (idempotent re-run). If a step failed and marked the queue "failed", re-running the same step returned 409 "wrong_status" — the item was permanently stuck.
+- Added retry-from-"failed" logic to all 4 steps:
+  - step2b-en-article: if status === "failed", log warning + proceed with re-processing.
+  - step2c-ar-article: same.
+  - step2d-links: same.
+  - step3-publish: same, also handles "failed:partial_publish" status.
+- Each step's existing idempotent check (for the "already done" status) is preserved.
+- Verified: tsc 0 errors, eslint 0 errors, next build exit 0.
+
+Stage Summary:
+- Failed blog queue items can now be retried by re-running the appropriate cron step.
+- A transient AI failure (e.g. OpenRouter 429) no longer permanently blocks an article.
+- The owner can manually retry by calling the cron route with CRON_SECRET.
+- Commit SHA: (pending)
+- Push status: (pending)

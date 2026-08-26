@@ -93,19 +93,24 @@ export async function GET(request: NextRequest) {
           message: `Queue item ${qi.id} is already en_done. Skipping re-generation.`,
         });
       }
-      return NextResponse.json(
-        {
-          ok: false,
-          step: "2b",
-          queueId: qi.id,
-          skipped: true,
-          reason: "wrong_status",
-          actual_status: qi.status,
-          expected_status: "research_done",
-          message: statusErr,
-        },
-        { status: 409 },
-      );
+      // M16 fix: allow retry from "failed" status — re-process the research.
+      if (qi.status === "failed") {
+        console.warn(`[blog/step2b-en-article] Queue item ${qi.id} was previously failed — re-processing.`);
+      } else {
+        return NextResponse.json(
+          {
+            ok: false,
+            step: "2b",
+            queueId: qi.id,
+            skipped: true,
+            reason: "wrong_status",
+            actual_status: qi.status,
+            expected_status: "research_done",
+            message: statusErr,
+          },
+          { status: 409 },
+        );
+      }
     }
 
     const bundle = qi.article_bundle ? JSON.parse(qi.article_bundle) : {};

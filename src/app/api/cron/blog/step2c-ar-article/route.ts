@@ -62,10 +62,15 @@ export async function GET(request: NextRequest) {
       if (qi.status === "ar_done") {
         return NextResponse.json({ ok: true, step: "2c", queueId: qi.id, idempotent: true, message: `Queue item ${qi.id} is already ar_done.` });
       }
-      return NextResponse.json(
-        { ok: false, step: "2c", queueId: qi.id, skipped: true, reason: "wrong_status", actual_status: qi.status, expected_status: "en_done", message: statusErr },
-        { status: 409 },
-      );
+      // M16 fix: allow retry from "failed" status.
+      if (qi.status === "failed") {
+        console.warn(`[blog/step2c-ar-article] Queue item ${qi.id} was previously failed — re-processing.`);
+      } else {
+        return NextResponse.json(
+          { ok: false, step: "2c", queueId: qi.id, skipped: true, reason: "wrong_status", actual_status: qi.status, expected_status: "en_done", message: statusErr },
+          { status: 409 },
+        );
+      }
     }
 
     const bundle = qi.article_bundle ? JSON.parse(qi.article_bundle) : {};
