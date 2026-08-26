@@ -452,7 +452,7 @@ export default function CoachingPage() {
                   { q: isAr ? "من هو EVO؟" : "Who is EVO?", a: isAr ? "محرك الأداء الذكي. مش شات بوت — بيحلل بياناتك ويحدّث خططك تلقائياً." : "The intelligent performance engine. Not a chatbot — it analyzes your data and updates plans automatically." },
                   { q: isAr ? "هل الخطط مخصصة؟" : "Are plans personalized?", a: isAr ? "نعم، كل خطة تُبنى من استبياناتك وتتحدث أسبوعياً." : "Yes, built from your questionnaires, updated weekly." },
                   { q: isAr ? "هل المدربين حقيقيين؟" : "Are the coaches real?", a: isAr ? "نعم، المدربين حقيقيين ويراجعون خططك بنفسهم." : "Yes, real coaches review your plans personally." },
-                  { q: isAr ? "طرق الدفع؟" : "Payment methods?", a: isAr ? "InstaPay و Vodafone Cash." : "InstaPay and Vodafone Cash." },
+                  { q: isAr ? "طرق الدفع؟" : "Payment methods?", a: isAr ? "PayPal (الطريقة الرئيسية)، InstaPay، و Vodafone Cash." : "PayPal (primary), InstaPay, and Vodafone Cash." },
                   { q: isAr ? "بياناتي آمنة؟" : "Is my data secure?", a: isAr ? "نعم، مشفرة على Supabase مع RLS." : "Yes, encrypted on Supabase with RLS." },
                 ].map((faq, i) => (
                   <AccordionItem key={i} value={`item-${i}`} className="border-b border-[#d2d2d7]">

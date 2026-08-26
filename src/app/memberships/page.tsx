@@ -342,7 +342,7 @@ export default function MembershipsPage({ lang: langProp }: { lang?: Lang } = {}
               },
               {
                 q: isAr ? "طرق الدفع؟" : "Payment methods?",
-                a: isAr ? "InstaPay و Vodafone Cash مع إيصال الدفع." : "InstaPay and Vodafone Cash with receipt upload.",
+                a: isAr ? "PayPal (الطريقة الرئيسية — فورية وآمنة)، InstaPay، و Vodafone Cash. PayPal يعالج الدفع تلقائياً؛ الطرق اليدوية تتطلب رفع إيصال يراجعه الكوتش خلال 24 ساعة." : "PayPal (primary — instant and secure), InstaPay, and Vodafone Cash. PayPal processes automatically; manual methods require uploading a receipt reviewed within 24 hours.",
               },
             ].map((faq, i) => (
               <div key={i} className="rounded-2xl bg-[#f5f5f7] p-5">

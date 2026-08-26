@@ -1046,6 +1046,18 @@ export async function listSubscriptionRequests(status?: string) {
 
 export async function submitSubscriptionRequest(req: any) {
  if (isSupabaseConfigured && supabase) {
+ // M9 fix: check for existing pending request from the same user for the
+ // same plan tier to prevent spamming the coach's payment review queue.
+ const { data: existing } = await supabase
+ .from("subscription_requests")
+ .select("id, status")
+ .eq("user_id", req.user_id)
+ .eq("plan_tier", req.plan_tier)
+ .eq("status", "pending")
+ .maybeSingle();
+ if (existing) {
+ throw new Error("You already have a pending request for this plan. Please wait for the coach to review it.");
+ }
  const { data, error } = await supabase.from("subscription_requests").insert(req).select().single();
  if (error) throw new Error(error.message);
  // Notify coach about new payment request

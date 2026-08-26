@@ -1829,3 +1829,22 @@ Stage Summary:
 - Coach support ticket messages auto-refresh every 10s — real-time replies visible.
 - Commit SHA: (pending)
 - Push status: (pending)
+
+---
+Task ID: FIX-FAQ-DEDUP-016
+Agent: Main (Z User)
+Task: Fix M9 (submitSubscriptionRequest no dedupe) + M32-M34 (FAQ content outdated — PayPal missing, wrong tier names).
+
+Work Log:
+- M9: submitSubscriptionRequest in data.ts — users could submit unlimited pending requests, each firing a coach notification. Added dedupe check: queries for existing pending request with same user_id + plan_tier before inserting. Throws friendly error if duplicate found.
+- M32: StaticPageView FAQ — payment methods answer said "InstaPay and Vodafone Cash" (PayPal missing). Updated both AR + EN to include PayPal as primary + 24h review note.
+- M33: StaticPageView FAQ — swap limits said "Starter: 2/day, Elite: unlimited" (wrong tiers — should be Free/Premium/Pro/Coaching weekly). Updated to correct tiers + weekly cadence.
+- M34: memberships/page.tsx + coaching/page.tsx FAQ — payment methods also missing PayPal. Updated both with PayPal-inclusive answer.
+- Verified: tsc 0 errors, next build exit 0.
+
+Stage Summary:
+- Users can no longer spam pending subscription requests.
+- All FAQ sections now consistently mention PayPal as primary payment method.
+- Swap limits now reference correct tiers (Free/Premium/Pro/Coaching) with weekly cadence.
+- Commit SHA: (pending)
+- Push status: (pending)
