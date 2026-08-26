@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { Save, Eye, Code, Sparkles, Loader2, ArrowLeft, Plus, X, CheckCircle, AlertCircle, Clock, Wand2, Settings2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -60,16 +60,24 @@ export function BlogEditorView({ mode, postId }: { mode: "new" | "edit"; postId?
  }
  }, [mode, postId]);
 
- // Auto-save draft every 30s
+ // Auto-save draft every 30s (M17 fix: use a ref so the interval doesn't
+ // reset on every keystroke. The interval reads the latest post from the ref.)
+ const postRef = useRef(post);
+ useEffect(() => {
+ postRef.current = post;
+ }, [post]);
  useEffect(() => {
  if (mode !== "edit" || !postId) return;
  const interval = setInterval(() => {
- if (post.title && post.content) {
- adminUpdatePost(postId, { title: post.title, content: post.content }).catch(() => {});
+ const p = postRef.current;
+ if (p.title && p.content) {
+ adminUpdatePost(postId, { title: p.title, content: p.content }).catch((e) => {
+ console.error("[BlogEditor] auto-save failed:", e?.message);
+ });
  }
  }, 30000);
  return () => clearInterval(interval);
- }, [mode, postId, post.title, post.content]);
+ }, [mode, postId]);
 
  // Auto-calculate reading time
  useEffect(() => {
@@ -90,6 +98,25 @@ export function BlogEditorView({ mode, postId }: { mode: "new" | "edit"; postId?
  const save = async (publish?: boolean) => {
  if (!post.title?.trim() || !post.content?.trim()) {
  toast.error(isAr ? "العنوان والمحتوى مطلوبان" : "Title and content are required");
+ return;
+ }
+ // M15 fix: validate slug format — only lowercase letters, numbers, hyphens.
+ // Arabic characters break URL encoding + sharing + hreflang.
+ const slug = post.slug?.trim() || "";
+ if (!slug) {
+ toast.error(isAr ? "الـ slug مطلوب" : "Slug is required");
+ return;
+ }
+ if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) {
+ toast.error(
+ isAr
+ ? "الـ slug يجب أن يكون أحرف إنجليزية صغيرة وأرقام وواصلات فقط (مثال: my-first-post)"
+ : "Slug must be lowercase English letters, numbers, and hyphens only (e.g. my-first-post)"
+ );
+ return;
+ }
+ if (slug.length > 80) {
+ toast.error(isAr ? "الـ slug طويل جداً (حد أقصى 80 حرف)" : "Slug too long (max 80 chars)");
  return;
  }
  setSaving(true);
