@@ -17,7 +17,12 @@ import { supabaseAdmin, isSupabaseAdminConfigured } from "@/lib/supabase/admin";
  *
  * This endpoint solves it by:
  *   1. Verifying the caller is authenticated (requireUser)
- *   2. Using supabaseAdmin (service_role key) to insert — bypasses RLS
+ *   2. Validating the notification type against a strict allowlist
+ *   3. Using supabaseAdmin (service_role key) to insert — bypasses RLS
+ *
+ * Security: the `type` field is validated against ALLOWED_TYPES to
+ * prevent arbitrary notification injection. `title` and `body` are
+ * length-capped to prevent abuse.
  *
  * Body:
  *   { type: string, title: string, body: string, link?: string }
@@ -26,13 +31,26 @@ import { supabaseAdmin, isSupabaseAdminConfigured } from "@/lib/supabase/admin";
  *   { ok: true, id: string } on success
  *   { error: string } on failure
  */
+
+const ALLOWED_TYPES = new Set([
+  "new_client",
+  "new_ticket",
+  "plan_approved",
+  "questionnaire_submitted",
+  "payment_request",
+]);
+
+const MAX_TITLE_LEN = 200;
+const MAX_BODY_LEN = 1000;
+const MAX_LINK_LEN = 200;
+
 export async function POST(request: NextRequest) {
   if (!isAuthConfigured) {
     return NextResponse.json({ ok: true, demo: true });
   }
 
   // Require authentication — any logged-in user can create admin notifs
-  // (the calling code decides when it's appropriate to notify the coach)
+  // for legitimate event types (validated against ALLOWED_TYPES below)
   const auth = await requireUser(request);
   if (auth instanceof Response) return auth;
 
@@ -53,13 +71,26 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  // Validate type against allowlist — prevents arbitrary notification injection
+  if (!ALLOWED_TYPES.has(type)) {
+    return NextResponse.json(
+      { error: `Invalid notification type. Allowed: ${[...ALLOWED_TYPES].join(", ")}` },
+      { status: 400 },
+    );
+  }
+
+  // Length-cap fields to prevent abuse
+  const safeTitle = String(title).slice(0, MAX_TITLE_LEN);
+  const safeBody = notifBody ? String(notifBody).slice(0, MAX_BODY_LEN) : null;
+  const safeLink = link ? String(link).slice(0, MAX_LINK_LEN) : null;
+
   const { data, error } = await supabaseAdmin
     .from("admin_notifications")
     .insert({
       type,
-      title,
-      body: notifBody || null,
-      link: link || null,
+      title: safeTitle,
+      body: safeBody,
+      link: safeLink,
     })
     .select("id")
     .single();

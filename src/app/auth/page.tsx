@@ -4,6 +4,7 @@ import { Suspense, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/hooks/use-auth";
 import { AuthView } from "@/components/views/AuthView";
+import { safeNext } from "@/lib/safe-redirect";
 
 function AuthPageInner() {
   const { profile, loading, isCoach } = useAuth();
@@ -20,7 +21,8 @@ function AuthPageInner() {
       // Coaches usually go to /coach, but if `next` is present it wins
       // (e.g. a coach hitting /checkout should land on /checkout, not /coach).
       if (next) {
-        window.location.href = next;
+        // Validate `next` to prevent open-redirect attacks (C17 fix).
+        window.location.href = safeNext(next);
       } else {
         router.replace(isCoach ? "/coach" : "/dashboard");
       }

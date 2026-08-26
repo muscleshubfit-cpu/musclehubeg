@@ -1532,3 +1532,25 @@ Stage Summary:
 - Owner must run migration 0017 in Supabase SQL Editor + `NOTIFY pgrst, 'reload schema';` before deploying the code changes.
 - Commit SHA: (pending)
 - Push status: (pending)
+
+---
+Task ID: SEC-AUTH-002
+Agent: Main (Z User)
+Task: Security auth hardening — fix cron fail-open (C4), notifications/admin allowlist (C3), demo mode production guard (C7), PII log removal (C9), open-redirect prevention (C17).
+
+Work Log:
+- C4: Changed `if (expected && auth !== ...)` → `if (!expected || auth !== ...)` in all 9 cron routes (generate-blog-post, step1-pick, step2-generate, step2a-research, step2b-en-article, step2c-ar-article, step2d-links, step3-publish, progress-reminder). Now fail-closed: if CRON_SECRET env var is unset, the route returns 401 instead of being publicly accessible.
+- C3: Added ALLOWED_TYPES allowlist (new_client, new_ticket, plan_approved, questionnaire_submitted, payment_request) + length caps (title 200, body 1000, link 200) to /api/notifications/admin route. Prevents arbitrary notification injection by authenticated clients.
+- C7: Added `process.env.NODE_ENV === "production"` guard to seedLocalData() — refuses to seed demo coach credentials (ahmed@coach.app / coach123) in production even if Supabase env vars are missing.
+- C9: Removed `console.log("[auth/callback] Success! User:", data?.user?.email)` — PII violation per SECURITY.md §2.3.
+- C17: Created `src/lib/safe-redirect.ts` with `safeNext()` utility — validates that a redirect path is same-origin relative (starts with "/", not "//" or "/\"). Applied in: auth/callback/route.ts, auth/page.tsx, AuthView.tsx.
+- Verified: tsc 0 errors, eslint 0 errors (6 pre-existing warnings), next build exit 0.
+
+Stage Summary:
+- 9 cron routes hardened (fail-closed).
+- 1 API route hardened (allowlist + length caps).
+- 1 demo-mode production guard added.
+- 1 PII log removed.
+- 3 open-redirect vectors closed via safeNext utility.
+- Commit SHA: (pending)
+- Push status: (pending)

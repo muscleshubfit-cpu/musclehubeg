@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { safeNext } from "@/lib/safe-redirect";
 
 /**
  * OAuth callback handler (server-side).
@@ -76,8 +77,8 @@ export async function GET(request: Request) {
  );
  }
  // Session is now set in cookies. Send the user home.
- console.log("[auth/callback] Success! User:", data?.user?.email);
- return NextResponse.redirect(`${requestUrl.origin}${next}`);
+ // Do not log user email — PII violation per SECURITY.md §2.3 (C9 fix).
+ return NextResponse.redirect(`${requestUrl.origin}${safeNext(next)}`);
  } catch (e: any) {
  console.error("[auth/callback] Exception:", e?.message || e);
  return NextResponse.redirect(

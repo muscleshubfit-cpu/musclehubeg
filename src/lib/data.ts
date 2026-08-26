@@ -304,6 +304,14 @@ export function onAuthChange(cb: (profile: Profile | null) => void): () => void 
 
 export function seedLocalData() {
  if (isSupabaseConfigured) return;
+ // Never seed demo data in production — if Supabase env vars are
+ // missing in production, the app should fail rather than fall back
+ // to demo mode with hardcoded coach credentials that are public in
+ // the repo (C7 security fix, 2026-08-26).
+ if (process.env.NODE_ENV === "production") {
+ console.error("[seedLocalData] Supabase not configured in production — refusing to seed demo data");
+ return;
+ }
  const users = read<StoredUser[]>(LS_USERS, []);
  if (users.length === 0) {
  // Seed a demo coach + a demo client so the user can log in immediately.

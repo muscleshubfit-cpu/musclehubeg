@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
   // deploy never fails — but log a warning.
   const auth = request.headers.get("authorization");
   const expected = process.env.CRON_SECRET;
-  if (expected && auth !== `Bearer ${expected}`)
+  if (!expected || auth !== `Bearer ${expected}`)
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   if (!isSupabaseAdminConfigured || !supabaseAdmin)

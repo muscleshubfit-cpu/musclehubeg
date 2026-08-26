@@ -9,6 +9,7 @@ import { GoogleIcon } from "@/components/GoogleIcon";
 import { useNav } from "@/hooks/use-nav";
 import { useAuth } from "@/hooks/use-auth";
 import { isSupabaseConfigured } from "@/lib/supabase/client";
+import { safeNext } from "@/lib/safe-redirect";
 import { toast } from "sonner";
 
 export function AuthView({ mode, next }: { mode: "login" | "signup"; next?: string }) {
@@ -29,8 +30,9 @@ export function AuthView({ mode, next }: { mode: "login" | "signup"; next?: stri
   // otherwise fall back to the coach/client dashboard.
   const goAfterLogin = (isCoach: boolean) => {
     if (next) {
+      // Validate `next` to prevent open-redirect attacks (C17 fix).
       // Use a hard navigation so query params (?tier=...&months=...) are preserved.
-      window.location.href = next;
+      window.location.href = safeNext(next);
       return;
     }
     navigate(isCoach ? "coach" : "dashboard");
