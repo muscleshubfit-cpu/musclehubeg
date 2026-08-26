@@ -113,7 +113,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: true, sent: 0, message: "No clients found" });
   }
 
-  // Bulk insert notifications for all clients
+  // Bulk insert notifications for all clients — M22 fix: batch in chunks of 500
+  // to avoid Supabase's insert limit + partial failure on large client lists.
   const notifications = clients.map((c: any) => ({
     user_id: c.id,
     type: "coach_broadcast",
@@ -122,13 +123,31 @@ export async function POST(request: NextRequest) {
     link: link || "/dashboard",
   }));
 
-  const { error: insertError } = await supabaseAdmin
-    .from("notifications")
-    .insert(notifications);
+  const BATCH_SIZE = 500;
+  let totalInserted = 0;
+  let lastError: string | null = null;
 
-  if (insertError) {
-    return NextResponse.json({ error: insertError.message }, { status: 500 });
+  for (let i = 0; i < notifications.length; i += BATCH_SIZE) {
+    const batch = notifications.slice(i, i + BATCH_SIZE);
+    const { error: batchError } = await supabaseAdmin
+      .from("notifications")
+      .insert(batch);
+    if (batchError) {
+      lastError = batchError.message;
+      console.error(`[broadcast] Batch ${Math.floor(i / BATCH_SIZE) + 1} failed:`, batchError.message);
+    } else {
+      totalInserted += batch.length;
+    }
   }
 
-  return NextResponse.json({ ok: true, sent: notifications.length });
+  if (totalInserted === 0 && lastError) {
+    return NextResponse.json({ error: lastError }, { status: 500 });
+  }
+
+  return NextResponse.json({
+    ok: true,
+    sent: totalInserted,
+    total: notifications.length,
+    ...(lastError ? { partialError: lastError } : {}),
+  });
 }

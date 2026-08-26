@@ -24,24 +24,28 @@ export async function GET(request: NextRequest) {
 
   const { searchParams } = new URL(request.url);
   const tool = searchParams.get("tool");
+  // M23 fix: support offset for pagination
+  const offset = parseInt(searchParams.get("offset") || "0", 10) || 0;
+  const limit = Math.min(parseInt(searchParams.get("limit") || "500", 10) || 500, 1000);
 
   let q = supabaseAdmin
     .from("tool_leads")
-    .select("*")
+    .select("*", { count: "exact" })
     .order("created_at", { ascending: false })
-    .limit(500);
+    .range(offset, offset + limit - 1);
 
   if (tool && tool !== "all") {
     q = q.eq("tool_slug", tool as any);
   }
 
-  const { data, error } = await q;
+  const { data, error, count } = await q;
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  return NextResponse.json({ leads: data || [] });
+  // M23 fix: return total count for pagination UI
+  return NextResponse.json({ leads: data || [], total: count ?? 0, offset, limit });
 }
 
 /**
