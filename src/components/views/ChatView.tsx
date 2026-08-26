@@ -124,16 +124,6 @@ export function ChatView() {
             >
               {isAr ? "إرسال" : "Send"}
             </button>
-            {messages.length > 0 && (
-              <button
-                onClick={evoChat.clearChat}
-                disabled={evoChat.isTyping}
-                className="rounded-full border border-[#d2d2d7] px-4 py-3 text-sm font-normal text-[#6e6e73] transition-colors hover:bg-[#f5f5f7] disabled:opacity-50"
-                title={isAr ? "مسح المحادثة" : "Clear chat"}
-              >
-                {isAr ? "مسح" : "Clear"}
-              </button>
-            )}
           </div>
 
           {/* Swap quota */}

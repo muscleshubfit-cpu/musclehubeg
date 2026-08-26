@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { useEvoChat } from "@/lib/evo-chat-context";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/hooks/use-auth";
-import { Send, X, Trash2, ExternalLink, Loader2, Sparkles } from "lucide-react";
+import { Send, X, ExternalLink, Loader2, Sparkles } from "lucide-react";
 
 /**
  * EvoFloatingWidget — floating EVO chat icon + slide-in drawer.
@@ -38,7 +38,6 @@ export function EvoFloatingWidget() {
     closeChat,
     toggleChat,
     sendMessage,
-    clearChat,
   } = useEvoChat();
 
   const [input, setInput] = useState("");
@@ -135,25 +134,6 @@ export function EvoFloatingWidget() {
                 </div>
               </div>
               <div className="flex items-center gap-1">
-                {messages.length > 0 && (
-                  <button
-                    onClick={() => {
-                      if (
-                        confirm(
-                          isAr
-                            ? "هل تريد مسح المحادثة؟"
-                            : "Clear the conversation?",
-                        )
-                      ) {
-                        clearChat();
-                      }
-                    }}
-                    className="grid h-8 w-8 place-items-center rounded-full text-white/80 transition-colors hover:bg-white/10"
-                    aria-label={isAr ? "مسح المحادثة" : "Clear chat"}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                )}
                 <button
                   onClick={closeChat}
                   className="grid h-8 w-8 place-items-center rounded-full text-white/80 transition-colors hover:bg-white/10"

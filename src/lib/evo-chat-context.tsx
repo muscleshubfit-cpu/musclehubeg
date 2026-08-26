@@ -57,7 +57,6 @@ type EvoChatContextType = {
   closeChat: () => void;
   toggleChat: () => void;
   sendMessage: (content: string) => Promise<void>;
-  clearChat: () => void;
 };
 
 const EvoChatContext = createContext<EvoChatContextType | null>(null);
@@ -148,22 +147,11 @@ export function EvoChatProvider({ children }: { children: ReactNode }) {
   const closeChat = useCallback(() => setState((prev) => ({ ...prev, isOpen: false })), []);
   const toggleChat = useCallback(() => setState((prev) => ({ ...prev, isOpen: !prev.isOpen })), []);
 
-  const clearChat = useCallback(async () => {
-    // Delete from Supabase if authenticated
-    if (isSupabaseConfigured && supabase) {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          await supabase.from("chat_messages").delete().eq("client_id", user.id);
-        }
-      } catch { /* non-blocking */ }
-    }
-    setState((prev) => ({ ...prev, messages: [], isTyping: false }));
-    // M-audit fix: do NOT reset dailyCount on clearChat — prevents rate
-    // limit bypass (user could clear chat → reset counter → send more).
-    // The daily limit is also enforced server-side now (C15 fix), but
-    // keeping the client counter consistent is still important for UX.
-  }, []);
+  // OWNER DIRECTIVE #4 (2026-08-27): the "clear chat" feature was REMOVED.
+  // It allowed users to wipe their chat_messages rows — the very evidence
+  // the daily-limit counter relied on (rate-limit bypass), and the UI button
+  // also made quota-reset feel legitimate. History is capped at MAX_MESSAGES
+  // client-side and persisted server-side; there is no user-facing clear.
 
   const dailyLimitReached = state.dailyCount >= DAILY_LIMIT;
 
@@ -212,6 +200,35 @@ export function EvoChatProvider({ children }: { children: ReactNode }) {
         });
 
         const data = await response.json();
+
+        // G9 FIX (2026-08-27): non-2xx responses (429 rate limit etc.) are no
+        // longer rendered as normal EVO replies nor persisted as assistant
+        // messages in chat_messages.
+        if (!response.ok) {
+          if (response.status === 429) {
+            // Sync the local counter so the input locks without more failed attempts.
+            setState((prev) => ({
+              ...prev,
+              isTyping: false,
+              dailyCount: Math.max(prev.dailyCount, DAILY_LIMIT),
+              messages: [
+                ...prev.messages,
+                {
+                  id: `msg-${Date.now()}-limit`,
+                  role: "assistant" as const,
+                  content:
+                    typeof data?.response === "string"
+                      ? data.response
+                      : "وصلت الحد اليومي للمحادثة. اشترك في Premium أو Pro لمحادثة غير محدودة.",
+                  timestamp: Date.now(),
+                  links: Array.isArray(data?.links) ? data.links : [],
+                },
+              ],
+            }));
+            return; // NOT persisted to chat_messages
+          }
+          throw new Error(data?.error || `HTTP ${response.status}`);
+        }
 
         const assistantMessage: ChatMessage = {
           id: `msg-${Date.now()}-assistant`,
@@ -268,7 +285,6 @@ export function EvoChatProvider({ children }: { children: ReactNode }) {
         closeChat,
         toggleChat,
         sendMessage,
-        clearChat,
       }}
     >
       {children}

@@ -1,10 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { callFreeAIFallbackChain } from "@/lib/ai-provider";
-import { generateChatReply } from "@/lib/ai-local";
-import { listPlans, listProgress, getQuestionnaire, getSubscriptionForClient } from "@/lib/data";
-import { getTier } from "@/lib/plans";
-import { requireUser, isAuthConfigured } from "@/lib/auth-server";
-import { checkEvoChatLimit } from "@/lib/tier-limits";
+import { requireUser, isAuthConfigured, type AuthUser } from "@/lib/auth-server";
+import { checkEvoChatLimit, recordEvoChatUsage } from "@/lib/tier-limits";
 import {
   searchPlatform,
   getFoodNutrition,
@@ -20,71 +17,107 @@ import {
  * Features:
  *   1. Platform search — finds exercises, foods, programs, tools
  *   2. Blog RAG — searches Supabase blog_posts for relevant articles
- *   3. OpenRouter AI — generates responses using AI (not just local rules)
- *   4. Anonymous mode — works without login (rate-limited)
+ *   3. OpenRouter + Groq AI (owner directive 2026-08-27)
+ *   4. Anonymous mode — works without login (client-side counter; no server
+ *      identity exists to bill, so server-side throttling for anonymous
+ *      traffic is documented as out of scope)
  *   5. Subscriber mode — full context (plans, progress, questionnaires)
  *
- * POST /api/ai/chat
- * Body: { message, history }
- * Returns: { response, links, source }
+ * 2026-08-27 CRITICAL FIXES:
+ *   G1/G2 — usage is recorded SERVER-SIDE in the tamper-proof
+ *     evo_chat_usage ledger before each AI dispatch. The old design counted
+ *     client-written chat_messages rows and let "clear history" reset the quota.
+ *   G3/G4 — the tier now comes from the VERIFIED auth session
+ *     (getAuthUser: status='active' + end_date>now), not from a browser-client
+ *     query that ignored expiry and ran under anonymous RLS.
+ *   G5 — the subscriber-only feature gate applies by ACTUAL tier:
+ *     authenticated FREE users are gated exactly like anonymous visitors,
+ *     and the system prompt only declares a subscriber when tier limits say so.
+ *   M-security — message/history length clamped + blog ilike filter escaped.
  */
 
-const BLOG_SEARCH_BASE_URL = "https://musclehubeg.vercel.app";
+// Back-compat re-export type (routes/tests may reference AuthUser).
+export type { AuthUser };
+
+/** Hard input clamp — prevents multi-MB payloads burning provider tokens. */
+const MAX_MESSAGE_LENGTH = 4_000;
+const MAX_HISTORY_ITEMS = 10;
+const MAX_HISTORY_ITEM_LENGTH = 2_000;
 
 export async function POST(request: NextRequest) {
   try {
     // 1. Authenticate (optional — works for anonymous too)
     let userId: string | undefined;
     let userName: string | undefined;
+    let authTier: string | null = null;
     if (isAuthConfigured) {
       const auth = await requireUser(request);
       if (!(auth instanceof Response)) {
         userId = auth.id;
         userName = auth.full_name || auth.email || undefined;
+        // G3/G4 fix: already verified active + non-expired by getAuthUser().
+        authTier = auth.membership_tier;
       }
       // If auth fails (401), we continue as anonymous — EVO is free for all
     }
 
-    // 1.5. Server-side daily limit check for authenticated users (C15 fix).
-    // Anonymous users are rate-limited by the client-side localStorage counter
-    // (best-effort) + the subscriber-only patterns gate below. Authenticated
-    // users get a hard server-side limit based on their tier.
-    if (userId) {
-      const limitCheck = await checkEvoChatLimit(userId);
-      if (!limitCheck.allowed) {
-        const isUnlimited = limitCheck.unlimited;
-        const resetMsg = isUnlimited
-          ? ""
-          : limitCheck.limit !== null
-            ? `\n\n${`You've used ${limitCheck.used}/${limitCheck.limit} messages today. The limit resets at midnight.`}`
-            : "";
-        return NextResponse.json({
-          response: `⏰ ${`You've reached today's EVO chat limit.`}${resetMsg}\n\n${`Upgrade to Premium for 50 messages/day, or Pro for unlimited.`}`,
-          links: [
-            {
-              label: "View membership plans →",
-              url: "/memberships",
-            },
-          ],
-          source: "rate-limit",
-          rateLimited: true,
-          used: limitCheck.used,
-          limit: limitCheck.limit,
-        }, { status: 429, headers: { "Retry-After": "3600" } });
-      }
-    }
-
     const body = await request.json().catch(() => ({}));
-    const { message, history = [] } = body;
+    const rawMessage = typeof body?.message === "string" ? body.message : "";
+    const rawHistory = Array.isArray(body?.history) ? body.history.slice(-MAX_HISTORY_ITEMS) : [];
+    const message = rawMessage.trim().slice(0, MAX_MESSAGE_LENGTH);
 
     if (!message) {
       return NextResponse.json({ error: "Missing message" }, { status: 400 });
     }
 
+    const history = rawHistory
+      .filter((m: any) => m && typeof m.content === "string")
+      .map((m: any) => ({
+        role: m.role === "user" ? "user" : "assistant",
+        content: String(m.content).slice(0, MAX_HISTORY_ITEM_LENGTH),
+      }));
+
+    // ── Effective tier resolution (G5 fix) ────────────────────────────
+    // A paid-tier subscription resolves to "coaching"/"pro"/"premium"
+    // (unlimited EVO). Everything else — including AUTHENTICATED FREE
+    // accounts — is subject to the free daily limit AND the
+    // subscriber-only feature gate.
+    const isPaidTier =
+      !!userId && ["premium", "pro", "coaching"].includes(authTier || "");
+
+    // 1.5 Server-side daily limit check for all NON-paid users (C15+G1).
+    // Paid tiers skip counting entirely (limit=null). Free/anonymous
+    // anonymous users have no identity → ledger is for logged-in users;
+    // anonymous traffic remains client-side-counter best-effort.
+    let limitUsed = 0;
+    let limitValue: number | null = null;
+    if (userId) {
+      const limitCheck = await checkEvoChatLimit(userId, authTier);
+      limitUsed = limitCheck.used;
+      limitValue = limitCheck.limit;
+      if (!limitCheck.allowed) {
+        const resetMsg =
+          limitCheck.limit !== null
+            ? `\n\nYou've used ${limitCheck.used}/${limitCheck.limit} messages today. The limit resets at midnight.`
+            : "";
+        return NextResponse.json(
+          {
+            response: `⏰ You've reached today's EVO chat limit.${resetMsg}\n\nUpgrade to Premium or Pro for unlimited messages.`,
+            links: [{ label: "View membership plans →", url: "/memberships" }],
+            source: "rate-limit",
+            rateLimited: true,
+            used: limitCheck.used,
+            limit: limitCheck.limit,
+          },
+          { status: 429, headers: { "Retry-After": "3600" } },
+        );
+      }
+    }
+
     // SUBSCRIBER-ONLY features: meal plans, workout plans, meal generation,
     // macro calculations, swap suggestions.
-    // Free users get: general Q&A, exercise info, food nutrition lookup,
-    // blog references, platform navigation.
+    // G5 FIX: gate fires for EVERYONE without a paid tier — including
+    // authenticated free accounts (previously bypassed with any login).
     const subscriberOnlyPatterns = [
       /make\s+me\s+(a|an)?\s*(meal|workout|plan|diet|menu)/i,
       /generate\s+(a|an)?\s*(meal|workout|plan|diet|menu)/i,
@@ -110,13 +143,13 @@ export async function POST(request: NextRequest) {
       pattern.test(message),
     );
 
-    if (isSubscriberOnlyRequest && !userId) {
+    if (isSubscriberOnlyRequest && !isPaidTier) {
       return NextResponse.json({
         response:
-          "🔒 This feature is for subscribers only. Meal plans, workout plans, and meal generation require an active coaching subscription.\n\nFree features I can help with:\n• Exercise info and instructions\n• Food calories and macros\n• Fitness calculators\n• General fitness Q&A\n\nSubscribe to get personalized meal & workout plans!",
+          "🔒 This feature is for subscribers only. Meal plans, workout plans, and meal generation require an active Premium/Pro/Coaching subscription.\n\nFree features I can help with:\n• Exercise info and instructions\n• Food calories and macros\n• Fitness calculators\n• General fitness Q&A\n\nSubscribe to get personalized meal & workout plans!",
         links: [
           {
-            label: "View coaching plans →",
+            label: "View membership plans →",
             url: "/memberships",
           },
         ],
@@ -157,25 +190,24 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 5. Build context for the AI
-    let clientContext: any = { name: userName || "المستخدم" };
-    if (userId) {
+    // 5. Build context for the AI — subscribers only (G5 fix: the flag now
+    // reflects the REAL tier, not merely being logged in).
+    let clientContext: any = { name: userName || "المستخدم", isSubscriber: false };
+    if (userId && isPaidTier) {
       try {
-        const [plans, progress, nutriQ, fitQ, sub] = await Promise.all([
-          listPlans(userId),
-          listProgress(userId),
-          getQuestionnaire(userId, "nutrition"),
-          getQuestionnaire(userId, "fitness"),
-          getSubscriptionForClient(userId),
+        // Subscriber data comes via service-role queries inside the data layer.
+        const [plans, progress, nutriQ, fitQ] = await Promise.all([
+          listPlansSafe(userId),
+          listProgressSafe(userId),
+          getQuestionnaireSafe(userId, "nutrition"),
+          getQuestionnaireSafe(userId, "fitness"),
         ]);
-        const tierId = (sub?.tier as any) || "starter";
-        const tier = getTier(tierId);
 
         clientContext = {
           name: userName || "العميل",
           isSubscriber: true,
-          nutrition: nutriQ?.data || null,
-          fitness: fitQ?.data || null,
+          nutrition: nutriQ || null,
+          fitness: fitQ || null,
           recent_measurements: progress.slice(-3).map((p: any) => ({
             weight: p.weight,
             waist: p.waist,
@@ -186,11 +218,7 @@ export async function POST(request: NextRequest) {
             title: p.title,
             content: p.content,
           })),
-          subscription: {
-            tier: tierId,
-            tierName: tier?.nameKey,
-            swapLimit: tier?.swapLimit,
-          },
+          subscription: { tier: authTier },
         };
       } catch (e) {
         console.error("[api/ai/chat] Failed to load subscriber context:", e);
@@ -206,7 +234,7 @@ export async function POST(request: NextRequest) {
     );
 
     const messages = [
-      ...history.slice(-10).map((m: any) => ({
+      ...history.map((m: any) => ({
         role: m.role,
         content: m.content,
       })),
@@ -218,16 +246,24 @@ export async function POST(request: NextRequest) {
       .join("\n\n");
     const fullPrompt = `${systemPrompt}\n\n${chatPrompt}\n\nAssistant:`;
 
-    // 7. Try AI via callFreeAIFallbackChain (OpenRouter + Groq interleaved)
-    //    Groq models (gpt-oss-120b) typically respond in 1-3 seconds.
-    //    This replaces the old Gemini-first → OpenRouter-race path.
+    // 6.5 G1 FIX — record usage BEFORE dispatch in the tamper-proof ledger.
+    // Record-before-dispatch closes the concurrent-burst window and makes
+    // clearing chat history irrelevant to the quota.
+    if (userId) {
+      await recordEvoChatUsage(userId, "chat");
+    }
+
+    // 7. Try AI via callFreeAIFallbackChain (OpenRouter + Groq interleaved).
+    // maxModels=3 × self-clamped ≤17s each → worst ~52s (Vercel Hobby-safe);
+    // Promise-free sequential keeps quality-first ordering for short answers.
     try {
       const { text: aiReply, model: aiModel, provider: aiProvider } = await callFreeAIFallbackChain(
         fullPrompt,
         {
           temperature: 0.6,
           maxTokens: 800,
-          timeoutMs: 15_000,
+          timeoutMs: 16_000,
+          maxModels: 3,
         },
       );
 
@@ -261,27 +297,22 @@ export async function POST(request: NextRequest) {
             cleanText = finalAnswerMatch[1].trim();
           } else {
             // 4. Strip numbered reasoning steps at the start.
-            //    Pattern: "1. **Word...**\n2. **Word...**\n3. ..." — keep only
-            //    content AFTER the last numbered step.
             const lines = cleanText.split("\n");
             let answerStartIdx = 0;
             let foundNumberedStep = false;
             for (let i = 0; i < lines.length; i++) {
               const line = lines[i].trim();
               if (!line) continue;
-              // Detect numbered reasoning step: "1. **Analyze...**" or "1. Analyze..."
               if (/^\d+\.\s+\*\*?[A-Z]/.test(line)) {
                 foundNumberedStep = true;
                 answerStartIdx = i + 1;
                 continue;
               }
-              // Detect bullet-style reasoning: "- Analyze..." or "**Analyze...**"
               if (/^[-*]\s+\*\*?[A-Z]/.test(line) || /^\*\*?[A-Z][a-z]+\s*\*?\*?:\s/.test(line)) {
                 foundNumberedStep = true;
                 answerStartIdx = i + 1;
                 continue;
               }
-              // First non-reasoning line that's long enough — start of the answer
               if (foundNumberedStep && line.length > 20 && !/^(step|draft|formulate|analyze|strategy|determine|response):/i.test(line)) {
                 answerStartIdx = i;
                 break;
@@ -298,8 +329,7 @@ export async function POST(request: NextRequest) {
           // 6. Strip wrapping quotes (model wrote: "answer here")
           cleanText = cleanText.replace(/^"([^"]+)"$/, "$1").trim();
 
-          // 7. Final validation: if cleaned text is too short or still looks
-          //    like reasoning, fall back to the local rule-based reply.
+          // 7. Final validation: too-short output falls back to local reply.
           if (cleanText.length < 10 || /^\s*\d+\.\s+\*\*?[A-Z]/.test(cleanText)) {
             console.warn("[api/ai/chat] Cleaned text still looks like reasoning, using local fallback");
             const localReply = generateLocalReply(
@@ -349,9 +379,39 @@ export async function POST(request: NextRequest) {
   }
 }
 
+/* ---------------- Safe data-layer wrappers (fail-soft) ---------------- */
+
+async function listPlansSafe(userId: string) {
+  try {
+    const { listPlans } = await import("@/lib/data");
+    return await listPlans(userId);
+  } catch {
+    return [] as any[];
+  }
+}
+async function listProgressSafe(userId: string) {
+  try {
+    const { listProgress } = await import("@/lib/data");
+    return await listProgress(userId);
+  } catch {
+    return [] as any[];
+  }
+}
+async function getQuestionnaireSafe(userId: string, type: "nutrition" | "fitness") {
+  try {
+    const { getQuestionnaire } = await import("@/lib/data");
+    const q = await getQuestionnaire(userId, type);
+    return q?.data ?? null;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Search the blog for relevant articles.
  * Searches in the same language as the query.
+ * SECURITY: user input is escaped for PostgREST `or=..ilike` filters —
+ * commas/parens in a query previously reshaped the filter (injection G6).
  */
 async function searchBlog(
   query: string,
@@ -363,7 +423,6 @@ async function searchBlog(
   if (!supabaseUrl || !supabaseKey) return [];
 
   try {
-    // Determine language from query (simple heuristic)
     const isArabic = /[\u0600-\u06FF]/.test(query);
 
     const { createClient } = await import("@supabase/supabase-js");
@@ -371,13 +430,20 @@ async function searchBlog(
       auth: { persistSession: false, autoRefreshToken: false },
     });
 
-    // Search in blog_posts using ilike on title and excerpt
+    // Escape PostgREST filter metacharacters + strip wildcards/length-clamp.
+    const safe = query
+      .replace(/[%_(),*]/g, " ")
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, 80);
+    if (!safe) return [];
+
     const { data, error } = await supabase
       .from("blog_posts")
       .select("slug, title, excerpt, language")
       .eq("is_published", true)
       .eq("language", isArabic ? "ar" : "en")
-      .or(`title.ilike.%${query}%,excerpt.ilike.%${query}%`)
+      .or(`title.ilike.%${safe}%,excerpt.ilike.%${safe}%`)
       .limit(3);
 
     if (error || !data) return [];
@@ -435,7 +501,7 @@ function buildSystemPrompt(
       .join("\n");
   }
 
-  // Build subscriber context (if logged in)
+  // Build subscriber context (only when isSubscriber=true — real paid tier)
   let subscriberContext = "";
   if (isSubscriber) {
     let planInfo = "لا توجد خطط مفعّلة بعد.";
@@ -476,7 +542,7 @@ function buildSystemPrompt(
 MuscleHubEG offers: exercise library (868+ exercises), workout programs, free fitness calculators, food database with calories and macros, fitness blog, and online coaching.
 
 You are NOT just a chatbot — you analyze data, predict outcomes, and guide users to relevant content.
-${isSubscriber ? "The user IS a subscriber — you can generate meal plans, workout plans, suggest swaps, and use their personal data." : "The user is a FREE visitor — do NOT generate meal plans, workout plans, or suggest swaps. Those are subscriber-only features. If asked, tell them to subscribe."}
+${isSubscriber ? "The user IS a subscriber — you can generate meal plans, workout plans, suggest swaps, and use their personal data." : "The user is NOT a subscriber — do NOT generate meal plans, workout plans, or macro calculations. Those are subscriber-only features. If asked, tell them to subscribe."}
 ${subscriberContext}${platformContext}${nutritionContext}${blogContext}
 
 CRITICAL RULES:

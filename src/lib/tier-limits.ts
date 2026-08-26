@@ -5,27 +5,66 @@
  * client-side). Fixes C15 (EVO chat limit bypassable) and C16
  * (swap limit bypassable).
  *
- * These helpers query the database server-side to count today's
- * usage, so clearing localStorage or calling the API directly
- * cannot bypass the limit.
+ * 2026-08-27 CRITICAL FIXES (audit findings G1–G4):
+ *
+ *   G3 — resolveTier() previously used getSubscriptionForClient(), which
+ *        filtered NEITHER status NOR end_date: expired/pending/rejected
+ *        subscriptions still granted unlimited Premium/Pro limits. It also
+ *        imported a "use client" module (browser Supabase client without
+ *        cookies) into server route context, so RLS could hide the rows and
+ *        collapse paying users to "free". Now:
+ *          1. The verified auth tier from getAuthUser()/requireUser()
+ *             (already status='active' + end_date>now()-filtered) is passed
+ *             in by every caller as `tierHint` and trusted first.
+ *          2. Fallback re-resolution queries through the SERVICE-ROLE admin
+ *             client with the same active+expiry filters.
+ *
+ *   G1/G2 — EVO chat daily counting moved to the tamper-proof
+ *        `evo_chat_usage` ledger (migration 0022). Rows are inserted by the
+ *        SERVER before each AI dispatch; users have no INSERT/DELETE policy,
+ *        so neither skipping client inserts nor clearing chat history can
+ *        reset/bypass the quota anymore.
  */
 
 import { supabaseAdmin, isSupabaseAdminConfigured } from "@/lib/supabase/admin";
-import { getSubscriptionForClient } from "@/lib/data";
 import { MEMBERSHIPS, type MembershipTier } from "@/lib/memberships";
 
+const VALID_TIERS: MembershipTier[] = ["free", "premium", "pro", "coaching"];
+
+function sanitizeTier(tier: any): MembershipTier | null {
+  return VALID_TIERS.includes(tier as MembershipTier)
+    ? (tier as MembershipTier)
+    : null;
+}
+
 /**
- * Resolve the membership tier for a user.
- * Returns "free" if no active subscription.
+ * Fallback tier resolution when a route has no pre-computed auth tier.
+ * Uses the service-role admin client (RLS-bypassing) with active + expiry
+ * filtering — mirrors getAuthUser()'s logic in auth-server.ts.
  */
-async function resolveTier(userId: string): Promise<MembershipTier> {
-  const sub = await getSubscriptionForClient(userId);
-  const tier = (sub?.tier as MembershipTier) || "free";
-  // Validate against known tiers
-  if (["free", "premium", "pro", "coaching"].includes(tier)) {
-    return tier;
+async function resolveTierFromDb(userId: string): Promise<MembershipTier> {
+  if (!isSupabaseAdminConfigured || !supabaseAdmin) return "free";
+  try {
+    const { data: subs } = await supabaseAdmin
+      .from("subscriptions")
+      .select("tier")
+      .eq("client_id", userId)
+      .eq("status", "active")
+      .gt("end_date", new Date().toISOString());
+
+    if (!subs || subs.length === 0) return "free";
+
+    const tiers = subs.map((s: any) => sanitizeTier(s.tier)).filter(Boolean);
+    if (tiers.includes("pro")) return "pro";
+    if (tiers.includes("premium")) return "premium";
+    if (tiers.includes("coaching")) return "coaching";
+    return "free";
+  } catch (e: any) {
+    console.error("[tier-limits] resolveTierFromDb error:", e?.message);
+    // Fail CLOSED for limit purposes? No — fail OPEN would grant unlimited.
+    // Fail SAFE: an unknown user counts as free (10 msgs/day), never premium.
+    return "free";
   }
-  return "free";
 }
 
 /**
@@ -40,7 +79,7 @@ export function evoChatLimitFor(tier: MembershipTier): number | null {
 }
 
 /**
- * Get the swap daily limit for a tier (per type: meal/exercise).
+ * Get the swap weekly limit for a tier (per type: meal/exercise).
  * Returns null = unlimited.
  *
  * Maps membership tiers to swap limits:
@@ -48,11 +87,6 @@ export function evoChatLimitFor(tier: MembershipTier): number | null {
  *   premium:  3/week
  *   pro:      6/week
  *   coaching: 3/week (same as premium, but with human coach)
- *
- * Note: the original PlansView used daily limits via swapLimitFor()
- * from plans.ts (starter=2/day, elite=unlimited). But the memberships
- * page advertises WEEKLY limits. We follow the memberships page
- * (weekly) since that's what users see.
  */
 export function swapLimitForTier(tier: MembershipTier): number | null {
   switch (tier) {
@@ -70,36 +104,54 @@ export function swapLimitForTier(tier: MembershipTier): number | null {
 }
 
 /**
- * Count today's EVO chat messages for a user.
- * Uses the chat_messages table (server-side, RLS-bypassing admin client).
+ * Count today's EVO chat dispatches from the tamper-proof usage ledger.
+ * (evo_chat_usage — server-written only; see migration 0022.)
  */
-async function countTodayChatMessages(userId: string): Promise<number> {
+export async function countTodayChatUsage(userId: string): Promise<number> {
   if (!isSupabaseAdminConfigured || !supabaseAdmin) return 0;
   const todayStart = new Date();
   todayStart.setHours(0, 0, 0, 0);
   const { count, error } = await supabaseAdmin
-    .from("chat_messages")
+    .from("evo_chat_usage" as any)
     .select("*", { count: "exact", head: true })
-    .eq("client_id", userId)
-    .eq("role", "user")
+    .eq("user_id", userId)
     .gte("created_at", todayStart.toISOString());
   if (error) {
-    console.error("[tier-limits] countTodayChatMessages error:", error.message);
-    return 0; // fail open — don't block users on counting errors
+    console.error("[tier-limits] countTodayChatUsage error:", error.message);
+    return 0; // fail open on counting errors — don't block users on infra issues
   }
   return count ?? 0;
 }
 
 /**
+ * Insert one ledger row BEFORE dispatching an AI chat request.
+ * Record-before-dispatch means concurrent burst requests all see the
+ * incremented count, so N parallel calls can't slip past the limit.
+ * Errors are logged but not thrown — a failed insert must not break chat;
+ * the weekly/other soft limits behave the same way.
+ */
+export async function recordEvoChatUsage(
+  userId: string,
+  source = "chat",
+): Promise<void> {
+  if (!isSupabaseAdminConfigured || !supabaseAdmin) return;
+  const { error } = await supabaseAdmin
+    .from("evo_chat_usage" as any)
+    .insert({ user_id: userId, source });
+  if (error) {
+    console.error("[tier-limits] recordEvoChatUsage error:", error.message);
+  }
+}
+
+/**
  * Count this week's swaps for a user (per type).
- * Uses the plan_swaps table (server-side).
+ * Uses the plan_swaps table (server-side, Monday-anchored week).
  */
 async function countThisWeekSwaps(
   userId: string,
   swapType: "meal" | "exercise",
 ): Promise<number> {
   if (!isSupabaseAdminConfigured || !supabaseAdmin) return 0;
-  // Start of the current week (Monday)
   const now = new Date();
   const dayOfWeek = now.getDay(); // 0=Sun, 1=Mon, ...
   const mondayOffset = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
@@ -107,7 +159,7 @@ async function countThisWeekSwaps(
   weekStart.setDate(now.getDate() - mondayOffset);
   weekStart.setHours(0, 0, 0, 0);
   const { count, error } = await supabaseAdmin
-    .from("plan_swaps")
+    .from("plan_swaps" as any)
     .select("*", { count: "exact", head: true })
     .eq("user_id", userId)
     .eq("swap_type", swapType)
@@ -121,17 +173,28 @@ async function countThisWeekSwaps(
 
 /**
  * Check if a user can send another EVO chat message.
- * Returns { allowed, used, limit, unlimited }.
+ *
+ * @param userId   Verified profile id (never trust body-supplied ids).
+ * @param tierHint Pre-computed membership tier from getAuthUser()
+ *                 (active + expiry filtered). When omitted, falls back to
+ *                 an admin-client DB lookup.
  */
 export async function checkEvoChatLimit(
   userId: string,
-): Promise<{ allowed: boolean; used: number; limit: number | null; unlimited: boolean }> {
-  const tier = await resolveTier(userId);
+  tierHint?: string | null,
+): Promise<{
+  allowed: boolean;
+  used: number;
+  limit: number | null;
+  unlimited: boolean;
+}> {
+  const tier =
+    sanitizeTier(tierHint) ?? (await resolveTierFromDb(userId));
   const limit = evoChatLimitFor(tier);
   if (limit === null) {
     return { allowed: true, used: 0, limit: null, unlimited: true };
   }
-  const used = await countTodayChatMessages(userId);
+  const used = await countTodayChatUsage(userId);
   return {
     allowed: used < limit,
     used,
@@ -144,14 +207,22 @@ export async function checkEvoChatLimit(
  * Check if a user can perform another swap.
  * Returns { allowed, used, limit, unlimited }.
  *
- * Also records the swap in plan_swaps if allowed (server-side atomic
- * check + insert).
+ * Also records the swap in plan_swaps if allowed (server-side check +
+ * insert).
+ *
+ * @param tierHint Same contract as checkEvoChatLimit.
  */
 export async function checkAndRecordSwap(
   userId: string,
   swapType: "meal" | "exercise",
-): Promise<{ allowed: boolean; used: number; limit: number | null; unlimited: boolean }> {
-  const tier = await resolveTier(userId);
+  tierHint?: string | null,
+): Promise<{
+  allowed: boolean;
+  used: number;
+  limit: number | null;
+  unlimited: boolean;
+}> {
+  const tier = sanitizeTier(tierHint) ?? (await resolveTierFromDb(userId));
   const limit = swapLimitForTier(tier);
 
   if (limit === null) {
@@ -184,7 +255,7 @@ async function recordSwap(
 ): Promise<void> {
   if (!isSupabaseAdminConfigured || !supabaseAdmin) return;
   const { error } = await supabaseAdmin
-    .from("plan_swaps")
+    .from("plan_swaps" as any)
     .insert({
       user_id: userId,
       plan_id: "api-swap", // no specific plan when swapping via API
