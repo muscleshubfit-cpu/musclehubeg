@@ -2,7 +2,6 @@
 import { SiteHeader } from "@/components/SiteHeader";
 
 import { useEffect, useState } from "react";
-import { LanguageToggle } from "@/components/LanguageToggle";
 import { listBlogPosts, BLOG_CATEGORIES, getCategoryLabel, type BlogPost } from "@/lib/blog";
 
 export function BlogListPage({ lang }: { lang: "en" | "ar" }) {

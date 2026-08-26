@@ -18,7 +18,8 @@ export function setReferralCookie(code: string): void {
   if (typeof document === "undefined") return;
   const expires = new Date();
   expires.setDate(expires.getDate() + COOKIE_DURATION_DAYS);
-  document.cookie = `${REFERRAL_COOKIE_NAME}=${encodeURIComponent(code)};expires=${expires.toUTCString()};path=/;SameSite=Lax;max-age=${COOKIE_DURATION_DAYS * 86400}`;
+  const secure = typeof window !== "undefined" && window.location.protocol === "https:" ? ";Secure" : "";
+  document.cookie = `${REFERRAL_COOKIE_NAME}=${encodeURIComponent(code)};expires=${expires.toUTCString()};path=/;SameSite=Lax;max-age=${COOKIE_DURATION_DAYS * 86400}${secure}`;
 }
 
 /**

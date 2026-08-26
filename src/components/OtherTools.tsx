@@ -29,7 +29,7 @@ export function OtherTools({ current }: { current: string }) {
   const { lang } = useI18n();
   const isAr = lang === "ar";
   // Normalize "current" — handle both relative slugs and absolute paths
-  const normalizedCurrent = current.startsWith("/") ? current : current;
+  const normalizedCurrent = current.startsWith("/") ? current.replace(/^\//, "") : current;
   const others = ALL_TOOLS.filter((t) => t.slug !== normalizedCurrent);
 
   return (
@@ -59,7 +59,7 @@ export function OtherTools({ current }: { current: string }) {
           href="/tools"
           className="flex items-center gap-3 rounded-2xl bg-[#1d1d1f] p-4 transition-opacity hover:opacity-90"
         >
-          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl text-lg text-white bg-white/10">
+          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl text-lg text-white bg-white/10 rtl:rotate-180">
             ←
           </span>
           <span className="text-sm font-medium text-white">

@@ -1923,3 +1923,30 @@ Stage Summary:
 - Working tree clean (after this commit).
 - Commit SHA: ba99fe0
 - Push status: pushed
+
+---
+Task ID: FIX-MINOR-QUICK-020
+Agent: Main (Z User)
+Task: Quick Minor fixes — dead code, ContactView footer, ShareButtons aria+noopener, OtherTools normalization+RTL, skip-link RTL, referral cookie Secure, package.json name.
+
+Work Log:
+- about/page.tsx: removed bare `<SiteHeader>` JSX expression (dead code — StaticPageView renders its own header).
+- ContactView.tsx:158: "MuscleHub" → "MuscleHubEG" (brand name consistency).
+- ShareButtons.tsx:130,134: `rel="noreferrer"` → `rel="noopener noreferrer"` (tab-nabbing protection) + aria-label localized (AR: "مشاركة عبر X" / EN: "Share on X").
+- OtherTools.tsx:32: `normalizedCurrent` was a no-op (both branches returned `current`). Now strips leading "/" so absolute paths like "/meal-planner" correctly match tool slugs.
+- OtherTools.tsx:62: "←" arrow now has `rtl:rotate-180` so it points right in Arabic.
+- globals.css:510: skip-link `left: 1rem` → `inset-inline-start: 1rem` (RTL-aware — appears on right in Arabic).
+- referral-cookie.ts:21: added `Secure` flag when `window.location.protocol === "https:"` (defense-in-depth for non-HTTPS preview deploys).
+- package.json:2: `"nextjs_tailwind_shadcn_ts"` → `"musclehubeg"` (leftover scaffold name).
+- Removed unused `LanguageToggle` imports from BlogListPage.tsx + ContactView.tsx.
+- Verified: tsc 0 errors, eslint 0 errors, next build exit 0.
+
+Stage Summary:
+- 8 quick Minor fixes applied.
+- Brand name consistent ("MuscleHubEG" everywhere).
+- Share buttons have noopener + localized aria-labels.
+- Skip link + OtherTools arrow are RTL-aware.
+- Referral cookie has Secure flag on HTTPS.
+- Dead code removed.
+- Commit SHA: (pending)
+- Push status: (pending)

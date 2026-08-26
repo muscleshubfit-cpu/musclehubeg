@@ -6,7 +6,6 @@ import { useI18n } from "@/lib/i18n";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { LanguageToggle } from "@/components/LanguageToggle";
 import { useNav } from "@/hooks/use-nav";
 import { useAuth } from "@/hooks/use-auth";
 import { createTicket } from "@/lib/data";
@@ -155,7 +154,7 @@ export function ContactView() {
       </main>
 
       <footer className="mt-auto border-t border-[#d2d2d7] py-6 text-center text-xs font-normal text-[#6e6e73]">
-        © {new Date().getFullYear()} MuscleHub. {isAr ? "كل الحقوق محفوظة." : "All rights reserved."}
+        © {new Date().getFullYear()} MuscleHubEG. {isAr ? "كل الحقوق محفوظة." : "All rights reserved."}
       </footer>
  </div>
  );

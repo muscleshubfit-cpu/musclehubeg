@@ -127,11 +127,11 @@ export function ShareButtons({ title, text, url, compact = false }: Props) {
             key={link.name}
             href={link.href}
             target="_blank"
-            rel="noreferrer"
+            rel="noopener noreferrer"
             className="grid h-9 w-9 place-items-center rounded-full bg-[#f5f5f7] text-[#1d1d1f] transition-colors hover:bg-[#e5e5e7]"
             style={{ color: link.color }}
             title={link.name}
-            aria-label={`Share on ${link.name}`}
+            aria-label={isAr ? `مشاركة عبر ${link.name}` : `Share on ${link.name}`}
           >
             <Icon className="h-4 w-4" />
           </a>
