@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
-import { listAllTickets, listTicketMessages, addTicketMessage } from "@/lib/data";
+import { listAllTickets, listTicketMessages, addTicketMessage, updateTicketStatus } from "@/lib/data";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
 
@@ -73,7 +73,7 @@ export function CoachSupportView() {
         {/* Detail */}
         <div className={cn("rounded-3xl bg-[#f5f5f7]", !active && "hidden md:block")}>
           {active ? (
-            <TicketDetail ticket={active} onClose={() => setActive(null)} onReplied={load} coachId={profile?.id || ""} />
+            <TicketDetail ticket={active} onClose={() => setActive(null)} onReplied={load} coachId={profile?.id || ""} onStatusChange={load} />
           ) : (
             <div className="grid h-[60vh] place-items-center text-base font-normal text-[#6e6e73]">
               {t("support.noTickets")}
@@ -99,11 +99,13 @@ function StatusPill({ status, t }: { status: string; t: (k: string) => string })
   );
 }
 
-function TicketDetail({ ticket, onClose, onReplied, coachId }: { ticket: any; onClose: () => void; onReplied: () => void; coachId: string }) {
+function TicketDetail({ ticket, onClose, onReplied, coachId, onStatusChange }: { ticket: any; onClose: () => void; onReplied: () => void; coachId: string; onStatusChange: () => void }) {
   const { t } = useI18n();
+  const isAr = useI18n().lang === "ar";
   const [messages, setMessages] = useState<any[]>([]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
+  const [statusLoading, setStatusLoading] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -138,6 +140,20 @@ function TicketDetail({ ticket, onClose, onReplied, coachId }: { ticket: any; on
     }
   };
 
+  const toggleStatus = async () => {
+    setStatusLoading(true);
+    try {
+      const newStatus = ticket.status === "closed" ? "open" : "closed";
+      await updateTicketStatus(ticket.id, newStatus);
+      toast.success(isAr ? (newStatus === "closed" ? "تم إغلاق التذكرة" : "تم إعادة فتح التذكرة") : (newStatus === "closed" ? "Ticket closed" : "Ticket reopened"));
+      onStatusChange();
+    } catch (e: any) {
+      toast.error(e.message || t("common.error"));
+    } finally {
+      setStatusLoading(false);
+    }
+  };
+
   return (
     <div className="flex h-[60vh] flex-col">
       <div className="flex items-center gap-3 border-b border-[#d2d2d7] p-4">
@@ -146,6 +162,17 @@ function TicketDetail({ ticket, onClose, onReplied, coachId }: { ticket: any; on
         </button>
         <span className="truncate text-base font-medium">{ticket.subject}</span>
         <StatusPill status={ticket.status} t={t} />
+        <button
+          onClick={toggleStatus}
+          disabled={statusLoading}
+          className="ms-auto shrink-0 rounded-full px-3 py-1 text-xs font-medium text-[#0071e3] transition-colors hover:bg-[#0071e3]/10 disabled:opacity-50"
+        >
+          {statusLoading
+            ? "..."
+            : ticket.status === "closed"
+              ? (isAr ? "إعادة فتح" : "Reopen")
+              : (isAr ? "إغلاق" : "Close")}
+        </button>
       </div>
       <div className="flex-1 space-y-3 overflow-y-auto p-4">
         {messages.map((m) => {

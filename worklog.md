@@ -1848,3 +1848,29 @@ Stage Summary:
 - Swap limits now reference correct tiers (Free/Premium/Pro/Coaching) with weekly cadence.
 - Commit SHA: (pending)
 - Push status: (pending)
+
+---
+Task ID: FIX-UPLOAD-TICKET-017
+Agent: Main (Z User)
+Task: Fix M7 (uploadReceipt/uploadPhoto no file validation) + M19 (CoachSupportView no close-ticket flow).
+
+Work Log:
+- M7: created validateUploadFile() helper in data.ts — validates file type against an allowlist + size against a max (5MB). Applied to:
+  - uploadReceipt: allows image/jpeg, image/png, image/webp, application/pdf (5MB max).
+  - uploadPhoto: allows image/jpeg, image/png, image/webp (5MB max — no PDF for progress photos).
+  - Throws user-friendly errors: "Invalid file type: ... Allowed: ..." / "File too large: ... Maximum: 5MB".
+- M19: CoachSupportView had no way to close or reopen tickets. Tickets stayed "open" forever.
+  - Added updateTicketStatus(ticketId, status) function in data.ts.
+  - Added toggleStatus handler in TicketDetail component — toggles between "closed" and "open".
+  - Added Close/Reopen button in the ticket header (ms-auto positioned, bilingual labels).
+  - Added onStatusChange prop that triggers list reload.
+  - Also: addTicketMessage now auto-sets ticket status to "pending" + updates updated_at when the coach replies (so the client knows there's a new message and the ticket bubbles to the top of the inbox).
+- Verified: tsc 0 errors, eslint 0 errors, next build exit 0.
+
+Stage Summary:
+- File uploads now validate type + size (blocks malware uploads, oversized files, path traversal via extensions).
+- Coaches can now close and reopen support tickets.
+- Ticket status auto-updates to "pending" when coach replies (client knows there's a new message).
+- Ticket updated_at is refreshed on each reply (inbox sorting is now correct).
+- Commit SHA: (pending)
+- Push status: (pending)

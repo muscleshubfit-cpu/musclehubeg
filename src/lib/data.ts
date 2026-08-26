@@ -8,6 +8,31 @@ import { processSubscriptionInitialPayment } from "@/lib/affiliate-engine";
 import { getReferralCookie, clearReferralCookie } from "@/lib/referral-cookie";
 
 /* -------------------------------------------------------------------------- */
+/* Upload validation helper (M7 fix) */
+/* -------------------------------------------------------------------------- */
+
+const MAX_FILE_SIZE_LABEL = (bytes: number) =>
+ bytes >= 1024 * 1024 ? `${Math.round(bytes / (1024 * 1024))}MB` : `${Math.round(bytes / 1024)}KB`;
+
+/**
+ * Validate a file's type + size before uploading to Supabase Storage.
+ * Throws a user-friendly error if validation fails.
+ */
+function validateUploadFile(file: File, allowedTypes: string[], maxSize: number) {
+ if (!file) throw new Error("No file provided");
+ if (!allowedTypes.includes(file.type)) {
+ throw new Error(
+ `Invalid file type: ${file.type || "unknown"}. Allowed: ${allowedTypes.join(", ")}`,
+ );
+ }
+ if (file.size > maxSize) {
+ throw new Error(
+ `File too large: ${MAX_FILE_SIZE_LABEL(file.size)}. Maximum: ${MAX_FILE_SIZE_LABEL(maxSize)}`,
+ );
+ }
+}
+
+/* -------------------------------------------------------------------------- */
 /* Local fallback store — used when Supabase env vars are missing. */
 /* Keeps the app fully usable in preview / demo mode. */
 /* -------------------------------------------------------------------------- */
@@ -761,6 +786,12 @@ export async function addTicketMessage(ticketId: string, senderId: string, body:
  .select()
  .single();
  if (error) throw new Error(error.message);
+ // M19 fix: update ticket's updated_at + auto-set status to 'pending'
+ // when coach replies (so the client knows there's a new message).
+ await supabase
+ .from("support_tickets")
+ .update({ updated_at: new Date().toISOString(), status: "pending" })
+ .eq("id", ticketId);
  return data;
  }
  const all = read<any[]>(LS_TICKET_MSGS, []);
@@ -768,6 +799,32 @@ export async function addTicketMessage(ticketId: string, senderId: string, body:
  all.push(row);
  write(LS_TICKET_MSGS, all);
  return row;
+}
+
+/**
+ * M19 fix: update a support ticket's status (open/pending/closed).
+ * Used by the coach to close or reopen tickets.
+ */
+export async function updateTicketStatus(ticketId: string, status: "open" | "pending" | "closed") {
+ if (isSupabaseConfigured && supabase) {
+ const { data, error } = await supabase
+ .from("support_tickets")
+ .update({ status, updated_at: new Date().toISOString() })
+ .eq("id", ticketId)
+ .select()
+ .single();
+ if (error) throw new Error(error.message);
+ return data;
+ }
+ const all = read<any[]>(LS_PREFIX + "tickets", []);
+ const idx = all.findIndex((t) => t.id === ticketId);
+ if (idx >= 0) {
+ all[idx].status = status;
+ all[idx].updated_at = new Date().toISOString();
+ write(LS_PREFIX + "tickets", all);
+ return all[idx];
+ }
+ return null;
 }
 
 export async function listChat(clientId: string) {
@@ -897,6 +954,8 @@ export async function listPhotos(userId: string) {
 }
 
 export async function uploadPhoto(userId: string, file: File, date: string, note: string) {
+ // M7 fix: validate file type + size before uploading
+ validateUploadFile(file, ["image/jpeg", "image/png", "image/webp"], 5 * 1024 * 1024);
  if (isSupabaseConfigured && supabase) {
  const ext = file.name.split(".").pop();
  const path = `${userId}/${Date.now()}.${ext}`;
@@ -1145,6 +1204,8 @@ export async function getReceiptSignedUrl(filePath: string): Promise<string> {
 }
 
 export async function uploadReceipt(file: File): Promise<string> {
+ // M7 fix: validate file type + size before uploading
+ validateUploadFile(file, ["image/jpeg", "image/png", "image/webp", "application/pdf"], 5 * 1024 * 1024);
  if (isSupabaseConfigured && supabase) {
  const ext = file.name.split(".").pop();
  const path = `receipts/${Date.now()}.${ext}`;
