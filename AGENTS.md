@@ -515,6 +515,17 @@ After every task, deliver a brief report containing only:
 - Next task
 - Raw SQL links to run on Supabase (mandatory whenever the task
   produced schema/DB changes — see §6 RAW-SQL-LINK RULE)
+- **PLAIN-STEP EXECUTION GUIDE (FIXED — BINDING FOR ALL CLIENTS/
+  PROJECTS):** whenever a task requires a MANUAL action from the Owner
+  (run SQL, trigger a workflow, set an env var, redeploy, click
+  anything in a dashboard), the final report MUST include a short,
+  numbered, plain-language walkthrough for each action: exact URL to
+  open → exact button/tab name → what to paste or select → what a
+  successful result looks like (expected output/screenshot hint) and
+  how to roll back if it fails. Assume non-technical reader. Avoid
+  jargon; if a technical term is unavoidable, define it inline.
+  Reporting a manual step without this guide is an INVALID delivery
+  (same severity as §6 without raw link).
 
 ### 12.10 Out-of-Scope Prohibited
 
