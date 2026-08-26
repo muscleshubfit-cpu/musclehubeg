@@ -1636,3 +1636,27 @@ Stage Summary:
 - No migration needed — the fix is purely code-level, compatible with the existing trigger.
 - Commit SHA: (pending)
 - Push status: (pending)
+
+---
+Task ID: DOCS-SUPABASE-RUN-007
+Agent: Main (Z User)
+Task: Create unified production run script for migrations 0017 + 0018.
+
+Work Log:
+- Read both migration files (0017_security_rls_hardening.sql, 0018_extend_subscription.sql) to verify content.
+- Verified subscriptions table has unique(client_id, tier) constraint (migration 0011) — extend_subscription RPC's WHERE clause is correct.
+- Created `supabase/migrations/RUN_ON_SUPABASE_SECURITY_0017_0018.sql`:
+  - Combines 0017 + 0018 into a single run-once script.
+  - Step-by-step instructions in the header (Supabase SQL Editor URL, paste, Run, NOTIFY).
+  - Section 7: verification queries (commented out — run separately to confirm).
+  - Section 8: rollback script (commented out — only if critical regression found).
+  - All statements idempotent (safe to run multiple times).
+- File follows the existing convention (archive/RUN_ON_SUPABASE.sql pattern).
+
+Stage Summary:
+- Single file the Owner can paste into Supabase SQL Editor.
+- Covers all 5 security fixes (C1, C2, C3-subs, C6, C10) + 2 migrations.
+- Verification queries let the Owner confirm success without guessing.
+- Rollback script included for emergency reversion.
+- Commit SHA: (pending)
+- Push status: (pending)
