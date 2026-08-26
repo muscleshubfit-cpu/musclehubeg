@@ -123,11 +123,11 @@ export type TopicPick = {
   rationale: string;
 };
 
-async function getRecentPosts(limit = 100): Promise<{ title: string; focusKeyword: string; category: string }[]> {
+export async function getRecentPosts(limit = 100): Promise<{ title: string; focusKeyword: string; category: string; slug: string }[]> {
   if (!isSupabaseAdminConfigured || !supabaseAdmin) return [];
   const { data, error } = await supabaseAdmin
     .from("blog_posts" as any)
-    .select("title, focus_keyword, category")
+    .select("title, focus_keyword, category, slug")
     .eq("language", "en")
     .order("created_at", { ascending: false })
     .limit(limit);
@@ -136,14 +136,15 @@ async function getRecentPosts(limit = 100): Promise<{ title: string; focusKeywor
     title: p.title || "",
     focusKeyword: p.focus_keyword || "",
     category: p.category || "",
+    slug: p.slug || "",
   }));
 }
 
-async function getRecentPostsByLanguage(lang: "en" | "ar", limit = 100): Promise<{ title: string; focusKeyword: string; category: string }[]> {
+export async function getRecentPostsByLanguage(lang: "en" | "ar", limit = 100): Promise<{ title: string; focusKeyword: string; category: string; slug: string }[]> {
   if (!isSupabaseAdminConfigured || !supabaseAdmin) return [];
   const { data, error } = await supabaseAdmin
     .from("blog_posts" as any)
-    .select("title, focus_keyword, category")
+    .select("title, focus_keyword, category, slug")
     .eq("language", lang)
     .order("created_at", { ascending: false })
     .limit(limit);
@@ -152,6 +153,7 @@ async function getRecentPostsByLanguage(lang: "en" | "ar", limit = 100): Promise
     title: p.title || "",
     focusKeyword: p.focus_keyword || "",
     category: p.category || "",
+    slug: p.slug || "",
   }));
 }
 
@@ -160,7 +162,7 @@ async function getRecentPostsByLanguage(lang: "en" | "ar", limit = 100): Promise
  * overlap (≥70% of the focus keyword words appear in an existing title
  * or focus keyword).
  */
-function isDuplicateTopic(
+export function isDuplicateTopic(
   newTopic: string,
   newFocusKw: string,
   existing: { title: string; focusKeyword: string }[],

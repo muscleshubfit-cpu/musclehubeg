@@ -1,20 +1,21 @@
-name: Auto-generate blog post (native GHA pipeline)
+name: Auto-generate blog post (pipeline v2 — six AI phases)
 
 # ============================================================
-# 2026-08-27 — NATIVE EXECUTION (Owner directive: run AI calls
-# inside GitHub Actions, all keys from GitHub Secrets; EVO chat
-# stays on Vercel streaming).
+# 2026-08-27 (v2) — Owner-defined six-phase article pipeline:
+#   P0 keyword/FAQ/topic research (per language, strongest free
+#      models first with automatic fall-through)
+#   P1 topic choice + SEO outline (+ LSI keywords + image plan)
+#   P2 full content generation (1500–2500 words per language)
+#   P3 images (3–5 per language, MODESTY-GUARDED prompts:
+#      no nudity, no revealing imagery — hard owner rule)
+#   P4 quality review (proofread, keyword check, fact-guard,
+#      internal+external links, closing CTA)
+#   P5 publish + auto-sitemap (pure code, NO AI models)
 #
-# The job imports the SAME Next.js route handlers in-process
-# (scripts/blog-runner/run-step.mts) — no HTTP hop to Vercel, no
-# 60-second Hobby cap. AI_CHAIN_TOTAL_BUDGET_MS=180000 lets each
-# fallback chain run full-length completions instead of the 52s
-# Vercel clamp. Vercel cron routes remain available for manual
-# pings / the in-app editor, unchanged.
-#
-# Retry policy preserved: up to 3 attempts per step with linear
-# backoff (2 min + 4 min), plus the Step1 → Step2a stabilization
-# handoff buffer.
+# Native execution: the job imports the SAME route handlers in-process
+# (scripts/blog-runner/run-step.mts) — no Vercel hop, no 60s cap.
+# AI_CHAIN_TOTAL_BUDGET_MS=180000 funds full-length completions.
+# Keys come from GitHub Secrets; EVO chat stays on Vercel streaming.
 # ============================================================
 
 on:
@@ -35,9 +36,7 @@ jobs:
       # ── Native-execution budget override (default on Vercel: 52000) ──
       AI_CHAIN_TOTAL_BUDGET_MS: "180000"
 
-      # ── Required secrets (fail-fast preflight below) ────────────────
-      # Code accepts either OPENROUTER_API or OPENROUTER_API_KEY, so both
-      # are mapped independently — whichever exists will be picked up.
+      # ── Required secrets (preflight fails fast naming missing ones) ──
       NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
       CRON_SECRET: ${{ secrets.CRON_SECRET }}
@@ -83,39 +82,32 @@ jobs:
       - name: Install dependencies
         run: npm install --no-audit --no-fund
 
-      # ============================================================
-      # Step 1 — Pick topics (EN + AR), controlled retry ×3
-      # Success captures queueId into GITHUB_ENV for later steps.
-      # ============================================================
-      - name: Step 1 — Pick topics EN + AR (retry ×3)
-        run: bash scripts/blog-runner/run-step.sh step1-pick 3
+      # ══════════════════════════════════════════════════════════
+      # SIX-PHASE PIPELINE (each step retries ×3 with backoff and
+      # threads queueId automatically from P0's response)
+      # ══════════════════════════════════════════════════════════
 
-      # Stabilization handoff (orchestration-level sleep) — kept from
-      # the previous design to let Supabase settle before research.
-      - name: Wait 5 minutes — Step 1 → Step 2a stabilization handoff
-        run: |
-          echo "=== Handoff: waiting 5 minutes before Step 2a ==="
-          sleep 300
-          echo "✓ Handoff buffer elapsed"
+      - name: P0 — Keyword & topic research EN+AR (retry ×3)
+        run: bash scripts/blog-runner/run-step.sh p0-research 3
 
-      - name: Step 2a — Research (retry ×3)
-        run: bash scripts/blog-runner/run-step.sh step2a-research 3
+      - name: P1 — Topic choice + outline EN+AR (retry ×3)
+        run: bash scripts/blog-runner/run-step.sh p1-outline 3
 
-      - name: Step 2b — English article + SEO (retry ×3)
-        run: bash scripts/blog-runner/run-step.sh step2b-en-article 3
+      - name: P2 — Full content EN + AR, 1500–2500 words each (retry ×3)
+        run: bash scripts/blog-runner/run-step.sh p2-content 3
 
-      - name: Step 2c — Arabic article + FAQ (retry ×3)
-        run: bash scripts/blog-runner/run-step.sh step2c-ar-article 3
+      - name: P3 — Modesty-guarded images EN + AR, 3–5 each (retry ×3)
+        run: bash scripts/blog-runner/run-step.sh p3-images 3
 
-      - name: Step 2d — Links + images + social (retry ×3)
-        run: bash scripts/blog-runner/run-step.sh step2d-links 3
+      - name: P4 — Quality review & links & CTA EN + AR (retry ×3)
+        run: bash scripts/blog-runner/run-step.sh p4-review 3
 
-      - name: Step 3 — Publish (retry ×3)
-        run: bash scripts/blog-runner/run-step.sh step3-publish 3
+      - name: P5 — Publish to blog_posts + auto-sitemap (retry ×3)
+        run: bash scripts/blog-runner/run-step.sh p5-publish 3
 
       - name: Summary
         if: always()
         run: |
-          echo "=== Pipeline run summary ==="
+          echo "=== Pipeline v2 run summary ==="
           echo "QUEUE_ID processed: ${QUEUE_ID:-<none>}"
-          echo "Full logs above — green ✓ = published, red ❌ = copy last lines and report."
+          echo "Full logs above — green ✓ = published (EN+AR), red ❌ = copy last lines and report."

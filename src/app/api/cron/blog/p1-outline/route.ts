@@ -1,0 +1,142 @@
+import { NextRequest, NextResponse } from "next/server";
+import { buildOutline, pickTopicIndex, type OutlinePlan } from "@/lib/blog-pipeline";
+import type { LanguageResearch } from "@/lib/blog-research";
+import {
+  getQueueIdParam,
+  fetchQueueItem,
+  validateQueueStatus,
+  updateQueueItem,
+  markQueueItemFailed,
+  type QueueItem,
+} from "@/lib/blog-queue";
+import { getRecentPostsByLanguage, isDuplicateTopic } from "@/lib/blog-topics";
+import { isSupabaseAdminConfigured } from "@/lib/supabase/admin";
+
+export const maxDuration = 60;
+
+/**
+ * PIPELINE V2 · PHASE 1 — Topic choice + detailed outline per language.
+ * Picks ONE of the 5 researched topics (model-ranked + hard duplicate
+ * guard) then builds: SEO title, subtitle, meta description, slug base,
+ * 5-7 H2 outline, LSI keywords and a 3-5 image plan.
+ *
+ * GET /api/cron/blog/p1-outline?queueId=<uuid>
+ */
+async function guardDuplicate(
+  lang: "en" | "ar",
+  candidates: string[],
+): Promise<string> {
+  const idx = await pickTopicIndex(lang, candidates);
+  let topic = candidates[idx] ?? candidates[0];
+  try {
+    const recent = await getRecentPostsByLanguage(lang, 100);
+    if (recent.some((p) => isDuplicateTopic(topic, topic, [p]).duplicate)) {
+      topic =
+        candidates.find(
+          (t) => !recent.some((p) => isDuplicateTopic(t, t, [p]).duplicate),
+        ) ?? topic;
+    }
+  } catch {
+    /* dup-guard is best-effort */
+  }
+  return topic;
+}
+
+function pickKeyword(r: LanguageResearch, topic: string): string {
+  const lower = topic.toLowerCase();
+  const hit = r.keywords.find(
+    (k) =>
+      lower.includes(k.keyword.toLowerCase()) ||
+      k.keyword.toLowerCase().includes(lower),
+  );
+  return hit?.keyword || r.keywords[0]?.keyword || topic.slice(0, 60);
+}
+
+function pickSummary(o: OutlinePlan, topic: string) {
+  return {
+    topic,
+    title: o.title,
+    sections: o.sections.length,
+    lsi: o.lsiKeywords.length,
+    imagePlan: o.imagePlan.length,
+  };
+}
+
+export async function GET(request: NextRequest) {
+  const auth = request.headers.get("authorization");
+  const expected = process.env.CRON_SECRET;
+  if (!expected || auth !== `Bearer ${expected}`)
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  if (!isSupabaseAdminConfigured)
+    return NextResponse.json({ error: "Supabase admin not configured." }, { status: 500 });
+
+  const queueId = getQueueIdParam(request);
+  if (!queueId)
+    return NextResponse.json({ error: "Missing queueId query parameter" }, { status: 400 });
+
+  let qi: QueueItem | null = null;
+
+  try {
+    const { data, error: fetchErr } = await fetchQueueItem(queueId);
+    if (fetchErr) throw new Error(fetchErr);
+    if (!data)
+      return NextResponse.json({ ok: false, queueId, skipped: true, reason: "queue_item_not_found" }, { status: 404 });
+    qi = data;
+
+    const statusErr = validateQueueStatus(qi, "researched");
+    if (statusErr) {
+      if (qi.status === "outlined")
+        return NextResponse.json({ ok: true, step: "p1", queueId: qi.id, idempotent: true });
+      if (qi.status !== "failed")
+        return NextResponse.json(
+          { ok: false, queueId: qi.id, skipped: true, reason: "wrong_status", actual_status: qi.status },
+          { status: 409 },
+        );
+      console.warn(`[blog/p1-outline] Re-processing previously failed item ${qi.id}`);
+    }
+
+    const bundle = qi.article_bundle ? JSON.parse(qi.article_bundle) : {};
+    const r0 = bundle.research0 as { en: LanguageResearch; ar: LanguageResearch } | undefined;
+    if (!r0?.en?.topics?.length || !r0?.ar?.topics?.length) {
+      throw new Error("research0 artifact missing on queue item — rerun p0-research");
+    }
+
+    const [topicEn, topicAr] = await Promise.all([
+      guardDuplicate("en", r0.en.topics),
+      guardDuplicate("ar", r0.ar.topics),
+    ]);
+
+    const [outlineEn, outlineAr] = await Promise.all([
+      buildOutline("en", topicEn, r0.en),
+      buildOutline("ar", topicAr, r0.ar),
+    ]);
+
+    const updatedBundle = JSON.stringify({
+      ...bundle,
+      outline: { en: outlineEn.outline, ar: outlineAr.outline },
+    });
+
+    const updateErr = await updateQueueItem(qi.id, {
+      topic: topicEn,
+      topic_ar: topicAr,
+      focus_keyword: pickKeyword(r0.en, topicEn),
+      focus_keyword_ar: pickKeyword(r0.ar, topicAr),
+      status: "outlined",
+      article_bundle: updatedBundle,
+    });
+    if (updateErr) throw new Error(updateErr);
+
+    return NextResponse.json({
+      ok: true,
+      step: "p1",
+      queueId: qi.id,
+      en: pickSummary(outlineEn.outline, topicEn),
+      ar: pickSummary(outlineAr.outline, topicAr),
+    });
+  } catch (e: any) {
+    console.error("[blog/p1-outline] Error:", e?.message || e);
+    if (queueId) await markQueueItemFailed(queueId, `p1: ${e?.message || "Unknown"}`);
+    return NextResponse.json({ error: e?.message || "Failed" }, { status: 500 });
+  }
+}

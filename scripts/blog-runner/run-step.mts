@@ -25,12 +25,12 @@
 import { NextRequest } from "next/server";
 
 const STEPS = [
-  "step1-pick",
-  "step2a-research",
-  "step2b-en-article",
-  "step2c-ar-article",
-  "step2d-links",
-  "step3-publish",
+  "p0-research",
+  "p1-outline",
+  "p2-content",
+  "p3-images",
+  "p4-review",
+  "p5-publish",
 ] as const;
 
 function arg(name: string): string | undefined {

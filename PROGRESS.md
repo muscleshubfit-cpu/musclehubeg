@@ -319,6 +319,7 @@
 | Phase 11 | 2026-08-25 | PROGRESS.md restructure into clean status board (هذه المهمة #4) |
 | Phase 12 | 2026-08-26 | UI palette unification — extracted Gemini-card palette + applied site-wide via `PALETTE` const in `LandingView.tsx`. Redesigned Premium Memberships cards (were broken: `bg-white/5` invisible + `text-gray-400/300` on light bg). All landing text now WCAG AAA (≥7:1). Commits: `8aff772` (initial palette), `1447a0b` (deepen text colors to AAA), `2a449d5` (site-wide unification + memberships redesign) |
 | Phase 13 | 2026-08-27 | Native GHA AI execution (owner directive) — blog pipeline moved INTO GitHub Actions (`scripts/blog-runner/run-step.mts` imports route handlers in-process, no Vercel hop / no 60s cap); `AI_CHAIN_TOTAL_BUDGET_MS` override added to ai-provider (default 52s unchanged); keys centralized in GitHub Secrets; EVO chat stays on Vercel streaming |
+| Phase 14 | 2026-08-27 | Blog pipeline v2 (owner six-phase spec) — P0 keyword/FAQ/topic research → P1 outline+LSI+image plan → P2 full 1500–2500-word content per language → P3 modesty-guarded images (hard rule: no nudity/revealing imagery) → P4 quality review (fact-guard, links, CTA, FAQ safety net) → P5 pure-code publish + auto-sitemap; legacy step routes removed; migration 0023 (legacy queue cleanup) + libs blog-research.ts / blog-pipeline.ts |
 
 ---
 

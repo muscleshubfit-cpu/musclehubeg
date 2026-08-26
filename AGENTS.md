@@ -309,10 +309,29 @@ Process:
   in-process — no Vercel hop). In that context only,
   `AI_CHAIN_TOTAL_BUDGET_MS` overrides the 52s clamp (workflow sets
   180000) for full-length articles. AI keys come from GitHub Secrets;
-  EVO chat stays on Vercel streaming. The `/api/cron/blog/*` routes
-  remain valid for manual pings and the in-app editor; do not delete
-  them. Any new scheduled/batch AI work MUST follow this native-GHA
-  pattern instead of adding Vercel-capped endpoints.
+  EVO chat stays on Vercel streaming. Any new scheduled/batch AI work
+  MUST follow this native-GHA pattern instead of adding Vercel-capped
+  endpoints.
+- **Blog pipeline v2 (2026-08-27 owner spec — supersedes v1 routes):**
+  six phases, each a route under `/api/cron/blog/`: `p0-research`
+  (keyword+FAQ+5-topic research per language, curated fallback keeps
+  runs alive) → `p1-outline` (model-ranked topic pick + hard duplicate
+  guard, SEO title/subtitle/meta/slug, 5-7 H2s, LSI list, 3-5 image
+  plan) → `p2-content` (1500-2500 words per language from its own
+  outline; maxTokens 16000) → `p3-images` (3-5 images per language) →
+  `p4-review` (proofread/flow/dedup, keyword coverage, conservative
+  fact-guard — never invent citations, 2-4 internal links from real
+  posts, ≤2 trusted external links, closing CTA; deterministic FAQ
+  section appended from P0 answers as a length safety net) →
+  `p5-publish` (pure code: inserts EN+AR rows, cross-links them;
+  dynamic sitemap.ts auto-updates). The legacy step1/step2a/2b/2c/2d/
+  step3 routes were removed with this release; queue statuses are now:
+  researched→outlined→writing_en→en_written→writing_ar→ar_written→
+  images_done→reviewed→published (+failed/skipped_duplicate).
+- **IMAGE MODESTY GUARD (hard owner rule):** every image prompt
+  anywhere in the product MUST include `IMAGE_MODESTY_SUFFIX`
+  (`src/lib/blog-pipeline.ts`): modest attire, no nudity, no revealing
+  or suggestive imagery, no women in revealing outfits.
 - Never log the AI response in production code paths (it can contain
   user PII or partial reasoning that should not be persisted).
 - Local fallbacks (`src/lib/ai-local.ts`) exist so the app degrades

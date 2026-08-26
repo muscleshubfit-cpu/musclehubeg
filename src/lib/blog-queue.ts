@@ -115,7 +115,7 @@ export function validateQueueStatus(
  */
 export async function updateQueueItem(
   queueId: string,
-  updates: { status: string; article_bundle?: string; error_message?: string; en_post_id?: string; ar_post_id?: string },
+  updates: { status: string; article_bundle?: string; error_message?: string; en_post_id?: string; ar_post_id?: string; topic?: string; topic_ar?: string; focus_keyword?: string; focus_keyword_ar?: string },
 ): Promise<string | null> {
   if (!isSupabaseAdminConfigured || !supabaseAdmin) {
     return "Supabase admin not configured.";
