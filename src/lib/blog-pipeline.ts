@@ -196,12 +196,15 @@ Return STRICT JSON only:
 
   const { text, model, provider } = await callFreeAIFallbackChain(prompt, {
     temperature: 0.7,
-    maxTokens: 16_000,
+    // GROQ FREE FIT (2026-08-27, hard data from dispatch logs): Groq enforces
+    // an 8000 TPM ceiling and COUNTS max_tokens in it — a 16000-cap request
+    // returns 413 'Requested 16664' every time. A 1500-2500 word article is
+    // only ~3000 output tokens, so 6400 keeps us under the ceiling while
+    // leaving headroom. timeout 60s × maxModels 3 = 180s GHA budget.
+    maxTokens: 6_400,
     jsonMode: false, // tolerant extraction instead of strict-mode hard fails
-    // 80s × 2 models = 160s ≤ AI_CHAIN_TOTAL_BUDGET_MS (180000 in GHA);
-    // the old 58s³ aborted nvidia/nemotron mid-generation.
-    timeoutMs: 80_000,
-    maxModels: 2,
+    timeoutMs: 60_000,
+    maxModels: 3,
   });
   const parsed = parseJSONLoose<{ articleMd?: string; article?: string }>(text);
   const md = (parsed?.articleMd || parsed?.article || "").trim();
@@ -298,10 +301,11 @@ Return STRICT JSON only:
 
   const { text, model, provider } = await callFreeAIFallbackChain(prompt, {
     temperature: 0.4,
-    maxTokens: 16_000,
-    jsonMode: false, // tolerant extraction instead of strict-mode hard fails
-    timeoutMs: 80_000,
-    maxModels: 2,
+    // Same Groq-free-fit caps as generateFullArticle (8000 TPM ceiling).
+    maxTokens: 6_400,
+    jsonMode: false,
+    timeoutMs: 60_000,
+    maxModels: 3,
   });
   const parsed = parseJSONLoose<any>(text);
   const md = (parsed?.articleMd || "").trim();
