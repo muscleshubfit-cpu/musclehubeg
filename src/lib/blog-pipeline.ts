@@ -308,12 +308,16 @@ Return STRICT JSON only:
     tag: `blog:review-${lang}`,
     temperature: 0.4,
     // Review embeds the FULL draft → big payload runs openrouter-only via
-    // the chain guard; long single windows beat several short aborted ones:
-    // eff min(110s, 240s/2=120s) = 110s ×2.
+    // the chain guard. DEEP LADDER FIX (2026-08-27 AR dispatch forensics):
+    // with maxModels=2 the review died when BOTH leading models hiccuped
+    // (ultra 150s abort + gemma upstream 429 shared pool) WITHOUT reaching
+    // lightning/super which were healthy. maxModels=5 walks the full
+    // openrouter ladder — the chain self-clamps eff windows so Vercel stays
+    // Hobby-safe (52s) while native GHA (360s budget) gets real depth.
     maxTokens: 6_400,
     jsonMode: false,
     timeoutMs: 110_000,
-    maxModels: 2,
+    maxModels: 5,
   });
   const parsed = parseJSONLoose<any>(text);
   const md = (parsed?.articleMd || "").trim();
