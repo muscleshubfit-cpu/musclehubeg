@@ -200,12 +200,13 @@ Return STRICT JSON only:
     // an 8000 TPM ceiling and COUNTS max_tokens in it — a 16000-cap request
     // returns 413 'Requested 16664' every time. A 1500-2500 word article is
     // only ~3000 output tokens, so 6400 keeps us under the ceiling while
-    // leaving headroom. effTimeout = min(85s, 240s/3=80s) — earlier successes
-    // took ~53s; 60s windows were cutting nemotron stragglers mid-stream.
+    // leaving headroom. Nightly upstream outages (entire Google gemma pool
+    // 429 for hours) leave nemotron as sole carrier some windows — give it
+    // a REAL long window: eff min(150s, 360s/2=180s) = 150s ×2 models.
     maxTokens: 6_400,
     jsonMode: false, // tolerant extraction instead of strict-mode hard fails
-    timeoutMs: 85_000,
-    maxModels: 3,
+    timeoutMs: 150_000,
+    maxModels: 2,
   });
   const parsed = parseJSONLoose<{ articleMd?: string; article?: string }>(text);
   const md = (parsed?.articleMd || parsed?.article || "").trim();
