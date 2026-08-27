@@ -695,23 +695,35 @@ export async function callFreeAIFallbackChain(
 
     // Inner key-fallback loop ONLY triggers on auth/quota-style errors —
     // ordinary failures fall through to the next MODEL as before.
+    // EMPTY-RESPONSE RETRY (2026-08-27): OpenRouter's free pool frequently
+    // swallows a request and returns 200-with-empty-content; an immediate
+    // identical retry very often succeeds. Retry each entry ONCE on empty.
     for (const apiKey of candidateKeys) {
-      try {
-        const { text } = await callAIWithFallback(prompt, { ...callOptions, timeoutMs: effTimeoutMs }, {
-          provider,
-          apiKey,
-          model,
-          baseUrl,
-        });
-        if (text && text.trim().length > 0) {
-          console.log(`[ai-fallback-chain] ${provider}/${model} succeeded`);
-          return { text: text.trim(), model, provider };
+      for (let attemptNo = 0; attemptNo < 2; attemptNo++) {
+        try {
+          const { text } = await callAIWithFallback(prompt, { ...callOptions, timeoutMs: effTimeoutMs }, {
+            provider,
+            apiKey,
+            model,
+            baseUrl,
+          });
+          if (text && text.trim().length > 0) {
+            console.log(`[ai-fallback-chain] ${provider}/${model} succeeded${attemptNo ? " (after empty-retry)" : ""}`);
+            return { text: text.trim(), model, provider };
+          }
+          throw new Error(`${model}: empty response`);
+        } catch (e: any) {
+          const msg = e?.message || String(e);
+          errors.push(`${provider}/${model}: ${msg}`);
+          console.warn(`[ai-fallback-chain] ${provider}/${model} notice, trying next:`, msg);
         }
-        throw new Error(`${model}: empty response`);
-      } catch (e: any) {
-        const msg = e?.message || String(e);
-        errors.push(`${provider}/${model}: ${msg}`);
-        console.warn(`[ai-fallback-chain] ${provider}/${model} notice, trying next:`, msg);
+        const lastErr = errors[errors.length - 1] || "";
+        const isEmpty = /empty response/i.test(lastErr);
+        if (isEmpty && attemptNo === 0 && provider === "openrouter") {
+          console.log(`[ai-fallback-chain] empty response → one immediate retry of ${provider}/${model}`);
+          continue;
+        }
+        break;
       }
       // Only a quota/auth problem on OpenRouter justifies switching ACCOUNT;
       // everything else falls through to the next model in the chain.

@@ -200,10 +200,11 @@ Return STRICT JSON only:
     // an 8000 TPM ceiling and COUNTS max_tokens in it — a 16000-cap request
     // returns 413 'Requested 16664' every time. A 1500-2500 word article is
     // only ~3000 output tokens, so 6400 keeps us under the ceiling while
-    // leaving headroom. timeout 60s × maxModels 3 = 180s GHA budget.
+    // leaving headroom. effTimeout = min(85s, 240s/3=80s) — earlier successes
+    // took ~53s; 60s windows were cutting nemotron stragglers mid-stream.
     maxTokens: 6_400,
     jsonMode: false, // tolerant extraction instead of strict-mode hard fails
-    timeoutMs: 60_000,
+    timeoutMs: 85_000,
     maxModels: 3,
   });
   const parsed = parseJSONLoose<{ articleMd?: string; article?: string }>(text);
@@ -301,12 +302,12 @@ Return STRICT JSON only:
 
   const { text, model, provider } = await callFreeAIFallbackChain(prompt, {
     temperature: 0.4,
-    // Review embeds the FULL draft → ~9k-token requests (excluded from Groq
-    // by the chain's big-payload guard) and need one long nemotron window,
-    // not several short ones: 105s × 2 = 210s ≤ GHA budget 240s.
+    // Review embeds the FULL draft → big payload runs openrouter-only via
+    // the chain guard; long single windows beat several short aborted ones:
+    // eff min(110s, 240s/2=120s) = 110s ×2.
     maxTokens: 6_400,
     jsonMode: false,
-    timeoutMs: 105_000,
+    timeoutMs: 110_000,
     maxModels: 2,
   });
   const parsed = parseJSONLoose<any>(text);
