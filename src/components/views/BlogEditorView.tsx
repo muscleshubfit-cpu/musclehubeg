@@ -12,7 +12,7 @@ import { Card } from "@/components/ui/card";
 import { useI18n } from "@/lib/i18n";
 import { useRouter } from "next/navigation";
 import { BLOG_CATEGORIES, getCategoryLabel, parseTableOfContents, renderMarkdown } from "@/lib/blog";
-import { adminGetPost, adminCreatePost, adminUpdatePost, aiTool, calculateSEOScore, calculateWordCount, calculateReadingTime, type AdminBlogPost } from "@/lib/blog-admin";
+import { adminGetPost, adminCreatePost, adminUpdatePost, calculateSEOScore, calculateWordCount, calculateReadingTime, type AdminBlogPost } from "@/lib/blog-admin";
 import { runAiJob } from "@/lib/ai-jobs-client";
 import { toast } from "sonner";
 
