@@ -35,9 +35,13 @@ export function AppLayout({ children }: { children: ReactNode }) {
     { to: "blog-admin", label: isAr ? "المدونة" : "Blog", emoji: "📝" },
     { to: "admin-referrals", label: isAr ? "الإحالات" : "Referrals", emoji: "🎁" },
   ];
-  // Custom external link for tool leads (not in View type)
+  // Custom external links for coach-only pages that live outside the View
+  // type (real URLs under /admin/*). Saved Results was previously reachable
+  // only from the header drawer — deep-audit fix (2026-08-28) puts it on par
+  // with Tool Leads in the persistent sidebar.
   const coachExtraLinks = [
     { href: "/admin/leads", label: isAr ? "Leads الأدوات" : "Tool Leads", emoji: "📨" },
+    { href: "/admin/saved-results", label: isAr ? "النتائج المحفوظة" : "Saved Results", emoji: "🔖" },
   ];
   const nav = isCoach ? coachNav : clientNav;
 

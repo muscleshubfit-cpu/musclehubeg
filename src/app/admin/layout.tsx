@@ -3,7 +3,7 @@ import { AdminGate } from "./admin-gate";
 
 /**
  * Server-component layout for /admin/* routes (blog CMS, referrals,
- * AI settings, leads, saved-results).
+ * leads, saved-results).
  *
  * Exports `metadata` with `noindex, nofollow` so Google does not index any
  * page under /admin. The coach-only auth gate (client component) is rendered

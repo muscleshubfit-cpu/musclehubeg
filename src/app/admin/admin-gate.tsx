@@ -6,9 +6,10 @@ import { useAuth } from "@/hooks/use-auth";
 import { AppLayout } from "@/components/AppLayout";
 
 /**
- * Client-side auth gate for /admin/* routes (blog CMS, referrals, AI settings).
- * Redirects non-coaches back to their dashboard; redirects logged-out users
- * to /auth. Sits OUTSIDE the (app) group, so it needs its own gate.
+ * Client-side auth gate for /admin/* routes (blog CMS, referrals, leads,
+ * saved-results). Redirects non-coaches back to their dashboard; redirects
+ * logged-out users to /auth. Sits OUTSIDE the (app) group, so it needs its
+ * own gate.
  *
  * NOTE: This is a client component, so it CANNOT export `metadata`. The
  * parent `layout.tsx` (server component) exports the `metadata`
