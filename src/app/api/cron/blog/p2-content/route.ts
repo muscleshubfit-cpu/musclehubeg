@@ -75,8 +75,10 @@ export async function GET(request: NextRequest) {
       const upd1 = await updateQueueItem(qi.id, { status: "writing_en" });
       if (upd1) throw new Error(upd1);
       const en = await writeLang("en", bundle);
-      bundle = parseBundle();
-      bundle.content_en = en;
+      // ACCUMULATOR FIX (2026-08-27): never re-parse the stale qi row between
+      // passes. The old parseBundle() refresh here made the AR update serialize
+      // a bundle predating content_en → silently WIPED the English article.
+      bundle = { ...bundle, content_en: en };
       const upd2 = await updateQueueItem(qi.id, {
         status: "en_written",
         article_bundle: JSON.stringify(bundle),
@@ -91,10 +93,8 @@ export async function GET(request: NextRequest) {
     if (!bundle.content_ar?.markdown) {
       const upd3 = await updateQueueItem(qi.id, { status: "writing_ar" });
       if (upd3) throw new Error(upd3);
-      bundle = parseBundle();
       const ar = await writeLang("ar", bundle);
-      bundle = parseBundle();
-      bundle.content_ar = ar;
+      bundle = { ...bundle, content_ar: ar };
       const upd4 = await updateQueueItem(qi.id, {
         status: "ar_written",
         article_bundle: JSON.stringify(bundle),
@@ -106,8 +106,8 @@ export async function GET(request: NextRequest) {
     }
 
     // Quality signal only — P4 is responsible for expanding short drafts.
-    const wcEn = countWords((parseBundle().content_en?.markdown) || "");
-    const wcAr = countWords((parseBundle().content_ar?.markdown) || "");
+    const wcEn = countWords(bundle.content_en?.markdown || "");
+    const wcAr = countWords(bundle.content_ar?.markdown || "");
 
     return NextResponse.json({ ok: true, step: "p2", queueId: qi.id, ...results, wcEn, wcAr });
   } catch (e: any) {
