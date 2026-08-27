@@ -524,6 +524,27 @@ Process:
     5) The 3-slots-per-day design doubles as schedule-outage retry:
        a skipped slot self-heals at the next slot the same day — but
        only if the scheduler itself is registered (see 1–2).
+    6) SCHEDULER-INDEPENDENT BACKSTOP (never trust GitHub's scheduler
+       alone): `/api/cron/dispatch-pipelines` (CRON_SECRET, fail-closed)
+       tops each language pipeline up to its daily quota by counting
+       today's PUBLISHING runs (failure/cancelled excluded — a failed
+       run consumed a slot without producing an article) and dispatching
+       only the missing difference; it also dispatches process-ai-jobs
+       when its last run is >15 min stale. `vercel.json` fires it daily
+       at 21:00 UTC (Hobby's remaining cron slot) as the guaranteed
+       6/day floor. Requires Vercel env `GITHUB_DISPATCH_TOKEN`
+       (fine-grained PAT, this repo only, Actions: Read and write) —
+       never commit the PAT into the repo (§3.2). Exact-slot stagger and
+       the ai-jobs worker cadence are restored by pointing an external
+       cron service (e.g. cron-job.org, every 10 min) at the same
+       endpoint — dedup makes extra firings safe.
+    7) QUOTA vs SCHEDULE forensics ordering: when a pipeline run fails
+       on `free-models-per-day` 429s (OpenRouter free tier, both
+       accounts, reset midnight UTC), do NOT retry — the day's quota is
+       spent, not the trigger. Sustainable 6/day requires owner credits
+       on OpenRouter ($10 → 1000 free requests/day/account) or stricter
+       per-article AI budgeting. Diagnose quota BEFORE touching
+       schedules; diagnose schedules (see 1) BEFORE touching code.
 - Never log the AI response in production code paths (it can contain
   user PII or partial reasoning that should not be persisted).
 - Local fallbacks (`src/lib/ai-local.ts`) exist so the app degrades
