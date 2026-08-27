@@ -41,8 +41,14 @@ async function generateAIImage(query: string): Promise<SourcedImage> {
     try {
       const seed = Math.floor(Math.random() * 100000);
       const pollinationsUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=576&nologo=true&seed=${seed}&model=${model}`;
+      // POLLINATIONS TIMEOUT LAW (2026-08-27 forensics): flux/turbo are
+      // queue-based renderers — under load a render routinely takes 15–60s.
+      // The old 10s window aborted EVERY GHA backfill render ("The operation
+      // was aborted due to timeout" on all 8 attempts) and silently starved
+      // P3 sourcing. 40s gives real renders room while keeping the step
+      // bounded (2 models × 40s worst case per subject).
       const res = await fetch(pollinationsUrl, {
-        signal: AbortSignal.timeout(10_000),
+        signal: AbortSignal.timeout(40_000),
       });
       if (res.ok) {
         // HARD ASSERTION: a polluted URL must never leave this module
