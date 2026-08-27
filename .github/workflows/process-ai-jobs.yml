@@ -30,6 +30,11 @@ on:
   repository_dispatch:
     types: [process-ai-jobs]
 
+# SCHEDULE-RE-REGISTRATION 2026-08-27: this */10 worker NEVER fired since
+# its addition (0 runs) — same repo-wide scheduler de-registration that hit
+# the blog pipelines. Remedy per AGENTS.md §8 SCHEDULE HEALTH LAW:
+# API enable + this touching commit.
+
 concurrency:
   group: ai-jobs-worker
   cancel-in-progress: false

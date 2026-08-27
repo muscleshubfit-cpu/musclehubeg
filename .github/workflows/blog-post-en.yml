@@ -24,6 +24,10 @@ on:
     - cron: "0 22 * * *"  # 18:00 ET
   workflow_dispatch: {}
 
+# SCHEDULE-RE-REGISTRATION 2026-08-27: GitHub silently stopped firing ALL
+# scheduled workflows repo-wide after 2026-08-26T16:39Z (dispatch runs kept
+# working). Remedy per AGENTS.md §8 SCHEDULE HEALTH LAW: API enable + this
+# touching commit to re-register the cron triggers with the scheduler.
 concurrency:
   # Independent of the AR pipeline on purpose — AR and EN may overlap.
   group: blog-pipeline-en
