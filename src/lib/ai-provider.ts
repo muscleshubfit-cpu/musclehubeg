@@ -474,12 +474,13 @@ export const FREE_OPENROUTER_MODELS = [
  * RACE multiple models in PARALLEL and return the FIRST one that succeeds.
  *
  * Uses Promise.any() — returns IMMEDIATELY when the first model responds with
- * valid text. Other in-flight requests are abandoned when the serverless
- * function returns.
+ * valid text.
  *
- * OWNER DIRECTIVE (2026-08-27): this is now the ONLY remaining race path —
- * used exclusively by /api/ai/swap (speed-critical, bounded worst case =
- * one timeout window since all N run in parallel).
+ * STATUS (2026-08-27): its last consumer (/api/ai/swap) was retired when all
+ * plan swaps moved to the ai_jobs queue (GitHub Actions). The helper is kept
+ * for future latency-critical paths, but NOTHING calls it today. Do not wire
+ * it into new code without owner approval — the platform standard is
+ * callFreeAIFallbackChain.
  *
  * Returns { text, model } on success, throws on total failure.
  */
@@ -550,6 +551,9 @@ export async function callFreeOpenRouterRace(
 export type FallbackChainOptions = CallAIOptions & {
   /** Max entries of the interleaved chain to try (default 2). */
   maxModels?: number;
+  /** "strongest" (default) = quality-first interleave.
+   *  "fast"      = speed-first order for interactive streaming chat. */
+  chain?: "strongest" | "fast";
 };
 
 /** Total time budget reserved for the whole chain (Vercel Hobby-safe).
@@ -590,6 +594,21 @@ const INTERLEAVED_STRONGEST_CHAIN: Array<{ provider: AIProvider; model: string }
   { provider: "groq", model: "compound-beta" },
 ];
 
+/**
+ * OWNER DIRECTIVE #1 (2026-08-27): EVO chat needs “very fast free models
+ * with accurate replies”. Speed-first ordering of VERIFIED model ids only
+ * (same ids as the strong chain — no untested endpoints), starting from
+ * the smallest/lowest-latency entries. Interactive streaming paths opt in
+ * explicitly via options.chain="fast"; default behavior is unchanged.
+ */
+export const INTERLEAVED_FAST_CHAIN: Array<{ provider: AIProvider; model: string }> = [
+  { provider: "groq", model: "openai/gpt-oss-20b" }, // smallest — usually <1s TTFT
+  { provider: "groq", model: "openai/gpt-oss-120b" },
+  { provider: "openrouter", model: "nvidia/nemotron-3.5-lightning:free" },
+  { provider: "groq", model: "qwen/qwen3.6-27b" },
+  { provider: "openrouter", model: "google/gemma-4-26b-a4b-it:free" },
+];
+
 export async function callFreeAIFallbackChain(
   prompt: string,
   options: FallbackChainOptions = {},
@@ -614,15 +633,17 @@ export async function callFreeAIFallbackChain(
     (typeof _maxOpenRouterModels === "number" && _maxOpenRouterModels > 0
       ? _maxOpenRouterModels
       : DEFAULT_CHAIN_MODELS);
-  const maxModels = Math.max(1, Math.min(requestedModels, INTERLEAVED_STRONGEST_CHAIN.length));
+  const activeChain =
+    options.chain === "fast" ? INTERLEAVED_FAST_CHAIN : INTERLEAVED_STRONGEST_CHAIN;
+  const maxModels = Math.max(1, Math.min(requestedModels, activeChain.length));
   const callerTimeoutMs = options.timeoutMs ?? 60_000;
   // Clamp so that maxModels × effTimeout ≤ budget AND never exceeds caller intent.
   const effTimeoutMs = Math.min(callerTimeoutMs, Math.floor(CHAIN_TOTAL_BUDGET_MS / maxModels));
 
-  const { maxModels: _omit, timeoutMs: _omit2, ...callOptions } = options;
+  const { maxModels: _omit, timeoutMs: _omit2, chain: _omit3, ...callOptions } = options;
 
   let attempted = 0;
-  for (const { provider, model } of INTERLEAVED_STRONGEST_CHAIN) {
+  for (const { provider, model } of activeChain) {
     if (attempted >= maxModels) break;
 
     const apiKey = provider === "openrouter" ? openrouterKey : groqKey;

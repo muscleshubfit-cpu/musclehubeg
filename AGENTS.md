@@ -332,6 +332,32 @@ Process:
   anywhere in the product MUST include `IMAGE_MODESTY_SUFFIX`
   (`src/lib/blog-pipeline.ts`): modest attire, no nudity, no revealing
   or suggestive imagery, no women in revealing outfits.
+- **Whole-AI-system topology (2026-08-27 owner directive — all four
+  systems now run on ONE GitHub Actions queue):** every batch AI call in
+  the product is an `ai_jobs` row (migration 0024) processed natively by
+  `process-ai-jobs.yml` every 10 minutes via
+  `scripts/ai-jobs-runner/process.mts`. Job types:
+  `plan_nutrition | plan_workout | meal_regenerate | exercise_regenerate |
+  article_tool | social_post`. The ONLY exception is EVO chat, which stays
+  on Vercel streaming with the speed-first `INTERLEAVED_FAST_CHAIN`
+  (options.chain="fast"). Binding rules:
+    - Vercel API routes may ENQUEUE jobs (`/api/ai/jobs`) but must NEVER
+      call a model directly. Retired Vercel AI routes: `/api/ai/plan`,
+      `/api/ai/swap`, `/api/ai/regenerate-meal`, `/api/ai/blog-tool`.
+      `blog-admin.aiTool()` is neutered on purpose (throws) so nobody can
+      bypass the queue accidentally.
+    - New AI features = new job_type + processor entry in
+      `src/lib/ai-job-processors.ts` + a gate row in JOB_GATE. Never add
+      direct model calls to routes/components.
+    - Plans ship 2 structured alternatives per meal; exercise swaps are
+      chosen ONLY from a deterministic injury/equipment-filtered library
+      pool (AI ranks inside it — never invents substitutes).
+    - Payloads pass `sanitizeJobPayload()` whitelisting at enqueue;
+      browsers hold SELECT-own-row RLS only — ai_jobs writes are
+      service-role exclusive.
+    - Deliberately still on Vercel until ported: AIGenerateModal's
+      generate/pick/research endpoints (legacy editor bundle). Do not add
+      new flows there; next migration step is an `article_bundle` job.
 - Never log the AI response in production code paths (it can contain
   user PII or partial reasoning that should not be persisted).
 - Local fallbacks (`src/lib/ai-local.ts`) exist so the app degrades

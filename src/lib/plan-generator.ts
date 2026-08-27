@@ -30,7 +30,7 @@ import {
   generateWorkoutPlan,
   type ClientContext,
 } from "@/lib/ai-local";
-import { EXERCISES } from "@/lib/exercises";
+import { EXERCISES, CATEGORY_LABELS, EQUIPMENT_LABELS, LEVEL_LABELS } from "@/lib/exercises";
 
 // Plan generator uses callFreeAIFallbackChain (interleaved OpenRouter + Groq)
 // for all AI calls — strongest free models first, with Groq for speed.
@@ -92,10 +92,13 @@ export type NutritionPlanContent = {
     total_calories?: number;
     total_protein_g?: number;
     notes?: string;
+    /** Exactly ≤2 complete replacement meals (owner directive #2). */
+    meal_alternatives?: MealAlternative[];
   }>;
   // Original simple-format meals are kept for backwards compat with the
   // existing PlanViewerModal. The new fields (data_analysis, supplements,
-  // health_notes, water_target, alternatives, totals) are optional.
+  // health_notes, water_target, alternatives, totals, meal_alternatives)
+  // are optional.
 };
 
 export type WorkoutPlanContent = {
@@ -123,6 +126,18 @@ export type GeneratePlanResult = {
   title: string;
   content: NutritionPlanContent | WorkoutPlanContent;
   source: string; // which model served the request
+};
+
+/**
+ * OWNER DIRECTIVE #2 (2026-08-27): every meal ships with TWO complete
+ * alternative meals (same calorie share / macros share). Structured
+ * full-meal objects — NOT free-text strings — so PlanViewerModal can
+ * render real tables and users can act on them.
+ */
+export type MealAlternative = {
+  name: string;
+  items: Array<{ food: string; amount: string; calories: number }>;
+  total_calories?: number;
 };
 
 /**
@@ -154,10 +169,12 @@ export async function generateNutritionPlanAI(
       {
         systemPrompt: NUTRITION_SYSTEM_PROMPT,
         temperature: 0.7,
-        maxTokens: 4000,
+        // GHA-native budget (workflow sets AI_CHAIN_TOTAL_BUDGET_MS=180000):
+        // full plans now include 2 structured alternatives per meal.
+        maxTokens: 7000,
         jsonMode: true,
-        timeoutMs: 26_000,
-        maxModels: 2,
+        timeoutMs: 70_000,
+        maxModels: 3,
       },
     );
     const parsed = parseJSON<NutritionPlanContent>(text);
@@ -232,8 +249,9 @@ export async function generateWorkoutPlanAI(
  * Regenerate a single meal — used by both coach (in the editor) and client
  * (via the swap button, when the plan was added by the coach manually).
  *
- * The new meal will have the same total calories and similar macros to the
- * original, but different foods.
+ * OWNER DIRECTIVE #2 (2026-08-27): returns the replacement meal PLUS three
+ * additional alternative suggestions, each with macros + calories. The
+ * regeneration reason (allergy / dislike / boredom) steers the model.
  */
 export async function regenerateMeal(
   meal: {
@@ -244,7 +262,7 @@ export async function regenerateMeal(
   targetCalories?: number,
   clientContext?: ClientContext,
   coachNote?: string,
-): Promise<{ meal: any; source: string }> {
+): Promise<{ meal: any; suggestions: any[]; source: string }> {
   const totalCals =
     targetCalories ||
     (meal.items || []).reduce((s, i) => s + (i.calories || 0), 0);
@@ -263,42 +281,53 @@ ${JSON.stringify(meal, null, 2)}
 
 ${coachNote ? `تعليمات الكوتش: ${coachNote}` : ""}
 
-أعد وجبة واحدة جديدة (وليس نفس الوجبة) بصيغة JSON فقط:
+أعد النتيجة بصيغة JSON فقط (بدون أسوار markdown):
 {
- "name": "اسم الوجبة",
- "time": "وقت تقديم الوجبة (اختياري)",
- "items": [
- {
- "food": "اسم الطعام",
- "amount": "الكمية بالجرام (مثلاً: 150 جم)",
- "calories": 300,
- "protein_g": 30,
- "alternatives": "بدائل مكافئة (مثلاً: أو 180 جم سمك مشوي / 150 جم لحم أحمر)"
- }
- ],
- "total_calories": ${totalCals},
- "total_protein_g": 45,
- "notes": "ملاحظة قصيرة بالعربية"
+ "meal": {
+   "name": "اسم الوجبة",
+   "time": "وقت تقديم الوجبة (اختياري)",
+   "items": [
+     { "food": "اسم الطعام", "amount": "الكمية بالجرام (مثلاً: 150 جم)", "calories": 300, "protein_g": 30, "alternatives": "أو 180 جم سمك مشوي" }
+   ],
+   "total_calories": ${totalCals},
+   "total_protein_g": 45,
+   "notes": "ملاحظة قصيرة بالعربية"
+ },
+ "suggestions": [
+   { "name": "اقتراح بديل 1", "items": [ { "food": "..", "amount": "..", "calories": 0 } ], "total_calories": ${totalCals}, "why": "سبب ملاءمته بالعربية" },
+   { "name": "اقتراح بديل 2", "items": [ { "food": "..", "amount": "..", "calories": 0 } ], "total_calories": ${totalCals}, "why": ".." },
+   { "name": "اقتراح بديل 3", "items": [ { "food": "..", "amount": "..", "calories": 0 } ], "total_calories": ${totalCals}, "why": ".." }
+ ]
 }
 
-تأكد أن مجموع سعرات الأصناف يساوي تقريباً ${totalCals}. استخدم أصناف عربية/مصرية متنوعة. لا تكرر نفس الأصناف الموجودة في الوجبة الحالية.`;
+تأكد أن مجموع سعرات أصناف الوجبة الرئيسية وكل اقتراح يساوي تقريباً ${totalCals}. استخدم أصناف عربية/مصرية متنوعة. لا تكرر نفس الأصناف الموجودة في الوجبة الحالية.`;
 
   try {
-    // OpenRouter + Groq only — clamped ≤ 52s.
+    // OpenRouter + Groq only — GHA budget allows richer output now.
     const { text, model, provider } = await callFreeAIFallbackChain(
       prompt,
       {
         systemPrompt: NUTRITION_SYSTEM_PROMPT,
         temperature: 0.8,
-        maxTokens: 1500,
+        maxTokens: 2600,
         jsonMode: true,
-        timeoutMs: 24_000,
-        maxModels: 2,
+        timeoutMs: 60_000,
+        maxModels: 3,
       },
     );
     const parsed = parseJSON<any>(text);
+    if (parsed?.meal?.items?.length > 0) {
+      return {
+        meal: parsed.meal,
+        suggestions: Array.isArray(parsed.suggestions)
+          ? parsed.suggestions.slice(0, 3)
+          : [],
+        source: `${provider}:${model}`,
+      };
+    }
+    // Backward-compat shape (flat meal object without wrapper).
     if (parsed && parsed.items && parsed.items.length > 0) {
-      return { meal: parsed, source: `${provider}:${model}` };
+      return { meal: parsed, suggestions: [], source: `${provider}:${model}` };
     }
   } catch (e: any) {
     console.error("[regenerate-meal] AI failed:", e?.message);
@@ -455,6 +484,7 @@ const NUTRITION_SYSTEM_PROMPT = `أنت أخصائي تغذية رياضية م�
 - لكل صنف: اذكر الكمية بالجرام (مثلاً "150 جم") والسعرات بدقة.
 - استبدل العناصر غير المرغوبة ببدائل مناسبة.
 - اذكر بدائل لكل صنف رئيسي (protein/carb) ليختار منها العميل.
+- لكل وجبة: أضف حقل "meal_alternatives" يحتوي بالضبط على وجبتين بديلتين كاملتين (كل بديل بحصة سعرات مكافئة ±10%).
 - احسب المجموع الكلي للسعرات والبروتين لكل وجبة.
 
 تنسيق JSON المطلوب:
@@ -503,7 +533,11 @@ const NUTRITION_SYSTEM_PROMPT = `أنت أخصائي تغذية رياضية م�
  ],
  "total_calories": 650,
  "total_protein_g": 45,
- "notes": "وجبة رئيسية — ركّز على البروتين"
+ "notes": "وجبة رئيسية — ركّز على البروتين",
+ "meal_alternatives": [
+ { "name": "بديل 1 – فول بالليمون", "items": [ { "food": "فول مدمس", "amount": "200 جم", "calories": 230 }, { "food": "خبز بلدي", "amount": "½ رغيف", "calories": 180 }, { "food": "جبن قريش", "amount": "50 جم", "calories": 90 }, { "food": "خضار طازجة", "amount": "طبق", "calories": 80 } ], "total_calories": 580 },
+ { "name": "بديل 2 – شوفان باللبن", "items": [ { "food": "شوفان", "amount": "70 جم", "calories": 260 }, { "food": "لبن زبادي", "amount": "250 جم", "calories": 150 }, { "food": "موزة", "amount": "1 وسطة", "calories": 105 }, { "food": "مكسرات", "amount": "15 جم", "calories": 90 } ], "total_calories": 605 }
+ ]
  }
  ]
 }
@@ -784,6 +818,27 @@ function normalizeNutritionPlan(
       typeof m.total_protein_g === "number"
         ? m.total_protein_g
         : items.reduce((s: number, i: any) => s + (i.protein_g || 0), 0);
+    // Owner directive #2: keep up to TWO structured whole-meal alternatives,
+    // normalizing each alternative's totals exactly like top-level meals.
+    const meal_alternatives = Array.isArray(m.meal_alternatives)
+      ? m.meal_alternatives.slice(0, 2).map((alt: any) => {
+          const altItems = Array.isArray(alt?.items)
+            ? alt.items.slice(0, 12).map((it: any) => ({
+                food: String(it?.food ?? ""),
+                amount: String(it?.amount ?? ""),
+                calories: typeof it?.calories === "number" ? it.calories : 0,
+              }))
+            : [];
+          return {
+            name: String(alt?.name || "بديل"),
+            items: altItems,
+            total_calories:
+              typeof alt?.total_calories === "number"
+                ? alt.total_calories
+                : altItems.reduce((s: number, i: any) => s + (i.calories || 0), 0),
+          };
+        })
+      : undefined;
     return {
       name: m.name || "وجبة",
       time: m.time,
@@ -791,6 +846,9 @@ function normalizeNutritionPlan(
       total_calories,
       total_protein_g,
       notes: m.notes,
+      ...(meal_alternatives && meal_alternatives.length > 0
+        ? { meal_alternatives }
+        : {}),
     };
   });
 
@@ -1070,4 +1128,273 @@ ${
     }),
     source: "raw-text-fallback",
   };
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * OWNER DIRECTIVE #2 (2026-08-27) — Safe exercise substitution.
+ *
+ * SAFETY MODEL: the AI never invents a substitute from thin air. The
+ * candidate pool is filtered DETERMINISTICALLY from our own 868-exercise
+ * library (same muscle category, allowed equipment, safe level, injury
+ * blacklist), and the AI may ONLY rank/narrate within that vetted list.
+ * If the AI call fails entirely, the first vetted candidate is returned
+ * deterministically — the job NEVER fails open into an unsafe exercise.
+ * ──────────────────────────────────────────────────────────────────────── */
+
+export type SubstituteExerciseInput = {
+  /** Current exercise row from the plan (name + optional sets/reps/rest). */
+  exercise: {
+    name: string;
+    sets?: number;
+    reps?: string;
+    rest?: string;
+    focus?: string; // day focus text, e.g. "صدر وترايسبس"
+  };
+  /** Why we're swapping — drives both filters and the AI explanation. */
+  reason?: string;
+  /** gym | home | … — home restricts equipment to bodyweight/dumbbell/band. */
+  location?: string;
+  clientContext?: ClientContext;
+};
+
+export type SubstituteExerciseResult = {
+  replacement: {
+    name: string;
+    nameAr: string;
+    sets: number;
+    reps: string;
+    rest: string;
+    notes: string;
+    exerciseSlug: string;
+    image?: string;
+  };
+  alternatives: Array<{
+    name: string;
+    why: string;
+    sets: number;
+    reps: string;
+    rest: string;
+  }>;
+  libraryMatched: boolean;
+  source: string;
+};
+
+/** Keyword-driven safety blacklist on reason text. */
+function injuryBlacklist(reason: string): Array<{ test: RegExp; slugs: RegExp[] }> {
+  const r = reason.toLowerCase();
+  const rules: Array<{ test: RegExp; slugs: RegExp[] }> = [];
+  if (/knee|ركبة|رباط صليبي|acl/.test(r))
+    rules.push({ test: /./, slugs: [/squat(?!.*box)/, /lunge/, /jump/, /plyo/, /leg-?press(?!.*machine-light)/, /step-?up/] });
+  if (/shoulder|كتف|rotator/.test(r))
+    rules.push({ test: /./, slugs: [/overhead[- ]?press/, /dip/, /behind[- ]?neck/, /upright[- ]?row/, /military/ ] });
+  if (/\bback\b|ظهر| lumbar|قرص|slipped|hernia/.test(r))
+    rules.push({ test: /./, slugs: [/deadlift/, /good[- ]?morning/, /bent[- ]?over[- ]?row/ , /squat/] });
+  if (/wrist|رسغ|معصم|elbow|كوع|مرفق|tennis/.test(r))
+    rules.push({ test: /./, slugs: [/push[- ]?up/, /bench[- ]?press/, /dip/ , /diamond/] });
+  if (/ankle|كاحل/.test(r))
+    rules.push({ test: /./, slugs: [/jump/, /plyo/, /rope/, /run/, /burpee/] });
+  return rules;
+}
+
+function buildCandidatePool(input: SubstituteExerciseInput): any[] {
+  const { exercise, reason = "", location = "" } = input;
+
+  // 1. Resolve the current exercise in the library → inherit its category.
+  const current = findExerciseInLibrary(exercise.name);
+  let category: string | null =
+    current?.category ??
+    (() => {
+      const focus = `${exercise.focus || ""} ${exercise.name}`.toLowerCase();
+      if (/صدر|chest|pec/.test(focus)) return "chest";
+      if (/ظهر|back|lat|وجهة/.test(focus)) return "back";
+      if (/كتف|shoulder|delt/.test(focus)) return "shoulders";
+      if (/رجل|رجلين|أرجل|ساق|leg|quad|glute/.test(focus)) return "legs";
+      if (/بايسبس|bicep/.test(focus)) return "biceps";
+      if (/ترايسبس|tricep/.test(focus)) return "triceps";
+      if (/بطن|كور|core|crunch|plank|abs/.test(focus)) return "core";
+      if (/كارديو|cardio|هوائي/.test(focus)) return "cardio";
+      return null;
+    })();
+  if (!category) category = "legs"; // extremely defensive default
+
+  // 2. Equipment whitelist by training location.
+  const isHome = /home|منزل|بيت/.test(location.toLowerCase());
+  const okEquipment: string[] = isHome
+    ? ["bodyweight", "dumbbell", "band", "none", "kettlebell"]
+    : ["barbell", "dumbbell", "bodyweight", "cable", "machine", "kettlebell", "band", "none"];
+
+  // 3. Beginner clients stay at beginner/intermediate difficulty.
+  const experience = String(input.clientContext?.fitness?.experience || "").toLowerCase();
+  const isBeginner = /beginner|مبتدئ/.test(experience);
+
+  // 4. Injury blacklist.
+  const blacklistedSlugs = injuryBlacklist(reason);
+  const isBlacklisted = (e: any): boolean =>
+    blacklistedSlugs.some((rule) =>
+      rule.slugs.some((slugRe) => slugRe.test(String(e.slug || "").toLowerCase())),
+    );
+
+  const candidates = EXERCISES.filter(
+    (e) =>
+      e.category === category &&
+      okEquipment.includes(e.equipment) &&
+      !isBlacklisted(e) &&
+      (!isBeginner || e.level !== "advanced") &&
+      e.nameEn.toLowerCase() !== String(exercise.name).toLowerCase().trim(),
+  );
+
+  // Diversify equipment picks then cap the AI-facing list.
+  const picked: any[] = [];
+  for (const lvl of ["beginner", "intermediate", "advanced"]) {
+    for (const eq of okEquipment) {
+      const hit = candidates.find((c) => c.level === lvl && c.equipment === eq && !picked.includes(c));
+      if (hit) picked.push(hit);
+      if (picked.length >= 10) return picked;
+    }
+  }
+  return picked.length > 0 ? picked : candidates.slice(0, 8);
+}
+
+export async function substituteExercise(
+  input: SubstituteExerciseInput,
+): Promise<SubstituteExerciseResult> {
+  const pool = buildCandidatePool(input);
+  const current = findExerciseInLibrary(input.exercise.name);
+  const fallbackSets = input.exercise.sets ?? 3;
+  const fallbackReps = input.exercise.reps || "10-12";
+  const fallbackRest = input.exercise.rest || "90 ثانية";
+
+  const fmtSets = (n: any, dflt: number) => (Number.isFinite(Number(n)) && Number(n) > 0 ? Math.round(Number(n)) : dflt);
+  const sRep = (v: any) => (typeof v === "string" && v.trim() ? v.trim().slice(0, 40) : "");
+  const sTxt = (v: any, max = 400) => (typeof v === "string" ? v.slice(0, max) : "");
+
+  type SubstituteAlt = SubstituteExerciseResult["alternatives"][number];
+
+  const shapeOne = (c: any, overrides?: Partial<SubstituteExerciseResult["replacement"]>) => ({
+    name: c?.nameEn || input.exercise.name,
+    nameAr: c?.nameAr || "",
+    sets: fmtSets(overrides?.sets ?? fallbackSets, fallbackSets),
+    reps: sRep(overrides?.reps) || fallbackReps,
+    rest: sRep(overrides?.rest) || fallbackRest,
+    notes: sTxt(overrides?.notes) ||
+      `بديل آمن لـ ${input.exercise.name}${input.reason ? ` (${input.reason})` : ""}`,
+    exerciseSlug: c?.slug || "",
+  });
+
+  // Deterministic safety net — always available.
+  const deterministic = () => {
+    const best = pool[0];
+    if (!best) throw new Error("لا يوجد بديل آمن مطابق في مكتبة التمارين.");
+    const alts = pool.slice(1, 4).map((c) => ({
+      name: c.nameEn,
+      why: `نفس العضلة المستهدفة (${CATEGORY_LABELS[c.category]?.ar || c.category}) ومستوى مناسب`,
+      sets: fallbackSets,
+      reps: fallbackReps,
+      rest: fallbackRest,
+    }));
+    return {
+      replacement: shapeOne(best),
+      alternatives: alts,
+      libraryMatched: true,
+      source: "library-deterministic",
+    } as SubstituteExerciseResult;
+  };
+
+  // No usable pool → deterministic path or hard error.
+  if (pool.length < 2) {
+    if (pool.length === 1) {
+      return {
+        replacement: shapeOne(pool[0]),
+        alternatives: [],
+        libraryMatched: true,
+        source: "library-deterministic",
+      };
+    }
+    throw new Error("لا يوجد بديل آمن مطابق في مكتبة التمارين.");
+  }
+
+  try {
+    const candidateList = pool
+      .map((c, i) => `${i + 1}. ${c.nameEn} (${c.nameAr}) — معدات: ${EQUIPMENT_LABELS[c.equipment]?.ar}, مستوى: ${LEVEL_LABELS[c.level]?.ar}`)
+      .join("\n");
+
+    const prompt = `أنت مدرب لياقة تصحيحي محترف. العميل يحتاج بديلاً للتمرين التالي.
+
+التمرين الحالي: ${input.exercise.name}
+سبب الاستبدال: ${input.reason || "التنويع"}
+اليوم المستهدف: ${input.exercise.focus || ""}
+${input.clientContext ? `بيانات العميل: ${JSON.stringify({ injuries: input.clientContext.fitness?.injuries, experience: input.clientContext.fitness?.experience }, null, 2)}\n` : ""}
+اختر من هذه القائمة المعتمدة فقط (ممنوع ذكر أي تمرين خارجها):
+${candidateList}
+
+أعد JSON فقط:
+{
+ "choice_index": رقم التمرين الأنسب من القائمة (1-${pool.length}),
+ "sets": 4,
+ "reps": "8-12",
+ "rest": "90 ثانية",
+ "why_ar": "لماذا هو الأنسب بالنسبة للسبب المذكور (جملتان بالعربية)",
+ "alternatives": [
+   { "index": رقم آخر من القائمة, "why": "سبب قصير" },
+   { "index": رقم ثالث من القائمة, "why": "سبب قصير" },
+   { "index": رقم رابع مختلف تماماً من القائمة, "why": "سبب قصير" }
+ ]
+}`;
+
+    const { text, model } = await callFreeAIFallbackChain(
+      prompt,
+      {
+        systemPrompt:
+          "أنت مدرب لياقة تصحيحي. تعيد JSON صالحاً فقط وتلتزم حرفياً بقائمة التمارين المعتمدة المعطاة لك.",
+        temperature: 0.4,
+        maxTokens: 900,
+        jsonMode: true,
+        timeoutMs: 45_000,
+        maxModels: 2,
+      },
+    );
+    const parsed = parseJSON<any>(text);
+    const idx = Number(parsed?.choice_index);
+    if (!parsed || !Number.isInteger(idx) || idx < 1 || idx > pool.length) {
+      return deterministic();
+    }
+    const chosen = pool[idx - 1];
+    const pickAlt = (a: any): SubstituteAlt | null => {
+      const i2 = Number(a?.index);
+      if (!Number.isInteger(i2) || i2 < 1 || i2 > pool.length || pool[i2 - 1] === chosen) return null;
+      const c = pool[i2 - 1];
+      return {
+        name: c.nameEn,
+        why: sTxt(a?.why, 200) || `خيار معتمد من القائمة الآمنة`,
+        sets: fmtSets(parsed.sets, fallbackSets),
+        reps: sRep(parsed.reps) || fallbackReps,
+        rest: sRep(parsed.rest) || fallbackRest,
+      };
+    };
+    const alts: SubstituteAlt[] = (Array.isArray(parsed.alternatives) ? parsed.alternatives : [])
+      .map(pickAlt)
+      .filter(Boolean)
+      .slice(0, 3);
+    while (alts.length < 3) {
+      const extra = pool.find((c) => c !== chosen && !alts.some((a) => a.name === c.nameEn));
+      if (!extra) break;
+      alts.push({
+        name: extra.nameEn,
+        why: `داخل القائمة الآمنة (فلاتر الإصابة والمعدات)`,
+        sets: fmtSets(parsed.sets, fallbackSets),
+        reps: sRep(parsed.reps) || fallbackReps,
+        rest: sRep(parsed.rest) || fallbackRest,
+      });
+    }
+
+    return {
+      replacement: shapeOne(chosen, { notes: sTxt(parsed?.why_ar, 300) }),
+      alternatives: alts,
+      libraryMatched: Boolean(current),
+      source: `ai-ranked:${model}`,
+    };
+  } catch (e: any) {
+    console.error("[substitute-exercise] AI ranking failed, deterministic path:", e?.message);
+    return deterministic();
+  }
 }

@@ -13,6 +13,7 @@ import { useI18n } from "@/lib/i18n";
 import { useRouter } from "next/navigation";
 import { BLOG_CATEGORIES, getCategoryLabel, parseTableOfContents, renderMarkdown } from "@/lib/blog";
 import { adminGetPost, adminCreatePost, adminUpdatePost, aiTool, calculateSEOScore, calculateWordCount, calculateReadingTime, type AdminBlogPost } from "@/lib/blog-admin";
+import { runAiJob } from "@/lib/ai-jobs-client";
 import { AIGenerateModal, type GeneratedBundle } from "@/components/blog/AIGenerateModal";
 import { toast } from "sonner";
 
@@ -45,7 +46,8 @@ export function BlogEditorView({ mode, postId }: { mode: "new" | "edit"; postId?
  const [showPreview, setShowPreview] = useState(false);
  const [keywordInput, setKeywordInput] = useState("");
  const [tagInput, setTagInput] = useState("");
- const [aiLoading, setAiLoading] = useState<string | null>(null);
+ const [aiBusy, setAiBusy] = useState<Record<string, boolean>>({}); // multi-tool in-flight (queued jobs)
+ const [socialTone, setSocialTone] = useState<"professional" | "friendly" | "motivational">("motivational");
  const [aiResults, setAiResults] = useState<Record<string, string>>({});
  const [showAIModal, setShowAIModal] = useState(false);
 
@@ -148,14 +150,72 @@ export function BlogEditorView({ mode, postId }: { mode: "new" | "edit"; postId?
  }
  };
 
+ /**
+ * OWNER DIRECTIVE #3/#4 (2026-08-27): every improvement tool and social
+ * post runs as a queued AI job executed by GitHub Actions
+ * (process-ai-jobs.yml). Multiple tools can be in-flight at once — each
+ * button shows its own spinner and results land in the same panel.
+ */
+ const SOCIAL_TOOL_PLATFORMS: Record<string, string> = {
+ fb: "facebook",
+ facebook: "facebook",
+ social_facebook: "facebook",
+ instagram: "instagram",
+ social_instagram: "instagram",
+ x: "x",
+ tweet: "x",
+ twitter: "x",
+ social_x: "x",
+ linkedin: "linkedin",
+ social_linkedin: "linkedin",
+ };
+
  const runAITool = async (tool: string) => {
- setAiLoading(tool);
+ if (aiBusy[tool]) return;
+ setAiBusy((b) => ({ ...b, [tool]: true }));
  try {
- const result = await aiTool(tool, { content: post.content, title: post.title, keyword: post.focus_keyword || "", lang: post.language as "en" | "ar" });
- setAiResults((prev) => ({ ...prev, [tool]: result.text }));
- toast.success(isAr ? "تم التوليد!" : "Generated!");
- } catch (e: any) { toast.error(e.message); }
- finally { setAiLoading(null); }
+ const platform = SOCIAL_TOOL_PLATFORMS[tool];
+ let text: string;
+ let notes: string | undefined;
+ if (platform) {
+ const { result } = await runAiJob("social_post", {
+ platform,
+ tone: socialTone,
+ language: post.language,
+ title: post.title || "",
+ topic: post.title || "",
+ content: (post.excerpt || "") + "\n\n" + (post.content || "").slice(0, 6000),
+ });
+ const r = result as any;
+ const tags = Array.isArray(r?.hashtags) ? r.hashtags.join(" ") : "";
+ text = [
+ r?.post_text || "",
+ tags ? `\n\n${tags}` : "",
+ r?.cta ? `\n\n📣 ${r.cta}` : "",
+ r?.image_idea ? `\n\n🖼️ اقتراح صورة: ${r.image_idea}` : "",
+ r?.best_times?.length ? `\n⏰ أفضل أوقات النشر: ${r.best_times.join(" • ")}` : "",
+ ].join("");
+ } else {
+ const { result } = await runAiJob("article_tool", {
+ tool,
+ content: post.content || "",
+ title: post.title || "",
+ keyword: post.focus_keyword || "",
+ category: post.category || "",
+ language: post.language,
+ });
+ const r = result as any;
+ text = String(r?.text ?? "");
+ notes = typeof r?.notes === "string" ? r.notes : undefined;
+ }
+ if (!text.trim()) throw new Error("نتيجة فارغة — حاول مرة أخرى.");
+ setAiResults((prev) => ({ ...prev, [tool]: notes ? `${text}\n\n📝 تغييرات:\n${notes}` : text }));
+ toast.success("تم التوليد من الطابور!");
+ } catch (e: any) {
+ toast.error(e.message || "فشل التوليد");
+ } finally {
+ setAiBusy((b) => ({ ...b, [tool]: false }));
+ }
  };
 
  /**
@@ -262,14 +322,18 @@ export function BlogEditorView({ mode, postId }: { mode: "new" | "edit"; postId?
  const aiTools = [
  { id: "seo_title", label: isAr ? "عنوان SEO" : "SEO Title" },
  { id: "meta_desc", label: isAr ? "وصف ميتا" : "Meta Description" },
+ { id: "paraphrase", label: isAr ? "إعادة صياغة" : "Paraphrase" },
  { id: "improve", label: isAr ? "تحسين النص" : "Improve Content" },
+ { id: "proofread", label: isAr ? "تدقيق لغوي" : "Proofread" },
+ { id: "subheadings", label: isAr ? "عناوين فرعية" : "Add Subheadings" },
+ { id: "summary", label: isAr ? "تلخيص + نقاط" : "Summarize + Bullets" },
+ { id: "seo_pack", label: isAr ? "حزمة SEO كاملة" : "Full SEO Pack" },
  { id: "faq", label: isAr ? "توليد FAQ" : "Generate FAQ" },
  { id: "cta", label: isAr ? "توليد CTA" : "Generate CTA" },
  { id: "fb", label: isAr ? "منشور فيسبوك" : "Facebook Post" },
  { id: "linkedin", label: isAr ? "منشور لينكدإن" : "LinkedIn Post" },
- { id: "x", label: isAr ? "تغريدة" : "X Post" },
+ { id: "x", label: isAr ? "تغريدة X" : "X Post" },
  { id: "instagram", label: isAr ? "كابشن إنستجرام" : "Instagram Caption" },
- { id: "summary", label: isAr ? "تلخيص" : "Summarize" },
  { id: "image_prompt", label: isAr ? "Prompt صورة" : "Image Prompt" },
  ];
 
@@ -519,26 +583,46 @@ export function BlogEditorView({ mode, postId }: { mode: "new" | "edit"; postId?
  </div>
  </Card>
 
- {/* AI Tools */}
+ {/* AI Tools — each tool is a queued GitHub-Actions job; several can
+ run at once and every button spins independently. */}
  <Card className="p-4 shadow-card">
  <h3 className="mb-3 flex items-center gap-2 text-sm font-bold">
  <Sparkles className="h-4 w-4 text-primary" />
- {isAr ? "أدوات AI" : "AI Tools"}
+ {isAr ? "أدوات AI (تعمل بالخلفية)" : "AI Tools (background jobs)"}
  </h3>
+
+ {/* Tone for social-post tools */}
+ <div className="mb-3 flex items-center gap-2">
+ <span className="text-xs text-muted-foreground">{isAr ? "نبرة منشورات السوشيال:" : "Social tone:"}</span>
+ <select
+ value={socialTone}
+ onChange={(e) => setSocialTone(e.target.value as typeof socialTone)}
+ className="rounded-md border border-border bg-background px-2 py-1 text-xs"
+ >
+ <option value="motivational">{isAr ? "تحفيزية" : "Motivational"}</option>
+ <option value="friendly">{isAr ? "ودية" : "Friendly"}</option>
+ <option value="professional">{isAr ? "احترافية" : "Professional"}</option>
+ </select>
+ </div>
+
  <div className="grid grid-cols-2 gap-2">
- {aiTools.map((tool) => (
+ {aiTools.map((tool) => {
+ const busy = !!aiBusy[tool.id];
+ return (
  <Button
  key={tool.id}
  variant="outline"
  size="sm"
  className="gap-1.5 text-xs"
  onClick={() => runAITool(tool.id)}
- disabled={aiLoading !== null}
+ disabled={busy}
+ title={isAr ? "ينفّذ في الخلفية على GitHub Actions (~10 دقائق)" : "Runs on GitHub Actions in the background (~10 min)"}
  >
- {aiLoading === tool.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
- {tool.label}
+ {busy ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
+ {busy ? (isAr ? "جارٍ التنفيذ…" : "Running…") : tool.label}
  </Button>
- ))}
+ );
+ })}
  </div>
 
  {/* AI Results */}

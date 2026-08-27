@@ -57,6 +57,7 @@ import { resolveExerciseImage, getExerciseImage, getExerciseImages, getFallbackS
 import { EXERCISES } from "@/lib/exercises";
 import { HealthMetricsDashboard } from "@/components/HealthMetricsDashboard";
 import { toast } from "sonner";
+import { runAiJob } from "@/lib/ai-jobs-client";
 import { NotificationForm } from "@/components/NotificationForm";
 
 // Unified tier list — combines new membership tiers (Premium, Pro, Coaching)
@@ -331,18 +332,19 @@ export function CoachClientView({ clientId }: { clientId: string }) {
  })),
  };
 
- const res = await fetch("/api/ai/plan", {
- method: "POST",
- headers: { "Content-Type": "application/json" },
- body: JSON.stringify({ clientId, planType, clientContext, overrides }),
- });
-
- if (!res.ok) {
- const err = await res.json().catch(() => ({}));
- throw new Error(err.error || "Failed to generate plan");
- }
-
- const { title, content } = await res.json();
+ // OWNER DIRECTIVE 2026-08-27: plan generation is now a queued AI job
+ // executed natively by GitHub Actions (process-ai-jobs.yml) — same
+ // pattern as the blog pipeline. Vercel never calls AI models anymore.
+ toast.info(
+ lang === "ar"
+ ? "تم إرسال طلب التوليد — الخطة تظهر خلال ~10 دقائق وهنا ننتظرها."
+ : "Generation queued — the plan arrives in ~10 minutes.",
+ );
+ const { result } = await runAiJob(
+ planType === "workout" ? "plan_workout" : "plan_nutrition",
+ { clientId, clientContext, overrides },
+ );
+ const { title, content } = result as { title: string; content: any };
 
  // Save the generated plan as a DRAFT (coach must approve before client sees it)
  await addPlan({
@@ -403,13 +405,12 @@ export function CoachClientView({ clientId }: { clientId: string }) {
  };
 
  const planType = plan.type === "workout" ? "workout" : "nutrition";
- const res = await fetch("/api/ai/plan", {
- method: "POST",
- headers: { "Content-Type": "application/json" },
- body: JSON.stringify({ clientId, planType, clientContext }),
- });
- if (!res.ok) throw new Error("Failed to generate");
- const { title, content } = await res.json();
+ toast.info("جاري إعادة التوليد في الخلفية (~10 دقائق)…");
+ const { result } = await runAiJob(
+ planType === "workout" ? "plan_workout" : "plan_nutrition",
+ { clientId, clientContext },
+ );
+ const { title, content } = result as { title: string; content: any };
 
  await addPlan({
  client_id: clientId,
@@ -1405,7 +1406,7 @@ function PlanViewerModal({ plan, onClose, onRegenerate }: { plan: any; onClose: 
  setContent(newContent);
  };
 
- // Regenerate a single meal — calls /api/ai/regenerate-meal, then updates
+ // Regenerate a single meal — queues meal_regenerate on GitHub Actions, then updates
  // the meal in-place. Available to the coach for ALL plans (AI-generated
  // AND manually-added), so the coach can quickly vary a meal without
  // regenerating the whole plan.
@@ -1415,19 +1416,15 @@ function PlanViewerModal({ plan, onClose, onRegenerate }: { plan: any; onClose: 
  setRegeneratingMealIdx(mealIdx);
  try {
  const meal = content.meals[mealIdx];
- const res = await fetch("/api/ai/regenerate-meal", {
- method: "POST",
- headers: { "Content-Type": "application/json" },
- body: JSON.stringify({
+ // OWNER DIRECTIVE 2026-08-27: meal regeneration is a queued AI job
+ // (GitHub Actions worker) returning the replacement + 3 suggestions.
+ const { result } = await runAiJob("meal_regenerate", {
  meal,
- targetCalories: meal.total_calories || meal.items.reduce((s: number, i: any) => s + (i.calories || 0), 0),
- }),
+ targetCalories:
+ (meal as any).total_calories ||
+ ((meal as any).items || []).reduce((s: number, i: any) => s + (i.calories || 0), 0),
  });
- if (!res.ok) {
- const err = await res.json().catch(() => ({}));
- throw new Error(err.error || "Failed to regenerate meal");
- }
- const { meal: newMeal } = await res.json();
+ const newMeal = result.replacement;
  const newContent = { ...content };
  newContent.meals = [...newContent.meals];
  newContent.meals[mealIdx] = { ...newMeal };

@@ -1,0 +1,93 @@
+name: Process AI jobs (plans • tools • social — queue worker)
+
+# ============================================================
+# OWNER DIRECTIVE (2026-08-27): the ENTIRE AI system runs natively
+# in GitHub Actions — same pattern as the blog pipeline. This worker
+# drains the `ai_jobs` queue every 10 minutes:
+#
+#   plan_nutrition        → full nutrition plan (+2 alternatives/meal)
+#   plan_workout          → weekly workout program (4–8 weeks framing)
+#   meal_regenerate       → meal swap + 3 suggestions (tier-limited)
+#   exercise_regenerate   → library-filtered injury-safe exercise swap
+#   article_tool          → paraphrase | summarize | proofread | SEO |
+#                           subheadings (+ legacy editor aliases)
+#   social_post           → facebook | instagram | x | linkedin × tone
+#
+# EVO chat NEVER runs here — it stays on Vercel streaming by directive.
+# In-process execution via tsx (no Vercel hop, no 60s serverless cap);
+# AI_CHAIN_TOTAL_BUDGET_MS=180000 funds long completions.
+# ============================================================
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+    inputs:
+      max_jobs:
+        description: "Max jobs to process this run (1-25)"
+        required: false
+        default: "10"
+  repository_dispatch:
+    types: [process-ai-jobs]
+
+concurrency:
+  group: ai-jobs-worker
+  cancel-in-progress: false
+
+jobs:
+  drain:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    env:
+      # ── Native-execution budget override (default on Vercel: 52000) ──
+      AI_CHAIN_TOTAL_BUDGET_MS: "180000"
+
+      # ── Required secrets (preflight fails fast naming missing ones) ──
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      OPENROUTER_API: ${{ secrets.OPENROUTER_API }}
+      OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+      GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Preflight — required secrets present (fails fast, names the missing ones)
+        run: |
+          echo "=== Preflight: checking required GitHub Secrets ==="
+          missing=0
+          for v in NEXT_PUBLIC_SUPABASE_URL SUPABASE_SERVICE_ROLE_KEY GROQ_API_KEY; do
+            if [ -z "${!v}" ]; then
+              echo "❌ Missing secret: $v"
+              echo "   → add it under: Settings ▸ Secrets and variables ▸ Actions ▸ New repository secret"
+              missing=1
+            fi
+          done
+          if [ -z "$OPENROUTER_API" ] && [ -z "$OPENROUTER_API_KEY" ]; then
+            echo "❌ Missing AI provider key — provide a secret named OPENROUTER_API (or OPENROUTER_API_KEY)"
+            missing=1
+          fi
+          if [ "$missing" -eq 1 ]; then
+            echo "❌ Preflight failed — fix the secrets above and re-run."
+            exit 1
+          fi
+          echo "✓ All required secrets present"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # NOTE: repo has NO package-lock.json → npm install (not npm ci)
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Drain ai_jobs queue (reap stale → claim → process → write results)
+        run: npx --no-install tsx scripts/ai-jobs-runner/process.mts --max "${{ github.event.inputs.max_jobs || '10' }}"
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "=== AI jobs worker summary ==="
+          echo "Full logs above — per-job ✓/✗ lines show what completed or needs attention."

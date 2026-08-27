@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Salad, Dumbbell, FileText, Download, Printer, RefreshCw, Loader2, Info } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/hooks/use-auth";
@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { listPlans, getPlanFileUrl, getSwapUsage } from "@/lib/data";
+import { enqueueAiJobClient, getAiJob } from "@/lib/ai-jobs-client";
 import { resolveExerciseImage, getExerciseImage, getExerciseImages, getFallbackSVG } from "@/lib/exercise-images";
 import { EXERCISES } from "@/lib/exercises";
 import { ImageWithFallback } from "@/components/ui/image-with-fallback";
@@ -26,6 +27,40 @@ function escapeHtml(str: string | undefined | null): string {
  .replace(/'/g, "&#039;");
 }
 
+/* ── OWNER DIRECTIVE 2026-08-27: swaps execute on GitHub Actions ─────────
+ * A click enqueues an ai_jobs row and returns instantly; a resilient
+ * watcher (surviving page reloads via localStorage) applies the result
+ * to local plan state as soon as the worker finishes.
+ * ───────────────────────────────────────────────────────────────────── */
+type PendingSwap = {
+ id: string;
+ planId: string;
+ kind: "meal" | "exercise";
+ i1: number; // meal index | day index
+ i2?: number; // exercise index
+ createdAt: number;
+};
+const AI_PENDING_KEY = "mhe:pending-swaps";
+const AI_SWAP_TTL_MS = 24 * 60 * 60_000;
+
+function readPendingSwaps(): PendingSwap[] {
+ try {
+ const raw = localStorage.getItem(AI_PENDING_KEY);
+ const list = raw ? (JSON.parse(raw) as PendingSwap[]) : [];
+ return Array.isArray(list) ? list.filter((e) => Date.now() - e.createdAt < AI_SWAP_TTL_MS) : [];
+ } catch {
+ return [];
+ }
+}
+
+function writePendingSwaps(list: PendingSwap[]): void {
+ try {
+ localStorage.setItem(AI_PENDING_KEY, JSON.stringify(list.slice(-40)));
+ } catch {
+ /* storage full/blocked — watching still works in-session */
+ }
+}
+
 export function PlansView() {
  const { t } = useI18n();
  const { profile } = useAuth();
@@ -34,6 +69,89 @@ export function PlansView() {
  const [active, setActive] = useState<any | null>(null);
  const [swapLoading, setSwapLoading] = useState<string | null>(null);
  const [swapUsage, setSwapUsage] = useState<any>({ meal: { used: 0, limit: 2, remaining: 2 }, exercise: { used: 0, limit: 2, remaining: 2 } });
+ const activeWatchers = useRef<Set<string>>(new Set());
+
+ const refreshUsage = useCallback(async () => {
+ if (!profile) return;
+ try {
+ const u = await getSwapUsage(profile.id);
+ setSwapUsage(u);
+ } catch {
+ /* keep last known usage */
+ }
+ }, [profile]);
+
+ const removePendingSwap = useCallback((id: string) => {
+ writePendingSwaps(readPendingSwaps().filter((e) => e.id !== id));
+ }, []);
+
+ /** Applies a finished job's replacement to local plan state. */
+ const applySwapToPlans = useCallback(
+ (entry: PendingSwap, replacement: any) => {
+ const mutate = (content: any): any => {
+ if (entry.kind === "meal") {
+ const meals = [...(content.meals || [])];
+ if (meals[entry.i1] !== undefined) meals[entry.i1] = replacement;
+ return { ...content, meals };
+ }
+ const days = [...(content.days || [])];
+ const day = { ...(days[entry.i1] || {}) };
+ day.exercises = [...(day.exercises || [])];
+ if (day.exercises[entry.i2!] !== undefined) day.exercises[entry.i2!] = replacement;
+ days[entry.i1] = day;
+ return { ...content, days };
+ };
+ setPlans((prev) => prev.map((p) => (p.id === entry.planId ? { ...p, content: mutate(p.content) } : p)));
+ setActive((prevActive) =>
+ prevActive && prevActive.id === entry.planId
+ ? { ...prevActive, content: mutate(prevActive.content) }
+ : prevActive,
+ );
+ },
+ [],
+ );
+
+ /** Polls one job every 20s up to ~26 min, then applies/cleans. */
+ const watchSwapJob = useCallback(
+ async (entry: PendingSwap) => {
+ if (activeWatchers.current.has(entry.id)) return;
+ activeWatchers.current.add(entry.id);
+ try {
+ const deadline = Date.now() + 26 * 60_000;
+ while (Date.now() < deadline) {
+ await new Promise((r) => setTimeout(r, 20_000));
+ let job: any = null;
+ try {
+ job = await getAiJob(entry.id);
+ } catch {
+ continue; // transient network error — keep waiting
+ }
+ if (job?.status === "done") {
+ applySwapToPlans(entry, job.result?.replacement);
+ removePendingSwap(entry.id);
+ await refreshUsage();
+ toast.success("تم استبدال العنصر من الذكاء الاصطناعي ✅");
+ return;
+ }
+ if (job?.status === "failed") {
+ removePendingSwap(entry.id);
+ toast.error(job.error_message || "فشل الاستبدال.");
+ return;
+ }
+ }
+ removePendingSwap(entry.id);
+ toast.error("انتهت مهلة انتظار الاستبدال — حاول مرة أخرى.");
+ } finally {
+ activeWatchers.current.delete(entry.id);
+ }
+ },
+ [applySwapToPlans, removePendingSwap, refreshUsage],
+ );
+
+ // Resume watching swaps that were queued before a page reload.
+ useEffect(() => {
+ readPendingSwaps().forEach((entry) => void watchSwapJob(entry));
+ }, [watchSwapJob]);
 
  useEffect(() => {
  if (!profile) return;
@@ -65,7 +183,7 @@ export function PlansView() {
 
  const swapMeal = async (planId: string, mealIndex: number) => {
  if (!profile) return;
- // Check daily limit first (client-side hint — server enforces too)
+ // Check remaining quota client-side first — the server enforces too.
  if (swapUsage.meal.remaining <= 0) {
  toast.error(`${t("plans.swaps.mealExhausted")} (${swapUsage.meal.limit}/${swapUsage.meal.limit})`);
  return;
@@ -75,38 +193,23 @@ export function PlansView() {
  const plan = plans.find((p) => p.id === planId);
  if (!plan?.content?.meals?.[mealIndex]) throw new Error("Meal not found");
  const mealItem = plan.content.meals[mealIndex];
- const res = await fetch("/api/ai/swap", {
- method: "POST",
- headers: { "Content-Type": "application/json" },
- body: JSON.stringify({ type: "meal", item: mealItem, clientContext: { name: profile?.full_name } }),
+ // OWNER DIRECTIVE 2026-08-27: generation runs on GitHub Actions — this
+ // click only enqueues the job (tier limit is enforced server-side now).
+ const jobId = await enqueueAiJobClient("meal_regenerate", {
+ meal: mealItem,
+ clientContext: { name: profile?.full_name },
  });
- // M2 fix: server-side check + record is atomic. Handle 429 rate limit.
- if (res.status === 429) {
- const data = await res.json().catch(() => ({}));
- toast.error(data.error || t("plans.swaps.mealLimitReached"));
- // Refresh swap usage from server
- const usage = await getSwapUsage(profile.id);
- setSwapUsage(usage);
- return;
- }
- if (!res.ok) throw new Error("Swap failed");
- const { replacement } = await res.json();
- // Update usage display (server recorded the swap)
- const usage = await getSwapUsage(profile.id);
- setSwapUsage(usage);
- // Update the plan content locally
- const updatedPlans = plans.map((p) => {
- if (p.id !== planId) return p;
- const newContent = { ...p.content, meals: [...p.content.meals] };
- newContent.meals[mealIndex] = replacement;
- return { ...p, content: newContent };
- });
- setPlans(updatedPlans);
- if (active?.id === planId) {
- const newActive = updatedPlans.find((p) => p.id === planId);
- if (newActive) setActive(newActive);
- }
- toast.success(`${t("plans.swaps.mealSwapped")} ${usage.meal.remaining} ${t("plans.swaps.swapsLeftToday")}`);
+ const pendingEntry: PendingSwap = {
+ id: jobId,
+ planId,
+ kind: "meal",
+ i1: mealIndex,
+ createdAt: Date.now(),
+ };
+ writePendingSwaps([...readPendingSwaps(), pendingEntry]);
+ await refreshUsage(); // server recorded the swap at enqueue time
+ void watchSwapJob(pendingEntry);
+ toast.info("تم إرسال طلب الاستبدال 🚀 النتيجة هتتطبق تلقائيًا خلال ~10 دقائق حتى لو قفلت الصفحة.");
  } catch (e: any) {
  toast.error(e.message || t("common.error"));
  } finally {
@@ -116,7 +219,6 @@ export function PlansView() {
 
  const swapExercise = async (planId: string, dayIndex: number, exIndex: number) => {
  if (!profile) return;
- // Check daily limit first (client-side hint — server enforces too)
  if (swapUsage.exercise.remaining <= 0) {
  toast.error(`${t("plans.swaps.exerciseExhausted")} (${swapUsage.exercise.limit}/${swapUsage.exercise.limit})`);
  return;
@@ -127,36 +229,23 @@ export function PlansView() {
  if (!plan?.content?.days?.[dayIndex]?.exercises?.[exIndex]) throw new Error("Exercise not found");
  const exercise = plan.content.days[dayIndex].exercises[exIndex];
  const focus = plan.content.days[dayIndex].focus;
- const res = await fetch("/api/ai/swap", {
- method: "POST",
- headers: { "Content-Type": "application/json" },
- body: JSON.stringify({ type: "exercise", item: { ...exercise, focus }, clientContext: { name: profile?.full_name } }),
+ // Library-filtered, injury-safe substitution on GitHub Actions.
+ const jobId = await enqueueAiJobClient("exercise_regenerate", {
+ exercise: { ...exercise, focus },
+ clientContext: { name: profile?.full_name },
  });
- // M2 fix: server-side check + record is atomic. Handle 429 rate limit.
- if (res.status === 429) {
- const data = await res.json().catch(() => ({}));
- toast.error(data.error || t("plans.swaps.exerciseLimitReached"));
- const usage = await getSwapUsage(profile.id);
- setSwapUsage(usage);
- return;
- }
- if (!res.ok) throw new Error("Swap failed");
- const { replacement } = await res.json();
- const usage = await getSwapUsage(profile.id);
- setSwapUsage(usage);
- const updatedPlans = plans.map((p) => {
- if (p.id !== planId) return p;
- const newContent = { ...p.content, days: [...p.content.days] };
- newContent.days[dayIndex] = { ...newContent.days[dayIndex], exercises: [...newContent.days[dayIndex].exercises] };
- newContent.days[dayIndex].exercises[exIndex] = replacement;
- return { ...p, content: newContent };
- });
- setPlans(updatedPlans);
- if (active?.id === planId) {
- const newActive = updatedPlans.find((p) => p.id === planId);
- if (newActive) setActive(newActive);
- }
- toast.success(`${t("plans.swaps.exerciseSwapped")} ${usage.exercise.remaining} ${t("plans.swaps.swapsLeftToday")}`);
+ const pendingEntry: PendingSwap = {
+ id: jobId,
+ planId,
+ kind: "exercise",
+ i1: dayIndex,
+ i2: exIndex,
+ createdAt: Date.now(),
+ };
+ writePendingSwaps([...readPendingSwaps(), pendingEntry]);
+ await refreshUsage();
+ void watchSwapJob(pendingEntry);
+ toast.info("تم إرسال طلب استبدال التمرين 🚀 البديل الآمن هيظهر خلال ~10 دقائق.");
  } catch (e: any) {
  toast.error(e.message || t("common.error"));
  } finally {

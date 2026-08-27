@@ -5,6 +5,8 @@ import { useEvoChat } from "@/lib/evo-chat-context";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/hooks/use-auth";
 import { Send, X, ExternalLink, Loader2, Sparkles } from "lucide-react";
+import { VoiceMicButton } from "@/components/VoiceMicButton";
+import { useCallback } from "react";
 
 /**
  * EvoFloatingWidget — floating EVO chat icon + slide-in drawer.
@@ -41,6 +43,12 @@ export function EvoFloatingWidget() {
   } = useEvoChat();
 
   const [input, setInput] = useState("");
+ // OWNER DIRECTIVE #1: voice questions (Web Speech API) — Arabic or English.
+ const voiceLang = isAr ? "ar-EG" : "en-US";
+ const handleVoiceTranscript = useCallback(
+ (text: string) => setInput((prev) => (prev ? `${prev} ${text}` : text)),
+ [],
+ );
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -290,6 +298,11 @@ export function EvoFloatingWidget() {
                   }
                   disabled={isTyping || (dailyLimitReached && !isSubscriber)}
                   className="flex-1 rounded-full border border-[#d2d2d7] bg-[#f5f5f7] px-4 py-2.5 text-sm font-normal outline-none focus:border-[#0071e3] disabled:opacity-50"
+                />
+                <VoiceMicButton
+                  lang={voiceLang}
+                  onTranscript={handleVoiceTranscript}
+                  disabled={isTyping || (dailyLimitReached && !isSubscriber)}
                 />
                 <button
                   type="submit"

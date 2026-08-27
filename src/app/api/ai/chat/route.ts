@@ -257,6 +257,9 @@ export async function POST(request: NextRequest) {
     // maxModels=3 × self-clamped ≤17s each → worst ~52s (Vercel Hobby-safe);
     // Promise-free sequential keeps quality-first ordering for short answers.
     try {
+      // OWNER DIRECTIVE #1 (2026-08-27): interactive chat uses the
+      // speed-first chain (fastest free models, accuracy-checked) while
+      // streaming stays on Vercel per the same directive.
       const { text: aiReply, model: aiModel, provider: aiProvider } = await callFreeAIFallbackChain(
         fullPrompt,
         {
@@ -264,6 +267,7 @@ export async function POST(request: NextRequest) {
           maxTokens: 800,
           timeoutMs: 16_000,
           maxModels: 3,
+          chain: "fast",
         },
       );
 

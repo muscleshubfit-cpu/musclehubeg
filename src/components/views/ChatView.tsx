@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/hooks/use-auth";
 import { useNav } from "@/hooks/use-nav";
 import { useEvoChat } from "@/lib/evo-chat-context";
 import { getSwapUsage } from "@/lib/data";
+import { VoiceMicButton } from "@/components/VoiceMicButton";
 
 /**
  * M5 fix: ChatView now uses EvoChatContext (the same context used by the
@@ -22,6 +23,12 @@ export function ChatView() {
   const isAr = lang === "ar";
   const evoChat = useEvoChat();
   const [input, setInput] = useState("");
+  // OWNER DIRECTIVE #1: voice questions (Web Speech API) — transcribed
+  // into the composer, appending after any typed text.
+  const handleVoiceTranscript = useCallback(
+    (text: string) => setInput((prev) => (prev ? `${prev} ${text}` : text)),
+    [],
+  );
   const [swapUsage, setSwapUsage] = useState<any>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -116,6 +123,11 @@ export function ChatView() {
               placeholder={t("chat.placeholder")}
               disabled={evoChat.isTyping}
               className="flex-1 rounded-full border border-[#d2d2d7] bg-[#f5f5f7] px-5 py-3 text-base font-normal outline-none focus:border-[#0071e3]"
+            />
+            <VoiceMicButton
+              lang={isAr ? "ar-EG" : "en-US"}
+              onTranscript={handleVoiceTranscript}
+              disabled={evoChat.isTyping}
             />
             <button
               onClick={send}

@@ -1,6 +1,5 @@
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { supabase as supabaseClient } from "@/lib/supabase/client";
-import { callFreeAIFallbackChain } from "@/lib/ai-provider";
 
 export type AdminBlogPost = {
   id: string;
@@ -260,124 +259,21 @@ export async function adminGetStats() {
 export type AIToolResult = { text: string; error?: string };
 
 export async function aiTool(
-  tool: string,
-  params: {
+  _tool: string,
+  _params: {
     content?: string;
     title?: string;
     keyword?: string;
     lang: "en" | "ar";
   },
 ): Promise<AIToolResult> {
-  // If running in browser, call the server API endpoint /api/ai/blog-tool
-  if (typeof window !== "undefined") {
-    try {
-      const res = await fetch("/api/ai/blog-tool", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          tool,
-          params,
-          content: params.content,
-          title: params.title,
-          focusKeyword: params.keyword,
-          language: params.lang,
-        }),
-      });
-
-      const data = await res.json();
-      if (res.ok && (data.text || data.result)) {
-        return { text: data.text || data.result };
-      }
-      if (data.error) {
-        throw new Error(data.error);
-      }
-    } catch (err: any) {
-      console.warn("[aiTool] Fetch to /api/ai/blog-tool failed, trying direct SDK:", err?.message || err);
-    }
-  }
-
-  // Server-side / direct fallback
-  const isAr = params.lang === "ar";
-  const content = params.content || "";
-  const title = params.title || "";
-  const keyword = params.keyword || "";
-
-  const prompts: Record<string, string> = {
-    seo_title: isAr
-      ? `اكتب عنوان SEO جذاب (أقل من 60 حرف) لمقال بعنوان "${title}" وكلمة مفتاحية "${keyword}". أعد العنوان فقط بدون علامات تنصيص.`
-      : `Write an SEO-optimized title (under 60 chars) for an article titled "${title}" with focus keyword "${keyword}". Return title only without quotes.`,
-    meta_desc: isAr
-      ? `اكتب وصف ميتا (أقل من 160 حرف) لمقال بعنوان "${title}". أعد الوصف فقط بدون علامات تنصيص.`
-      : `Write a meta description (under 160 chars) for an article titled "${title}". Return description only without quotes.`,
-    improve: isAr
-      ? `قم بإعادة صياغة وتحسين النص التالي ليكون أكثر احترافية وسلاسة وتنظيماً بأسلوب كوتش لياقة بدنية وتغذية خبير:\n\n${content.slice(0, 3000)}`
-      : `Improve readability, flow, and clarity of this fitness/nutrition text:\n\n${content.slice(0, 3000)}`,
-    enhance: isAr
-      ? `قم بإعادة صياغة وتحسين النص التالي ليكون أكثر احترافية وسلاسة وتنظيماً بأسلوب كوتش لياقة بدنية وتغذية خبير:\n\n${content.slice(0, 3000)}`
-      : `Improve readability, flow, and clarity of this fitness/nutrition text:\n\n${content.slice(0, 3000)}`,
-    faq: isAr
-      ? `استخرج وولّد 3 إلى 5 أسئلة وأجوبة شائعة (FAQ) هامة من هذا المحتوى.\n- جميع الأسئلة والأجوبة MUST تكون بالعربية الفصحى فقط.\n- لا تستخدم كلمات إنجليزية إلا المصطلحات العلمية المختصرة بين قوسين.\n- الأسئلة مرتبطة مباشرة بمحتوى المقال.\n- التزم بتنسيق Markdown:\n${content.slice(0, 3000)}`
-      : `Generate 3 to 5 high-value FAQs in Markdown based on this content:\n${content.slice(0, 3000)}`,
-    cta: isAr
-      ? `اكتب 3 خيارات مختلفة لنصوص CTA قصيرة ومحفزة تدعو القارئ للاشتراك في برامج التدريب والتغذية المخصصة في MuscleHubEG.`
-      : `Write 3 motivating CTA copies inviting readers to join MuscleHubEG personalized coaching.`,
-    fb: isAr
-      ? `اكتب منشور فيسبوك تفاعلي وجذاب مع إيموجيز وهاشتاجات مناسبة لمقال بعنوان "${title}".`
-      : `Write an engaging Facebook post with emojis and hashtags for an article titled "${title}".`,
-    fb_post: isAr
-      ? `اكتب منشور فيسبوك تفاعلي وجذاب مع إيموجيز وهاشتاجات مناسبة لمقال بعنوان "${title}".`
-      : `Write an engaging Facebook post with emojis and hashtags for an article titled "${title}".`,
-    linkedin: isAr
-      ? `اكتب منشور لينكد إن احترافي بأسلوب القيادة الفكرية يناقش النقاط الأساسية لمقال بعنوان "${title}".`
-      : `Write a professional LinkedIn post highlighting key points for an article titled "${title}".`,
-    x: isAr
-      ? `اكتب تغريدة احترافية وموجزة (أقل من 280 حرف) لمقال بعنوان "${title}".`
-      : `Write a concise professional tweet (under 280 chars) for an article titled "${title}".`,
-    tweet: isAr
-      ? `اكتب تغريدة احترافية وموجزة (أقل من 280 حرف) لمقال بعنوان "${title}".`
-      : `Write a concise professional tweet (under 280 chars) for an article titled "${title}".`,
-    instagram: isAr
-      ? `اكتب كابشن إنستجرام شيق مع نقاط وهاشتاجات قوية لمقال بعنوان "${title}".`
-      : `Write an engaging Instagram caption with bullet points and strong hashtags for an article titled "${title}".`,
-    summary: isAr
-      ? `لخّص هذا المحتوى في 4 إلى 6 نقاط محددة وعملية بأسلوب Markdown:\n${content.slice(0, 3000)}`
-      : `Summarize this content in 4-6 actionable bullet points:\n${content.slice(0, 3000)}`,
-    image_prompt: isAr
-      ? `Write a detailed, high-quality AI image generation prompt in English for an article titled "${title}" with keyword "${keyword}". The image MUST be directly related to the specific article topic — NOT a generic gym scene. Include the article's main subject in the prompt.`
-      : `Write a detailed, high-quality AI image generation prompt in English for an article titled "${title}" with keyword "${keyword}". The image MUST be directly related to the specific article topic — NOT a generic gym scene. Include the article's main subject in the prompt.`,
-  };
-
-  const prompt = prompts[tool] || prompts.improve;
-
-  // Use callFreeAIFallbackChain — OpenRouter + Groq interleaved by strength
-  // (owner directive 2026-08-27). maxModels × timeoutMs clamped ≤ 52s.
-  try {
-    const { text } = await callFreeAIFallbackChain(
-      prompt,
-      {
-        temperature: 0.7,
-        maxTokens: 1200,
-        jsonMode: tool === "faq",
-        timeoutMs: 22_000,
-        maxModels: 2, // Vercel Hobby budget
-      },
-    );
-    if (text && text.trim().length > 0) {
-      return { text: text.trim() };
-    }
-  } catch (err: any) {
-    console.error("[aiTool] OpenRouter failed:", err?.message);
-    throw new Error(
-      isAr
-        ? "تعذر التواصل مع خدمات الذكاء الاصطناعي حالياً. يرجى إعادة المحاولة."
-        : "AI service is currently unavailable. Please try again.",
-    );
-  }
-
+  // OWNER DIRECTIVE (2026-08-27): AI moved to the GitHub Actions queue.
+  // Use runAiJob("article_tool" | "social_post") from @/lib/ai-jobs-client.
+  // This legacy direct-call helper intentionally fails fast instead of
+  // silently bypassing the centralized pipeline.
+  void _tool; void _params;
   throw new Error(
-    isAr
-      ? "تعذر التواصل مع خدمات الذكاء الاصطناعي حالياً. يرجى إعادة المحاولة."
-      : "AI service is currently unavailable. Please try again.",
+    "aiTool retired — article tools run as ai_jobs on GitHub Actions.",
   );
 }
 
