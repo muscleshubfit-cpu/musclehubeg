@@ -49,10 +49,13 @@ async function main(): Promise<void> {
     process.exit(2);
   }
 
-  // queueId sanity: required for every step except step1-pick.
-  if (!queueId && step !== "step1-pick") {
+  // queueId sanity: P0 is the pipeline's queue initiator — it CREATES the
+  // blog_generation_queue row itself and returns the id in its JSON (which
+  // run-step.sh captures into $GITHUB_ENV as QUEUE_ID). Every later phase
+  // must thread that id through.
+  if (!queueId && step !== "p0-research") {
     console.error(
-      `[runner] ❌ Step ${step} needs --queueId (captured automatically from step1 output).`,
+      `[runner] ❌ Step ${step} needs --queueId (captured automatically from p0-research output).`,
     );
     process.exit(2);
   }
