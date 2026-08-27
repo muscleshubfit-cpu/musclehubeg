@@ -499,6 +499,31 @@ Process:
        canaries in `src/lib/__tests__/evo-chat-format.test.ts`) — the
        chat renders plain text only; raw LaTeX (`\frac{4}{3}\pi
        r^{3}`) and markdown syntax must never reach users again.
+- **SCHEDULE HEALTH LAW (2026-08-27 incident):** GitHub's scheduler can
+  silently DE-REGISTER a repository's scheduled workflows — every
+  `schedule` trigger stops firing repo-wide while `push` / `dispatch`
+  runs keep working (this repo: last schedule fire 2026-08-26T16:39Z,
+  then 26+ hours of total silence; blog stuck at 2 posts vs the
+  6/day target; `process-ai-jobs.yml` had 0 runs since addition).
+    1) DETECT before anything else: any report of "the blog stopped
+       publishing" MUST start with a schedule forensics query —
+       `GET /actions/runs?event=schedule` for the last scheduled fire
+       timestamp — NOT with re-reading pipeline code.
+    2) REMEDY (both steps, in order): (a) re-enable every scheduled
+       workflow via `PUT /actions/workflows/{wf}/enable` (HTTP 204),
+       (b) push a touching commit that edits each affected workflow
+       file to force trigger re-registration with the scheduler.
+    3) BACKFILL: after any schedule outage, manually
+       `POST /actions/workflows/{wf}/dispatches` the blog pipelines so
+       the day's articles still publish — never leave a content day
+       empty waiting for the next cron slot.
+    4) VERIFY: confirm at least one scheduled run exists after the
+       remedy (next slots: AR 05/11/18 UTC, EN 12/16/22 UTC, ai-jobs
+       */10). If the next TWO slots per workflow still show no
+       scheduled fire, escalate with forensics — do not silently retry.
+    5) The 3-slots-per-day design doubles as schedule-outage retry:
+       a skipped slot self-heals at the next slot the same day — but
+       only if the scheduler itself is registered (see 1–2).
 - Never log the AI response in production code paths (it can contain
   user PII or partial reasoning that should not be persisted).
 - Local fallbacks (`src/lib/ai-local.ts`) exist so the app degrades
