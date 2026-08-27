@@ -14,7 +14,6 @@ import { useRouter } from "next/navigation";
 import { BLOG_CATEGORIES, getCategoryLabel, parseTableOfContents, renderMarkdown } from "@/lib/blog";
 import { adminGetPost, adminCreatePost, adminUpdatePost, aiTool, calculateSEOScore, calculateWordCount, calculateReadingTime, type AdminBlogPost } from "@/lib/blog-admin";
 import { runAiJob } from "@/lib/ai-jobs-client";
-import { AIGenerateModal, type GeneratedBundle } from "@/components/blog/AIGenerateModal";
 import { toast } from "sonner";
 
 export function BlogEditorView({ mode, postId }: { mode: "new" | "edit"; postId?: string }) {
@@ -49,7 +48,6 @@ export function BlogEditorView({ mode, postId }: { mode: "new" | "edit"; postId?
  const [aiBusy, setAiBusy] = useState<Record<string, boolean>>({}); // multi-tool in-flight (queued jobs)
  const [socialTone, setSocialTone] = useState<"professional" | "friendly" | "motivational">("motivational");
  const [aiResults, setAiResults] = useState<Record<string, string>>({});
- const [showAIModal, setShowAIModal] = useState(false);
 
  useEffect(() => {
  if (mode === "edit" && postId) {
@@ -218,101 +216,6 @@ export function BlogEditorView({ mode, postId }: { mode: "new" | "edit"; postId?
  }
  };
 
- /**
- * Apply a generated bundle to the editor. Loads the chosen language's
- * article into the title/content/excerpt/SEO fields, and stashes the
- * "extras" (FAQ, image prompts, social posts, link suggestions) inside
- * the post's `schema_json` so they're saved with the draft and visible
- * in the AI results panel.
- *
- * EN/AR SEPARATION: uses the chosen language's own FAQ, SEO, focus keyword,
- * and image/social prompts. Does NOT fall back to the other language's data.
- */
- const applyAIBundle = (bundle: GeneratedBundle, language: "en" | "ar") => {
- const article = language === "en" ? bundle.englishArticle : bundle.arabicArticle;
- const seo = language === "en" ? bundle.seo.en : bundle.seo.ar;
-
- // Per-language focus keyword and secondary keywords
- const focusKw = (language === "en"
-   ? (bundle.seo.en.focusKeyword || bundle.seo.focusKeyword)
-   : (bundle.seo.ar.focusKeyword || bundle.seo.focusKeyword)) || "";
- const secondaryKw = (language === "en"
-   ? (bundle.seo.en.secondaryKeywords || bundle.seo.secondaryKeywords)
-   : (bundle.seo.ar.secondaryKeywords || bundle.seo.secondaryKeywords)) || [];
-
- // Per-language FAQ — Arabic uses faqAr, English uses faq.
- // NO fallback to the other language's FAQ.
- const faqForLang = language === "ar"
-   ? (bundle.faqAr && bundle.faqAr.length > 0 ? bundle.faqAr : [])
-   : (bundle.faq || []);
-
- // Per-language image prompts
- const imagePromptsForLang = language === "ar"
-   ? (bundle.imagePromptsAr || bundle.imagePrompts)
-   : bundle.imagePrompts;
-
- // Per-language social posts
- const socialPostsForLang = language === "ar"
-   ? (bundle.socialPostsAr || bundle.socialPosts)
-   : bundle.socialPosts;
-
- // Per-language reading time
- const readingTimeForLang = language === "ar"
-   ? (bundle.estimatedReadingTimeAr || bundle.estimatedReadingTime)
-   : bundle.estimatedReadingTime;
-
- setPost((p) => ({
- ...p,
- language,
- title: seo.seoTitle || p.title,
- slug: seo.slug || p.slug,
- excerpt: bundle.research?.angle || p.excerpt,
- content: article,
- meta_title: seo.metaTitle || seo.seoTitle,
- meta_description: seo.metaDescription,
- focus_keyword: focusKw,
- keywords: secondaryKw,
- tags: secondaryKw.slice(0, 5),
- reading_time: readingTimeForLang,
- faq_json: faqForLang,
- featured_image: bundle.image?.url || p.featured_image,
- cover_alt: bundle.image?.alt || seo.seoTitle || p.cover_alt,
- schema_json: {
- ...(p.schema_json || {}),
- ai_bundle: {
- research: bundle.research,
- imagePrompts: imagePromptsForLang,
- socialPosts: socialPostsForLang,
- internalLinks: bundle.internalLinks,
- externalLinks: bundle.externalLinks,
- internalLinksAr: bundle.internalLinksAr,
- externalLinksAr: bundle.externalLinksAr,
- otherArticle: language === "en" ? bundle.arabicArticle : bundle.englishArticle,
- otherArticleLang: language === "en" ? "ar" : "en",
- generatedAt: new Date().toISOString(),
- },
- },
- }));
-
- // Also surface the social posts + image prompts in the AI results panel
- // so the admin can copy them without opening the saved JSON.
- setAiResults({
- image_prompt_featured: imagePromptsForLang.featuredImage,
- image_prompt_facebook: imagePromptsForLang.facebookImage,
- image_prompt_og: imagePromptsForLang.openGraphImage,
- social_facebook: socialPostsForLang.facebook,
- social_linkedin: socialPostsForLang.linkedin,
- social_instagram: socialPostsForLang.instagram,
- social_x: socialPostsForLang.x,
- });
-
- toast.success(
- isAr
- ? `تم تحميل المقال ${language === "ar" ? "العربي" : "الإنجليزي"} — راجعه واحفظه كمسودة`
- : `Loaded ${language === "ar" ? "Arabic" : "English"} article — review & save as draft`,
- );
- };
-
  const seo = calculateSEOScore(post);
  const wordCount = calculateWordCount(post.content || "");
  const toc = parseTableOfContents(post.content || "");
@@ -353,14 +256,6 @@ export function BlogEditorView({ mode, postId }: { mode: "new" | "edit"; postId?
 
  return (
  <div className="space-y-6">
- {/* AI Generate Modal */}
- <AIGenerateModal
- open={showAIModal}
- onClose={() => setShowAIModal(false)}
- onApply={applyAIBundle}
- defaultLanguage={post.language as "en" | "ar"}
- />
-
  {/* Header — Apple-style */}
  <div className="flex flex-wrap items-center justify-between gap-4">
  <div className="flex items-center gap-4">
@@ -375,12 +270,6 @@ export function BlogEditorView({ mode, postId }: { mode: "new" | "edit"; postId?
  </h1>
  </div>
  <div className="flex flex-wrap items-center gap-2">
- <button
- className="rounded-full bg-[#0071e3] px-4 py-2 text-sm font-normal text-white transition-opacity hover:opacity-90"
- onClick={() => setShowAIModal(true)}
- >
- {isAr ? "توليد بالذكاء الاصطناعي" : "Generate with AI"}
- </button>
  <button
  onClick={() => setShowPreview(!showPreview)}
  className="rounded-full border border-[#d2d2d7] bg-white px-4 py-2 text-sm font-normal transition-opacity hover:opacity-90"

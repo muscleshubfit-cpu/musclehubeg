@@ -1,0 +1,39 @@
+name: Anti-regression guard (stale refs)
+
+# ============================================================
+# 2026-08-27 — born from two real incidents:
+#   1) v2 dispatch died at step 0 because the runner still carried a
+#      legacy v1 exemption ("step1-pick") days after v1 was retired.
+#   2) Owner-visible "edits vanish / revert": retired Vercel-AI routes
+#      kept running parallel to the ai_jobs queue.
+#
+# This workflow fails FAST on any push/PR that reintroduces retired
+# identifiers (deleted API routes, dead components, old step names).
+# The retirement contract itself lives in AGENTS.md §8:
+#   retiring anything = git rm + caller sweep + comment cleanup,
+#   in the SAME commit that removes it.
+#
+# Pure grep — no dependencies, finishes in seconds.
+# ============================================================
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch: {}
+
+concurrency:
+  group: stale-ref-guard
+  cancel-in-progress: true
+
+jobs:
+  guard:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Scan for retired identifiers
+        run: bash scripts/check-stale-refs.sh --ci

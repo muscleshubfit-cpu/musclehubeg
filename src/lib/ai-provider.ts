@@ -476,7 +476,7 @@ export const FREE_OPENROUTER_MODELS = [
  * Uses Promise.any() — returns IMMEDIATELY when the first model responds with
  * valid text.
  *
- * STATUS (2026-08-27): its last consumer (/api/ai/swap) was retired when all
+ * STATUS (2026-08-27): its last consumer (the legacy swap route) was retired when all
  * plan swaps moved to the ai_jobs queue (GitHub Actions). The helper is kept
  * for future latency-critical paths, but NOTHING calls it today. Do not wire
  * it into new code without owner approval — the platform standard is

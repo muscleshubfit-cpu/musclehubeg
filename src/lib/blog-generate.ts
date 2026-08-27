@@ -1,10 +1,11 @@
 /**
  * Shared article-bundle generator.
  *
- * Extracted out of the manual "Generate Article" editor endpoint so the
- * automated cron pipeline (src/app/api/cron/generate-blog-post) can reuse
- * the exact same, already-tuned SEO/GEO/AEO prompt and JSON-parsing/validation
- * logic instead of a second, drifting copy.
+ * Originally extracted for the retired manual editor endpoint; since the
+ * 2026-08-27 consolidation it serves ONLY the native GitHub Actions
+ * pipeline (.github/workflows/generate-blog-post.yml → p0…p5 via
+ * scripts/blog-runner) — Vercel routes must never import model-calling
+ * code (AGENTS.md §8 topology law; EVO chat is the sole exception).
  *
  * ─────────────────────────────────────────────────────────────────────────
  * SPEED OPTIMIZATION (Phase 6, 2026-08-19):
@@ -800,8 +801,8 @@ export async function generateArticleBundle(
  * best-ranking coverage of the topic (trusted hosts only, no fabricated
  * URLs are stored).
  *
- * Delegation is intentional — both the blog pipeline (Step 2a) and the
- * manual `/api/ai/research-topic` route call the SAME underlying
+ * Delegation is intentional — the native GHA pipeline's research step
+ * (p0-research) and this shared helper call the SAME underlying
  * implementation, so research behavior stays consistent.
  *
  * Returns { research, source } where source = "llm-research".

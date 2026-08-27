@@ -342,8 +342,12 @@ Process:
   on Vercel streaming with the speed-first `INTERLEAVED_FAST_CHAIN`
   (options.chain="fast"). Binding rules:
     - Vercel API routes may ENQUEUE jobs (`/api/ai/jobs`) but must NEVER
-      call a model directly. Retired Vercel AI routes: `/api/ai/plan`,
-      `/api/ai/swap`, `/api/ai/regenerate-meal`, `/api/ai/blog-tool`.
+      call a model directly. Retired (routes DELETED 2026-08-27, guard-enforced):
+      `/api/ai/plan`, `/api/ai/swap`, `/api/ai/regenerate-meal`,
+      `/api/ai/blog-tool`, `/api/ai/pick-topic`, `/api/ai/research-topic`,
+      `/api/ai/generate-article`, `/api/ai/generate-image`, and legacy cron
+      route `src/app/api/cron/generate-blog-post`. The v1 step name
+      `step1-pick` and component `AIGenerateModal` are equally banned.
       `blog-admin.aiTool()` is neutered on purpose (throws) so nobody can
       bypass the queue accidentally.
     - New AI features = new job_type + processor entry in
@@ -355,9 +359,25 @@ Process:
     - Payloads pass `sanitizeJobPayload()` whitelisting at enqueue;
       browsers hold SELECT-own-row RLS only — ai_jobs writes are
       service-role exclusive.
-    - Deliberately still on Vercel until ported: AIGenerateModal's
-      generate/pick/research endpoints (legacy editor bundle). Do not add
-      new flows there; next migration step is an `article_bundle` job.
+    - Article DRAFTS inside blog editor use only the queued per-section
+      tools (`article_tool` / `social_post` via runAiJob); full-article
+      generation lives exclusively in the native GHA pipeline. In-editor
+      one-click bundle generation was REMOVED with AIGenerateModal.
+- **ANTI-REGRESSION LAW (2026-08-27, after two stale-code incidents):**
+    - Retiring ANYTHING (route / component / script / step name):
+      `git rm` it, sweep callers, fix comments — all in the SAME commit.
+      Zero tombstone files. THEN run `bash scripts/check-stale-refs.sh`
+      locally; it must exit 0 before push.
+    - `.github/workflows/guard-stale-refs.yml` re-scans every push/PR to
+      main and fails the build naming any reintroduced retired identifier.
+      Add genuinely-new retirements to BOTH the guard PATTERN and this §8.
+    - Production-truth protocol: when behavior seems to "revert", FIRST
+      open `/api/build-info` and compare `commitShort` with latest GitHub
+      main SHA. Mismatch = deploy lag/failure — never debug or re-edit
+      against a stale deployment.
+    - No resurrection branches: patch branches are never kept after their
+      reason expires — archive-tag them (`archive/*`), then delete.
+      Branch protection on `main`: force-push disabled (owner setting).
 - Never log the AI response in production code paths (it can contain
   user PII or partial reasoning that should not be persisted).
 - Local fallbacks (`src/lib/ai-local.ts`) exist so the app degrades

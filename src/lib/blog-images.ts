@@ -18,7 +18,7 @@ export type SourcedImage = { url: string; alt: string; credit: string } | null;
 
 /**
  * Generate an image using Pollinations AI (flux → turbo fallback attempts).
- * Shared by the blog publish pipeline and the /api/ai/generate-image route.
+ * Shared by the native GHA blog pipeline (P3 images step).
  */
 async function generateAIImage(query: string): Promise<SourcedImage> {
   const cleanQuery = query.trim().replace(/\s+/g, " ");
@@ -167,14 +167,3 @@ export async function fetchFeaturedImageMultiQuery(queries: string[]): Promise<S
   return null;
 }
 
-/**
- * Generate an image from a free-text prompt and return its URL only.
- * Shared public helper used by /api/ai/generate-image (coach editor flow).
- */
-export async function generateImagePublic(
-  prompt: string,
-): Promise<{ url: string; source: string } | null> {
-  const result = await generateAIImage(prompt);
-  if (!result) return null;
-  return { url: result.url, source: "pollinations-ai" };
-}
