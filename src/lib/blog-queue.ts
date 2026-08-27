@@ -1,36 +1,38 @@
 /**
  * Queue helpers for the blog generation pipeline.
  *
- * Each blog pipeline step (Step 2a, 2b, 2c, 2d, 3) processes a single
- * queue item identified by its UUID. The queueId is threaded from
- * Step 1 (which inserts the row and returns its id in the JSON
- * response) through every subsequent step via the `?queueId=<uuid>`
- * query parameter.
+ * PIPELINE V3 (2026-08-27 lang split): one queue row == ONE article in
+ * ONE language (`language` column: 'en' | 'ar'). The two language
+ * workflows run on their own GitHub Actions schedules and never share
+ * rows. Each step still processes a single queue item identified by
+ * its UUID; the queueId is threaded from P0 (which inserts the row and
+ * returns its id) through every subsequent step via `?queueId=<uuid>`.
  *
  * This file centralizes:
- *   1. Reading the queueId from the request URL.
- *   2. Fetching the queue row by id (NOT by status — querying by
- *      status would pick the latest matching row, which could be a
- *      different queue item than the one Step 1 produced).
- *   3. Validating the queue row is in the EXPECTED status before
- *      processing (defensive — catches silent UPDATE failures from
- *      the prior step).
- *   4. Performing UPDATEs with explicit error checking (the previous
- *      code swallowed UPDATE errors because it didn't capture the
- *      response — see MH-QUEUE-HANDOFF-007 root cause).
+ *   1. Reading the queueId + lang query params.
+ *   2. Fetching the queue row by id (NOT by status).
+ *   3. Resolving a row's pipeline language defensively.
+ *   4. Validating the queue row is in the EXPECTED status.
+ *   5. Performing UPDATEs with explicit error checking
+ *      (see MH-QUEUE-HANDOFF-007 root cause).
  */
 
 import type { NextRequest } from "next/server";
 import { supabaseAdmin, isSupabaseAdminConfigured } from "@/lib/supabase/admin";
 
+export type PipelineLang = "en" | "ar";
+
 export type QueueItem = {
   id: string;
   topic: string;
   focus_keyword: string;
-  // EN/AR SEPARATION: separate AR topic fields (nullable — old queue rows
-  // don't have these; step2c falls back to EN topic if missing).
+  // LEGACY dual-language columns — kept so old published rows render in
+  // admin tooling, but V3 single-language rows leave them null until P1
+  // of an 'ar' row mirrors its values in for reporting convenience.
   topic_ar?: string | null;
   focus_keyword_ar?: string | null;
+  // LANGUAGE SPLIT (2026-08-27): mandatory since migration 0026 applied.
+  language?: string | null;
   category: string;
   status: string;
   article_bundle: string | null;
@@ -43,16 +45,41 @@ export type QueueItem = {
 /**
  * Read the `queueId` query parameter from the request URL.
  *
- * Returns null if the parameter is missing or empty. The caller is
- * responsible for returning an appropriate error response (we don't
- * throw here because Next.js route handlers need to return
- * NextResponse.json, not throw).
+ * Returns null if the parameter is missing or empty.
  */
 export function getQueueIdParam(request: NextRequest): string | null {
   const url = new URL(request.url);
   const qid = url.searchParams.get("queueId");
   if (!qid || qid.trim().length === 0) return null;
   return qid.trim();
+}
+
+/**
+ * Read + validate the `lang` query parameter ('en' | 'ar').
+ *
+ * P0 REQUIRES it (the language IS the run's identity). Later steps may
+ * pass it too for logging symmetry, but they always derive truth from
+ * the ROW (rowLang below), never from the URL — the URL only sets up
+ * the row once, at P0 time.
+ */
+export function getLangParam(request: NextRequest): PipelineLang | null {
+  const url = new URL(request.url);
+  const raw = url.searchParams.get("lang");
+  return raw === "en" || raw === "ar" ? raw : null;
+}
+
+/**
+ * Defensive row-language resolution. Migration 0026 backfills every
+ * legacy row, so a NULL here means the migration was not applied yet —
+ * callers surface an actionable error instead of silently generating
+ * the wrong language.
+ */
+export function rowLang(qi: Pick<QueueItem, "language">): PipelineLang {
+  return qi.language === "ar" ? "ar" : qi.language === "en" ? "en" : (null as unknown as PipelineLang);
+}
+
+export function isLangColumnMissing(lang: PipelineLang | null): boolean {
+  return lang !== "en" && lang !== "ar";
 }
 
 /**
@@ -100,6 +127,20 @@ export function validateQueueStatus(
     );
   }
   return null;
+}
+
+const MISSING_LANG_MSG =
+  "Queue row has no `language` value — RUN_ON_SUPABASE_0026_LANG_SPLIT.sql was not applied to this database. Apply it first (AGENTS.md §6 has the link).";
+
+/**
+ * Throws when the row predates migration 0026. Centralizing the guard
+ * keeps per-route boilerplate to one line while making the failure mode
+ * loudly actionable.
+ */
+export function requireRowLang(qi: QueueItem): PipelineLang {
+  const lang = rowLang(qi);
+  if (isLangColumnMissing(lang)) throw new Error(MISSING_LANG_MSG);
+  return lang;
 }
 
 /**

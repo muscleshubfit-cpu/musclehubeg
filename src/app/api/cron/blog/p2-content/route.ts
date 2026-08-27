@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { generateFullArticle, countWords } from "@/lib/blog-pipeline";
-import type { LanguageResearch, } from "@/lib/blog-research";
+import type { LanguageResearch } from "@/lib/blog-research";
 import type { OutlinePlan } from "@/lib/blog-pipeline";
 import {
   getQueueIdParam,
   fetchQueueItem,
-  validateQueueStatus,
+  requireRowLang,
   updateQueueItem,
   markQueueItemFailed,
   type QueueItem,
@@ -15,25 +15,16 @@ import { isSupabaseAdminConfigured } from "@/lib/supabase/admin";
 export const maxDuration = 300;
 
 /**
- * PIPELINE V2 · PHASE 2 — Full content generation (1500–2500 words),
- * per language from its own outline + FAQ set. Canonical executor is the
- * native GitHub Actions runner (no 60s cap); the route keeps maxDuration
- * 300 for direct manual pings.
+ * PIPELINE V3 · PHASE 2 — Full content generation (1500–2500 words),
+ * ONE language per row (from its own outline + FAQ set). Canonical
+ * executor is the native GitHub Actions runner (no 60s cap); the route
+ * keeps maxDuration 300 for direct manual pings.
+ *
+ * V3 STATUS CHAIN (language-split): outlined → writing → written
+ * (legacy en/ar-pair statuses never occur on new rows).
  *
  * GET /api/cron/blog/p2-content?queueId=<uuid>
- *   statuses: outlined → writing_en → en_written → writing_ar → ar_written
  */
-async function writeLang(
-  lang: "en" | "ar",
-  bundle: any,
-): Promise<{ markdown: string; words: number; source: string }> {
-  const outline: OutlinePlan | undefined = bundle.outline?.[lang];
-  const research: LanguageResearch | undefined = bundle.research0?.[lang];
-  if (!outline || !research) throw new Error(`p2: missing ${lang} outline/research artifacts`);
-  const r = await generateFullArticle(lang, outline, research);
-  return { markdown: r.markdown, words: r.wordCount, source: r.source };
-}
-
 export async function GET(request: NextRequest) {
   const auth = request.headers.get("authorization");
   const expected = process.env.CRON_SECRET;
@@ -56,60 +47,62 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ ok: false, queueId, skipped: true, reason: "queue_item_not_found" }, { status: 404 });
     qi = data;
 
-    const REPROCESSABLE = new Set(["outlined", "writing_en", "en_written", "writing_ar", "ar_written"]);
-    if (!REPROCESSABLE.has(qi.status) && qi.status !== "failed") {
-      if (qi.status === "images_done" || qi.status === "reviewed" || qi.status === "published")
-        return NextResponse.json({ ok: true, step: "p2", queueId: qi.id, idempotent: true });
+    const lang = requireRowLang(qi);
+
+    // Idempotent fast-exits for already-advanced rows; wrong_status for
+    // anything genuinely out of order.
+    if (qi.status !== "outlined" && qi.status !== "failed") {
+      if (["written", "images_done", "reviewed", "published"].includes(qi.status)) {
+        return NextResponse.json({ ok: true, step: "p2", queueId: qi.id, lang, idempotent: true });
+      }
       return NextResponse.json(
         { ok: false, queueId: qi.id, skipped: true, reason: "wrong_status", actual_status: qi.status },
         { status: 409 },
       );
     }
 
-    const parseBundle = () => (qi!.article_bundle ? JSON.parse(qi!.article_bundle) : {});
-    let bundle = parseBundle();
-    const results: Record<string, unknown> = {};
+    let bundle = qi.article_bundle ? JSON.parse(qi.article_bundle) : {};
 
-    // ── EN pass (skipped when already done — resumable after crash) ──
-    if (!bundle.content_en?.markdown && qi.status !== "ar_written") {
-      const upd1 = await updateQueueItem(qi.id, { status: "writing_en" });
-      if (upd1) throw new Error(upd1);
-      const en = await writeLang("en", bundle);
-      // ACCUMULATOR FIX (2026-08-27): never re-parse the stale qi row between
-      // passes. The old parseBundle() refresh here made the AR update serialize
-      // a bundle predating content_en → silently WIPED the English article.
-      bundle = { ...bundle, content_en: en };
-      const upd2 = await updateQueueItem(qi.id, {
-        status: "en_written",
-        article_bundle: JSON.stringify(bundle),
+    // Resumable after crash mid-write.
+    if (bundle.content?.markdown) {
+      return NextResponse.json({
+        ok: true,
+        step: "p2",
+        queueId: qi.id,
+        lang,
+        resumed: true,
+        words: countWords(bundle.content.markdown),
       });
-      if (upd2) throw new Error(upd2);
-      results.en = { words: en.words, source: en.source };
-    } else {
-      results.en = { resumed: true };
     }
 
-    // ── AR pass ──────────────────────────────────────────────────
-    if (!bundle.content_ar?.markdown) {
-      const upd3 = await updateQueueItem(qi.id, { status: "writing_ar" });
-      if (upd3) throw new Error(upd3);
-      const ar = await writeLang("ar", bundle);
-      bundle = { ...bundle, content_ar: ar };
-      const upd4 = await updateQueueItem(qi.id, {
-        status: "ar_written",
-        article_bundle: JSON.stringify(bundle),
-      });
-      if (upd4) throw new Error(upd4);
-      results.ar = { words: ar.words, source: ar.source };
-    } else {
-      results.ar = { resumed: true };
+    const outline: OutlinePlan | undefined = bundle.outline;
+    const research: LanguageResearch | undefined = bundle.research0;
+    if (!outline || !research) {
+      throw new Error("p2: missing outline/research artifacts — rerun p1-outline");
     }
 
-    // Quality signal only — P4 is responsible for expanding short drafts.
-    const wcEn = countWords(bundle.content_en?.markdown || "");
-    const wcAr = countWords(bundle.content_ar?.markdown || "");
+    const upd1 = await updateQueueItem(qi.id, { status: "writing" });
+    if (upd1) throw new Error(upd1);
 
-    return NextResponse.json({ ok: true, step: "p2", queueId: qi.id, ...results, wcEn, wcAr });
+    const article = await generateFullArticle(lang, outline, research);
+    bundle = { ...bundle, content: { markdown: article.markdown, words: article.wordCount, source: article.source } };
+
+    const upd2 = await updateQueueItem(qi.id, {
+      status: "written",
+      article_bundle: JSON.stringify(bundle),
+    });
+    if (upd2) throw new Error(upd2);
+
+    console.log(`[blog/p2-content] ${lang} done (~${article.wordCount} words)`);
+
+    return NextResponse.json({
+      ok: true,
+      step: "p2",
+      queueId: qi.id,
+      lang,
+      words: article.wordCount,
+      source: article.source,
+    });
   } catch (e: any) {
     console.error("[blog/p2-content] Error:", e?.message || e);
     if (queueId) await markQueueItemFailed(queueId, `p2: ${e?.message || "Unknown"}`);

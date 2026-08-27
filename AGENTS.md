@@ -312,22 +312,32 @@ Process:
   EVO chat stays on Vercel streaming. Any new scheduled/batch AI work
   MUST follow this native-GHA pattern instead of adding Vercel-capped
   endpoints.
-- **Blog pipeline v2 (2026-08-27 owner spec — supersedes v1 routes):**
-  six phases, each a route under `/api/cron/blog/`: `p0-research`
-  (keyword+FAQ+5-topic research per language, curated fallback keeps
-  runs alive) → `p1-outline` (model-ranked topic pick + hard duplicate
-  guard, SEO title/subtitle/meta/slug, 5-7 H2s, LSI list, 3-5 image
-  plan) → `p2-content` (1500-2500 words per language from its own
-  outline; maxTokens 16000) → `p3-images` (3-5 images per language) →
-  `p4-review` (proofread/flow/dedup, keyword coverage, conservative
-  fact-guard — never invent citations, 2-4 internal links from real
-  posts, ≤2 trusted external links, closing CTA; deterministic FAQ
-  section appended from P0 answers as a length safety net) →
-  `p5-publish` (pure code: inserts EN+AR rows, cross-links them;
-  dynamic sitemap.ts auto-updates). The legacy step1/step2a/2b/2c/2d/
-  step3 routes were removed with this release; queue statuses are now:
-  researched→outlined→writing_en→en_written→writing_ar→ar_written→
-  images_done→reviewed→published (+failed/skipped_duplicate).
+- **Blog pipeline v3 — LANGUAGE SPLIT (2026-08-27 owner directive,
+  supersedes v2's coupled EN+AR runs):** six phases, each a route under
+  `/api/cron/blog/`: `p0-research` (keyword+FAQ+5-topic research for
+  EXACTLY ONE language — `?lang=en|ar` is REQUIRED; curated fallback
+  keeps runs alive) → `p1-outline` (model-ranked topic pick + hard
+  duplicate guard against that language's own archive, SEO title/
+  subtitle/meta/slug, 5-7 H2s, LSI list, 3-5 image plan) → `p2-content`
+  (1500-2500 words from the row's own outline) → `p3-images` (3-5
+  images) → `p4-review` (proofread/flow/dedup, keyword coverage,
+  conservative fact-guard — never invent citations, 2-4 internal links
+  from same-language posts only, ≤2 trusted external links, closing CTA;
+  deterministic FAQ section appended as a length safety net) →
+  `p5-publish` (pure code: inserts ONE blog_posts row in the row's
+  language; dynamic sitemap.ts auto-updates). ONE queue row == ONE
+  article in ONE language (`blog_generation_queue.language`, migration
+  RUN_ON_SUPABASE_0026_LANG_SPLIT.sql); bundles are FLAT:
+  `{research0, outline, content, images, review}`. Queue statuses are
+  now: researched→outlined→writing→written→images_done→reviewed→
+  published (+failed/skipped_duplicate). Scheduling: TWO independent
+  workflows — `blog-post-en.yml` (12:00/16:00/22:00 UTC = 08:00/12:00/
+  18:00 US-Eastern) and `blog-post-ar.yml` (05:00/11:00/18:00 UTC =
+  08:00/14:00/21:00 Cairo) = 3 articles/day per language at each
+  audience's optimal windows; concurrency groups `blog-pipeline-en` /
+  `blog-pipeline-ar` stay independent ON PURPOSE so the languages may
+  overlap. Legacy step1/step2a..step3 routes AND legacy dual-language
+  statuses (writing_en/en_written/writing_ar/ar_written) are retired.
 - **IMAGE MODESTY GUARD (hard owner rule):** every image prompt
   anywhere in the product MUST include `IMAGE_MODESTY_SUFFIX`
   (`src/lib/blog-pipeline.ts`): modest attire, no nudity, no revealing

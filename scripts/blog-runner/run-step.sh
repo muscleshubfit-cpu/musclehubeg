@@ -11,6 +11,8 @@
 #
 # Usage:  bash scripts/blog-runner/run-step.sh <step-name> [max-attempts]
 # Env:    QUEUE_ID (optional input from previous steps)
+#         PIPELINE_LANG ("en"|"ar") — language-split pipelines (2026-08-27);
+#         forwarded as --lang so P0 creates a single-language row.
 #         GITHUB_ENV (provided by Actions runtime)
 # Exit:   0 on success, 1 if all attempts failed
 # =====================================================================
@@ -22,6 +24,9 @@ MAX_ATTEMPTS="${2:-3}"
 ARGS=(--step "$STEP")
 if [ -n "${QUEUE_ID:-}" ]; then
   ARGS+=(--queueId "$QUEUE_ID")
+fi
+if [ -n "${PIPELINE_LANG:-}" ]; then
+  ARGS+=(--lang "$PIPELINE_LANG")
 fi
 
 attempt=1

@@ -1,30 +1,33 @@
-name: Auto-generate blog post (pipeline v2 — six AI phases)
+name: Auto-publish AR article (pipeline v3 — language-split)
 
 # ============================================================
-# 2026-08-27 (v2) — Owner-defined six-phase article pipeline:
-#   P0 keyword/FAQ/topic research (per language, strongest free
-#      models first with automatic fall-through)
-#   P1 topic choice + SEO outline (+ LSI keywords + image plan)
-#   P2 full content generation (1500–2500 words per language)
-#   P3 images (3–5 per language, MODESTY-GUARDED prompts:
-#      no nudity, no revealing imagery — hard owner rule)
-#   P4 quality review (proofread, keyword check, fact-guard,
-#      internal+external links, closing CTA)
-#   P5 publish + auto-sitemap (pure code, NO AI models)
+# PIPELINE V3 (2026-08-27) — FULL LANGUAGE SEPARATION:
+#   One workflow per language, one article per run, independent
+#   topics, independent queues. 3 runs/day for Arabic.
 #
-# Native execution: the job imports the SAME route handlers in-process
-# (scripts/blog-runner/run-step.mts) — no Vercel hop, no 60s cap.
-# AI_CHAIN_TOTAL_BUDGET_MS=360000 funds full-length completions.
-# Keys come from GitHub Secrets; EVO chat stays on Vercel streaming.
+# ARABIC PUBLISH WINDOWS (owner directive: best posting times):
+#   cron (UTC)     Cairo (EEST, UTC+3, current DST)   Rationale
+#   05:00    →     08:00 صباحًا                        morning phone scroll / commute
+#   11:00    →     14:00 ظهرًا                         lunch-break peak
+#   18:00    →     21:00 مساءً                         prime-time evening peak
+#   NOTE: when Egypt drops DST in winter (+2), local times shift one
+#   hour EARLIER (07/13/20) — still inside good windows; adjust then if needed.
+#
+# Env PIPELINE_LANG=ar is REQUIRED — P0 refuses to guess the language.
+# AI chain: OpenRouter dual-key pool + Groq interleaved strongest-first,
+# automatic fall-through. P5 publish is pure code (NO AI).
 # ============================================================
 
 on:
   schedule:
-    - cron: "0 6,14,22 * * *"
+    - cron: "0 5 * * *"   # 08:00 Cairo
+    - cron: "0 11 * * *"  # 14:00 Cairo
+    - cron: "0 18 * * *"  # 21:00 Cairo
   workflow_dispatch: {}
 
 concurrency:
-  group: blog-pipeline
+  # Independent of the EN pipeline on purpose — EN and AR may overlap.
+  group: blog-pipeline-ar
   cancel-in-progress: false
 
 jobs:
@@ -33,6 +36,9 @@ jobs:
     timeout-minutes: 120
 
     env:
+      # ── Language identity for this pipeline ──
+      PIPELINE_LANG: "ar"
+
       # ── Native-execution budget override (default on Vercel: 52000) ──
       AI_CHAIN_TOTAL_BUDGET_MS: "360000"
 
@@ -55,7 +61,7 @@ jobs:
 
       - name: Preflight — required secrets present (fails fast, names the missing ones)
         run: |
-          echo "=== Preflight: checking required GitHub Secrets ==="
+          echo "=== Preflight [AR pipeline]: checking required GitHub Secrets ==="
           missing=0
           for v in NEXT_PUBLIC_SUPABASE_URL SUPABASE_SERVICE_ROLE_KEY CRON_SECRET GROQ_API_KEY; do
             if [ -z "${!v}" ]; then
@@ -72,7 +78,7 @@ jobs:
             echo "❌ Preflight failed — fix the secrets above and re-run."
             exit 1
           fi
-          echo "✓ All required secrets present"
+          echo "✓ All required secrets present · language=$PIPELINE_LANG"
 
       - uses: actions/setup-node@v4
         with:
@@ -85,23 +91,24 @@ jobs:
         run: npm install --no-audit --no-fund
 
       # ══════════════════════════════════════════════════════════
-      # SIX-PHASE PIPELINE (each step retries ×3 with backoff and
-      # threads queueId automatically from P0's response)
+      # SIX-PHASE PIPELINE — ARABIC ONLY (each step retries ×3 with
+      # backoff and threads queueId automatically from P0's response;
+      # lang is threaded from PIPELINE_LANG by run-step.sh)
       # ══════════════════════════════════════════════════════════
 
-      - name: P0 — Keyword & topic research EN+AR (retry ×3)
+      - name: P0 — Keyword & topic research AR (retry ×3)
         run: bash scripts/blog-runner/run-step.sh p0-research 3
 
-      - name: P1 — Topic choice + outline EN+AR (retry ×3)
+      - name: P1 — Topic choice + outline AR (retry ×3)
         run: bash scripts/blog-runner/run-step.sh p1-outline 3
 
-      - name: P2 — Full content EN + AR, 1500–2500 words each (retry ×3)
+      - name: P2 — Full content AR, 1500–2500 words (retry ×3)
         run: bash scripts/blog-runner/run-step.sh p2-content 3
 
-      - name: P3 — Modesty-guarded images EN + AR, 3–5 each (retry ×3)
+      - name: P3 — Modesty-guarded images AR, 3–5 (retry ×3)
         run: bash scripts/blog-runner/run-step.sh p3-images 3
 
-      - name: P4 — Quality review & links & CTA EN + AR (retry ×3)
+      - name: P4 — Quality review & links & CTA AR (retry ×3)
         run: bash scripts/blog-runner/run-step.sh p4-review 3
 
       - name: P5 — Publish to blog_posts + auto-sitemap (retry ×3)
@@ -110,6 +117,7 @@ jobs:
       - name: Summary
         if: always()
         run: |
-          echo "=== Pipeline v2 run summary ==="
+          echo "=== AR pipeline run summary ==="
+          echo "PIPELINE_LANG: $PIPELINE_LANG"
           echo "QUEUE_ID processed: ${QUEUE_ID:-<none>}"
-          echo "Full logs above — green ✓ = published (EN+AR), red ❌ = copy last lines and report."
+          echo "Full logs above — green ✓ = published (AR), red ❌ = copy last lines and report."

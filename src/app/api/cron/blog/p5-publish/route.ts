@@ -6,6 +6,7 @@ import {
   getQueueIdParam,
   fetchQueueItem,
   validateQueueStatus,
+  requireRowLang,
   updateQueueItem,
   markQueueItemFailed,
   type QueueItem,
@@ -14,12 +15,15 @@ import {
 export const maxDuration = 60;
 
 /**
- * PIPELINE V2 · PHASE 5 — Publish & Update.
+ * PIPELINE V3 · PHASE 5 — Publish & Update (ONE language).
  * Pure Node.js / Supabase — NO AI models here (owner spec).
- * Inserts the EN + AR blog_posts rows from the reviewed content,
- * cross-links them, marks the queue row published. The app's dynamic
- * sitemap.ts picks up new posts automatically on next request, so the
- * sitemap requirement is satisfied at platform level.
+ * Inserts the blog_posts row for the row's OWN language, marks the
+ * queue row published. The app's dynamic sitemap.ts picks up new posts
+ * automatically on next request.
+ *
+ * NO cross-language linked_post_id: with fully separate pipelines an
+ * EN article has no guaranteed AR twin anymore (independent topics +
+ * independent schedules by owner directive).
  *
  * GET /api/cron/blog/p5-publish?queueId=<uuid>
  */
@@ -80,7 +84,7 @@ export async function GET(request: NextRequest) {
   if (!queueId)
     return NextResponse.json({ error: "Missing queueId query parameter" }, { status: 400 });
 
-  let enPostId: string | null = null;
+  let publishedPostId: string | null = null;
   let qi: QueueItem | null = null;
 
   try {
@@ -90,10 +94,12 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ ok: false, queueId, skipped: true, reason: "queue_item_not_found" }, { status: 404 });
     qi = data;
 
+    const lang = requireRowLang(qi);
+
     const statusErr = validateQueueStatus(qi, "reviewed");
     if (statusErr) {
       if (qi.status === "published")
-        return NextResponse.json({ ok: true, step: "p5", queueId: qi.id, idempotent: true });
+        return NextResponse.json({ ok: true, step: "p5", queueId: qi.id, lang, idempotent: true });
       if (qi.status !== "failed" && !qi.status.startsWith("failed:")) {
         return NextResponse.json(
           { ok: false, queueId: qi.id, skipped: true, reason: "wrong_status", actual_status: qi.status },
@@ -103,88 +109,63 @@ export async function GET(request: NextRequest) {
       console.warn(`[blog/p5-publish] Re-processing previously failed item ${qi.id}`);
     }
 
-    const rawBundle = JSON.parse(qi.article_bundle || "{}");
-    const outline = rawBundle.outline as { en: OutlinePlan; ar: OutlinePlan } | undefined;
-    const review = rawBundle.review as any;
-    const images = rawBundle.images as { en?: SourcedImg[]; ar?: SourcedImg[] } | undefined;
-    if (!outline || !review?.en?.markdown || !review?.ar?.markdown) {
+    // FLAT artifacts (V3).
+    const bundle = JSON.parse(qi.article_bundle || "{}");
+    const outline = bundle.outline as OutlinePlan | undefined;
+    const review = bundle.review as { markdown?: string } | undefined;
+    const images = (bundle.images ?? []) as { url: string; alt: string; credit: string }[];
+    if (!outline?.title || !review?.markdown) {
       throw new Error("p5: missing reviewed artifacts — rerun p4-review");
     }
 
     const safeCategory = normalizeCategory(qi.category);
     const now = new Date().toISOString();
 
-    const enTitle = outline.en.title || qi.topic;
-    const arTitle = outline.ar.title || qi.topic_ar || qi.topic;
+    const title = outline.title || qi.topic;
 
-    if (await titleAlreadyExists(enTitle, "en"))
-      return dupSkip(qi.id, enTitle, "en");
-    if (await titleAlreadyExists(arTitle, "ar"))
-      return dupSkip(qi.id, arTitle, "ar");
+    if (await titleAlreadyExists(title, lang))
+      return dupSkip(qi.id, title, lang);
 
-    const enSlug = await uniqueSlug(slugify(outline.en.slugBase || qi.focus_keyword), "en");
-    const arSlug = await uniqueSlug(slugify(outline.ar.slugBase || enSlug || qi.focus_keyword), "ar");
+    const slug = await uniqueSlug(
+      slugify(outline.slugBase || qi.focus_keyword),
+      lang,
+    );
+    const featured = images[0]?.url ?? null;
 
-    const featuredEn = images?.en?.[0]?.url ?? null;
-    const featuredAr = images?.ar?.[0]?.url ?? featuredEn;
-
-    const faqEn = rawBundle.research0?.en?.faqs ?? [];
-    const faqAr = rawBundle.research0?.ar?.faqs ?? [];
-
-    const buildRow = (
-      language: "en" | "ar",
-      o: OutlinePlan,
-      md: string,
-      featured: string | null,
-      faq: unknown[],
-    ) => ({
-      language,
-      title: language === "en" ? enTitle : arTitle,
-      slug: language === "en" ? enSlug : arSlug,
-      excerpt: o.metaDescription,
-      content: md,
-      meta_title: `${o.title}`.slice(0, 60),
-      meta_description: o.metaDescription,
-      focus_keyword: language === "en" ? qi!.focus_keyword : (qi!.focus_keyword_ar || qi!.focus_keyword),
-      keywords: o.lsiKeywords,
+    const row = {
+      language: lang,
+      title,
+      slug,
+      excerpt: outline.metaDescription,
+      content: review.markdown,
+      meta_title: `${outline.title}`.slice(0, 60),
+      meta_description: outline.metaDescription,
+      focus_keyword: qi.focus_keyword,
+      keywords: outline.lsiKeywords,
       category: safeCategory,
-      tags: o.lsiKeywords.slice(0, 5),
+      tags: outline.lsiKeywords.slice(0, 5),
       featured_image: featured,
-      cover_alt: language === "en" ? enTitle : arTitle,
-      reading_time: Math.max(1, Math.ceil(countWords(md) / 200)),
+      cover_alt: title,
+      reading_time: Math.max(1, Math.ceil(countWords(review.markdown) / 200)),
       author: "MuscleHubEG",
       is_published: true,
       published_at: now,
-      faq_json: faq,
-    });
+      faq_json: bundle.research0?.faqs ?? [],
+    };
 
-    const enRow = buildRow("en", outline.en, review.en.markdown, featuredEn, faqEn);
-    const arRow = buildRow("ar", outline.ar, review.ar.markdown, featuredAr, faqAr);
-
-    const { data: enPost, error: enErr } = await supabaseAdmin
+    const { data: post, error: insertErr } = await supabaseAdmin
       .from("blog_posts" as any)
-      .insert(enRow)
+      .insert(row)
       .select()
       .single() as any;
-    if (enErr) throw new Error(`EN insert: ${enErr.message}`);
-    enPostId = (enPost as any)?.id || null;
-
-    const { data: arPost, error: arErr } = await supabaseAdmin
-      .from("blog_posts" as any)
-      .insert(arRow)
-      .select()
-      .single() as any;
-    if (arErr) throw new Error(`AR insert: ${arErr.message} (EN post ${enPostId} was already inserted)`);
-
-    if (enPost && arPost) {
-      await supabaseAdmin.from("blog_posts" as any).update({ linked_post_id: (arPost as any).id }).eq("id", (enPost as any).id);
-      await supabaseAdmin.from("blog_posts" as any).update({ linked_post_id: (enPost as any).id }).eq("id", (arPost as any).id);
-    }
+    if (insertErr) throw new Error(`Post insert (${lang}): ${insertErr.message}`);
+    publishedPostId = (post as any)?.id || null;
 
     const updateErr = await updateQueueItem(qi.id, {
       status: "published",
-      en_post_id: (enPost as any)?.id,
-      ar_post_id: (arPost as any)?.id,
+      ...(lang === "en"
+        ? { en_post_id: publishedPostId ?? undefined }
+        : { ar_post_id: publishedPostId ?? undefined }),
     });
     if (updateErr) throw new Error(updateErr);
 
@@ -192,21 +173,23 @@ export async function GET(request: NextRequest) {
       ok: true,
       step: "p5",
       queueId: qi.id,
+      lang,
+      postId: publishedPostId,
       sitemap: "auto (dynamic sitemap.ts)",
-      en: { title: enRow.title, slug: enSlug },
-      ar: { title: arRow.title, slug: arSlug },
+      title: row.title,
+      slug,
     });
   } catch (e: any) {
     console.error("[blog/p5-publish] Error:", e?.message || e);
     if (queueId) {
-      const partial = enPostId ? `partial_publish: EN post ${enPostId} inserted but AR failed. ` : "";
+      const partial = publishedPostId
+        ? `partial_publish: ${String(qi?.language ?? "?").toUpperCase()} post ${publishedPostId} inserted but post-update failed. `
+        : "";
       await markQueueItemFailed(queueId, `p5: ${partial}${e?.message || "Unknown"}`);
     }
     return NextResponse.json({ error: e?.message || "Failed" }, { status: 500 });
   }
 }
-
-type SourcedImg = { url: string; alt: string; credit: string };
 
 async function dupSkip(queueId: string, title: string, lang: "en" | "ar") {
   const err = await updateQueueItem(queueId, {
@@ -214,5 +197,5 @@ async function dupSkip(queueId: string, title: string, lang: "en" | "ar") {
     error_message: `p5: duplicate-${lang}-title "${title}"`,
   });
   if (err) console.error(`[blog/p5-publish] Failed to mark skipped_duplicate: ${err}`);
-  return NextResponse.json({ ok: true, step: "p5", queueId, skipped: true, reason: `duplicate-${lang}-title`, title });
+  return NextResponse.json({ ok: true, step: "p5", queueId, lang, skipped: true, reason: `duplicate-${lang}-title`, title });
 }

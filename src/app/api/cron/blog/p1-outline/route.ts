@@ -5,6 +5,7 @@ import {
   getQueueIdParam,
   fetchQueueItem,
   validateQueueStatus,
+  requireRowLang,
   updateQueueItem,
   markQueueItemFailed,
   type QueueItem,
@@ -15,10 +16,12 @@ import { isSupabaseAdminConfigured } from "@/lib/supabase/admin";
 export const maxDuration = 60;
 
 /**
- * PIPELINE V2 · PHASE 1 — Topic choice + detailed outline per language.
- * Picks ONE of the 5 researched topics (model-ranked + hard duplicate
- * guard) then builds: SEO title, subtitle, meta description, slug base,
- * 5-7 H2 outline, LSI keywords and a 3-5 image plan.
+ * PIPELINE V3 · PHASE 1 — Topic choice + detailed outline (ONE language).
+ * The row's `language` column decides everything. Picks ONE of the 5
+ * researched topics (model-ranked + hard duplicate guard against THIS
+ * language's recent posts) then builds: SEO title, subtitle, meta
+ * description, slug base, 5-7 H2 outline, LSI keywords and a 3-5 image
+ * plan. Bundle stays FLAT: { research0, outline }.
  *
  * GET /api/cron/blog/p1-outline?queueId=<uuid>
  */
@@ -52,16 +55,6 @@ function pickKeyword(r: LanguageResearch, topic: string): string {
   return hit?.keyword || r.keywords[0]?.keyword || topic.slice(0, 60);
 }
 
-function pickSummary(o: OutlinePlan, topic: string) {
-  return {
-    topic,
-    title: o.title,
-    sections: o.sections.length,
-    lsi: o.lsiKeywords.length,
-    imagePlan: o.imagePlan.length,
-  };
-}
-
 export async function GET(request: NextRequest) {
   const auth = request.headers.get("authorization");
   const expected = process.env.CRON_SECRET;
@@ -84,10 +77,12 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ ok: false, queueId, skipped: true, reason: "queue_item_not_found" }, { status: 404 });
     qi = data;
 
+    const lang = requireRowLang(qi);
+
     const statusErr = validateQueueStatus(qi, "researched");
     if (statusErr) {
       if (qi.status === "outlined")
-        return NextResponse.json({ ok: true, step: "p1", queueId: qi.id, idempotent: true });
+        return NextResponse.json({ ok: true, step: "p1", queueId: qi.id, lang, idempotent: true });
       if (qi.status !== "failed")
         return NextResponse.json(
           { ok: false, queueId: qi.id, skipped: true, reason: "wrong_status", actual_status: qi.status },
@@ -96,43 +91,44 @@ export async function GET(request: NextRequest) {
       console.warn(`[blog/p1-outline] Re-processing previously failed item ${qi.id}`);
     }
 
+    // FLAT artifact — V3 rows carry exactly ONE language's research.
     const bundle = qi.article_bundle ? JSON.parse(qi.article_bundle) : {};
-    const r0 = bundle.research0 as { en: LanguageResearch; ar: LanguageResearch } | undefined;
-    if (!r0?.en?.topics?.length || !r0?.ar?.topics?.length) {
+    const r0 = bundle.research0 as LanguageResearch | undefined;
+    if (!r0?.topics?.length) {
       throw new Error("research0 artifact missing on queue item — rerun p0-research");
     }
 
-    const [topicEn, topicAr] = await Promise.all([
-      guardDuplicate("en", r0.en.topics),
-      guardDuplicate("ar", r0.ar.topics),
-    ]);
-
-    const [outlineEn, outlineAr] = await Promise.all([
-      buildOutline("en", topicEn, r0.en),
-      buildOutline("ar", topicAr, r0.ar),
-    ]);
+    const topic = await guardDuplicate(lang, r0.topics);
+    const outlineResult = await buildOutline(lang, topic, r0);
 
     const updatedBundle = JSON.stringify({
       ...bundle,
-      outline: { en: outlineEn.outline, ar: outlineAr.outline },
+      outline: outlineResult.outline,
     });
 
     const updateErr = await updateQueueItem(qi.id, {
-      topic: topicEn,
-      topic_ar: topicAr,
-      focus_keyword: pickKeyword(r0.en, topicEn),
-      focus_keyword_ar: pickKeyword(r0.ar, topicAr),
+      topic,
+      // Reporting convenience for AR rows only — EN pipeline leaves the
+      // legacy columns untouched.
+      ...(lang === "ar" ? { topic_ar: topic } : {}),
+      focus_keyword: pickKeyword(r0, topic),
+      ...(lang === "ar" ? { focus_keyword_ar: pickKeyword(r0, topic) } : {}),
       status: "outlined",
       article_bundle: updatedBundle,
     });
     if (updateErr) throw new Error(updateErr);
 
+    const o: OutlinePlan = outlineResult.outline;
     return NextResponse.json({
       ok: true,
       step: "p1",
       queueId: qi.id,
-      en: pickSummary(outlineEn.outline, topicEn),
-      ar: pickSummary(outlineAr.outline, topicAr),
+      lang,
+      title: o.title,
+      sections: o.sections.length,
+      lsi: o.lsiKeywords.length,
+      imagePlan: o.imagePlan.length,
+      source: outlineResult.source,
     });
   } catch (e: any) {
     console.error("[blog/p1-outline] Error:", e?.message || e);

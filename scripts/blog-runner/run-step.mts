@@ -12,13 +12,14 @@
  *
  * USAGE (called by run-step.sh):
  *   npx --no-install tsx scripts/blog-runner/run-step.mts \
- *     --step step1-pick            [--queueId <uuid>]
+ *     --step p0-research --lang en    [--queueId <uuid>]
  *
  * REQUIRED ENV (GitHub Secrets → job env):
  *   CRON_SECRET, NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY,
  *   OPENROUTER_API (or OPENROUTER_API_KEY), GROQ_API_KEY
  * OPTIONAL ENV: UNSPLASH_ACCESS_KEY / PEXELS_API_KEY / PIXABAY_API_KEY,
- *   AI_CHAIN_TOTAL_BUDGET_MS
+ *   AI_CHAIN_TOTAL_BUDGET_MS, PIPELINE_LANG (en|ar — threaded by
+ *   run-step.sh; required for p0-research, logged for all steps)
  *
  * EXIT CODES: 0 = ok:true · 1 = step reported failure · 2 = misconfig
  */
@@ -41,10 +42,22 @@ function arg(name: string): string | undefined {
 async function main(): Promise<void> {
   const step = arg("step");
   const queueId = arg("queueId");
+  const langArg = arg("lang") ?? process.env.PIPELINE_LANG;
 
   if (!step || !STEPS.includes(step as (typeof STEPS)[number])) {
     console.error(
       `[runner] ❌ Missing/unknown --step. Valid steps: ${STEPS.join(", ")}`,
+    );
+    process.exit(2);
+  }
+
+  // Language split (2026-08-27): every pipeline targets exactly one
+  // language. P0 requires it; later phases derive truth from the queue
+  // row but still receive it so the URL stays self-describing.
+  const lang = langArg === "en" || langArg === "ar" ? langArg : undefined;
+  if (!lang) {
+    console.error(
+      `[runner] ❌ Step ${step} needs a language: pass --lang en|ar (or set PIPELINE_LANG).`,
     );
     process.exit(2);
   }
@@ -105,7 +118,10 @@ async function main(): Promise<void> {
   const mod = await import(`../../src/app/api/cron/blog/${step}/route.ts`);
 
   const url = new URL(`http://actions-runner/api/cron/blog/${step}`);
+  url.searchParams.set("lang", lang);
   if (queueId) url.searchParams.set("queueId", queueId);
+
+  console.log(`[runner] ▶ ${step} · lang=${lang}${queueId ? ` · queue=${queueId}` : ""}`);
 
   const req = new NextRequest(url, {
     headers: { authorization: `Bearer ${secret}` },

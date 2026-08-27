@@ -1,0 +1,122 @@
+name: Auto-publish EN article (pipeline v3 — language-split)
+
+# ============================================================
+# PIPELINE V3 (2026-08-27) — FULL LANGUAGE SEPARATION:
+#   One workflow per language, one article per run, independent
+#   topics, independent queues. 3 runs/day for English.
+#
+# ENGLISH PUBLISH WINDOWS (owner directive: best posting times;
+# anchored to US Eastern — the largest English fitness audience):
+#   cron (UTC)     US Eastern (EDT, UTC-4)   Rationale
+#   12:00    →     08:00 ET                  morning coffee scroll
+#   16:00    →     12:00 ET                  lunch-break peak
+#   22:00    →     18:00 ET                  after-work / evening peak
+#
+# Env PIPELINE_LANG=en is REQUIRED — P0 refuses to guess the language.
+# AI chain: OpenRouter dual-key pool + Groq interleaved strongest-first,
+# automatic fall-through. P5 publish is pure code (NO AI).
+# ============================================================
+
+on:
+  schedule:
+    - cron: "0 12 * * *"  # 08:00 ET
+    - cron: "0 16 * * *"  # 12:00 ET
+    - cron: "0 22 * * *"  # 18:00 ET
+  workflow_dispatch: {}
+
+concurrency:
+  # Independent of the AR pipeline on purpose — AR and EN may overlap.
+  group: blog-pipeline-en
+  cancel-in-progress: false
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+
+    env:
+      # ── Language identity for this pipeline ──
+      PIPELINE_LANG: "en"
+
+      # ── Native-execution budget override (default on Vercel: 52000) ──
+      AI_CHAIN_TOTAL_BUDGET_MS: "360000"
+
+      # ── Required secrets (preflight fails fast naming missing ones) ──
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      CRON_SECRET: ${{ secrets.CRON_SECRET }}
+      OPENROUTER_API: ${{ secrets.OPENROUTER_API }}
+      OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+      GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+
+      # ── Optional image-provider fallbacks (pollinations is keyless) ──
+      UNSPLASH_ACCESS_KEY: ${{ secrets.UNSPLASH_ACCESS_KEY }}
+      PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
+      PIXABAY_API_KEY: ${{ secrets.PIXABAY_API_KEY }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Preflight — required secrets present (fails fast, names the missing ones)
+        run: |
+          echo "=== Preflight [EN pipeline]: checking required GitHub Secrets ==="
+          missing=0
+          for v in NEXT_PUBLIC_SUPABASE_URL SUPABASE_SERVICE_ROLE_KEY CRON_SECRET GROQ_API_KEY; do
+            if [ -z "${!v}" ]; then
+              echo "❌ Missing secret: $v"
+              echo "   → add it under: Settings ▸ Secrets and variables ▸ Actions ▸ New repository secret"
+              missing=1
+            fi
+          done
+          if [ -z "$OPENROUTER_API" ] && [ -z "$OPENROUTER_API_KEY" ]; then
+            echo "❌ Missing AI provider key — provide a secret named OPENROUTER_API (or OPENROUTER_API_KEY)"
+            missing=1
+          fi
+          if [ "$missing" -eq 1 ]; then
+            echo "❌ Preflight failed — fix the secrets above and re-run."
+            exit 1
+          fi
+          echo "✓ All required secrets present · language=$PIPELINE_LANG"
+
+      - uses: actions/setup-node@v4
+        with:
+          # Node 22 REQUIRED: supabase-js realtime needs the stable global
+          # WebSocket that only exists from Node 22+ (2026-08-27 P0 crash).
+          node-version: 22
+
+      # NOTE: repo has NO package-lock.json → npm install (not npm ci)
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      # ══════════════════════════════════════════════════════════
+      # SIX-PHASE PIPELINE — ENGLISH ONLY (each step retries ×3 with
+      # backoff and threads queueId automatically from P0's response;
+      # lang is threaded from PIPELINE_LANG by run-step.sh)
+      # ══════════════════════════════════════════════════════════
+
+      - name: P0 — Keyword & topic research EN (retry ×3)
+        run: bash scripts/blog-runner/run-step.sh p0-research 3
+
+      - name: P1 — Topic choice + outline EN (retry ×3)
+        run: bash scripts/blog-runner/run-step.sh p1-outline 3
+
+      - name: P2 — Full content EN, 1500–2500 words (retry ×3)
+        run: bash scripts/blog-runner/run-step.sh p2-content 3
+
+      - name: P3 — Modesty-guarded images EN, 3–5 (retry ×3)
+        run: bash scripts/blog-runner/run-step.sh p3-images 3
+
+      - name: P4 — Quality review & links & CTA EN (retry ×3)
+        run: bash scripts/blog-runner/run-step.sh p4-review 3
+
+      - name: P5 — Publish to blog_posts + auto-sitemap (retry ×3)
+        run: bash scripts/blog-runner/run-step.sh p5-publish 3
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "=== EN pipeline run summary ==="
+          echo "PIPELINE_LANG: $PIPELINE_LANG"
+          echo "QUEUE_ID processed: ${QUEUE_ID:-<none>}"
+          echo "Full logs above — green ✓ = published (EN), red ❌ = copy last lines and report."

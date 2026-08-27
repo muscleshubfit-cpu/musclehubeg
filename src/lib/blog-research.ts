@@ -1,10 +1,12 @@
 /**
- * src/lib/blog-research.ts — PIPELINE V2 · PHASE 0
+ * src/lib/blog-research.ts — PIPELINE V3 · PHASE 0 (language-split)
  *
- * Keyword & Topic Research (owner directive 2026-08-27).
- * Uses the strongest free models first (INTERLEAVED_STRONGEST_CHAIN:
- * OpenRouter + Groq, strongest-first, automatic fall-through to the
- * next model on failure) to produce, PER LANGUAGE:
+ * Keyword & Topic Research (owner directive 2026-08-27, refined same
+ * day: EN and AR pipelines are FULLY SEPARATE — one P0 call researches
+ * exactly ONE language; the two language workflows never share a queue
+ * row). Uses the strongest free models first (INTERLEAVED_STRONGEST_CHAIN:
+ * OpenRouter + Groq, strongest-first, automatic fall-through to the next
+ * model on failure) to produce, for that ONE language:
  *   • top 10 search keywords (with estimated search volume)
  *   • top 10 common questions with short answers
  *   • 5 article topic suggestions based on the analysis
@@ -27,8 +29,9 @@ export type LanguageResearch = {
 };
 
 export type Phase0Result = {
-  en: LanguageResearch;
-  ar: LanguageResearch;
+  lang: "en" | "ar";
+  /** FLAT artifact — no {en, ar} nesting since the 2026-08-27 lang split. */
+  research: LanguageResearch;
   category: string;
   source: string;
 };
@@ -189,17 +192,19 @@ Return STRICT JSON only, no markdown fences:
 }
 
 /**
- * Runs Phase 0 for BOTH languages + picks the rotation category the same
- * deterministic way step1 used to. Insertion of the queue row happens in
- * the route handler (keeps this lib DB-free).
+ * Runs Phase 0 for EXACTLY ONE language + picks the rotation category
+ * the same deterministic way step1 used to. Insertion of the queue row
+ * happens in the route handler (keeps this lib DB-free).
  */
-export async function runPhase0Research(): Promise<Phase0Result> {
-  const [en, ar] = await Promise.all([researchLanguage("en"), researchLanguage("ar")]);
+export async function runPhase0Research(
+  lang: "en" | "ar",
+): Promise<Phase0Result> {
+  const r = await researchLanguage(lang);
   const recent = await getRecentPosts(100);
   return {
-    en: en.data,
-    ar: ar.data,
+    lang,
+    research: r.data,
     category: pickRotationCategory(recent),
-    source: `p0:${en.source}|${ar.source}`,
+    source: `p0-${lang}:${r.source}`,
   };
 }
