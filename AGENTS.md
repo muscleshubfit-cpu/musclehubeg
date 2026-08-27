@@ -341,6 +341,19 @@ Process:
   article_tool | social_post`. The ONLY exception is EVO chat, which stays
   on Vercel streaming with the speed-first `INTERLEAVED_FAST_CHAIN`
   (options.chain="fast"). Binding rules:
+    - PROVIDER BALANCE + DUAL-KEY POOL (2026-08-27 owner directive
+      "توازي/تبادل" after OpenRouter ~50/day free ceiling burned alone):
+      `callFreeAIFallbackChain` ALTERNATES which provider LEADS on every
+      successive call (parity counter — strongest-available-first within
+      each provider, so quality order is preserved). OpenRouter attempts
+      rotate across BOTH configured accounts (`OPENROUTER_API` = account #2,
+      `OPENROUTER_API_KEY` = account #1) round-robin; a 401/402/403/429
+      quota-style error retries the SAME model on the other account before
+      falling through the model ladder.
+    - `callAIWithFallback` is EXACT: one config → one provider, errors
+      surface honestly. NEVER reintroduce a silent cross-provider stage
+      inside it (it used to mask who actually answered and starve the
+      chain's ladder + key switch). All fallback policy lives in the chain.
     - Vercel API routes may ENQUEUE jobs (`/api/ai/jobs`) but must NEVER
       call a model directly. Retired (routes DELETED 2026-08-27, guard-enforced):
       `/api/ai/plan`, `/api/ai/swap`, `/api/ai/regenerate-meal`,

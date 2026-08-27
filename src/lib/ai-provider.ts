@@ -36,6 +36,20 @@ export function getOpenRouterKey(): string {
   return process.env.OPENROUTER_API || process.env.OPENROUTER_API_KEY || "";
 }
 
+/**
+ * DUAL-KEY POOL (2026-08-27 owner addition): owner supplied TWO OpenRouter
+ * accounts after hitting the free tier's ~50 requests/day ceiling.
+ * OPENROUTER_API = account #2, OPENROUTER_API_KEY = account #1.
+ * The fallback chain rotates across every configured key so the daily
+ * budget effectively doubles before any single account is exhausted,
+ * and a key that returns auth/quota errors is bypassed automatically.
+ */
+export function getOpenRouterKeys(): string[] {
+  const raw = [process.env.OPENROUTER_API, process.env.OPENROUTER_API_KEY];
+  const keys = raw.filter((k): k is string => typeof k === "string" && k.trim().length > 0);
+  return [...new Set(keys)];
+}
+
 export function getGroqKey(): string {
   return process.env.GROQ_API_KEY || "";
 }
@@ -291,53 +305,24 @@ export async function callAI(
 }
 
 /**
- * Call AI with automatic fallback. Tries the primary config first; if it
- * fails (quota, network, region block, etc.), tries the other allowed
- * provider (openrouter ↔ groq) if its env key is set. Returns the first
- * successful result along with which provider actually served the request.
- *
- * Use this for expensive operations (e.g. article generation) where you
- * don't want a single provider's outage to block the whole workflow.
+ * Call AI with an EXPLICIT single-provider config — NO hidden cross-provider
+ * fallback. (2026-08-27 hardening: the previous silent "try the other
+ * provider" stage made the chain mislabel WHICH provider/model actually
+ * answered and swallowed quota errors, so the chain's own model ladder AND
+ * the new dual-key switch inside `callFreeAIFallbackChain` could never fire.
+ * The chain + race now own ALL fallback policy; this helper is exact.)
  */
 export async function callAIWithFallback(
   prompt: string,
   options: CallAIOptions = {},
   configOverride?: Partial<AIConfig> | null,
 ): Promise<{ text: string; provider: AIProvider; model: string }> {
-  const errors: string[] = [];
-
-  // 1. Try the primary (override or env).
-  const primary = mergeOverride(configOverride);
-  if (primary && primary.apiKey) {
-    try {
-      const text = await callAI(prompt, options, configOverride);
-      return { text, provider: primary.provider, model: primary.model };
-    } catch (e: any) {
-      errors.push(`${primary.provider}: ${e.message}`);
-    }
+  const cfg = mergeOverride(configOverride);
+  if (!cfg || !cfg.apiKey) {
+    throw new Error("callAIWithFallback: no provider config/apiKey given");
   }
-
-  // 2. Try the other allowed provider whose env key is set.
-  for (const id of Object.keys(AI_PROVIDERS) as AIProvider[]) {
-    if (primary && id === primary.provider) continue;
-    const meta = AI_PROVIDERS[id];
-    const key = id === "groq" ? getGroqKey() : getOpenRouterKey();
-    if (!key) continue;
-    try {
-      const text = await callAI(prompt, options, {
-        provider: id,
-        apiKey: key,
-        model: meta.defaultModel,
-        baseUrl: meta.baseUrl,
-      });
-      return { text, provider: id, model: meta.defaultModel };
-    } catch (e: any) {
-      errors.push(`${id}: ${e.message}`);
-    }
-  }
-
-  // 3. All providers failed.
-  throw new Error(`All AI providers failed:\n${errors.join("\n")}`);
+  const text = await callAI(prompt, options, configOverride);
+  return { text, provider: cfg.provider, model: cfg.model };
 }
 
 /**
@@ -594,6 +579,11 @@ const INTERLEAVED_STRONGEST_CHAIN: Array<{ provider: AIProvider; model: string }
   { provider: "groq", model: "compound-beta" },
 ];
 
+/** Alternating-lead rotation counter (see callFreeAIFallbackChain below). */
+let chainCallSeq = 0;
+/** Round-robin cursor across configured OpenRouter accounts (dual-key pool). */
+let orKeyCursor = 0;
+
 /**
  * OWNER DIRECTIVE #1 (2026-08-27): EVO chat needs “very fast free models
  * with accurate replies”. Speed-first ordering of VERIFIED model ids only
@@ -616,16 +606,41 @@ export async function callFreeAIFallbackChain(
 ): Promise<{ text: string; model: string; provider: string }> {
   const errors: string[] = [];
 
-  const openrouterKey = getOpenRouterKey();
+  const openrouterKeys = getOpenRouterKeys();
   const groqKey = getGroqKey();
   const openrouterBaseUrl = "https://openrouter.ai/api/v1";
   const groqBaseUrl = "https://api.groq.com/openai/v1";
 
-  if (!openrouterKey && !groqKey) {
+  if (openrouterKeys.length === 0 && !groqKey) {
     throw new Error(
       "[ai-fallback-chain] No AI providers configured. Set OPENROUTER_API and/or GROQ_API_KEY.",
     );
   }
+
+  // ── PROVIDER-LEAD ROTATION (2026-08-27 owner directive "parallel or alternating") ──
+  // Every call alternates which provider LEADS the chain. Without this,
+  // entry #1 of INTERLEAVED_STRONGEST_CHAIN (a strong OpenRouter model)
+  // succeeds almost every time → Groq is never reached and OpenRouter's
+  // ~50/day free budget gets burned while Groq idles. With rotation, call N
+  // leads OpenRouter, call N+1 leads Groq — keeping each provider's own
+  // strength order intact. Both orders remain strongest-available-first.
+  chainCallSeq += 1;
+  const groqLeads = options.chain !== "fast" && chainCallSeq % 2 === 0 && !!groqKey;
+  let activeChain0 =
+    options.chain === "fast" ? INTERLEAVED_FAST_CHAIN : INTERLEAVED_STRONGEST_CHAIN;
+  if (groqLeads) {
+    const firstGroqIdx = activeChain0.findIndex((e) => e.provider === "groq");
+    if (firstGroqIdx > 0) {
+      activeChain0 = [
+        activeChain0[firstGroqIdx],
+        ...activeChain0.slice(0, firstGroqIdx),
+        ...activeChain0.slice(firstGroqIdx + 1),
+      ];
+    }
+  }
+  console.log(
+    `[ai-fallback-chain] lead=${groqLeads ? "groq" : "openrouter"} (call #${chainCallSeq}, orKeys=${openrouterKeys.length})`,
+  );
 
   // ── Time-budget enforcement (Vercel Hobby guarantee) ──────────────────
   const requestedModels =
@@ -633,50 +648,69 @@ export async function callFreeAIFallbackChain(
     (typeof _maxOpenRouterModels === "number" && _maxOpenRouterModels > 0
       ? _maxOpenRouterModels
       : DEFAULT_CHAIN_MODELS);
-  const activeChain =
-    options.chain === "fast" ? INTERLEAVED_FAST_CHAIN : INTERLEAVED_STRONGEST_CHAIN;
-  const maxModels = Math.max(1, Math.min(requestedModels, activeChain.length));
+  const maxModels = Math.max(1, Math.min(requestedModels, activeChain0.length));
   const callerTimeoutMs = options.timeoutMs ?? 60_000;
   // Clamp so that maxModels × effTimeout ≤ budget AND never exceeds caller intent.
   const effTimeoutMs = Math.min(callerTimeoutMs, Math.floor(CHAIN_TOTAL_BUDGET_MS / maxModels));
 
   const { maxModels: _omit, timeoutMs: _omit2, chain: _omit3, ...callOptions } = options;
 
+  /** Quota/auth-style failures justify burning another KEY on the SAME model. */
+  const looksLikeQuota = (m: string) => /\b(401|402|429|403)\b|quota|rate.?limit|credit|insufficient/i.test(m);
+
   let attempted = 0;
-  for (const { provider, model } of activeChain) {
+  for (const { provider, model } of activeChain0) {
     if (attempted >= maxModels) break;
 
-    const apiKey = provider === "openrouter" ? openrouterKey : groqKey;
     const baseUrl = provider === "openrouter" ? openrouterBaseUrl : groqBaseUrl;
-    if (!apiKey) {
+    // DUAL-KEY POOL rotation: round-robin across every configured OpenRouter
+    // account so the ~50/day free ceiling is shared instead of burned on one.
+    let candidateKeys: string[] = [];
+    if (provider === "openrouter" && openrouterKeys.length > 0) {
+      const first = openrouterKeys[orKeyCursor++ % openrouterKeys.length];
+      candidateKeys = [first, ...openrouterKeys.filter((k) => k !== first)];
+    } else if (provider === "groq" && groqKey) {
+      candidateKeys = [groqKey];
+    }
+    if (candidateKeys.length === 0) {
       errors.push(`${provider}/${model}: key not configured`);
       continue;
     }
     attempted++;
 
-    try {
-      const { text } = await callAIWithFallback(prompt, { ...callOptions, timeoutMs: effTimeoutMs }, {
-        provider,
-        apiKey,
-        model,
-        baseUrl,
-      });
-      if (text && text.trim().length > 0) {
-        console.log(`[ai-fallback-chain] ${provider}/${model} succeeded`);
-        return { text: text.trim(), model, provider };
+    // Inner key-fallback loop ONLY triggers on auth/quota-style errors —
+    // ordinary failures fall through to the next MODEL as before.
+    for (const apiKey of candidateKeys) {
+      try {
+        const { text } = await callAIWithFallback(prompt, { ...callOptions, timeoutMs: effTimeoutMs }, {
+          provider,
+          apiKey,
+          model,
+          baseUrl,
+        });
+        if (text && text.trim().length > 0) {
+          console.log(`[ai-fallback-chain] ${provider}/${model} succeeded`);
+          return { text: text.trim(), model, provider };
+        }
+        throw new Error(`${model}: empty response`);
+      } catch (e: any) {
+        const msg = e?.message || String(e);
+        errors.push(`${provider}/${model}: ${msg}`);
+        console.warn(`[ai-fallback-chain] ${provider}/${model} notice, trying next:`, msg);
       }
-      throw new Error(`${model}: empty response`);
-    } catch (e: any) {
-      const msg = e?.message || String(e);
-      errors.push(`${provider}/${model}: ${msg}`);
-      console.warn(`[ai-fallback-chain] ${provider}/${model} notice, trying next:`, msg);
+      // Only a quota/auth problem on OpenRouter justifies switching ACCOUNT;
+      // everything else falls through to the next model in the chain.
+      const lastErr = errors[errors.length - 1] || "";
+      if (!looksLikeQuota(lastErr) || provider !== "openrouter") break;
+      if (!candidateKeys.some((k) => k !== apiKey)) break;
+      console.log(`[ai-fallback-chain] quota/auth error → switching OpenRouter account for ${model}`);
     }
   }
 
   // All providers failed
   const finalError = new Error(
     `[ai-fallback-chain] All AI providers failed.\n` +
-      `OpenRouter key: ${openrouterKey ? "present" : "MISSING"}.\n` +
+      `OpenRouter keys configured: ${openrouterKeys.length}.\n` +
       `Groq key: ${groqKey ? "present" : "MISSING"}.\n` +
       `Errors:\n  - ${errors.join("\n  - ")}`,
   );
