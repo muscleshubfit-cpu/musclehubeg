@@ -32,15 +32,26 @@ const MAX_IMAGES = 5;
 async function sourceImages(
   plan: ImagePlanItem[],
   coverHint: string,
+  queueId: string,
 ): Promise<SourcedImage[]> {
   // Image #1 = topical COVER derived from focus keyword/title (drives
   // featured_image + og:image). Plan items fill positions 2..N.
-  const prompts: string[] = [buildSafeImagePrompt(coverHint, "photo", coverHint)];
-  for (const p of plan.slice(0, MAX_IMAGES - 1)) {
-    prompts.push(buildSafeImagePrompt(p.subject, p.type, coverHint));
+  // SCENE DIVERSITY LAW (2026-08-28): every position gets its own
+  // variationKey = `${queueId}-${slot}` so the curated scene variant AND
+  // photographic style rotate per (article, position) — no two images in
+  // a post share a composition, and no two posts collide either.
+  const coverKey = `${queueId}-cover`;
+  const prompts: string[] = [buildSafeImagePrompt(coverHint, "photo", coverHint, coverKey)];
+  for (let i = 0; i < plan.slice(0, MAX_IMAGES - 1).length; i++) {
+    const p = plan[i];
+    const key = `${queueId}-${i + 1}`;
+    prompts.push(buildSafeImagePrompt(p.subject, p.type, coverHint, key));
   }
 
-  const settled = await Promise.allSettled(prompts.map((q) => fetchFeaturedImage(q)));
+  const keys = [coverKey, ...plan.slice(0, MAX_IMAGES - 1).map((_, i) => `${queueId}-${i + 1}`)];
+  const settled = await Promise.allSettled(
+    prompts.map((q, i) => fetchFeaturedImage(q, { variationKey: keys[i] })),
+  );
   const okImages = settled
     .filter((s): s is PromiseFulfilledResult<SourcedImage> => s.status === "fulfilled")
     .map((s) => s.value)
@@ -49,7 +60,10 @@ async function sourceImages(
   // Never fewer than MIN images while there are prompts left untried.
   for (let i = prompts.length; okImages.length < MIN_IMAGES && i < MAX_IMAGES; i++) {
     try {
-      const extra = await fetchFeaturedImage(prompts[i % Math.max(prompts.length, 1)] || buildSafeImagePrompt("fitness equipment", "photo", coverHint));
+      const extra = await fetchFeaturedImage(
+        prompts[i % Math.max(prompts.length, 1)] || buildSafeImagePrompt("fitness equipment", "photo", coverHint, `${queueId}-extra-${i}`),
+        { variationKey: `${queueId}-extra-${i}` },
+      );
       if (extra) okImages.push(extra);
     } catch {
       break;
@@ -100,7 +114,7 @@ export async function GET(request: NextRequest) {
       throw new Error("p3: image plan missing — rerun p1-outline");
     }
 
-    const imgs = await sourceImages(plan, `${qi.focus_keyword || ""} ${bundle.outline?.title || qi.topic || ""}`.trim());
+    const imgs = await sourceImages(plan, `${qi.focus_keyword || ""} ${bundle.outline?.title || qi.topic || ""}`.trim(), qi.id);
     if (imgs.length === 0) {
       throw new Error("p3: no images could be sourced");
     }

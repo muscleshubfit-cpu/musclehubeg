@@ -29,8 +29,12 @@ function randSeed(): number {
 /**
  * Build a NEW safe pollinations URL. Deterministically rejects returning
  * the old one (fresh seed always differs in payload).
+ *
+ * SCENE DIVERSITY LAW (2026-08-28): variationKey = `${rowId}-${slot}`
+ * rotates the curated scene variant + photographic style so every
+ * rebuilt image is a distinct composition (owner: «كل الصور نفس الصور»).
  */
-function rebuildPollinationsUrl(oldUrl: string, hint: string): string {
+function rebuildPollinationsUrl(oldUrl: string, hint: string, variationKey: string): string {
   const m = oldUrl.match(/^https:\/\/image\.pollinations\.ai\/prompt\/([^?]+)\?(.*)$/);
   let w = 1024;
   let h = 576;
@@ -41,9 +45,9 @@ function rebuildPollinationsUrl(oldUrl: string, hint: string): string {
     if (wp > 0) w = wp;
     if (hp > 0) h = hp;
   }
-  const safePrompt = buildSafeImagePrompt(hint || "fitness equipment", "photo", hint);
+  const safePrompt = buildSafeImagePrompt(hint || "fitness equipment", "photo", hint, variationKey);
   rebuilt += 1;
-  return `https://image.pollinations.ai/prompt/${encodeURIComponent(safePrompt)}?width=${w}&height=${h}&nologo=true&seed=${randSeed()}&model=flux`;
+  return `https://image.pollinations.ai/prompt/${encodeURIComponent(safePrompt)}?width=${w}&height=${h}&nologo=true&safe=true&enhance=false&seed=${randSeed()}&model=flux`;
 }
 
 function isPollinations(u: string): boolean {
@@ -69,13 +73,17 @@ async function remediatePosts(): Promise<void> {
 
       if (isPollinations(p.featured_image)) {
         // FIRST image slot is the COVER → anchor fully on article topic.
-        patch.featured_image = rebuildPollinationsUrl(p.featured_image, hint);
+        patch.featured_image = rebuildPollinationsUrl(p.featured_image, hint, `${p.id}-cover`);
       }
 
       if (typeof p.content === "string" && p.content.includes("image.pollinations.ai")) {
+        let slot = 0;
         patch.content = p.content.replace(
           /https:\/\/image\.pollinations\.ai\/prompt\/[^)"\s\\]+/g,
-          (u: string) => rebuildPollinationsUrl(u, hint),
+          (u: string) => {
+            slot += 1;
+            return rebuildPollinationsUrl(u, hint, `${p.id}-body-${slot}`);
+          },
         );
       }
 
@@ -121,10 +129,12 @@ async function remediateQueueBundles(): Promise<void> {
       if (!Array.isArray(bundle?.images)) continue;
       const hint = `${q.focus_keyword || ""} ${q.topic || ""}`.trim();
       let changed = false;
+      let slot = 0;
       bundle.images = bundle.images.map((img: SourcedImage) => {
         if (img && isPollinations(img.url)) {
           changed = true;
-          return { ...img, url: rebuildPollinationsUrl(img.url, hint) };
+          slot += 1;
+          return { ...img, url: rebuildPollinationsUrl(img.url, hint, `${q.id}-${slot}`) };
         }
         return img;
       });

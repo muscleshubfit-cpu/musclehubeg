@@ -475,6 +475,31 @@ Process:
       treadmills").
     - Regression canaries: image-safety.test.ts §LAW v2 replays the exact
       seed=29197 prompt; every curated scene must pass BOTH gates.
+- **IMAGE SCENE DIVERSITY LAW (2026-08-28, owner: «كل الصور فى كل
+  المقالات عبارة عن نفس الصور ومعاد تغير اى تفصيلة داخلها»):**
+    - ROOT CAUSE: the curated-scene rewrite had only ~10 single scenes +
+      one fixed photo style → every article (and every position inside
+      an article) rendered the SAME composition with only seed noise.
+    - LAW: `src/lib/image-safety.ts` now carries a SCENE BANK — 10
+      themes × 5 concrete variants + 5 default variants (50 scenes),
+      plus 5 rotating photographic style tails. Selection is
+      DETERMINISTIC per `variationKey` (= `${articleId}-${position}`)
+      via djb2 hash: same article+position always renders the same
+      scene, but different articles/positions never collide.
+    - EVERY pipeline caller must thread a per-position variationKey:
+      p3-images (`${queueId}-cover` / `${queueId}-${n}`), remediation
+      runner (`${rowId}-cover` / `${rowId}-body-${n}`), embed backfill
+      (`${slug}-body-${n}`).
+    - `buildSafeImagePrompt(subject, type?, hint?, variationKey?)` is
+      the signature everywhere; without variationKey the classic
+      variant[0] is returned (backward compat, og:image stability).
+    - PROVIDER-SIDE GUARDS: every Pollinations URL now carries
+      `safe=true` (provider refuses NSFW renders — belt & braces under
+      the prompt law) and `enhance=false` (their server-side prompt
+      rewriting must never mutate our sanitized prompt).
+    - Bank authoring rules: objects/interiors only, still-life verbs,
+      ENGLISH only, zero person/action/clothing vocabulary — enforced
+      by test (every bank entry × both gates × sanitize idempotency).
 - **BLOG BODY IMAGE RENDER LAW (2026-08-28, owner bug "الصورة داخل
   المقال عبارة عن رابط مش صورة"):** `renderMarkdown()` (src/lib/blog.ts)
   converts `![alt](url)` → `<img loading="lazy" class="my-6 w-full

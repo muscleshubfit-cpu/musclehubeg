@@ -72,16 +72,20 @@ async function embedPublishedPosts(): Promise<void> {
       }
       const hint = `${p.focus_keyword || ""} ${p.title || ""}`.trim() || "fitness equipment";
       // Two DIFFERENT people-free subject variations → distinct sections.
+      // SCENE DIVERSITY LAW: each body slot carries its own variationKey
+      // so the curated scene variant + photo style rotate per position.
       const subjects = [
         `${hint} — equipment and gear still life`,
-        `${hint} — training space interior scene`,
+        `${hint} — gym interior scene`,
       ];
       const sourced: Array<{ url: string; alt?: string; credit?: string } | null> = [];
-      for (const s of subjects) {
-        let img = await fetchFeaturedImage(s);
+      for (let i = 0; i < subjects.length; i++) {
+        const s = subjects[i];
+        const vKey = `${p.slug}-body-${i + 1}`;
+        let img = await fetchFeaturedImage(s, { variationKey: vKey });
         if (!img) {
           await sleep(RETRY_PAUSE_MS);
-          img = await fetchFeaturedImage(s);
+          img = await fetchFeaturedImage(s, { variationKey: vKey });
         }
         if (img) sourced.push(img);
         await sleep(PACE_MS);

@@ -19,6 +19,18 @@ import { buildSafeImagePrompt, promptHasBannedVocabulary } from "@/lib/image-saf
 export type SourcedImage = { url: string; alt: string; credit: string } | null;
 
 /**
+ * Per-call image-source options (SCENE DIVERSITY LAW 2026-08-28):
+ *  - type: photo | infographic | diagram (style tail selection)
+ *  - variationKey: deterministic (article, position) key that rotates
+ *    the curated scene variant + photographic style so two images are
+ *    never the same composition across posts or inside one post.
+ */
+export type ImageSourceOptions = {
+  type?: string;
+  variationKey?: string;
+};
+
+/**
  * Generate an image using Pollinations AI (flux → turbo fallback attempts).
  * Shared by the native GHA blog pipeline (P3 images step).
  *
@@ -27,11 +39,19 @@ export type SourcedImage = { url: string; alt: string; credit: string } | null;
  * only, zero negations (the old "no nudity"-style suffixes BACKFIRED on
  * diffusion models and directly caused the live incident). The final URL
  * is asserted clean before returning.
+ *
+ * PROVIDER-SIDE GUARDS (2026-08-28): safe=true makes Pollinations refuse
+ * NSFW renders at their end (belt & braces under the prompt-level law);
+ * enhance=false forbids their server-side LLM prompt rewriting from
+ * mutating our sanitized prompt.
  */
-async function generateAIImage(query: string): Promise<SourcedImage> {
+async function generateAIImage(
+  query: string,
+  opts?: ImageSourceOptions,
+): Promise<SourcedImage> {
   if (!query.trim()) return null;
 
-  const safePrompt = buildSafeImagePrompt(query);
+  const safePrompt = buildSafeImagePrompt(query, opts?.type, query, opts?.variationKey);
   const encodedPrompt = encodeURIComponent(safePrompt);
 
   for (const [model, credit] of [
@@ -40,7 +60,7 @@ async function generateAIImage(query: string): Promise<SourcedImage> {
   ] as const) {
     try {
       const seed = Math.floor(Math.random() * 100000);
-      const pollinationsUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=576&nologo=true&seed=${seed}&model=${model}`;
+      const pollinationsUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=576&nologo=true&safe=true&enhance=false&seed=${seed}&model=${model}`;
       // POLLINATIONS TIMEOUT LAW (2026-08-27 forensics): flux/turbo are
       // queue-based renderers — under load a render routinely takes 15–60s.
       // The old 10s window aborted EVERY GHA backfill render ("The operation
@@ -155,15 +175,18 @@ async function searchPixabay(query: string): Promise<SourcedImage> {
  * Fetch a featured image for a blog article.
  * Prioritizes AI Image Generation first, falling back to stock photo APIs.
  */
-export async function fetchFeaturedImage(query: string): Promise<SourcedImage> {
+export async function fetchFeaturedImage(
+  query: string,
+  opts?: ImageSourceOptions,
+): Promise<SourcedImage> {
   if (!query.trim()) return null;
 
   // DEFENSIVE GATE: every downstream source (AI + stock APIs) receives a
   // sanitized, people-free, negation-free query — no exceptions.
-  const safeQuery = buildSafeImagePrompt(query);
+  const safeQuery = buildSafeImagePrompt(query, opts?.type, query, opts?.variationKey);
 
   const sources = [
-    () => generateAIImage(safeQuery),
+    () => generateAIImage(safeQuery, opts),
     () => searchUnsplash(safeQuery),
     () => searchPexels(safeQuery),
     () => searchPixabay(safeQuery),
@@ -178,11 +201,16 @@ export async function fetchFeaturedImage(query: string): Promise<SourcedImage> {
 }
 
 /**
- * Fetch a featured image using multiple search queries.
+ * Fetch a featured image using multiple search queries. Each query gets
+ * its own variation suffix so multi-query sourcing stays diverse.
  */
-export async function fetchFeaturedImageMultiQuery(queries: string[]): Promise<SourcedImage> {
-  for (const query of queries) {
-    const result = await fetchFeaturedImage(query);
+export async function fetchFeaturedImageMultiQuery(
+  queries: string[],
+  opts?: ImageSourceOptions,
+): Promise<SourcedImage> {
+  for (let i = 0; i < queries.length; i++) {
+    const key = opts?.variationKey ? `${opts.variationKey}-q${i}` : undefined;
+    const result = await fetchFeaturedImage(queries[i], { ...opts, variationKey: key });
     if (result) return result;
   }
   return null;

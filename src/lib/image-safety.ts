@@ -168,42 +168,183 @@ export function sanitizeImageSubject(raw: string): SanitizeResult {
 /* Object-scene fallbacks — guaranteed-safe topical replacements           */
 /* ---------------------------------------------------------------------- */
 
-type HintRule = { match: RegExp; scene: string };
+/**
+ * SCENE DIVERSITY LAW (2026-08-28, owner: «كل الصور فى كل المقالات نفس
+ * الصور»): a small set of curated scenes made every article render the
+ * SAME composition. The bank below keeps the people-free guarantee but
+ * gives EVERY theme 5 concrete variants, selected deterministically by
+ * (article, image-position) so two posts never collide and one post's
+ * body images differ from each other and from the cover.
+ *
+ * AUTHORING RULES for bank entries:
+ *  - objects/interiors only, still-life verbs (arranged / resting /
+ *    laid out / coiled / neatly placed) — no actions, no people words,
+ *    no clothing words (they must pass BOTH safety gates verbatim);
+ *  - English only (flux degrades on Arabic);
+ *  - variant[0] of every theme is the pre-diversity classic scene so
+ *    older regression tests and og:images stay stable.
+ */
+type SceneTheme = {
+  match: RegExp;
+  variants: string[];
+};
 
-const OBJECT_SCENE_RULES: HintRule[] = [
-  // LAW v2: plan/program/split topics get the PLANNER scene — the single
-  // highest-risk attractor class ("12-week periodized plan for lifters"
-  // rendered a shirtless man). Must sit ABOVE the muscle rule (first
-  // match wins) so program articles get the on-topic notebook scene.
-  { match: /periodized|progressive overload|training split|push.?pull.?legs|upper.?lower|weekly schedule|workout plan|training plan|program design|beginner.*plan|plan.*beginner/i, scene: "open fitness planner notebook with weekly schedule grid beside dumbbells and stopwatch on wooden desk" },
-  { match: /creatine|protein|whey|supplement|vitamin|mineral/i, scene: "supplement jars with shaker bottle arranged on gym bench close-up" },
-  { match: /nutrition|diet|meal|calorie|food|eating|kitchen|macros/i, scene: "healthy meal prep bowls with vegetables and lean protein top view" },
-  { match: /cardio|treadmill|fat burn|hiit|endurance|running machine/i, scene: "row of modern treadmills and elliptical machines in bright gym" },
-  { match: /home workout|homeworkout|no equipment|bodyweight|دومستيك منزلي/i, scene: "compact home corner gym setup with yoga mat dumbbells resistance bands" },
-  { match: /injury|recovery|stretch|mobility|foam roller|physical therapy/i, scene: "foam roller yoga mat and stretching strap laid out neatly" },
-  { match: /yoga|pilates|flexibility/i, scene: "rolled yoga mats with blocks in calm minimal studio space" },
-  { match: /muscle|hypertrophy|strength|powerlift|split|program|routine|training|workout|exercise|gym plan/i, scene: "dumbbell rack with kettlebell and barbell plates in modern dark-tone gym interior" },
-  { match: /beginner|guide|tips|plan|schedule/i, scene: "fitness journal notebook beside dumbbell and water bottle on wooden bench" },
+const SCENE_BANK: SceneTheme[] = [
+  {
+    // planner theme sits ABOVE muscle: program articles get the notebook
+    // family, not another equipment shot (highest person-attractor risk).
+    match: /periodized|progressive overload|training split|push.?pull.?legs|upper.?lower|weekly schedule|workout plan|training plan|program design|beginner.*plan|plan.*beginner/i,
+    variants: [
+      "open fitness planner notebook with weekly schedule grid beside dumbbells and stopwatch on wooden desk",
+      "fitness journal with printed calendar page and pen on clean white desk",
+      "wall calendar with marked dates next to water bottle and whistle on shelf",
+      "tablet showing a fitness spreadsheet beside small dumbbells on a bench",
+      "clipboard with printed schedule, measuring tape and stopwatch flat lay",
+    ],
+  },
+  {
+    match: /creatine|protein|whey|supplement|vitamin|mineral/i,
+    variants: [
+      "supplement jars with shaker bottle arranged on gym bench close-up",
+      "protein powder jar with scoop on marble kitchen counter top view",
+      "rows of supplement containers on wooden shelf with soft lighting",
+      "shaker bottle with creatine jar and measuring scoop on dark slate",
+      "vitamin bottles and weekly pill organizer on bright shelf",
+    ],
+  },
+  {
+    match: /nutrition|diet|meal|calorie|food|eating|kitchen|macros/i,
+    variants: [
+      "healthy meal prep bowls with vegetables and lean protein top view",
+      "grilled chicken rice and broccoli meal containers on marble counter",
+      "colorful balanced meal boxes arranged on wooden table overhead view",
+      "kitchen scale with fresh vegetables and a printed diet chart",
+      "yogurt berries and nuts breakfast bowls on bright table",
+    ],
+  },
+  {
+    match: /cardio|treadmill|fat burn|hiit|endurance|running machine/i,
+    variants: [
+      "row of modern treadmills and elliptical machines in bright gym",
+      "stationary bikes lined up in minimalist fitness studio",
+      "treadmill console close-up with glowing heart rate display",
+      "jump rope coiled on gym floor mat beside stopwatch and towel",
+      "air bike and stair climber in industrial style gym interior",
+    ],
+  },
+  {
+    match: /home workout|homeworkout|no equipment|bodyweight|دومستيك منزلي/i,
+    variants: [
+      "compact home corner gym setup with yoga mat dumbbells resistance bands",
+      "living room fitness corner with folded mat kettlebell and jump rope",
+      "resistance bands and adjustable dumbbells arranged on apartment floor",
+      "home gym rack with medicine ball and foam roller by the window",
+      "yoga mat water bottle and small dumbbells on wooden living room floor",
+    ],
+  },
+  {
+    match: /injury|recovery|stretch|mobility|foam roller|physical therapy/i,
+    variants: [
+      "foam roller yoga mat and stretching strap laid out neatly",
+      "massage gun and foam roller resting on bench in calm recovery room",
+      "rolled towels and water bottle on physiotherapy table soft light",
+      "resistance band door anchor and massage ball kit arranged on floor",
+      "epsom salt jar and folded towel beside bathtub edge serene lighting",
+    ],
+  },
+  {
+    match: /yoga|pilates|flexibility/i,
+    variants: [
+      "rolled yoga mats with blocks in calm minimal studio space",
+      "yoga mat with towel and water bottle in sunlit empty studio",
+      "stack of colorful yoga blocks and straps on bamboo shelf",
+      "meditation cushion and folded blanket in serene corner",
+      "yoga wheel and mat standing against studio wall natural light",
+    ],
+  },
+  {
+    match: /muscle|hypertrophy|strength|powerlift|split|program|routine|training|workout|exercise|gym plan/i,
+    variants: [
+      "dumbbell rack with kettlebell and barbell plates in modern dark-tone gym interior",
+      "loaded barbell resting on rubber gym floor with dramatic lighting",
+      "chrome dumbbells arranged by weight on white studio background",
+      "kettlebells lined up on rubber gym floor close up",
+      "weight plates stacked beside leather belt on steel bench",
+    ],
+  },
+  {
+    match: /beginner|guide|tips|schedule/i,
+    variants: [
+      "fitness journal notebook beside dumbbell and water bottle on wooden bench",
+      "open guide book with equipment illustrations on wooden desk",
+      "gym tote bag with towel water bottle and notebook flat lay",
+      "whiteboard with simple habit tracker checkmarks and marker",
+      "sneakers and gym bag resting on locker room bench morning light",
+    ],
+  },
 ];
 
-/** Style tails — POSITIVE phrasing only, never negative constructions. */
+const DEFAULT_SCENE_VARIANTS = [
+  "modern fitness studio interior with equipment rack and natural light",
+  "empty gym room with mirrored wall and rubber flooring",
+  "dark industrial gym interior with spotlights over equipment",
+  "bright boutique fitness studio with plants and wooden accents",
+  "gym locker row with open locker holding towel and bottle",
+];
+
+/** Deterministic string hash (djb2) → non-negative int. */
+function hashKey(s: string): number {
+  let h = 5381;
+  for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0;
+  return Math.abs(h);
+}
+
+/** Every curated scene, for safety-gate tests and documentation. */
+export function listCuratedScenes(): string[] {
+  return [...SCENE_BANK.flatMap((t) => t.variants), ...DEFAULT_SCENE_VARIANTS];
+}
+
+/**
+ * Pick a people-free topical scene. With variationKey, selection rotates
+ * deterministically across the theme's variants (SCENE DIVERSITY LAW);
+ * without one, variant[0] (the pre-diversity classic) is returned.
+ */
+export function deriveObjectScene(hint?: string, variationKey?: string): string {
+  const hay = hint ?? "";
+  for (const t of SCENE_BANK) {
+    if (t.match.test(hay)) {
+      return variationKey
+        ? t.variants[hashKey(variationKey) % t.variants.length]
+        : t.variants[0];
+    }
+  }
+  return variationKey
+    ? DEFAULT_SCENE_VARIANTS[hashKey(variationKey) % DEFAULT_SCENE_VARIANTS.length]
+    : DEFAULT_SCENE_VARIANTS[0];
+}
+
+/** Style tails — POSITIVE phrasing only, never negative constructions.
+ *  The photo family rotates per (article, position) for visual diversity
+ *  (SCENE DIVERSITY LAW); infographic/diagram stay structural/fixed. */
+const PHOTO_STYLE_TAILS = [
+  ", professional product photography, soft studio lighting, high detail",
+  ", editorial photography, dramatic side lighting, shallow depth of field",
+  ", top-down flat lay photography, crisp shadows, clean background",
+  ", cinematic photography, moody low-key lighting, dark tones",
+  ", bright airy photography, natural window light, minimal aesthetic",
+];
+
 const STYLE_TAILS: Record<string, string> = {
-  photo:
-    ", professional product photography, soft studio lighting, high detail",
   infographic:
     ", clean flat vector infographic illustration style, minimal geometric shapes, soft colors, plain background",
   diagram:
     ", clear technical diagram illustration, minimal line art, white background",
 };
 
-function typeTail(type?: string): string {
-  return STYLE_TAILS[type ?? "photo"] ?? STYLE_TAILS.photo;
-}
-
-export function deriveObjectScene(hint?: string): string {
-  const hay = hint ?? "";
-  for (const r of OBJECT_SCENE_RULES) if (r.match.test(hay)) return r.scene;
-  return "modern fitness studio interior with equipment rack and natural light";
+function typeTail(type?: string, variationKey?: string): string {
+  if (type === "infographic" || type === "diagram") return STYLE_TAILS[type];
+  const key = variationKey ?? "default";
+  return PHOTO_STYLE_TAILS[hashKey(key) % PHOTO_STYLE_TAILS.length];
 }
 
 /**
@@ -213,12 +354,14 @@ export function deriveObjectScene(hint?: string): string {
  * positive-only style tail. If the sanitized subject is empty, mostly
  * non-Latin (flux degrades badly on Arabic), or still contained
  * person-scene meaning, it is REPLACED by a topical object scene derived
- * from the hint (article title/focus keyword).
+ * from the hint (article title/focus keyword) — rotated by variationKey
+ * (SCENE DIVERSITY LAW).
  */
 export function buildSafeImagePrompt(
   subjectRaw: string,
   type?: string,
   hint?: string,
+  variationKey?: string,
 ): string {
   const { clean, personRemoved, latinRatio } = sanitizeImageSubject(subjectRaw);
 
@@ -238,16 +381,19 @@ export function buildSafeImagePrompt(
 
   // Tail idempotency (production showed "…high detail, …high detail"):
   // strip any style tail already baked into the base before appending.
-  const base = unusable ? deriveObjectScene(hint ?? subjectRaw) : clean;
+  const base = unusable
+    ? deriveObjectScene(hint ?? subjectRaw, variationKey)
+    : clean;
   const finalSubject = stripStyleTails(base);
 
-  return `${finalSubject}${typeTail(type)}`;
+  return `${finalSubject}${typeTail(type, variationKey)}`;
 }
 
-/** Remove any STYLE_TAILS text already present in the subject (law v2 §7). */
+/** Remove any style-tail text already present in the subject (law v2 §7). */
 function stripStyleTails(s: string): string {
   let out = s;
-  for (const tail of Object.values(STYLE_TAILS)) {
+  const tails = [...Object.values(STYLE_TAILS), ...PHOTO_STYLE_TAILS];
+  for (const tail of tails) {
     const escaped = tail.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     out = out.replace(new RegExp(escaped, "gi"), " ");
   }

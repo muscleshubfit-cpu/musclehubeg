@@ -7,6 +7,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildSafeImagePrompt,
   deriveObjectScene,
+  listCuratedScenes,
   promptHasBannedVocabulary,
   promptHasPersonSemantics,
   sanitizeImageSubject,
@@ -54,9 +55,10 @@ describe("image-safety sanitizer", () => {
     expect(deriveObjectScene("creatine and whey article")).toMatch(/supplement jars/i);
   });
 
-  it("adds positive-only style tails per type", () => {
+  it("adds positive-only style tails per type (photo tail rotates)", () => {
     const photo = buildSafeImagePrompt("kettlebell row studio corner", "photo");
-    expect(photo).toContain("professional product photography");
+    // SCENE DIVERSITY LAW: photo tail rotates — assert SOME tail is present
+    expect(/photography|aesthetic/.test(photo)).toBe(true);
     const info = buildSafeImagePrompt("weekly protein intake breakdown", "infographic");
     expect(info).toContain("flat vector infographic");
   });
@@ -90,8 +92,10 @@ describe("image-safety LAW v2 — semantic person-scene attractors (2026-08-28)"
     const polluted =
       "modern fitness studio interior with equipment rack and natural light, professional product photography, soft studio lighting, high detail";
     const out = buildSafeImagePrompt(polluted, "photo", polluted);
-    expect(out.match(/high detail/g)?.length).toBe(1);
-    expect(out.match(/professional product photography/g)?.length).toBe(1);
+    // whichever rotated tail wins, it appears EXACTLY once
+    expect((out.match(/photography/g) ?? []).length).toBe(1);
+    expect((out.match(/high detail/g) ?? []).length).toBeLessThanOrEqual(1);
+    expect(/high detail,.*photography|photography,.*high detail/i.test(out)).toBe(false);
   });
 
   it("EVERY curated object scene passes the banned-vocabulary gate (no refusal loop)", () => {
@@ -122,5 +126,54 @@ describe("image-safety LAW v2 — semantic person-scene attractors (2026-08-28)"
     );
     expect(/^[\x00-\x7F]+$/.test(out)).toBe(true);
     expect(promptHasPersonSemantics(out)).toBe(false);
+  });
+});
+
+describe("image-safety SCENE DIVERSITY LAW (2026-08-28)", () => {
+  it("EVERY curated scene in the bank passes BOTH safety gates verbatim", () => {
+    const scenes = listCuratedScenes();
+    expect(scenes.length).toBeGreaterThanOrEqual(45);
+    for (const scene of scenes) {
+      expect(promptHasBannedVocabulary(scene)).toBe(false);
+      expect(promptHasPersonSemantics(scene)).toBe(false);
+      // sanitize idempotency — no bank entry loses words through the gate
+      const { clean } = sanitizeImageSubject(scene);
+      expect(clean.replace(/\s+/g, " ")).toBe(scene.replace(/\s+/g, " "));
+    }
+  });
+
+  it("rotates scene variants per variationKey (deterministic + diverse)", () => {
+    const hint = "12-week periodized muscle building plan for lifters";
+    const seen = new Set<string>();
+    for (let i = 0; i < 12; i++) {
+      const scene = deriveObjectScene(hint, `queue-${i}`);
+      seen.add(scene);
+      // stability: same key → same scene
+      expect(deriveObjectScene(hint, `queue-${i}`)).toBe(scene);
+    }
+    expect(seen.size).toBeGreaterThanOrEqual(4);
+  });
+
+  it("different posts get different full prompts (no same-image collision)", () => {
+    const hint = "muscle building home workout guide";
+    const outs = new Set<string>();
+    for (let i = 0; i < 6; i++) {
+      outs.add(buildSafeImagePrompt(hint, "photo", hint, `post-${i}`));
+    }
+    expect(outs.size).toBeGreaterThanOrEqual(3);
+  });
+
+  it("photo style tail rotates across variation keys", () => {
+    const tails = new Set<string>();
+    for (let i = 0; i < 10; i++) {
+      const out = buildSafeImagePrompt("dumbbell rack", "photo", "strength", `style-${i}`);
+      tails.add(out.replace(/^dumbbell rack/, ""));
+    }
+    expect(tails.size).toBeGreaterThanOrEqual(3);
+  });
+
+  it("no variationKey keeps the classic variant[0] scenes (backward compat)", () => {
+    expect(deriveObjectScene("creatine and whey article")).toMatch(/supplement jars/i);
+    expect(deriveObjectScene("unknown topic")).toMatch(/modern fitness studio/i);
   });
 });
