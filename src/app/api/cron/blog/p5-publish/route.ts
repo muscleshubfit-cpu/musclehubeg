@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin, isSupabaseAdminConfigured } from "@/lib/supabase/admin";
 import { normalizeCategory } from "@/lib/blog-server";
 import { countWords, type OutlinePlan } from "@/lib/blog-pipeline";
+import { embedBodyImages } from "@/lib/blog-images";
 import {
   getQueueIdParam,
   fetchQueueItem,
@@ -137,7 +138,10 @@ export async function GET(request: NextRequest) {
       title,
       slug,
       excerpt: outline.metaDescription,
-      content: review.markdown,
+      // BODY IMAGE EMBEDDING LAW: images[0] = featured/og cover; images[1..N]
+      // are inserted into the article markdown at section boundaries (was:
+      // dropped entirely → every post was a wall of text).
+      content: embedBodyImages(review.markdown, images),
       meta_title: `${outline.title}`.slice(0, 60),
       meta_description: outline.metaDescription,
       focus_keyword: qi.focus_keyword,

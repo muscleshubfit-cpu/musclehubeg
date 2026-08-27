@@ -182,3 +182,80 @@ export async function fetchFeaturedImageMultiQuery(queries: string[]): Promise<S
   return null;
 }
 
+/**
+ * BODY IMAGE EMBEDDING LAW (2026-08-27): P3 sources 3–5 images per article
+ * but P5 only consumed images[0] (featured/og cover) — positions 2..N went
+ * to waste and every published article rendered as a bare wall of text.
+ *
+ * `embedBodyImages` inserts images[1..N] (capped at MAX_BODY_IMAGES) into
+ * the reviewed markdown at evenly-spaced `##` section boundaries — the
+ * classic "section header → supporting image" blog pattern.
+ *
+ * Guarantees (unit-tested canaries in src/lib/__tests__/blog-images.test.ts):
+ *  - images[0] (the featured/og cover) is NEVER duplicated into the body;
+ *  - idempotent: any URL already present in the markdown is skipped, so
+ *    re-running publish or the embed backfill cannot double-insert;
+ *  - no `##` headings → strict no-op (never injects into unstructured
+ *    content);
+ *  - fenced code blocks (```/~~~) are never treated as heading boundaries;
+ *  - alt text is markdown-safe (brackets stripped).
+ */
+export const MAX_BODY_IMAGES = 3;
+
+export function embedBodyImages(
+  markdown: string,
+  images: Array<{ url: string; alt?: string; credit?: string } | null | undefined>,
+  maxImages: number = MAX_BODY_IMAGES,
+): string {
+  if (typeof markdown !== "string" || markdown.length === 0) return markdown;
+  if (maxImages <= 0) return markdown;
+
+  const usable = (images || []).filter(
+    (i): i is { url: string; alt?: string; credit?: string } =>
+      Boolean(i && typeof i.url === "string" && i.url.length > 0),
+  );
+  // images[0] is the COVER (featured_image + og:image) — body starts at 1.
+  const candidates = usable.slice(1, 1 + maxImages);
+  if (candidates.length === 0) return markdown;
+
+  const startsWithHeading = markdown.startsWith("## ");
+  const hasInlineHeading = markdown.includes("\n## ");
+  if (!startsWithHeading && !hasInlineHeading) return markdown;
+
+  const lines = markdown.split("\n");
+  const fenceRe = /^\s*(```|~~~)/;
+  let fenced = false;
+  const headingIdx: number[] = [];
+  lines.forEach((line, i) => {
+    if (fenceRe.test(line)) fenced = !fenced;
+    else if (!fenced && /^##\s+\S/.test(line)) headingIdx.push(i);
+  });
+  if (headingIdx.length === 0) return markdown;
+
+  const H = headingIdx.length;
+  const K = candidates.length;
+  const byHeading = new Map<number, { url: string; alt?: string }>();
+  for (let i = 0; i < K; i++) {
+    const pos = Math.min(H, Math.max(1, Math.round(((i + 1) * H) / (K + 1))));
+    const idx = headingIdx[pos - 1];
+    if (idx !== undefined && !byHeading.has(idx)) byHeading.set(idx, candidates[i]);
+  }
+  if (byHeading.size === 0) return markdown;
+
+  const out: string[] = [];
+  let inserted = 0;
+  lines.forEach((line, i) => {
+    out.push(line);
+    const img = byHeading.get(i);
+    if (img && !markdown.includes(img.url)) {
+      const alt = (img.alt || "MuscleHubEG").replace(/[[\]]/g, "").trim() || "MuscleHubEG";
+      out.push("");
+      out.push(`![${alt}](${img.url})`);
+      out.push("");
+      inserted += 1;
+    }
+  });
+
+  return inserted > 0 ? out.join("\n") : markdown;
+}
+

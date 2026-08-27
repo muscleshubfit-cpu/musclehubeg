@@ -38,6 +38,9 @@ jobs:
       - name: Sweep & rebuild all pollinations images (people-safe)
         run: npx --no-install tsx scripts/blog-runner/remediate-images.mts
 
+      - name: Backfill body images into cover-only published posts
+        run: npx --no-install tsx scripts/blog-runner/embed-post-images.mts
+
       - name: Summary
         if: always()
         run: echo "Remediation pass finished — see counts above."
