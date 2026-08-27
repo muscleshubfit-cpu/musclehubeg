@@ -44,13 +44,15 @@ pnpm-lock.yaml
 # Original cloned repo (kept locally for reference, NOT pushed to GitHub)
 /repo/
 /tool-results/
-# Everything under /scripts is local tooling/logs EXCEPT the two GHA
-# runners, which MUST be versioned (workflows depend on them):
-#   scripts/blog-runner     → blog pipeline v2 (generate-blog-post.yml)
-#   scripts/ai-jobs-runner  → whole-AI-system queue worker (process-ai-jobs.yml)
+# Everything under /scripts is local tooling/logs EXCEPT the GHA
+# runners + CI guard, which MUST be versioned (workflows depend on them):
+#   scripts/blog-runner        → blog pipeline v2 (generate-blog-post.yml)
+#   scripts/ai-jobs-runner     → whole-AI-system queue worker (process-ai-jobs.yml)
+#   scripts/check-stale-refs.sh → anti-regression guard (guard-stale-refs.yml)
 /scripts/*
 !/scripts/blog-runner/
 !/scripts/ai-jobs-runner/
+!/scripts/check-stale-refs.sh
 /skills/
 /tests/
 /examples/
