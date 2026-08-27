@@ -14,7 +14,7 @@ name: Auto-generate blog post (pipeline v2 — six AI phases)
 #
 # Native execution: the job imports the SAME route handlers in-process
 # (scripts/blog-runner/run-step.mts) — no Vercel hop, no 60s cap.
-# AI_CHAIN_TOTAL_BUDGET_MS=180000 funds full-length completions.
+# AI_CHAIN_TOTAL_BUDGET_MS=240000 funds full-length completions.
 # Keys come from GitHub Secrets; EVO chat stays on Vercel streaming.
 # ============================================================
 
@@ -34,7 +34,7 @@ jobs:
 
     env:
       # ── Native-execution budget override (default on Vercel: 52000) ──
-      AI_CHAIN_TOTAL_BUDGET_MS: "180000"
+      AI_CHAIN_TOTAL_BUDGET_MS: "240000"
 
       # ── Required secrets (preflight fails fast naming missing ones) ──
       NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}

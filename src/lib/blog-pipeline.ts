@@ -301,11 +301,13 @@ Return STRICT JSON only:
 
   const { text, model, provider } = await callFreeAIFallbackChain(prompt, {
     temperature: 0.4,
-    // Same Groq-free-fit caps as generateFullArticle (8000 TPM ceiling).
+    // Review embeds the FULL draft → ~9k-token requests (excluded from Groq
+    // by the chain's big-payload guard) and need one long nemotron window,
+    // not several short ones: 105s × 2 = 210s ≤ GHA budget 240s.
     maxTokens: 6_400,
     jsonMode: false,
-    timeoutMs: 60_000,
-    maxModels: 3,
+    timeoutMs: 105_000,
+    maxModels: 2,
   });
   const parsed = parseJSONLoose<any>(text);
   const md = (parsed?.articleMd || "").trim();

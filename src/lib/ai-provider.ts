@@ -625,7 +625,21 @@ export async function callFreeAIFallbackChain(
   // leads OpenRouter, call N+1 leads Groq — keeping each provider's own
   // strength order intact. Both orders remain strongest-available-first.
   chainCallSeq += 1;
-  const groqLeads = options.chain !== "fast" && chainCallSeq % 2 === 0 && !!groqKey;
+
+  // GROQ BIG-PAYLOAD GUARD (hard data from dispatch logs): Groq free tier
+  // enforces an 8000 TPM ceiling COUNTING both prompt and max_tokens
+  // (observed 413s: 'Requested 16664', 'Requested 9094'). Estimate the
+  // request size conservatively; oversized calls run OpenRouter-only —
+  // normal-sized calls keep the alternating balance untouched.
+  const estTokens =
+    Math.ceil(prompt.length / 4) + (options.maxTokens ?? DEFAULT_CHAIN_MODELS * 1024) + 800;
+  const skipGroq = options.chain !== "fast" && estTokens > 7_200;
+  if (skipGroq)
+    console.log(
+      `[ai-fallback-chain] payload ~${estTokens}t exceeds Groq 8k TPM window → openrouter-only for this call`,
+    );
+
+  const groqLeads = options.chain !== "fast" && !skipGroq && chainCallSeq % 2 === 0 && !!groqKey;
   let activeChain0 =
     options.chain === "fast" ? INTERLEAVED_FAST_CHAIN : INTERLEAVED_STRONGEST_CHAIN;
   if (groqLeads) {
@@ -638,6 +652,7 @@ export async function callFreeAIFallbackChain(
       ];
     }
   }
+  if (skipGroq) activeChain0 = activeChain0.filter((e) => e.provider !== "groq");
   console.log(
     `[ai-fallback-chain] lead=${groqLeads ? "groq" : "openrouter"} (call #${chainCallSeq}, orKeys=${openrouterKeys.length})`,
   );
