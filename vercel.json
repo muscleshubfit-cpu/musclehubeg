@@ -9,6 +9,10 @@
     {
       "path": "/api/cron/progress-reminder",
       "schedule": "0 7 * * 0"
+    },
+    {
+      "path": "/api/cron/dispatch-pipelines",
+      "schedule": "0 21 * * *"
     }
   ],
   "headers": [
