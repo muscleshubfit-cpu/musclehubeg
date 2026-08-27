@@ -30,9 +30,12 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "raw.githubusercontent.com" },
       { protocol: "https", hostname: "images.pexels.com" },
       { protocol: "https", hostname: "musclehubeg.vercel.app" },
-      // Blog cover pipeline (2026-08-27): Pollinations is the PRIMARY featured
-      // image source and Pixabay a fallback — without these entries next/image
-      // threw hostname errors on every published cover.
+      // Blog image pipeline (2026-08-28): Pexels is the PRIMARY featured
+      // image source (real photography, people OK / NSFW screened) and
+      // Pixabay a fallback — next/image converts these to lightweight
+      // WebP/responsive sizes at the edge (owner: «حجم خفيف بنظام الموقع»).
+      // image.pollinations.ai stays allow-listed only so legacy DB rows
+      // render until the migration runner rewrites them to Pexels URLs.
       { protocol: "https", hostname: "image.pollinations.ai" },
       { protocol: "https", hostname: "pixabay.com" },
       { protocol: "https", hostname: "cdn.pixabay.com" },

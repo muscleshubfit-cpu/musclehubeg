@@ -453,7 +453,7 @@ Process:
       `remediate-blog-images.yml` (workflow_dispatch) regenerate every
       legacy Pollinations URL through the safe pipeline and rewrite
       blog_posts.content/featured_image + queue bundles in DB.
-- **IMAGE SAFETY LAW v2 — SEMANTIC PERSON-SCENE ATTRACTORS (2026-08-28,
+- **IMAGE SAFETY LAW v2 — SEMANTIC PERSON-SCENE ATTRACTORS (2026-08-28 — SUPERSEDED same day by IMAGE SOURCE LAW v3 when the AI generator was retired):**
   live incident #2 on `/blog/12-week-periodized-muscle-building-plan`):**
     - ROOT CAUSE (proven: production URL seed=29197): a prompt with ZERO
       person tokens ("muscle building workout plan … for Intermediate
@@ -475,7 +475,7 @@ Process:
       treadmills").
     - Regression canaries: image-safety.test.ts §LAW v2 replays the exact
       seed=29197 prompt; every curated scene must pass BOTH gates.
-- **IMAGE SCENE DIVERSITY LAW (2026-08-28, owner: «كل الصور فى كل
+- **IMAGE SCENE DIVERSITY LAW (2026-08-28 — SUPERSEDED same day by IMAGE SOURCE LAW v3; rotation now = search-result index):** owner: «كل الصور فى كل
   المقالات عبارة عن نفس الصور ومعاد تغير اى تفصيلة داخلها»):**
     - ROOT CAUSE: the curated-scene rewrite had only ~10 single scenes +
       one fixed photo style → every article (and every position inside
@@ -500,6 +500,37 @@ Process:
     - Bank authoring rules: objects/interiors only, still-life verbs,
       ENGLISH only, zero person/action/clothing vocabulary — enforced
       by test (every bank entry × both gates × sanitize idempotency).
+- **IMAGE SOURCE LAW v3 — PEXELS-FIRST REAL PHOTOGRAPHY (2026-08-28,
+  owner directive: «استبدل خطوه الصور تماما الى PEXELS_API_KEY داخل
+  GitHub Action ، الصور نستوردها ومع المتبع تتحول الى حجم خفيف بنظام
+  الموقع ، وغير نظام اختيار الصور بحيث يكون فى اشخاص عادى لكن لا عرى»):**
+    - Pollinations AI image GENERATION is RETIRED entirely — no
+      diffusion renders anywhere in the pipeline. Every blog image is
+      REAL stock photography: Pexels PRIMARY (PEXELS_API_KEY), Unsplash
+      / Pixabay failover (Pixabay enforces safesearch=true).
+    - PEOPLE POLICY v3: NORMAL PEOPLE ARE ALLOWED in photos (fitness
+      stock photography); NUDITY/immodesty is NOT. Enforcement layers:
+      (1) sanitizeImageQuery() strips NSFW vocabulary (EN+AR) and
+      negation constructions from every search query — people words
+      deliberately preserved; (2) hasNsfwVocabulary() screens every
+      result alt-text before picking; (3) Pixabay safesearch=true.
+    - LIGHTWEIGHT DELIVERY («حجم خفيف بنظام الموقع»): Pexels
+      src.landscape = 1200x627 auto=compress CDN URL, then the site's
+      next/image system converts to responsive WebP at the edge —
+      featured image, related cards, and blog listing cards all use
+      next/image with explicit `sizes`. remotePatterns already cover
+      images.pexels.com (+ images.unsplash.com, pixabay).
+    - DIVERSITY: search fetches 6 results; pickResultIndex(hashKey)
+      rotates the chosen result deterministically per
+      variationKey = (article, position) — stable per slot,
+      collision-free across posts.
+    - FAIL-FAST: remediate-images.mts aborts when PEXELS_API_KEY is
+      unset (never silently degrade posts to fallback-only imagery).
+      The key must exist BOTH in GitHub Actions secrets (runner
+      scripts) AND Vercel Production env (p3-images route).
+    - Canaries: image-safety.test.ts v3 suite (people-kept / NSFW
+      stripped / negations stripped / alt screening / rotation bounds
+      + spread). v1/v2 canary suites retired with the AI generator.
 - **BLOG BODY IMAGE RENDER LAW (2026-08-28, owner bug "الصورة داخل
   المقال عبارة عن رابط مش صورة"):** `renderMarkdown()` (src/lib/blog.ts)
   converts `![alt](url)` → `<img loading="lazy" class="my-6 w-full

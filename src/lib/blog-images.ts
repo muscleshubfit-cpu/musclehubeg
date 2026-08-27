@@ -1,141 +1,80 @@
 /**
- * Blog featured image sourcing — generates AI cover images matching article
- * content as primary source, falling back to stock photos.
+ * Blog featured image sourcing — PEXELS-FIRST REAL PHOTOGRAPHY.
  *
- * OWNER DIRECTIVE (2026-08-27): all AI calls must go through OpenRouter / Groq.
- * Google Imagen 3 (native Gemini SDK) was removed. Image generation now uses:
+ * OWNER DIRECTIVE (2026-08-28): «استبدل خطوه الصور تماما الى
+ * PEXELS_API_KEY داخل GitHub Action … بحيث يكون فى اشخاص عادى لكن لا عرى»
  *
  * Sources (in order of priority):
- *   1. Pollinations AI — free hosted flux endpoint (NOT a Gemini call; plain
- *      CDN URL, no API key). Two attempts: model=flux then model=turbo with
- *      a fresh seed.
+ *   1. Pexels API (PEXELS_API_KEY) — PRIMARY. Real fitness photography,
+ *      normal people ALLOWED, nudity screened out at query AND result
+ *      level. `src.landscape` = 1200×627 auto=compress CDN URL → the
+ *      site's next/image system converts it to lightweight WebP.
  *   2. Unsplash API (optional key)
- *   3. Pexels API (optional key)
- *   4. Pixabay API (optional key)
+ *   3. Pixabay API (optional key, safesearch=true)
+ *
+ * RETIRED (2026-08-28): Pollinations AI generation — removed entirely
+ * per owner directive (real photography only, no diffusion renders).
+ *
+ * DIVERSITY: search returns up to 6 results; the picked index rotates
+ * deterministically per variationKey = (article, position) so posts and
+ * in-article slots never repeat the same photo while staying stable.
  */
 
-import { buildSafeImagePrompt, promptHasBannedVocabulary } from "@/lib/image-safety";
+import {
+  sanitizeImageQuery,
+  hasNsfwVocabulary,
+  pickResultIndex,
+} from "@/lib/image-safety";
 
 export type SourcedImage = { url: string; alt: string; credit: string } | null;
 
 /**
- * Per-call image-source options (SCENE DIVERSITY LAW 2026-08-28):
- *  - type: photo | infographic | diagram (style tail selection)
+ * Per-call image-source options:
  *  - variationKey: deterministic (article, position) key that rotates
- *    the curated scene variant + photographic style so two images are
- *    never the same composition across posts or inside one post.
+ *    the picked result inside the search results (owner: no two images
+ *    in the blog should look like copies of one another).
  */
 export type ImageSourceOptions = {
-  type?: string;
   variationKey?: string;
 };
 
+/** Results fetched per search — rotation pool size. */
+const RESULTS_PER_SEARCH = 6;
+
 /**
- * Generate an image using Pollinations AI (flux → turbo fallback attempts).
- * Shared by the native GHA blog pipeline (P3 images step).
- *
- * IMAGE SAFETY (2026-08-27 owner hard rule): the prompt is sanitized
- * through image-safety BEFORE any provider sees it — people-free subjects
- * only, zero negations (the old "no nudity"-style suffixes BACKFIRED on
- * diffusion models and directly caused the live incident). The final URL
- * is asserted clean before returning.
- *
- * PROVIDER-SIDE GUARDS (2026-08-28): safe=true makes Pollinations refuse
- * NSFW renders at their end (belt & braces under the prompt-level law);
- * enhance=false forbids their server-side LLM prompt rewriting from
- * mutating our sanitized prompt.
+ * Search Pexels for a photo matching the query. PRIMARY source.
+ * Alt-texts are NSFW-screened; the picked index rotates per variationKey.
  */
-async function generateAIImage(
+async function searchPexels(
   query: string,
   opts?: ImageSourceOptions,
 ): Promise<SourcedImage> {
-  if (!query.trim()) return null;
-
-  const safePrompt = buildSafeImagePrompt(query, opts?.type, query, opts?.variationKey);
-  const encodedPrompt = encodeURIComponent(safePrompt);
-
-  for (const [model, credit] of [
-    ["flux", "AI Generated (Pollinations flux)"],
-    ["turbo", "AI Generated (Pollinations turbo)"],
-  ] as const) {
-    try {
-      const seed = Math.floor(Math.random() * 100000);
-      const pollinationsUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=576&nologo=true&safe=true&enhance=false&seed=${seed}&model=${model}`;
-      // POLLINATIONS TIMEOUT LAW (2026-08-27 forensics): flux/turbo are
-      // queue-based renderers — under load a render routinely takes 15–60s.
-      // The old 10s window aborted EVERY GHA backfill render ("The operation
-      // was aborted due to timeout" on all 8 attempts) and silently starved
-      // P3 sourcing. 40s gives real renders room while keeping the step
-      // bounded (2 models × 40s worst case per subject).
-      const res = await fetch(pollinationsUrl, {
-        signal: AbortSignal.timeout(40_000),
-      });
-      if (res.ok) {
-        // HARD ASSERTION: a polluted URL must never leave this module
-        // (belt & braces — buildSafeImagePrompt already guarantees it).
-        if (promptHasBannedVocabulary(decodeURIComponent(encodedPrompt))) {
-          console.warn("[blog-images] refusing unsafe pollinations prompt");
-          continue;
-        }
-        return { url: pollinationsUrl, alt: safePrompt, credit };
-      }
-    } catch (pErr: any) {
-      console.warn(
-        `[blog-images] Pollinations ${model} notice:`,
-        pErr?.message || pErr,
-      );
-    }
-  }
-
-  return null;
-}
-
-/**
- * Search Unsplash for a photo matching the query.
- */
-async function searchUnsplash(query: string): Promise<SourcedImage> {
-  const key = process.env.UNSPLASH_ACCESS_KEY;
-  if (!key || !query.trim()) return null;
-
-  try {
-    const res = await fetch(
-      `https://api.unsplash.com/search/photos?query=${encodeURIComponent(query)}&per_page=3&orientation=landscape`,
-      { headers: { Authorization: `Client-ID ${key}` }, signal: AbortSignal.timeout(15_000) },
-    );
-    if (!res.ok) return null;
-    const data = await res.json();
-    const photo = data?.results?.[0];
-    if (!photo) return null;
-
-    return {
-      url: photo.urls.regular,
-      alt: photo.alt_description || query,
-      credit: photo.user?.name ? `Photo by ${photo.user.name} on Unsplash` : "Unsplash",
-    };
-  } catch {
-    return null;
-  }
-}
-
-/**
- * Search Pexels for a photo matching the query.
- */
-async function searchPexels(query: string): Promise<SourcedImage> {
   const key = process.env.PEXELS_API_KEY;
   if (!key || !query.trim()) return null;
 
   try {
     const res = await fetch(
-      `https://api.pexels.com/v1/search?query=${encodeURIComponent(query)}&per_page=3&orientation=landscape`,
+      `https://api.pexels.com/v1/search?query=${encodeURIComponent(query)}&per_page=${RESULTS_PER_SEARCH}&orientation=landscape`,
       { headers: { Authorization: key }, signal: AbortSignal.timeout(15_000) },
     );
     if (!res.ok) return null;
     const data = await res.json();
-    const photo = data?.photos?.[0];
+    const photos: any[] = data?.photos ?? [];
+    // «لا عرى»: reject any result whose alt text carries NSFW vocabulary.
+    const safe = photos.filter((p) => !hasNsfwVocabulary(p?.alt || ""));
+    if (safe.length === 0) return null;
+
+    const photo = safe[pickResultIndex(safe.length, opts?.variationKey)];
     if (!photo) return null;
 
+    // src.landscape = 1200×627 crop with auto=compress&cs=tinysrgb —
+    // lightweight at the CDN level before next/image further optimizes.
+    const url: string =
+      photo.src?.landscape || photo.src?.large || photo.src?.medium || photo.src?.original;
+    if (!url) return null;
+
     return {
-      url: photo.src?.large || photo.src?.medium || photo.src?.original,
+      url,
       alt: photo.alt || query,
       credit: photo.photographer ? `Photo by ${photo.photographer} on Pexels` : "Pexels",
     };
@@ -145,20 +84,62 @@ async function searchPexels(query: string): Promise<SourcedImage> {
 }
 
 /**
- * Search Pixabay for a photo matching the query.
+ * Search Unsplash for a photo matching the query (failover source).
  */
-async function searchPixabay(query: string): Promise<SourcedImage> {
+async function searchUnsplash(
+  query: string,
+  opts?: ImageSourceOptions,
+): Promise<SourcedImage> {
+  const key = process.env.UNSPLASH_ACCESS_KEY;
+  if (!key || !query.trim()) return null;
+
+  try {
+    const res = await fetch(
+      `https://api.unsplash.com/search/photos?query=${encodeURIComponent(query)}&per_page=${RESULTS_PER_SEARCH}&orientation=landscape`,
+      { headers: { Authorization: `Client-ID ${key}` }, signal: AbortSignal.timeout(15_000) },
+    );
+    if (!res.ok) return null;
+    const data = await res.json();
+    const results: any[] = data?.results ?? [];
+    const safe = results.filter((p) => !hasNsfwVocabulary(p?.alt_description || p?.description || ""));
+    if (safe.length === 0) return null;
+
+    const photo = safe[pickResultIndex(safe.length, opts?.variationKey)];
+    if (!photo) return null;
+
+    return {
+      url: photo.urls?.regular || photo.urls?.full,
+      alt: photo.alt_description || query,
+      credit: photo.user?.name ? `Photo by ${photo.user.name} on Unsplash` : "Unsplash",
+    };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Search Pixabay for a photo matching the query (failover source;
+ * safesearch=true is enforced by their API).
+ */
+async function searchPixabay(
+  query: string,
+  opts?: ImageSourceOptions,
+): Promise<SourcedImage> {
   const key = process.env.PIXABAY_API_KEY;
   if (!key || !query.trim()) return null;
 
   try {
     const res = await fetch(
-      `https://pixabay.com/api/?key=${key}&q=${encodeURIComponent(query)}&image_type=photo&orientation=horizontal&per_page=3&safesearch=true`,
+      `https://pixabay.com/api/?key=${key}&q=${encodeURIComponent(query)}&image_type=photo&orientation=horizontal&per_page=${RESULTS_PER_SEARCH}&safesearch=true`,
       { signal: AbortSignal.timeout(15_000) },
     );
     if (!res.ok) return null;
     const data = await res.json();
-    const hit = data?.hits?.[0];
+    const hits: any[] = data?.hits ?? [];
+    const safe = hits.filter((p) => !hasNsfwVocabulary(p?.tags || ""));
+    if (safe.length === 0) return null;
+
+    const hit = safe[pickResultIndex(safe.length, opts?.variationKey)];
     if (!hit) return null;
 
     return {
@@ -173,7 +154,8 @@ async function searchPixabay(query: string): Promise<SourcedImage> {
 
 /**
  * Fetch a featured image for a blog article.
- * Prioritizes AI Image Generation first, falling back to stock photo APIs.
+ * Pexels first (real photography, people OK / nudity never), then
+ * Unsplash, then Pixabay.
  */
 export async function fetchFeaturedImage(
   query: string,
@@ -181,15 +163,15 @@ export async function fetchFeaturedImage(
 ): Promise<SourcedImage> {
   if (!query.trim()) return null;
 
-  // DEFENSIVE GATE: every downstream source (AI + stock APIs) receives a
-  // sanitized, people-free, negation-free query — no exceptions.
-  const safeQuery = buildSafeImagePrompt(query, opts?.type, query, opts?.variationKey);
+  // DEFENSIVE GATE: every source receives a sanitized query — NSFW vocab
+  // and negation constructions stripped; people words preserved (v3 law).
+  const { query: safeQuery } = sanitizeImageQuery(query);
+  if (!safeQuery) return null;
 
   const sources = [
-    () => generateAIImage(safeQuery, opts),
-    () => searchUnsplash(safeQuery),
-    () => searchPexels(safeQuery),
-    () => searchPixabay(safeQuery),
+    () => searchPexels(safeQuery, opts),
+    () => searchUnsplash(safeQuery, opts),
+    () => searchPixabay(safeQuery, opts),
   ];
 
   for (const source of sources) {
@@ -292,4 +274,3 @@ export function embedBodyImages(
 
   return inserted > 0 ? out.join("\n") : markdown;
 }
-

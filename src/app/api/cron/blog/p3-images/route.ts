@@ -3,7 +3,7 @@ import {
   fetchFeaturedImage,
   type SourcedImage,
 } from "@/lib/blog-images";
-import { buildSafeImagePrompt } from "@/lib/image-safety";
+import { sanitizeImageQuery } from "@/lib/image-safety";
 import { type ImagePlanItem } from "@/lib/blog-pipeline";
 import {
   getQueueIdParam,
@@ -36,32 +36,30 @@ async function sourceImages(
 ): Promise<SourcedImage[]> {
   // Image #1 = topical COVER derived from focus keyword/title (drives
   // featured_image + og:image). Plan items fill positions 2..N.
-  // SCENE DIVERSITY LAW (2026-08-28): every position gets its own
-  // variationKey = `${queueId}-${slot}` so the curated scene variant AND
-  // photographic style rotate per (article, position) — no two images in
-  // a post share a composition, and no two posts collide either.
+  // IMAGE SOURCE LAW v3 (2026-08-28): Pexels-first real photography —
+  // normal people ALLOWED, NSFW screened. Every position carries its own
+  // variationKey = `${queueId}-${slot}` which rotates the picked result
+  // inside each search — no two slots repeat the same photo.
   const coverKey = `${queueId}-cover`;
-  const prompts: string[] = [buildSafeImagePrompt(coverHint, "photo", coverHint, coverKey)];
-  for (let i = 0; i < plan.slice(0, MAX_IMAGES - 1).length; i++) {
-    const p = plan[i];
-    const key = `${queueId}-${i + 1}`;
-    prompts.push(buildSafeImagePrompt(p.subject, p.type, coverHint, key));
+  const queries: string[] = [sanitizeImageQuery(coverHint).query];
+  for (const p of plan.slice(0, MAX_IMAGES - 1)) {
+    queries.push(sanitizeImageQuery(p.subject).query);
   }
 
   const keys = [coverKey, ...plan.slice(0, MAX_IMAGES - 1).map((_, i) => `${queueId}-${i + 1}`)];
   const settled = await Promise.allSettled(
-    prompts.map((q, i) => fetchFeaturedImage(q, { variationKey: keys[i] })),
+    queries.map((q, i) => fetchFeaturedImage(q, { variationKey: keys[i] })),
   );
   const okImages = settled
     .filter((s): s is PromiseFulfilledResult<SourcedImage> => s.status === "fulfilled")
     .map((s) => s.value)
     .filter((v): v is SourcedImage => Boolean(v));
 
-  // Never fewer than MIN images while there are prompts left untried.
-  for (let i = prompts.length; okImages.length < MIN_IMAGES && i < MAX_IMAGES; i++) {
+  // Never fewer than MIN images while there are queries left untried.
+  for (let i = queries.length; okImages.length < MIN_IMAGES && i < MAX_IMAGES; i++) {
     try {
       const extra = await fetchFeaturedImage(
-        prompts[i % Math.max(prompts.length, 1)] || buildSafeImagePrompt("fitness equipment", "photo", coverHint, `${queueId}-extra-${i}`),
+        queries[i % Math.max(queries.length, 1)] || sanitizeImageQuery("fitness equipment gym").query,
         { variationKey: `${queueId}-extra-${i}` },
       );
       if (extra) okImages.push(extra);

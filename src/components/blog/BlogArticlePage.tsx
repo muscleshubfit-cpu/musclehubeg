@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import { SiteHeader } from "@/components/SiteHeader";
 import { getBlogPost, getRelatedPosts, getLinkedPost, parseTableOfContents, renderMarkdown, getCategoryLabel, type BlogPost } from "@/lib/blog";
 import { BlogMembershipCard, SocialShare, ReadingProgress, TableOfContents } from "./BlogComponents";
@@ -158,14 +159,18 @@ export function BlogArticlePage({
               </div>
             </div>
 
-            {/* Featured image */}
+            {/* Featured image — next/image (site image system) converts
+                the Pexels CDN photo to lightweight responsive WebP at the
+                edge (IMAGE SOURCE LAW v3: «حجم خفيف بنظام الموقع»). */}
             {post.featured_image && (
-              <div className="mb-10 overflow-hidden rounded-3xl">
-                <img
+              <div className="relative mb-10 aspect-[2/1] overflow-hidden rounded-3xl">
+                <Image
                   src={post.featured_image}
                   alt={post.cover_alt || post.title}
-                  className="aspect-[2/1] w-full object-cover"
-                  loading="eager"
+                  fill
+                  sizes="(max-width: 896px) 100vw, 896px"
+                  className="object-cover"
+                  priority
                 />
               </div>
             )}
@@ -239,12 +244,13 @@ export function BlogArticlePage({
                       className="group block overflow-hidden rounded-3xl bg-[#f5f5f7] transition-opacity hover:opacity-90"
                     >
                       {rel.featured_image && (
-                        <div className="aspect-video overflow-hidden">
-                          <img
+                        <div className="relative aspect-video overflow-hidden">
+                          <Image
                             src={rel.featured_image}
                             alt={rel.title}
-                            className="h-full w-full object-cover"
-                            loading="lazy"
+                            fill
+                            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 300px"
+                            className="object-cover"
                           />
                         </div>
                       )}

@@ -70,13 +70,14 @@ async function embedPublishedPosts(): Promise<void> {
         skipped += 1;
         continue;
       }
-      const hint = `${p.focus_keyword || ""} ${p.title || ""}`.trim() || "fitness equipment";
-      // Two DIFFERENT people-free subject variations → distinct sections.
-      // SCENE DIVERSITY LAW: each body slot carries its own variationKey
-      // so the curated scene variant + photo style rotate per position.
+      const hint = `${p.focus_keyword || ""} ${p.title || ""}`.trim() || "gym fitness workout";
+      // Two DIFFERENT people-inclusive search queries → distinct sections.
+      // IMAGE SOURCE LAW v3: real Pexels photography — normal people
+      // allowed, NSFW screened; each body slot carries its own
+      // variationKey so result rotation never repeats a photo.
       const subjects = [
-        `${hint} — equipment and gear still life`,
-        `${hint} — gym interior scene`,
+        `${hint} workout`,
+        `${hint} gym equipment`,
       ];
       const sourced: Array<{ url: string; alt?: string; credit?: string } | null> = [];
       for (let i = 0; i < subjects.length; i++) {

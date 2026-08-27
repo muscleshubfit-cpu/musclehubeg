@@ -1,179 +1,100 @@
 /**
- * IMAGE SAFETY POLICY tests — guards the 2026-08-27 live incident fixes.
- * The REAL offending prompts (from production pollinations URLs) must
- * sanitize to people-free, negation-free prompts.
+ * IMAGE SOURCE POLICY v3 tests — PEXELS-FIRST REAL PHOTOGRAPHY.
+ * Owner directive (2026-08-28): normal people ALLOWED in photos,
+ * nudity/immodesty NEVER; Pollinations AI generation retired.
+ * Guards the query sanitizer, alt-text screening, and rotation.
  */
 import { describe, expect, it } from "vitest";
 import {
-  buildSafeImagePrompt,
-  deriveObjectScene,
-  listCuratedScenes,
-  promptHasBannedVocabulary,
-  promptHasPersonSemantics,
-  sanitizeImageSubject,
+  sanitizeImageQuery,
+  hasNsfwVocabulary,
+  hashKey,
+  pickResultIndex,
 } from "../image-safety";
 
-describe("image-safety sanitizer", () => {
-  it("sanitizes the EXACT EN prompt that shipped nudity in production", () => {
-    const live =
-      "Supplement timing chart: creatine, protein powder, recovery aids, clean infographic style, modest athletic attire with full body coverage, no nudity, no revealing or suggestive clothing, no exposed midriff or cleavage, no women in revealing outfits, family-friendly editorial photography";
-    const { clean } = sanitizeImageSubject(live);
-    expect(promptHasBannedVocabulary(clean)).toBe(false);
-    expect(/nudity|cleavage|revealing|women|athletic attire/i.test(clean)).toBe(false);
-  });
-
-  it("sanitizes the EXACT AR prompt from the AR incident", () => {
-    const liveAR =
-      "صورة لمكملات كرياتين وبروتين مصل اللبن مع عبواتها, editorial photography, modest athletic attire, no nudity, family-friendly";
-    const { clean } = sanitizeImageSubject(liveAR);
-    expect(promptHasBannedVocabulary(clean)).toBe(false);
-  });
-
-  it("rewrites person-word subjects to object scenes", () => {
-    const out = buildSafeImagePrompt("fit woman doing pushups in gym", "photo", "4 day upper lower split program");
-    expect(/woman|women|girl|lady/i.test(out)).toBe(false);
-    expect(/dumbbell|rack|gym interior/i.test(out)).toBe(true);
-    expect(promptHasBannedVocabulary(out)).toBe(false);
-  });
-
-  it("never emits any 'no …' negation construction", () => {
-    const out = buildSafeImagePrompt(
-      "meal prep bowls, no hands visible, without faces, not showing people",
-      "photo",
-      "nutrition plan",
+describe("image-safety v3 — query sanitizer (people OK / NSFW never)", () => {
+  it("KEEPS normal-people fitness wording (owner law change 2026-08-28)", () => {
+    const { query, nsfwRemoved } = sanitizeImageQuery(
+      "fit woman doing pushups in gym",
     );
-    expect(/\bno\s+[a-z]|\bwithout\b|\bnot\b/i.test(out)).toBe(false);
+    expect(query).toMatch(/woman/i);
+    expect(query).toMatch(/pushups/i);
+    expect(nsfwRemoved).toBe(false);
   });
 
-  it("anchors empty/mostly-Arabic subjects to topical English scenes", () => {
-    const out = buildSafeImagePrompt("تمارين رياضية", "photo", "muscle building home workout guide");
-    expect(/^[\x00-\x7F]+$/.test(out.replace(/[^\x20-\x7E]/g, "")) || /home corner gym setup/.test(out)).toBe(true);
-    expect(/dumbbell|mat|resistance bands/.test(out)).toBe(true);
+  it("strips NSFW vocabulary from queries", () => {
+    const { query, nsfwRemoved, changed } = sanitizeImageQuery(
+      "gym workout nude model sexy poses",
+    );
+    expect(nsfwRemoved).toBe(true);
+    expect(changed).toBe(true);
+    expect(query).not.toMatch(/nude|sexy/i);
+    expect(query).toMatch(/gym workout/i);
   });
 
-  it("deriveObjectScene maps supplement hints to supplement scene", () => {
-    expect(deriveObjectScene("creatine and whey article")).toMatch(/supplement jars/i);
+  it("strips negation constructions (poison for keyword search)", () => {
+    const { query } = sanitizeImageQuery(
+      "meal prep bowls no hands visible without faces",
+    );
+    expect(query).not.toMatch(/\bno\s+[a-z]|\bwithout\b/i);
+    expect(query).toMatch(/meal prep bowls/i);
   });
 
-  it("adds positive-only style tails per type (photo tail rotates)", () => {
-    const photo = buildSafeImagePrompt("kettlebell row studio corner", "photo");
-    // SCENE DIVERSITY LAW: photo tail rotates — assert SOME tail is present
-    expect(/photography|aesthetic/.test(photo)).toBe(true);
-    const info = buildSafeImagePrompt("weekly protein intake breakdown", "infographic");
-    expect(info).toContain("flat vector infographic");
+  it("sanitizes the EXACT legacy incident prompt down to a safe query", () => {
+    const live =
+      "Supplement timing chart: creatine, protein powder, recovery aids, clean infographic style, modest athletic attire with full body coverage, no nudity, no revealing or suggestive clothing, family-friendly editorial photography";
+    const { query } = sanitizeImageQuery(live);
+    expect(hasNsfwVocabulary(query)).toBe(false);
+    expect(/\bno\s+[a-z]|\bwithout\b/i.test(query)).toBe(false);
+    expect(query).toMatch(/supplement|creatine|protein/i);
+  });
+
+  it("strips Arabic NSFW + negation words", () => {
+    const { query } = sanitizeImageQuery("تمارين رياضية بدون معدات عاري");
+    expect(hasNsfwVocabulary(query)).toBe(false);
+    expect(query).not.toMatch(/بدون/);
+    expect(query).toMatch(/تمارين رياضية/);
+  });
+
+  it("caps query length for keyword-search friendliness", () => {
+    const long = "gym workout equipment ".repeat(30);
+    const { query } = sanitizeImageQuery(long);
+    expect(query.length).toBeLessThanOrEqual(120);
   });
 });
 
-describe("image-safety LAW v2 — semantic person-scene attractors (2026-08-28)", () => {
-  it("REWRITES the exact production prompt that rendered a shirtless man (seed=29197)", () => {
-    // Zero person tokens, yet Pollinations flux rendered a shirtless man:
-    // fitness program semantics are person attractors. Must be replaced
-    // ENTIRELY by a curated object scene.
-    const live =
-      "muscle building workout plan 12\u2011Week Periodized Muscle Building Plan for Intermediate Lifters";
-    const out = buildSafeImagePrompt(live, "photo", live);
-    expect(/lifters?|muscle building|workout/i.test(out)).toBe(false);
-    expect(promptHasPersonSemantics(out)).toBe(false);
-    // curated planner scene (periodized/plan hint)
-    expect(/planner notebook|dumbbell/i.test(out)).toBe(true);
-  });
-
-  it("flags action/program/physique semantics as person scenes", () => {
-    expect(promptHasPersonSemantics("full body workout session")).toBe(true);
-    expect(promptHasPersonSemantics("12-week periodized training plan")).toBe(true);
-    expect(promptHasPersonSemantics("best exercises for bigger biceps")).toBe(true);
-    expect(promptHasPersonSemantics("fat burning weight loss journey")).toBe(true);
-    expect(promptHasPersonSemantics("dumbbell rack on wooden floor")).toBe(false);
-    expect(promptHasPersonSemantics("row of treadmills in bright gym")).toBe(false);
-    expect(promptHasPersonSemantics("supplement jars close-up")).toBe(false);
-  });
-
-  it("style tails are IDEMPOTENT — never doubles (production doubled-tail bug)", () => {
-    const polluted =
-      "modern fitness studio interior with equipment rack and natural light, professional product photography, soft studio lighting, high detail";
-    const out = buildSafeImagePrompt(polluted, "photo", polluted);
-    // whichever rotated tail wins, it appears EXACTLY once
-    expect((out.match(/photography/g) ?? []).length).toBe(1);
-    expect((out.match(/high detail/g) ?? []).length).toBeLessThanOrEqual(1);
-    expect(/high detail,.*photography|photography,.*high detail/i.test(out)).toBe(false);
-  });
-
-  it("EVERY curated object scene passes the banned-vocabulary gate (no refusal loop)", () => {
-    const hints = [
-      "12-week periodized muscle building plan for lifters",
-      "creatine and whey supplements",
-      "nutrition macros and meal planning",
-      "cardio treadmill fat burning",
-      "home workout no equipment bodyweight",
-      "injury recovery foam rolling mobility",
-      "yoga flexibility studio",
-      "muscle hypertrophy strength program",
-      "beginner guide tips for starters",
-      "completely unknown topic xyz",
-    ];
-    for (const hint of hints) {
-      const out = buildSafeImagePrompt(hint, "photo", hint);
-      expect(promptHasBannedVocabulary(out)).toBe(false);
-      expect(promptHasPersonSemantics(out)).toBe(false);
-    }
-  });
-
-  it("AR program titles map to curated English object scenes", () => {
-    const out = buildSafeImagePrompt(
-      "دليل بناء العضلات في المنزل بدون معدات",
-      "photo",
-      "muscle building home workout guide",
-    );
-    expect(/^[\x00-\x7F]+$/.test(out)).toBe(true);
-    expect(promptHasPersonSemantics(out)).toBe(false);
+describe("image-safety v3 — result screening", () => {
+  it("flags NSFW alt-texts for rejection", () => {
+    expect(hasNsfwVocabulary("sexy fitness model")).toBe(true);
+    expect(hasNsfwVocabulary("امرأة عارية في الجيم")).toBe(true);
+    expect(hasNsfwVocabulary("athletes training in modern gym")).toBe(false);
+    expect(hasNsfwVocabulary("healthy meal prep bowls")).toBe(false);
   });
 });
 
-describe("image-safety SCENE DIVERSITY LAW (2026-08-28)", () => {
-  it("EVERY curated scene in the bank passes BOTH safety gates verbatim", () => {
-    const scenes = listCuratedScenes();
-    expect(scenes.length).toBeGreaterThanOrEqual(45);
-    for (const scene of scenes) {
-      expect(promptHasBannedVocabulary(scene)).toBe(false);
-      expect(promptHasPersonSemantics(scene)).toBe(false);
-      // sanitize idempotency — no bank entry loses words through the gate
-      const { clean } = sanitizeImageSubject(scene);
-      expect(clean.replace(/\s+/g, " ")).toBe(scene.replace(/\s+/g, " "));
+describe("image-safety v3 — deterministic result rotation", () => {
+  it("pickResultIndex stays in bounds and is stable per key", () => {
+    for (let i = 0; i < 20; i++) {
+      const idx = pickResultIndex(6, `post-${i}`);
+      expect(idx).toBeGreaterThanOrEqual(0);
+      expect(idx).toBeLessThan(6);
+      expect(pickResultIndex(6, `post-${i}`)).toBe(idx);
     }
   });
 
-  it("rotates scene variants per variationKey (deterministic + diverse)", () => {
-    const hint = "12-week periodized muscle building plan for lifters";
-    const seen = new Set<string>();
-    for (let i = 0; i < 12; i++) {
-      const scene = deriveObjectScene(hint, `queue-${i}`);
-      seen.add(scene);
-      // stability: same key → same scene
-      expect(deriveObjectScene(hint, `queue-${i}`)).toBe(scene);
-    }
+  it("rotation spreads across the result pool (diversity)", () => {
+    const seen = new Set<number>();
+    for (let i = 0; i < 24; i++) seen.add(pickResultIndex(6, `slot-${i}`));
     expect(seen.size).toBeGreaterThanOrEqual(4);
   });
 
-  it("different posts get different full prompts (no same-image collision)", () => {
-    const hint = "muscle building home workout guide";
-    const outs = new Set<string>();
-    for (let i = 0; i < 6; i++) {
-      outs.add(buildSafeImagePrompt(hint, "photo", hint, `post-${i}`));
-    }
-    expect(outs.size).toBeGreaterThanOrEqual(3);
+  it("no variationKey → first (most relevant) result", () => {
+    expect(pickResultIndex(6)).toBe(0);
+    expect(pickResultIndex(0, "any")).toBe(0);
   });
 
-  it("photo style tail rotates across variation keys", () => {
-    const tails = new Set<string>();
-    for (let i = 0; i < 10; i++) {
-      const out = buildSafeImagePrompt("dumbbell rack", "photo", "strength", `style-${i}`);
-      tails.add(out.replace(/^dumbbell rack/, ""));
-    }
-    expect(tails.size).toBeGreaterThanOrEqual(3);
-  });
-
-  it("no variationKey keeps the classic variant[0] scenes (backward compat)", () => {
-    expect(deriveObjectScene("creatine and whey article")).toMatch(/supplement jars/i);
-    expect(deriveObjectScene("unknown topic")).toMatch(/modern fitness studio/i);
+  it("hashKey is deterministic", () => {
+    expect(hashKey("abc")).toBe(hashKey("abc"));
+    expect(hashKey("abc")).not.toBe(hashKey("abd"));
   });
 });

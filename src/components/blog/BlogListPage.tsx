@@ -1,4 +1,6 @@
 "use client";
+
+import Image from "next/image";
 import { SiteHeader } from "@/components/SiteHeader";
 
 import { useEffect, useState } from "react";
@@ -86,12 +88,13 @@ export function BlogListPage({ lang }: { lang: "en" | "ar" }) {
                 className="group block overflow-hidden rounded-3xl bg-[#f5f5f7] transition-opacity hover:opacity-90"
               >
                 {post.featured_image && (
-                  <div className="aspect-video overflow-hidden">
-                    <img
+                  <div className="relative aspect-video overflow-hidden">
+                    <Image
                       src={post.featured_image}
                       alt={post.cover_alt || post.title}
-                      className="h-full w-full object-cover"
-                      loading="lazy"
+                      fill
+                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 400px"
+                      className="object-cover"
                     />
                   </div>
                 )}

@@ -23,6 +23,7 @@ jobs:
     env:
       NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
 
     steps:
       - name: Checkout repository
@@ -35,7 +36,7 @@ jobs:
       - name: Install dependencies
         run: npm install --no-audit --no-fund
 
-      - name: Sweep & rebuild all pollinations images (people-safe)
+      - name: Migrate all pollinations images to Pexels stock (people OK / NSFW screened)
         run: npx --no-install tsx scripts/blog-runner/remediate-images.mts
 
       - name: Backfill body images into cover-only published posts
