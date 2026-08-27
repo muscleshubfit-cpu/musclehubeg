@@ -8,6 +8,7 @@ import { describe, expect, it } from "vitest";
 import {
   sanitizeImageQuery,
   hasNsfwVocabulary,
+  hasImmodestSignal,
   hashKey,
   pickResultIndex,
 } from "../image-safety";
@@ -69,6 +70,30 @@ describe("image-safety v3 — result screening", () => {
     expect(hasNsfwVocabulary("امرأة عارية في الجيم")).toBe(true);
     expect(hasNsfwVocabulary("athletes training in modern gym")).toBe(false);
     expect(hasNsfwVocabulary("healthy meal prep bowls")).toBe(false);
+  });
+
+  it("v3.1: catches the LIVE immodest case that shipped to production", () => {
+    // Pexels cover alt on /blog/4-day-upper-lower-hypertrophy-split —
+    // the photo was a shirtless man's bare back (owner: «لا عرى»).
+    const liveAlt =
+      "Black and white image of a man flexing his muscles, showcasing strength and masculinity.";
+    expect(hasImmodestSignal(liveAlt)).toBe(true);
+    expect(hasNsfwVocabulary(liveAlt)).toBe(false); // NSFW list alone missed it
+  });
+
+  it("v3.1: keeps normal clothed-athlete wording (people OK law)", () => {
+    expect(hasImmodestSignal("Adult male performing bench press in a gym")).toBe(false);
+    expect(hasImmodestSignal("A muscular man in a tank top exercises with dumbbells")).toBe(false);
+    expect(hasImmodestSignal("woman running on treadmill in sportswear")).toBe(false);
+    expect(hasImmodestSignal("shirtless bodybuilder posing on stage")).toBe(true);
+    expect(hasImmodestSignal("close-up of male torso and six pack")).toBe(true);
+    expect(hasImmodestSignal("woman doing abs workout on a mat")).toBe(true);
+  });
+
+  it("v3.1: strips immodest tokens from search queries too", () => {
+    const { query } = sanitizeImageQuery("bodybuilder six pack abs training");
+    expect(hasImmodestSignal(query)).toBe(false);
+    expect(query).toMatch(/training/i);
   });
 });
 

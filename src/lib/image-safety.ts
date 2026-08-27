@@ -33,6 +33,16 @@
 const NSFW_TOKENS_LATIN =
   /\b(nude|nudes|nudity|naked|topless|toplesss?|bra(?:s)?\b|lingerie|bikini|bikinis|cleavage|underwear|panties|sexy|sexiest|sexual(ly)?|erotic(a)?|porn\w*|nsfw|exposed|bare|barely|immodest|revealing|suggestive|midriff|thong|scantily)\b/gi;
 
+/**
+ * IMMODEST-SIGNAL vocabulary (v3.1, 2026-08-28 live catch): NOT pornographic,
+ * but reliably predicts half-dressed body-shots on stock platforms
+ * ("a man flexing his muscles" = shirtless back in practice). Stripped
+ * from queries and rejected in result alt-texts. Deliberately NOT
+ * including "muscular" or "tank top" — normal clothed athletes stay.
+ */
+const IMMODEST_TOKENS_LATIN =
+  /\b(flexing|flexes|shirtless|topless|bodybuilder|bodybuilders|six.?pack|torso(?:es)?|abs\b|swimsuit|swimwear|stripp\w*|half.?naked|no shirt)\b/gi;
+
 /** Arabic NSFW + immodesty words (prefix/suffix tolerant). */
 const AR_NSFW_RE =
   /\S*(?:عارية|عاري|عاره|عري|إثارة|اثارة|مثيره?|مكشوف|مكشوفة|فضفاض|خليع)\S*/g;
@@ -85,6 +95,7 @@ export function sanitizeImageQuery(raw: string): SanitizeQueryResult {
     const before = decoded;
     decoded = decoded.replace(NSFW_TOKENS_LATIN, " ");
     decoded = decoded.replace(AR_NSFW_RE, " ");
+    decoded = decoded.replace(IMMODEST_TOKENS_LATIN, " ");
     if (decoded !== before) nsfwRemoved = true;
   }
 
@@ -111,6 +122,17 @@ export function hasNsfwVocabulary(s: string): boolean {
   if (new RegExp(NSFW_TOKENS_LATIN.source, "i").test(s)) return true;
   if (new RegExp(AR_NSFW_RE.source, "i").test(s)) return true;
   return false;
+}
+
+/**
+ * v3.1: true when an alt-text/query carries immodest-signal wording
+ * (shirtless/flexing/bodybuilder/abs-shots…). Used ALONGSIDE
+ * hasNsfwVocabulary for result screening — the practical no-vision
+ * guard against half-dressed body photos on stock platforms.
+ */
+export function hasImmodestSignal(s: string): boolean {
+  if (!s) return false;
+  return new RegExp(IMMODEST_TOKENS_LATIN.source, "i").test(s);
 }
 
 /** Deterministic string hash (djb2) → non-negative int. */

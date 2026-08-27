@@ -23,8 +23,19 @@
 import {
   sanitizeImageQuery,
   hasNsfwVocabulary,
+  hasImmodestSignal,
   pickResultIndex,
 } from "@/lib/image-safety";
+
+/**
+ * v3.1 RESULT SCREENING — combined modesty gate for alt-texts:
+ * NSFW vocabulary AND immodest-signal wording ("flexing his muscles",
+ * "shirtless", "six pack"…) both reject a candidate photo.
+ */
+function altTextUnsafe(alt: string | null | undefined): boolean {
+  if (!alt) return false;
+  return hasNsfwVocabulary(alt) || hasImmodestSignal(alt);
+}
 
 export type SourcedImage = { url: string; alt: string; credit: string } | null;
 
@@ -60,8 +71,9 @@ async function searchPexels(
     if (!res.ok) return null;
     const data = await res.json();
     const photos: any[] = data?.photos ?? [];
-    // «لا عرى»: reject any result whose alt text carries NSFW vocabulary.
-    const safe = photos.filter((p) => !hasNsfwVocabulary(p?.alt || ""));
+    // «لا عرى»: reject any result whose alt text carries NSFW or
+    // immodest-signal vocabulary (v3.1: caught the shirtless-back case).
+    const safe = photos.filter((p) => !altTextUnsafe(p?.alt));
     if (safe.length === 0) return null;
 
     const photo = safe[pickResultIndex(safe.length, opts?.variationKey)];
@@ -101,7 +113,7 @@ async function searchUnsplash(
     if (!res.ok) return null;
     const data = await res.json();
     const results: any[] = data?.results ?? [];
-    const safe = results.filter((p) => !hasNsfwVocabulary(p?.alt_description || p?.description || ""));
+    const safe = results.filter((p) => !altTextUnsafe(p?.alt_description || p?.description));
     if (safe.length === 0) return null;
 
     const photo = safe[pickResultIndex(safe.length, opts?.variationKey)];
@@ -136,7 +148,7 @@ async function searchPixabay(
     if (!res.ok) return null;
     const data = await res.json();
     const hits: any[] = data?.hits ?? [];
-    const safe = hits.filter((p) => !hasNsfwVocabulary(p?.tags || ""));
+    const safe = hits.filter((p) => !altTextUnsafe(p?.tags));
     if (safe.length === 0) return null;
 
     const hit = safe[pickResultIndex(safe.length, opts?.variationKey)];
