@@ -585,6 +585,30 @@ Process:
        canaries in `src/lib/__tests__/evo-chat-format.test.ts`) — the
        chat renders plain text only; raw LaTeX (`\frac{4}{3}\pi
        r^{3}`) and markdown syntax must never reach users again.
+- **AI SURFACE DEEP-AUDIT LAW (2026-08-28, owner directive «فحص أعمق
+  للازرار ولوحات الادارة مع المنظومة»):** every UI control that calls an
+  API endpoint MUST target a route that actually exists — verified by
+  diffing `fetch(…)` call sites against `src/app/api/**/route.ts`.
+    1) UPLOAD LAW: file uploads go through `POST /api/upload`
+       (requireUser, bucket allowlist questionnaire-photos/
+       progress-photos/receipts, MIME+5MB guards, storage path rebuilt
+       server-side under the caller's user id, service-role write) and
+       render through `GET /api/file?bucket&path` (owner-or-coach authed
+       streaming proxy — PRIVATE buckets get permanent same-origin URLs,
+       never expiring signed URLs). Buckets are created by
+       `supabase/migrations/RUN_ON_SUPABASE_0027_STORAGE_BUCKETS.sql`
+       (idempotent, no policies — service role bypasses RLS). Client
+       data-URL fallback in QuestionnairesView stays as a safety net.
+    2) COACH SIDEBAR COMPLETENESS: AppLayout `coachExtraLinks` must list
+       EVERY `/admin/*` page (currently Tool Leads + Saved Results); a
+       coach-only page reachable from one surface only is a defect.
+    3) AUDIT BASELINE (all verified wired 2026-08-28): 15 blog-editor AI
+       buttons → article_tool(11)+social_post(4) handled by
+       `src/lib/ai-job-processors.ts` via GHA runner; plan
+       generate/regenerate (plan_nutrition/plan_workout),
+       meal_regenerate, exercise_regenerate, payments review, receipts,
+       broadcasts, admin leads/referrals/saved-results/blog CRUD — all
+       consistent. Re-audit after ANY new button+endpoint pair.
 - **SCHEDULE HEALTH LAW (2026-08-27 incident):** GitHub's scheduler can
   silently DE-REGISTER a repository's scheduled workflows — every
   `schedule` trigger stops firing repo-wide while `push` / `dispatch`
