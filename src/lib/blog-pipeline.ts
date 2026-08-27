@@ -74,6 +74,7 @@ export async function pickTopicIndex(
   try {
     const prompt = `You are an SEO strategist. Recent published titles (avoid overlap):\n${recentLite.slice(0, 30).map((t) => `- ${t}`).join("\n")}\n\nCandidate topics:\n${topics.map((t, i) => `${i + 1}. ${t}`).join("\n")}\n\nPick the candidate with the best search potential AND lowest duplication risk. Return STRICT JSON: {"index": <1-based number>}`;
     const { text } = await callFreeAIFallbackChain(prompt, {
+      tag: `blog:pick-topic-${lang}`,
       temperature: 0.4,
       maxTokens: 120,
       jsonMode: true,
@@ -116,6 +117,7 @@ Create the detailed article blueprint. Return STRICT JSON only:
   "imagePlan": [ {"subject": "exact visual subject", "type": "photo|infographic|diagram"} ] // 3-5 items matching the sections
 }`;
   const { text, model, provider } = await callFreeAIFallbackChain(prompt, {
+    tag: `blog:outline-${lang}`,
     temperature: 0.6,
     // 2026-08-27 hardening: Groq's strict json mode HARD-FAILS when a
     // reasoning model (gpt-oss) burns completion tokens on hidden CoT
@@ -195,6 +197,7 @@ Return STRICT JSON only:
 { "articleMd": "the full article in markdown (## headings, no # H1)" }`;
 
   const { text, model, provider } = await callFreeAIFallbackChain(prompt, {
+    tag: `blog:content-${lang}`,
     temperature: 0.7,
     // GROQ FREE FIT (2026-08-27, hard data from dispatch logs): Groq enforces
     // an 8000 TPM ceiling and COUNTS max_tokens in it — a 16000-cap request
@@ -302,6 +305,7 @@ Return STRICT JSON only:
 }`;
 
   const { text, model, provider } = await callFreeAIFallbackChain(prompt, {
+    tag: `blog:review-${lang}`,
     temperature: 0.4,
     // Review embeds the FULL draft → big payload runs openrouter-only via
     // the chain guard; long single windows beat several short aborted ones:

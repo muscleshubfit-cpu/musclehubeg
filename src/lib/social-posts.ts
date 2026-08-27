@@ -165,6 +165,7 @@ export async function generateSocialPost(
   const { text, model } = await callFreeAIFallbackChain(
     prompt,
     {
+      tag: input.language === "ar" ? "social-posts:ar" : "social-posts:en",
       systemPrompt:
         input.language === "ar"
           ? "أنت كاتب محتوى تسويقي خبير. تعيد JSON صالحاً فقط — بلا أي نص خارج الـJSON."

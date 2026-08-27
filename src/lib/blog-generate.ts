@@ -847,6 +847,7 @@ export async function generateEnglishArticle(
   const { text, model, provider } = await callFreeAIFallbackChain(
     prompt,
     {
+      tag: "article:en",
       systemPrompt: ARTICLE_SYSTEM_PROMPT,
       temperature: 0.7,
       maxTokens: 6_000,
@@ -900,6 +901,7 @@ export async function generateArabicArticle(
   const { text, model, provider } = await callFreeAIFallbackChain(
     prompt,
     {
+      tag: "article:ar",
       systemPrompt: AR_ARTICLE_SYSTEM_PROMPT,
       temperature: 0.7,
       maxTokens: 6_000,
@@ -1021,6 +1023,7 @@ Return ONLY the JSON. No commentary, no markdown fences.`;
   const { text, model, provider } = await callFreeAIFallbackChain(
     prompt,
     {
+      tag: "links-social",
       systemPrompt: ARTICLE_SYSTEM_PROMPT,
       temperature: 0.7,
       maxTokens: 2_500,

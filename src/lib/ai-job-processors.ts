@@ -209,6 +209,7 @@ ${MARKER_NOTES}
   const { text, model } = await callFreeAIFallbackChain(
     prompt,
     {
+      tag: `ai-job:${tool}`,
       systemPrompt: sys,
       temperature: tool === "proofread" ? 0.3 : 0.7,
       maxTokens:

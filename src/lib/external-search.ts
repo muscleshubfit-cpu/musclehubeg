@@ -126,6 +126,7 @@ Produce the research JSON now.`;
   const { text, model, provider } = await callFreeAIFallbackChain(
     prompt,
     {
+      tag: "external-search",
       systemPrompt: RESEARCH_SYSTEM_PROMPT,
       temperature: 0.4,
       maxTokens: 2500,

@@ -539,6 +539,12 @@ export type FallbackChainOptions = CallAIOptions & {
   /** "strongest" (default) = quality-first interleave.
    *  "fast"      = speed-first order for interactive streaming chat. */
   chain?: "strongest" | "fast";
+  /** UNIVERSAL SWITCHER COVERAGE (2026-08-27 owner directive "نظام التبديل
+   *  يتعمل لكل منظومة"): every subsystem labels its own chain calls so any
+   *  log line always proves WHICH system used WHICH provider/model/key —
+   *  e.g. "evo-chat", "plan:workout", "blog:content-ar". Observational
+   *  only — it NEVER changes model ordering or fallback policy. */
+  tag?: string;
 };
 
 /** Total time budget reserved for the whole chain (Vercel Hobby-safe).
@@ -606,6 +612,10 @@ export async function callFreeAIFallbackChain(
 ): Promise<{ text: string; model: string; provider: string }> {
   const errors: string[] = [];
 
+  // Log prefix carrying the calling subsystem's tag (universal coverage).
+  const LP =
+    "[ai-fallback-chain]" + (options.tag ? ` [${options.tag}]` : "");
+
   const openrouterKeys = getOpenRouterKeys();
   const groqKey = getGroqKey();
   const openrouterBaseUrl = "https://openrouter.ai/api/v1";
@@ -636,7 +646,7 @@ export async function callFreeAIFallbackChain(
   const skipGroq = options.chain !== "fast" && estTokens > 7_200;
   if (skipGroq)
     console.log(
-      `[ai-fallback-chain] payload ~${estTokens}t exceeds Groq 8k TPM window → openrouter-only for this call`,
+      `${LP} payload ~${estTokens}t exceeds Groq 8k TPM window → openrouter-only for this call`,
     );
 
   const groqLeads = options.chain !== "fast" && !skipGroq && chainCallSeq % 2 === 0 && !!groqKey;
@@ -654,7 +664,7 @@ export async function callFreeAIFallbackChain(
   }
   if (skipGroq) activeChain0 = activeChain0.filter((e) => e.provider !== "groq");
   console.log(
-    `[ai-fallback-chain] lead=${groqLeads ? "groq" : "openrouter"} (call #${chainCallSeq}, orKeys=${openrouterKeys.length})`,
+    `${LP} lead=${groqLeads ? "groq" : "openrouter"} (call #${chainCallSeq}, orKeys=${openrouterKeys.length})`,
   );
 
   // ── Time-budget enforcement (Vercel Hobby guarantee) ──────────────────
@@ -668,7 +678,7 @@ export async function callFreeAIFallbackChain(
   // Clamp so that maxModels × effTimeout ≤ budget AND never exceeds caller intent.
   const effTimeoutMs = Math.min(callerTimeoutMs, Math.floor(CHAIN_TOTAL_BUDGET_MS / maxModels));
 
-  const { maxModels: _omit, timeoutMs: _omit2, chain: _omit3, ...callOptions } = options;
+  const { maxModels: _omit, timeoutMs: _omit2, chain: _omit3, tag: _omit4, ...callOptions } = options;
 
   /** Quota/auth-style failures justify burning another KEY on the SAME model. */
   const looksLikeQuota = (m: string) => /\b(401|402|429|403)\b|quota|rate.?limit|credit|insufficient/i.test(m);
@@ -708,19 +718,19 @@ export async function callFreeAIFallbackChain(
             baseUrl,
           });
           if (text && text.trim().length > 0) {
-            console.log(`[ai-fallback-chain] ${provider}/${model} succeeded${attemptNo ? " (after empty-retry)" : ""}`);
+            console.log(`${LP} ${provider}/${model} succeeded${attemptNo ? " (after empty-retry)" : ""}`);
             return { text: text.trim(), model, provider };
           }
           throw new Error(`${model}: empty response`);
         } catch (e: any) {
           const msg = e?.message || String(e);
           errors.push(`${provider}/${model}: ${msg}`);
-          console.warn(`[ai-fallback-chain] ${provider}/${model} notice, trying next:`, msg);
+          console.warn(`${LP} ${provider}/${model} notice, trying next:`, msg);
         }
         const lastErr = errors[errors.length - 1] || "";
         const isEmpty = /empty response/i.test(lastErr);
         if (isEmpty && attemptNo === 0 && provider === "openrouter") {
-          console.log(`[ai-fallback-chain] empty response → one immediate retry of ${provider}/${model}`);
+          console.log(`${LP} empty response → one immediate retry of ${provider}/${model}`);
           continue;
         }
         break;
@@ -730,13 +740,14 @@ export async function callFreeAIFallbackChain(
       const lastErr = errors[errors.length - 1] || "";
       if (!looksLikeQuota(lastErr) || provider !== "openrouter") break;
       if (!candidateKeys.some((k) => k !== apiKey)) break;
-      console.log(`[ai-fallback-chain] quota/auth error → switching OpenRouter account for ${model}`);
+      console.log(`${LP} quota/auth error → switching OpenRouter account for ${model}`);
     }
   }
 
   // All providers failed
   const finalError = new Error(
-    `[ai-fallback-chain] All AI providers failed.\n` +
+    `[ai-fallback-chain] All AI providers failed.` +
+      (options.tag ? ` (system: ${options.tag})\n` : "\n") +
       `OpenRouter keys configured: ${openrouterKeys.length}.\n` +
       `Groq key: ${groqKey ? "present" : "MISSING"}.\n` +
       `Errors:\n  - ${errors.join("\n  - ")}`,

@@ -540,6 +540,7 @@ IMPORTANT: Return the topic and focusKeyword in ${language === "ar" ? "ARABIC" :
     const { text: raw } = await callFreeAIFallbackChain(
       userPrompt,
       {
+        tag: `blog:topics-${language}`,
         systemPrompt,
         temperature: 0.85,
         maxTokens: 600,

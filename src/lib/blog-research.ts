@@ -171,6 +171,7 @@ Return STRICT JSON only, no markdown fences:
 
   try {
     const { text, model, provider } = await callFreeAIFallbackChain(prompt, {
+      tag: "blog:research",
       temperature: 0.6,
       maxTokens: 2_500,
       jsonMode: true,

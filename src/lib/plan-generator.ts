@@ -167,6 +167,7 @@ export async function generateNutritionPlanAI(
     const { text, model, provider } = await callFreeAIFallbackChain(
       prompt,
       {
+        tag: "plan:nutrition",
         systemPrompt: NUTRITION_SYSTEM_PROMPT,
         temperature: 0.7,
         // GHA-native budget (workflow sets AI_CHAIN_TOTAL_BUDGET_MS=180000):
@@ -217,6 +218,7 @@ export async function generateWorkoutPlanAI(
     const { text, model, provider } = await callFreeAIFallbackChain(
       prompt,
       {
+        tag: "plan:workout",
         systemPrompt: WORKOUT_SYSTEM_PROMPT,
         temperature: 0.7,
         maxTokens: 4000,
@@ -307,6 +309,7 @@ ${coachNote ? `تعليمات الكوتش: ${coachNote}` : ""}
     const { text, model, provider } = await callFreeAIFallbackChain(
       prompt,
       {
+        tag: "plan:nutrition-alt",
         systemPrompt: NUTRITION_SYSTEM_PROMPT,
         temperature: 0.8,
         maxTokens: 2600,
@@ -1088,6 +1091,7 @@ ${
     const { text, model, provider } = await callFreeAIFallbackChain(
       prompt,
       {
+        tag: "plan:json-normalize",
         systemPrompt:
           "أنت مساعد ذكي لتحويل نصوص الخطط إلى JSON منظم. أعد JSON صالح فقط.",
         temperature: 0.3, // low temp for faithful extraction
@@ -1344,6 +1348,7 @@ ${candidateList}
     const { text, model } = await callFreeAIFallbackChain(
       prompt,
       {
+        tag: "plan:exercise-corrective",
         systemPrompt:
           "أنت مدرب لياقة تصحيحي. تعيد JSON صالحاً فقط وتلتزم حرفياً بقائمة التمارين المعتمدة المعطاة لك.",
         temperature: 0.4,

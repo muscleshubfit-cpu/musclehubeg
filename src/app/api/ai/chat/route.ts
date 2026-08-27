@@ -263,6 +263,7 @@ export async function POST(request: NextRequest) {
       const { text: aiReply, model: aiModel, provider: aiProvider } = await callFreeAIFallbackChain(
         fullPrompt,
         {
+          tag: "evo-chat",
           temperature: 0.6,
           maxTokens: 800,
           timeoutMs: 16_000,

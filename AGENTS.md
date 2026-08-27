@@ -401,6 +401,33 @@ Process:
     - No resurrection branches: patch branches are never kept after their
       reason expires — archive-tag them (`archive/*`), then delete.
       Branch protection on `main`: force-push disabled (owner setting).
+- **UNIVERSAL MODEL SWITCHER COVERAGE (2026-08-27, owner directive
+  "نظام التبديل بين النماذج يتعمل لكل منظومة"):** every AI subsystem in
+  the platform rides ONE choke point (`callFreeAIFallbackChain`) and
+  passes its own observational `tag` so every log line and failure names
+  the subsystem + provider + model + key-pool event:
+    | System | `tag` |
+    |---|---|
+    | EVO chat (`/api/ai/chat`) | `evo-chat` (chain:"fast") |
+    | Plan generator | `plan:nutrition`, `plan:workout`, `plan:nutrition-alt`, `plan:json-normalize`, `plan:exercise-corrective` |
+    | Blog pipeline v3 (GHA) | `blog:pick-topic-<lang>`, `blog:outline-<lang>`, `blog:content-<lang>`, `blog:review-<lang>` |
+    | Admin article bundle libs | `article:en`, `article:ar`, `links-social` |
+    | Topic research / P0 research | `blog:topics-<lang>`, `blog:research` |
+    | External search simulation | `external-search` |
+    | Social posts | `social-posts:<lang>` |
+    | AI jobs runner | `ai-job:<tool>` |
+  - Switching policy lives ONLY inside the chain: dual OpenRouter keys
+    (`OPENROUTER_API` #2 + `OPENROUTER_API_KEY` #1, round-robin +
+    same-model account switch on quota/auth), Groq lead on alternating
+    calls, big-payload Groq guard (>~7.2k est tokens → openrouter-only),
+    one immediate identical retry on 200-empty responses. Consumers
+    NEVER choose providers or fetch provider URLs themselves.
+  - Any NEW AI consumer must import from `ai-provider.ts` AND register
+    its tag here; a bare provider fetch outside the chain is banned.
+  - Vercel-side prerequisite for the Vercel-hosted consumers: Production
+    env must also carry `OPENROUTER_API`, `OPENROUTER_API_KEY`,
+    `GROQ_API_KEY` (plus Supabase pair) so tagged switching works there
+    exactly as it does in GitHub Actions runners.
 - Never log the AI response in production code paths (it can contain
   user PII or partial reasoning that should not be persisted).
 - Local fallbacks (`src/lib/ai-local.ts`) exist so the app degrades
