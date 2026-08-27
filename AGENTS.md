@@ -453,6 +453,36 @@ Process:
       `remediate-blog-images.yml` (workflow_dispatch) regenerate every
       legacy Pollinations URL through the safe pipeline and rewrite
       blog_posts.content/featured_image + queue bundles in DB.
+- **IMAGE SAFETY LAW v2 — SEMANTIC PERSON-SCENE ATTRACTORS (2026-08-28,
+  live incident #2 on `/blog/12-week-periodized-muscle-building-plan`):**
+    - ROOT CAUSE (proven: production URL seed=29197): a prompt with ZERO
+      person tokens ("muscle building workout plan … for Intermediate
+      Lifters") STILL rendered a shirtless man. Diffusion models associate
+      fitness ACTION/program/physique nouns with training BODIES —
+      token-level sanitization cannot stop semantic attractors.
+    - LAW: `buildSafeImagePrompt()` now treats ANY subject carrying
+      person-scene semantics (workout / lifting / program / physique /
+      fat-burn / muscle-building vocabulary, EN + AR via
+      `promptHasPersonSemantics()`) as a people scene → REPLACED ENTIRELY
+      by a curated object scene. Program/plan topics get the planner-
+      notebook scene (rule sits ABOVE the muscle rule; first match wins).
+    - Style tails are IDEMPOTENT (a tail already inside the subject is
+      stripped before a fresh one is appended — fixes production doubled
+      "…high detail, …high detail" URLs).
+    - `promptHasPersonSemantics` is deliberately NOT part of
+      `promptHasBannedVocabulary` (curated scenes must never be refused
+      at the URL gate; no bare "row/rows" token — would match "row of
+      treadmills").
+    - Regression canaries: image-safety.test.ts §LAW v2 replays the exact
+      seed=29197 prompt; every curated scene must pass BOTH gates.
+- **BLOG BODY IMAGE RENDER LAW (2026-08-28, owner bug "الصورة داخل
+  المقال عبارة عن رابط مش صورة"):** `renderMarkdown()` (src/lib/blog.ts)
+  converts `![alt](url)` → `<img loading="lazy" class="my-6 w-full
+  rounded-2xl">` in a step 10.5 that runs BEFORE the link rule — with no
+  image rule the link regex consumed `[alt](url)` and every embedded
+  body image degraded to a bare text link. Unsafe schemes are dropped
+  entirely (XSS guard). Guarded by
+  `src/lib/__tests__/blog-markdown-images.test.ts`.
 - **EVO CHAT SURFACE & HISTORY LAW (2026-08-27, owner directive):** the
   floating widget (`EvoFloatingWidget`) is the ONLY chat surface with EVO.
     1) The old full-page `/chat` route is REMOVED; `next.config.ts`

@@ -8,6 +8,7 @@ import {
   buildSafeImagePrompt,
   deriveObjectScene,
   promptHasBannedVocabulary,
+  promptHasPersonSemantics,
   sanitizeImageSubject,
 } from "../image-safety";
 
@@ -58,5 +59,68 @@ describe("image-safety sanitizer", () => {
     expect(photo).toContain("professional product photography");
     const info = buildSafeImagePrompt("weekly protein intake breakdown", "infographic");
     expect(info).toContain("flat vector infographic");
+  });
+});
+
+describe("image-safety LAW v2 — semantic person-scene attractors (2026-08-28)", () => {
+  it("REWRITES the exact production prompt that rendered a shirtless man (seed=29197)", () => {
+    // Zero person tokens, yet Pollinations flux rendered a shirtless man:
+    // fitness program semantics are person attractors. Must be replaced
+    // ENTIRELY by a curated object scene.
+    const live =
+      "muscle building workout plan 12\u2011Week Periodized Muscle Building Plan for Intermediate Lifters";
+    const out = buildSafeImagePrompt(live, "photo", live);
+    expect(/lifters?|muscle building|workout/i.test(out)).toBe(false);
+    expect(promptHasPersonSemantics(out)).toBe(false);
+    // curated planner scene (periodized/plan hint)
+    expect(/planner notebook|dumbbell/i.test(out)).toBe(true);
+  });
+
+  it("flags action/program/physique semantics as person scenes", () => {
+    expect(promptHasPersonSemantics("full body workout session")).toBe(true);
+    expect(promptHasPersonSemantics("12-week periodized training plan")).toBe(true);
+    expect(promptHasPersonSemantics("best exercises for bigger biceps")).toBe(true);
+    expect(promptHasPersonSemantics("fat burning weight loss journey")).toBe(true);
+    expect(promptHasPersonSemantics("dumbbell rack on wooden floor")).toBe(false);
+    expect(promptHasPersonSemantics("row of treadmills in bright gym")).toBe(false);
+    expect(promptHasPersonSemantics("supplement jars close-up")).toBe(false);
+  });
+
+  it("style tails are IDEMPOTENT — never doubles (production doubled-tail bug)", () => {
+    const polluted =
+      "modern fitness studio interior with equipment rack and natural light, professional product photography, soft studio lighting, high detail";
+    const out = buildSafeImagePrompt(polluted, "photo", polluted);
+    expect(out.match(/high detail/g)?.length).toBe(1);
+    expect(out.match(/professional product photography/g)?.length).toBe(1);
+  });
+
+  it("EVERY curated object scene passes the banned-vocabulary gate (no refusal loop)", () => {
+    const hints = [
+      "12-week periodized muscle building plan for lifters",
+      "creatine and whey supplements",
+      "nutrition macros and meal planning",
+      "cardio treadmill fat burning",
+      "home workout no equipment bodyweight",
+      "injury recovery foam rolling mobility",
+      "yoga flexibility studio",
+      "muscle hypertrophy strength program",
+      "beginner guide tips for starters",
+      "completely unknown topic xyz",
+    ];
+    for (const hint of hints) {
+      const out = buildSafeImagePrompt(hint, "photo", hint);
+      expect(promptHasBannedVocabulary(out)).toBe(false);
+      expect(promptHasPersonSemantics(out)).toBe(false);
+    }
+  });
+
+  it("AR program titles map to curated English object scenes", () => {
+    const out = buildSafeImagePrompt(
+      "دليل بناء العضلات في المنزل بدون معدات",
+      "photo",
+      "muscle building home workout guide",
+    );
+    expect(/^[\x00-\x7F]+$/.test(out)).toBe(true);
+    expect(promptHasPersonSemantics(out)).toBe(false);
   });
 });

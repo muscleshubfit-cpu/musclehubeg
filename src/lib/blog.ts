@@ -289,6 +289,17 @@ export function renderMarkdown(content: string): string {
  });
  html = html.replace(/(<tr>.*<\/tr>\n?)+/g, (match) => `<table class="w-full text-sm border-collapse my-4"><tbody>${match}</tbody></table>`);
 
+ // 10.5 Images — ![alt](url) MUST be converted BEFORE the link rule.
+ // OWNER BUG (2026-08-28): with no image rule, the link regex below
+ // consumed "[alt](url)" inside "![alt](url)" and every body image
+ // rendered as a bare text link (the "!" left as stray punctuation).
+ // alt/url are already HTML-escaped by step 3, so they are safe to
+ // interpolate. Unsafe schemes → drop the image entirely.
+ html = html.replace(/!\[([^\]]*)\]\(([^)\s]+)\)/g, (match, alt, url) => {
+ if (!isSafeUrl(url)) return ""; // strip unsafe images completely
+ return `<img src="${url}" alt="${alt}" loading="lazy" class="my-6 w-full rounded-2xl" />`;
+ });
+
  // 11. Links — validate URL scheme to prevent javascript: etc.
  html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (match, text, url) => {
  if (!isSafeUrl(url)) return text; // strip unsafe links to plain text
@@ -296,7 +307,7 @@ export function renderMarkdown(content: string): string {
  });
 
  // 12. Paragraphs
- html = html.replace(/^(?!<[hbluol])(.+)$/gm, '<p class="my-3 leading-relaxed">$1</p>');
+ html = html.replace(/^(?!<[hbluiol])(.+)$/gm, '<p class="my-3 leading-relaxed">$1</p>');
 
  // 13. Restore code blocks and inline code
  html = html.replace(/\u0000CODEBLOCK(\d+)\u0000/g, (_, i) => codeBlocks[Number(i)]);

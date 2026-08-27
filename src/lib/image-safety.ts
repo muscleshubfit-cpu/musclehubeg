@@ -25,6 +25,21 @@
  *   5. Featured cover (#1 image) is anchored to the article's focus
  *      keyword/title so og:image is always on-topic.
  *
+ * LAW v2 — SEMANTIC PERSON-SCENE ATTRACTORS (2026-08-28 live incident
+ * #2 on /blog/12-week-periodized-muscle-building-plan): a prompt with
+ * ZERO person tokens ("muscle building workout plan 12-Week Periodized
+ * Muscle Building Plan for Intermediate Lifters") STILL rendered a
+ * shirtless man. Proof: production URL seed=29197. Diffusion models
+ * associate fitness ACTION nouns (workout, lifting, training, plan for
+ * lifters…) with training BODIES in their latent space — token-level
+ * sanitization cannot stop semantic attractors. Therefore:
+ *   6. Any subject carrying person-scene SEMANTICS (action/program/
+ *      physique vocabulary, EN + AR) is REPLACED ENTIRELY by a curated
+ *      object scene — never partially trusted.
+ *   7. Style tails are idempotent (a tail already present in the
+ *      subject is stripped before a fresh one is appended — fixes the
+ *      doubled "…high detail, …high detail" URLs seen in production).
+ *
  * This module is the SINGLE choke point: every image prompt anywhere in
  * the platform goes through buildSafeImagePrompt() / sanitizeImageSubject().
  */
@@ -44,6 +59,23 @@ const NEGATION_LATIN = [
   /\bnot\s+(?:[a-z][a-z\-]*\s+){0,2}[a-z][a-z\-]*/gi,
   /\bdon'?t\s+(?:show|include|contain)[^,.]*/gi,
 ];
+
+/**
+ * SEMANTIC ATTRACTOR VOCABULARY (law v2, 2026-08-28): these tokens don't
+ * name people, but diffusion models render PEOPLE for them anyway —
+ * fitness actions/programs/physique results are trained on bodies.
+ * A surviving subject containing ANY of these is never trusted; it is
+ * replaced by a curated object scene.
+ * NOTE: deliberately NO bare "row/rows" (would match "row of treadmills");
+ * "rowing" is listed instead. Matcher-only words ("cardio", "treadmill")
+ * belong in OBJECT_SCENE_RULES, not here.
+ */
+const ACTION_SCENE_TOKENS_LATIN =
+  /\b(workouts?|working out|work out|trainings?|training plan|train\b|lifters?|lifting|lift\b|lifts|exercis\w*|bodybuild\w*|weightlift\w*|powerlift\w*|crossfit|calisthenics|gym session|hiit|tabata|supersets?|dropsets?|push.?ups?|pull.?ups?|squats?|lunges?|planks?|deadlifts?|bench press|overhead press|shoulder press|leg press|curls?|presses|burpees?|mountain climbers|jumping jacks|sprints?|jogging|rowing|flexing|flex\b|physiques?|six.?pack|abs\b|biceps|triceps|deltoids|glutes|hamstrings|quadriceps|transformation|shredded|ripped|toned body|muscle building|muscle gain|mass gain|strength gain|muscle growth|build muscle|building muscle|fat burn|burn fat|burning fat|weight loss|lose weight|losing weight|gain muscle|gaining muscle|hypertrophy training)\b/i;
+
+/** Arabic semantic attractors (actions/programs/physique). */
+const AR_ACTION_SCENE_RE =
+  /\S*(?:تمرين|تمارين|يتمرن|عضلات|بناء العضلات|تنشيف|حرق الدهون|خسارة الوزن|ضخ muscle|كتلة العضل|جسم رياضي|لياقة بدنية)\S*/g;
 
 /** Clothing/outfit wording ⇒ implies a human subject → removed and
  *  forces an object-scene rewrite (attire has no meaning without people). */
@@ -139,6 +171,11 @@ export function sanitizeImageSubject(raw: string): SanitizeResult {
 type HintRule = { match: RegExp; scene: string };
 
 const OBJECT_SCENE_RULES: HintRule[] = [
+  // LAW v2: plan/program/split topics get the PLANNER scene — the single
+  // highest-risk attractor class ("12-week periodized plan for lifters"
+  // rendered a shirtless man). Must sit ABOVE the muscle rule (first
+  // match wins) so program articles get the on-topic notebook scene.
+  { match: /periodized|progressive overload|training split|push.?pull.?legs|upper.?lower|weekly schedule|workout plan|training plan|program design|beginner.*plan|plan.*beginner/i, scene: "open fitness planner notebook with weekly schedule grid beside dumbbells and stopwatch on wooden desk" },
   { match: /creatine|protein|whey|supplement|vitamin|mineral/i, scene: "supplement jars with shaker bottle arranged on gym bench close-up" },
   { match: /nutrition|diet|meal|calorie|food|eating|kitchen|macros/i, scene: "healthy meal prep bowls with vegetables and lean protein top view" },
   { match: /cardio|treadmill|fat burn|hiit|endurance|running machine/i, scene: "row of modern treadmills and elliptical machines in bright gym" },
@@ -185,15 +222,52 @@ export function buildSafeImagePrompt(
 ): string {
   const { clean, personRemoved, latinRatio } = sanitizeImageSubject(subjectRaw);
 
+  // LAW v2: a subject can be token-clean and STILL semantically describe
+  // a people scene ("muscle building workout plan for lifters"). Such
+  // prompts are replaced ENTIRELY by a curated object scene.
+  const semanticPerson =
+    new RegExp(ACTION_SCENE_TOKENS_LATIN.source, "i").test(clean) ||
+    new RegExp(ACTION_SCENE_TOKENS_LATIN.source, "i").test(subjectRaw ?? "");
+
   const unusable =
     !clean ||
     personRemoved || // described a people scene → replace entirely
+    semanticPerson || // action/program semantics attract bodies → replace
     clean.replace(/[^A-Za-z]/g, "").length < 6 || // effectively no usable English
     latinRatio < 0.55;
 
-  const finalSubject = unusable ? deriveObjectScene(hint ?? subjectRaw) : clean;
+  // Tail idempotency (production showed "…high detail, …high detail"):
+  // strip any style tail already baked into the base before appending.
+  const base = unusable ? deriveObjectScene(hint ?? subjectRaw) : clean;
+  const finalSubject = stripStyleTails(base);
 
   return `${finalSubject}${typeTail(type)}`;
+}
+
+/** Remove any STYLE_TAILS text already present in the subject (law v2 §7). */
+function stripStyleTails(s: string): string {
+  let out = s;
+  for (const tail of Object.values(STYLE_TAILS)) {
+    const escaped = tail.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    out = out.replace(new RegExp(escaped, "gi"), " ");
+  }
+  return out
+    .replace(/\s+/g, " ")
+    .replace(/(,\s*){2,}/g, ", ")
+    .replace(/^[\s,:\-–]+|[\s,:\-–]+$/g, "");
+}
+
+/**
+ * LAW v2 helper: true when the text carries person-scene SEMANTICS
+ * (action/program/physique attractors). Used by buildSafeImagePrompt to
+ * decide full-scene rewrite. NOT used by promptHasBannedVocabulary —
+ * curated scenes themselves must never be refused at the URL gate.
+ */
+export function promptHasPersonSemantics(s: string): boolean {
+  if (!s) return false;
+  if (new RegExp(ACTION_SCENE_TOKENS_LATIN.source, "i").test(s)) return true;
+  if (new RegExp(AR_ACTION_SCENE_RE.source, "i").test(s)) return true;
+  return false;
 }
 
 /** Defensive check for tests + remediation scanning.
