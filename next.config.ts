@@ -45,6 +45,14 @@ const nextConfig: NextConfig = {
   },
   // Compression
   compress: true,
+  // EVO CHAT SURFACE LAW (2026-08-27): the floating widget is the ONLY
+  // chat surface. The old full-page /chat route was removed — legacy
+  // links/bookmarks land on the EVO page whose CTAs open the widget.
+  async redirects() {
+    return [
+      { source: "/chat", destination: "/evo", permanent: true },
+    ];
+  },
   // Enable experimental features for better performance
   experimental: {
     optimizePackageImports: ["lucide-react", "framer-motion"],

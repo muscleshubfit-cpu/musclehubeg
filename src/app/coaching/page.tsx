@@ -13,6 +13,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Marquee } from "@/components/ui/3d-testimonials";
+import { openEvoFloatingChat } from "@/lib/evo-chat-context";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
 import { listBlogPosts, getCategoryLabel, type BlogPost } from "@/lib/blog";
@@ -290,12 +291,13 @@ export default function CoachingPage() {
                 {isAr ? "اعرف أكثر عن EVO" : "Learn more about EVO"}
                 <ArrowRight className="h-4 w-4 rtl:rotate-180" />
               </a>
-              <a
-                href="/chat"
-                className="inline-flex items-center gap-2 rounded-full bg-[#1d1d1f] px-7 py-3.5 text-base font-medium text-white transition-opacity hover:opacity-90"
+              <button
+                type="button"
+                onClick={openEvoFloatingChat}
+                className="inline-flex cursor-pointer items-center gap-2 rounded-full bg-[#1d1d1f] px-7 py-3.5 text-base font-medium text-white transition-opacity hover:opacity-90"
               >
                 {isAr ? "ابدأ المحادثة" : "Start chatting"}
-              </a>
+              </button>
             </div>
           </div>
         </section>

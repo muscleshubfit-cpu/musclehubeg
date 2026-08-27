@@ -248,13 +248,6 @@ const en: Dict = {
  "plans.swaps.exerciseSwapped": "Exercise swapped!",
  "plans.swaps.swapsLeftToday": "swaps left today.",
 
- "chat.title": "AI Coach",
- "chat.subtitle": "Ask anything about your nutrition, training, or progress.",
- "chat.placeholder": "Type your question…",
- "chat.welcome": "Hi! I'm your AI coach. Ask me about your meal plan, workouts, or progress.",
- "chat.empty": "No messages yet.",
- "chat.sending": "Sending…",
-
  "support.title": "Support",
  "support.subtitle": "Open a ticket and your coach will get back to you.",
  "support.newTicket": "New ticket",
@@ -625,12 +618,8 @@ const ar: Dict = {
  "plans.swaps.exerciseSwapped": "تم استبدال التمرين!",
  "plans.swaps.swapsLeftToday": "تبديل متبقي اليوم.",
 
- "chat.title": "الكوتش الذكي",
- "chat.subtitle": "اسأل أي شيء عن تغذيتك أو تمارينك أو تقدمك.",
- "chat.placeholder": "اكتب سؤالك…",
- "chat.welcome": "مرحباً! أنا كوتشك الذكي. اسألني عن خطة وجباتك أو تمارينك أو تقدمك.",
- "chat.empty": "لا توجد رسائل بعد.",
- "chat.sending": "جارٍ الإرسال…",
+ // EVO CHAT SURFACE LAW (2026-08-27): chat.* keys retired with the
+ // /chat page — the floating widget is the only chat surface.
 
  "support.title": "الدعم",
  "support.subtitle": "افتح تذكرة وسيرد عليك الكوتش.",

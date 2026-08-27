@@ -16,6 +16,7 @@ import { SiteHeader } from "@/components/SiteHeader";
 import { getFAQSchema } from "@/lib/seo";
 import Image from "next/image";
 import { ImageWithFallback } from "@/components/ui/image-with-fallback";
+import { openEvoFloatingChat } from "@/lib/evo-chat-context";
 
 // ============================================================
 // Site palette — Gemini-card palette extended to all landing sections
@@ -405,13 +406,14 @@ export function LandingView() {
                 : "A smart performance engine — not just a chatbot. Ask it anything fitness-related."}
             </p>
             <div className="mt-6 flex flex-wrap items-center justify-center gap-4">
-              <a
-                href="/chat"
-                className="inline-flex items-center gap-2 rounded-full px-7 py-3.5 text-base font-medium text-white transition-opacity hover:opacity-90"
+              <button
+                type="button"
+                onClick={openEvoFloatingChat}
+                className="inline-flex cursor-pointer items-center gap-2 rounded-full px-7 py-3.5 text-base font-medium text-white transition-opacity hover:opacity-90"
                 style={{ backgroundColor: PALETTE.brand }}
               >
                 {isAr ? "ابدأ المحادثة" : "Start chatting"}
-              </a>
+              </button>
               <a
                 href="/evo"
                 className="inline-flex items-center gap-2 rounded-full border px-7 py-3.5 text-base font-normal transition-colors hover:bg-[#f5f5f7]"

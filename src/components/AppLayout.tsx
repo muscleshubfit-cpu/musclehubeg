@@ -7,6 +7,7 @@ import { SiteHeader } from "@/components/SiteHeader";
 import { cn } from "@/lib/utils";
 import { useNav, type View } from "@/hooks/use-nav";
 import { isSupabaseConfigured } from "@/lib/supabase/client";
+import { openEvoFloatingChat } from "@/lib/evo-chat-context";
 
 export function AppLayout({ children }: { children: ReactNode }) {
   const { t, lang } = useI18n();
@@ -14,9 +15,12 @@ export function AppLayout({ children }: { children: ReactNode }) {
   const { view, navigate } = useNav();
   const isAr = lang === "ar";
 
-  const clientNav: { to: View; label: string; emoji: string }[] = [
+  type NavItem = { to: View; label: string; emoji: string; action?: "evo-chat" };
+  const clientNav: NavItem[] = [
     { to: "dashboard", label: t("nav.dashboard"), emoji: "🏠" },
-    { to: "chat", label: t("nav.coach"), emoji: "💬" },
+    // EVO CHAT SURFACE LAW (2026-08-27): opens the floating widget — the
+    // /chat page no longer exists (next.config redirects it to /evo).
+    { to: "chat", label: t("nav.coach"), emoji: "💬", action: "evo-chat" },
     { to: "questionnaires", label: t("nav.questionnaires"), emoji: "📋" },
     { to: "progress", label: t("nav.progress"), emoji: "📊" },
     { to: "plans", label: t("nav.plans"), emoji: "📄" },
@@ -24,7 +28,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
     { to: "referral", label: t("nav.referral"), emoji: "🎁" },
     { to: "memberships", label: t("nav.pricing"), emoji: "👑" },
   ];
-  const coachNav: { to: View; label: string; emoji: string }[] = [
+  const coachNav: NavItem[] = [
     { to: "coach", label: t("nav.clients"), emoji: "👥" },
     { to: "coach-support", label: t("nav.support.coach"), emoji: "🔧" },
     { to: "coach-payments", label: t("nav.admin"), emoji: "💳" },
@@ -60,9 +64,11 @@ export function AppLayout({ children }: { children: ReactNode }) {
                 return (
                   <button
                     key={item.to}
-                    onClick={() => navigate(item.to)}
+                    onClick={() =>
+                      item.action === "evo-chat" ? openEvoFloatingChat() : navigate(item.to)
+                    }
                     className={cn(
-                      "block w-full rounded-lg px-3 py-2 text-start text-sm font-normal transition-colors",
+                      "block w-full cursor-pointer rounded-lg px-3 py-2 text-start text-sm font-normal transition-colors",
                       active
                         ? "bg-[#f5f5f7] font-medium text-[#1d1d1f]"
                         : "text-[#6e6e73] hover:text-[#1d1d1f]",
@@ -109,9 +115,11 @@ export function AppLayout({ children }: { children: ReactNode }) {
                   return (
                     <button
                       key={item.to}
-                      onClick={() => navigate(item.to)}
+                      onClick={() =>
+                        item.action === "evo-chat" ? openEvoFloatingChat() : navigate(item.to)
+                      }
                       className={cn(
-                        "flex items-center gap-2 rounded-2xl px-4 py-3 text-sm font-medium transition-colors",
+                        "flex cursor-pointer items-center gap-2 rounded-2xl px-4 py-3 text-sm font-medium transition-colors",
                         active
                           ? "bg-[#0071e3] text-white"
                           : "bg-[#f5f5f7] text-[#1d1d1f]",

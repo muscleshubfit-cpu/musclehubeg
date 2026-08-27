@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { openEvoFloatingChat } from "@/lib/evo-chat-context";
 import {
   Menu,
   X,
@@ -242,7 +243,8 @@ export function SiteHeader({ variant = "landing" }: { variant?: "landing" | "app
         { label: isAr ? "لوحة التحكم" : "Dashboard", icon: LayoutDashboard, onClick: () => navigate("dashboard") },
         { label: isAr ? "خططي" : "My Plans", icon: FileText, onClick: () => navigate("plans") },
         { label: isAr ? "تقدمي" : "My Progress", icon: LineChart, onClick: () => navigate("progress") },
-        { label: isAr ? "كوتش EVO" : "EVO Coach", icon: Bot, onClick: () => navigate("chat") },
+        // EVO CHAT SURFACE LAW: opens the floating widget — never a /chat page.
+        { label: isAr ? "كوتش EVO" : "EVO Coach", icon: Bot, onClick: () => openEvoFloatingChat() },
         { label: isAr ? "الاستبيانات" : "Questionnaires", icon: ClipboardList, onClick: () => navigate("questionnaires") },
         { label: isAr ? "الإحالات" : "Referrals", icon: Gift, onClick: () => navigate("referral") },
         { label: isAr ? "الدعم" : "Support", icon: LifeBuoy, onClick: () => navigate("support") },

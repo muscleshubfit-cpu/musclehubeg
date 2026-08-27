@@ -9,6 +9,10 @@ import {
   type ReactNode,
 } from "react";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase/client";
+import {
+  buildPersistBody,
+  parsePersistedBody,
+} from "@/lib/evo-chat-links";
 
 /**
  * EvoChatContext — manages EVO chat state across all pages.
@@ -18,7 +22,37 @@ import { supabase, isSupabaseConfigured } from "@/lib/supabase/client";
  *
  * For authenticated users, chat history is synced to Supabase
  * `chat_messages` table for persistence across devices.
+ *
+ * OWNER DIRECTIVES (2026-08-27):
+ *   1. EVO CHAT SURFACE LAW — the floating widget (EvoFloatingWidget)
+ *      is the ONLY chat surface. The old /chat page was REMOVED and
+ *      /chat now redirects to /evo. Any CTA anywhere opens the widget
+ *      by dispatching the global EVO_OPEN_CHAT_EVENT below.
+ *   2. BACK-BUTTON LAW — with the drawer open, the browser/hardware
+ *      Back key must CLOSE the drawer, never navigate the site. A
+ *      sentinel history entry (mheEvoChat) is pushed while open.
+ *   3. LINK PERSISTENCE — assistant links used to vanish on reload
+ *      (chat_messages has no links column). Links now travel INSIDE
+ *      the persisted body as markdown bullets and are parsed back
+ *      out on load, so a reopened conversation renders exactly like
+ *      the live one.
  */
+
+/** Global event that opens the floating EVO chat from ANY component. */
+export const EVO_OPEN_CHAT_EVENT = "mhe:open-evo-chat";
+
+/**
+ * Open the floating EVO chat from anywhere (client-side no-op on server).
+ * Works from any CTA regardless of provider depth — the provider listens
+ * for this event and opens the drawer.
+ */
+export function openEvoFloatingChat() {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new CustomEvent(EVO_OPEN_CHAT_EVENT));
+}
+
+/** History sentinel flag marking the entry pushed while the drawer is open. */
+const EVO_HISTORY_FLAG = "mheEvoChat";
 
 export type ChatMessage = {
   id: string;
@@ -96,13 +130,16 @@ function saveLocalState(state: ChatState) {
   } catch { /* localStorage full or disabled */ }
 }
 
-// Convert a DB row to ChatMessage
+// Link persistence helpers live in evo-chat-links.ts (pure + unit-tested).
+// Convert a DB row to ChatMessage — restores persisted links too.
 function rowToMessage(row: { id: string; role: string; body: string; created_at: string }): ChatMessage {
+  const { content, links } = parsePersistedBody(row.body);
   return {
     id: row.id,
     role: row.role as "user" | "assistant",
-    content: row.body,
+    content,
     timestamp: new Date(row.created_at).getTime(),
+    ...(links.length > 0 ? { links } : {}),
   };
 }
 
@@ -110,10 +147,19 @@ export function EvoChatProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<ChatState>({
     messages: [], isOpen: false, isTyping: false, dailyCount: 0, dailyCountDate: getTodayString(),
   });
+  // HYDRATION GATE (2026-08-27): no persistence writes until the initial
+  // load (localStorage or Supabase) has completed. Without this, the
+  // mount-time save effect wrote an EMPTY state over stored history —
+  // under StrictMode's double-mount it raced between the two load runs
+  // and wiped the seed, and for authenticated users it clobbered the
+  // local cache while the async session check was still in flight.
+  const [hydrated, setHydrated] = useState(false);
 
   // Load from Supabase (authenticated) or localStorage (anonymous) on mount
   useEffect(() => {
+    let cancelled = false;
     (async () => {
+      let restored: ChatState | null = null;
       if (isSupabaseConfigured && supabase) {
         try {
           const { data: { user } } = await supabase.auth.getUser();
@@ -126,26 +172,64 @@ export function EvoChatProvider({ children }: { children: ReactNode }) {
               .limit(MAX_MESSAGES);
             if (data && data.length > 0) {
               const messages = data.reverse().map(rowToMessage);
-              setState((prev) => ({ ...prev, messages }));
-              return; // Don't load from localStorage
+              restored = { messages, isOpen: false, isTyping: false, dailyCount: 0, dailyCountDate: getTodayString() };
             }
           }
         } catch { /* fall through to localStorage */ }
       }
-      // Anonymous or no Supabase: load from localStorage
-      const loaded = loadLocalState();
-      setState(loaded);
+      if (cancelled) return;
+      // Anonymous, no Supabase, or no stored rows: load from localStorage
+      if (!restored) restored = loadLocalState();
+      setState(restored);
+      setHydrated(true); // persistence writes may start only NOW
     })();
+    return () => { cancelled = true; };
   }, []);
 
-  // Save to localStorage on every change (for offline/cache)
+  // Save to localStorage on every change (for offline/cache) — ONLY after
+  // the initial hydration finished, so a mount-time write can never wipe
+  // history that has not been read yet (StrictMode-safe).
   useEffect(() => {
+    if (!hydrated) return;
     saveLocalState(state);
-  }, [state.messages, state.dailyCount, state.dailyCountDate]);
+  }, [state.messages, state.dailyCount, state.dailyCountDate, hydrated]);
 
   const openChat = useCallback(() => setState((prev) => ({ ...prev, isOpen: true })), []);
-  const closeChat = useCallback(() => setState((prev) => ({ ...prev, isOpen: false })), []);
+  const closeChat = useCallback(() => {
+    setState((prev) => ({ ...prev, isOpen: false }));
+    // Consume the sentinel entry so the NEXT Back press navigates the
+    // site normally instead of re-closing an already-closed drawer.
+    if (typeof window !== "undefined" && window.history.state?.[EVO_HISTORY_FLAG] === true) {
+      window.history.back();
+    }
+  }, []);
   const toggleChat = useCallback(() => setState((prev) => ({ ...prev, isOpen: !prev.isOpen })), []);
+
+  // ── BACK-BUTTON LAW: Back closes the drawer, never the page ─────────
+  // While open we keep a sentinel history entry on the stack (preserving
+  // Next.js' own state keys). Back pops it → popstate → close drawer.
+  const isOpen = state.isOpen;
+  useEffect(() => {
+    if (!isOpen) return;
+    if (window.history.state?.[EVO_HISTORY_FLAG] !== true) {
+      window.history.pushState(
+        { ...(window.history.state || {}), [EVO_HISTORY_FLAG]: true },
+        "",
+      );
+    }
+    const onPopState = () => {
+      setState((prev) => (prev.isOpen ? { ...prev, isOpen: false } : prev));
+    };
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, [isOpen]);
+
+  // ── EVO CHAT SURFACE LAW: any CTA opens THIS drawer ─────────────────
+  useEffect(() => {
+    const onOpenEvent = () => setState((prev) => ({ ...prev, isOpen: true }));
+    window.addEventListener(EVO_OPEN_CHAT_EVENT, onOpenEvent);
+    return () => window.removeEventListener(EVO_OPEN_CHAT_EVENT, onOpenEvent);
+  }, []);
 
   // OWNER DIRECTIVE #4 (2026-08-27): the "clear chat" feature was REMOVED.
   // It allowed users to wipe their chat_messages rows — the very evidence
@@ -253,7 +337,9 @@ export function EvoChatProvider({ children }: { children: ReactNode }) {
                 await supabase.from("chat_messages").insert({
                   client_id: user.id,
                   role: "assistant",
-                  body: data.response || "",
+                  // LINK PERSISTENCE: links ride inside the body as markdown
+                  // bullets — parsePersistedBody restores them on reload.
+                  body: buildPersistBody(data.response || "", data.links),
                 });
               }
             } catch { /* non-blocking */ }

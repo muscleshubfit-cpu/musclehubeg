@@ -49,7 +49,8 @@ const AD_FREE_ROUTE_PREFIXES = [
   "/questionnaires",
   "/referral",
   "/support",
-  "/chat",
+  // EVO CHAT SURFACE LAW (2026-08-27): "/chat" removed — the route no
+  // longer exists; the floating widget is the only chat surface.
 ];
 
 export function AdSenseAd({

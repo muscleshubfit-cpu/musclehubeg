@@ -8,6 +8,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useMembershipTier } from "@/hooks/use-membership-tier";
 import { useNav } from "@/hooks/use-nav";
 import { SiteHeader } from "@/components/SiteHeader";
+import { openEvoFloatingChat } from "@/lib/evo-chat-context";
 import { supabase } from "@/lib/supabase/client";
 import { MEMBERSHIPS, getLimits, type MembershipTier } from "@/lib/memberships";
 import { EXERCISES } from "@/lib/exercises";
@@ -310,11 +311,25 @@ export default function ProfilePage() {
             { label: isAr ? "خططي" : "My Plans", href: "/plans", icon: FileText },
             { label: isAr ? "مخطط الوجبات" : "Meal Planner", href: "/meal-planner", icon: Utensils },
             { label: isAr ? "تقدمي" : "Progress", href: "/progress", icon: Calculator },
-            { label: isAr ? "كوتش EVO" : "EVO Coach", href: "/chat", icon: Bell },
+            // EVO CHAT SURFACE LAW: opens the floating widget — /chat is removed.
+            { label: isAr ? "كوتش EVO" : "EVO Coach", href: "#evo-chat", icon: Bell, evoChat: true },
             { label: isAr ? "الإحالات" : "Referral", href: "/referral", icon: Crown },
             { label: isAr ? "الدعم" : "Support", href: "/support", icon: Settings },
           ].map((link, i) => {
             const Icon = link.icon;
+            if ("evoChat" in link && link.evoChat) {
+              return (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={openEvoFloatingChat}
+                  className="flex cursor-pointer items-center gap-2 rounded-2xl bg-white p-4 text-start text-sm font-medium transition-colors hover:bg-[#f5f5f7]"
+                >
+                  <Icon className="h-4 w-4 text-[#6e6e73]" />
+                  {link.label}
+                </button>
+              );
+            }
             return (
               <Link
                 key={i}

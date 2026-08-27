@@ -11,7 +11,9 @@ import { AuthGate } from "./auth-gate";
  * component to own the metadata.
  *
  * Routes covered (one metadata for all — minimal change):
- *   /dashboard, /plans, /progress, /chat, /support, /referral,
+ *   /dashboard, /plans, /progress, /support, /referral
+ *   (the /chat page was removed — the floating widget is the only
+ *    chat surface; see AGENTS.md EVO CHAT SURFACE LAW)
  *   /coach/*, /questionnaires
  */
 export const metadata: Metadata = {

@@ -20,6 +20,7 @@ import {
   Shield,
 } from "lucide-react";
 import Image from "next/image";
+import { openEvoFloatingChat } from "@/lib/evo-chat-context";
 
 export default function EvoPage() {
   const { lang } = useI18n();
@@ -152,10 +153,13 @@ export default function EvoPage() {
 
           {/* Two CTAs — visually different */}
           <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
-            {/* Start Conversation — with EVO profile image */}
-            <a
-              href="/chat"
-              className="group inline-flex items-center gap-3 rounded-full bg-[#0071e3] px-6 py-3 text-base font-medium text-white transition-opacity hover:opacity-90"
+            {/* Start Conversation — opens the floating EVO chat drawer
+                (EVO CHAT SURFACE LAW 2026-08-27: the widget is the only
+                chat surface — this used to link to the removed /chat) */}
+            <button
+              type="button"
+              onClick={openEvoFloatingChat}
+              className="group inline-flex cursor-pointer items-center gap-3 rounded-full bg-[#0071e3] px-6 py-3 text-base font-medium text-white transition-opacity hover:opacity-90"
             >
               <Image
                 src="/images/evo-standalone.jpg"
@@ -166,7 +170,7 @@ export default function EvoPage() {
               />
               <span>{isAr ? "ابدأ المحادثة مع EVO" : "Start chatting with EVO"}</span>
               <ArrowRight className="h-4 w-4 rtl:rotate-180" />
-            </a>
+            </button>
 
             {/* Learn More — different visual style (outline) */}
             <a
@@ -487,9 +491,10 @@ export default function EvoPage() {
               : "Start chatting now — no signup. For full features, subscribe to coaching."}
           </p>
           <div className="mt-6 flex flex-wrap items-center justify-center gap-4">
-            <a
-              href="/chat"
-              className="inline-flex items-center gap-3 rounded-full bg-white px-6 py-3 text-base font-normal text-[#0071e3] transition-opacity hover:opacity-90"
+            <button
+              type="button"
+              onClick={openEvoFloatingChat}
+              className="inline-flex cursor-pointer items-center gap-3 rounded-full bg-white px-6 py-3 text-base font-normal text-[#0071e3] transition-opacity hover:opacity-90"
             >
               <Image
                 src="/images/evo-standalone.jpg"
@@ -500,7 +505,7 @@ export default function EvoPage() {
               />
               <span>{isAr ? "ابدأ المحادثة" : "Start chatting"}</span>
               <ArrowRight className="h-4 w-4 rtl:rotate-180" />
-            </a>
+            </button>
             <a
               href="/coaching"
               className="inline-flex items-center gap-2 rounded-full border border-white/30 px-6 py-3 text-base font-medium text-white transition-colors hover:bg-white/10"

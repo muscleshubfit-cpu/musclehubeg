@@ -25,6 +25,54 @@ import { useCallback } from "react";
  *   - Doesn't navigate away from current page
  */
 
+/**
+ * MessageText — renders assistant message content with markdown-lite
+ * inline link support: [label](url) becomes a real anchor. URLs are
+ * restricted to site-relative or http(s) — safe by construction.
+ * (Live answers arrive with a separate links[] array; this renderer
+ * covers model-written markdown and any legacy persisted bodies.)
+ */
+function MessageText({ content }: { content: string }) {
+  const MD_LINK = /\[([^\]]+)\]\(([^()\s]+)\)/g;
+  const parts: React.ReactNode[] = [];
+  let last = 0;
+  let m: RegExpExecArray | null;
+  while ((m = MD_LINK.exec(content)) !== null) {
+    if (m.index > last) parts.push(content.slice(last, m.index));
+    const [, label, url] = m;
+    const safe = /^(https?:\/\/|\/|#)/i.test(url);
+    if (safe) {
+      const external = /^https?:\/\//i.test(url);
+      parts.push(
+        external ? (
+          <a
+            key={m.index}
+            href={url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-medium text-[#0071e3] underline underline-offset-2"
+          >
+            {label}
+          </a>
+        ) : (
+          <a
+            key={m.index}
+            href={url}
+            className="font-medium text-[#0071e3] underline underline-offset-2"
+          >
+            {label}
+          </a>
+        ),
+      );
+    } else {
+      parts.push(m[0]);
+    }
+    last = m.index + m[0].length;
+  }
+  if (last < content.length) parts.push(content.slice(last));
+  return <p className="text-sm font-normal leading-relaxed whitespace-pre-wrap">{parts}</p>;
+}
+
 export function EvoFloatingWidget() {
   const { lang } = useI18n();
   const isAr = lang === "ar";
@@ -79,11 +127,11 @@ export function EvoFloatingWidget() {
 
   return (
     <>
-      {/* Floating Button — always visible */}
+      {/* Floating Button — always visible (OWNER 2026-08-27: enlarged 36px → 48px) */}
       {!isOpen && (
         <button
           onClick={openChat}
-          className="fixed bottom-5 z-50 rounded-full bg-[#0071e3] p-1 shadow-lg transition-all hover:scale-105 hover:shadow-xl"
+          className="fixed bottom-5 z-50 cursor-pointer rounded-full bg-[#0071e3] p-1.5 shadow-lg transition-all hover:scale-105 hover:shadow-xl"
           style={{ [isAr ? "left" : "right"]: "20px" } as React.CSSProperties}
           aria-label={isAr ? "افتح محادثة EVO" : "Open EVO chat"}
         >
@@ -92,11 +140,11 @@ export function EvoFloatingWidget() {
             <img
               src="/images/evo-standalone.jpg"
               alt="EVO"
-              className="h-9 w-9 rounded-full object-cover ring-2 ring-white/40"
+              className="h-12 w-12 rounded-full object-cover ring-2 ring-white/40"
             />
             <span className="absolute inset-0 animate-ping rounded-full bg-[#0071e3] opacity-20" />
             {/* Online indicator */}
-            <span className="absolute bottom-0 end-0 h-2.5 w-2.5 rounded-full bg-[#34c759] ring-1.5 ring-white" />
+            <span className="absolute bottom-0 end-0 h-3.5 w-3.5 rounded-full bg-[#34c759] ring-2 ring-white" />
           </span>
         </button>
       )}
@@ -213,9 +261,13 @@ export function EvoFloatingWidget() {
                             : "bg-white text-[#1d1d1f]"
                         }`}
                       >
-                        <p className="text-sm font-normal leading-relaxed whitespace-pre-wrap">
-                          {msg.content}
-                        </p>
+                        {msg.role === "user" ? (
+                          <p className="text-sm font-normal leading-relaxed whitespace-pre-wrap">
+                            {msg.content}
+                          </p>
+                        ) : (
+                          <MessageText content={msg.content} />
+                        )}
                         {/* Links */}
                         {msg.links && msg.links.length > 0 && (
                           <div className="mt-2 space-y-1 border-t border-black/10 pt-2">

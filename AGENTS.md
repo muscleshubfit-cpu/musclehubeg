@@ -453,6 +453,31 @@ Process:
       `remediate-blog-images.yml` (workflow_dispatch) regenerate every
       legacy Pollinations URL through the safe pipeline and rewrite
       blog_posts.content/featured_image + queue bundles in DB.
+- **EVO CHAT SURFACE & HISTORY LAW (2026-08-27, owner directive):** the
+  floating widget (`EvoFloatingWidget`) is the ONLY chat surface with EVO.
+    1) The old full-page `/chat` route is REMOVED; `next.config.ts`
+       permanently redirects `/chat → /evo`. Any CTA that used to link
+       there (landing, coaching, /evo page, profile quick links, AppLayout
+       nav, SiteHeader menu) must OPEN THE WIDGET instead — via
+       `openEvoFloatingChat()` (global `mhe:open-evo-chat` event exported
+       from `evo-chat-context.tsx`), never via a chat page link.
+    2) BACK-BUTTON LAW: with the drawer open, the browser/hardware Back
+       key CLOSES the drawer and never navigates the site. Enforced by the
+       `mheEvoChat` sentinel history entry pushed/popped in
+       `evo-chat-context.tsx`; `closeChat()` consumes the sentinel.
+    3) LINK PERSISTENCE: `chat_messages` has no links column — assistant
+       links ride INSIDE the persisted `body` as markdown bullets
+       (`src/lib/evo-chat-links.ts`: `buildPersistBody` /
+       `parsePersistedBody`, unit-tested canaries in
+       `src/lib/__tests__/evo-chat-links.test.ts`). Never persist
+       assistant messages without their links, and never render
+       assistant bubbles as raw text — `MessageText` renders
+       `[label](url)` as anchors.
+    4) HYDRATION GATE: persistence writes are gated on the initial load
+       completing (`hydrated` flag) — a mount-time write of an empty
+       state must never wipe stored history (StrictMode-safe).
+    5) The floating icon is ≥48px (owner: "كبر حجم الايقونة الطائرة
+       قليلاً" — currently 48px image in a 60px hit target).
 - Never log the AI response in production code paths (it can contain
   user PII or partial reasoning that should not be persisted).
 - Local fallbacks (`src/lib/ai-local.ts`) exist so the app degrades
