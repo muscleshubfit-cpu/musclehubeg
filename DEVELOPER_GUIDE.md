@@ -542,11 +542,14 @@ GitHub Actions (3x daily: 06/14/22 UTC + retry loops)
 }
 ```
 
-### GitHub Actions (التدفق الآلي للمدونة)
+### GitHub Actions (التدفق الآلي للمدونة — pipeline v3 فصل اللغات)
 
-ملف `.github/workflows/generate-blog-post.yml` يشغّل 3-step pipeline كل ساعتين:
-- يحتاج `CRON_SECRET` في GitHub Secrets
-- يحتاج `SITE_URL` في GitHub Variables
+منذ 2026-08-27 يوجد ورك فلو مستقل لكل لغة، مقال واحد في كل تشغيل:
+- `.github/workflows/blog-post-ar.yml` — 3 مقالات عربية يوميًا (05:00 / 11:00 / 18:00 UTC = 08:00 / 14:00 / 21:00 بتوقيت القاهرة صيفًا)
+- `.github/workflows/blog-post-en.yml` — 3 مقالات إنجليزية يوميًا (12:00 / 16:00 / 22:00 UTC = 08:00 / 12:00 / 18:00 بتوقيت شرق أمريكا)
+- الخطوات P0…P5 تُنفَّذ أصليًا داخل الأكشن عبر `scripts/blog-runner/run-step.mts`
+- متطلبات Secrets: `CRON_SECRET`, `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `GROQ_API_KEY` + واحد من `OPENROUTER_API` أو `OPENROUTER_API_KEY` (يمكن الاثنين — تدوير مزدوج)
+- اللغة تُمرَّر عبر `PIPELINE_LANG` (ar/en) — خطوة P0 ترفض العمل بدونها
 
 ---
 
@@ -761,15 +764,16 @@ maxModels افتراضي = 2 (يمكن تمريره عبر options.maxModels)
 
 ### 2. دور GitHub Actions كطبقة إعادة المحاولة
 
-بما أن كل طلب HTTP يجب أن ينتهي <60s، فإن إعادة المحاولة تحدث **بين**
-الطلبات على مستوى orchestration في `.github/workflows/generate-blog-post.yml`:
+خطوات البايبلاين تُنفَّذ **أصليًا داخل الأكشن** (in-process، بدون Vercel
+hop — منذ pipeline v2/v3)، لكن إعادة المحاولة ما زالت على مستوى الـorchestration
+في `.github/workflows/blog-post-en.yml` + `blog-post-ar.yml`:
 
-- كل خطوة من خطوات البايبلاين (1، 2a، 2b، 2c، 2d، 3) لها retry loop حتى
-  3 محاولات مع backoff 120 ثانية بينها.
-- M16 يجعل المسارات تقبل معالجة الصفوف status="failed" → إعادة المحاولة
-  فعالة فعلاً لا مجرد curl متكرر.
+- كل خطوة من خطوات البايبلاين (P0…P5) لها retry loop حتى 3 محاولات مع
+  backoff 120/240 ثانية بينها (عبر scripts/blog-runner/run-step.sh).
+- المسارات تقبل معالجة الصفوف status="failed" → إعادة المحاولة فعالة
+  فعلاً لا مجرد تشغيل متكرر.
 - عند فشل نموذج داخل محاولة واحدة، تتولى المحاولة التالية (أو النموذج
-  التالي في السلسلة) بنافذة زمنية جديدة.
+  التالي في السلسلة المتبادلة Groq/OpenRouter) بنافذة زمنية جديدة.
 
 ### 3. الأسعار والتكلفة
 

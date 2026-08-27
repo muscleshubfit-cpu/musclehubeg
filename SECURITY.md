@@ -121,10 +121,10 @@ Any of the following:
 
 ### 3.3 CRON_SECRET
 
-- Used by the GitHub Actions workflow
-  (`.github/workflows/generate-blog-post.yml`) and the Vercel cron
-  job (progress reminder) to authenticate calls to `/api/cron/*`
-  routes.
+- Used by the GitHub Actions blog pipelines
+  (`.github/workflows/blog-post-en.yml` + `.github/workflows/blog-post-ar.yml`,
+  language-split since 2026-08-27) and the Vercel cron job (progress
+  reminder) to authenticate calls to `/api/cron/*` routes.
 - Stored as a GitHub Secret (for Actions) and as a Vercel env var.
 - The `/api/cron/*` routes check
   `request.headers.get("Authorization") === "Bearer ${CRON_SECRET}"`.

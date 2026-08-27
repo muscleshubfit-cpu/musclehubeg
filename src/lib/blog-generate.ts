@@ -3,9 +3,10 @@
  *
  * Originally extracted for the retired manual editor endpoint; since the
  * 2026-08-27 consolidation it serves ONLY the native GitHub Actions
- * pipeline (.github/workflows/generate-blog-post.yml → p0…p5 via
- * scripts/blog-runner) — Vercel routes must never import model-calling
- * code (AGENTS.md §8 topology law; EVO chat is the sole exception).
+ * pipelines (.github/workflows/blog-post-en.yml + blog-post-ar.yml →
+ * p0…p5 via scripts/blog-runner; language-split v3) — Vercel routes must
+ * never import model-calling code (AGENTS.md §8 topology law; EVO chat
+ * is the sole exception).
  *
  * ─────────────────────────────────────────────────────────────────────────
  * SPEED OPTIMIZATION (Phase 6, 2026-08-19):
