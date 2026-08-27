@@ -10,6 +10,10 @@ import {
   isProgramQuery,
   type SearchResult,
 } from "@/lib/evo-search";
+import {
+  sanitizeLatexToPlain,
+  stripMarkdownSyntax,
+} from "@/lib/evo-chat-format";
 
 /**
  * EVO Chat endpoint — context-aware AI assistant.
@@ -334,6 +338,13 @@ export async function POST(request: NextRequest) {
           // 6. Strip wrapping quotes (model wrote: "answer here")
           cleanText = cleanText.replace(/^"([^"]+)"$/, "$1").trim();
 
+          // 6.5 OWNER 2026-08-27: LATEX→PLAIN + MARKDOWN STRIP sanitizer.
+          // The chat renders plain text only — live evidence showed raw
+          // "\\frac{4}{3}\\pi r^{3}" reaching users verbatim (models ignore
+          // the no-LaTeX law occasionally; this is the guaranteed floor).
+          cleanText = sanitizeLatexToPlain(cleanText);
+          cleanText = stripMarkdownSyntax(cleanText);
+
           // 7. Final validation: too-short output falls back to local reply.
           if (cleanText.length < 10 || /^\s*\d+\.\s+\*\*?[A-Z]/.test(cleanText)) {
             console.warn("[api/ai/chat] Cleaned text still looks like reasoning, using local fallback");
@@ -550,6 +561,12 @@ You are NOT just a chatbot — you analyze data, predict outcomes, and guide use
 ${isSubscriber ? "The user IS a subscriber — you can generate meal plans, workout plans, suggest swaps, and use their personal data." : "The user is NOT a subscriber — do NOT generate meal plans, workout plans, or macro calculations. Those are subscriber-only features. If asked, tell them to subscribe."}
 ${subscriberContext}${platformContext}${nutritionContext}${blogContext}
 
+CRITICAL — PLATFORM TRUTH LAW (never hallucinate features):
+- NEVER mention or imply that MuscleHubEG (or any website) has a tool, feature, page, or capability unless it is listed in THIS prompt or in the platform context above. Inventing a feature is a critical error.
+- The ONLY real MuscleHubEG surfaces: exercise library (/exercises), workout programs (/programs), food database (/foods), free tools & calculators (/tools), blog (/blog), online coaching (/coaching), memberships (/memberships), and this EVO chat.
+- You CANNOT: generate images, edit photos, create videos, send or receive files, browse the internet, or connect the user to a human. If asked for any of these, say plainly in the user's language that you can't do it — and STOP there. NEVER redirect the user to a non-existent alternative (e.g. never say "use the image generation tool on the site" — no such tool exists). Offer a real help instead: exercise info, food calories, general fitness guidance, or one of the real surfaces above.
+- If you don't know something, say you don't know. Uncertainty is allowed; fabrication is not.
+
 CRITICAL RULES:
 - Reply in the SAME language as the question (Arabic or English).
 - Keep responses VERY short (3-5 lines max, ideally 1-3 sentences).
@@ -563,6 +580,7 @@ CRITICAL RULES:
 - Do NOT invent numbers not in search results.
 - Do NOT give medical advice.
 - For general questions, answer with general fitness/nutrition knowledge without mentioning links.
+- NO LaTeX, NO TeX, NO markdown syntax in your reply (never \\frac, \\pi, $...$, **bold**, #, *, or code blocks) — the chat renders PLAIN TEXT only. Write any math in plain words/numbers (e.g. "حجم الكرة = 4/3 × 3.14 × نصف القطر³" or "V = 4/3 x 3.14 x r x r x r").
 
 CRITICAL — OUTPUT FORMAT (read carefully):
 - ANSWER DIRECTLY. Do NOT explain your reasoning process.

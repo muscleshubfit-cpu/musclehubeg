@@ -478,6 +478,27 @@ Process:
        state must never wipe stored history (StrictMode-safe).
     5) The floating icon is ≥48px (owner: "كبر حجم الايقونة الطائرة
        قليلاً" — currently 48px image in a 60px hit target).
+    6) SCROLL LAW (2026-08-27 owner report: "الشات بيفتح على بداية
+       المحادثة بدل من اخرها"): reopening the drawer MUST land on the
+       LATEST message, never the top. Enforced in `EvoFloatingWidget`
+       via a scroll-container ref + open-transition snap (instant
+       `scrollTo` bottom on open/restore, smooth-follow for new
+       messages). Never key the auto-scroll only on
+       `[messages, isTyping]` — it does not fire when the drawer opens
+       after history already loaded, and never use `scrollIntoView`
+       (it also scrolls the page behind the drawer).
+    7) PLATFORM TRUTH LAW (2026-08-27 owner report: EVO advertised a
+       non-existent "image generation tool"): the system prompt
+       (`/api/ai/chat` → `buildSystemPrompt`) contains a hard
+       capability whitelist (exercises/programs/foods/tools/blog/
+       coaching/memberships/this chat). EVO must say "I can't" and
+       stop when asked for anything else — NEVER invent or redirect to
+       a tool/feature that is not on the whitelist. Chat answers also
+       pass through `src/lib/evo-chat-format.ts`
+       (`sanitizeLatexToPlain` + `stripMarkdownSyntax`, unit-tested
+       canaries in `src/lib/__tests__/evo-chat-format.test.ts`) — the
+       chat renders plain text only; raw LaTeX (`\frac{4}{3}\pi
+       r^{3}`) and markdown syntax must never reach users again.
 - Never log the AI response in production code paths (it can contain
   user PII or partial reasoning that should not be persisted).
 - Local fallbacks (`src/lib/ai-local.ts`) exist so the app degrades

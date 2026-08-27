@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
 /**
  * CookieConsent — GDPR/AdSense consent banner.
@@ -32,6 +32,7 @@ function updateConsent(granted: boolean) {
 export function CookieConsent() {
   const [show, setShow] = useState(false);
   const [lang, setLang] = useState<"ar" | "en">("en");
+  const barRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     // Detect language from <html lang="...">
@@ -56,6 +57,34 @@ export function CookieConsent() {
     setShow(true);
   }, []);
 
+  // NO-COVER LAW (2026-08-27): while this banner is visible it must NEVER
+  // hide fixed bottom-corner UI — specifically the EVO floating chat icon
+  // (z-50 < this banner's z-[100] covered it entirely on mobile, so new
+  // visitors could not open EVO at all). The banner publishes its height
+  // as --mhe-cookie-bar-h on :root; fixed bottom elements lift themselves
+  // with bottom: calc(<offset> + var(--mhe-cookie-bar-h, 0px)).
+  useEffect(() => {
+    const root = document.documentElement;
+    if (!show) {
+      root.style.setProperty("--mhe-cookie-bar-h", "0px");
+      root.removeAttribute("data-mhe-cookie-banner");
+      return;
+    }
+    const el = barRef.current;
+    if (!el) return;
+    const publish = () =>
+      root.style.setProperty("--mhe-cookie-bar-h", `${el.offsetHeight}px`);
+    publish();
+    root.setAttribute("data-mhe-cookie-banner", "open");
+    const ro = new ResizeObserver(publish);
+    ro.observe(el);
+    return () => {
+      ro.disconnect();
+      root.style.setProperty("--mhe-cookie-bar-h", "0px");
+      root.removeAttribute("data-mhe-cookie-banner");
+    };
+  }, [show]);
+
   const handleAccept = () => {
     const data = { granted: true, timestamp: Date.now() };
     try {
@@ -79,7 +108,10 @@ export function CookieConsent() {
   const isAr = lang === "ar";
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-[100] border-t border-[#d2d2d7] bg-white p-4 shadow-lg md:p-6">
+    <div
+      ref={barRef}
+      className="fixed bottom-0 left-0 right-0 z-[100] border-t border-[#d2d2d7] bg-white p-4 shadow-lg md:p-6"
+    >
       <div className="mx-auto flex max-w-4xl flex-col items-center gap-4 md:flex-row md:justify-between">
         <p className="text-center text-sm font-normal text-[#1d1d1f] md:text-start">
           {isAr

@@ -97,15 +97,47 @@ export function EvoFloatingWidget() {
  (text: string) => setInput((prev) => (prev ? `${prev} ${text}` : text)),
  [],
  );
-  const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Auto-scroll to bottom when new messages arrive
+  // ── SCROLL LAW (OWNER 2026-08-27): the chat ALWAYS opens at the END of
+  // the conversation, never the beginning. The old effect keyed on
+  // [messages, isTyping] never fired on open — history had already loaded
+  // while the drawer was closed (ref was null), so reopening showed the
+  // TOP of the conversation. Now we scroll the CONTAINER itself:
+  //   • on drawer open / history restore  → instant snap to the latest message
+  //   • on new messages while open        → smooth follow
+  // Container.scrollTo also avoids scrollIntoView's side effect of scrolling
+  // the whole page behind the drawer.
+  const scrollBodyRef = useRef<HTMLDivElement>(null);
+  const pendingSnapRef = useRef(false);
+  const wasOpenRef = useRef(false);
+
   useEffect(() => {
-    if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
-    }
-  }, [messages, isTyping]);
+    if (isOpen && !wasOpenRef.current) pendingSnapRef.current = true;
+    wasOpenRef.current = isOpen;
+  }, [isOpen]);
+
+  const scrollToLatest = useCallback((behavior: ScrollBehavior) => {
+    const el = scrollBodyRef.current;
+    if (el) el.scrollTo({ top: el.scrollHeight, behavior });
+  }, []);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    // Double rAF: wait for the drawer layout (and restored history DOM) to
+    // be committed, then snap/follow. Instant on open — smooth afterwards.
+    let raf2 = 0;
+    const raf1 = requestAnimationFrame(() => {
+      raf2 = requestAnimationFrame(() => {
+        scrollToLatest(pendingSnapRef.current ? "auto" : "smooth");
+        pendingSnapRef.current = false;
+      });
+    });
+    return () => {
+      cancelAnimationFrame(raf1);
+      cancelAnimationFrame(raf2);
+    };
+  }, [isOpen, messages, isTyping, scrollToLatest]);
 
   // Focus input when drawer opens
   useEffect(() => {
@@ -127,12 +159,18 @@ export function EvoFloatingWidget() {
 
   return (
     <>
-      {/* Floating Button — always visible (OWNER 2026-08-27: enlarged 36px → 48px) */}
+      {/* Floating Button — always visible (OWNER 2026-08-27: enlarged 36px → 48px).
+          NO-COVER LAW: lifts above the cookie-consent banner via the
+          --mhe-cookie-bar-h variable published by CookieConsent — a new
+          visitor must always be able to reach EVO. */}
       {!isOpen && (
         <button
           onClick={openChat}
-          className="fixed bottom-5 z-50 cursor-pointer rounded-full bg-[#0071e3] p-1.5 shadow-lg transition-all hover:scale-105 hover:shadow-xl"
-          style={{ [isAr ? "left" : "right"]: "20px" } as React.CSSProperties}
+          className="fixed z-50 cursor-pointer rounded-full bg-[#0071e3] p-1.5 shadow-lg transition-all hover:scale-105 hover:shadow-xl"
+          style={{
+            [isAr ? "left" : "right"]: "20px",
+            bottom: "calc(20px + var(--mhe-cookie-bar-h, 0px))",
+          } as React.CSSProperties}
           aria-label={isAr ? "افتح محادثة EVO" : "Open EVO chat"}
         >
           {/* EVO profile image with pulse animation — image only, no text */}
@@ -201,7 +239,7 @@ export function EvoFloatingWidget() {
             </div>
 
             {/* Messages area */}
-            <div className="flex-1 overflow-y-auto bg-[#f5f5f7] p-4">
+            <div ref={scrollBodyRef} className="flex-1 overflow-y-auto bg-[#f5f5f7] p-4">
               {showWelcome ? (
                 /* Welcome screen */
                 <div className="flex h-full flex-col items-center justify-center text-center">
@@ -319,8 +357,6 @@ export function EvoFloatingWidget() {
                       </a>
                     </div>
                   )}
-
-                  <div ref={messagesEndRef} />
                 </div>
               )}
             </div>
