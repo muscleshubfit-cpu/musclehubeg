@@ -1,15 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { requireCoach, isAuthConfigured } from "@/lib/auth-server";
+import { fetchFeaturedImage } from "@/lib/blog-images";
 
 /**
- * Auto-fetch featured images for all published blog posts that don't have one.
- * Uses Pexels API to search for images matching the article's focus keyword or title.
+ * Backfill featured images for published blog posts that don't have one.
  *
- * POST /api/blog/fetch-images
+ * POST /api/blog/fetch-images   (coach-only)
+ * → { updated, failed, total, details: [{ title, status, image? }] }
  *
- * Auth: coach-only. Previously "protected" by a hardcoded shared string
- * ("fetch-images-2026") that was trivially discoverable in the source.
+ * OWNER DEEP-AUDIT FIX (2026-08-28): this endpoint was ORPHANED (no UI
+ * caller) and predated IMAGE SOURCE LAW v3.1 — it hit Pexels raw with NO
+ * query sanitization, NO alt-text modesty screening, and stored the
+ * heavyweight src.large variant. One call could have reintroduced exactly
+ * the shirtless-cover class of incident v3.1 exists to prevent. It is now
+ * a thin loop over `fetchFeaturedImage()` — the SAME pipeline the cron
+ * pipeline uses (sanitizeImageQuery → Pexels → NSFW/immodest alt screening
+ * → deterministic rotation → compressed landscape CDN variant) — and is
+ * wired into BlogAdminView as the "fill missing covers" button.
+ *
+ * NOTE: posts that ALREADY have a featured_image are never touched —
+ * re-sourcing existing covers stays the job of the GHA remediate runner.
  */
 export const maxDuration = 120;
 
@@ -19,8 +30,6 @@ export async function POST(request: NextRequest) {
     const auth = await requireCoach(request);
     if (auth instanceof Response) return auth;
   }
-
-  const body = await request.json().catch(() => ({}));
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -46,7 +55,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  // Filter to only posts without a featured_image
+  // Only posts WITHOUT a cover are candidates.
   const needsImage = (posts || []).filter((p: any) => !p.featured_image);
   const results: any[] = [];
   let updated = 0;
@@ -55,45 +64,26 @@ export async function POST(request: NextRequest) {
   for (const post of needsImage) {
     const query = (post.focus_keyword || post.title || "").trim();
     if (!query) {
-      results.push({ title: post.title, status: "skipped" });
+      results.push({ title: post.title, status: "skipped — no query" });
       continue;
     }
 
     try {
-      const searchRes = await fetch(
-        `https://api.pexels.com/v1/search?query=${encodeURIComponent(query)}&per_page=1&orientation=landscape`,
-        { headers: { Authorization: pexelsKey }, signal: AbortSignal.timeout(10_000) },
-      );
-      let photo: { src?: { large?: string; medium?: string; original?: string }; alt?: string } | null = null;
-      if (searchRes.ok) {
-        const data = await searchRes.json();
-        photo = data?.photos?.[0];
-      }
-      // Try broader query
-      if (!photo) {
-        const broad = post.title.split(" ").slice(0, 3).join(" ");
-        const retryRes = await fetch(
-          `https://api.pexels.com/v1/search?query=${encodeURIComponent(broad)}&per_page=1&orientation=landscape`,
-          { headers: { Authorization: pexelsKey }, signal: AbortSignal.timeout(10_000) },
-        );
-        if (retryRes.ok) {
-          const data = await retryRes.json();
-          photo = data?.photos?.[0];
-        }
-      }
+      // v3.1 pipeline: sanitized query → Pexels primary (Unsplash/Pixabay
+      // failover) → alt-screened → rotated pool pick → light CDN variant.
+      const photo = await fetchFeaturedImage(query, {
+        variationKey: `${post.id}-cover-backfill`,
+      });
 
       if (!photo) {
         failed++;
-        results.push({ title: post.title, status: "no photo found" });
+        results.push({ title: post.title, status: "no safe photo found" });
         continue;
       }
 
-      const imageUrl = photo.src?.large || photo.src?.medium || photo.src?.original;
-      const alt = photo.alt || query;
-
       const { error: updErr } = await supabase
         .from("blog_posts")
-        .update({ featured_image: imageUrl, cover_alt: alt })
+        .update({ featured_image: photo.url, cover_alt: photo.alt })
         .eq("id", post.id);
 
       if (updErr) {
@@ -101,9 +91,10 @@ export async function POST(request: NextRequest) {
         results.push({ title: post.title, status: updErr.message });
       } else {
         updated++;
-        results.push({ title: post.title, status: "updated", image: imageUrl });
+        results.push({ title: post.title, status: "updated", image: photo.url });
       }
-      await new Promise((r) => setTimeout(r, 500));
+      // Small pacing so a large backfill stays polite to the search APIs.
+      await new Promise((r) => setTimeout(r, 400));
     } catch (e: any) {
       failed++;
       results.push({ title: post.title, status: e.message });

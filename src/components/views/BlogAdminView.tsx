@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { getBlogStats, adminListPosts, adminDeletePost, adminDuplicatePost, type AdminBlogPost } from "@/lib/blog-admin";
 import { getCategoryLabel } from "@/lib/blog";
 import { toast } from "sonner";
-import { Sparkles, Search, Plus, RefreshCw, FileText, Globe, CheckCircle2, FileEdit, Trash2, Copy, ExternalLink, Eye } from "lucide-react";
+import { Sparkles, Search, Plus, RefreshCw, FileText, Globe, CheckCircle2, FileEdit, Trash2, Copy, ExternalLink, Eye, ImagePlus } from "lucide-react";
 
 export function BlogAdminView() {
   const { t, lang } = useI18n();
@@ -95,6 +95,35 @@ export function BlogAdminView() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={async () => {
+              if (!confirm(isAr ? "استكمال الصور المميزة الناقصة للمقالات المنشورة؟ (بخط الصور الآمن v3.1)" : "Fill missing featured covers for published posts? (via the v3.1 safe image pipeline)")) return;
+              try {
+                const res = await fetch("/api/blog/fetch-images", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({}),
+                });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok) {
+                  alert(data.error || (isAr ? "فشل الاستكمال" : "Backfill failed"));
+                  return;
+                }
+                alert(
+                  isAr
+                    ? `تم استكمال ${data.updated} من ${data.total} مقال ناقص${data.failed ? ` — فشل ${data.failed}` : ""} ✅`
+                    : `Filled ${data.updated} of ${data.total} missing covers${data.failed ? ` — ${data.failed} failed` : ""} ✅`,
+                );
+                if (data.updated > 0) await load();
+              } catch (e: any) {
+                alert(e?.message || (isAr ? "فشل الاستكمال" : "Backfill failed"));
+              }
+            }}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3.5 py-2 text-xs font-medium text-emerald-600 dark:text-emerald-400 transition-colors hover:bg-emerald-500/20"
+          >
+            <ImagePlus className="h-3.5 w-3.5" />
+            {isAr ? "استكمال الصور الناقصة" : "Fill Missing Covers"}
+          </button>
           <button
             onClick={async () => {
               if (!confirm(isAr ? "تنظيف النصوص المشوهة في المقالات المنشورة؟ (يدوياً)" : "Clean up garbled text in published articles? (dry run first)")) return;
