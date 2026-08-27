@@ -96,16 +96,22 @@ async function remediatePosts(): Promise<void> {
 
 async function remediateQueueBundles(): Promise<void> {
   for (let from = 0; ; from += 100) {
+    // NOTE: article_bundle is JSONB — `like/ilike` on it raises
+    // "operator does not exist: jsonb ~~ unknown". Filter client-side.
     const { data, error } = await supabaseAdmin
       .from("blog_generation_queue")
       .select("id, focus_keyword, topic, article_bundle")
       .not("article_bundle", "is", null)
-      .like("article_bundle", "%image.pollinations.ai%")
       .range(from, from + 99);
     if (error) throw new Error(`queue select failed: ${error.message}`);
     if (!data || data.length === 0) break;
 
-    for (const q of data as any[]) {
+    const batch = (data as any[]).filter(
+      (q) => typeof q.article_bundle === "string" &&
+        q.article_bundle.includes("image.pollinations.ai"),
+    );
+
+    for (const q of batch) {
       let bundle: any;
       try {
         bundle = JSON.parse(q.article_bundle);
