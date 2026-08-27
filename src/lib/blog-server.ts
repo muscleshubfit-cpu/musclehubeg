@@ -68,7 +68,7 @@ export type BlogOGData = {
  * Centralizing this here so the three previous copies of the same REST
  * query don't drift apart.
  */
-// Decision 2 fix: wrap fetchBlogForOG in unstable_cache for 1-hour ISR.
+// Decision 2 fix: wrap fetchBlogForOG in unstable_cache for 5-min revalidate — aligned with page ISR post IMAGE SAFETY remediation.
 // Blog posts change rarely — caching reduces Supabase queries significantly.
 const fetchBlogForOGUncached = async (
   slug: string,
@@ -111,7 +111,7 @@ const fetchBlogForOGUncached = async (
 export const fetchBlogForOG = unstable_cache(
   fetchBlogForOGUncached,
   ["blog-og"],
-  { revalidate: 3600 },
+  { revalidate: 300 },
 );
 
 /**
@@ -155,7 +155,7 @@ const fetchBlogPostFullUncached = async (
 export const fetchBlogPostFull = unstable_cache(
   fetchBlogPostFullUncached,
   ["blog-full"],
-  { revalidate: 3600 },
+  { revalidate: 300 },
 );
 
 export type BlogPostFull = {
