@@ -1,7 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
+import { createHash } from "crypto";
 import { callFreeAIFallbackChain } from "@/lib/ai-provider";
 import { requireUser, isAuthConfigured, type AuthUser } from "@/lib/auth-server";
-import { checkEvoChatLimit, recordEvoChatUsage } from "@/lib/tier-limits";
+import {
+  checkEvoChatLimit,
+  recordEvoChatUsage,
+  checkEvoPlanQuota,
+  checkAnonChatLimit,
+  recordAnonChatUsage,
+} from "@/lib/tier-limits";
+import { classifyEvoIntent } from "@/lib/evo-intent";
 import {
   searchPlatform,
   getFoodNutrition,
@@ -22,10 +30,20 @@ import {
  *   1. Platform search — finds exercises, foods, programs, tools
  *   2. Blog RAG — searches Supabase blog_posts for relevant articles
  *   3. OpenRouter + Groq AI (owner directive 2026-08-27)
- *   4. Anonymous mode — works without login (client-side counter; no server
- *      identity exists to bill, so server-side throttling for anonymous
- *      traffic is documented as out of scope)
+ *   4. Anonymous mode — works without login. T-AI-DEEP-AUDIT-V2 (D3):
+ *      anonymous traffic is throttled SERVER-SIDE per hashed client IP
+ *      (evo_anon_usage ledger, migration 0028) — the old "client-side
+ *      counter only" posture let scripts bleed OpenRouter credits.
  *   5. Subscriber mode — full context (plans, progress, questionnaires)
+ *
+ * 2026-08-28 T-AI-DEEP-AUDIT-V2 (D4 — MONTHLY PLAN QUOTA):
+ *   The advertised "3/6 plans per month" quotas were never enforced —
+ *   this chat is the only member-reachable "EVO builds me a plan"
+ *   surface, and it let paid tiers generate unlimited plans. Now
+ *   plan-creation intents (evo-intent.ts) are counted per domain
+ *   (nutrition/workout) in the SAME tamper-proof ledger, against
+ *   evoNutritionPlanLimit / evoWorkoutPlanLimit. Swap intents stay on
+ *   the weekly /api/ai/jobs flow — NOT double-counted here.
  *
  * 2026-08-27 CRITICAL FIXES:
  *   G1/G2 — usage is recorded SERVER-SIDE in the tamper-proof
@@ -47,6 +65,21 @@ export type { AuthUser };
 const MAX_MESSAGE_LENGTH = 4_000;
 const MAX_HISTORY_ITEMS = 10;
 const MAX_HISTORY_ITEM_LENGTH = 2_000;
+
+/**
+ * D3 — salted hash of the client IP. No raw IPs are stored; rotating
+ * EVO_ANON_SALT invalidates all existing anon counters (documented).
+ * Missing proxy headers collapse into one shared conservative bucket —
+ * on Vercel x-forwarded-for is always present.
+ */
+function getAnonKey(request: NextRequest): string {
+  const ip =
+    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+    request.headers.get("x-real-ip") ||
+    "unknown";
+  const salt = process.env.EVO_ANON_SALT || "mhe-evo-anon-v1";
+  return createHash("sha256").update(`${ip}:${salt}`).digest("hex").slice(0, 32);
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -89,12 +122,13 @@ export async function POST(request: NextRequest) {
     const isPaidTier =
       !!userId && ["premium", "pro", "coaching"].includes(authTier || "");
 
-    // 1.5 Server-side daily limit check for all NON-paid users (C15+G1).
-    // Paid tiers skip counting entirely (limit=null). Free/anonymous
-    // anonymous users have no identity → ledger is for logged-in users;
-    // anonymous traffic remains client-side-counter best-effort.
+    // 1.5 Server-side daily limit check (C15+G1).
+    //   Logged-in: tamper-proof evo_chat_usage ledger, verified tier.
+    //   Anonymous (D3): same shape against the evo_anon_usage ledger,
+    //   keyed by hashed client IP — free-tier daily limit applies.
     let limitUsed = 0;
     let limitValue: number | null = null;
+    let anonKey: string | undefined;
     if (userId) {
       const limitCheck = await checkEvoChatLimit(userId, authTier);
       limitUsed = limitCheck.used;
@@ -116,38 +150,36 @@ export async function POST(request: NextRequest) {
           { status: 429, headers: { "Retry-After": "3600" } },
         );
       }
+    } else {
+      // D3 — anonymous visitors: server-side per-IP throttling.
+      anonKey = getAnonKey(request);
+      const anonCheck = await checkAnonChatLimit(anonKey);
+      limitUsed = anonCheck.used;
+      limitValue = anonCheck.limit;
+      if (!anonCheck.allowed) {
+        return NextResponse.json(
+          {
+            response: `⏰ You've reached today's EVO chat limit (${anonCheck.used}/${anonCheck.limit} messages). The limit resets at midnight.\n\nCreate a free account or subscribe to Premium/Pro for more.`,
+            links: [{ label: "View membership plans →", url: "/memberships" }],
+            source: "rate-limit",
+            rateLimited: true,
+            used: anonCheck.used,
+            limit: anonCheck.limit,
+          },
+          { status: 429, headers: { "Retry-After": "3600" } },
+        );
+      }
     }
 
     // SUBSCRIBER-ONLY features: meal plans, workout plans, meal generation,
     // macro calculations, swap suggestions.
     // G5 FIX: gate fires for EVERYONE without a paid tier — including
     // authenticated free accounts (previously bypassed with any login).
-    const subscriberOnlyPatterns = [
-      /make\s+me\s+(a|an)?\s*(meal|workout|plan|diet|menu)/i,
-      /generate\s+(a|an)?\s*(meal|workout|plan|diet|menu)/i,
-      /create\s+(a|an)?\s*(meal|workout|plan|diet|menu)/i,
-      /plan\s+(for|with)\s+\d+\s*(calorie|kcal|cal)/i,
-      /meal\s+(plan|with|for)\s+\d+/i,
-      /\d+\s*(calorie|kcal|cal)\s*(meal|plan|diet)/i,
-      /workout\s+(plan|program|routine)\s*(for|with)/i,
-      /اعمل\s+(وجبة|خطة|برنامج|جدول|دايت|مينو)/i,
-      /صمم\s+(وجبة|خطة|برنامج|جدول)/i,
-      /انشئ\s+(وجبة|خطة|برنامج|جدول)/i,
-      /خطة\s+(تغذية|تمارين|دايت)\s+/i,
-      /وجبة\s+\d+\s*سعر/i,
-      /\d+\s*سعرة\s*(وجبة|خطة|مينو)/i,
-      /swap\s+(this|my|the)\s*(meal|food|exercise)/i,
-      /بدّل\s+(وجبة|أكلة|تمرين)/i,
-      /بديل\s+(وجبة|أكلة|تمرين)/i,
-      /regenerate\s+(meal|plan|workout)/i,
-      /أعد\s+(توليد|صناعة)\s*(وجبة|خطة)/i,
-    ];
+    // D4: the flat list moved to evo-intent.ts so plan-creation intents
+    // can be quota'd per domain without touching the gate coverage.
+    const intent = classifyEvoIntent(message);
 
-    const isSubscriberOnlyRequest = subscriberOnlyPatterns.some((pattern) =>
-      pattern.test(message),
-    );
-
-    if (isSubscriberOnlyRequest && !isPaidTier) {
+    if (intent.isSubscriberOnly && !isPaidTier) {
       return NextResponse.json({
         response:
           "🔒 This feature is for subscribers only. Meal plans, workout plans, and meal generation require an active Premium/Pro/Coaching subscription.\n\nFree features I can help with:\n• Exercise info and instructions\n• Food calories and macros\n• Fitness calculators\n• General fitness Q&A\n\nSubscribe to get personalized meal & workout plans!",
@@ -159,6 +191,34 @@ export async function POST(request: NextRequest) {
         ],
         source: "subscriber-gate",
       });
+    }
+
+    // 1.6 D4 — MONTHLY plan-generation quota (paid tiers only; free users
+    // were already blocked by the subscriber gate above). Plan-creation
+    // intents count per domain against evoNutritionPlanLimit /
+    // evoWorkoutPlanLimit. Swap intents intentionally NOT counted here —
+    // they ride the weekly /api/ai/jobs quota (no double-billing).
+    if (intent.isPlanCreation && isPaidTier && userId) {
+      const quota = await checkEvoPlanQuota(userId, intent.planDomain, authTier);
+      if (!quota.allowed) {
+        const domainLabel =
+          intent.planDomain === "nutrition" ? "meal" : "workout";
+        const upgradeHint =
+          authTier === "pro"
+            ? ""
+            : "\n\nUpgrade to Pro for 6 plans per month.";
+        return NextResponse.json(
+          {
+            response: `⏰ You've used ${quota.used}/${quota.limit} ${domainLabel} plans this month. Your quota resets on the 1st of each month.${upgradeHint}`,
+            links: [{ label: "View membership plans →", url: "/memberships" }],
+            source: "rate-limit",
+            rateLimited: true,
+            used: quota.used,
+            limit: quota.limit,
+          },
+          { status: 429, headers: { "Retry-After": "3600" } },
+        );
+      }
     }
 
     // 2. Search the platform's local databases (exercises, foods, programs, tools)
@@ -250,11 +310,18 @@ export async function POST(request: NextRequest) {
       .join("\n\n");
     const fullPrompt = `${systemPrompt}\n\n${chatPrompt}\n\nAssistant:`;
 
-    // 6.5 G1 FIX — record usage BEFORE dispatch in the tamper-proof ledger.
-    // Record-before-dispatch closes the concurrent-burst window and makes
-    // clearing chat history irrelevant to the quota.
+    // 6.5 G1 + D3 + D4 — record usage BEFORE dispatch in tamper-proof
+    // ledgers (record-before-dispatch closes the concurrent-burst window):
+    //   chat   → every logged-in dispatch (daily quota evidence)
+    //   plan_* → paid-tier plan-creation dispatches (monthly quota evidence)
+    //   anon   → anonymous dispatches (per-IP daily quota evidence)
     if (userId) {
       await recordEvoChatUsage(userId, "chat");
+      if (isPaidTier && intent.isPlanCreation) {
+        await recordEvoChatUsage(userId, `plan_${intent.planDomain}`);
+      }
+    } else if (anonKey) {
+      await recordAnonChatUsage(anonKey, "chat");
     }
 
     // 7. Try AI via callFreeAIFallbackChain (OpenRouter + Groq interleaved).

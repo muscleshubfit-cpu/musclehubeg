@@ -3,7 +3,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useEvoChat } from "@/lib/evo-chat-context";
 import { useI18n } from "@/lib/i18n";
-import { useAuth } from "@/hooks/use-auth";
 import { Send, X, ExternalLink, Loader2, Sparkles } from "lucide-react";
 import { VoiceMicButton } from "@/components/VoiceMicButton";
 import { useCallback } from "react";
@@ -76,7 +75,6 @@ function MessageText({ content }: { content: string }) {
 export function EvoFloatingWidget() {
   const { lang } = useI18n();
   const isAr = lang === "ar";
-  const { profile } = useAuth();
   const {
     isOpen,
     isTyping,
@@ -84,6 +82,7 @@ export function EvoFloatingWidget() {
     dailyCount,
     dailyLimit,
     dailyLimitReached,
+    isPaidTier,
     openChat,
     closeChat,
     toggleChat,
@@ -155,7 +154,13 @@ export function EvoFloatingWidget() {
 
   // Welcome message when chat is empty
   const showWelcome = messages.length === 0;
-  const isSubscriber = !!profile;
+  // T-AI-DEEP-AUDIT-V2 (D2 fix): "subscriber" = PAID tier from the resolved
+  // membership, NOT merely being logged in. The old `!!profile` made free
+  // accounts look unlimited: no countdown, no warning, and — after the
+  // server 429 — an enabled-but-dead input (locks were gated on
+  // `!isSubscriber`). Now every quota UI keys off dailyLimit/isPaidTier
+  // which mirror the server's actual tier resolution.
+  const isSubscriber = isPaidTier;
 
   return (
     <>
@@ -336,7 +341,8 @@ export function EvoFloatingWidget() {
                     </div>
                   )}
 
-                  {/* Rate limit warning */}
+                  {/* Rate limit warning — D2: keyed on the RESOLVED limit,
+                      not on being logged in. */}
                   {dailyLimitReached && !isSubscriber && (
                     <div className="rounded-2xl bg-[#ff9500]/10 p-4 text-center">
                       <p className="text-sm font-medium text-[#ff9500]">
@@ -361,9 +367,10 @@ export function EvoFloatingWidget() {
               )}
             </div>
 
-            {/* Input area */}
+            {/* Input area — D2: the countdown shows only for limited tiers
+                (dailyLimit !== null); paid tiers chat without counters. */}
             <div className="border-t border-[#d2d2d7] bg-white p-3">
-              {!isSubscriber && (
+              {!isSubscriber && dailyLimit !== null && (
                 <div className="mb-2 text-center text-[10px] font-normal text-[#6e6e73]">
                   {isAr
                     ? `${dailyLimit - dailyCount} رسائل متبقية اليوم`

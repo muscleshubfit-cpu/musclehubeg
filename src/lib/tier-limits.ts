@@ -27,7 +27,10 @@
  */
 
 import { supabaseAdmin, isSupabaseAdminConfigured } from "@/lib/supabase/admin";
-import { MEMBERSHIPS, type MembershipTier } from "@/lib/memberships";
+import { MEMBERSHIPS, getLimits, type MembershipTier } from "@/lib/memberships";
+
+/** Plan-quota domain (mirrors EvoPlanDomain in evo-intent.ts). */
+export type EvoPlanKind = "nutrition" | "workout";
 
 const VALID_TIERS: MembershipTier[] = ["free", "premium", "pro", "coaching"];
 
@@ -89,18 +92,130 @@ export function evoChatLimitFor(tier: MembershipTier): number | null {
  *   coaching: 3/week (same as premium, but with human coach)
  */
 export function swapLimitForTier(tier: MembershipTier): number | null {
-  switch (tier) {
-    case "free":
-      return 0;
-    case "premium":
-      return 3;
-    case "pro":
-      return 6;
-    case "coaching":
-      return 3; // same as premium, but with human coach
-    default:
-      return 0;
+  // Single source of truth = memberships.ts (evoSwapLimit).
+  // Previously a hardcoded switch duplicated these numbers — the two could
+  // drift apart from the advertised comparison table. They still agree
+  // today (0/3/6/3); now they CANNOT diverge.
+  return getLimits(tier).evoSwapLimit;
+}
+
+/**
+ * Monthly plan-generation quota for a tier (T-AI-DEEP-AUDIT-V2, D4 fix).
+ * Reads evoNutritionPlanLimit / evoWorkoutPlanLimit straight from
+ * memberships.ts so the advertised numbers ARE the enforced numbers.
+ *   free: 0/0 · premium: 3/3 · pro: 6/6 · coaching: 3/3
+ * Returns null = unlimited.
+ */
+export function planQuotaFor(tier: MembershipTier, kind: EvoPlanKind): number | null {
+  const limits = getLimits(tier);
+  return kind === "nutrition"
+    ? limits.evoNutritionPlanLimit
+    : limits.evoWorkoutPlanLimit;
+}
+
+/** UTC month start — "resets monthly" = resets on the 1st, UTC. */
+function monthStartUtc(): string {
+  const now = new Date();
+  return new Date(
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1),
+  ).toISOString();
+}
+
+/**
+ * Count this month's plan generations for a user, from the SAME tamper-proof
+ * ledger as chat usage — plan requests are recorded with source
+ * `plan_nutrition` / `plan_workout` BEFORE dispatch (burst-safe).
+ */
+export async function countThisMonthPlanUsage(
+  userId: string,
+  kind: EvoPlanKind,
+): Promise<number> {
+  if (!isSupabaseAdminConfigured || !supabaseAdmin) return 0;
+  const { count, error } = await supabaseAdmin
+    .from("evo_chat_usage" as any)
+    .select("*", { count: "exact", head: true })
+    .eq("user_id", userId)
+    .eq("source", `plan_${kind}`)
+    .gte("created_at", monthStartUtc());
+  if (error) {
+    console.error("[tier-limits] countThisMonthPlanUsage error:", error.message);
+    return 0; // fail open on counting errors — soft quota, same as chat
   }
+  return count ?? 0;
+}
+
+/**
+ * Check the MONTHLY plan-generation quota (D4 fix).
+ * The only member-reachable "EVO builds me a plan" surface is this chat,
+ * so this is where the advertised per-month numbers become real.
+ */
+export async function checkEvoPlanQuota(
+  userId: string,
+  kind: EvoPlanKind,
+  tierHint?: string | null,
+): Promise<{ allowed: boolean; used: number; limit: number | null; unlimited: boolean }> {
+  const tier = sanitizeTier(tierHint) ?? (await resolveTierFromDb(userId));
+  const limit = planQuotaFor(tier, kind);
+  if (limit === null) {
+    return { allowed: true, used: 0, limit: null, unlimited: true };
+  }
+  if (limit === 0) {
+    return { allowed: false, used: 0, limit: 0, unlimited: false };
+  }
+  const used = await countThisMonthPlanUsage(userId, kind);
+  return { allowed: used < limit, used, limit, unlimited: false };
+}
+
+/* ------------------- Anonymous traffic ledger (D3 fix) -------------------
+ * evo_chat_usage.user_id is a uuid FK to auth.users, so anonymous visitors
+ * (no identity) could previously dispatch UNLIMITED chat calls and bleed
+ * OpenRouter/Groq credits. Migration 0028 adds evo_anon_usage — same
+ * tamper-proof design (server-writes only, no browser policies) keyed by
+ * a SALTED SHA-256 of the client IP (no raw IPs stored). The free-tier
+ * daily limit applies per anonymous client.
+ * ---------------------------------------------------------------------- */
+
+/** Count today's anonymous dispatches for one hashed client key. */
+export async function countTodayAnonChatUsage(anonKey: string): Promise<number> {
+  if (!isSupabaseAdminConfigured || !supabaseAdmin) return 0;
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+  const { count, error } = await supabaseAdmin
+    .from("evo_anon_usage" as any)
+    .select("*", { count: "exact", head: true })
+    .eq("anon_key", anonKey)
+    .gte("created_at", todayStart.toISOString());
+  if (error) {
+    console.error("[tier-limits] countTodayAnonChatUsage error:", error.message);
+    return 0;
+  }
+  return count ?? 0;
+}
+
+/** Insert one anon ledger row BEFORE dispatching (record-before-dispatch). */
+export async function recordAnonChatUsage(
+  anonKey: string,
+  source = "chat",
+): Promise<void> {
+  if (!isSupabaseAdminConfigured || !supabaseAdmin) return;
+  const { error } = await supabaseAdmin
+    .from("evo_anon_usage" as any)
+    .insert({ anon_key: anonKey, source });
+  if (error) {
+    console.error("[tier-limits] recordAnonChatUsage error:", error.message);
+  }
+}
+
+/** Anonymous visitors get the FREE tier daily limit (10/day). */
+export async function checkAnonChatLimit(anonKey: string): Promise<{
+  allowed: boolean;
+  used: number;
+  limit: number | null;
+  unlimited: boolean;
+}> {
+  const limit = evoChatLimitFor("free");
+  const used = await countTodayAnonChatUsage(anonKey);
+  return { allowed: used < (limit ?? 10), used, limit, unlimited: false };
 }
 
 /**

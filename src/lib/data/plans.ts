@@ -3,16 +3,15 @@
 import {
  supabase,
  isSupabaseConfigured,
- swapLimitFor,
  read,
  write,
  uid,
  LS_PLANS,
  LS_TICKETS,
- LS_PREFIX,
 } from "./helpers";
 import { createNotification, createAdminNotification } from "./notifications";
 import { getSubscriptionForClient } from "./subscriptions";
+import { getLimits } from "@/lib/memberships";
 
 export async function listPlans(clientId: string) {
  if (isSupabaseConfigured && supabase) {
@@ -101,83 +100,41 @@ export async function activatePlan(planId: string, clientId: string) {
  return all[idx];
 }
 
-/** Record a swap and check daily limit (tier-dependent). Returns { allowed, used, limit }. */
-export async function recordSwap(userId: string, planId: string, swapType: "meal" | "exercise") {
- // Determine limit from user's subscription tier
- // Use getSubscriptionForClient (filtered by RLS to the caller's own rows)
- // instead of listAllSubscriptions (which fetches all visible rows).
- const userSub = await getSubscriptionForClient(userId);
- const tierId = (userSub?.tier as any) || "starter";
- const DAILY_LIMIT = swapLimitFor(tierId) ?? 2; // null = unlimited → use large number
-
- if (isSupabaseConfigured && supabase) {
- const todayStart = new Date();
- todayStart.setHours(0, 0, 0, 0);
- const { count, error } = await supabase
- .from("plan_swaps")
- .select("*", { count: "exact", head: true })
- .eq("user_id", userId)
- .eq("swap_type", swapType)
- .gte("created_at", todayStart.toISOString());
- if (error) throw new Error(error.message);
- const used = count ?? 0;
-
- // Unlimited tier
- if (DAILY_LIMIT === null || swapLimitFor(tierId) === null) {
- const { error: insErr } = await supabase
- .from("plan_swaps")
- .insert({ user_id: userId, plan_id: planId, swap_type: swapType });
- if (insErr) throw new Error(insErr.message);
- return { allowed: true, used: used + 1, limit: null as number | null, unlimited: true };
- }
-
- if (used >= DAILY_LIMIT) {
- return { allowed: false, used, limit: DAILY_LIMIT, unlimited: false };
- }
- const { error: insErr } = await supabase
- .from("plan_swaps")
- .insert({ user_id: userId, plan_id: planId, swap_type: swapType });
- if (insErr) throw new Error(insErr.message);
- return { allowed: true, used: used + 1, limit: DAILY_LIMIT, unlimited: false };
- }
- // Local fallback
- const all = read<any[]>(LS_PREFIX + "swaps", []);
- const today = new Date().toDateString();
- const todaySwaps = all.filter(
- (s) => s.user_id === userId && s.swap_type === swapType && new Date(s.created_at).toDateString() === today,
- );
- if (DAILY_LIMIT !== null && todaySwaps.length >= DAILY_LIMIT) {
- return { allowed: false, used: todaySwaps.length, limit: DAILY_LIMIT, unlimited: false };
- }
- all.push({ id: uid(), user_id: userId, plan_id: planId, swap_type: swapType, created_at: new Date().toISOString() });
- write(LS_PREFIX + "swaps", all);
- return { allowed: true, used: todaySwaps.length + 1, limit: DAILY_LIMIT, unlimited: DAILY_LIMIT === null };
-}
-
-/** Get current swap usage for today (for displaying remaining quota). */
+/**
+ * Get current swap usage for display — T-AI-DEEP-AUDIT-V2 (D6 fix).
+ * MUST mirror the ENFORCEMENT in tier-limits.ts / /api/ai/jobs exactly:
+ *   - weekly Monday-anchored window (was: daily — stale legacy system)
+ *   - limits from memberships.ts evoSwapLimit via the VERIFIED active
+ *     subscription (was: swapLimitFor from the retired starter/elite
+ *     tier system — "premium" resolved to undefined → showed UNLIMITED
+ *     while the server enforced 3/week)
+ */
 export async function getSwapUsage(userId: string) {
- // Determine limit from user's subscription tier
- // Use getSubscriptionForClient (filtered by RLS to the caller's own rows)
- // instead of listAllSubscriptions (which fetches all visible rows).
  const userSub = await getSubscriptionForClient(userId);
- const tierId = (userSub?.tier as any) || "starter";
- const LIMIT = swapLimitFor(tierId); // null = unlimited
+ const tierId = (userSub?.tier as any) || "free";
+ const LIMIT = getLimits(tierId).evoSwapLimit; // number | null (null = unlimited)
+ // Monday-anchored week start — byte-for-byte the same math as
+ // tier-limits.countThisWeekSwaps, so display == enforcement.
+ const now = new Date();
+ const dayOfWeek = now.getDay(); // 0=Sun, 1=Mon, ...
+ const mondayOffset = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+ const weekStart = new Date(now);
+ weekStart.setDate(now.getDate() - mondayOffset);
+ weekStart.setHours(0, 0, 0, 0);
  if (isSupabaseConfigured && supabase) {
- const todayStart = new Date();
- todayStart.setHours(0, 0, 0, 0);
  const [meals, exercises] = await Promise.all([
  supabase
  .from("plan_swaps")
  .select("*", { count: "exact", head: true })
  .eq("user_id", userId)
  .eq("swap_type", "meal")
- .gte("created_at", todayStart.toISOString()),
+ .gte("created_at", weekStart.toISOString()),
  supabase
  .from("plan_swaps")
  .select("*", { count: "exact", head: true })
  .eq("user_id", userId)
  .eq("swap_type", "exercise")
- .gte("created_at", todayStart.toISOString()),
+ .gte("created_at", weekStart.toISOString()),
  ]);
  return {
  meal: {

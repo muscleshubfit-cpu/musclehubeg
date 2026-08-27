@@ -609,6 +609,41 @@ Process:
        meal_regenerate, exercise_regenerate, payments review, receipts,
        broadcasts, admin leads/referrals/saved-results/blog CRUD — all
        consistent. Re-audit after ANY new button+endpoint pair.
+- **USAGE LIMIT ENFORCEMENT LAW (2026-08-28, T-AI-DEEP-AUDIT-V2, owner
+  directive «توسع وعمق اكبر … والتأكد من ايفو وطبيعه عضوية المستخدم فى
+  حدود الاستخدام»):** every limit advertised in `memberships.ts` MUST be
+  enforced SERVER-SIDE at the only route that can consume it, and the
+  client UI MUST mirror the SAME resolved tier — display/enforcement
+  drift is a defect even when the server stays authoritative.
+    1) ENFORCEMENT MATRIX (verified 2026-08-28): evoChatDailyLimit →
+       `/api/ai/chat` (evo_chat_usage ledger, record-before-dispatch);
+       evoNutritionPlanLimit/evoWorkoutPlanLimit → `/api/ai/chat`
+       plan-creation intents via `evo-intent.ts` classification, counted
+       per domain (sources `plan_nutrition`/`plan_workout`) monthly-UTC;
+       evoSwapLimit → `/api/ai/jobs` enqueue (checkAndRecordSwap, weekly
+       Monday-anchored); mealPlannerMaxMeals/MaxSaved →
+       `/api/tools/save-meal-plan`; savedResultsLimit →
+       `/api/tools/save-result`; adsEnabled → AdSenseAd via
+       useMembershipTier. savedResultsExport/mealPlannerExport are
+       client-only by design (user's own data, no AI cost).
+    2) ANON THROTTLE: anonymous chat traffic is throttled SERVER-SIDE
+       per SALTED-SHA-256(client IP) in `evo_anon_usage` (migration 0028,
+       no policies — service-role only, no raw IPs stored) at the free
+       tier daily limit. Fail-open on ledger errors, graceful 501-style
+       degradation before the table exists.
+    3) CLIENT PARITY: EvoChatProvider resolves the tier
+       (useAuth + useMembershipTier) and exposes `dailyLimit: number |
+       null` — paid tiers are NEVER client-locked by the free 10/day
+       counter; quota UI keys off the resolved limit, not off "being
+       logged in". getSubscriptionForClient filters
+       `status='active' AND end_date>now()` (expired subs never look
+       paid client-side). getSwapUsage displays the SAME weekly window +
+       evoSwapLimit as /api/ai/jobs enforces (the retired starter/elite
+       `swapLimitFor` system must not be used for limits).
+    4) PLAN QUOTA vs SWAP QUOTA: plan-creation intents consume the
+       MONTHLY per-domain quota; swap/regenerate intents stay on the
+       WEEKLY /api/ai/jobs quota. Never double-count a message in both.
+       Changing any advertised number happens ONLY in memberships.ts.
 - **SCHEDULE HEALTH LAW (2026-08-27 incident):** GitHub's scheduler can
   silently DE-REGISTER a repository's scheduled workflows — every
   `schedule` trigger stops firing repo-wide while `push` / `dispatch`

@@ -13,6 +13,9 @@ import {
   buildPersistBody,
   parsePersistedBody,
 } from "@/lib/evo-chat-links";
+import { useAuth } from "@/hooks/use-auth";
+import { useMembershipTier } from "@/hooks/use-membership-tier";
+import { getLimits } from "@/lib/memberships";
 
 /**
  * EvoChatContext — manages EVO chat state across all pages.
@@ -77,7 +80,8 @@ export type ChatState = {
 };
 
 const STORAGE_KEY = "mhe:evo-chat";
-const DAILY_LIMIT = 10; // anonymous users
+// D1: the effective limit now comes from the resolved tier
+// (getLimits(tier).evoChatDailyLimit — 10 for free/anon, null = unlimited).
 const MAX_MESSAGES = 20;
 
 type EvoChatContextType = {
@@ -85,8 +89,12 @@ type EvoChatContextType = {
   isTyping: boolean;
   messages: ChatMessage[];
   dailyCount: number;
-  dailyLimit: number;
+  /** Effective daily limit from the RESOLVED tier — null = unlimited. */
+  dailyLimit: number | null;
   dailyLimitReached: boolean;
+  /** True when the resolved tier is premium/pro/coaching. Server-side
+   * limits remain the authority; this only shapes the client UI. */
+  isPaidTier: boolean;
   openChat: () => void;
   closeChat: () => void;
   toggleChat: () => void;
@@ -147,6 +155,18 @@ export function EvoChatProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<ChatState>({
     messages: [], isOpen: false, isTyping: false, dailyCount: 0, dailyCountDate: getTodayString(),
   });
+  // T-AI-DEEP-AUDIT-V2 (D1 fix): resolve the REAL tier so paid users are
+  // never client-locked by the anonymous/free 10-message counter.
+  // Previously dailyLimitReached fired for EVERYONE at 10 sends per
+  // session — Premium/Pro/Coaching (advertised UNLIMITED chat) got a
+  // silent dead send button. The tier resolves "coaching" for coaches
+  // too, so staff are unlimited as designed. Until the async tier
+  // lookup finishes we ASSUME free (conservative; the server is the
+  // ultimate enforcement anyway).
+  const { profile } = useAuth();
+  const { tier } = useMembershipTier(profile);
+  const isPaidTier = tier !== "free";
+  const dailyLimit = getLimits(tier).evoChatDailyLimit; // null = unlimited
   // HYDRATION GATE (2026-08-27): no persistence writes until the initial
   // load (localStorage or Supabase) has completed. Without this, the
   // mount-time save effect wrote an EMPTY state over stored history —
@@ -237,7 +257,10 @@ export function EvoChatProvider({ children }: { children: ReactNode }) {
   // also made quota-reset feel legitimate. History is capped at MAX_MESSAGES
   // client-side and persisted server-side; there is no user-facing clear.
 
-  const dailyLimitReached = state.dailyCount >= DAILY_LIMIT;
+  // D1: only limited tiers (free/anon) can be locally locked. Paid tiers
+  // have limit=null → never locked here; a stray server 429 still injects
+  // the limit bubble (the server remains the authority).
+  const dailyLimitReached = dailyLimit !== null && state.dailyCount >= dailyLimit;
 
   const sendMessage = useCallback(
     async (content: string) => {
@@ -290,11 +313,16 @@ export function EvoChatProvider({ children }: { children: ReactNode }) {
         // messages in chat_messages.
         if (!response.ok) {
           if (response.status === 429) {
-            // Sync the local counter so the input locks without more failed attempts.
+            // Sync the local counter so the input locks — only for tiers
+            // that actually have a daily limit (D1: unlimited tiers keep
+            // working; the server bubble below still informs the user).
             setState((prev) => ({
               ...prev,
               isTyping: false,
-              dailyCount: Math.max(prev.dailyCount, DAILY_LIMIT),
+              dailyCount:
+                dailyLimit !== null
+                  ? Math.max(prev.dailyCount, dailyLimit)
+                  : prev.dailyCount,
               messages: [
                 ...prev.messages,
                 {
@@ -355,7 +383,7 @@ export function EvoChatProvider({ children }: { children: ReactNode }) {
         setState((prev) => ({ ...prev, messages: [...prev.messages, errorMessage], isTyping: false }));
       }
     },
-    [state.messages, dailyLimitReached],
+    [state.messages, dailyLimitReached, dailyLimit],
   );
 
   return (
@@ -365,8 +393,9 @@ export function EvoChatProvider({ children }: { children: ReactNode }) {
         isTyping: state.isTyping,
         messages: state.messages,
         dailyCount: state.dailyCount,
-        dailyLimit: DAILY_LIMIT,
+        dailyLimit,
         dailyLimitReached,
+        isPaidTier,
         openChat,
         closeChat,
         toggleChat,

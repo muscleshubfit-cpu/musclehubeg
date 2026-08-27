@@ -226,10 +226,18 @@ export async function listAllSubscriptions() {
  */
 export async function getSubscriptionForClient(clientId: string) {
  if (isSupabaseConfigured && supabase) {
+ // T-AI-DEEP-AUDIT-V2 (D5 fix): filter status='active' + end_date>now —
+ // mirrors auth-server.ts getAuthUser(). Previously the newest row won
+ // regardless of status/expiry, so an EXPIRED or REJECTED subscription
+ // still made client UI treat the user as paid (useMembershipTier →
+ // ads hidden, export buttons enabled, EVO unlimited-badge …). The
+ // server stays the authority; this fix aligns the client picture.
  const { data } = await supabase
  .from("subscriptions")
  .select("*")
  .eq("client_id", clientId)
+ .eq("status", "active")
+ .gt("end_date", new Date().toISOString())
  .order("created_at", { ascending: false });
  const arr = data ?? [];
  if (arr.length === 0) return null;
@@ -250,7 +258,20 @@ export async function getSubscriptionForClient(clientId: string) {
  }
  return arr[0];
  }
- return read<any[]>(LS_SUBS, []).find((s) => s.client_id === clientId) ?? null;
+ // Local fallback mirrors the same active + expiry filter.
+ const now = new Date().toISOString();
+ const all = read<any[]>(LS_SUBS, []).filter(
+ (s) => s.client_id === clientId && s.status === "active" && s.end_date > now,
+ );
+ if (all.length === 0) return null;
+ const hasCoaching = all.some((s: any) => s.tier === "coaching");
+ const membershipSubs = all.filter((s: any) => ["premium", "pro"].includes(s.tier));
+ if (membershipSubs.length > 0) {
+ const priority = (tier: string) => (tier === "pro" ? 3 : tier === "premium" ? 2 : 0);
+ membershipSubs.sort((a, b) => priority(b.tier) - priority(a.tier));
+ return membershipSubs[0];
+ }
+ return all.find((s: any) => s.tier === "coaching") ?? all[0];
 }
 
 /**
