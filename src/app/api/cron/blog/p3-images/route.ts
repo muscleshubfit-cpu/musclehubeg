@@ -3,7 +3,8 @@ import {
   fetchFeaturedImage,
   type SourcedImage,
 } from "@/lib/blog-images";
-import { IMAGE_MODESTY_SUFFIX, type ImagePlanItem } from "@/lib/blog-pipeline";
+import { buildSafeImagePrompt } from "@/lib/image-safety";
+import { type ImagePlanItem } from "@/lib/blog-pipeline";
 import {
   getQueueIdParam,
   fetchQueueItem,
@@ -18,22 +19,26 @@ export const maxDuration = 60;
 
 /**
  * PIPELINE V3 · PHASE 3 — Image sourcing (3–5 images, ONE language).
- * Prompts come from the row's OWN image plan and EVERY prompt is
- * appended with IMAGE_MODESTY_SUFFIX (owner hard rule: no nudity, no
- * revealing imagery). Bundle stays FLAT: images is a plain array.
- *
- * Delivery format note: sources are hosted JPEG/PNG URLs; the site
- * renders via next/image which serves optimized WebP automatically.
+ * IMAGE SAFETY LAW (2026-08-27 owner hard rule): every prompt is built
+ * through src/lib/image-safety.ts — PEOPLE-FREE subjects only, zero
+ * negations. Image #1 is ANCHORED to the article's focus keyword/title
+ * so the featured/og:image is always on-topic. Bundle stays FLAT.
  *
  * GET /api/cron/blog/p3-images?queueId=<uuid>
  */
 const MIN_IMAGES = 3;
 const MAX_IMAGES = 5;
 
-async function sourceImages(plan: ImagePlanItem[]): Promise<SourcedImage[]> {
-  const prompts = plan
-    .slice(0, MAX_IMAGES)
-    .map((p) => `${p.subject}, ${p.type === "infographic" ? "clean infographic style" : p.type === "diagram" ? "clear explanatory diagram style" : "editorial photography"}${IMAGE_MODESTY_SUFFIX}`);
+async function sourceImages(
+  plan: ImagePlanItem[],
+  coverHint: string,
+): Promise<SourcedImage[]> {
+  // Image #1 = topical COVER derived from focus keyword/title (drives
+  // featured_image + og:image). Plan items fill positions 2..N.
+  const prompts: string[] = [buildSafeImagePrompt(coverHint, "photo", coverHint)];
+  for (const p of plan.slice(0, MAX_IMAGES - 1)) {
+    prompts.push(buildSafeImagePrompt(p.subject, p.type, coverHint));
+  }
 
   const settled = await Promise.allSettled(prompts.map((q) => fetchFeaturedImage(q)));
   const okImages = settled
@@ -44,7 +49,7 @@ async function sourceImages(plan: ImagePlanItem[]): Promise<SourcedImage[]> {
   // Never fewer than MIN images while there are prompts left untried.
   for (let i = prompts.length; okImages.length < MIN_IMAGES && i < MAX_IMAGES; i++) {
     try {
-      const extra = await fetchFeaturedImage(`${prompts[i % Math.max(prompts.length, 1)] || "fitness workout"}${IMAGE_MODESTY_SUFFIX}`);
+      const extra = await fetchFeaturedImage(prompts[i % Math.max(prompts.length, 1)] || buildSafeImagePrompt("fitness equipment", "photo", coverHint));
       if (extra) okImages.push(extra);
     } catch {
       break;
@@ -95,7 +100,7 @@ export async function GET(request: NextRequest) {
       throw new Error("p3: image plan missing — rerun p1-outline");
     }
 
-    const imgs = await sourceImages(plan);
+    const imgs = await sourceImages(plan, `${qi.focus_keyword || ""} ${bundle.outline?.title || qi.topic || ""}`.trim());
     if (imgs.length === 0) {
       throw new Error("p3: no images could be sourced");
     }

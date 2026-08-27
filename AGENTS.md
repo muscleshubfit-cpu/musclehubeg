@@ -428,6 +428,31 @@ Process:
     env must also carry `OPENROUTER_API`, `OPENROUTER_API_KEY`,
     `GROQ_API_KEY` (plus Supabase pair) so tagged switching works there
     exactly as it does in GitHub Actions runners.
+- **IMAGE SAFETY LAW — PEOPLE-FREE AI IMAGERY (2026-08-27, owner hard
+  rule after live incident on two published posts):**
+    - ROOT CAUSE (proven from production URLs): the retired
+      `IMAGE_MODESTY_SUFFIX` injected NEGATION phrases ("no nudity",
+      "no cleavage", "no women …") into every diffusion prompt.
+      Diffusion models do NOT parse negation — those tokens acted as
+      positive attractors and DIRECTLY caused immodest renders, plus
+      drifted/off-topic subjects and Arabic prompts degrading flux.
+    - NEW POLICY (structural): AI blog images are PEOPLE-FREE objects &
+      scenes ONLY (equipment / food / interiors / flat vectors).
+      1) Single choke point `src/lib/image-safety.ts`:
+         `buildSafeImagePrompt()` sanitizes EVERY prompt — strips all
+         negation constructions, person words (EN+AR), NSFW vocabulary,
+         clothing wording (implies humans); prompts that described a
+         people scene are fully REWRITTEN to topical object scenes.
+      2) P1 outline instruction demands ENGLISH-only object subjects.
+      3) P3 image #1 = topical COVER anchored to focus keyword/title
+         (drives featured_image + og:image relevance).
+      4) The retired constant name is BANNED by guard-stale-refs;
+         unit tests in src/lib/__tests__/image-safety.test.ts replay the
+         EXACT incident prompts as permanent regression canaries.
+    - Remediation: `scripts/blog-runner/remediate-images.mts` +
+      `remediate-blog-images.yml` (workflow_dispatch) regenerate every
+      legacy Pollinations URL through the safe pipeline and rewrite
+      blog_posts.content/featured_image + queue bundles in DB.
 - Never log the AI response in production code paths (it can contain
   user PII or partial reasoning that should not be persisted).
 - Local fallbacks (`src/lib/ai-local.ts`) exist so the app degrades

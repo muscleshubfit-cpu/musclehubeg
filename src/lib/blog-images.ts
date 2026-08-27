@@ -14,20 +14,25 @@
  *   4. Pixabay API (optional key)
  */
 
+import { buildSafeImagePrompt, promptHasBannedVocabulary } from "@/lib/image-safety";
+
 export type SourcedImage = { url: string; alt: string; credit: string } | null;
 
 /**
  * Generate an image using Pollinations AI (flux → turbo fallback attempts).
  * Shared by the native GHA blog pipeline (P3 images step).
+ *
+ * IMAGE SAFETY (2026-08-27 owner hard rule): the prompt is sanitized
+ * through image-safety BEFORE any provider sees it — people-free subjects
+ * only, zero negations (the old "no nudity"-style suffixes BACKFIRED on
+ * diffusion models and directly caused the live incident). The final URL
+ * is asserted clean before returning.
  */
 async function generateAIImage(query: string): Promise<SourcedImage> {
-  const cleanQuery = query.trim().replace(/\s+/g, " ");
-  if (!cleanQuery) return null;
+  if (!query.trim()) return null;
 
-  // Use the query as-is — it should already contain the article's specific topic.
-  // Only add visual quality modifiers, never override the subject matter.
-  const prompt = `${cleanQuery}, ultra-realistic editorial photography, professional lighting, 8k, no text overlay, no watermark`;
-  const encodedPrompt = encodeURIComponent(prompt);
+  const safePrompt = buildSafeImagePrompt(query);
+  const encodedPrompt = encodeURIComponent(safePrompt);
 
   for (const [model, credit] of [
     ["flux", "AI Generated (Pollinations flux)"],
@@ -40,7 +45,13 @@ async function generateAIImage(query: string): Promise<SourcedImage> {
         signal: AbortSignal.timeout(10_000),
       });
       if (res.ok) {
-        return { url: pollinationsUrl, alt: query, credit };
+        // HARD ASSERTION: a polluted URL must never leave this module
+        // (belt & braces — buildSafeImagePrompt already guarantees it).
+        if (promptHasBannedVocabulary(decodeURIComponent(encodedPrompt))) {
+          console.warn("[blog-images] refusing unsafe pollinations prompt");
+          continue;
+        }
+        return { url: pollinationsUrl, alt: safePrompt, credit };
       }
     } catch (pErr: any) {
       console.warn(
@@ -141,11 +152,15 @@ async function searchPixabay(query: string): Promise<SourcedImage> {
 export async function fetchFeaturedImage(query: string): Promise<SourcedImage> {
   if (!query.trim()) return null;
 
+  // DEFENSIVE GATE: every downstream source (AI + stock APIs) receives a
+  // sanitized, people-free, negation-free query — no exceptions.
+  const safeQuery = buildSafeImagePrompt(query);
+
   const sources = [
-    () => generateAIImage(query),
-    () => searchUnsplash(query),
-    () => searchPexels(query),
-    () => searchPixabay(query),
+    () => generateAIImage(safeQuery),
+    () => searchUnsplash(safeQuery),
+    () => searchPexels(safeQuery),
+    () => searchPixabay(safeQuery),
   ];
 
   for (const source of sources) {

@@ -1,0 +1,43 @@
+name: Remediate blog images (IMAGE SAFETY — people-free regen)
+
+# ONE-OFF owner-directed remediation (2026-08-27): regenerate EVERY
+# Pollinations image in published posts / queue bundles through the new
+# people-free safety pipeline (src/lib/image-safety.ts), replacing the
+# retired negation-prompt URLs that produced immodest renders.
+# Re-runnable safely: output URLs never contain banned vocabulary, so a
+# second run finds nothing to change in posts (fresh seeds only for the
+# remaining offending rows).
+
+on:
+  workflow_dispatch: {}
+
+concurrency:
+  group: remediate-blog-images
+  cancel-in-progress: false
+
+jobs:
+  remediate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Sweep & rebuild all pollinations images (people-safe)
+        run: npx --no-install tsx scripts/blog-runner/remediate-images.mts
+
+      - name: Summary
+        if: always()
+        run: echo "Remediation pass finished — see counts above."

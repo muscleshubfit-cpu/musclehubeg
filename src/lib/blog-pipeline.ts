@@ -21,11 +21,13 @@ import { parseJSONLoose, type LanguageResearch } from "./blog-research";
 import { getRecentPostsByLanguage, isDuplicateTopic } from "./blog-topics";
 
 // ─────────────────────────────────────────────────────────────────
-// OWNER HARD RULE: modest imagery only.
-// Appended to EVERY image prompt used anywhere in the pipeline.
+// OWNER HARD RULE (2026-08-27 REVISED): PEOPLE-FREE AI imagery ONLY.
+// The old textual 'modesty suffix' is RETIRED — see image-safety.ts.
 // ─────────────────────────────────────────────────────────────────
-export const IMAGE_MODESTY_SUFFIX =
-  ", modest athletic attire with full body coverage, no nudity, no revealing or suggestive clothing, no exposed midriff or cleavage, no women in revealing outfits, family-friendly editorial photography";
+export const IMAGE_MODESTY_SUFFIX_RETIRED = true;
+// (retired value — negation tokens like 'no nudity' POISON diffusion
+// prompts and directly caused the live immodest-render incident;
+// policy now centralized in src/lib/image-safety.ts)
 
 export type ImagePlanItem = { subject: string; type: string };
 
@@ -114,7 +116,7 @@ Create the detailed article blueprint. Return STRICT JSON only:
   "slugBase": "short-url-slug-in-lowercase-english-even-for-arabic",
   "sections": ["H2 heading 1", "..."],            // exactly 5-7 H2s, logical teaching order from intro to conclusion
   "lsiKeywords": ["...", "..."],                   // 8-12 LSI/sub-keywords to weave in naturally
-  "imagePlan": [ {"subject": "exact visual subject", "type": "photo|infographic|diagram"} ] // 3-5 items matching the sections
+  "imagePlan": [ {"subject": "exact visual subject", "type": "photo|infographic|diagram"} ] // 3-5 items matching the sections. IMAGE LAW: subjects MUST be ENGLISH physical OBJECTS or SCENES ONLY (equipment, food, interiors) — NEVER any person, body part, people word, or clothing wording
 }`;
   const { text, model, provider } = await callFreeAIFallbackChain(prompt, {
     tag: `blog:outline-${lang}`,

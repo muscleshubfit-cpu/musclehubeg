@@ -25,7 +25,7 @@ CI_MODE=0; [ "${1:-}" = "--ci" ] && CI_MODE=1
 
 cd "$(dirname "$0")/.." || exit 1
 
-PATTERN='(/api/cron/generate-blog-post|/api/ai/pick-topic|/api/ai/research-topic|/api/ai/generate-article|/api/ai/generate-image|/api/ai/regenerate-meal|/api/ai/blog-tool|/api/ai/swap[^a-z-]|AIGenerateModal|step1-pick|step1_outline|step2-write|step4-review|step5-publish)'
+PATTERN='(/api/cron/generate-blog-post|/api/ai/pick-topic|/api/ai/research-topic|/api/ai/generate-article|/api/ai/generate-image|/api/ai/regenerate-meal|/api/ai/blog-tool|/api/ai/swap[^a-z-]|AIGenerateModal|step1-pick|step1_outline|step2-write|step4-review|step5-publish|IMAGE_MODESTY_SUFFIX[^_])'
 
 SCOPES="src scripts .github"
 
