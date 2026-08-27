@@ -7,7 +7,7 @@ import type { Metadata } from "next";
 // #10 fix: use ISR instead of force-dynamic — blog posts change rarely,
 // so a 1-hour revalidate cache reduces Vercel function invocations
 // significantly while keeping content fresh.
-export const revalidate = 3600; // 1 hour
+export const revalidate = 300; // 5 min — post-remediation freshness (IMAGE SAFETY sweep 2026-08-27)
 export const runtime = "nodejs";
 
 /**
