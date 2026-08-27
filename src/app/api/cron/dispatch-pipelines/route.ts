@@ -72,8 +72,16 @@ async function runsTodayFor(
     { headers: ghHeaders(token), signal: AbortSignal.timeout(20_000) },
   );
   if (!res.ok) throw new Error(`runs query ${workflow}: HTTP ${res.status}`);
-  const data = (await res.json()) as { total_count?: number; workflow_runs?: unknown[] };
-  return data.total_count ?? data.workflow_runs?.length ?? 0;
+  const data = (await res.json()) as {
+    workflow_runs?: Array<{ conclusion?: string | null }>;
+  };
+  // Count only runs that published (or are on their way to publishing):
+  // failure/cancelled runs consumed a slot WITHOUT producing an article
+  // (2026-08-27 AR 08:35 failure) and must not mask a missing publish.
+  const counted = (data.workflow_runs ?? []).filter(
+    (r) => !["failure", "cancelled"].includes(r.conclusion ?? ""),
+  );
+  return counted.length;
 }
 
 async function lastRunAt(token: string, workflow: string): Promise<Date | null> {
