@@ -40,6 +40,19 @@ const MAX_JOBS_PER_RUN = Math.max(1, Math.min(25, Number(arg("max")) || 10));
 const RUN_DEADLINE_MS = Date.now() + 40 * 60_000;
 
 async function main(): Promise<void> {
+  // WebSocket guarantee for supabase-js realtime (same 2026-08-27 GHA
+  // incident as blog-runner): Node <22 lacks a stable global WebSocket,
+  // which crashed createClient(). Node 22+ workflows unaffected; this
+  // optional 'ws' fallback covers older runtimes.
+  if (typeof (globalThis as any).WebSocket === "undefined") {
+    try {
+      const wsMod = await import("ws");
+      (globalThis as any).WebSocket = (wsMod as any).default ?? wsMod;
+    } catch {
+      /* no 'ws' pkg installed — rely on the runtime's native WebSocket */
+    }
+  }
+
   // Dynamic imports AFTER the secret check (config errors exit instantly).
   const { claimQueuedJobs, finishJob, failJob, reapStaleJobs } = await import(
     "../../src/lib/ai-jobs"

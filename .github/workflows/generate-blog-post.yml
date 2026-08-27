@@ -76,7 +76,9 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          # Node 22 REQUIRED: supabase-js realtime needs the stable global
+          # WebSocket that only exists from Node 22+ (2026-08-27 P0 crash).
+          node-version: 22
 
       # NOTE: repo has NO package-lock.json → npm install (not npm ci)
       - name: Install dependencies

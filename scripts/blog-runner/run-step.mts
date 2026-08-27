@@ -85,6 +85,20 @@ async function main(): Promise<void> {
     process.exit(2);
   }
 
+  // WebSocket guarantee for supabase-js realtime (2026-08-27 incident):
+  // createClient() constructs a RealtimeClient eagerly; on GHA's Node 20
+  // without native WebSocket it threw "Node.js detected but native
+  // WebSocket not found." Workflows now use Node 22 (stable global) AND
+  // this optional 'ws' fallback keeps runners safe on older nodes.
+  if (typeof (globalThis as any).WebSocket === "undefined") {
+    try {
+      const wsMod = await import("ws");
+      (globalThis as any).WebSocket = (wsMod as any).default ?? wsMod;
+    } catch {
+      /* no 'ws' pkg installed — rely on the runtime's native WebSocket */
+    }
+  }
+
   // Dynamic import AFTER env checks so configuration errors never reach
   // the AI providers. Route modules import @/lib via tsconfig paths —
   // resolved natively by tsx.
