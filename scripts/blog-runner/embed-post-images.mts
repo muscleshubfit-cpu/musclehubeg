@@ -20,6 +20,10 @@
  * never double-inserts. Reuses the pure embedBodyImages for zero drift
  * between pipeline and backfill behavior.
  *
+ * NOTE ON PACING: the workflow runs this right AFTER the remediation
+ * sweep (which hits Pollinations heavily) — the 20s/25s pauses below are
+ * mandatory, a 2026-08-27 run without them sourced 1/8 images.
+ *
  * USAGE (inside GHA remediate-blog-images.yml):
  *   npx --no-install tsx scripts/blog-runner/embed-post-images.mts
  * ENV: NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
@@ -29,6 +33,16 @@ import { fetchFeaturedImage, embedBodyImages } from "../../src/lib/blog-images";
 
 const BODY_IMAGE_MARK = "![";
 const MAX_BACKFILL_IMAGES = 2;
+
+// Pollinations rate-limits rapid same-IP requests (429s are swallowed by
+// the fetch helpers as "no image sourced"). The 2026-08-27 17:19 run
+// proved it: right after the remediation sweep hammered ~12 URLs, this
+// step could source only 1 image across 4 posts. Stay polite:
+// PACE_MS between sourcing calls + one retry per subject after a pause.
+const PACE_MS = 20_000;
+const RETRY_PAUSE_MS = 25_000;
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 function bodyHasImage(content: string): boolean {
   // Any markdown image in the body (covers all pipeline sources:
@@ -64,8 +78,13 @@ async function embedPublishedPosts(): Promise<void> {
       ];
       const sourced: Array<{ url: string; alt?: string; credit?: string } | null> = [];
       for (const s of subjects) {
-        const img = await fetchFeaturedImage(s);
+        let img = await fetchFeaturedImage(s);
+        if (!img) {
+          await sleep(RETRY_PAUSE_MS);
+          img = await fetchFeaturedImage(s);
+        }
         if (img) sourced.push(img);
+        await sleep(PACE_MS);
       }
       if (sourced.length === 0) {
         console.warn(`⚠ ${p.language}/${p.slug}: no images could be sourced — skipped`);
