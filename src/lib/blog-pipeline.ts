@@ -117,10 +117,15 @@ Create the detailed article blueprint. Return STRICT JSON only:
 }`;
   const { text, model, provider } = await callFreeAIFallbackChain(prompt, {
     temperature: 0.6,
-    maxTokens: 1_800,
-    jsonMode: true,
-    timeoutMs: 55_000,
-    maxModels: 3,
+    // 2026-08-27 hardening: Groq's strict json mode HARD-FAILS when a
+    // reasoning model (gpt-oss) burns completion tokens on hidden CoT
+    // before finishing the document ("max completion tokens reached").
+    // We have our own tolerant extractor (parseJSONLoose) — drop
+    // response_format so partial/fenced JSON can still be salvaged.
+    maxTokens: 2_600,
+    jsonMode: false,
+    timeoutMs: 70_000,
+    maxModels: 2,
   });
   const parsed = parseJSONLoose<any>(text);
   if (!parsed?.title || !Array.isArray(parsed.sections)) {
@@ -192,10 +197,11 @@ Return STRICT JSON only:
   const { text, model, provider } = await callFreeAIFallbackChain(prompt, {
     temperature: 0.7,
     maxTokens: 16_000,
-    jsonMode: true,
-    // 58_000 × 3 models = 174_000 ≤ AI_CHAIN_TOTAL_BUDGET_MS (180000 in GHA).
-    timeoutMs: 58_000,
-    maxModels: 3,
+    jsonMode: false, // tolerant extraction instead of strict-mode hard fails
+    // 80s × 2 models = 160s ≤ AI_CHAIN_TOTAL_BUDGET_MS (180000 in GHA);
+    // the old 58s³ aborted nvidia/nemotron mid-generation.
+    timeoutMs: 80_000,
+    maxModels: 2,
   });
   const parsed = parseJSONLoose<{ articleMd?: string; article?: string }>(text);
   const md = (parsed?.articleMd || parsed?.article || "").trim();
@@ -293,9 +299,9 @@ Return STRICT JSON only:
   const { text, model, provider } = await callFreeAIFallbackChain(prompt, {
     temperature: 0.4,
     maxTokens: 16_000,
-    jsonMode: true,
-    timeoutMs: 58_000,
-    maxModels: 3,
+    jsonMode: false, // tolerant extraction instead of strict-mode hard fails
+    timeoutMs: 80_000,
+    maxModels: 2,
   });
   const parsed = parseJSONLoose<any>(text);
   const md = (parsed?.articleMd || "").trim();
