@@ -265,13 +265,35 @@ export function BlogEditorView({ mode, postId }: { mode: "new" | "edit"; postId?
  social_linkedin: "linkedin",
  };
 
- const runAITool = async (tool: string) => {
+/* Result formatters — the ONE formatting for fresh runs AND recovered
+ * jobs (2026-08-28 incident: results landed in the DB minutes after the
+ * owner navigated away → «لم يحدث شيء». Same shape everywhere now). */
+const formatSocialResult = (r: any): string => {
+ const tags = Array.isArray(r?.hashtags) ? r.hashtags.join(" ") : "";
+ return [
+ r?.post_text || "",
+ tags ? `\n\n${tags}` : "",
+ r?.cta ? `\n\n📣 ${r.cta}` : "",
+ r?.image_idea ? `\n\n🖼️ اقتراح صورة: ${r.image_idea}` : "",
+ r?.best_times?.length ? `\n⏰ أفضل أوقات النشر: ${r.best_times.join(" • ")}` : "",
+ ].join("");
+};
+const formatToolResult = (r: any): string => {
+ const text = String(r?.text ?? "");
+ const notes = typeof r?.notes === "string" ? r.notes : undefined;
+ return notes ? `${text}\n\n📝 تغييرات:\n${notes}` : text;
+};
+
+/* Queue-driven button → GH Actions worker → result stored in ai_jobs.
+ * Poll continues client-side; the panel below is also hydrated from the
+ * queue on mount/refresh so a finished result is NEVER stranded by a
+ * navigation (the «لم يحدث شيء» incident, 2026-08-28). */
+const runAITool = async (tool: string) => {
  if (aiBusy[tool]) return;
  setAiBusy((b) => ({ ...b, [tool]: true }));
  try {
  const platform = SOCIAL_TOOL_PLATFORMS[tool];
  let text: string;
- let notes: string | undefined;
  if (platform) {
  const { result } = await runAiJob("social_post", {
  platform,
@@ -281,15 +303,7 @@ export function BlogEditorView({ mode, postId }: { mode: "new" | "edit"; postId?
  topic: post.title || "",
  content: (post.excerpt || "") + "\n\n" + (post.content || "").slice(0, 6000),
  });
- const r = result as any;
- const tags = Array.isArray(r?.hashtags) ? r.hashtags.join(" ") : "";
- text = [
- r?.post_text || "",
- tags ? `\n\n${tags}` : "",
- r?.cta ? `\n\n📣 ${r.cta}` : "",
- r?.image_idea ? `\n\n🖼️ اقتراح صورة: ${r.image_idea}` : "",
- r?.best_times?.length ? `\n⏰ أفضل أوقات النشر: ${r.best_times.join(" • ")}` : "",
- ].join("");
+ text = formatSocialResult(result as any);
  } else {
  const { result } = await runAiJob("article_tool", {
  tool,
@@ -299,12 +313,10 @@ export function BlogEditorView({ mode, postId }: { mode: "new" | "edit"; postId?
  category: post.category || "",
  language: post.language,
  });
- const r = result as any;
- text = String(r?.text ?? "");
- notes = typeof r?.notes === "string" ? r.notes : undefined;
+ text = formatToolResult(result as any);
  }
  if (!text.trim()) throw new Error("نتيجة فارغة — حاول مرة أخرى.");
- setAiResults((prev) => ({ ...prev, [tool]: notes ? `${text}\n\n📝 تغييرات:\n${notes}` : text }));
+ setAiResults((prev) => ({ ...prev, [tool]: text }));
  toast.success("تم التوليد من الطابور!");
  } catch (e: any) {
  toast.error(e.message || "فشل التوليد");
@@ -312,6 +324,58 @@ export function BlogEditorView({ mode, postId }: { mode: "new" | "edit"; postId?
  setAiBusy((b) => ({ ...b, [tool]: false }));
  }
  };
+
+/* RECOVER-RESULTS LAW (2026-08-28, incident «لم يحدث شيء»): tool results
+ * land in ai_jobs 2-5 min AFTER the click (queued GH Actions worker).
+ * The panel is memory-only, so a navigation during the wait stranded the
+ * finished result with no way back — plans already recover via the jobs
+ * list, tools now do too. On mount + on manual refresh: pull the last 10
+ * own jobs, hydrate DONE article_tool/social_post results (≤3h old) not
+ * already shown, marked «نتيجة سابقة» with their finish time. */
+const hydratedJobIds = useRef<Set<string>>(new Set());
+const hydratingRef = useRef(false);
+const [hydrating, setHydrating] = useState(false);
+const scanRecentToolJobs = useCallback(async () => {
+ if (hydratingRef.current) return;
+ hydratingRef.current = true;
+ setHydrating(true);
+ try {
+ const res = await fetch("/api/ai/jobs?limit=10");
+ if (!res.ok) return;
+ const data = await res.json().catch(() => null);
+ const jobs = (data?.jobs ?? []) as any[];
+ const cutoff = Date.now() - 3 * 3_600_000;
+ for (const j of jobs) {
+ if (!j?.id || hydratedJobIds.current.has(j.id)) continue;
+ hydratedJobIds.current.add(j.id);
+ if (j?.status !== "done") continue;
+ if (j?.job_type !== "article_tool" && j?.job_type !== "social_post") continue;
+ const when = Date.parse(j.finished_at || j.created_at || "");
+ if (Number.isFinite(when) && when < cutoff) continue;
+ const PLATFORM_BUTTON: Record<string, string> = { facebook: "fb", x: "x", linkedin: "linkedin", instagram: "instagram" };
+ const key = j.job_type === "social_post"
+ ? PLATFORM_BUTTON[String(j.payload?.platform || "")] || ""
+ : String(j.payload?.tool || "");
+ if (!key) continue;
+ const rres = await fetch(`/api/ai/jobs?id=${encodeURIComponent(j.id)}`);
+ if (!rres.ok) continue;
+ const job = await rres.json().catch(() => null);
+ const r = job?.result;
+ const text = j.job_type === "social_post" ? formatSocialResult(r) : formatToolResult(r);
+ if (!String(text || "").trim()) continue;
+ const at = new Date(j.finished_at || j.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+ setAiResults((prev) => (prev[key] ? prev : { ...prev, [key]: `♻️ نتيجة سابقة (اتكملت ${at})\n\n${text}` }));
+ }
+ } catch {
+ /* queue visibility is best-effort — never blocks editing */
+ } finally {
+ hydratingRef.current = false;
+ setHydrating(false);
+ }
+}, []);
+useEffect(() => {
+ void scanRecentToolJobs();
+}, [scanRecentToolJobs]);
 
  const seo = calculateSEOScore(post);
  const wordCount = calculateWordCount(post.content || "");
@@ -653,6 +717,21 @@ export function BlogEditorView({ mode, postId }: { mode: "new" | "edit"; postId?
  </Button>
  );
  })}
+ </div>
+
+ <div className="mt-2 flex items-center justify-between gap-2">
+ <span className="text-[10px] leading-4 text-muted-foreground">
+ {isAr
+ ? "⏱ النتيجة وظيفة خلفية تحتاج عادة ٢–٥ دقايق — لو غادرت الصفحة هتلاقي النتيجة محفوظة هنا (أو اضغط تحديث)."
+ : "⏱ Results are background jobs (~2–5 min). If you leave the page, finished results are restored here (or press refresh)."}
+ </span>
+ <button
+ onClick={() => void scanRecentToolJobs()}
+ disabled={hydrating}
+ className="shrink-0 text-xs text-primary hover:underline disabled:opacity-50"
+ >
+ {hydrating ? (isAr ? "جارٍ التحديث…" : "Refreshing…") : isAr ? "تحديث النتائج ↻" : "Refresh results ↻"}
+ </button>
  </div>
 
  {/* AI Results */}

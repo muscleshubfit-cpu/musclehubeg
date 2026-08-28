@@ -910,6 +910,17 @@ Process:
        executing it fails the build). Improvement tools themselves are
        TEXT TRANSFORMERS returning to a copy-only panel — slug/image
        laws N/A; the M15 save gate remains the boundary verifier.
+       RECOVER-RESULTS LAW (2026-08-28, owner: «عملت تجربتين من
+       المكانين ولم يحدث شيء»): tool results are BACKGROUND jobs
+       landing 2-5 min after the click; the panel is memory-only, so
+       navigating during the wait stranded finished results in ai_jobs
+       with no way back (GHA forensics: run#14 done=3 SUCCESS — the
+       system worked, the UI lost the winnings). The editor now
+       hydrates DONE article_tool/social_post results (≤3h) from
+       GET /api/ai/jobs on mount + a manual «تحديث النتائج» button,
+       marked «نتيجة سابقة», with a 2-5 min ETA hint under the grid.
+       Formatting is unified (formatToolResult/formatSocialResult) so
+       fresh and recovered results render identically.
        GUARD-COMMITMENT COROLLARY: a guard that is not COMMITTED is not
        a guard — check-ui-wiring.sh was referenced by
        guard-stale-refs.yml since b9c1d16 but the file itself was never
