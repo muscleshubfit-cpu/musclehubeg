@@ -850,6 +850,23 @@ Process:
        buckets: nemotron/groq-120b/gemma-31b/groq-20b/gemma-26b) instead
        of 3. Back-to-back retries dying inside one TPM window are a
        runner bug, not provider fate.
+   12) QUALITY-FIRST LAW — OWNER GENERAL CONDITION (2026-08-28i, «قبل ما
+       اجرب عايز منضحيش بالجوده للمقالات او توليد الخطط نهائى ده شرط عام
+       لازم الجوده لاى شىء تكون اعلى جوده ممكنة لان ده هدف الموقع الاساسى»):
+       the site's PRIMARY goal is maximum quality for EVERYTHING.
+       (a) The ASK (generation prompt contract) is ALWAYS the maximum
+       bar — article 1100-1400 words + FAQ + internal links + self-check;
+       NEVER lowered for model convenience, rate survival, or speed.
+       Floors are rejection NETS below the ask, never the target.
+       (b) Model order = QUALITY order (strongest first); smaller models
+       are last-resort fallbacks and must never be promoted above stronger
+       ones. Resilience work (maxModels buckets, cooldowns) increases
+       AVAILABILITY of strong models — it never substitutes weak output.
+       (c) Plan generation carries the same contract: full-depth prompts,
+       multi-bucket chains (nutrition 5 / workout 4 + humane 35s window).
+       (d) Any change touching prompts, floors, or model order must
+       PRESERVE OR RAISE the ask — lowering requires explicit owner
+       approval in the same commit message.
 - Never log the AI response in production code paths (it can contain
   user PII or partial reasoning that should not be persisted).
 - Local fallbacks (`src/lib/ai-local.ts`) exist so the app degrades

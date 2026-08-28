@@ -175,7 +175,9 @@ export async function generateNutritionPlanAI(
         maxTokens: 7000,
         jsonMode: true,
         timeoutMs: 70_000,
-        maxModels: 3,
+        // QUALITY-FIRST LAW (2026-08-28i): 5 buckets — under provider
+        // saturation the strongest available model must stay reachable.
+        maxModels: 5,
       },
     );
     const parsed = parseJSON<NutritionPlanContent>(text);
@@ -223,8 +225,10 @@ export async function generateWorkoutPlanAI(
         temperature: 0.7,
         maxTokens: 4000,
         jsonMode: true,
-        timeoutMs: 26_000,
-        maxModels: 2,
+        timeoutMs: 35_000,
+        // QUALITY-FIRST LAW (2026-08-28i): 4 buckets + a humane 35s window
+        // (was 26s — too tight for a multi-week program on slow models).
+        maxModels: 4,
       },
     );
     const parsed = parseJSON<WorkoutPlanContent>(text);

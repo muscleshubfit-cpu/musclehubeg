@@ -552,8 +552,11 @@ async function runArticleGenerate(payload: any) {
         ? `الكلمات المفتاحية التي يجب أن تظهر طبيعياً: ${keywords.join("، ")}.`
         : `Focus keywords to weave in naturally: ${keywords.join(", ")}.`),
     isAr
-      ? "المتطلبات الصارمة: 900-1400 كلمة (شرط إلزامي — المقالات الأقصر تُرفض وتُعاد الكتابة)، مقدمة غير نمطية (ممنوع البدء بـ«في عالم اللياقة» أو أي حشو عام)، 6-9 عناوين فرعية ## منظمة، أمثلة وأرقام عملية محددة داخل الأقسام، قسم «أخطاء شائعة»، قسم تطبيقي خطوة بخطوة قابل للتنفيذ فوراً، خاتمة بدعوة لاتخاذ إجراء. بدون جداول HTML وبدون صور وبدون صيغة LaTeX."
-      : "Hard requirements: 900-1400 words (mandatory — shorter drafts are rejected and rewritten), a non-generic hook (never open with filler like 'In the world of fitness…'), 6-9 organized ## subheadings, concrete examples and practical numbers inside sections, a common-mistakes section, an immediately actionable step-by-step section, conclusion with a call-to-action. No HTML tables, no images, no LaTeX.",
+      ? "المتطلبات الصارمة: 1100-1400 كلمة (شرط إلزامي — المقالات الأقصر تُرفض وتُعاد الكتابة)، مقدمة غير نمطية (ممنوع البدء بـ«في عالم اللياقة» أو أي حشو عام)، 6-9 عناوين فرعية ## منظمة، أمثلة وأرقام عملية محددة داخل الأقسام، قسم «أخطاء شائعة»، قسم تطبيقي خطوة بخطوة قابل للتنفيذ فوراً، خاتمة بدعوة لاتخاذ إجراء. بدون جداول HTML وبدون صور وبدون صيغة LaTeX."
+      : "Hard requirements: 1100-1400 words (mandatory — shorter drafts are rejected and rewritten), a non-generic hook (never open with filler like 'In the world of fitness…'), 6-9 organized ## subheadings, concrete examples and practical numbers inside sections, a common-mistakes section, an immediately actionable step-by-step section, conclusion with a call-to-action. No HTML tables, no images, no LaTeX.",
+    isAr
+      ? "تدقيق إلزامي قبل التسليم: عدد الكلمات 1100+، الأقسام 6-9، كل قسم فيه مثال أو رقم عملي، قسم أخطاء شائعة + قسم خطوة بخطوة موجودان، و2-3 روابط داخلية من القائمة أعلاه مستخدمة فعلاً."
+      : "Mandatory self-check before answering: 1100+ words, 6-9 sections, every section carries a concrete example or number, common-mistakes + step-by-step sections present, and 2-3 internal links from the list above actually used.",
     isAr
       ? "أعد JSON فقط بالشكل الحرفي (بدون أسوار كود):"
       : "Return ONLY JSON in this exact shape (no code fences):",
@@ -564,7 +567,7 @@ async function runArticleGenerate(payload: any) {
  "meta_description": "${isAr ? "وصف ميتا 120-155 حرفاً" : "120-155 char meta description"}",
  "tags": ["${isAr ? "5-8 وسوم قصيرة" : "5-8 short tags"}"],
  "faq": [{"question": "${isAr ? "سؤال حقيقي" : "genuine question"}", "answer": "${isAr ? "إجابة موجزة دقيقة" : "concise accurate answer"}"}],
- "markdown": "${isAr ? "المقال كاملاً (900-1400 كلمة) بصيغة Markdown تبدأ بعنوان ## أول قسم (بدون تكرار العنوان الرئيسي)" : "full article (900-1400 words) in Markdown starting with the first ## section (never repeat the main title)"}"
+ "markdown": "${isAr ? "المقال كاملاً (1100-1400 كلمة) بصيغة Markdown تبدأ بعنوان ## أول قسم (بدون تكرار العنوان الرئيسي)" : "full article (1100-1400 words) in Markdown starting with the first ## section (never repeat the main title)"}"
 }`,
   ].filter(Boolean);
 
@@ -581,7 +584,7 @@ async function runArticleGenerate(payload: any) {
       // died, attempt 2 needed 138s). 5000 still covers the 800-1200-word
       // 6000 (2026-08-28e quality bump): est ≈ prompt(~175t) + 6000 + 800
       // ≈ 6975 < 7200 → STILL Groq-eligible, with headroom for the
-      // mandatory 900-1400-word contract incl. reasoning overhead.
+      // mandatory 1100-1400-word contract incl. reasoning overhead.
       maxTokens: 6000,
       jsonMode: true,
       ...HEAVY,
