@@ -820,6 +820,26 @@ Process:
        one session; candidates rotate via variationKey. Nothing is
        written server-side — the editor applies the accepted candidate
        to featured_image/cover_alt and saves with the post.
+   10) PROJECT-WIDE PREVENTION LAW (2026-08-28, owner: «محتاج اتاكد ان
+       مفيش مشاكل مشابهة تحصل مستقبلا فى المشروع كله مش المدونة بس لان
+       المشاكل شبة دى بتتكرر كتير فى مختلف الاماكن») — the recurring
+       incident classes are now PERMANENTLY guarded, project-wide:
+       (a) CLASS A (button → dead target): CI guard
+       `scripts/check-ui-wiring.sh` (in guard-stale-refs.yml) fails the
+       build on any literal fetch("/api/…") without a matching route file;
+       (b) CLASS B (type without processor / orphan processor / ungated
+       type): the same guard + ai-jobs-visibility.test.ts pin
+       AI_JOB_TYPES ↔ PROCESSORS ↔ JOB_GATE ↔ JOB_LABELS exact parity in
+       BOTH directions (TypeScript can't: PROCESSORS is Record<string,…>);
+       (c) CLASS C (dishonest success): every scripts/*-runner/* must
+       carry an explicit non-zero exit path (CI-enforced); (d) SILENT ROT:
+       GET /api/ai/queue-health (coach-only) exposes counts / oldest
+       queued age / last done / last successful GHA run + Arabic issue
+       list, surfaced as a live health line in the BlogAdminView AI
+       banner. DEFINITION OF DONE for any future feature: button → route
+       exists (CI), job → processor (CI + test), result has a VISIBLE
+       materialization, runner exits honestly (CI), docs updated in the
+       SAME commit.
 - Never log the AI response in production code paths (it can contain
   user PII or partial reasoning that should not be persisted).
 - Local fallbacks (`src/lib/ai-local.ts`) exist so the app degrades

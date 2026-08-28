@@ -35,6 +35,10 @@ export function BlogAdminView() {
   // coach pins a specific type (fitness, nutrition, workout, health…).
   const [genCategory, setGenCategory] = useState<string>("");
   const [genBusy, setGenBusy] = useState(false);
+  // PROJECT-WIDE PREVENTION (2026-08-28): one-glance AI pipeline health —
+  // the 2026-08-28 incidents were all SILENT failures (stuck queue,
+  // invisible results, dishonest greens). This strip makes rot visible.
+  const [qHealth, setQHealth] = useState<{ ok: boolean; issues: string[]; counts?: Record<string, number>; lastRunnerRunAt?: string | null } | null>(null);
   const [genJob, setGenJob] = useState<{ id: string; topic: string } | null>(null);
   const activeGenWatcher = useRef<string | null>(null);
 
@@ -170,6 +174,15 @@ export function BlogAdminView() {
 
   useEffect(() => {
     load();
+    // Queue health probe (fail-quiet — the strip just stays neutral)
+    (async () => {
+      try {
+        const res = await fetch("/api/ai/queue-health");
+        if (res.ok) setQHealth(await res.json());
+      } catch {
+        /* health probe is best-effort */
+      }
+    })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -318,9 +331,18 @@ export function BlogAdminView() {
             <p className="text-sm font-semibold text-foreground">{isAr ? "توليد المقالات بالذكاء الاصطناعي" : "AI Article Generation"}</p>
             <p className="text-xs text-muted-foreground mt-0.5">
               {isAr
-                ? "اكتب الموضوع أو سيبه فاضي والنظام يختار العنوان بنفسه — ويكتب مقالاً كاملاً (عنوان + محتوى + وصف ميتا + وسوم) ويفتحه لك في المحرر للمراجعة."
-                : "Give a topic — or leave it empty and let the system pick the title — and get a complete article draft (title + body + meta + tags) opened in the editor for review."}
+                ? "اكتب الموضوع أو سيبه فاضي والنظام يختار العنوان بنفسه — ويكتب مقالاً كاملاً (عنوان + محتوى + وصف ميتا + وسوم + أسئلة شائعة + روابط داخلية) ويفتحه لك في المحرر للمراجعة."
+                : "Give a topic — or leave it empty and let the system pick the title — and get a complete article draft (title + body + meta + tags + FAQ + internal links) opened in the editor for review."}
             </p>
+            {qHealth && (
+              <p className={`mt-1 text-[11px] font-medium ${qHealth.ok ? "text-emerald-600" : "text-rose-600"}`}>
+                {qHealth.ok
+                  ? isAr
+                    ? `🟢 منظومة التوليد سليمة — الطابور: ${qHealth.counts?.queued ?? 0} بالانتظار · آخر تشغيل ناجح: ${qHealth.lastRunnerRunAt ? new Date(qHealth.lastRunnerRunAt).toLocaleString(isAr ? "ar-EG" : "en-GB", { hour: "2-digit", minute: "2-digit", day: "numeric", month: "numeric" }) : "—"}`
+                    : `🟢 Pipeline healthy — queued: ${qHealth.counts?.queued ?? 0} · last successful run: ${qHealth.lastRunnerRunAt ? new Date(qHealth.lastRunnerRunAt).toLocaleString("en-GB", { hour: "2-digit", minute: "2-digit", day: "numeric", month: "numeric" }) : "—"}`
+                  : `🔴 ${qHealth.issues.join(" · ")}`}
+              </p>
+            )}
           </div>
         </div>
         <button

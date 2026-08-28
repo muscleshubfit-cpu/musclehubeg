@@ -37,3 +37,10 @@ jobs:
 
       - name: Scan for retired identifiers
         run: bash scripts/check-stale-refs.sh --ci
+
+      # PROJECT-WIDE PREVENTION LAW (2026-08-28, owner: «محتاج اتاكد ان
+      # مفيش مشاكل مشابهة تحصل مستقبلا فى المشروع كله») — fails the build
+      # on: dead fetch targets, unregistered job types, job types without
+      # processors, JOB_GATE gaps, and dishonest runner exits.
+      - name: Scan for broken UI wiring (buttons → routes → processors)
+        run: bash scripts/check-ui-wiring.sh
