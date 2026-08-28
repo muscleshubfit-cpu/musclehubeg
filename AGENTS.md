@@ -921,6 +921,13 @@ Process:
        marked «نتيجة سابقة», with a 2-5 min ETA hint under the grid.
        Formatting is unified (formatToolResult/formatSocialResult) so
        fresh and recovered results render identically.
+       COPY-VS-DISPLAY LAW (2026-08-28, owner: «النسخ بياخد الرسالة
+       كلها مش المطلوب فقط»): aiResults entries carry {display, copy} —
+       the panel DISPLAYS the ♻️ recovered-header, 📝 change-notes and
+       social meta-suggestions (cta/image_idea/best_times), while the
+       «نسخ» button copies ONLY the paste-able deliverable (the tool
+       text itself / post_text+hashtags). One shaping function per
+       family serves fresh runs and recovery alike.
        GUARD-COMMITMENT COROLLARY: a guard that is not COMMITTED is not
        a guard — check-ui-wiring.sh was referenced by
        guard-stale-refs.yml since b9c1d16 but the file itself was never

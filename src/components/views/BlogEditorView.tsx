@@ -47,7 +47,7 @@ export function BlogEditorView({ mode, postId }: { mode: "new" | "edit"; postId?
  const [tagInput, setTagInput] = useState("");
  const [aiBusy, setAiBusy] = useState<Record<string, boolean>>({}); // multi-tool in-flight (queued jobs)
  const [socialTone, setSocialTone] = useState<"professional" | "friendly" | "motivational">("motivational");
- const [aiResults, setAiResults] = useState<Record<string, string>>({});
+ const [aiResults, setAiResults] = useState<Record<string, { display: string; copy: string }>>({});
  const [aiPrefilled, setAiPrefilled] = useState(false);
  // OWNER IMAGE-SWAP (2026-08-28f): «خلال الانتظار محتاج اقدر اعدل الصور
  // للمقال… لان احيانا الصور بتكون غير مناسبة» — suggest/swap session
@@ -265,23 +265,29 @@ export function BlogEditorView({ mode, postId }: { mode: "new" | "edit"; postId?
  social_linkedin: "linkedin",
  };
 
-/* Result formatters — the ONE formatting for fresh runs AND recovered
- * jobs (2026-08-28 incident: results landed in the DB minutes after the
- * owner navigated away → «لم يحدث شيء». Same shape everywhere now). */
-const formatSocialResult = (r: any): string => {
+/* Result formatters — ONE shaping for fresh runs AND recovered jobs.
+ * COPY-VS-DISPLAY LAW (2026-08-28, owner: «النسخ بياخد الرسالة كلها
+ * مش المطلوب فقط»): the panel DISPLAYS the ♻️ recovered-header, the 📝
+ * change-notes and social meta-suggestions, but «نسخ» copies ONLY the
+ * paste-able deliverable (the text itself / post+hashtags). */
+type AiResultEntry = { display: string; copy: string };
+const formatSocialResult = (r: any): AiResultEntry => {
  const tags = Array.isArray(r?.hashtags) ? r.hashtags.join(" ") : "";
- return [
- r?.post_text || "",
- tags ? `\n\n${tags}` : "",
+ const main = [String(r?.post_text || ""), tags ? `\n\n${tags}` : ""].join("");
+ const aux = [
  r?.cta ? `\n\n📣 ${r.cta}` : "",
  r?.image_idea ? `\n\n🖼️ اقتراح صورة: ${r.image_idea}` : "",
  r?.best_times?.length ? `\n⏰ أفضل أوقات النشر: ${r.best_times.join(" • ")}` : "",
  ].join("");
+ return { copy: main.trim(), display: `${main}${aux}`.trim() };
 };
-const formatToolResult = (r: any): string => {
+const formatToolResult = (r: any): AiResultEntry => {
  const text = String(r?.text ?? "");
- const notes = typeof r?.notes === "string" ? r.notes : undefined;
- return notes ? `${text}\n\n📝 تغييرات:\n${notes}` : text;
+ const notes = typeof r?.notes === "string" && r.notes.trim() ? r.notes : undefined;
+ return {
+ copy: text.trim(),
+ display: notes ? `${text}\n\n📝 تغييرات:\n${notes}` : text,
+ };
 };
 
 /* Queue-driven button → GH Actions worker → result stored in ai_jobs.
@@ -293,7 +299,7 @@ const runAITool = async (tool: string) => {
  setAiBusy((b) => ({ ...b, [tool]: true }));
  try {
  const platform = SOCIAL_TOOL_PLATFORMS[tool];
- let text: string;
+ let entry: AiResultEntry;
  if (platform) {
  const { result } = await runAiJob("social_post", {
  platform,
@@ -303,7 +309,7 @@ const runAITool = async (tool: string) => {
  topic: post.title || "",
  content: (post.excerpt || "") + "\n\n" + (post.content || "").slice(0, 6000),
  });
- text = formatSocialResult(result as any);
+ entry = formatSocialResult(result as any);
  } else {
  const { result } = await runAiJob("article_tool", {
  tool,
@@ -313,10 +319,10 @@ const runAITool = async (tool: string) => {
  category: post.category || "",
  language: post.language,
  });
- text = formatToolResult(result as any);
+ entry = formatToolResult(result as any);
  }
- if (!text.trim()) throw new Error("نتيجة فارغة — حاول مرة أخرى.");
- setAiResults((prev) => ({ ...prev, [tool]: text }));
+ if (!entry.copy.trim()) throw new Error("نتيجة فارغة — حاول مرة أخرى.");
+ setAiResults((prev) => ({ ...prev, [tool]: entry }));
  toast.success("تم التوليد من الطابور!");
  } catch (e: any) {
  toast.error(e.message || "فشل التوليد");
@@ -361,10 +367,11 @@ const scanRecentToolJobs = useCallback(async () => {
  if (!rres.ok) continue;
  const job = await rres.json().catch(() => null);
  const r = job?.result;
- const text = j.job_type === "social_post" ? formatSocialResult(r) : formatToolResult(r);
- if (!String(text || "").trim()) continue;
+ const entry = j.job_type === "social_post" ? formatSocialResult(r) : formatToolResult(r);
+ if (!entry.copy.trim()) continue;
  const at = new Date(j.finished_at || j.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
- setAiResults((prev) => (prev[key] ? prev : { ...prev, [key]: `♻️ نتيجة سابقة (اتكملت ${at})\n\n${text}` }));
+ const display = `♻️ نتيجة سابقة (اتكملت ${at})\n\n${entry.display}`;
+ setAiResults((prev) => (prev[key] ? prev : { ...prev, [key]: { ...entry, display } }));
  }
  } catch {
  /* queue visibility is best-effort — never blocks editing */
@@ -737,18 +744,18 @@ useEffect(() => {
  {/* AI Results */}
  {Object.entries(aiResults).length > 0 && (
  <div className="mt-4 space-y-3">
- {Object.entries(aiResults).map(([tool, result]) => {
+ {Object.entries(aiResults).map(([tool, entry]) => {
  const toolLabel = aiResultLabel(tool);
  return (
  <div key={tool} className="rounded-lg border border-border bg-muted/30 p-3">
  <div className="mb-1 flex items-center justify-between">
  <span className="text-xs font-semibold">{toolLabel}</span>
  <div className="flex gap-1">
- <button onClick={() => { navigator.clipboard.writeText(result); toast.success(isAr ? "تم النسخ" : "Copied"); }} className="text-xs text-primary hover:underline">{isAr ? "نسخ" : "Copy"}</button>
+ <button onClick={() => { navigator.clipboard.writeText(entry.copy); toast.success(isAr ? "تم نسخ النص المطلوب فقط" : "Copied the deliverable only"); }} className="text-xs text-primary hover:underline">{isAr ? "نسخ" : "Copy"}</button>
  <button onClick={() => { setAiResults((prev) => { const n = { ...prev }; delete n[tool]; return n; }); }} className="text-xs text-destructive hover:underline">{isAr ? "إغلاق" : "Close"}</button>
  </div>
  </div>
- <pre className="whitespace-pre-wrap text-xs text-muted-foreground max-h-32 overflow-y-auto scrollbar-thin" dir="auto">{result}</pre>
+ <pre className="whitespace-pre-wrap text-xs text-muted-foreground max-h-32 overflow-y-auto scrollbar-thin" dir="auto">{entry.display}</pre>
  </div>
  );
  })}
