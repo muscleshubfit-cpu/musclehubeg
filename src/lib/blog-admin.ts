@@ -1,5 +1,6 @@
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { supabase as supabaseClient } from "@/lib/supabase/client";
+import { articleSlugFromTitle } from "@/lib/slug";
 
 export type AdminBlogPost = {
   id: string;
@@ -99,7 +100,9 @@ export async function adminCreatePost(
   const payload: Record<string, any> = {
     language: post.language || "ar",
     title: post.title || "مقال جديد",
-    slug: post.slug || `post-${Date.now()}`,
+    // ONE-SLUG-LAW (2026-08-28j): was a raw timestamp slug — now the
+    // shared title-derived latin slug (dated form = last net inside it).
+    slug: post.slug || articleSlugFromTitle(post.title || ""),
     excerpt: post.excerpt || "",
     content: post.content || "",
     meta_title: post.meta_title || "",

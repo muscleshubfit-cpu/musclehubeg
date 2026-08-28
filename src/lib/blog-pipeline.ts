@@ -19,6 +19,7 @@
 import { callFreeAIFallbackChain } from "./ai-provider";
 import { parseJSONLoose, type LanguageResearch } from "./blog-research";
 import { getRecentPostsByLanguage, isDuplicateTopic } from "./blog-topics";
+import { sanitizeModelSlug } from "./slug";
 
 // ─────────────────────────────────────────────────────────────────
 // OWNER HARD RULE (2026-08-27 REVISED): PEOPLE-FREE AI imagery ONLY.
@@ -151,7 +152,9 @@ Create the detailed article blueprint. Return STRICT JSON only:
       title: String(parsed.title),
       subtitle: String(parsed.subtitle ?? ""),
       metaDescription: String(parsed.metaDescription ?? "").slice(0, 160),
-      slugBase: String(parsed.slugBase ?? topic).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 60),
+      // ONE-SLUG-LAW (2026-08-28j): was a local 60-char inline sanitize —
+      // now the same latin law as the coach generator (≤80, min 3 → "").
+      slugBase: sanitizeModelSlug(String(parsed.slugBase ?? topic)),
       sections: parsed.sections.filter((s: unknown): s is string => typeof s === "string").slice(0, 8),
       lsiKeywords: lsi,
       imagePlan,

@@ -52,26 +52,11 @@ export function writePendingArticleJob(entry: PendingArticleJob | null): void {
 }
 
 /**
- * M15 slug law: blog slugs are lowercase-English-and-hyphens ONLY (Arabic
- * breaks URLs/sharing/hreflang). Derive the best Latin slug from an
- * (often Arabic) AI title; fall back to a dated post-YYYYMMDDNN slug the
- * coach can rename in the editor.
+ * M15 slug law (2026-08-28j): slug logic is UNIFIED in src/lib/slug.ts —
+ * this re-export keeps the historical import path alive for the editor
+ * and admin views. Do NOT add slug logic here.
  */
-export function articleSlugFromTitle(title: string): string {
-  const latin = String(title)
-    .toLowerCase()
-    .replace(/[^a-z0-9\s-]/g, "")
-    .trim()
-    .replace(/\s+/g, "-")
-    .replace(/-+/g, "-")
-    .replace(/^-|-$/g, "")
-    .slice(0, 80)
-    .replace(/-$/g, "");
-  if (latin.length >= 3) return latin;
-  const now = new Date();
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `post-${now.getUTCFullYear()}${pad(now.getUTCMonth() + 1)}${pad(now.getUTCDate())}${pad(now.getUTCHours())}${pad(now.getUTCMinutes())}`;
-}
+export { articleSlugFromTitle } from "@/lib/slug";
 
 type Pending = { id: string };
 

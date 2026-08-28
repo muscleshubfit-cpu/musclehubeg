@@ -888,6 +888,24 @@ Process:
        article — any failure lands the draft without images exactly as
        the pre-fix flow (the «بدون صور» prompt line stays: the model must
        not invent image URLs; real photos come only from the safe pipeline).
+   14) ONE-SLUG-LAW (2026-08-28j, owner: «مش مفروض ان التوليد التلقائي
+       وكذلك من لوحة الكوتش موحد؟ كذلك ادوات التحسين هل بتتبع نفس
+       النظام؟»): ALL slug logic lives ONLY in src/lib/slug.ts
+       (sanitizeModelSlug / slugifyAscii / articleSlugFromTitle /
+       resolveSlug). Before this law the same logic existed in FIVE
+       drifted copies (p5-publish local slugify, blog-pipeline inline
+       slugBase sanitize, ai-jobs-client articleSlugFromTitle,
+       ai-job-processors sanitizeModelSlug, blog-admin raw timestamp).
+       The slug-law canaries (src/lib/__tests__/slug-law.test.ts) read
+       the actual sources and FAIL THE BUILD if a local copy reappears —
+       the automated pipeline and the coach generator can never drift
+       apart again. Re-export bridges (ai-jobs-client,
+       ai-job-processors) keep historical import paths alive.
+       GUARD-COMMITMENT COROLLARY: a guard that is not COMMITTED is not
+       a guard — check-ui-wiring.sh was referenced by
+       guard-stale-refs.yml since b9c1d16 but the file itself was never
+       pushed (every CI run fell at that step until 2026-08-28j). Any
+       new script a workflow references must appear in the SAME commit.
 - Never log the AI response in production code paths (it can contain
   user PII or partial reasoning that should not be persisted).
 - Local fallbacks (`src/lib/ai-local.ts`) exist so the app degrades

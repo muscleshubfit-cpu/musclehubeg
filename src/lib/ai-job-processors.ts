@@ -23,6 +23,7 @@ import { pickSmartTopic } from "@/lib/blog-topics";
 import { supabaseAdmin, isSupabaseAdminConfigured } from "@/lib/supabase/admin";
 import { VALID_CATEGORY_IDS } from "@/lib/blog";
 import { articleSlugFromTitle } from "@/lib/ai-jobs-client";
+import { resolveSlug, sanitizeModelSlug } from "@/lib/slug";
 import {
   fetchFeaturedImage,
   embedBodyImages,
@@ -60,20 +61,11 @@ const LIGHT = { timeoutMs: 45_000 as const, maxModels: 2 as const };
  */
 
 /**
- * Enforce the M15 slug law on a model-proposed slug: lowercase latin
- * letters/digits/hyphens only, no leading/trailing/repeated hyphens,
- * max 80 chars, min 3 meaningful chars → "" when unusable.
+ * Enforce the M15 slug law on a model-proposed slug — MOVED to the ONE
+ * SLUG MODULE (src/lib/slug.ts, 2026-08-28j). Re-exported here so the
+ * canary imports keep working; do NOT add slug logic in this file.
  */
-export function sanitizeModelSlug(raw: string): string {
-  const s = String(raw || "")
-    .toLowerCase()
-    .replace(/[^a-z0-9-]+/g, "-")
-    .replace(/-{2,}/g, "-")
-    .replace(/^-|-$/g, "")
-    .slice(0, 80)
-    .replace(/-$/g, "");
-  return s.length >= 3 ? s : "";
-}
+export { sanitizeModelSlug } from "@/lib/slug";
 
 /**
  * Extract up to `limit` "## " section heading TEXTS from markdown —
@@ -479,9 +471,8 @@ async function materializeArticleDraft(r: {
   const words = r.markdown.split(/\s+/).filter(Boolean).length;
   // SEO-SLUG LAW (2026-08-28i): model-produced English slug wins; the
   // dated post-YYYYMMDDNNNN fallback only fires when BOTH the model slug
-  // AND the title's latin core are unusable.
-  const slug =
-    sanitizeModelSlug(r.slug || "") || articleSlugFromTitle(r.title);
+  // AND the title's latin core are unusable (ONE-SLUG-LAW: resolveSlug).
+  const slug = resolveSlug(r.slug, r.title);
   const row: Record<string, any> = {
     language: r.language,
     title: r.title,
@@ -767,7 +758,7 @@ async function runArticleGenerate(payload: any) {
   );
   const finalMarkdown = embedBodyImages(markdown, images);
   console.log(
-    `[article_generate] images: ${images.length} sourced (cover: ${images[0]?.url ? "yes" : "no"}), slug: ${modelSlug || "(dated fallback)"}`,
+    `[article_generate] images: ${images.length} sourced (cover: ${images[0]?.url ? "yes" : "no"}), slug: ${modelSlug || "(fallback net)"}`,
   );
 
   console.log(`[article_generate] quality: ${wordCount} words, ${sectionCount} sections, ${faqOut.length} FAQs`);
@@ -797,7 +788,7 @@ async function runArticleGenerate(payload: any) {
 
   return {
     title,
-    slug: modelSlug || articleSlugFromTitle(title),
+    slug: resolveSlug(modelSlug, title),
     markdown: finalMarkdown,
     excerpt: String(parsed.excerpt || "").slice(0, 400),
     meta_title: String(parsed.meta_title || title).slice(0, 200),

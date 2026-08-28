@@ -3,6 +3,7 @@ import { supabaseAdmin, isSupabaseAdminConfigured } from "@/lib/supabase/admin";
 import { normalizeCategory } from "@/lib/blog-server";
 import { countWords, type OutlinePlan } from "@/lib/blog-pipeline";
 import { embedBodyImages } from "@/lib/blog-images";
+import { slugifyAscii } from "@/lib/slug";
 import {
   getQueueIdParam,
   fetchQueueItem,
@@ -28,17 +29,8 @@ export const maxDuration = 60;
  *
  * GET /api/cron/blog/p5-publish?queueId=<uuid>
  */
-function slugify(input: string): string {
-  return input
-    .toLowerCase()
-    .trim()
-    .replace(/[^\x00-\x7F]/g, "")
-    .replace(/[^\w\s-]/g, "")
-    .replace(/\s+/g, "-")
-    .replace(/-+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 80);
-}
+// ONE-SLUG-LAW (2026-08-28j): the local slugify() copy was DELETED —
+// slug logic lives only in src/lib/slug.ts (slugifyAscii = exact port).
 
 async function uniqueSlug(base: string, language: "en" | "ar"): Promise<string> {
   if (!supabaseAdmin) return base;
@@ -128,7 +120,7 @@ export async function GET(request: NextRequest) {
       return dupSkip(qi.id, title, lang);
 
     const slug = await uniqueSlug(
-      slugify(outline.slugBase || qi.focus_keyword),
+      slugifyAscii(outline.slugBase || qi.focus_keyword),
       lang,
     );
     const featured = images[0]?.url ?? null;
