@@ -2690,3 +2690,22 @@ Stage Summary:
 - Migrations shipped but NOT applied to production (owner runs them): 0021_blog_queue_topic_ar.sql, 0022_evo_chat_usage.sql
 - Commit SHA: <filled at push>
 - Push status: pushed (origin/main)
+
+---
+Task ID: T-4PILLAR-COMPLETE-2026-08-28
+Agent: Main (Super Z — Implementation Agent)
+Task: Owner directive «تم ، ابنيهم الاول» — complete the 4-pillar scaffold (6bc6ee5): make coach workout/nutrition plan generation SURVIVABLE and finish the missing coach plan-editing actions.
+
+Work Log:
+- Re-cloned repo after sandbox recycle; HEAD verified at de2c68c (Phase 19 + 20 already pushed); bun install + git checkout bun.lock
+- GAP AUDIT of the 4-pillar scaffold (plan_workout / plan_nutrition / article_tool / social_post): blog tools + social posts 100% wired (Phase 19 verified); coach plan generation had 3 real gaps: (G1) blocking runAiJob poll — closing the tab during the ~10-min GHA wait stranded the finished job inside ai_jobs forever, no draft ever created; (G2) no coach-side exercise AI-swap (client side had it); (G3) coach swap usage burned the coach's personal weekly quota and would 429 at limit 0 paths
+- NEW src/lib/plan-jobs.ts (pure, no React): PendingPlanJob registry (mhe:pending-plan-jobs, 24h TTL, cap 40), saved-job-id store (mhe:saved-plan-jobs, cap 100), selectRecoverablePlanJobs (plan types · done · payload.clientId · >5-min grace · not saved/pending), planJobTypeToKind
+- NEW src/lib/__tests__/plan-jobs.test.ts — 15 canaries (round-trip, TTL prune, malformed entries, corrupted storage, dedupe, cap-eviction, full recovery-filter matrix)
+- src/app/api/ai/jobs/route.ts: list GET now returns `payload` for own rows (needed to resolve a finished plan job's clientId — plans rows carry no job_id; rows are hard-filtered to requested_by so no cross-user exposure) + role=coach BYPASSES the weekly swap quota (staff plan-editing semantics; client C16 limits + EVO monthly plan quotas untouched)
+- CoachClientView.tsx: queuePlanJob (enqueue → registry → watcher → auto-materialize draft), watchPlanJob (20s poll / 26-min window; done → addPlan draft + saved-id; failed → toast; timeout → entry KEPT so next mount re-watches and recovery still applies), mount-time re-attach effect, live pending-jobs strip + one-click "حفظ كمسودة" recovery card in ai-plans tab, generateAIPlan/handleRegeneratePlan rewired (regeneration enqueues replacement FIRST, deletes old draft only AFTER arrival AND only while still status=draft), PlanViewerModal per-exercise Wand2 AI-swap button (exercise_regenerate → in-place replace → explicit save)
+- Docs: AGENTS.md §8 PLAN JOB RECOVERY LAW (registry / recovery card / regeneration order / staff quota semantics) + PROGRESS.md Phase 21
+
+Stage Summary:
+- Verification: tsc 0 errors · vitest 110/110 (10 files, +15 new) · eslint 0 errors (582 warnings, file-style-consistent) · check-stale-refs clean · next build ✓ (951 pages)
+- No schema changes, no owner manual steps for this task
+- Pending owner manual step (from Phase 20, still unconfirmed): RUN_ON_SUPABASE_0028_EVO_ANON_USAGE.sql in Supabase SQL Editor

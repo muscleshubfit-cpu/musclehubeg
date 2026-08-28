@@ -690,6 +690,38 @@ Process:
        on OpenRouter ($10 → 1000 free requests/day/account) or stricter
        per-article AI budgeting. Diagnose quota BEFORE touching
        schedules; diagnose schedules (see 1) BEFORE touching code.
+- **PLAN JOB RECOVERY LAW (2026-08-28, T-4PILLAR-COMPLETE, owner
+  directive «تم ، ابنيهم الاول»):** every long-running AI queue job that
+  materializes into a USER-VISIBLE artifact (a `plans` draft row) must be
+  treated as SURVIVABLE state — the enqueueing tab closing, reloading, or
+  timing out must NEVER strand a finished job's result inside `ai_jobs`.
+    1) REGISTRY: CoachClientView persists every enqueued
+       plan_nutrition/plan_workout job in localStorage
+       (`mhe:pending-plan-jobs` — pure module `src/lib/plan-jobs.ts`,
+       24 h TTL, cap 40) and re-attaches a watcher on every mount.
+       Completion auto-saves the draft via addPlan and marks the job id
+       saved (`mhe:saved-plan-jobs`, cap 100) so recovery never
+       double-saves. The client-side swap watcher (`mhe:pending-swaps`)
+       remains the template for this pattern.
+    2) RECOVERY CARD: `/api/ai/jobs?limit` returns `payload` for OWN
+       rows so the ai-plans tab can resolve a finished plan job's
+       `payload.clientId`; finished jobs older than the 5-min
+       live-watcher grace and not saved/pending surface as a one-click
+       "حفظ كمسودة" recovery card. Any new plan-like job type MUST plug
+       into `selectRecoverablePlanJobs` (single filter choke point).
+    3) REGENERATION ORDER: a regenerate flow enqueues the replacement
+       FIRST and deletes the old draft only AFTER the new plan arrives
+       AND only if it is still `status='draft'` — a failed/late
+       generation must never destroy an existing (possibly approved)
+       plan.
+    4) STAFF QUOTA SEMANTICS: `role='coach'` requesters bypass the
+       weekly swap quota at `/api/ai/jobs` — meal/exercise swaps are
+       the coach's PLAN-EDITING tools, not client self-service. The
+       client-facing C16 weekly limits (free 0 · premium 3 · pro 6 ·
+       coaching 3) and the EVO monthly plan quotas are untouched.
+       Coach-side exercise swap lives in PlanViewerModal edit mode
+       (per-exercise Wand2 button → exercise_regenerate → in-place
+       replace → explicit حفظ).
 - Never log the AI response in production code paths (it can contain
   user PII or partial reasoning that should not be persisted).
 - Local fallbacks (`src/lib/ai-local.ts`) exist so the app degrades
