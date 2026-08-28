@@ -93,4 +93,19 @@ describe("ONE-SLUG-LAW — no local slug copies may reappear", () => {
     );
     expect(src).not.toMatch(/export function sanitizeModelSlug/);
   });
+
+  it("BlogEditorView updateTitle derives the slug from the law (no 6th local copy)", () => {
+    // Found 2026-08-28k: a SIXTH drifted copy hid in the editor's
+    // auto-title handler — it kept Arabic characters, so an Arabic title
+    // auto-filled an Arabic slug the M15 save gate then rejected. The
+    // canary reads the REAL editor source and checks EXECUTABLE code
+    // (comments stripped — documenting the old pattern must stay legal).
+    const src = readSrc("components/views/BlogEditorView.tsx");
+    const codeOnly = src
+      .replace(/\/\*[\s\S]*?\*\//g, "") // block comments
+      .replace(/^\s*\/\/.*$/gm, ""); // line comments
+    expect(codeOnly).not.toContain("\\u0600-\\u06FF"); // Arabic-keeping range
+    expect(codeOnly).not.toMatch(/title\.toLowerCase\(\)\.replace\(/);
+    expect(src).toContain("articleSlugFromTitle");
+  });
 });

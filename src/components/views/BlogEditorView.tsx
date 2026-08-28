@@ -183,7 +183,12 @@ export function BlogEditorView({ mode, postId }: { mode: "new" | "edit"; postId?
  // Auto-generate slug from title
  const updateTitle = (title: string) => {
  setPost((p) => {
- const slug = title.toLowerCase().replace(/[^\w\u0600-\u06FF\s-]/g, "").replace(/\s+/g, "-").replace(/-+/g, "-").slice(0, 80);
+ // ONE-SLUG-LAW (2026-08-28k): was a SIXTH drifted local slug copy that
+ // kept Arabic characters (\u0600-\u06FF) — an Arabic title auto-filled
+ // an Arabic slug the M15 save gate then rejected. Now the shared law
+ // produces the same latin/dated slug the coach generator uses (line
+ // parity with the generation path above).
+ const slug = articleSlugFromTitle(title);
  return { ...p, title, slug: p.slug || slug };
  });
  };

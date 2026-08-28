@@ -888,7 +888,7 @@ Process:
        article — any failure lands the draft without images exactly as
        the pre-fix flow (the «بدون صور» prompt line stays: the model must
        not invent image URLs; real photos come only from the safe pipeline).
-   14) ONE-SLUG-LAW (2026-08-28j, owner: «مش مفروض ان التوليد التلقائي
+       14) ONE-SLUG-LAW (2026-08-28j, owner: «مش مفروض ان التوليد التلقائي
        وكذلك من لوحة الكوتش موحد؟ كذلك ادوات التحسين هل بتتبع نفس
        النظام؟»): ALL slug logic lives ONLY in src/lib/slug.ts
        (sanitizeModelSlug / slugifyAscii / articleSlugFromTitle /
@@ -901,6 +901,15 @@ Process:
        the automated pipeline and the coach generator can never drift
        apart again. Re-export bridges (ai-jobs-client,
        ai-job-processors) keep historical import paths alive.
+       SIXTH DRIFT (2026-08-28k): the completion audit of «أدوات
+       التحسين» found a hidden local copy in BlogEditorView updateTitle
+       that KEPT ARABIC characters — an Arabic title auto-filled an
+       Arabic slug the M15 save gate then rejected. Migrated to
+       articleSlugFromTitle; the canary now also reads the editor source
+       with comments stripped (documenting the old pattern stays legal,
+       executing it fails the build). Improvement tools themselves are
+       TEXT TRANSFORMERS returning to a copy-only panel — slug/image
+       laws N/A; the M15 save gate remains the boundary verifier.
        GUARD-COMMITMENT COROLLARY: a guard that is not COMMITTED is not
        a guard — check-ui-wiring.sh was referenced by
        guard-stale-refs.yml since b9c1d16 but the file itself was never
