@@ -614,8 +614,10 @@ Process:
   ادمن/كوتش … نفس ما يظهر للمستخدمين يظهر للادمن و نفس حدود الاستخدام وده
   مش منطقى» + approved discussion answers):** `profiles.role` is the
   THREE-value enum `client | coach | admin` (migrations
-  RUN_ON_SUPABASE_0029A + 0029B — run in that order; ALTER TYPE and its
-  first use cannot share one transaction). The semantics are NON-NEGOTIABLE:
+  RUN_ON_SUPABASE_0029_ADMIN_ROLE_ALL_IN_ONE.sql — ONE paste, or
+  0029A + 0029B in that order; ALTER TYPE and its first use cannot
+  share one transaction — the all-in-one script splits them with an
+  explicit `commit;`). The semantics are NON-NEGOTIABLE:
     1) STAFF = coach ∪ admin. `isCoach` in use-auth now means STAFF;
        `is_staff` on `AuthUser` (auth-server) is the server twin.
        SQL `is_coach()` was REDEFINED as `role IN ('coach','admin')` —

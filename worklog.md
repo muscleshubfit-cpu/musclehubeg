@@ -2756,3 +2756,21 @@ Stage Summary:
 - OWNER MANUAL STEPS (Supabase SQL Editor, IN ORDER): (1) RUN_ON_SUPABASE_0029A_ADMIN_ENUM.sql → (2) RUN_ON_SUPABASE_0029B_ADMIN_ROLE.sql → NOTIFY pgrst, 'reload schema';. Until both run, the UI code is forward-compatible (admin role simply won't resolve until enum extended).
 - Commit SHA: 7811bc3
 - Push status: pushed (origin/main)
+
+---
+Task ID: T-SQL-ALL-IN-ONE-2026-08-29
+Agent: Main (Super Z — Implementation Agent)
+Task: Owner «الخطوات اليدوية اعمل سكريبت واحد للتشغيل وادينى رابط raw انسخة واشغلة فى Supabase» — merge the two owner-manual SQL steps (0029A + 0029B) into ONE script deliverable via raw GitHub link.
+
+Work Log:
+- Verified repo synced (origin/main, HEAD 2943c4e); confirmed ROLE-MODEL-V2 code side already landed in 7811bc3 (tsc/vitest/build verified then) — this task is the SQL-delivery step only.
+- Confirmed preconditions: user_role enum is ('client','coach') (0001_init L30), profiles.role uses it (L54), original is_coach() signature (0001) is OR-REPLACE-compatible with the staff-semantics redefinition, no is_admin/is_staff name collisions in any migration.
+- NEW supabase/migrations/RUN_ON_SUPABASE_0029_ADMIN_ROLE_ALL_IN_ONE.sql — single-paste script = 0029A + 0029B + NOTIFY pgrst. Transaction-split via an explicit `commit;` directly after ALTER TYPE ADD VALUE (PG forbids USING a new enum value inside the adding transaction; SQL Editor would otherwise run the whole paste as ONE implicit transaction). The commit works in all 3 execution modes: whole-string (splits implicit block), statement-per-statement (no-op warning), outer wrapper (early exit, warning only). Fallback path documented in header (run 0029A then 0029B separately).
+- Contents: enum extension + commit → is_admin()/is_staff() SECURITY DEFINER helpers → is_coach() redefined as role IN ('coach','admin') (zero RLS rewrites, admin inherits coach data access) → auto_promote_coach_if_allowed hardened (only client→coach, never downgrades admin) → UPDATE profiles SET role='admin' WHERE role='coach' (owner-confirmed the current coach IS admin/general-coach) → grants → NOTIFY pgrst 'reload schema' → 3 verification queries in comments.
+- AGENTS.md ROLE MODEL v2 LAW updated: migration pointer now names the ALL-IN-ONE file (one paste) with 0029A+0029B as ordered alternative.
+- Idempotency: re-runnable (add value if not exists / create or replace / UPDATE matches zero rows on second run).
+
+Stage Summary:
+- Deliverable: supabase/migrations/RUN_ON_SUPABASE_0029_ADMIN_ROLE_ALL_IN_ONE.sql — owner pastes it into Supabase SQL Editor ONCE; raw link shared in chat.
+- No code behavior changes in this task; code side was already complete (7811bc3). UI is forward-compatible either way (staff semantics already cover the current account while it still holds role='coach').
+- After the SQL runs: owner account shows role='admin', /admin/* gate opens for them, auto-promotion can no longer downgrade admins.
