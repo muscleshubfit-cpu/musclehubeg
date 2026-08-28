@@ -153,3 +153,26 @@ export function pickResultIndex(total: number, variationKey?: string): number {
   if (!variationKey) return 0;
   return hashKey(variationKey) % total;
 }
+
+/**
+ * OWNER IMAGE-SWAP LAW (2026-08-28f, «خلال الانتظار محتاج اقدر اعدل الصور
+ * للمقال… لان احيانا الصور بتكون غير مناسبة»): the editor's suggest/swap
+ * flow passes every rejected URL back to the sourcing pipeline — the same
+ * photo must never be suggested twice within one editing session.
+ * Comparison is query-string-insensitive: Pexels/Unsplash CDN URLs differ
+ * only in resize params, which must NOT defeat the exclusion.
+ */
+export function normalizeImageUrlForCompare(url: string): string {
+  return String(url || "")
+    .trim()
+    .toLowerCase()
+    .split("?")[0]
+    .replace(/\.(jpg|jpeg|png|webp)$/, "");
+}
+
+export function isExcludedImageUrl(url: string, excludeUrls?: string[]): boolean {
+  if (!excludeUrls || excludeUrls.length === 0 || !url) return false;
+  const norm = normalizeImageUrlForCompare(url);
+  if (!norm) return false;
+  return excludeUrls.some((u) => normalizeImageUrlForCompare(u) === norm);
+}

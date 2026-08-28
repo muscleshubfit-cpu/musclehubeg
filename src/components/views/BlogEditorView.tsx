@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useEffect, useState, useCallback, useRef } from "react";
-import { Save, Eye, Code, Sparkles, Loader2, ArrowLeft, Plus, X, CheckCircle, AlertCircle, Clock, Wand2, Settings2 } from "lucide-react";
+import { Save, Eye, Code, Sparkles, Loader2, ArrowLeft, Plus, X, CheckCircle, AlertCircle, Clock, Wand2, Settings2, ImagePlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -49,6 +49,53 @@ export function BlogEditorView({ mode, postId }: { mode: "new" | "edit"; postId?
  const [socialTone, setSocialTone] = useState<"professional" | "friendly" | "motivational">("motivational");
  const [aiResults, setAiResults] = useState<Record<string, string>>({});
  const [aiPrefilled, setAiPrefilled] = useState(false);
+ // OWNER IMAGE-SWAP (2026-08-28f): «خلال الانتظار محتاج اقدر اعدل الصور
+ // للمقال… لان احيانا الصور بتكون غير مناسبة» — suggest/swap session
+ // state: rejected URLs accumulate so the same photo never repeats.
+ const [imgBusy, setImgBusy] = useState(false);
+ const [imgExclude, setImgExclude] = useState<string[]>([]);
+ const [imgVariation, setImgVariation] = useState(0);
+
+ // Suggest ONE safe cover via the SAME v3.1 pipeline (Pexels-first, NSFW
+ // screened). The exclude list grows with every rejection so
+ // «🔄 صورة مختلفة» always returns a NEW photo.
+ const suggestCoverImage = async () => {
+   if (imgBusy) return;
+   const query = [post.title, post.focus_keyword, ...(post.keywords || []).slice(0, 2)]
+     .filter(Boolean)
+     .join(" ")
+     .trim();
+   if (query.length < 3) {
+     toast.error(isAr ? "اكتب العنوان الأول علشان نقترح صورة مناسبة" : "Add a title first so we can suggest a matching photo");
+     return;
+   }
+   setImgBusy(true);
+   try {
+     const res = await fetch("/api/blog/suggest-image", {
+       method: "POST",
+       headers: { "Content-Type": "application/json" },
+       body: JSON.stringify({ query, exclude: imgExclude, variation: imgVariation }),
+     });
+     const data = await res.json().catch(() => ({}));
+     if (!res.ok) {
+       toast.error(data.error || (isAr ? "فشل اقتراح الصورة" : "Image suggestion failed"));
+       return;
+     }
+     if (!data.image?.url) {
+       toast.error(isAr ? "مفيش صورة آمنة مطابقة — جرب كلمات مختلفة في العنوان" : "No safe match found — try different wording");
+       return;
+     }
+     const nextExclude = [...imgExclude, data.image.url].slice(-12);
+     setImgExclude(nextExclude);
+     setImgVariation((v) => v + 1);
+     setPost((p) => ({ ...p, featured_image: data.image.url, cover_alt: data.image.alt || p.cover_alt }));
+     toast.success(isAr ? "وصلت صورة آمنة مقترحة ✅ اقبلها أو اطلب غيرها" : "Safe photo suggested ✅ accept it or ask for another");
+   } catch (e: any) {
+     toast.error(e?.message || (isAr ? "فشل اقتراح الصورة" : "Image suggestion failed"));
+   } finally {
+     setImgBusy(false);
+   }
+ };
 
  // AI ARTICLE GENERATION HAND-OFF (2026-08-28): BlogAdminView stores the
  // finished article_generate result in sessionStorage right before pushing
@@ -425,21 +472,53 @@ export function BlogEditorView({ mode, postId }: { mode: "new" | "edit"; postId?
  />
  </div>
 
- {/* Featured image */}
+ {/* Featured image + OWNER IMAGE-SWAP (2026-08-28f): «احيانا الصور
+     بتكون غير مناسبة» — suggest/replace a SAFE cover without leaving
+     the review flow, using the same v3.1 sourcing pipeline. */}
  <div>
- <Label>{isAr ? "الصورة المميزة" : "Featured Image URL"}</Label>
+ <div className="flex items-center justify-between gap-2">
+ <Label>{isAr ? "الصورة المميزة" : "Featured Image"}</Label>
+ <div className="flex gap-1.5">
+ <Button
+ type="button"
+ size="sm"
+ variant="outline"
+ disabled={imgBusy}
+ onClick={suggestCoverImage}
+ className="gap-1 text-xs"
+ >
+ {imgBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ImagePlus className="h-3.5 w-3.5" />}
+ {imgBusy
+ ? (isAr ? "جاري البحث..." : "Searching...")
+ : post.featured_image
+ ? (isAr ? "🔄 صورة مختلفة" : "🔄 Different photo")
+ : (isAr ? "✨ اقترح صورة آمنة" : "✨ Suggest safe photo")}
+ </Button>
+ </div>
+ </div>
+ {post.featured_image && (
+ <div className="relative mt-2 h-36 w-full overflow-hidden rounded-lg">
+ <Image src={post.featured_image} alt={post.cover_alt || "preview"} fill className="object-cover" />
+ </div>
+ )}
  <Input
  value={post.featured_image || ""}
  onChange={(e) => setPost((p) => ({ ...p, featured_image: e.target.value }))}
- placeholder="https://..."
- className="mt-1.5"
+ placeholder={isAr ? "أو الصق رابط صورة يدوياً (https://...)" : "or paste an image URL (https://...)"}
+ className="mt-2"
  dir="ltr"
  />
- {post.featured_image && (
- <div className="relative mt-2 h-32 w-full overflow-hidden rounded-lg">
- <Image src={post.featured_image} alt="preview" fill className="object-cover" />
- </div>
- )}
+ <Input
+ value={post.cover_alt || ""}
+ onChange={(e) => setPost((p) => ({ ...p, cover_alt: e.target.value }))}
+ placeholder={isAr ? "وصف الصورة (alt) — مهم للسيو وقارئ الشاشة" : "Image alt text — SEO + screen readers"}
+ className="mt-2 text-xs"
+ />
+ <p className="mt-1.5 text-[11px] leading-relaxed text-muted-foreground">
+ {isAr
+ ? "الصور المقترحة من Pexels بنفس منظومة الأمان الآلية (فحص المحتوى غير اللائق قبل العرض). مش مناسبة؟ اضغط «صورة مختلفة» وهتجيب صورة جديدة غيرها."
+ : "Suggested photos come from Pexels through the same automated safety pipeline (modesty-screened before display). Not a fit? Hit «Different photo» for a fresh one."}
+ </p>
  </div>
 
  {/* Keywords + Tags */}

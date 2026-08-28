@@ -25,6 +25,7 @@ import {
   hasNsfwVocabulary,
   hasImmodestSignal,
   pickResultIndex,
+  isExcludedImageUrl,
 } from "@/lib/image-safety";
 
 /**
@@ -47,6 +48,9 @@ export type SourcedImage = { url: string; alt: string; credit: string } | null;
  */
 export type ImageSourceOptions = {
   variationKey?: string;
+  /** OWNER IMAGE-SWAP (2026-08-28f): URLs already seen/rejected in this
+   *  editing session — the same photo is never suggested twice. */
+  excludeUrls?: string[];
 };
 
 /** Results fetched per search — rotation pool size. */
@@ -73,18 +77,22 @@ async function searchPexels(
     const photos: any[] = data?.photos ?? [];
     // «لا عرى»: reject any result whose alt text carries NSFW or
     // immodest-signal vocabulary (v3.1: caught the shirtless-back case).
-    const safe = photos.filter((p) => !altTextUnsafe(p?.alt));
-    if (safe.length === 0) return null;
+    const candidates = photos
+      .map((p: any) => ({
+        photo: p,
+        url: p.src?.landscape || p.src?.large || p.src?.medium || p.src?.original,
+      }))
+      .filter(
+        (c) =>
+          c.url && !altTextUnsafe(c.photo?.alt) && !isExcludedImageUrl(c.url, opts?.excludeUrls),
+      );
+    if (candidates.length === 0) return null;
 
-    const photo = safe[pickResultIndex(safe.length, opts?.variationKey)];
-    if (!photo) return null;
+    const { photo, url } = candidates[pickResultIndex(candidates.length, opts?.variationKey)];
+    if (!photo || !url) return null;
 
     // src.landscape = 1200×627 crop with auto=compress&cs=tinysrgb —
     // lightweight at the CDN level before next/image further optimizes.
-    const url: string =
-      photo.src?.landscape || photo.src?.large || photo.src?.medium || photo.src?.original;
-    if (!url) return null;
-
     return {
       url,
       alt: photo.alt || query,
@@ -113,14 +121,24 @@ async function searchUnsplash(
     if (!res.ok) return null;
     const data = await res.json();
     const results: any[] = data?.results ?? [];
-    const safe = results.filter((p) => !altTextUnsafe(p?.alt_description || p?.description));
-    if (safe.length === 0) return null;
+    const candidates = results
+      .map((p: any) => ({
+        photo: p,
+        url: p.urls?.regular || p.urls?.full,
+      }))
+      .filter(
+        (c) =>
+          c.url &&
+          !altTextUnsafe(c.photo?.alt_description || c.photo?.description) &&
+          !isExcludedImageUrl(c.url, opts?.excludeUrls),
+      );
+    if (candidates.length === 0) return null;
 
-    const photo = safe[pickResultIndex(safe.length, opts?.variationKey)];
-    if (!photo) return null;
+    const { photo, url } = candidates[pickResultIndex(candidates.length, opts?.variationKey)];
+    if (!photo || !url) return null;
 
     return {
-      url: photo.urls?.regular || photo.urls?.full,
+      url,
       alt: photo.alt_description || query,
       credit: photo.user?.name ? `Photo by ${photo.user.name} on Unsplash` : "Unsplash",
     };
@@ -148,14 +166,22 @@ async function searchPixabay(
     if (!res.ok) return null;
     const data = await res.json();
     const hits: any[] = data?.hits ?? [];
-    const safe = hits.filter((p) => !altTextUnsafe(p?.tags));
-    if (safe.length === 0) return null;
+    const candidates = hits
+      .map((h: any) => ({
+        photo: h,
+        url: h.largeImageURL || h.webformatURL || h.previewURL,
+      }))
+      .filter(
+        (c) =>
+          c.url && !altTextUnsafe(c.photo?.tags) && !isExcludedImageUrl(c.url, opts?.excludeUrls),
+      );
+    if (candidates.length === 0) return null;
 
-    const hit = safe[pickResultIndex(safe.length, opts?.variationKey)];
-    if (!hit) return null;
+    const { photo: hit, url } = candidates[pickResultIndex(candidates.length, opts?.variationKey)];
+    if (!hit || !url) return null;
 
     return {
-      url: hit.largeImageURL || hit.webformatURL || hit.previewURL,
+      url,
       alt: hit.tags || query,
       credit: hit.user ? `Photo by ${hit.user} on Pixabay` : "Pixabay",
     };

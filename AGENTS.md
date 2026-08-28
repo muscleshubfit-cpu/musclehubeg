@@ -799,6 +799,16 @@ Process:
        a shallow 5-second draft can never land as done; (d) maxTokens
        6000 keeps the chain Groq-eligible (≈6975 < 7200) while funding
        the depth contract.
+    9) OWNER IMAGE-SWAP LAW (2026-08-28f, «خلال الانتظار محتاج اقدر اعدل
+       الصور للمقال… لان احيانا الصور بتكون غير مناسبة»): the editor's
+       featured-image card carries «✨ اقترح صورة آمنة / 🔄 صورة مختلفة»
+       backed by POST /api/blog/suggest-image (coach-only) — a thin call
+       over the SAME v3.1 sourcing pipeline with an EXCLUDE list:
+       rejected URLs flow back (query-string-insensitive compare via
+       isExcludedImageUrl) so the same photo is NEVER suggested twice in
+       one session; candidates rotate via variationKey. Nothing is
+       written server-side — the editor applies the accepted candidate
+       to featured_image/cover_alt and saves with the post.
 - Never log the AI response in production code paths (it can contain
   user PII or partial reasoning that should not be persisted).
 - Local fallbacks (`src/lib/ai-local.ts`) exist so the app degrades

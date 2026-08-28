@@ -11,6 +11,7 @@ import {
   hasImmodestSignal,
   hashKey,
   pickResultIndex,
+  isExcludedImageUrl,
 } from "../image-safety";
 
 describe("image-safety v3 — query sanitizer (people OK / NSFW never)", () => {
@@ -121,5 +122,31 @@ describe("image-safety v3 — deterministic result rotation", () => {
   it("hashKey is deterministic", () => {
     expect(hashKey("abc")).toBe(hashKey("abc"));
     expect(hashKey("abc")).not.toBe(hashKey("abd"));
+  });
+});
+
+describe("isExcludedImageUrl — OWNER IMAGE-SWAP reject list (2026-08-28f)", () => {
+  it("excludes the exact URL", () => {
+    const url = "https://images.pexels.com/photos/123/pexels-photo-123.jpeg";
+    expect(isExcludedImageUrl(url, [url])).toBe(true);
+    expect(isExcludedImageUrl(url, ["https://other.example/x.jpg"])).toBe(false);
+  });
+
+  it("is query-string insensitive (CDN resize params must not defeat the reject list)", () => {
+    const rejected = "https://images.pexels.com/photos/123/pexels-photo-123.jpeg?auto=compress&cs=tinysrgb&h=627";
+    const candidate = "https://images.pexels.com/photos/123/pexels-photo-123.jpeg?w=1200";
+    expect(isExcludedImageUrl(candidate, [rejected])).toBe(true);
+  });
+
+  it("is case-insensitive and ignores the extension", () => {
+    const rejected = "https://CDN.example/Photos/123.JPG";
+    const candidate = "https://cdn.example/photos/123.webp";
+    expect(isExcludedImageUrl(candidate, [rejected])).toBe(true);
+  });
+
+  it("handles empty/missing reject lists safely", () => {
+    expect(isExcludedImageUrl("https://x/y.jpg", [])).toBe(false);
+    expect(isExcludedImageUrl("https://x/y.jpg", undefined)).toBe(false);
+    expect(isExcludedImageUrl("", ["https://x/y.jpg"])).toBe(false);
   });
 });
