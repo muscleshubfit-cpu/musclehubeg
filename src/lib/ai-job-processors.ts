@@ -552,8 +552,8 @@ async function runArticleGenerate(payload: any) {
         ? `الكلمات المفتاحية التي يجب أن تظهر طبيعياً: ${keywords.join("، ")}.`
         : `Focus keywords to weave in naturally: ${keywords.join(", ")}.`),
     isAr
-      ? "المتطلبات الصارمة: 1100-1400 كلمة (شرط إلزامي — المقالات الأقصر تُرفض وتُعاد الكتابة)، مقدمة غير نمطية (ممنوع البدء بـ«في عالم اللياقة» أو أي حشو عام)، 6-9 عناوين فرعية ## منظمة، أمثلة وأرقام عملية محددة داخل الأقسام، قسم «أخطاء شائعة»، قسم تطبيقي خطوة بخطوة قابل للتنفيذ فوراً، خاتمة بدعوة لاتخاذ إجراء. بدون جداول HTML وبدون صور وبدون صيغة LaTeX."
-      : "Hard requirements: 1100-1400 words (mandatory — shorter drafts are rejected and rewritten), a non-generic hook (never open with filler like 'In the world of fitness…'), 6-9 organized ## subheadings, concrete examples and practical numbers inside sections, a common-mistakes section, an immediately actionable step-by-step section, conclusion with a call-to-action. No HTML tables, no images, no LaTeX.",
+      ? "المتطلبات الصارمة: 900-1400 كلمة (شرط إلزامي — المقالات الأقصر تُرفض وتُعاد الكتابة)، مقدمة غير نمطية (ممنوع البدء بـ«في عالم اللياقة» أو أي حشو عام)، 6-9 عناوين فرعية ## منظمة، أمثلة وأرقام عملية محددة داخل الأقسام، قسم «أخطاء شائعة»، قسم تطبيقي خطوة بخطوة قابل للتنفيذ فوراً، خاتمة بدعوة لاتخاذ إجراء. بدون جداول HTML وبدون صور وبدون صيغة LaTeX."
+      : "Hard requirements: 900-1400 words (mandatory — shorter drafts are rejected and rewritten), a non-generic hook (never open with filler like 'In the world of fitness…'), 6-9 organized ## subheadings, concrete examples and practical numbers inside sections, a common-mistakes section, an immediately actionable step-by-step section, conclusion with a call-to-action. No HTML tables, no images, no LaTeX.",
     isAr
       ? "أعد JSON فقط بالشكل الحرفي (بدون أسوار كود):"
       : "Return ONLY JSON in this exact shape (no code fences):",
@@ -564,7 +564,7 @@ async function runArticleGenerate(payload: any) {
  "meta_description": "${isAr ? "وصف ميتا 120-155 حرفاً" : "120-155 char meta description"}",
  "tags": ["${isAr ? "5-8 وسوم قصيرة" : "5-8 short tags"}"],
  "faq": [{"question": "${isAr ? "سؤال حقيقي" : "genuine question"}", "answer": "${isAr ? "إجابة موجزة دقيقة" : "concise accurate answer"}"}],
- "markdown": "${isAr ? "المقال كاملاً (1100-1400 كلمة) بصيغة Markdown تبدأ بعنوان ## أول قسم (بدون تكرار العنوان الرئيسي)" : "full article (1100-1400 words) in Markdown starting with the first ## section (never repeat the main title)"}"
+ "markdown": "${isAr ? "المقال كاملاً (900-1400 كلمة) بصيغة Markdown تبدأ بعنوان ## أول قسم (بدون تكرار العنوان الرئيسي)" : "full article (900-1400 words) in Markdown starting with the first ## section (never repeat the main title)"}"
 }`,
   ].filter(Boolean);
 
@@ -581,10 +581,15 @@ async function runArticleGenerate(payload: any) {
       // died, attempt 2 needed 138s). 5000 still covers the 800-1200-word
       // 6000 (2026-08-28e quality bump): est ≈ prompt(~175t) + 6000 + 800
       // ≈ 6975 < 7200 → STILL Groq-eligible, with headroom for the
-      // mandatory 1100-1400-word contract incl. reasoning overhead.
+      // mandatory 900-1400-word contract incl. reasoning overhead.
       maxTokens: 6000,
       jsonMode: true,
       ...HEAVY,
+      // RATE RESILIENCE (2026-08-28h, run 33176102145): maxModels 3 stopped
+      // at nemotron/groq-120b/gemma-31b — exactly the three buckets that
+      // were simultaneously saturated. 5 reaches groq gpt-oss-20b + gemma
+      // 26b: two MORE independent rate buckets before giving up.
+      maxModels: 5 as const,
     },
   );
 
@@ -598,16 +603,17 @@ async function runArticleGenerate(payload: any) {
     throw new Error("النموذج لم يُرجع مقالاً كاملاً — حاول مرة أخرى.");
   }
 
-  // QUALITY FLOOR (2026-08-28e, tightened 2026-08-28g after run 33173644317
-  // produced an 878-word draft in ~7s): a fast shallow draft must NEVER
-  // land as done. Word floor 800 (contract is 1100-1400) + STRUCTURE floor
-  // (≥ 5 "## " sections) — failJob requeues with a different lead model,
-  // so only deep, fully-sectioned drafts ever materialize.
+  // QUALITY FLOOR (2026-08-28e, tightened 2026-08-28g; recalibrated
+  // 2026-08-28h after run 33176102145: gpt-oss-120b hovers 728-880 words,
+  // so the 800 floor was a coin-flip that burned the final attempt at 728
+  // while rate limits ate attempts 1-2). Floor 750 + STRUCTURE floor
+  // (≥ 5 "## " sections); the PROMPT demands 900+ so accepted drafts
+  // stay deep while the floor tolerates honest model variance.
   const wordCount = markdown.split(/\s+/).filter(Boolean).length;
   const sectionCount = (markdown.match(/^##\s+/gm) || []).length;
-  if (wordCount < 800) {
+  if (wordCount < 750) {
     throw new Error(
-      `QUALITY FLOOR: draft too shallow (${wordCount} words < 800 required) - requeueing for a deeper rewrite`,
+      `QUALITY FLOOR: draft too shallow (${wordCount} words < 750 required) - requeueing for a deeper rewrite`,
     );
   }
   if (sectionCount < 5) {

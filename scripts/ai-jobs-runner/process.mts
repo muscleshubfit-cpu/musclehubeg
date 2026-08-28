@@ -98,6 +98,17 @@ async function main(): Promise<void> {
           console.log(`::error::AI job ${job.job_type} failed permanently: ${message.slice(0, 180)}`);
         } else {
           console.warn(`[ai-jobs] ⚠︎ ${label} failed, requeued for retry: ${message}`);
+          // RATE-LIMIT COOLDOWN LAW (2026-08-28h): a requeue caused by
+          // 429/TPM/quota pressure MUST outlive the per-minute window
+          // before the next claim — back-to-back retries re-burn the same
+          // bucket and turn a transient limit into a permanent failure
+          // (run 33176102145: attempts 1-2 died 90s apart to Groq TPM).
+          if (/429|rate.?limit|TPM|quota/i.test(message)) {
+            console.log(`[ai-jobs] ⏳ rate-limited — cooling down 70s before the next claim (window reset)`);
+            await new Promise((r) => setTimeout(r, 70_000));
+          } else {
+            await new Promise((r) => setTimeout(r, 3_000));
+          }
         }
       }
     }

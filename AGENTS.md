@@ -807,9 +807,10 @@ Process:
        links woven from REAL published slugs (internalLinkCandidates,
        same-language, offered to the model as ready [anchor](link) pairs
        — insertLinksIntoArticle parity); (c) meta_title distinct from
-       title; floors TIGHTENED: ≥800 words (was 550 — run 33173644317
-       passed 878 words in ~7s) AND ≥5 "## " sections, each violation
-       requeues with a different lead model.
+       title; floors: ≥750 words + ≥5 "## " sections (recalibrated
+       2026-08-28h: gpt-oss-120b hovers 728-880 — the 800 floor was a
+       coin-flip that burned run 33176102145's final attempt at 728),
+       prompt asks 900+ so accepted drafts stay deep.
     9) OWNER IMAGE-SWAP LAW (2026-08-28f, «خلال الانتظار محتاج اقدر اعدل
        الصور للمقال… لان احيانا الصور بتكون غير مناسبة»): the editor's
        featured-image card carries «✨ اقترح صورة آمنة / 🔄 صورة مختلفة»
@@ -840,6 +841,15 @@ Process:
        exists (CI), job → processor (CI + test), result has a VISIBLE
        materialization, runner exits honestly (CI), docs updated in the
        SAME commit.
+   11) RATE-LIMIT RESILIENCE LAW (2026-08-28h, run 33176102145 — owner:
+       «اعتقد الكوتا خلصت… لو ده السبب احنا عندنا مشكلة اكبر»): free-tier
+       429s are TRANSIENT (Groq TPM resets per minute; OpenRouter shared
+       pools refill) — a retry must OUTLIVE the window, not re-burn it.
+       The runner sleeps 70s after any rate-limit requeue before the next
+       claim; heavy article calls try maxModels 5 (five independent rate
+       buckets: nemotron/groq-120b/gemma-31b/groq-20b/gemma-26b) instead
+       of 3. Back-to-back retries dying inside one TPM window are a
+       runner bug, not provider fate.
 - Never log the AI response in production code paths (it can contain
   user PII or partial reasoning that should not be persisted).
 - Local fallbacks (`src/lib/ai-local.ts`) exist so the app degrades
