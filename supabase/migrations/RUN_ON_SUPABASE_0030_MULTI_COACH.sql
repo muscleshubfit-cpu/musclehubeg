@@ -18,6 +18,20 @@
 -- ALTER TYPE inside → safe as a single paste (no mid-script commit).
 -- Idempotent: safe to run multiple times.
 -- =====================================================================
+-- HOW TO PASTE SAFELY -------------------------------------------------
+-- If you ever see  ERROR 42601 "unterminated dollar-quoted string at
+-- or near $$"  → that is a TRUNCATED/MANGLED COPY, not a script bug
+-- (the closing $$; of a function body never reached the server).
+--   1. Open this RAW url and copy ALL of it (Ctrl+A then Ctrl+C,
+--      or the "Copy raw file" button):
+--   https://raw.githubusercontent.com/muscleshubfit-cpu/musclehubeg/main/supabase/migrations/RUN_ON_SUPABASE_0030_MULTI_COACH.sql
+--   2. In Supabase SQL Editor open a NEW empty query — delete any old
+--      text first (leftover content breaks the paste).
+--   3. Paste, then press Ctrl+End: the LAST lines you see MUST be the
+--      "END OF SCRIPT 0030" marker at the bottom of this file.
+--      If you cannot see it → the copy was cut; re-copy from the raw url.
+--   4. Run → expected output:  "Success. No rows returned"
+-- =====================================================================
 
 -- ============================================================
 -- PART 1 — coach_assignments table + RLS
@@ -571,6 +585,12 @@ grant execute on function public.get_coach_client_list() to authenticated;
 -- PART 9 — PostgREST schema reload
 -- ============================================================
 notify pgrst, 'reload schema';
+
+-- =====================================================================
+-- ===== END OF SCRIPT 0030 — after pasting, press Ctrl+End in the
+-- ===== SQL editor: you MUST see this marker. If you don't, the copy
+-- ===== was truncated → re-copy everything from the RAW url above.
+-- =====================================================================
 
 -- =====================================================================
 -- VERIFY (paste each in the SQL Editor):
