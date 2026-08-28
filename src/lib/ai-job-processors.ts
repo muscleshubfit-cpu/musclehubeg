@@ -347,6 +347,94 @@ async function runExerciseRegenerate(payload: any) {
   return out; // { replacement(+exerciseSlug/image), alternatives[3], libraryMatched, source }
 }
 
+/* ─────────────────── Article generation (coach) ─────────────────── */
+
+/**
+ * Full-article GENERATION from a topic — the queue-era replacement for the
+ * Phase-15-deleted client-side generator (owner report 2026-08-28: coaches
+ * had no generation entry at all, only a banner pointing at a dead button).
+ *
+ * Output contract with BlogEditorView prefill (sessionStorage hand-off):
+ * { title, markdown, excerpt, meta_description, tags[], language, source }
+ */
+async function runArticleGenerate(payload: any) {
+  const topic = String(payload.topic || "").trim();
+  if (topic.length < 5) throw new Error("article_generate: missing topic");
+  const isAr = payload.language !== "en";
+  const tone = String(payload.tone || "").trim();
+  const audience = String(payload.audience || "").trim();
+  const category = String(payload.category || "").trim();
+  const keywords = Array.isArray(payload.keywords)
+    ? payload.keywords.map((k: any) => String(k).trim()).filter(Boolean).slice(0, 8)
+    : [];
+
+  const sys = isAr
+    ? "أنت كاتب محتوى رياضي خبير لموقع MuscleHubEG (مدونة لياقة وتغذية مصرية). تكتب بالعربية الفصحى المبسّطة بنبرة تحفيزية عملية، وتلتزم حرفياً بتعليمات الإخراج JSON."
+    : "You are MuscleHubEG's senior fitness & nutrition content writer (Egyptian fitness blog). Write in clear, practical English and follow the JSON output contract literally.";
+
+  const lines = [
+    isAr
+      ? `اكتب مقالاً كاملاً جاهزاً للنشر عن: «${topic}»`
+      : `Write a complete, publication-ready article about: "${topic}"`,
+    tone && (isAr ? `النبرة: ${tone}.` : `Tone: ${tone}.`),
+    audience && (isAr ? `الجمهور المستهدف: ${audience}.` : `Target audience: ${audience}.`),
+    category && (isAr ? `التصنيف: ${category}.` : `Category: ${category}.`),
+    keywords.length &&
+      (isAr
+        ? `الكلمات المفتاحية التي يجب أن تظهر طبيعياً: ${keywords.join("، ")}.`
+        : `Focus keywords to weave in naturally: ${keywords.join(", ")}.`),
+    isAr
+      ? "المتطلبات: 800-1200 كلمة، مقدمة جذابة، عناوين فرعية ## منظمة (5-8 أقسام)، نقاط وقوائم عند الحاجة، نصائح عملية قابلة للتطبيق، خاتمة بدعوة لاتخاذ إجراء. بدون جداول HTML وبدون صور وبدون صيغة LaTeX."
+      : "Requirements: 800-1200 words, engaging intro, 5-8 organized ## subheadings, bullets where useful, actionable advice, conclusion with a call-to-action. No HTML tables, no images, no LaTeX.",
+    isAr
+      ? "أعد JSON فقط بالشكل الحرفي (بدون أسوار كود):"
+      : "Return ONLY JSON in this exact shape (no code fences):",
+    `{
+ "title": "${isAr ? "عنوان جذاب أقل من 70 حرفاً" : "catchy title under 70 chars"}",
+ "excerpt": "${isAr ? "ملخص تشويقي سطرين" : "two-line teaser"}",
+ "meta_description": "${isAr ? "وصف ميتا 120-155 حرفاً" : "120-155 char meta description"}",
+ "tags": ["${isAr ? "5-8 وسوم قصيرة" : "5-8 short tags"}"],
+ "markdown": "${isAr ? "المقال كاملاً بصيغة Markdown تبدأ بعنوان ## أول قسم (بدون تكرار العنوان الرئيسي)" : "full article in Markdown starting with the first ## section (never repeat the main title)"}"
+}`,
+  ].filter(Boolean);
+
+  const { text, model } = await callFreeAIFallbackChain(
+    lines.join("\n\n"),
+    {
+      tag: "ai-job:article-generate",
+      systemPrompt: sys,
+      temperature: 0.7,
+      maxTokens: 7000,
+      jsonMode: true,
+      ...HEAVY,
+    },
+  );
+
+  const parsed = parseJSON<any>(text);
+  if (!parsed || typeof parsed !== "object") {
+    throw new Error("فشل تحليل نتيجة التوليد (JSON غير صالح).");
+  }
+  const title = String(parsed.title || "").slice(0, 200).trim();
+  const markdown = String(parsed.markdown || "").slice(0, 60_000).trim();
+  if (!title || markdown.length < 200) {
+    throw new Error("النموذج لم يُرجع مقالاً كاملاً — حاول مرة أخرى.");
+  }
+  const tags = Array.isArray(parsed.tags)
+    ? parsed.tags.map((t: any) => String(t).trim()).filter(Boolean).slice(0, 10)
+    : [];
+
+  return {
+    title,
+    markdown,
+    excerpt: String(parsed.excerpt || "").slice(0, 400),
+    meta_description: String(parsed.meta_description || "").slice(0, 300),
+    tags,
+    language: isAr ? ("ar" as const) : ("en" as const),
+    topic,
+    source: model,
+  };
+}
+
 /* ─────────────────────────── Registry ─────────────────────────── */
 
 export type ProcessorResult = Record<string, any>;
@@ -367,5 +455,6 @@ export const PROCESSORS: Record<
     if (out.sourceLabel) r.source = out.sourceLabel;
     return r;
   },
+  article_generate: runArticleGenerate,
   social_post: runSocialPost,
 };

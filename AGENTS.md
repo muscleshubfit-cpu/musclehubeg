@@ -722,6 +722,38 @@ Process:
        Coach-side exercise swap lives in PlanViewerModal edit mode
        (per-exercise Wand2 button → exercise_regenerate → in-place
        replace → explicit حفظ).
+- **EVENT-DRIVEN AI DISPATCH LAW (2026-08-28, T-PLAN-GEN-ARTICLEGEN,
+  owner «توليد الخطط لا يعمل» + «توليد المقالات للكوتش غير موجود»):**
+  the `ai_jobs` queue worker (`process-ai-jobs.yml`) is a GitHub cron —
+  and GitHub de-registered repo-wide scheduled workflows (forensics: the
+  every-10-min worker had exactly ONE run ever, a manual dispatch; the
+  Phase-18 API-enable remedy did NOT restore firing). Enqueue alone is
+  therefore NOT enough: **every enqueue path MUST push-trigger the
+  runner** via `src/lib/ai-runner-dispatch.ts` (`dispatchAiJobsRunner()`,
+  GitHub workflow-dispatch API, 8 s timeout, fail-open). The scheduler
+  cron and the daily Vercel `/api/cron/dispatch-pipelines` catch-up are
+  BACKSTOP layers, never the primary trigger. Requirements:
+    1) `POST /api/ai/jobs` answers with `runnerDispatched: boolean` +
+       `etaMinutes` (3 when pushed, 10 otherwise) — UIs surface the
+       honest ETA; a `false` push means only backstops remain and the
+       owner must check `GITHUB_DISPATCH_TOKEN` on the deployment.
+    2) `GITHUB_DISPATCH_TOKEN` (Vercel env, fine-grained PAT, this repo
+       only, Actions: Read and write) is a REQUIRED production secret
+       for interactive AI generation — its absence silently degrades the
+       queue to once-a-day processing.
+    3) Any NEW job type must be added in FOUR places: `AI_JOB_TYPES` +
+       `JOB_GATE` + `sanitizeJobPayload` (`ai-jobs.ts`), the processor
+       registry (`ai-job-processors.ts`), and — for required fields —
+       throw `JobPayloadError` (route maps it to HTTP 400, never 500).
+    4) COACH ARTICLE GENERATION is the restored `article_generate` queue
+       type (Phase-15's client-side generator deletion left coaches with
+       no generation entry; the old BlogAdminView banner pointed at a
+       dead button). Surface: BlogAdminView modal → enqueue → reload-
+       surviving watcher (`mhe:pending-article-job`, same pattern as
+       plan jobs) → sessionStorage hand-off (`mhe:ai-article-draft`) →
+       BlogEditorView `?ai=1` prefill with an explicit AI-provenance
+       banner. Drafts are NEVER auto-published; slug follows the M15
+       Latin-only law via `articleSlugFromTitle`.
 - Never log the AI response in production code paths (it can contain
   user PII or partial reasoning that should not be persisted).
 - Local fallbacks (`src/lib/ai-local.ts`) exist so the app degrades

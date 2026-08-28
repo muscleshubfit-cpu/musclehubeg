@@ -13,7 +13,7 @@ import { useI18n } from "@/lib/i18n";
 import { useRouter } from "next/navigation";
 import { BLOG_CATEGORIES, getCategoryLabel, parseTableOfContents, renderMarkdown } from "@/lib/blog";
 import { adminGetPost, adminCreatePost, adminUpdatePost, calculateSEOScore, calculateWordCount, calculateReadingTime, type AdminBlogPost } from "@/lib/blog-admin";
-import { runAiJob } from "@/lib/ai-jobs-client";
+import { runAiJob, AI_ARTICLE_DRAFT_KEY, articleSlugFromTitle } from "@/lib/ai-jobs-client";
 import { toast } from "sonner";
 
 export function BlogEditorView({ mode, postId }: { mode: "new" | "edit"; postId?: string }) {
@@ -48,6 +48,44 @@ export function BlogEditorView({ mode, postId }: { mode: "new" | "edit"; postId?
  const [aiBusy, setAiBusy] = useState<Record<string, boolean>>({}); // multi-tool in-flight (queued jobs)
  const [socialTone, setSocialTone] = useState<"professional" | "friendly" | "motivational">("motivational");
  const [aiResults, setAiResults] = useState<Record<string, string>>({});
+ const [aiPrefilled, setAiPrefilled] = useState(false);
+
+ // AI ARTICLE GENERATION HAND-OFF (2026-08-28): BlogAdminView stores the
+ // finished article_generate result in sessionStorage right before pushing
+ // here — consume it exactly once and prefill the draft form.
+ useEffect(() => {
+ if (mode !== "new") return;
+ try {
+ const raw = sessionStorage.getItem(AI_ARTICLE_DRAFT_KEY);
+ if (!raw) return;
+ sessionStorage.removeItem(AI_ARTICLE_DRAFT_KEY);
+ const d = JSON.parse(raw);
+ if (!d?.title || !d?.markdown) return;
+ setPost((p) => ({
+ ...p,
+ title: String(d.title),
+ content: String(d.markdown),
+ excerpt: String(d.excerpt || ""),
+ meta_title: String(d.title),
+ meta_description: String(d.meta_description || ""),
+ focus_keyword: Array.isArray(d.tags) && d.tags[0] ? String(d.tags[0]) : p.focus_keyword,
+ keywords: Array.isArray(d.tags) ? d.tags.slice(0, 8).map(String) : p.keywords,
+ tags: Array.isArray(d.tags) ? d.tags.map(String) : p.tags,
+ slug: articleSlugFromTitle(String(d.title)), // M15 law: Latin-only slug
+ language: d.language === "en" ? "en" : "ar",
+ reading_time: calculateReadingTime(String(d.markdown)),
+ }));
+ setAiPrefilled(true);
+ toast.success(
+ isAr
+ ? "تم تعبئة المسودة من الذكاء الاصطناعي — راجع المحتوى وعدّل ما يلزم قبل الحفظ"
+ : "AI draft loaded — review and edit before saving",
+ );
+ } catch {
+ /* malformed draft — ignore, the editor stays clean */
+ }
+ // eslint-disable-next-line react-hooks/exhaustive-deps
+ }, [mode]);
 
  useEffect(() => {
  if (mode === "edit" && postId) {
@@ -296,6 +334,18 @@ export function BlogEditorView({ mode, postId }: { mode: "new" | "edit"; postId?
  <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
  {/* Main editor */}
  <div className="space-y-4">
+ {/* AI prefill banner — explicit provenance so a generated draft is
+ never mistaken for hand-written content (review-before-publish). */}
+ {aiPrefilled && (
+ <div className="flex items-start gap-2 rounded-xl border border-primary/30 bg-primary/5 px-4 py-3 text-xs text-foreground">
+ <Sparkles className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
+ <span>
+ {isAr
+ ? "هذه المسودة مولّدة بالذكاء الاصطناعي. راجع المحتوى بالكامل، عدّل ما يلزم، واضبط الصورة المميزة قبل الحفظ أو النشر."
+ : "This draft was AI-generated. Review the full content, edit as needed, and set the featured image before saving or publishing."}
+ </span>
+ </div>
+ )}
  {/* Language + Category */}
  <div className="flex gap-2">
  <select

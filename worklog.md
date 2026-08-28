@@ -2709,3 +2709,22 @@ Stage Summary:
 - Verification: tsc 0 errors · vitest 110/110 (10 files, +15 new) · eslint 0 errors (582 warnings, file-style-consistent) · check-stale-refs clean · next build ✓ (951 pages)
 - No schema changes, no owner manual steps for this task
 - Pending owner manual step (from Phase 20, still unconfirmed): RUN_ON_SUPABASE_0028_EVO_ANON_USAGE.sql in Supabase SQL Editor
+
+---
+Task ID: T-PLAN-GEN-ARTICLEGEN-2026-08-28
+Agent: Main (Super Z — Implementation Agent)
+Task: Owner «فى محادثتنا هنا انت بتعيد مهمات تمت بالفعل ... توليد الخطط لا يعمل ، توليد المقالات للكوتش غير موجود غير زرار فى لوحه الكوتش لكن بيفتح كتابة مقال جديد» — find the real problem (verify it is NOT in the original repo/docs), fix plan generation, restore coach article generation.
+
+Work Log:
+- Forensics (GitHub Actions API): process-ai-jobs.yml had ONE run EVER (manual dispatch 2026-08-27T21:24Z) — the */10 schedule never fired (repo-wide scheduler de-registration, Phase 18 disease never healed). Queue code itself correct: the single worker run succeeded (secrets + processors fine) → plan jobs enqueued after that sat `queued` forever = «توليد الخطط لا يعمل».
+- Forensics (UI): BlogAdminView "AI Assistant" banner pointed coaches at a generate button deleted in Phase 15 (AIGenerateModal) — article generation literally did not exist; New Article opened only the manual composer.
+- Sandbox FS note: BlogEditorView read flakiness (bytes ` [m` ↔ ` o`) was a stale-read artifact (tsc/esbuild saw correct bytes; tsc 0). Not a repo defect.
+- FIX A: src/lib/ai-runner-dispatch.ts dispatchAiJobsRunner() (GitHub workflow-dispatch, 8s timeout, fail-open) wired into POST /api/ai/jobs after every enqueue; response adds runnerDispatched + honest etaMinutes (3/10). Touching commit on process-ai-jobs.yml (SCHEDULE HEALTH LAW re-assert).
+- FIX B: article_generate queue type (coach gate) — AI_JOB_TYPES/JOB_GATE/sanitizeJobPayload (topic≥5 required, JobPayloadError → HTTP 400) + PROCESSORS.article_generate (HEAVY, 7000 tokens, jsonMode, ar/en). Coach surface: BlogAdminView real generation modal (topic/language/tone/keywords) + live status strip + reload-surviving watcher (mhe:pending-article-job) → sessionStorage (mhe:ai-article-draft) → BlogEditorView ?ai=1 prefill with AI-provenance banner + M15 Latin slug (articleSlugFromTitle).
+- Docs: AGENTS.md §8 EVENT-DRIVEN AI DISPATCH LAW + PROGRESS Phase 22.
+- Verify: tsc 0 · vitest 120/120 (11 files, +10 new canaries) · eslint 0 errors (594 warnings) · guard clean · next build ✓.
+
+Stage Summary:
+- Plan generation now push-triggered: enqueue starts the GHA runner in seconds instead of waiting on a dead scheduler; daily Vercel catch-up + cron stay as backstops.
+- Coach article generation is REAL again: full queue round-trip into the editor as a reviewable draft (never auto-published).
+- OWNER MANUAL STEPS: (1) add GITHUB_DISPATCH_TOKEN to Vercel env (fine-grained PAT, this repo only, Actions: Read and write) then redeploy — without it the push layer is dormant and only the once-a-day backstop fires; (2) run any outstanding RUN_ON_SUPABASE_* SQL (0028 EVO anon usage still unconfirmed).

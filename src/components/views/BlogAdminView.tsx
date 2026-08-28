@@ -1,12 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useI18n } from "@/lib/i18n";
 import { useRouter } from "next/navigation";
 import { getBlogStats, adminListPosts, adminDeletePost, adminDuplicatePost, type AdminBlogPost } from "@/lib/blog-admin";
 import { getCategoryLabel } from "@/lib/blog";
+import { enqueueAiJobClient, getAiJob, AI_ARTICLE_DRAFT_KEY, readPendingArticleJob, writePendingArticleJob } from "@/lib/ai-jobs-client";
 import { toast } from "sonner";
-import { Sparkles, Search, Plus, RefreshCw, FileText, Globe, CheckCircle2, FileEdit, Trash2, Copy, ExternalLink, Eye, ImagePlus } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Sparkles, Search, Plus, RefreshCw, FileText, Globe, CheckCircle2, FileEdit, Trash2, Copy, ExternalLink, Eye, ImagePlus, Loader2, Wand2 } from "lucide-react";
 
 export function BlogAdminView() {
   const { t, lang } = useI18n();
@@ -17,6 +19,122 @@ export function BlogAdminView() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"all" | "en" | "ar">("all");
   const [searchQuery, setSearchQuery] = useState("");
+
+  /* ── AI article generation (queue-based, survivable) ──
+   * 2026-08-28: the old banner pointed coaches at a generator button that
+   * no longer existed (Phase-15 deletion) — article generation was
+   * effectively GONE. This restores it on the ai_jobs queue with the same
+   * reload-surviving watcher pattern as the coach plan jobs. */
+  const [genOpen, setGenOpen] = useState(false);
+  const [genTopic, setGenTopic] = useState("");
+  const [genLang, setGenLang] = useState<"ar" | "en">("ar");
+  const [genTone, setGenTone] = useState("");
+  const [genKeywords, setGenKeywords] = useState("");
+  const [genBusy, setGenBusy] = useState(false);
+  const [genJob, setGenJob] = useState<{ id: string; topic: string } | null>(null);
+  const activeGenWatcher = useRef<string | null>(null);
+
+  const watchArticleJob = useCallback(
+    async (entry: { id: string; topic: string }) => {
+      if (activeGenWatcher.current === entry.id) return;
+      activeGenWatcher.current = entry.id;
+      try {
+        const deadline = Date.now() + 26 * 60_000;
+        while (Date.now() < deadline) {
+          await new Promise((r) => setTimeout(r, 20_000));
+          let job: any = null;
+          try {
+            job = await getAiJob(entry.id);
+          } catch {
+            continue; // transient network error — keep waiting
+          }
+          if (job?.status === "done") {
+            writePendingArticleJob(null);
+            setGenJob(null);
+            const r = job.result || {};
+            if (!r.title || !r.markdown) {
+              toast.error("وصلت نتيجة غير مكتملة — حاول التوليد مرة أخرى.");
+              return;
+            }
+            try {
+              sessionStorage.setItem(
+                AI_ARTICLE_DRAFT_KEY,
+                JSON.stringify({
+                  title: r.title,
+                  markdown: r.markdown,
+                  excerpt: r.excerpt || "",
+                  meta_description: r.meta_description || "",
+                  tags: Array.isArray(r.tags) ? r.tags : [],
+                  language: r.language === "en" ? "en" : "ar",
+                }),
+              );
+            } catch {
+              toast.error("تعذّر تخزين المسودة محلياً — افتح المحرر وحاول مرة أخرى.");
+              return;
+            }
+            toast.success("وصل المقال وتم فتح المحرر بالمسودة ✅ راجعه قبل الحفظ.");
+            router.push("/admin/blog/new?ai=1");
+            return;
+          }
+          if (job?.status === "failed") {
+            writePendingArticleJob(null);
+            setGenJob(null);
+            toast.error(job.error_message || "فشل توليد المقال. حاول مرة أخرى.");
+            return;
+          }
+        }
+        // Timeout: job may STILL finish — keep the registry entry so the
+        // next mount re-watches (PLAN JOB RECOVERY LAW pattern).
+        toast.info("المقال لسه بيتولد في الخلفية — هنكمل المتابعة تلقائياً لما تفتح الصفحة تاني.");
+      } finally {
+        activeGenWatcher.current = null;
+      }
+    },
+    [router],
+  );
+
+  // Re-attach the watcher to an unfinished job after reload/remount.
+  useEffect(() => {
+    const entry = readPendingArticleJob();
+    if (entry) {
+      setGenJob({ id: entry.id, topic: entry.topic });
+      void watchArticleJob({ id: entry.id, topic: entry.topic });
+    }
+  }, [watchArticleJob]);
+
+  const submitGeneration = async () => {
+    const topic = genTopic.trim();
+    if (topic.length < 5) {
+      toast.error(isAr ? "اكتب موضوع المقال (5 أحرف على الأقل)" : "Topic needs at least 5 characters");
+      return;
+    }
+    setGenBusy(true);
+    try {
+      const jobId = await enqueueAiJobClient("article_generate", {
+        topic,
+        language: genLang,
+        tone: genTone.trim(),
+        keywords: genKeywords
+          .split(/[,،]/)
+          .map((k) => k.trim())
+          .filter(Boolean)
+          .slice(0, 8),
+      });
+      const entry = { id: jobId, topic, startedAt: Date.now() };
+      writePendingArticleJob(entry);
+      setGenJob({ id: jobId, topic });
+      setGenOpen(false);
+      setGenTopic("");
+      setGenKeywords("");
+      setGenTone("");
+      toast.success(isAr ? "تم إرسال طلب التوليد — جاري التنفيذ في الخلفية ⏳" : "Generation queued — running in the background");
+      void watchArticleJob(entry);
+    } catch (e: any) {
+      toast.error(e.message || "فشل إرسال الطلب");
+    } finally {
+      setGenBusy(false);
+    }
+  };
 
   const load = async () => {
     setLoading(true);
@@ -169,28 +287,47 @@ export function BlogAdminView() {
         </div>
       </div>
 
-      {/* AI Assistant Banner */}
+      {/* AI Article Generator — REAL queue-based generation (2026-08-28).
+          The previous banner pointed at a generator button that had been
+          deleted in Phase 15 — coaches had NO way to generate articles. */}
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-primary/20 bg-primary/5 p-4 md:p-5">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
             <Sparkles className="h-5 w-5" />
           </div>
           <div>
-            <p className="text-sm font-semibold text-foreground">{isAr ? "مساعد الذكاء الاصطناعي جاهز" : "AI Content Assistant Ready"}</p>
+            <p className="text-sm font-semibold text-foreground">{isAr ? "توليد المقالات بالذكاء الاصطناعي" : "AI Article Generation"}</p>
             <p className="text-xs text-muted-foreground mt-0.5">
               {isAr
-                ? "افتح مقالاً جديداً واضغط «توليد بالذكاء الاصطناعي» لكتابة مقال كامل احترافي."
-                : "Open a new article and click 'Generate with AI' to write a complete article."}
+                ? "اكتب الموضوع والمولّد يكتب مقالاً كاملاً (عنوان + محتوى + وصف ميتا + وسوم) ويفتحه لك في المحرر للمراجعة."
+                : "Give a topic and get a complete article draft (title + body + meta + tags) opened in the editor for review."}
             </p>
           </div>
         </div>
         <button
-          onClick={() => router.push("/admin/blog/new")}
-          className="inline-flex items-center gap-1 rounded-lg bg-primary px-3.5 py-1.5 text-xs font-medium text-primary-foreground hover:opacity-90 transition-opacity"
+          onClick={() => setGenOpen(true)}
+          disabled={!!genJob}
+          className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3.5 py-1.5 text-xs font-medium text-primary-foreground hover:opacity-90 transition-opacity disabled:opacity-50"
         >
-          {isAr ? "ابدأ التوليد الان ›" : "Start Generating ›"}
+          <Wand2 className="h-3.5 w-3.5" />
+          {isAr ? "توليد مقال جديد" : "Generate New Article"}
         </button>
       </div>
+
+      {/* Live generation status strip — survives reloads via localStorage */}
+      {genJob && (
+        <div className="flex items-center justify-between gap-3 rounded-xl border border-primary/20 bg-primary/5 px-4 py-3">
+          <div className="flex items-center gap-2.5 text-xs">
+            <Loader2 className="h-4 w-4 animate-spin text-primary" />
+            <span className="font-medium text-foreground">
+              {isAr ? "جاري توليد مقال:" : "Generating:"} {genJob.topic}
+            </span>
+            <span className="text-muted-foreground">
+              — {isAr ? "عادةً 1-3 دقائق، تقدر تكمل تنقل والنتيجة هتتفتح لوحدها." : "usually 1-3 minutes; the editor opens automatically when done."}
+            </span>
+          </div>
+        </div>
+      )}
 
       {/* Compact Stat Cards */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
@@ -353,6 +490,95 @@ export function BlogAdminView() {
           </div>
         </div>
       )}
+
+      {/* AI generation form — enqueues an article_generate job on the queue */}
+      <Dialog open={genOpen} onOpenChange={(o) => !genBusy && setGenOpen(o)}>
+        <DialogContent className="sm:max-w-lg" dir={isAr ? "rtl" : "ltr"}>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-base">
+              <Wand2 className="h-4 w-4 text-primary" />
+              {isAr ? "توليد مقال بالذكاء الاصطناعي" : "Generate Article with AI"}
+            </DialogTitle>
+            <DialogDescription>
+              {isAr
+                ? "المقال بيتولد في الخلفية (على طابور الذكاء الاصطناعي) ويفتح في المحرر كمسودة تراجعها وتعدّلها قبل النشر."
+                : "The article runs on the background queue and opens in the editor as a draft you review before publishing."}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3.5 py-1">
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-foreground">
+                {isAr ? "موضوع المقال *" : "Article topic *"}
+              </label>
+              <textarea
+                value={genTopic}
+                onChange={(e) => setGenTopic(e.target.value)}
+                rows={3}
+                maxLength={300}
+                placeholder={isAr ? "مثال: أفضل تمارين لحرق دهون البطن للمبتدئين في المنزل" : "e.g. Best home cardio exercises for beginners to burn belly fat"}
+                className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-hidden"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-foreground">{isAr ? "اللغة" : "Language"}</label>
+                <div className="inline-flex w-full rounded-lg bg-muted p-1">
+                  {(["ar", "en"] as const).map((l) => (
+                    <button
+                      key={l}
+                      type="button"
+                      onClick={() => setGenLang(l)}
+                      className={`flex-1 rounded-md px-3 py-1.5 text-xs font-medium transition-all ${
+                        genLang === l ? "bg-background text-foreground shadow-2xs" : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      {l === "ar" ? "العربية" : "English"}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-foreground">
+                  {isAr ? "النبرة (اختياري)" : "Tone (optional)"}
+                </label>
+                <input
+                  type="text"
+                  value={genTone}
+                  onChange={(e) => setGenTone(e.target.value)}
+                  maxLength={60}
+                  placeholder={isAr ? "تحفيزي عملي" : "motivational & practical"}
+                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-hidden"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-foreground">
+                {isAr ? "كلمات مفتاحية (اختياري — افصل بفاصلة)" : "Keywords (optional — comma separated)"}
+              </label>
+              <input
+                type="text"
+                value={genKeywords}
+                onChange={(e) => setGenKeywords(e.target.value)}
+                maxLength={200}
+                placeholder={isAr ? "تمارين منزلية، حرق الدهون، زيادة" : "home workout, fat loss"}
+                className="w-full rounded-lg border border-border bg-background px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-hidden"
+              />
+            </div>
+
+            <button
+              onClick={submitGeneration}
+              disabled={genBusy || genTopic.trim().length < 5}
+              className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {genBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+              {genBusy ? (isAr ? "جاري الإرسال..." : "Queueing...") : isAr ? "ابدأ التوليد" : "Start Generating"}
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

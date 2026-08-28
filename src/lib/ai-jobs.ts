@@ -11,6 +11,12 @@
  *   exercise_regenerate  swap one exercise (library-filtered, injury-safe)
  *   article_tool         paraphrase | summarize | proofread | seo_pack |
  *                        subheadings (+ legacy editor tool aliases)
+ *   article_generate     coach asks a COMPLETE new article draft from a
+ *                        topic (title + markdown body + meta + tags) —
+ *                        restored 2026-08-28: the Phase-15 deletion of the
+ *                        old client-side generator left coaches with NO
+ *                        generation entry at all (owner report «توليد
+ *                        المقالات للكوتش غير موجود»)
  *   social_post          facebook | instagram | x/twitter | linkedin × tone
  *
  * WRITE PATHS:
@@ -33,6 +39,7 @@ export const AI_JOB_TYPES = [
   "meal_regenerate",
   "exercise_regenerate",
   "article_tool",
+  "article_generate",
   "social_post",
 ] as const;
 
@@ -77,6 +84,7 @@ export const JOB_GATE: Record<AiJobType, JobGate> = {
   plan_nutrition: "coach",
   plan_workout: "coach",
   article_tool: "coach",
+  article_generate: "coach",
   social_post: "coach",
   meal_regenerate: "user_swap_meal",
   exercise_regenerate: "user_swap_exercise",
@@ -89,12 +97,17 @@ export const JOB_LABELS: Record<AiJobType, { ar: string; en: string }> = {
   meal_regenerate: { ar: "استبدال وجبة", en: "Swap meal" },
   exercise_regenerate: { ar: "استبدال تمرين", en: "Swap exercise" },
   article_tool: { ar: "أداة تحسين المقال", en: "Article tool" },
+  article_generate: { ar: "توليد مقال كامل", en: "Generate article" },
   social_post: { ar: "منشور سوشيال ميديا", en: "Social post" },
 };
 
 export function isAiJobType(v: any): v is AiJobType {
   return typeof v === "string" && (AI_JOB_TYPES as readonly string[]).includes(v);
 }
+
+/** Thrown by sanitizeJobPayload when a REQUIRED field is missing/short —
+ * the API route maps this to HTTP 400 (never 500). */
+export class JobPayloadError extends Error {}
 
 /* ────────────────── Payload sanitization (server trust boundary) ──────────────────
  * The enqueue route NEVER stores raw body payloads. Every type passes through a
@@ -173,6 +186,24 @@ export function sanitizeJobPayload(type: AiJobType, raw: any): Record<string, an
         location: str(p.location, 60), // gym | home | …
         clientContext: pickClientContext(p.clientContext),
         reason: str(p.reason ?? p.note, 400), // e.g. knee injury / no machine
+      };
+    }
+    case "article_generate": {
+      const topic = str(p.topic, 300).trim();
+      if (topic.length < 5) {
+        // Fail loudly at the trust boundary — an empty topic would burn a
+        // queue slot + provider quota on a garbage generation.
+        throw new JobPayloadError("موضوع المقال مطلوب (5 أحرف على الأقل).");
+      }
+      return {
+        topic,
+        language: p.language === "en" ? "en" : "ar",
+        tone: str(p.tone, 60),
+        audience: str(p.audience, 120),
+        keywords: Array.isArray(p.keywords)
+          ? p.keywords.map((k: any) => str(k, 40).trim()).filter(Boolean).slice(0, 8)
+          : [],
+        category: str(p.category, 60),
       };
     }
     case "article_tool": {

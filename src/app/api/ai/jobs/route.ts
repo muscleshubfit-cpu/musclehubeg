@@ -7,7 +7,9 @@ import {
   JOB_ETA_MINUTES,
   MAX_PAYLOAD_BYTES,
   enqueueAiJob,
+  JobPayloadError,
 } from "@/lib/ai-jobs";
+import { dispatchAiJobsRunner } from "@/lib/ai-runner-dispatch";
 
 /**
  * AI Jobs API — enqueue + poll.
@@ -20,11 +22,18 @@ import {
  *
  * POST /api/ai/jobs        body: { type, payload }
  *   Gates per type:
- *     plan_* / article_tool / social_post → coach only
+ *     plan_* / article_tool / article_generate / social_post → coach only
  *     meal_regenerate / exercise_regenerate → logged-in user AND the same
  *       weekly tier limits as the old swap system (C16), recorded at enqueue.
  * GET  /api/ai/jobs?id=<uuid>   → own single job (status/result)
  * GET  /api/ai/jobs?limit=10    → own recent jobs (queue visibility)
+ *
+ * EVENT-DRIVEN DISPATCH (§8, 2026-08-28): GitHub de-registered repo-wide
+ * scheduled workflows (the every-10-min worker had ONE run ever) — so after a
+ * successful enqueue this route PUSH-triggers the runner via the GitHub
+ * API (fail-open; requires GITHUB_DISPATCH_TOKEN on the deployment).
+ * The response carries runnerDispatched so clients/logs can warn when
+ * only the backstop layers (daily Vercel cron / scheduler) remain.
  *
  * SECURITY: every row carries requested_by = verified session id; RLS lets
  * users SELECT only their own rows; there are NO browser write policies.
@@ -102,16 +111,32 @@ export async function POST(request: NextRequest) {
     }
 
     // ── Enqueue via service-role (sanitization happens inside). ────────
-    const { id } = await enqueueAiJob({
-      type,
-      payload: payload ?? {},
-      requestedBy: userId ?? null,
-    });
+    let id: string;
+    try {
+      ({ id } = await enqueueAiJob({
+        type,
+        payload: payload ?? {},
+        requestedBy: userId ?? null,
+      }));
+    } catch (e: any) {
+      // Required-field violations (e.g. article_generate without a topic)
+      // are client errors, not server faults.
+      if (e instanceof JobPayloadError) {
+        return NextResponse.json({ error: e.message }, { status: 400 });
+      }
+      throw e;
+    }
+
+    // ── Push-trigger the GHA runner (§8 EVENT-DRIVEN DISPATCH LAW). ────
+    // The */10 GitHub scheduler is de-registered repo-wide (Phase 18) —
+    // without this push a plan job waits for the daily Vercel catch-up.
+    const runnerDispatched = await dispatchAiJobsRunner();
 
     return NextResponse.json({
       jobId: id,
-      etaMinutes: JOB_ETA_MINUTES,
-      message: `تم إرسال الطلب — النتيجة تظهر خلال ~${JOB_ETA_MINUTES} دقائق.`,
+      etaMinutes: runnerDispatched ? 3 : JOB_ETA_MINUTES,
+      runnerDispatched,
+      message: `تم إرسال الطلب — النتيجة تظهر خلال ~${runnerDispatched ? 3 : JOB_ETA_MINUTES} دقائق.`,
     });
   } catch (e: any) {
     console.error("[api/ai/jobs] POST error:", e?.message || e);

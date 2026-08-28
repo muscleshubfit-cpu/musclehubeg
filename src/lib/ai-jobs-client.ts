@@ -15,6 +15,64 @@ import type { AiJobType } from "@/lib/ai-jobs";
 const POLL_INTERVAL_MS = 20_000;
 const POLL_WINDOW_MS = 25 * 60_000; // 25 min hard ceiling
 
+/* ── Coach article-generation hand-off (queue → editor) ──
+ * BlogAdminView writes, BlogEditorView consumes. Same survivable pattern
+ * as the plan jobs: a localStorage registry survives reloads while the
+ * job is still pending, and a sessionStorage draft carries the finished
+ * result into /admin/blog/new exactly once. */
+export const AI_ARTICLE_DRAFT_KEY = "mhe:ai-article-draft";
+export const AI_ARTICLE_PENDING_KEY = "mhe:pending-article-job";
+
+export type PendingArticleJob = { id: string; topic: string; startedAt: number };
+
+export function readPendingArticleJob(): PendingArticleJob | null {
+  try {
+    const raw = localStorage.getItem(AI_ARTICLE_PENDING_KEY);
+    if (!raw) return null;
+    const entry = JSON.parse(raw);
+    if (!entry?.id) return null;
+    // 24h TTL — older entries are dead weight (job is long-settled).
+    if (Date.now() - Number(entry.startedAt || 0) > 24 * 3_600_000) {
+      localStorage.removeItem(AI_ARTICLE_PENDING_KEY);
+      return null;
+    }
+    return entry as PendingArticleJob;
+  } catch {
+    return null;
+  }
+}
+
+export function writePendingArticleJob(entry: PendingArticleJob | null): void {
+  try {
+    if (entry) localStorage.setItem(AI_ARTICLE_PENDING_KEY, JSON.stringify(entry));
+    else localStorage.removeItem(AI_ARTICLE_PENDING_KEY);
+  } catch {
+    /* storage full/blocked — watching still works in-session */
+  }
+}
+
+/**
+ * M15 slug law: blog slugs are lowercase-English-and-hyphens ONLY (Arabic
+ * breaks URLs/sharing/hreflang). Derive the best Latin slug from an
+ * (often Arabic) AI title; fall back to a dated post-YYYYMMDDNN slug the
+ * coach can rename in the editor.
+ */
+export function articleSlugFromTitle(title: string): string {
+  const latin = String(title)
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, "")
+    .trim()
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "")
+    .slice(0, 80)
+    .replace(/-$/g, "");
+  if (latin.length >= 3) return latin;
+  const now = new Date();
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `post-${now.getUTCFullYear()}${pad(now.getUTCMonth() + 1)}${pad(now.getUTCDate())}${pad(now.getUTCHours())}${pad(now.getUTCMinutes())}`;
+}
+
 type Pending = { id: string };
 
 export async function enqueueAiJobClient(

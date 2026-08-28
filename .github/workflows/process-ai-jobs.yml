@@ -11,11 +11,20 @@ name: Process AI jobs (plans • tools • social — queue worker)
 #   exercise_regenerate   → library-filtered injury-safe exercise swap
 #   article_tool          → paraphrase | summarize | proofread | SEO |
 #                           subheadings (+ legacy editor aliases)
+#   article_generate      → coach full-article draft (title+markdown+meta+tags)
 #   social_post           → facebook | instagram | x | linkedin × tone
 #
 # EVO chat NEVER runs here — it stays on Vercel streaming by directive.
 # In-process execution via tsx (no Vercel hop, no 60s serverless cap);
 # AI_CHAIN_TOTAL_BUDGET_MS=180000 funds long completions.
+#
+# EVENT-DRIVEN DISPATCH LAW (2026-08-28, AGENTS.md §8): enqueue routes
+# PUSH-trigger this workflow via the GitHub API the moment a job lands —
+# this cron is a BACKSTOP only. GitHub de-registered repo-wide scheduled
+# workflows (this worker had ONE run ever) so the push path is what makes
+# plan/article generation actually work in production.
+# SCHEDULE-RE-REGISTRATION 2026-08-28: this touching commit re-asserts the
+# */10 schedule per the SCHEDULE HEALTH LAW remedy.
 # ============================================================
 
 on:
