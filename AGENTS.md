@@ -798,7 +798,18 @@ Process:
        requeues (different lead model) → only deep drafts materialize —
        a shallow 5-second draft can never land as done; (d) maxTokens
        6000 keeps the chain Groq-eligible (≈6975 < 7200) while funding
-       the depth contract.
+       the depth contract.       2026-08-28g BUNDLE PARITY (owner: «نرجع للمشكلة الاسبق… المقال
+       خرج مسوده بشكل سيء وناقص عناصر كتير» — docs-first review found the
+       coach generator produced a fraction of what blog-generate.ts's
+       ArticleBundle delivers): the generation contract now includes
+       (a) FAQ 4-6 Q&As persisted into blog_posts.faq_json — the public
+       article page renders it as a real FAQ section; (b) 2-3 INTERNAL
+       links woven from REAL published slugs (internalLinkCandidates,
+       same-language, offered to the model as ready [anchor](link) pairs
+       — insertLinksIntoArticle parity); (c) meta_title distinct from
+       title; floors TIGHTENED: ≥800 words (was 550 — run 33173644317
+       passed 878 words in ~7s) AND ≥5 "## " sections, each violation
+       requeues with a different lead model.
     9) OWNER IMAGE-SWAP LAW (2026-08-28f, «خلال الانتظار محتاج اقدر اعدل
        الصور للمقال… لان احيانا الصور بتكون غير مناسبة»): the editor's
        featured-image card carries «✨ اقترح صورة آمنة / 🔄 صورة مختلفة»

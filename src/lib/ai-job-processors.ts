@@ -368,6 +368,8 @@ async function materializeArticleDraft(r: {
   title: string;
   markdown: string;
   excerpt: string;
+  meta_title?: string;
+  faq?: Array<{ question: string; answer: string }>;
   meta_description: string;
   tags: string[];
   language: "ar" | "en";
@@ -383,8 +385,11 @@ async function materializeArticleDraft(r: {
     slug: articleSlugFromTitle(r.title),
     excerpt: r.excerpt,
     content: r.markdown,
-    meta_title: r.title,
+    meta_title: r.meta_title || r.title,
     meta_description: r.meta_description,
+    // BUNDLE PARITY: BlogArticlePage renders this as the FAQ section —
+    // generated drafts land WITH their FAQ set, not empty like before.
+    faq_json: Array.isArray(r.faq) && r.faq.length > 0 ? r.faq : [],
     focus_keyword: r.focus_keyword || r.tags[0] || "",
     keywords: r.tags.slice(0, 8),
     category:
@@ -398,7 +403,6 @@ async function materializeArticleDraft(r: {
     published_at: null,
     created_at: now,
     updated_at: now,
-    faq_json: [],
     schema_json: {},
     source: "ai:article_generate",
   };
@@ -423,6 +427,30 @@ async function materializeArticleDraft(r: {
     return null;
   }
   return null;
+}
+
+/**
+ * INTERNAL-LINK CANDIDATES (bundle parity with blog-generate.ts): the
+ * automated pipeline weaves real internal links (insertLinksIntoArticle);
+ * the coach generator must too. Returns recent PUBLISHED posts of the
+ * same language as [slug, title] pairs for the prompt.
+ */
+async function internalLinkCandidates(
+  language: "ar" | "en",
+  limit = 8,
+): Promise<Array<{ slug: string; title: string }>> {
+  if (!isSupabaseAdminConfigured || !supabaseAdmin) return [];
+  const { data, error } = await (supabaseAdmin as any)
+    .from("blog_posts")
+    .select("slug, title")
+    .eq("is_published", true)
+    .eq("language", language)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (error || !data) return [];
+  return (data as any[])
+    .filter((p) => p.slug && p.title)
+    .map((p) => ({ slug: String(p.slug), title: String(p.title) }));
 }
 
 /**
@@ -496,11 +524,26 @@ async function runArticleGenerate(payload: any) {
     ? ARCHETYPES_AR[Math.floor(Math.random() * ARCHETYPES_AR.length)]
     : ARCHETYPES_EN[Math.floor(Math.random() * ARCHETYPES_EN.length)];
 
+  // BUNDLE PARITY: internal links (real published slugs) + FAQ — the same
+  // elements the automated blog pipeline produces (owner: «ناقص عناصر
+  // كتير»). Candidates are fetched BEFORE the call and offered to the
+  // model as ready (anchor → markdown link) pairs.
+  const linkCandidates = await internalLinkCandidates(isAr ? "ar" : "en");
+  const internalLinksLine = linkCandidates.length
+    ? isAr
+      ? `روابط داخلية متاحة (استخدم 2-3 منها طبيعياً داخل النص بصيغة [النص](الرابط) حرفياً): ${linkCandidates.map((l) => `[خلفية ${l.title}](/ar/blog/${l.slug})`).join(" ، ")}`
+      : `Available internal links (weave 2-3 naturally as literal [anchor](link) markdown): ${linkCandidates.map((l) => `[More on ${l.title}](/blog/${l.slug})`).join(", ")}`
+    : "";
+
   const lines = [
     isAr
       ? `اكتب مقالاً كاملاً جاهزاً للنشر عن: «${topic}»`
       : `Write a complete, publication-ready article about: "${topic}"`,
     isAr ? `الهيكل الافتتاحي لهذا المقال تحديداً: ${archetype}.` : `Opening structure for THIS article: ${archetype}.`,
+    internalLinksLine,
+    isAr
+      ? "أنشئ أيضاً قسم أسئلة شائعة: 4-6 أسئلة حقيقية يطرحها القراء حول الموضوع مع إجابات موجزة دقيقة (تعرض في قسم الأسئلة الشائعة بالصفحة)."
+      : "Also produce an FAQ set: 4-6 genuine reader questions about the topic with concise accurate answers (rendered in the page's FAQ section).",
     tone && (isAr ? `النبرة: ${tone}.` : `Tone: ${tone}.`),
     audience && (isAr ? `الجمهور المستهدف: ${audience}.` : `Target audience: ${audience}.`),
     category && (isAr ? `التصنيف: ${category}.` : `Category: ${category}.`),
@@ -517,8 +560,10 @@ async function runArticleGenerate(payload: any) {
     `{
  "title": "${isAr ? "عنوان جذاب أقل من 70 حرفاً" : "catchy title under 70 chars"}",
  "excerpt": "${isAr ? "ملخص تشويقي سطرين" : "two-line teaser"}",
+ "meta_title": "${isAr ? "عنوان ميتا 50-60 حرفاً مختلف عن العنوان" : "50-60 char meta title (may differ from title)"}",
  "meta_description": "${isAr ? "وصف ميتا 120-155 حرفاً" : "120-155 char meta description"}",
  "tags": ["${isAr ? "5-8 وسوم قصيرة" : "5-8 short tags"}"],
+ "faq": [{"question": "${isAr ? "سؤال حقيقي" : "genuine question"}", "answer": "${isAr ? "إجابة موجزة دقيقة" : "concise accurate answer"}"}],
  "markdown": "${isAr ? "المقال كاملاً (1100-1400 كلمة) بصيغة Markdown تبدأ بعنوان ## أول قسم (بدون تكرار العنوان الرئيسي)" : "full article (1100-1400 words) in Markdown starting with the first ## section (never repeat the main title)"}"
 }`,
   ].filter(Boolean);
@@ -553,18 +598,33 @@ async function runArticleGenerate(payload: any) {
     throw new Error("النموذج لم يُرجع مقالاً كاملاً — حاول مرة أخرى.");
   }
 
-  // QUALITY FLOOR (2026-08-28e, owner: «مقال سيءء… ومدة التوليد قصيرة جدا»):
-  // a 5-second shallow draft must NEVER land as done. Below ~550 words the
-  // article cannot fulfil the 1100-1400-word contract → throw → failJob
-  // requeues the attempt (different lead model next round) → only drafts
-  // that clear the floor ever get materialized.
+  // QUALITY FLOOR (2026-08-28e, tightened 2026-08-28g after run 33173644317
+  // produced an 878-word draft in ~7s): a fast shallow draft must NEVER
+  // land as done. Word floor 800 (contract is 1100-1400) + STRUCTURE floor
+  // (≥ 5 "## " sections) — failJob requeues with a different lead model,
+  // so only deep, fully-sectioned drafts ever materialize.
   const wordCount = markdown.split(/\s+/).filter(Boolean).length;
-  if (wordCount < 550) {
+  const sectionCount = (markdown.match(/^##\s+/gm) || []).length;
+  if (wordCount < 800) {
     throw new Error(
-      `QUALITY FLOOR: draft too shallow (${wordCount} words < 550 required) - requeueing for a deeper rewrite`,
+      `QUALITY FLOOR: draft too shallow (${wordCount} words < 800 required) - requeueing for a deeper rewrite`,
     );
   }
-  console.log(`[article_generate] word count: ${wordCount}`);
+  if (sectionCount < 5) {
+    throw new Error(
+      `QUALITY FLOOR: draft under-sectioned (${sectionCount} "## " sections < 5 required) - requeueing`,
+    );
+  }
+  const faqOut = Array.isArray(parsed.faq)
+    ? parsed.faq
+        .map((f: any) => ({
+          question: String(f?.question || "").trim().slice(0, 300),
+          answer: String(f?.answer || "").trim().slice(0, 1200),
+        }))
+        .filter((f: any) => f.question && f.answer)
+        .slice(0, 8)
+    : [];
+  console.log(`[article_generate] quality: ${wordCount} words, ${sectionCount} sections, ${faqOut.length} FAQs`);
   const tags = Array.isArray(parsed.tags)
     ? parsed.tags.map((t: any) => String(t).trim()).filter(Boolean).slice(0, 10)
     : [];
@@ -576,6 +636,8 @@ async function runArticleGenerate(payload: any) {
     title,
     markdown,
     excerpt: String(parsed.excerpt || "").slice(0, 400),
+    meta_title: String(parsed.meta_title || title).slice(0, 200),
+    faq: faqOut,
     meta_description: String(parsed.meta_description || "").slice(0, 300),
     tags,
     language: isAr ? "ar" : "en",
@@ -588,6 +650,8 @@ async function runArticleGenerate(payload: any) {
     title,
     markdown,
     excerpt: String(parsed.excerpt || "").slice(0, 400),
+    meta_title: String(parsed.meta_title || title).slice(0, 200),
+    faq: faqOut,
     meta_description: String(parsed.meta_description || "").slice(0, 300),
     tags,
     language: isAr ? ("ar" as const) : ("en" as const),
