@@ -2728,3 +2728,31 @@ Stage Summary:
 - Plan generation now push-triggered: enqueue starts the GHA runner in seconds instead of waiting on a dead scheduler; daily Vercel catch-up + cron stay as backstops.
 - Coach article generation is REAL again: full queue round-trip into the editor as a reviewable draft (never auto-published).
 - OWNER MANUAL STEPS: (1) add GITHUB_DISPATCH_TOKEN to Vercel env (fine-grained PAT, this repo only, Actions: Read and write) then redeploy — without it the push layer is dormant and only the once-a-day backstop fires; (2) run any outstanding RUN_ON_SUPABASE_* SQL (0028 EVO anon usage still unconfirmed).
+
+---
+Task ID: T-ROLE-MODEL-V2-2026-08-29
+Agent: Main (Super Z — Implementation Agent)
+Task: Owner directive «فحص حالة الدخول بحساب ادمن/كوتش … نفس ما يظهر للمستخدمين يظهر للادمن و نفس حدود الاستخدام وده مش منطقى» + 7 approved discussion answers — separate admin from coach/client: menus, links, permissions, usage limits.
+
+Work Log:
+- Repo synced to origin/main (4d6ddfa) before starting; stray un-committed deletion of src/app/api/upload/route.ts found in the working tree from a previous session — restored (it broke check-ui-wiring).
+- AUDIT (code-verified defects): role enum client|coach only; auth-server mapped staff → coaching tier (3/3 EVO plans + 3 swaps = subscriber limits for the OWNER); SiteHeader served Paid Services + Affiliate sales groups to staff; profile page showed the owner a coaching badge + upgrade CTA; AuthGate let staff open /dashboard /plans /progress /questionnaires /referral /support by URL.
+- Migrations RUN_ON_SUPABASE_0029A_ADMIN_ENUM.sql (ALTER TYPE user_role ADD VALUE 'admin' — isolated because PG forbids using a new enum value inside the adding transaction) + RUN_ON_SUPABASE_0029B_ADMIN_ROLE.sql (is_admin()/is_staff() SECURITY DEFINER helpers; is_coach() REDEFINED as role IN ('coach','admin') → zero RLS rewrites needed, admin inherits full coach data access; auto_promote_coach_if_allowed hardened to only promote client→coach (never downgrades admin); UPDATE profiles SET role='admin' WHERE role='coach' — owner-confirmed the current coach account IS the admin/general coach). NOT yet run on production (owner runs SQL manually).
+- src/lib/supabase/types.ts: role unions widened in profiles Row/Insert/Update + Functions (get_profile_role, user_role RPC, Enums).
+- src/lib/auth-server.ts: AuthUser.role widened + NEW is_staff field (both getAuthUser and getAuthUserFromHeaders); staff → membership_tier 'coaching' (display gates); requireCoach semantics now STAFF (client rejected, coach+admin pass).
+- src/lib/tier-limits.ts: staffHint param on checkEvoChatLimit / checkEvoPlanQuota / checkAndRecordSwap — short-circuits to unlimited BEFORE any DB access; usage still recorded (staff swap path records via recordSwap).
+- src/app/api/ai/chat/route.ts: authIsStaff extracted from requireUser → passed to checkEvoChatLimit + checkEvoPlanQuota. src/app/api/ai/jobs/route.ts: swap-quota bypass widened authRole === "coach" → staff (role !== "client").
+- src/hooks/use-auth.tsx: isCoach now STAFF semantics (coach|admin) + NEW isAdmin; every isCoach consumer keeps working.
+- Gates: src/app/admin/admin-gate.tsx requires role==='admin' (bounces coach→/coach, client→/dashboard); src/app/(app)/auth-gate.tsx redirects staff off the 6 client-only paths (dashboard/plans/progress/questionnaires/referral/support) to /coach.
+- src/components/AppLayout.tsx: staff nav = clients/support/payments; blog-admin + admin-referrals + coachExtraLinks (leads, saved-results) render isAdmin-only.
+- src/components/SiteHeader.tsx: Paid Services + Affiliate groups skipped for staff; Group 7 split into staff items (coach dashboard/payments/client support) + admin-exclusive items (leads/saved-results/referrals/blog admin); blogHref → /admin/blog for admin only.
+- src/app/profile/page.tsx: staff see ROLE badge (إدارة المنصة / مدرب معتمد) instead of membership card + upgrade CTA (ShieldCheck icon added).
+- Staff-semantics widenings: use-membership-tier (staff→coaching), meal-planner page, /api/file (staff reads any client file), AuthView post-login redirect (staff→coach dashboard).
+- Tests: 4 new tier-limits canaries proving the staff short-circuit (incl. negative: free user still limited 10/day).
+- Docs: AGENTS.md §8 new ROLE MODEL v2 LAW (7 clauses incl. approved multi-coach future design), ADMIN SIDEBAR COMPLETENESS update, STAFF QUOTA SEMANTICS widening; PROGRESS.md Phase 39.
+
+Stage Summary:
+- Verification: tsc 0 errors · vitest 153/153 (13 files) · eslint 0 errors (624 pre-existing warnings) · check-stale-refs ✓ · check-ui-wiring ✓ · next build ✓ (compiled successfully)
+- OWNER MANUAL STEPS (Supabase SQL Editor, IN ORDER): (1) RUN_ON_SUPABASE_0029A_ADMIN_ENUM.sql → (2) RUN_ON_SUPABASE_0029B_ADMIN_ROLE.sql → NOTIFY pgrst, 'reload schema';. Until both run, the UI code is forward-compatible (admin role simply won't resolve until enum extended).
+- Commit SHA: 7811bc3
+- Push status: pushed (origin/main)
