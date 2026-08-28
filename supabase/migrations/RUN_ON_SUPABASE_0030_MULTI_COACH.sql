@@ -1,5 +1,14 @@
 -- =====================================================================
--- RUN_ON_SUPABASE_0030_MULTI_COACH.sql   (ONE-SHOT SCRIPT)
+-- RUN_ON_SUPABASE_0030_MULTI_COACH.sql   (REFERENCE COPY — DO NOT PASTE)
+-- =====================================================================
+-- ⚠ FOR RUNNING, USE THE PASTE-FRIENDLY SPLIT INSTEAD (byte-identical
+-- statement bodies, verified mechanically):
+--   1. RUN_ON_SUPABASE_0030A_MULTI_COACH_SCHEMA.sql        (PARTs 1-4)
+--   2. RUN_ON_SUPABASE_0030B_MULTI_COACH_CLIENT_RLS.sql    (PART 5)
+--   3. RUN_ON_SUPABASE_0030C_MULTI_COACH_ADMIN_RLS_NOTIFS.sql (PARTs 6-7)
+--   4. RUN_ON_SUPABASE_0030D_MULTI_COACH_RPC_RELOAD.sql    (PARTs 8-9)
+-- This combined file stays as the single-file reference of the whole
+-- migration (and for environments that accept large pastes).
 -- =====================================================================
 -- MULTI-COACH FOUNDATION (owner-approved design, 2026-08-29 — the 7
 -- discussion answers):

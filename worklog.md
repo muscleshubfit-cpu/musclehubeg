@@ -2807,3 +2807,19 @@ Work Log:
 
 Stage Summary:
 - Root cause = owner-side copy/paste truncation, not the SQL. Owner fix: re-copy from the RAW url into a NEW empty query, confirm the END OF SCRIPT 0030 marker is visible at the bottom (Ctrl+End), then Run. Script is idempotent — the failed attempt left nothing behind (the server rejected the whole paste).
+
+---
+Task ID: T-0030-SPLIT-4PARTS-2026-08-29
+Agent: Main (Super Z — Implementation Agent)
+Task: Owner reported the 0030 one-paste file (22.3KB) was too long to paste into the Supabase SQL editor at all («الاسكريت طويل جدا لم يمكننى past حتى») — deliver a paste-friendly path.
+
+Work Log:
+- Calibration: 0029 ALL-IN-ONE (5.5KB) pasted fine; 0030 (22.3KB) failed. New RUN_ON_SUPABASE_0030{A,B,C,D}_*.sql split via scripts/split_0030.sh — MECHANICAL sed extraction (zero manual retyping) with hard guarantees: (a) INTEGRITY — the 4 bodies reassemble lines 36-587 of the combined file byte-exactly (diff verified); (b) BOUNDARY — no PART banner leaks across files (grep-verified); statement counts 20/42/40/4.
+- Split map: A = PARTs 1-4 (coach_assignments + RLS + coach_of/is_coach_over + auto-assign trigger + backfill, 6.9KB) → B = PART 5 (client-data RLS rewrites, 7.3KB) → C = PARTs 6-7 (admin-exclusive RLS + subscription_requests + admin_notifications.target_coach_id, 7.3KB) → D = PARTs 8-9 (get_coach_client_list rebuild + NOTIFY pgrst, 4.7KB). All ≤7.3KB ≈ the proven 0029 size class.
+- Each part: slim header with strict run order + per-part RAW url + prereq warnings (B/C/D need A's is_coach_over; C/D need 0029's is_admin/is_staff) + idempotency note + "END OF SCRIPT 0030X" Ctrl+End completeness marker; D additionally carries the VERIFY queries.
+- Combined 0030 file re-headed as REFERENCE COPY — DO NOT PASTE (kept as the single-file documentation of the migration). AGENTS.md clause 7 pointer rewritten to the 4-part run order.
+- Owner assurance recorded: failed paste attempts left NOTHING applied (server rejects the whole paste); every part is re-runnable.
+
+Stage Summary:
+- Deliverables: 4 raw links (A→B→C→D). Owner runs each in a NEW empty query, confirms the END-OF-SCRIPT marker via Ctrl+End, expects "Success. No rows returned" ×4, then runs the two VERIFY queries.
+- Commit pushed to origin/main.

@@ -645,7 +645,11 @@ Process:
        is admin (0029B promotes every pre-existing coach row). Adding a
        coach = INSERT into coach_emails; adding an admin = manual SQL.
     7) MULTI-COACH FOUNDATION (2026-08-29, owner-approved design —
-       BUILT in Phase 40, migration RUN_ON_SUPABASE_0030_MULTI_COACH.sql):
+       BUILT in Phase 40, migration RUN_ON_SUPABASE_0030 — RUN AS THE
+       4-PART PASTE-FRIENDLY SPLIT, IN ORDER: 0030A schema → 0030B
+       client-RLS → 0030C admin-RLS+notifs → 0030D RPC+reload; the
+       combined RUN_ON_SUPABASE_0030_MULTI_COACH.sql is the byte-exact
+       REFERENCE COPY of the same statements, not meant for pasting):
        `coach_assignments` (1 client ↔ 1 coach, client_id UNIQUE) is
        the source of truth. `is_coach_over(client_id)` is THE client-
        data RLS predicate (admin OR the assigned coach) — NEVER use
