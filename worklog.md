@@ -2794,3 +2794,16 @@ Stage Summary:
 - Deliberately OUT of scope (Phase 2B, next): per-coach public landing pages (coach_pages table + /coaches/[slug], self-promoted, not in menus), admin reassignment UI (columns already exposed by the RPC), client "my coach" card.
 - Docs: AGENTS.md ROLE MODEL v2 LAW clause 7 rewritten to MULTI-COACH FOUNDATION (built, with the remaining-2B list); PROGRESS.md Phase 40.
 - Commit: pushed to origin/main.
+
+---
+Task ID: T-0030-PASTE-FAIL-DIAG-2026-08-29
+Agent: Main (Super Z — Implementation Agent)
+Task: Owner reported running 0030 in Supabase failed with ERROR 42601 "unterminated dollar-quoted string at or near $$" — diagnose and unblock.
+
+Work Log:
+- Diagnosis: the error echo fragment matches RUN_ON_SUPABASE_0030_MULTI_COACH.sql PART 8 (get_coach_client_list body) with staircase indentation and the text CUT OFF mid-function (~line 537 of 584, at the pending_payments subquery) → the paste into the SQL editor arrived MANGLED + TRUNCATED; the closing $$; of the function body never reached the server → 42601. The SCRIPT ITSELF IS VALID (no syntax errors; verified policy-name lineage: profiles_select_self_or_coach originates in 0001_init L85, so PART 5's drop+recreate cleanly replaces it, no stale broad policy).
+- Hardening (commit 864237b, pushed): 0030 header now carries a HOW TO PASTE SAFELY block (copy from the RAW url only, new empty query, Ctrl+End completeness check, expected output) + a distinctive "END OF SCRIPT 0030" marker at the file bottom so truncation is self-detectable before running.
+- Raw link re-verified after push: HTTP 200.
+
+Stage Summary:
+- Root cause = owner-side copy/paste truncation, not the SQL. Owner fix: re-copy from the RAW url into a NEW empty query, confirm the END OF SCRIPT 0030 marker is visible at the bottom (Ctrl+End), then Run. Script is idempotent — the failed attempt left nothing behind (the server rejected the whole paste).
