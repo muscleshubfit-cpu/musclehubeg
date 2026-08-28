@@ -66,7 +66,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Preflight — required secrets present (fails fast, names the missing ones)
         run: |
@@ -89,10 +89,12 @@ jobs:
           fi
           echo "✓ All required secrets present"
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           # Node 22 REQUIRED: supabase-js realtime needs the stable global
           # WebSocket that only exists from Node 22+ (2026-08-27 crash).
+          # (checkout@v5/setup-node@v5 run on Node 24 internally — the old
+          # v4 "Node 20 is deprecated" log warnings are gone, 2026-08-28d.)
           node-version: 22
 
       # NOTE: repo has NO package-lock.json → npm install (not npm ci)
@@ -106,4 +108,8 @@ jobs:
         if: always()
         run: |
           echo "=== AI jobs worker summary ==="
-          echo "Full logs above — per-job ✓/✗ lines show what completed or needs attention."
+          echo "GREEN run = every claimed job landed (done=N failedPermanent=0)."
+          echo "RED run   = at least one job FAILED PERMANENTLY — open the run and"
+          echo "            scroll to the ✗ lines above for the exact reason."
+          echo "Provider notice/retry lines inside a GREEN run are normal fallback-"
+          echo "chain behavior, not failures."

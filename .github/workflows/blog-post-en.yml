@@ -60,7 +60,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Preflight — required secrets present (fails fast, names the missing ones)
         run: |
@@ -83,7 +83,7 @@ jobs:
           fi
           echo "✓ All required secrets present · language=$PIPELINE_LANG"
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           # Node 22 REQUIRED: supabase-js realtime needs the stable global
           # WebSocket that only exists from Node 22+ (2026-08-27 P0 crash).

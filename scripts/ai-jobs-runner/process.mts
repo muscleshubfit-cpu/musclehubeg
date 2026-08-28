@@ -14,7 +14,11 @@
  *   OPENROUTER_API (or OPENROUTER_API_KEY), GROQ_API_KEY
  * OPTIONAL: AI_CHAIN_TOTAL_BUDGET_MS (workflow sets 180000)
  *
- * EXIT CODES: 0 = cycle finished (even with per-job failures recorded),
+ * EXIT CODES: 0 = cycle finished, all processed jobs succeeded,
+ *             1 = one or more jobs FAILED PERMANENTLY (HONEST RUN COLOR
+ *                 LAW 2026-08-28d: the workflow must show RED when work
+ *                 actually failed — owner report: «بيطلع اشارة خضراء كأن
+ *                 العملية نجحت» while articles never appeared),
  *             2 = misconfiguration (missing env).
  */
 
@@ -65,6 +69,7 @@ async function main(): Promise<void> {
 
   let done = 0;
   let failed = 0;
+  const failedLabels: string[] = [];
 
   // Loop in batches until queue empty / cap reached / wall-clock out.
   while (Date.now() < RUN_DEADLINE_MS && done + failed < MAX_JOBS_PER_RUN) {
@@ -88,6 +93,7 @@ async function main(): Promise<void> {
         const outcome = await failJob(job.id, Number(job.attempts || 1), message);
         if (outcome === "failed") {
           failed++;
+          failedLabels.push(label);
           console.error(`[ai-jobs] ✗ ${label} FAILED permanently: ${message}`);
           console.log(`::error::AI job ${job.job_type} failed permanently: ${message.slice(0, 180)}`);
         } else {
@@ -98,10 +104,23 @@ async function main(): Promise<void> {
   }
 
   console.log(`\n[ai-jobs] ══ summary: done=${done} failedPermanent=${failed}`);
+  if (failed > 0) {
+    // HONEST RUN COLOR: permanent failures → exit 1 → the workflow run
+    // shows RED. A green run now genuinely means every claimed job landed.
+    console.log(`[ai-jobs] ❌ ${failed} job(s) failed permanently: ${failedLabels.join(", ")}`);
+    console.log(`[ai-jobs] The workflow will show RED — inspect the ✗ lines above.`);
+    console.log(`::error::${failed} AI job(s) failed permanently this run`);
+  } else {
+    console.log(`[ai-jobs] ✅ every processed job succeeded — this green run is genuine.`);
+  }
+  process.exitCode = failed > 0 ? 1 : 0;
 }
 
 main()
-  .then(() => process.exit(0))
+  .then(() => {
+    // exitCode set inside main(): 0 all-good, 1 permanent failures.
+    process.exit(process.exitCode === 1 ? 1 : 0);
+  })
   .catch((e: unknown) => {
     console.error("[ai-jobs] ❌ Runner crashed:", e instanceof Error ? e.message : e);
     process.exit(1);

@@ -591,7 +591,10 @@ IMPORTANT: Return the topic and focusKeyword in ${language === "ar" ? "ARABIC" :
         tag: `blog:topics-${language}`,
         systemPrompt,
         temperature: 0.85,
-        maxTokens: 600,
+        // 800 (was 600): Groq json_validate_failed "max completion…" truncation
+        // observed 2026-08-28 — the topic JSON occasionally clipped at 600.
+        // Still far under the Groq 7200 eligibility line (≈2150 est).
+        maxTokens: 800,
         jsonMode: true,
         timeoutMs: 22_000,
         maxModels: 2, // Vercel Hobby budget

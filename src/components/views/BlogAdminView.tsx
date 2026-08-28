@@ -60,6 +60,20 @@ export function BlogAdminView() {
               toast.error("وصلت نتيجة غير مكتملة — حاول التوليد مرة أخرى.");
               return;
             }
+            // DRAFT MATERIALIZATION (2026-08-28d): the runner already saved
+            // the article as a blog_posts draft — land the coach on the real
+            // draft (also in the articles list even if this page was closed).
+            if (r.post_id) {
+              toast.success(
+                isAr
+                  ? "المقال اتولد واتحفظ كمسودة ✅ راجعه وعدّله قبل النشر."
+                  : "Article generated and saved as a draft ✅ Review before publishing.",
+              );
+              router.push(`/admin/blog/${r.post_id}`);
+              return;
+            }
+            // Fallback: no draft row (materialization skipped) — legacy
+            // sessionStorage hand-off into /admin/blog/new?ai=1.
             try {
               sessionStorage.setItem(
                 AI_ARTICLE_DRAFT_KEY,

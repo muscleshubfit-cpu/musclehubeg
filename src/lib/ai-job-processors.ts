@@ -20,6 +20,9 @@ import {
 import type { ClientContext } from "@/lib/ai-local";
 import { generateSocialPost } from "@/lib/social-posts";
 import { pickSmartTopic } from "@/lib/blog-topics";
+import { supabaseAdmin, isSupabaseAdminConfigured } from "@/lib/supabase/admin";
+import { VALID_CATEGORY_IDS } from "@/lib/blog";
+import { articleSlugFromTitle } from "@/lib/ai-jobs-client";
 
 /* Shared quality knobs for heavy jobs (GHA sets AI_CHAIN_TOTAL_BUDGET_MS
  * = 180000 — three tries × generous timeouts, strongest models first). */
@@ -351,6 +354,78 @@ async function runExerciseRegenerate(payload: any) {
 /* ─────────────────── Article generation (coach) ─────────────────── */
 
 /**
+ * DRAFT MATERIALIZATION LAW (2026-08-28d): a completed article_generate
+ * result MUST exist as a blog_posts DRAFT row — never only inside
+ * ai_jobs.result. Owner watched two SUCCESSFUL generations and still
+ * reported «لم تولد المقال»: the finished article lived solely in the job
+ * result, visible only if the live browser watcher caught the done event
+ * (mobile tabs die, coaches navigate away). Materializing server-side
+ * makes the draft appear in the articles list NO MATTER what the browser
+ * does. Drafts stay is_published=false — the coach still reviews before
+ * publishing (AI PROVENANCE preserved via source + the review flow).
+ */
+async function materializeArticleDraft(r: {
+  title: string;
+  markdown: string;
+  excerpt: string;
+  meta_description: string;
+  tags: string[];
+  language: "ar" | "en";
+  category?: string;
+  focus_keyword?: string;
+}): Promise<string | null> {
+  if (!isSupabaseAdminConfigured || !supabaseAdmin) return null;
+  const now = new Date().toISOString();
+  const words = r.markdown.split(/\s+/).filter(Boolean).length;
+  const row: Record<string, any> = {
+    language: r.language,
+    title: r.title,
+    slug: articleSlugFromTitle(r.title),
+    excerpt: r.excerpt,
+    content: r.markdown,
+    meta_title: r.title,
+    meta_description: r.meta_description,
+    focus_keyword: r.focus_keyword || r.tags[0] || "",
+    keywords: r.tags.slice(0, 8),
+    category:
+      r.category && VALID_CATEGORY_IDS.has(r.category) ? r.category : "nutrition",
+    tags: r.tags,
+    featured_image: "", // safe image pipeline can backfill later
+    cover_alt: "",
+    reading_time: Math.max(1, Math.round(words / 200)),
+    author: "MuscleHubEG",
+    is_published: false, // NEVER auto-publish — coach reviews first
+    published_at: null,
+    created_at: now,
+    updated_at: now,
+    faq_json: [],
+    schema_json: {},
+    source: "ai:article_generate",
+  };
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const { data, error } = await (supabaseAdmin as any)
+      .from("blog_posts")
+      .insert([row])
+      .select("id")
+      .single();
+    if (!error) return (data as any)?.id ?? null;
+    const msg = String(error?.message || "");
+    if (/duplicate|unique|conflict/i.test(msg)) {
+      // Same-title slug collision (rare) — suffix and retry.
+      row.slug = `${row.slug}-${Date.now().toString(36)}`.slice(0, 90);
+      continue;
+    }
+    if ("source" in row) {
+      delete row.source; // legacy schema without the source column
+      continue;
+    }
+    console.error("[article_generate] draft materialization failed:", msg);
+    return null;
+  }
+  return null;
+}
+
+/**
  * Full-article GENERATION from a topic — the queue-era replacement for the
  * Phase-15-deleted client-side generator (owner report 2026-08-28: coaches
  * had no generation entry at all, only a banner pointing at a dead button).
@@ -459,6 +534,21 @@ async function runArticleGenerate(payload: any) {
     ? parsed.tags.map((t: any) => String(t).trim()).filter(Boolean).slice(0, 10)
     : [];
 
+  // DRAFT MATERIALIZATION (2026-08-28d): persist the finished article as a
+  // blog_posts DRAFT before reporting done — the draft exists in the
+  // articles list even if every browser watcher missed the completion.
+  const post_id = await materializeArticleDraft({
+    title,
+    markdown,
+    excerpt: String(parsed.excerpt || "").slice(0, 400),
+    meta_description: String(parsed.meta_description || "").slice(0, 300),
+    tags,
+    language: isAr ? "ar" : "en",
+    category: category || undefined,
+    focus_keyword: focusKeyword || undefined,
+  });
+  if (post_id) console.log(`[article_generate] draft materialized: blog_posts#${post_id}`);
+
   return {
     title,
     markdown,
@@ -471,6 +561,8 @@ async function runArticleGenerate(payload: any) {
     focus_keyword: focusKeyword,
     topic_rationale: topicRationale,
     category: category || undefined,
+    post_id,
+    draft_saved: !!post_id,
     source: model,
   };
 }

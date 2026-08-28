@@ -776,6 +776,17 @@ Process:
        call reserves maxTokens ≤ 5000 so prompt/4 + maxTokens + 800 stays
        under the 7200 Groq-eligibility line — reserving 7000+ LOCKS the
        job out of Groq (OpenRouter-only → free-pool 429 storms).
+    7) DRAFT MATERIALIZATION + HONEST RUN COLOR (2026-08-28d, owner:
+       «لم تنجح برده… بيفشل node 20 وبعد كده مبيكملش وبيطلع اشارة خضراء»):
+       (a) every completed `article_generate` MUST be materialized as a
+       blog_posts DRAFT (`materializeArticleDraft`, is_published=false,
+       source=ai:article_generate) — the result carries post_id and the
+       watcher routes to /admin/blog/:id; an article may NEVER live only
+       inside ai_jobs.result. (b) process.mts exits 1 when any job fails
+       permanently → the workflow turns RED; a GREEN run genuinely means
+       done=N failedPermanent=0. (c) GHA actions pinned to v5
+       (checkout/setup-node, Node 24 internals) — Node 20 deprecation
+       warnings in logs are HISTORY; node-version stays 22.
 - Never log the AI response in production code paths (it can contain
   user PII or partial reasoning that should not be persisted).
 - Local fallbacks (`src/lib/ai-local.ts`) exist so the app degrades
