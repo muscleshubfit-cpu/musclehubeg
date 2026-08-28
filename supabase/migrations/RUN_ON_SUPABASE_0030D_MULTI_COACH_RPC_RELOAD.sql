@@ -141,12 +141,35 @@ notify pgrst, 'reload schema';
 -- =====================================================================
 --
 -- =====================================================================
--- VERIFY (paste each in the SQL Editor):
---   1) select client_email, assigned_coach_name
---      from public.get_coach_client_list();   -- run AS the admin:
---      expected: ALL clients, each with the admin's name
---   2) select count(*) from public.coach_assignments;
---      expected: one row per existing client
---   3) insert a test signup -> it should appear in coach_assignments
---      with coach_id = the admin (auto-assign trigger)
+-- VERIFY — OPTION 1 (SQL Editor, works WITHOUT any login session):
+--   select count(*) as assigned_clients from public.coach_assignments;
+--     expected: one row per existing client
+--   select p.email as client_email, p.full_name as client_name,
+--          c.full_name as assigned_coach_name, c.role as coach_role
+--   from public.coach_assignments a
+--   join public.profiles p on p.id = a.client_id
+--   join public.profiles c on c.id = a.coach_id
+--   order by a.created_at desc;
+--     expected: every client with the admin's name + role 'admin'
+--
+-- VERIFY — OPTION 2 (simulate the ADMIN session — exactly what the
+-- app sees; paste the WHOLE block and Run it as one):
+--   begin;
+--   select set_config('request.jwt.claim.sub',
+--     (select id::text from public.profiles
+--      where role = 'admin' limit 1), true);
+--   select set_config('request.jwt.claims',
+--     json_build_object('sub', (select id::text from public.profiles
+--       where role = 'admin' limit 1),
+--       'role', 'authenticated')::text, true);
+--   select client_email, assigned_coach_name
+--   from public.get_coach_client_list();
+--   commit;
+--     expected: ALL clients, each with the admin's name
+--   NOTE: calling get_coach_client_list() WITHOUT this simulated
+--   session returns 0 rows in the SQL Editor (auth.uid() is null
+--   there) — correct behavior, NOT a bug.
+--
+-- VERIFY — OPTION 3 (real world): open the coach clients page in the
+-- app AS the admin -> all clients + their assigned coach are shown.
 -- =====================================================================

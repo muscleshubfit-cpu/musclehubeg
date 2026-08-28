@@ -2823,3 +2823,15 @@ Work Log:
 Stage Summary:
 - Deliverables: 4 raw links (A→B→C→D). Owner runs each in a NEW empty query, confirms the END-OF-SCRIPT marker via Ctrl+End, expects "Success. No rows returned" ×4, then runs the two VERIFY queries.
 - Commit pushed to origin/main.
+
+---
+Task ID: T-0030-VERIFY-FIX-2026-08-29
+Agent: Main (Super Z — Implementation Agent)
+Task: Owner asked how to run the 0030 verification queries — the file footer's get_coach_client_list() check would return 0 rows in the SQL Editor (auth.uid() is null there) and cause a false alarm; fix the footer and explain.
+
+Work Log:
+- RUN_ON_SUPABASE_0030D footer VERIFY block rewritten into 3 options: (1) editor-safe direct queries (count + join showing client↔coach mapping, no auth dependence); (2) simulated admin session via set_config on BOTH request.jwt.claim.sub AND request.jwt.claims inside one begin…commit block → get_coach_client_list() returns the real admin view; (3) real-world check = open the coach clients page as admin in the app. Explicit NOTE added: bare RPC call in the editor returns 0 rows (auth.uid() null) — correct behavior, not a bug.
+- Worklog-only change plus this footer; no statements touched.
+
+Stage Summary:
+- Owner gets editor-safe verification; the 0-rows pitfall is documented in-file. Commit pushed.
