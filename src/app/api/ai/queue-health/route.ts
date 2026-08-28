@@ -124,6 +124,15 @@ export async function GET(request: NextRequest) {
  * lives in the GHA run logs the banner already points at) and the next
  * GET reports clean. Stuck-queue issues (if any) stay honest: they are
  * recomputed from live rows, never suppressed.
+ *
+ * 2026-08-28n HOTFIX (owner: «مسح عمليات الفشل لم يعمل» + toast showed
+ * the literal fallback «clear failed»): production answered the old
+ * `.delete(null, {count:"exact"})` variant with a NON-JSON error, so the
+ * client only had its fallback string to show. Rewritten to the SAME
+ * shape as every delete that already works in this app
+ * (select ids → `.delete().in("id", …)`) and wrapped in try/catch so the
+ * route can ONLY ever answer JSON — the toast now shows a real message
+ * (or an Arabic fallback with the HTTP code) instead of a cryptic stub.
  */
 export async function DELETE(request: NextRequest) {
   if (isAuthConfigured) {
@@ -133,12 +142,33 @@ export async function DELETE(request: NextRequest) {
   if (!isSupabaseAdminConfigured || !supabaseAdmin) {
     return NextResponse.json({ error: "Supabase not configured" }, { status: 500 });
   }
-  const { error, count } = await (supabaseAdmin as any)
-    .from("ai_jobs" as any)
-    .delete(null, { count: "exact" })
-    .eq("status", "failed");
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  try {
+    const { data: rows, error: selErr } = await supabaseAdmin
+      .from("ai_jobs" as any)
+      .select("id")
+      .eq("status", "failed")
+      .limit(200);
+    if (selErr) {
+      return NextResponse.json({ error: selErr.message }, { status: 500 });
+    }
+    const ids = ((rows as any[]) || [])
+      .map((r) => r?.id)
+      .filter((id) => typeof id === "string" && id.length > 0);
+    if (!ids.length) {
+      return NextResponse.json({ deleted: 0 });
+    }
+    const { error: delErr } = await supabaseAdmin
+      .from("ai_jobs" as any)
+      .delete()
+      .in("id", ids);
+    if (delErr) {
+      return NextResponse.json({ error: delErr.message }, { status: 500 });
+    }
+    return NextResponse.json({ deleted: ids.length });
+  } catch (e: any) {
+    return NextResponse.json(
+      { error: e?.message || "delete failed unexpectedly" },
+      { status: 500 },
+    );
   }
-  return NextResponse.json({ deleted: count ?? 0 });
 }

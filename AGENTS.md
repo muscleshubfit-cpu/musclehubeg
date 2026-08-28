@@ -947,7 +947,12 @@ Process:
        transient diagnostics, so DELETE /api/ai/queue-health (coach-only)
        removes them and the banner recomputes honestly (stuck-queue issues
        are never suppressed, they just reflect live rows). A red banner
-       with no clear path rots into wallpaper.
+       with no clear path rots into wallpaper. 2026-08-28n hotfix (owner:
+       «مسح عمليات الفشل لم يعمل»): the handler MUST only ever answer
+       JSON (try/catch around everything) and delete via the app's proven
+       shape (select ids → .delete().in("id", …)) — the filtered
+       .delete(null, {count:"exact"}) variant died in production with a
+       NON-JSON error the client could only show as «clear failed».
        PER-IMAGE-SWAP LAW (2026-08-28m, owner: «تبديل صورة المقال … محتاج
        اضافة تبديل لكل صورة داخل المقال لوحدها»): image swap is not a
        cover-only privilege — the PREVIEW segments markdown into blocks
@@ -957,6 +962,14 @@ Process:
        replacing EXACTLY that occurrence via absolute content offsets
        (sibling images never move). Unsafe URLs fall back to the
        renderMarkdown path where they are stripped (one safety law).
+       CLEAR-PERSISTS LAW (2026-08-28n, owner: «مسح نتائج الادوات لم
+       يعمل»): dismissing tool results must SURVIVE re-hydration — the
+       panel hydrates from ai_jobs on every mount (24h window), so a
+       memory-only «مسح الكل»/«إغلاق» resurrects everything the owner
+       just cleared. Dismissed job ids persist in localStorage
+       (muscleshub.dismissedToolJobs); hydration and manual refresh skip
+       them. A clear button that only clears until the next navigation is
+       a broken clear button.
 - Never log the AI response in production code paths (it can contain
   user PII or partial reasoning that should not be persisted).
 - Local fallbacks (`src/lib/ai-local.ts`) exist so the app degrades

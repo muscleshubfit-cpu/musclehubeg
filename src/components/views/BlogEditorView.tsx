@@ -16,6 +16,48 @@ import { adminGetPost, adminCreatePost, adminUpdatePost, calculateSEOScore, calc
 import { runAiJob, AI_ARTICLE_DRAFT_KEY, articleSlugFromTitle } from "@/lib/ai-jobs-client";
 import { toast } from "sonner";
 
+/* CLEAR-PERSISTS LAW (2026-08-28n, owner: «مسح نتائج الادوات لم يعمل»):
+ * clearing used to be memory-only — every remount re-hydrated the SAME
+ * results from ai_jobs (24h window), so «مسح الكل»/«إغلاق» looked dead:
+ * the panel emptied for a second, then everything came back. Dismissed
+ * job ids now persist in localStorage — hydration skips them on every
+ * mount AND every manual refresh, so cleared results STAY cleared.
+ * Lazy init + window guards keep SSR prerender safe. */
+const DISMISSED_TOOL_JOBS_KEY = "muscleshub.dismissedToolJobs";
+const loadDismissedToolJobs = (): Set<string> => {
+ try {
+  if (typeof window === "undefined") return new Set<string>();
+  const raw = window.localStorage.getItem(DISMISSED_TOOL_JOBS_KEY);
+  const arr: unknown = raw ? JSON.parse(raw) : [];
+  return new Set<string>(Array.isArray(arr) ? arr.filter((x): x is string => typeof x === "string") : []);
+ } catch {
+  return new Set<string>();
+ }
+};
+const saveDismissedToolJobs = (s: Set<string>): void => {
+ try {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(DISMISSED_TOOL_JOBS_KEY, JSON.stringify([...s].slice(-400)));
+ } catch {
+  /* storage blocked/full — dismissal still holds for this page load */
+ }
+};
+// Session cache survives view switches inside one page load;
+// localStorage survives reloads.
+let dismissedToolJobsCache: Set<string> | null = null;
+const getDismissedToolJobs = (): Set<string> => {
+ if (!dismissedToolJobsCache) dismissedToolJobsCache = loadDismissedToolJobs();
+ return dismissedToolJobsCache;
+};
+const dismissToolJob = (jobId: string): void => {
+ if (!jobId) return;
+ const s = getDismissedToolJobs();
+ if (!s.has(jobId)) {
+  s.add(jobId);
+  saveDismissedToolJobs(s);
+ }
+};
+
 export function BlogEditorView({ mode, postId }: { mode: "new" | "edit"; postId?: string }) {
  const { t, lang } = useI18n();
  const router = useRouter();
@@ -357,7 +399,7 @@ export function BlogEditorView({ mode, postId }: { mode: "new" | "edit"; postId?
  * change-notes and social meta-suggestions, but «نسخ» copies ONLY the
  * paste-able deliverable (the text itself / post+hashtags). */
 type AiResultEntry = { display: string; copy: string };
-type AiResultListItem = AiResultEntry & { key: string; label: string; at: string; recovered: boolean };
+type AiResultListItem = AiResultEntry & { key: string; label: string; at: string; recovered: boolean; jobId?: string };
 const formatSocialResult = (r: any): AiResultEntry => {
  const tags = Array.isArray(r?.hashtags) ? r.hashtags.join(" ") : "";
  const main = [String(r?.post_text || ""), tags ? `\n\n${tags}` : ""].join("");
@@ -452,7 +494,7 @@ const runAITool = async (tool: string) => {
  if (jobId) hydratedJobIds.current.add(jobId);
  const at = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
  setAiResults((prev) => [
- { ...entry, key: tool, label: aiResultLabel(tool), at, recovered: false },
+ { ...entry, key: tool, label: aiResultLabel(tool), at, recovered: false, jobId: jobId || undefined },
  ...prev,
  ]);
  toast.success("تم التوليد من الطابور!");
@@ -488,6 +530,8 @@ const scanRecentToolJobs = useCallback(async () => {
  for (const j of jobs) {
  if (!j?.id || hydratedJobIds.current.has(j.id)) continue;
  hydratedJobIds.current.add(j.id);
+ // CLEAR-PERSISTS: the owner dismissed this result — never resurrect it.
+ if (getDismissedToolJobs().has(String(j.id))) continue;
  if (j?.status !== "done") continue;
  if (j?.job_type !== "article_tool" && j?.job_type !== "social_post") continue;
  const when = Date.parse(j.finished_at || j.created_at || "");
@@ -879,7 +923,9 @@ useEffect(() => {
  </div>
 
  {/* AI Results — ALL-RESULTS: every run keeps its own card; «مسح الكل»
-     wipes the panel, «إغلاق» removes a single result. */}
+     wipes the panel and «إغلاق» removes a single result — both PERSIST
+     (CLEAR-PERSISTS): dismissed job ids are remembered, hydration never
+     brings cleared results back. */}
  {aiResults.length > 0 && (
  <div className="mt-4 space-y-3">
  <div className="flex items-center justify-between gap-2">
@@ -887,7 +933,11 @@ useEffect(() => {
  {isAr ? `النتائج (${aiResults.length})` : `Results (${aiResults.length})`}
  </span>
  <button
- onClick={() => setAiResults([])}
+ onClick={() => {
+ for (const it of aiResults) if (it.jobId) dismissToolJob(it.jobId);
+ setAiResults([]);
+ toast.success(isAr ? "اتمسحت كل النتائج — مش هترجع تاني ✅" : "All results cleared — they stay cleared ✅");
+ }}
  className="text-xs text-destructive hover:underline"
  >
  🗑 {isAr ? "مسح الكل" : "Clear all"}
@@ -902,7 +952,7 @@ useEffect(() => {
  </span>
  <div className="flex shrink-0 gap-1">
  <button onClick={() => { navigator.clipboard.writeText(item.copy); toast.success(isAr ? "تم نسخ النص المطلوب فقط" : "Copied the deliverable only"); }} className="text-xs text-primary hover:underline">{isAr ? "نسخ" : "Copy"}</button>
- <button onClick={() => setAiResults((prev) => prev.filter((_, i) => i !== idx))} className="text-xs text-destructive hover:underline">{isAr ? "إغلاق" : "Close"}</button>
+ <button onClick={() => { if (item.jobId) dismissToolJob(item.jobId); setAiResults((prev) => prev.filter((_, i) => i !== idx)); }} className="text-xs text-destructive hover:underline">{isAr ? "إغلاق" : "Close"}</button>
  </div>
  </div>
  <pre className="whitespace-pre-wrap text-xs text-muted-foreground max-h-32 overflow-y-auto scrollbar-thin" dir="auto">{item.display}</pre>

@@ -203,7 +203,13 @@ export function BlogAdminView() {
     try {
       const res = await fetch("/api/ai/queue-health", { method: "DELETE" });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data?.error || "clear failed");
+      // 2026-08-28n (owner: «مسح عمليات الفشل لم يعمل»): never surface a
+      // cryptic English stub again — real API message, else Arabic + the
+      // HTTP code so a recurrence is immediately diagnosable.
+      if (!res.ok)
+        throw new Error(
+          data?.error || (isAr ? `تعذّر المسح (كود ${res.status})` : `Clear failed (HTTP ${res.status})`),
+        );
       const h = await fetch("/api/ai/queue-health");
       if (h.ok) setQHealth(await h.json());
       toast.success(isAr ? `تم مسح ${data?.deleted ?? 0} مهمة فاشلة من السجل ✅` : `Cleared ${data?.deleted ?? 0} failed jobs ✅`);
