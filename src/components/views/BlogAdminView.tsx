@@ -39,6 +39,7 @@ export function BlogAdminView() {
   // the 2026-08-28 incidents were all SILENT failures (stuck queue,
   // invisible results, dishonest greens). This strip makes rot visible.
   const [qHealth, setQHealth] = useState<{ ok: boolean; issues: string[]; counts?: Record<string, number>; lastRunnerRunAt?: string | null } | null>(null);
+  const [qClearing, setQClearing] = useState(false);
   const [genJob, setGenJob] = useState<{ id: string; topic: string } | null>(null);
   const activeGenWatcher = useRef<string | null>(null);
 
@@ -192,6 +193,27 @@ export function BlogAdminView() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // CLEAR-FAILED (2026-08-28m, owner screenshot + «ضيف طريقى لمسحه الرسالة
+  // يد»): the red health banner counted FAILED queue rows forever — this
+  // is the manual dismissal: DELETE the failed jobs from ai_jobs, then
+  // re-probe so the strip reflects the cleaned queue immediately.
+  const clearFailedJobs = async () => {
+    if (qClearing) return;
+    setQClearing(true);
+    try {
+      const res = await fetch("/api/ai/queue-health", { method: "DELETE" });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.error || "clear failed");
+      const h = await fetch("/api/ai/queue-health");
+      if (h.ok) setQHealth(await h.json());
+      toast.success(isAr ? `تم مسح ${data?.deleted ?? 0} مهمة فاشلة من السجل ✅` : `Cleared ${data?.deleted ?? 0} failed jobs ✅`);
+    } catch (e: any) {
+      toast.error(e?.message || (isAr ? "تعذّر مسح التنبيه" : "Couldn't clear the alert"));
+    } finally {
+      setQClearing(false);
+    }
+  };
+
   const handleDelete = async (id: string) => {
     if (!confirm(isAr ? "حذف هذا المقال؟" : "Delete this article?")) return;
     try {
@@ -340,15 +362,27 @@ export function BlogAdminView() {
                 ? "اكتب الموضوع أو سيبه فاضي والنظام يختار العنوان بنفسه — ويكتب مقالاً كاملاً (عنوان + محتوى + وصف ميتا + وسوم + أسئلة شائعة + روابط داخلية) ويفتحه لك في المحرر للمراجعة."
                 : "Give a topic — or leave it empty and let the system pick the title — and get a complete article draft (title + body + meta + tags + FAQ + internal links) opened in the editor for review."}
             </p>
-            {qHealth && (
-              <p className={`mt-1 text-[11px] font-medium ${qHealth.ok ? "text-emerald-600" : "text-rose-600"}`}>
-                {qHealth.ok
-                  ? isAr
-                    ? `🟢 منظومة التوليد سليمة — الطابور: ${qHealth.counts?.queued ?? 0} بالانتظار · آخر تشغيل ناجح: ${qHealth.lastRunnerRunAt ? new Date(qHealth.lastRunnerRunAt).toLocaleString(isAr ? "ar-EG" : "en-GB", { hour: "2-digit", minute: "2-digit", day: "numeric", month: "numeric" }) : "—"}`
-                    : `🟢 Pipeline healthy — queued: ${qHealth.counts?.queued ?? 0} · last successful run: ${qHealth.lastRunnerRunAt ? new Date(qHealth.lastRunnerRunAt).toLocaleString("en-GB", { hour: "2-digit", minute: "2-digit", day: "numeric", month: "numeric" }) : "—"}`
-                  : `🔴 ${qHealth.issues.join(" · ")}`}
+            {qHealth && (qHealth.ok ? (
+              <p className="mt-1 text-[11px] font-medium text-emerald-600">
+                {isAr
+                  ? `🟢 منظومة التوليد سليمة — الطابور: ${qHealth.counts?.queued ?? 0} بالانتظار · آخر تشغيل ناجح: ${qHealth.lastRunnerRunAt ? new Date(qHealth.lastRunnerRunAt).toLocaleString(isAr ? "ar-EG" : "en-GB", { hour: "2-digit", minute: "2-digit", day: "numeric", month: "numeric" }) : "—"}`
+                  : `🟢 Pipeline healthy — queued: ${qHealth.counts?.queued ?? 0} · last successful run: ${qHealth.lastRunnerRunAt ? new Date(qHealth.lastRunnerRunAt).toLocaleString("en-GB", { hour: "2-digit", minute: "2-digit", day: "numeric", month: "numeric" }) : "—"}`}
               </p>
-            )}
+            ) : (
+              <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] font-medium text-rose-600">
+                <span>🔴 {qHealth.issues.join(" · ")}</span>
+                {/* Manual dismissal — deletes the failed queue rows so the
+                    alert is clearable, not eternal (stuck-queue issues, if
+                    any, are recomputed live and stay honest). */}
+                <button
+                  onClick={() => void clearFailedJobs()}
+                  disabled={qClearing}
+                  className="rounded-md border border-rose-300 px-2 py-0.5 font-medium transition-colors hover:bg-rose-50 disabled:opacity-50"
+                >
+                  {qClearing ? (isAr ? "جارٍ المسح…" : "Clearing…") : (isAr ? "🗑 مسح التنبيه" : "🗑 Dismiss")}
+                </button>
+              </p>
+            ))}
           </div>
         </div>
         <button

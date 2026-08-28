@@ -62,7 +62,7 @@ export type BlogOGData = {
  * or the request fails — callers fall back to defaults.
  *
  * Used by:
- *   - /api/og/[slug] (OG meta HTML for crawlers)
+ *   - /api/og-image/[slug] (OG image for crawlers)
  *   - app/blog/[slug]/page.tsx and app/ar/blog/[slug]/page.tsx (generateMetadata)
  *
  * Centralizing this here so the three previous copies of the same REST

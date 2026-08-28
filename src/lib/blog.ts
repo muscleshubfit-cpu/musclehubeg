@@ -224,7 +224,7 @@ function escapeHtml(s: string): string {
  * Allows http, https, mailto, tel, and fragment (#...) links.
  * Rejects javascript:, data:, vbscript:, and anything else.
  */
-function isSafeUrl(url: string): boolean {
+export function isSafeUrl(url: string): boolean {
  const trimmed = url.trim();
  if (!trimmed) return false;
  if (trimmed.startsWith("#")) return true;

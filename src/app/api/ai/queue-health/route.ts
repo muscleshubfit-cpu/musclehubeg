@@ -34,7 +34,6 @@ export async function GET(request: NextRequest) {
   if (!isSupabaseAdminConfigured || !supabaseAdmin) {
     return NextResponse.json({ error: "Supabase not configured" }, { status: 500 });
   }
-
   const issues: string[] = [];
 
   // ── Queue counts + oldest queued + last done (one light select) ──
@@ -114,4 +113,32 @@ export async function GET(request: NextRequest) {
     ok: issues.length === 0,
     issues,
   });
+}
+
+/**
+ * CLEAR-FAILED LAW (2026-08-28m, owner screenshot + «ضيف طريقة لمسحها
+ * يدوى»): the red «N مهمة فشلت نهائيًا» banner counted FAILED rows
+ * FOREVER — failed jobs stayed in ai_jobs, so the alert could never be
+ * dismissed. DELETE /api/ai/queue-health (coach-only) removes the failed
+ * queue rows (they are transient diagnostics — the real failure evidence
+ * lives in the GHA run logs the banner already points at) and the next
+ * GET reports clean. Stuck-queue issues (if any) stay honest: they are
+ * recomputed from live rows, never suppressed.
+ */
+export async function DELETE(request: NextRequest) {
+  if (isAuthConfigured) {
+    const auth = await requireCoach(request);
+    if (auth instanceof Response) return auth;
+  }
+  if (!isSupabaseAdminConfigured || !supabaseAdmin) {
+    return NextResponse.json({ error: "Supabase not configured" }, { status: 500 });
+  }
+  const { error, count } = await (supabaseAdmin as any)
+    .from("ai_jobs" as any)
+    .delete(null, { count: "exact" })
+    .eq("status", "failed");
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+  return NextResponse.json({ deleted: count ?? 0 });
 }

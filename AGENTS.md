@@ -933,6 +933,30 @@ Process:
        guard-stale-refs.yml since b9c1d16 but the file itself was never
        pushed (every CI run fell at that step until 2026-08-28j). Any
        new script a workflow references must appear in the SAME commit.
+       ALL-RESULTS LAW (2026-08-28m, owner: «بيظهر نتيجتين فقط محتاج
+       يظهر كل النتايج»): the editor AI-results panel is an APPEND-ONLY
+       list, never a per-tool record — running the same tool twice MUST
+       yield two cards (keyed records silently overwrite). Every card
+       keeps {display, copy, label, time, recovered}; «مسح الكل» clears
+       the panel, «إغلاق» removes one card. Hydration covers the last 20
+       own jobs ≤24h and appends each recovered job as its OWN card.
+       runAiJob resolves {result, id}: callers mark the settled job id so
+       a manual refresh can NEVER duplicate a result just watched.
+       CLEAR-FAILED LAW (2026-08-28m, owner screenshot + «ضيف طريقة لمسحها
+       يدوى»): health alerts must be DISMISSIBLE — failed ai_jobs rows are
+       transient diagnostics, so DELETE /api/ai/queue-health (coach-only)
+       removes them and the banner recomputes honestly (stuck-queue issues
+       are never suppressed, they just reflect live rows). A red banner
+       with no clear path rots into wallpaper.
+       PER-IMAGE-SWAP LAW (2026-08-28m, owner: «تبديل صورة المقال … محتاج
+       اضافة تبديل لكل صورة داخل المقال لوحدها»): image swap is not a
+       cover-only privilege — the PREVIEW segments markdown into blocks
+       (splitPreviewBlocks) and every standalone image line renders as a
+       first-class block with its own «🔄 بدّل الصورة» button going
+       through the SAME safe suggest-image pipeline as the cover,
+       replacing EXACTLY that occurrence via absolute content offsets
+       (sibling images never move). Unsafe URLs fall back to the
+       renderMarkdown path where they are stripped (one safety law).
 - Never log the AI response in production code paths (it can contain
   user PII or partial reasoning that should not be persisted).
 - Local fallbacks (`src/lib/ai-local.ts`) exist so the app degrades

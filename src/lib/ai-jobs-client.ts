@@ -84,7 +84,7 @@ export async function getAiJob(id: string): Promise<any> {
 }
 
 /**
- * Fire-and-wait: resolves { result } when done, rejects on failure/429/timeout.
+ * Fire-and-wait: resolves { result, id } when done, rejects on failure/429/timeout.
  * `onQueued` fires once right after enqueue so UIs can show an immediate
  * "جاري التنفيذ في الخلفية" state.
  */
@@ -92,7 +92,7 @@ export async function runAiJob(
   type: AiJobType,
   payload: Record<string, any>,
   opts?: { onQueued?: () => void },
-): Promise<{ result: any }> {
+): Promise<{ result: any; id: string }> {
   const id = await enqueueAiJobClient(type, payload);
   opts?.onQueued?.();
 
@@ -103,7 +103,10 @@ export async function runAiJob(
     await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
     try {
       const job = await getAiJob(id);
-      if (job?.status === "done") return { result: job.result };
+      // ALL-RESULTS LAW (2026-08-28m): the id rides along so callers can
+      // mark the job as already-shown — a later manual hydration refresh
+      // never duplicates a result the user just watched land.
+      if (job?.status === "done") return { result: job.result, id };
       if (job?.status === "failed") {
         throw new Error(job.error_message || "فشل توليد النتيجة. حاول مرة أخرى.");
       }

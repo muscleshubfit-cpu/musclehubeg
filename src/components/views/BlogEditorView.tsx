@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { useI18n } from "@/lib/i18n";
 import { useRouter } from "next/navigation";
-import { BLOG_CATEGORIES, VALID_CATEGORY_IDS, getCategoryLabel, parseTableOfContents, renderMarkdown } from "@/lib/blog";
+import { BLOG_CATEGORIES, VALID_CATEGORY_IDS, getCategoryLabel, parseTableOfContents, renderMarkdown, isSafeUrl } from "@/lib/blog";
 import { adminGetPost, adminCreatePost, adminUpdatePost, calculateSEOScore, calculateWordCount, calculateReadingTime, type AdminBlogPost } from "@/lib/blog-admin";
 import { runAiJob, AI_ARTICLE_DRAFT_KEY, articleSlugFromTitle } from "@/lib/ai-jobs-client";
 import { toast } from "sonner";
@@ -47,7 +47,13 @@ export function BlogEditorView({ mode, postId }: { mode: "new" | "edit"; postId?
  const [tagInput, setTagInput] = useState("");
  const [aiBusy, setAiBusy] = useState<Record<string, boolean>>({}); // multi-tool in-flight (queued jobs)
  const [socialTone, setSocialTone] = useState<"professional" | "friendly" | "motivational">("motivational");
- const [aiResults, setAiResults] = useState<Record<string, { display: string; copy: string }>>({});
+ // ALL-RESULTS LAW (2026-08-28m, owner: «بيظهر نتيجتين فقط محتاج يظهر
+ // كل النتايج»): the panel is an APPEND-ONLY list — every tool run AND
+ // every recovered job gets its own card. The previous per-tool record
+ // silently OVERWROTE earlier results of the same tool (run «إعادة
+ // صياغة» 3 times → only the last survived) and hydration filled only
+ // missing keys. «مسح الكل» wipes the panel; each card has its own إغلاق.
+ const [aiResults, setAiResults] = useState<AiResultListItem[]>([]);
  const [aiPrefilled, setAiPrefilled] = useState(false);
  // OWNER IMAGE-SWAP (2026-08-28f): «خلال الانتظار محتاج اقدر اعدل الصور
  // للمقال… لان احيانا الصور بتكون غير مناسبة» — suggest/swap session
@@ -94,6 +100,52 @@ export function BlogEditorView({ mode, postId }: { mode: "new" | "edit"; postId?
      toast.error(e?.message || (isAr ? "فشل اقتراح الصورة" : "Image suggestion failed"));
    } finally {
      setImgBusy(false);
+   }
+ };
+
+ // PER-IMAGE SWAP (2026-08-28m, owner: «تبديل صورة المقال اليدوى تعمل
+ // جيدا لكن لصورة المقال الرئيسية فقط محتاج اضافة تبديل لكل صورة داخل
+ // المقال لوحدها»): every body image in the preview swaps through the
+ // SAME safe suggest-image pipeline as the cover, replacing exactly that
+ // markdown occurrence (offset-precise — sibling images never move).
+ const [bodyImgBusy, setBodyImgBusy] = useState<string | null>(null);
+ const swapBodyImage = async (b: { alt: string; url: string; start: number; end: number }) => {
+   if (bodyImgBusy) return;
+   setBodyImgBusy(b.url);
+   try {
+     const hint = b.alt.trim().length > 3 ? `${b.alt.trim().slice(0, 80)} ` : "";
+     const query = `${hint}${[post.title, post.focus_keyword, ...(post.keywords || []).slice(0, 2)]
+       .filter(Boolean)
+       .join(" ")}`.trim();
+     if (query.length < 3) {
+       toast.error(isAr ? "اكتب العنوان الأول علشان نقترح بديل مناسب" : "Add a title first so we can suggest a replacement");
+       return;
+     }
+     const res = await fetch("/api/blog/suggest-image", {
+       method: "POST",
+       headers: { "Content-Type": "application/json" },
+       body: JSON.stringify({ query, exclude: imgExclude, variation: imgVariation }),
+     });
+     const data = await res.json().catch(() => ({}));
+     if (!res.ok || !data.image?.url) {
+       toast.error(data.error || (isAr ? "مفيش بديل آمن مطابق — جرب تاني" : "No safe match found — try again"));
+       return;
+     }
+     const nextExclude = [...imgExclude, data.image.url].slice(-12);
+     setImgExclude(nextExclude);
+     setImgVariation((v) => v + 1);
+     // Markdown alt cannot contain ] or ) — neutralize before splicing.
+     const safeAlt = String(data.image.alt || b.alt || "").replace(/[\[\]()]/g, " ").trim();
+     const replacement = `![${safeAlt}](${data.image.url})`;
+     setPost((p) => ({
+       ...p,
+       content: (p.content || "").slice(0, b.start) + replacement + (p.content || "").slice(b.end),
+     }));
+     toast.success(isAr ? "اتبدلت الصورة في مكانها ✅" : "Image swapped in place ✅");
+   } catch (e: any) {
+     toast.error(e?.message || (isAr ? "فشل تبديل الصورة" : "Image swap failed"));
+   } finally {
+     setBodyImgBusy(null);
    }
  };
 
@@ -265,131 +317,8 @@ export function BlogEditorView({ mode, postId }: { mode: "new" | "edit"; postId?
  social_linkedin: "linkedin",
  };
 
-/* Result formatters — ONE shaping for fresh runs AND recovered jobs.
- * COPY-VS-DISPLAY LAW (2026-08-28, owner: «النسخ بياخد الرسالة كلها
- * مش المطلوب فقط»): the panel DISPLAYS the ♻️ recovered-header, the 📝
- * change-notes and social meta-suggestions, but «نسخ» copies ONLY the
- * paste-able deliverable (the text itself / post+hashtags). */
-type AiResultEntry = { display: string; copy: string };
-const formatSocialResult = (r: any): AiResultEntry => {
- const tags = Array.isArray(r?.hashtags) ? r.hashtags.join(" ") : "";
- const main = [String(r?.post_text || ""), tags ? `\n\n${tags}` : ""].join("");
- const aux = [
- r?.cta ? `\n\n📣 ${r.cta}` : "",
- r?.image_idea ? `\n\n🖼️ اقتراح صورة: ${r.image_idea}` : "",
- r?.best_times?.length ? `\n⏰ أفضل أوقات النشر: ${r.best_times.join(" • ")}` : "",
- ].join("");
- return { copy: main.trim(), display: `${main}${aux}`.trim() };
-};
-const formatToolResult = (r: any): AiResultEntry => {
- const text = String(r?.text ?? "");
- const notes = typeof r?.notes === "string" && r.notes.trim() ? r.notes : undefined;
- return {
- copy: text.trim(),
- display: notes ? `${text}\n\n📝 تغييرات:\n${notes}` : text,
- };
-};
-
-/* Queue-driven button → GH Actions worker → result stored in ai_jobs.
- * Poll continues client-side; the panel below is also hydrated from the
- * queue on mount/refresh so a finished result is NEVER stranded by a
- * navigation (the «لم يحدث شيء» incident, 2026-08-28). */
-const runAITool = async (tool: string) => {
- if (aiBusy[tool]) return;
- setAiBusy((b) => ({ ...b, [tool]: true }));
- try {
- const platform = SOCIAL_TOOL_PLATFORMS[tool];
- let entry: AiResultEntry;
- if (platform) {
- const { result } = await runAiJob("social_post", {
- platform,
- tone: socialTone,
- language: post.language,
- title: post.title || "",
- topic: post.title || "",
- content: (post.excerpt || "") + "\n\n" + (post.content || "").slice(0, 6000),
- });
- entry = formatSocialResult(result as any);
- } else {
- const { result } = await runAiJob("article_tool", {
- tool,
- content: post.content || "",
- title: post.title || "",
- keyword: post.focus_keyword || "",
- category: post.category || "",
- language: post.language,
- });
- entry = formatToolResult(result as any);
- }
- if (!entry.copy.trim()) throw new Error("نتيجة فارغة — حاول مرة أخرى.");
- setAiResults((prev) => ({ ...prev, [tool]: entry }));
- toast.success("تم التوليد من الطابور!");
- } catch (e: any) {
- toast.error(e.message || "فشل التوليد");
- } finally {
- setAiBusy((b) => ({ ...b, [tool]: false }));
- }
- };
-
-/* RECOVER-RESULTS LAW (2026-08-28, incident «لم يحدث شيء»): tool results
- * land in ai_jobs 2-5 min AFTER the click (queued GH Actions worker).
- * The panel is memory-only, so a navigation during the wait stranded the
- * finished result with no way back — plans already recover via the jobs
- * list, tools now do too. On mount + on manual refresh: pull the last 10
- * own jobs, hydrate DONE article_tool/social_post results (≤3h old) not
- * already shown, marked «نتيجة سابقة» with their finish time. */
-const hydratedJobIds = useRef<Set<string>>(new Set());
-const hydratingRef = useRef(false);
-const [hydrating, setHydrating] = useState(false);
-const scanRecentToolJobs = useCallback(async () => {
- if (hydratingRef.current) return;
- hydratingRef.current = true;
- setHydrating(true);
- try {
- const res = await fetch("/api/ai/jobs?limit=10");
- if (!res.ok) return;
- const data = await res.json().catch(() => null);
- const jobs = (data?.jobs ?? []) as any[];
- const cutoff = Date.now() - 3 * 3_600_000;
- for (const j of jobs) {
- if (!j?.id || hydratedJobIds.current.has(j.id)) continue;
- hydratedJobIds.current.add(j.id);
- if (j?.status !== "done") continue;
- if (j?.job_type !== "article_tool" && j?.job_type !== "social_post") continue;
- const when = Date.parse(j.finished_at || j.created_at || "");
- if (Number.isFinite(when) && when < cutoff) continue;
- const PLATFORM_BUTTON: Record<string, string> = { facebook: "fb", x: "x", linkedin: "linkedin", instagram: "instagram" };
- const key = j.job_type === "social_post"
- ? PLATFORM_BUTTON[String(j.payload?.platform || "")] || ""
- : String(j.payload?.tool || "");
- if (!key) continue;
- const rres = await fetch(`/api/ai/jobs?id=${encodeURIComponent(j.id)}`);
- if (!rres.ok) continue;
- const job = await rres.json().catch(() => null);
- const r = job?.result;
- const entry = j.job_type === "social_post" ? formatSocialResult(r) : formatToolResult(r);
- if (!entry.copy.trim()) continue;
- const at = new Date(j.finished_at || j.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
- const display = `♻️ نتيجة سابقة (اتكملت ${at})\n\n${entry.display}`;
- setAiResults((prev) => (prev[key] ? prev : { ...prev, [key]: { ...entry, display } }));
- }
- } catch {
- /* queue visibility is best-effort — never blocks editing */
- } finally {
- hydratingRef.current = false;
- setHydrating(false);
- }
-}, []);
-useEffect(() => {
- void scanRecentToolJobs();
-}, [scanRecentToolJobs]);
-
- const seo = calculateSEOScore(post);
- const wordCount = calculateWordCount(post.content || "");
- const toc = parseTableOfContents(post.content || "");
-
- if (loading) return <div className="p-8 text-center text-muted-foreground">{isAr ? "جارٍ التحميل..." : "Loading..."}</div>;
-
+ // Tool registry + label resolver live ABOVE runAITool/hydration — both
+ // consume labels while running (lint no-use-before-define).
  const aiTools = [
  { id: "seo_title", label: isAr ? "عنوان SEO" : "SEO Title" },
  { id: "meta_desc", label: isAr ? "وصف ميتا" : "Meta Description" },
@@ -421,6 +350,182 @@ useEffect(() => {
  };
  return map[key] || aiTools.find((t) => t.id === key)?.label || key;
  };
+
+/* Result formatters — ONE shaping for fresh runs AND recovered jobs.
+ * COPY-VS-DISPLAY LAW (2026-08-28, owner: «النسخ بياخد الرسالة كلها
+ * مش المطلوب فقط»): the panel DISPLAYS the ♻️ recovered-header, the 📝
+ * change-notes and social meta-suggestions, but «نسخ» copies ONLY the
+ * paste-able deliverable (the text itself / post+hashtags). */
+type AiResultEntry = { display: string; copy: string };
+type AiResultListItem = AiResultEntry & { key: string; label: string; at: string; recovered: boolean };
+const formatSocialResult = (r: any): AiResultEntry => {
+ const tags = Array.isArray(r?.hashtags) ? r.hashtags.join(" ") : "";
+ const main = [String(r?.post_text || ""), tags ? `\n\n${tags}` : ""].join("");
+ const aux = [
+ r?.cta ? `\n\n📣 ${r.cta}` : "",
+ r?.image_idea ? `\n\n🖼️ اقتراح صورة: ${r.image_idea}` : "",
+ r?.best_times?.length ? `\n⏰ أفضل أوقات النشر: ${r.best_times.join(" • ")}` : "",
+ ].join("");
+ return { copy: main.trim(), display: `${main}${aux}`.trim() };
+};
+const formatToolResult = (r: any): AiResultEntry => {
+ const text = String(r?.text ?? "");
+ const notes = typeof r?.notes === "string" && r.notes.trim() ? r.notes : undefined;
+ return {
+ copy: text.trim(),
+ display: notes ? `${text}\n\n📝 تغييرات:\n${notes}` : text,
+ };
+};
+
+/* PREVIEW SEGMENTATION (2026-08-28m, owner: «محتاج اضافة تبديل لكل صورة
+ * داخل المقال لوحدها»): standalone image lines become first-class blocks
+ * so the preview can attach a swap button to EACH image. Text blocks
+ * keep rendering through the SAME renderMarkdown law; unsafe image URLs
+ * fall back into the text path where renderMarkdown strips them. */
+type PreviewBlock =
+ | { kind: "md"; text: string }
+ | { kind: "img"; alt: string; url: string; start: number; end: number };
+const IMAGE_LINE_RE = /^!\[([^\]]*)\]\(([^)\s]+)(?:\s+"[^"]*")?\)\s*$/;
+
+const splitPreviewBlocks = (content: string): PreviewBlock[] => {
+  const blocks: PreviewBlock[] = [];
+  let buf: string[] = [];
+  let pos = 0;
+  for (const line of (content || "").split("\n")) {
+    const lineStart = pos;
+    pos += line.length + 1;
+    const raw = line.trim();
+    const m = raw.match(IMAGE_LINE_RE);
+    if (m && isSafeUrl(m[2])) {
+      // Standalone image line → first-class block with its own swap
+      // button. start/end are ABSOLUTE offsets into post.content so a
+      // swap replaces exactly this occurrence (never a sibling image).
+      if (buf.some((l) => l.trim())) blocks.push({ kind: "md", text: buf.join("\n") });
+      buf = [];
+      const start = lineStart + line.indexOf(raw);
+      blocks.push({ kind: "img", alt: m[1] || "", url: m[2], start, end: start + raw.length });
+    } else {
+      buf.push(line);
+    }
+  }
+  if (buf.some((l) => l.trim())) blocks.push({ kind: "md", text: buf.join("\n") });
+  return blocks;
+};
+
+/* Queue-driven button → GH Actions worker → result stored in ai_jobs.
+ * Poll continues client-side; the panel below is also hydrated from the
+ * queue on mount/refresh so a finished result is NEVER stranded by a
+ * navigation (the «لم يحدث شيء» incident, 2026-08-28). */
+const runAITool = async (tool: string) => {
+ if (aiBusy[tool]) return;
+ setAiBusy((b) => ({ ...b, [tool]: true }));
+ try {
+ const platform = SOCIAL_TOOL_PLATFORMS[tool];
+ let entry: AiResultEntry;
+ let jobId = "";
+ if (platform) {
+ const { result, id } = await runAiJob("social_post", {
+ platform,
+ tone: socialTone,
+ language: post.language,
+ title: post.title || "",
+ topic: post.title || "",
+ content: (post.excerpt || "") + "\n\n" + (post.content || "").slice(0, 6000),
+ });
+ jobId = id;
+ entry = formatSocialResult(result as any);
+ } else {
+ const { result, id } = await runAiJob("article_tool", {
+ tool,
+ content: post.content || "",
+ title: post.title || "",
+ keyword: post.focus_keyword || "",
+ category: post.category || "",
+ language: post.language,
+ });
+ jobId = id;
+ entry = formatToolResult(result as any);
+ }
+ if (!entry.copy.trim()) throw new Error("نتيجة فارغة — حاول مرة أخرى.");
+ // Mark the settled job so a later manual hydration refresh can NEVER
+ // duplicate a result the user just watched land.
+ if (jobId) hydratedJobIds.current.add(jobId);
+ const at = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+ setAiResults((prev) => [
+ { ...entry, key: tool, label: aiResultLabel(tool), at, recovered: false },
+ ...prev,
+ ]);
+ toast.success("تم التوليد من الطابور!");
+ } catch (e: any) {
+ toast.error(e.message || "فشل التوليد");
+ } finally {
+ setAiBusy((b) => ({ ...b, [tool]: false }));
+ }
+ };
+
+/* RECOVER-RESULTS LAW (2026-08-28, incident «لم يحدث شيء»): tool results
+ * land in ai_jobs 2-5 min AFTER the click (queued GH Actions worker).
+ * The panel is memory-only, so a navigation during the wait stranded the
+ * finished result with no way back — plans already recover via the jobs
+ * list, tools now do too. On mount + on manual refresh: pull the last 20
+ * own jobs, hydrate DONE article_tool/social_post results (≤24h old) not
+ * already shown — ALL-RESULTS: each recovered job appends its OWN card
+ * («نتيجة سابقة» + finish time), nothing collapses per tool key. */
+const hydratedJobIds = useRef<Set<string>>(new Set());
+const hydratingRef = useRef(false);
+const [hydrating, setHydrating] = useState(false);
+const scanRecentToolJobs = useCallback(async () => {
+ if (hydratingRef.current) return;
+ hydratingRef.current = true;
+ setHydrating(true);
+ try {
+ const res = await fetch("/api/ai/jobs?limit=20");
+ if (!res.ok) return;
+ const data = await res.json().catch(() => null);
+ const jobs = (data?.jobs ?? []) as any[];
+ const cutoff = Date.now() - 24 * 3_600_000;
+ const recovered: AiResultListItem[] = [];
+ for (const j of jobs) {
+ if (!j?.id || hydratedJobIds.current.has(j.id)) continue;
+ hydratedJobIds.current.add(j.id);
+ if (j?.status !== "done") continue;
+ if (j?.job_type !== "article_tool" && j?.job_type !== "social_post") continue;
+ const when = Date.parse(j.finished_at || j.created_at || "");
+ if (Number.isFinite(when) && when < cutoff) continue;
+ const PLATFORM_BUTTON: Record<string, string> = { facebook: "fb", x: "x", linkedin: "linkedin", instagram: "instagram" };
+ const key = j.job_type === "social_post"
+ ? PLATFORM_BUTTON[String(j.payload?.platform || "")] || ""
+ : String(j.payload?.tool || "");
+ if (!key) continue;
+ const rres = await fetch(`/api/ai/jobs?id=${encodeURIComponent(j.id)}`);
+ if (!rres.ok) continue;
+ const job = await rres.json().catch(() => null);
+ const r = job?.result;
+ const entry = j.job_type === "social_post" ? formatSocialResult(r) : formatToolResult(r);
+ if (!entry.copy.trim()) continue;
+ const at = new Date(j.finished_at || j.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+ const display = `♻️ نتيجة سابقة (اتكملت ${at})\n\n${entry.display}`;
+ recovered.push({ ...entry, display, key, label: aiResultLabel(key), at, recovered: true });
+ }
+ // newest-first (the API returns newest first) — recovered results sit
+ // above anything already on screen from this session.
+ if (recovered.length) setAiResults((prev) => [...recovered, ...prev]);
+ } catch {
+ /* queue visibility is best-effort — never blocks editing */
+ } finally {
+ hydratingRef.current = false;
+ setHydrating(false);
+ }
+}, []);
+useEffect(() => {
+ void scanRecentToolJobs();
+}, [scanRecentToolJobs]);
+
+ const seo = calculateSEOScore(post);
+ const wordCount = calculateWordCount(post.content || "");
+ const toc = parseTableOfContents(post.content || "");
+
+ if (loading) return <div className="p-8 text-center text-muted-foreground">{isAr ? "جارٍ التحميل..." : "Loading..."}</div>;
 
  return (
  <div className="space-y-6">
@@ -520,15 +625,47 @@ useEffect(() => {
  />
  </div>
 
- {/* Content / Preview */}
- {showPreview ? (
+ {/* Content / Preview — PER-IMAGE SWAP (2026-08-28m): standalone image
+     lines render as first-class blocks, each with its own 🔄 swap button
+     (same safe suggest-image pipeline as the cover). */}
+ {showPreview ? (() => {
+ const previewBlocks = splitPreviewBlocks(post.content || "");
+ const hasBodyImages = previewBlocks.some((b) => b.kind === "img");
+ return (
  <Card className="min-h-[400px] p-6">
- <div
- className="prose prose-sm max-w-none [&_h2]:mt-6 [&_h2]:mb-2 [&_h2]:font-bold [&_p]:leading-relaxed"
- dangerouslySetInnerHTML={{ __html: renderMarkdown(post.content || "") }}
- />
- </Card>
+ {hasBodyImages && (
+ <p className="mb-3 text-[11px] text-muted-foreground">
+ 💡 {isAr
+ ? "كل صورة في المعاينة ليها زر «🔄 بدّل الصورة» — هتجيب بديل آمن ويستبدلها في مكانها داخل المحتوى."
+ : "Every preview photo has a swap button — pick a safe replacement right where it stands."}
+ </p>
+ )}
+ <div className="prose prose-sm max-w-none [&_h2]:mt-6 [&_h2]:mb-2 [&_h2]:font-bold [&_p]:leading-relaxed">
+ {previewBlocks.map((b, i) =>
+ b.kind === "md" ? (
+ <div key={i} dangerouslySetInnerHTML={{ __html: renderMarkdown(b.text) }} />
  ) : (
+ <div key={i} className="relative my-6">
+ {/* eslint-disable-next-line @next/next/no-img-element */}
+ <img src={b.url} alt={b.alt} loading="lazy" className="w-full rounded-2xl" />
+ <button
+ type="button"
+ onClick={() => void swapBodyImage(b)}
+ disabled={!!bodyImgBusy}
+ className="absolute end-2 top-2 inline-flex items-center gap-1 rounded-full border border-border bg-background/95 px-2.5 py-1 text-[11px] font-medium shadow-sm transition-opacity hover:opacity-90 disabled:opacity-50"
+ >
+ {bodyImgBusy === b.url ? <Loader2 className="h-3 w-3 animate-spin" /> : <ImagePlus className="h-3 w-3" />}
+ {bodyImgBusy === b.url
+ ? (isAr ? "جاري التبديل…" : "Swapping…")
+ : (isAr ? "🔄 بدّل الصورة" : "🔄 Swap photo")}
+ </button>
+ </div>
+ ),
+ )}
+ </div>
+ </Card>
+ );
+ })() : (
  <div>
  <Label>{isAr ? "المحتوى (Markdown)" : "Content (Markdown)"}</Label>
  <Textarea
@@ -741,24 +878,36 @@ useEffect(() => {
  </button>
  </div>
 
- {/* AI Results */}
- {Object.entries(aiResults).length > 0 && (
+ {/* AI Results — ALL-RESULTS: every run keeps its own card; «مسح الكل»
+     wipes the panel, «إغلاق» removes a single result. */}
+ {aiResults.length > 0 && (
  <div className="mt-4 space-y-3">
- {Object.entries(aiResults).map(([tool, entry]) => {
- const toolLabel = aiResultLabel(tool);
- return (
- <div key={tool} className="rounded-lg border border-border bg-muted/30 p-3">
- <div className="mb-1 flex items-center justify-between">
- <span className="text-xs font-semibold">{toolLabel}</span>
- <div className="flex gap-1">
- <button onClick={() => { navigator.clipboard.writeText(entry.copy); toast.success(isAr ? "تم نسخ النص المطلوب فقط" : "Copied the deliverable only"); }} className="text-xs text-primary hover:underline">{isAr ? "نسخ" : "Copy"}</button>
- <button onClick={() => { setAiResults((prev) => { const n = { ...prev }; delete n[tool]; return n; }); }} className="text-xs text-destructive hover:underline">{isAr ? "إغلاق" : "Close"}</button>
+ <div className="flex items-center justify-between gap-2">
+ <span className="text-xs font-semibold">
+ {isAr ? `النتائج (${aiResults.length})` : `Results (${aiResults.length})`}
+ </span>
+ <button
+ onClick={() => setAiResults([])}
+ className="text-xs text-destructive hover:underline"
+ >
+ 🗑 {isAr ? "مسح الكل" : "Clear all"}
+ </button>
+ </div>
+ {aiResults.map((item, idx) => (
+ <div key={`${item.key}-${idx}`} className="rounded-lg border border-border bg-muted/30 p-3">
+ <div className="mb-1 flex items-center justify-between gap-2">
+ <span className="truncate text-xs font-semibold">
+ {item.label}
+ {!item.recovered && item.at ? <span className="font-normal text-muted-foreground"> · {item.at}</span> : null}
+ </span>
+ <div className="flex shrink-0 gap-1">
+ <button onClick={() => { navigator.clipboard.writeText(item.copy); toast.success(isAr ? "تم نسخ النص المطلوب فقط" : "Copied the deliverable only"); }} className="text-xs text-primary hover:underline">{isAr ? "نسخ" : "Copy"}</button>
+ <button onClick={() => setAiResults((prev) => prev.filter((_, i) => i !== idx))} className="text-xs text-destructive hover:underline">{isAr ? "إغلاق" : "Close"}</button>
  </div>
  </div>
- <pre className="whitespace-pre-wrap text-xs text-muted-foreground max-h-32 overflow-y-auto scrollbar-thin" dir="auto">{entry.display}</pre>
+ <pre className="whitespace-pre-wrap text-xs text-muted-foreground max-h-32 overflow-y-auto scrollbar-thin" dir="auto">{item.display}</pre>
  </div>
- );
- })}
+ ))}
  </div>
  )}
  </Card>
