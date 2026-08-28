@@ -23,11 +23,106 @@ import { pickSmartTopic } from "@/lib/blog-topics";
 import { supabaseAdmin, isSupabaseAdminConfigured } from "@/lib/supabase/admin";
 import { VALID_CATEGORY_IDS } from "@/lib/blog";
 import { articleSlugFromTitle } from "@/lib/ai-jobs-client";
+import {
+  fetchFeaturedImage,
+  embedBodyImages,
+  type SourcedImage,
+} from "@/lib/blog-images";
+import { sanitizeImageQuery } from "@/lib/image-safety";
 
 /* Shared quality knobs for heavy jobs (GHA sets AI_CHAIN_TOTAL_BUDGET_MS
  * = 180000 — three tries × generous timeouts, strongest models first). */
 const HEAVY = { timeoutMs: 70_000 as const, maxModels: 3 as const };
 const LIGHT = { timeoutMs: 45_000 as const, maxModels: 2 as const };
+
+/* ─────────────────── Slug + image enrichment helpers ───────────────────
+ *
+ * OWNER INCIDENT 2026-08-28i («خرج مسودة بدون صور و slug مكتوب فيه
+ * post-202608281422 وغيره من مشاكل»): Arabic titles have NO latin core,
+ * so articleSlugFromTitle fell back to the dated post-YYYYMMDDNNNN slug —
+ * ugly, non-SEO and un-renameable-looking. And materialization saved
+ * featured_image:"" with no body images at all.
+ *
+ * SEO-SLUG LAW: the MODEL now produces an English SEO slug inside the
+ * JSON contract (3-6 lowercase words capturing the topic meaning —
+ * Arabic titles are TRANSLATED to their latin meaning, not transliterated).
+ * The sanitizeModelSlug net below enforces the M15 latin-only law, and the
+ * dated articleSlugFromTitle fallback stays as the last-resort net.
+ *
+ * IMAGE BUNDLE LAW: the same JSON contract carries image_queries —
+ * 3-5 ENGLISH photo-search phrases for concrete safe scenes (the photo
+ * pipeline is language-independent; English queries hit Pexels far better
+ * for AR posts — same choice the automated pipeline's imagePlan makes).
+ * fetchFeaturedImage (Pexels-first, NSFW/immodest-screened) resolves them;
+ * images[0] = featured cover, images[1..] = embedBodyImages at ## section
+ * boundaries. Every step degrades gracefully — an image failure can NEVER
+ * fail the article itself.
+ */
+
+/**
+ * Enforce the M15 slug law on a model-proposed slug: lowercase latin
+ * letters/digits/hyphens only, no leading/trailing/repeated hyphens,
+ * max 80 chars, min 3 meaningful chars → "" when unusable.
+ */
+export function sanitizeModelSlug(raw: string): string {
+  const s = String(raw || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9-]+/g, "-")
+    .replace(/-{2,}/g, "-")
+    .replace(/^-|-$/g, "")
+    .slice(0, 80)
+    .replace(/-$/g, "");
+  return s.length >= 3 ? s : "";
+}
+
+/**
+ * Extract up to `limit` "## " section heading TEXTS from markdown —
+ * used only as a LAST-RESORT image query fallback when the model skipped
+ * the image_queries field. Markdown decorations are stripped.
+ */
+export function sectionSubjects(markdown: string, limit = 3): string[] {
+  if (typeof markdown !== "string") return [];
+  const heads: string[] = [];
+  const re = /^##\s+(.+)$/gm;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(markdown)) !== null && heads.length < limit) {
+    const text = String(m[1] || "")
+      .replace(/[#*_`\[\]()]/g, "")
+      .trim();
+    if (text.length >= 3) heads.push(text.slice(0, 120));
+  }
+  return heads;
+}
+
+/**
+ * Resolve the article's image bundle through the SAFE photo pipeline.
+ * queries[0] = COVER (featured_image + og:image), queries[1..] = body.
+ * NEVER throws — any failure returns what was gathered so far (possibly
+ * []) and the article lands without images exactly as before.
+ */
+async function enrichArticleImages(
+  queries: string[],
+  variationSeed: string,
+): Promise<SourcedImage[]> {
+  const safe = queries
+    .map((q) => sanitizeImageQuery(q).query)
+    .filter(Boolean)
+    .slice(0, 5);
+  if (safe.length === 0) return [];
+  try {
+    const settled = await Promise.allSettled(
+      safe.map((q, i) =>
+        fetchFeaturedImage(q, { variationKey: `${variationSeed}-${i}` }),
+      ),
+    );
+    return settled
+      .filter((s): s is PromiseFulfilledResult<SourcedImage> => s.status === "fulfilled")
+      .map((s) => s.value)
+      .filter((v): v is SourcedImage => Boolean(v));
+  } catch {
+    return [];
+  }
+}
 
 function pickClientContext(raw: any): ClientContext {
   const cc = raw && typeof raw === "object" ? raw : {};
@@ -375,14 +470,22 @@ async function materializeArticleDraft(r: {
   language: "ar" | "en";
   category?: string;
   focus_keyword?: string;
+  slug?: string;
+  featured_image?: string;
+  cover_alt?: string;
 }): Promise<string | null> {
   if (!isSupabaseAdminConfigured || !supabaseAdmin) return null;
   const now = new Date().toISOString();
   const words = r.markdown.split(/\s+/).filter(Boolean).length;
+  // SEO-SLUG LAW (2026-08-28i): model-produced English slug wins; the
+  // dated post-YYYYMMDDNNNN fallback only fires when BOTH the model slug
+  // AND the title's latin core are unusable.
+  const slug =
+    sanitizeModelSlug(r.slug || "") || articleSlugFromTitle(r.title);
   const row: Record<string, any> = {
     language: r.language,
     title: r.title,
-    slug: articleSlugFromTitle(r.title),
+    slug,
     excerpt: r.excerpt,
     content: r.markdown,
     meta_title: r.meta_title || r.title,
@@ -395,8 +498,10 @@ async function materializeArticleDraft(r: {
     category:
       r.category && VALID_CATEGORY_IDS.has(r.category) ? r.category : "nutrition",
     tags: r.tags,
-    featured_image: "", // safe image pipeline can backfill later
-    cover_alt: "",
+    // IMAGE BUNDLE (2026-08-28i): the safe Pexels pipeline backfills the
+    // cover BEFORE materialization — no more empty featured_image drafts.
+    featured_image: r.featured_image || "",
+    cover_alt: r.cover_alt || "",
     reading_time: Math.max(1, Math.round(words / 200)),
     author: "MuscleHubEG",
     is_published: false, // NEVER auto-publish — coach reviews first
@@ -558,14 +663,19 @@ async function runArticleGenerate(payload: any) {
       ? "تدقيق إلزامي قبل التسليم: عدد الكلمات 1100+، الأقسام 6-9، كل قسم فيه مثال أو رقم عملي، قسم أخطاء شائعة + قسم خطوة بخطوة موجودان، و2-3 روابط داخلية من القائمة أعلاه مستخدمة فعلاً."
       : "Mandatory self-check before answering: 1100+ words, 6-9 sections, every section carries a concrete example or number, common-mistakes + step-by-step sections present, and 2-3 internal links from the list above actually used.",
     isAr
+      ? "حقل slug إلزامي: 3-6 كلمات إنجليزية صغيرة مفصولة بشرطات (-) تُلخّص معنى الموضوع بالإنجليزية (ترجمة للمعنى وليس نقل لفظي) — مثال: best-home-workout-beginners. وحقل image_queries إلزامي: 4 عبارات بحث إنجليزية قصيرة (2-4 كلمات لكل عبارة) لمشاهد تصوير حقيقية آمنة ومحتشمة تمثل أقسام المقال (معدات، أكل، مشاهد تدريب عامة) — بلا أسماء أشخاص وبلا عبارات غير لائقة."
+      : "The slug field is mandatory: 3-6 lowercase English words hyphen-separated summarizing the topic's meaning — e.g. best-home-workout-beginners. The image_queries field is mandatory: 4 short English photo-search phrases (2-4 words each) describing safe modest real photo scenes matching the article's sections (equipment, food, training scenes) — no personal names, nothing inappropriate.",
+    isAr
       ? "أعد JSON فقط بالشكل الحرفي (بدون أسوار كود):"
       : "Return ONLY JSON in this exact shape (no code fences):",
     `{
  "title": "${isAr ? "عنوان جذاب أقل من 70 حرفاً" : "catchy title under 70 chars"}",
+ "slug": "${isAr ? "seo-slug-إنجليزي-3-6-كلمات" : "english-seo-slug-3-6-words"}",
  "excerpt": "${isAr ? "ملخص تشويقي سطرين" : "two-line teaser"}",
  "meta_title": "${isAr ? "عنوان ميتا 50-60 حرفاً مختلف عن العنوان" : "50-60 char meta title (may differ from title)"}",
  "meta_description": "${isAr ? "وصف ميتا 120-155 حرفاً" : "120-155 char meta description"}",
  "tags": ["${isAr ? "5-8 وسوم قصيرة" : "5-8 short tags"}"],
+ "image_queries": ["${isAr ? "4 عبارات بحث صور إنجليزية" : "4 english photo search phrases"}"],
  "faq": [{"question": "${isAr ? "سؤال حقيقي" : "genuine question"}", "answer": "${isAr ? "إجابة موجزة دقيقة" : "concise accurate answer"}"}],
  "markdown": "${isAr ? "المقال كاملاً (1100-1400 كلمة) بصيغة Markdown تبدأ بعنوان ## أول قسم (بدون تكرار العنوان الرئيسي)" : "full article (1100-1400 words) in Markdown starting with the first ## section (never repeat the main title)"}"
 }`,
@@ -633,6 +743,33 @@ async function runArticleGenerate(payload: any) {
         .filter((f: any) => f.question && f.answer)
         .slice(0, 8)
     : [];
+
+  // SEO-SLUG + IMAGE BUNDLE (2026-08-28i): model-proposed latin slug and
+  // English photo queries. Headings are the last-resort query fallback.
+  // Everything here degrades gracefully — image failures NEVER fail the
+  // article (it lands without images exactly like the pre-fix flow).
+  const modelSlug = sanitizeModelSlug(parsed.slug);
+  const imageQueries: string[] = Array.isArray(parsed.image_queries)
+    ? parsed.image_queries.map((q: any) => String(q || "").trim()).filter(Boolean)
+    : [];
+  if (imageQueries.length < 2) {
+    for (const h of sectionSubjects(markdown, 3)) {
+      if (!imageQueries.some((q) => q.toLowerCase() === h.toLowerCase()))
+        imageQueries.push(h);
+    }
+  }
+  if (imageQueries.length === 0 && focusKeyword)
+    imageQueries.push(focusKeyword);
+
+  const images = await enrichArticleImages(
+    imageQueries,
+    modelSlug || articleSlugFromTitle(title) || `article-${Date.now()}`,
+  );
+  const finalMarkdown = embedBodyImages(markdown, images);
+  console.log(
+    `[article_generate] images: ${images.length} sourced (cover: ${images[0]?.url ? "yes" : "no"}), slug: ${modelSlug || "(dated fallback)"}`,
+  );
+
   console.log(`[article_generate] quality: ${wordCount} words, ${sectionCount} sections, ${faqOut.length} FAQs`);
   const tags = Array.isArray(parsed.tags)
     ? parsed.tags.map((t: any) => String(t).trim()).filter(Boolean).slice(0, 10)
@@ -643,7 +780,7 @@ async function runArticleGenerate(payload: any) {
   // articles list even if every browser watcher missed the completion.
   const post_id = await materializeArticleDraft({
     title,
-    markdown,
+    markdown: finalMarkdown,
     excerpt: String(parsed.excerpt || "").slice(0, 400),
     meta_title: String(parsed.meta_title || title).slice(0, 200),
     faq: faqOut,
@@ -652,18 +789,25 @@ async function runArticleGenerate(payload: any) {
     language: isAr ? "ar" : "en",
     category: category || undefined,
     focus_keyword: focusKeyword || undefined,
+    slug: modelSlug || undefined,
+    featured_image: images[0]?.url || "",
+    cover_alt: images[0]?.alt || "",
   });
   if (post_id) console.log(`[article_generate] draft materialized: blog_posts#${post_id}`);
 
   return {
     title,
-    markdown,
+    slug: modelSlug || articleSlugFromTitle(title),
+    markdown: finalMarkdown,
     excerpt: String(parsed.excerpt || "").slice(0, 400),
     meta_title: String(parsed.meta_title || title).slice(0, 200),
     faq: faqOut,
     meta_description: String(parsed.meta_description || "").slice(0, 300),
     tags,
     language: isAr ? ("ar" as const) : ("en" as const),
+    featured_image: images[0]?.url || "",
+    cover_alt: images[0]?.alt || "",
+    images_embedded: Math.max(0, images.length - 1),
     topic,
     autoTopic,
     focus_keyword: focusKeyword,

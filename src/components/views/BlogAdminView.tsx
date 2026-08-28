@@ -85,10 +85,16 @@ export function BlogAdminView() {
                   title: r.title,
                   markdown: r.markdown,
                   excerpt: r.excerpt || "",
+                  meta_title: r.meta_title || "",
                   meta_description: r.meta_description || "",
                   tags: Array.isArray(r.tags) ? r.tags : [],
                   language: r.language === "en" ? "en" : "ar",
                   category: r.category || "",
+                  // SEO-SLUG + IMAGE BUNDLE (2026-08-28i) hand-off fields.
+                  slug: r.slug || "",
+                  focus_keyword: r.focus_keyword || "",
+                  featured_image: r.featured_image || "",
+                  cover_alt: r.cover_alt || "",
                 }),
               );
             } catch {

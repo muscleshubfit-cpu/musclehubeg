@@ -113,12 +113,16 @@ export function BlogEditorView({ mode, postId }: { mode: "new" | "edit"; postId?
  title: String(d.title),
  content: String(d.markdown),
  excerpt: String(d.excerpt || ""),
- meta_title: String(d.title),
+ meta_title: String(d.meta_title || d.title),
  meta_description: String(d.meta_description || ""),
- focus_keyword: Array.isArray(d.tags) && d.tags[0] ? String(d.tags[0]) : p.focus_keyword,
+ focus_keyword: String(d.focus_keyword || (Array.isArray(d.tags) && d.tags[0]) || "") || p.focus_keyword,
  keywords: Array.isArray(d.tags) ? d.tags.slice(0, 8).map(String) : p.keywords,
  tags: Array.isArray(d.tags) ? d.tags.map(String) : p.tags,
- slug: articleSlugFromTitle(String(d.title)), // M15 law: Latin-only slug
+ // SEO-SLUG LAW (2026-08-28i): the generator now proposes a real English
+ // SEO slug — dated articleSlugFromTitle is only the fallback net.
+ slug: String(d.slug || "").trim() || articleSlugFromTitle(String(d.title)),
+ featured_image: String(d.featured_image || ""),
+ cover_alt: String(d.cover_alt || ""),
  language: d.language === "en" ? "en" : "ar",
  // TYPE-ROTATION (2026-08-28c): the generated draft lands under the
  // pillar the topic brain picked (only when it's a known category id).

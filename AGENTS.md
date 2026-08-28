@@ -867,6 +867,27 @@ Process:
        (d) Any change touching prompts, floors, or model order must
        PRESERVE OR RAISE the ask — lowering requires explicit owner
        approval in the same commit message.
+   13) SEO-SLUG + IMAGE BUNDLE LAW (2026-08-28i, owner incident
+       «خرج مسودة بدون صور و slug مكتوب فيه post-202608281422 وغيره من
+       مشاكل»): every article_generate draft lands COMPLETE.
+       (a) SLUG: the model produces an English SEO slug inside the JSON
+       contract (3-6 lowercase words translating the topic's MEANING —
+       Arabic titles are never transliterated into URLs); the
+       sanitizeModelSlug net enforces the M15 latin-only law and the dated
+       post-YYYYMMDDNNNN articleSlugFromTitle fallback is the LAST net
+       only (both model slug AND title latin core unusable).
+       (b) IMAGES: the same JSON contract carries image_queries (3-5
+       ENGLISH photo-search phrases — photo pipelines are
+       language-independent and Pexels results are far better in English
+       for AR posts, same choice as the automated pipeline's imagePlan).
+       fetchFeaturedImage (Pexels-first, NSFW/immodest-screened) resolves
+       them; images[0] = featured_image + cover_alt on the materialized
+       draft, images[1..] = embedBodyImages at ## section boundaries.
+       process-ai-jobs.yml passes PEXELS_API_KEY to the runner.
+       (c) GRACEFUL DEGRADE: image/slug enrichment can NEVER fail the
+       article — any failure lands the draft without images exactly as
+       the pre-fix flow (the «بدون صور» prompt line stays: the model must
+       not invent image URLs; real photos come only from the safe pipeline).
 - Never log the AI response in production code paths (it can contain
   user PII or partial reasoning that should not be persisted).
 - Local fallbacks (`src/lib/ai-local.ts`) exist so the app degrades

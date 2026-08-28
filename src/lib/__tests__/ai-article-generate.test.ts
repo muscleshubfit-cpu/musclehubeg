@@ -16,6 +16,7 @@ import {
 } from "../ai-jobs";
 import { articleSlugFromTitle } from "../ai-jobs-client";
 import { pickRotationCategory, PILLAR_IDS } from "../blog-topics";
+import { sanitizeModelSlug, sectionSubjects } from "../ai-job-processors";
 
 describe("article_generate — type rotation (owner: «عايز يكون فى تدوير لنوع المقالات»)", () => {
   it("rotates AWAY from the last-generated pillar", () => {
@@ -117,5 +118,60 @@ describe("articleSlugFromTitle — M15 slug law", () => {
   it("never exceeds 80 chars (editor save validation)", () => {
     const slug = articleSlugFromTitle("x".repeat(200));
     expect(slug.length).toBeLessThanOrEqual(80);
+  });
+});
+
+describe("SEO-SLUG LAW (2026-08-28i) — sanitizeModelSlug", () => {
+  it("keeps a clean latin model slug as-is", () => {
+    expect(sanitizeModelSlug("best-home-workout-beginners")).toBe(
+      "best-home-workout-beginners",
+    );
+  });
+
+  it("cleans a messy model slug into the M15 latin-only law", () => {
+    expect(sanitizeModelSlug("  Best Home Workout!  ")).toBe("best-home-workout");
+    expect(sanitizeModelSlug("fat_loss--guide")).toBe("fat-loss-guide");
+    expect(sanitizeModelSlug("-leading-and-trailing-")).toBe("leading-and-trailing");
+  });
+
+  it("REJECTS Arabic/non-latin slugs → forces the dated fallback net", () => {
+    // The model MUST return an English slug; an Arabic one is unusable
+    // under the M15 law and must degrade to "" (caller falls back to
+    // articleSlugFromTitle → post-YYYYMMDDNNNN).
+    expect(sanitizeModelSlug("أفضل-تمارين-للصدر")).toBe("");
+    expect(sanitizeModelSlug("")).toBe("");
+    expect(sanitizeModelSlug(null as any)).toBe("");
+  });
+
+  it("enforces the 80-char editor limit and 3-char minimum", () => {
+    expect(sanitizeModelSlug("a".repeat(200)).length).toBeLessThanOrEqual(80);
+    expect(sanitizeModelSlug("ab")).toBe("");
+    expect(sanitizeModelSlug("abc")).toBe("abc");
+  });
+});
+
+describe("IMAGE BUNDLE LAW (2026-08-28i) — sectionSubjects fallback queries", () => {
+  it("extracts ## heading texts as last-resort image queries", () => {
+    const md = [
+      "## فوائد الكارديو الصباحي",
+      "نص القسم الأول",
+      "## *أخطاء شائعة* في التغذية",
+      "نص القسم الثاني",
+    ].join("\n");
+    expect(sectionSubjects(md)).toEqual([
+      "فوائد الكارديو الصباحي",
+      "أخطاء شائعة في التغذية",
+    ]);
+  });
+
+  it("honors the limit and skips short/garbage headings", () => {
+    const md = "## ab\n\n## Real Section Heading Here\n\n## Another Good Section";
+    expect(sectionSubjects(md, 1)).toEqual(["Real Section Heading Here"]);
+  });
+
+  it("is a no-op on empty or non-structured markdown", () => {
+    expect(sectionSubjects("")).toEqual([]);
+    expect(sectionSubjects(null as any)).toEqual([]);
+    expect(sectionSubjects("just a paragraph, no headings")).toEqual([]);
   });
 });

@@ -63,6 +63,10 @@ jobs:
       OPENROUTER_API: ${{ secrets.OPENROUTER_API }}
       OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
       GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+      # IMAGE BUNDLE (2026-08-28i): article_generate now sources its cover +
+      # body photos through the safe Pexels pipeline inside this runner.
+      # Optional: absent key degrades gracefully to imageless drafts.
+      PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
 
     steps:
       - name: Checkout repository
