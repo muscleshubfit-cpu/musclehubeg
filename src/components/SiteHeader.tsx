@@ -27,6 +27,7 @@ import {
   Sparkles,
   Bookmark,
   Users,
+  Globe,
   Droplet,
   Target,
   Activity,
@@ -269,6 +270,7 @@ export function SiteHeader({ variant = "landing" }: { variant?: "landing" | "app
         { label: isAr ? "لوحة الكوتش" : "Coach Dashboard", icon: LayoutDashboard, onClick: () => navigate("coach") },
         { label: isAr ? "المدفوعات" : "Payments", icon: Crown, onClick: () => navigate("coach-payments") },
         { label: isAr ? "دعم العملاء" : "Client Support", icon: LifeBuoy, onClick: () => navigate("coach-support") },
+        { label: isAr ? "صفحتي العامة" : "My Public Page", icon: Globe, onClick: () => navigate("coach-landing") },
       ],
     });
   }

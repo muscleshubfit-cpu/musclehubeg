@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/hooks/use-auth";
 import { useNav } from "@/hooks/use-nav";
+import { MyCoachCard } from "@/components/MyCoachCard";
 import { listProgress, listPlans, listSubscriptionsForClient } from "@/lib/data";
 import { getTier } from "@/lib/plans";
 import { MEMBERSHIPS } from "@/lib/memberships";
@@ -72,6 +73,9 @@ export function DashboardView() {
           {t("dash.statsOverview")}
         </p>
       </div>
+
+      {/* MULTI-COACH 2B: the client's assigned coach (hidden until assigned) */}
+      <MyCoachCard />
 
       {/* Stat cards — Apple-style minimal */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

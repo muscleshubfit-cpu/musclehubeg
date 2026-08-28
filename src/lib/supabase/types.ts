@@ -538,6 +538,41 @@ export type Database = {
           { foreignKeyName: "coach_assignments_assigned_by_fkey"; columns: ["assigned_by"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] },
         ];
       };
+      coach_pages: {
+        Row: {
+          coach_id: string;
+          slug: string;
+          headline: string;
+          bio: string;
+          specialties: string;
+          is_published: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          coach_id: string;
+          slug: string;
+          headline?: string;
+          bio?: string;
+          specialties?: string;
+          is_published?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          coach_id?: string;
+          slug?: string;
+          headline?: string;
+          bio?: string;
+          specialties?: string;
+          is_published?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          { foreignKeyName: "coach_pages_coach_id_fkey"; columns: ["coach_id"]; isOneToOne: true; referencedRelation: "profiles"; referencedColumns: ["id"] },
+        ];
+      };
       referrals: {
         Row: {
           id: string;
@@ -1050,3 +1085,4 @@ export type SubscriptionRequest = Database["public"]["Tables"]["subscription_req
 export type Referral = Database["public"]["Tables"]["referrals"]["Row"];
 export type ReferralEarning = Database["public"]["Tables"]["referral_earnings"]["Row"];
 export type ReferralPayout = Database["public"]["Tables"]["referral_payouts"]["Row"];
+export type CoachPage = Database["public"]["Tables"]["coach_pages"]["Row"];

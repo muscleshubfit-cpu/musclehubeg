@@ -2847,3 +2847,25 @@ Work Log:
 
 Stage Summary:
 - Phase 2A CLOSED as fully applied. Phase 2B started (T-PHASE-2B).
+
+---
+Task ID: T-PHASE-2B-2026-08-29
+Agent: Main (Super Z — Implementation Agent)
+Task: Build MULTI-COACH PHASE 2B on the applied 0030 foundation — per-coach public landing pages (self-promoted, not in menus), admin reassignment UI, client "my coach" card (the 3 items deferred from 2A per the approved 7-answer design).
+
+Work Log:
+- MIGRATION supabase/migrations/RUN_ON_SUPABASE_0031_COACH_PAGES.sql (5.1KB, ONE paste, idempotent, no ALTER TYPE): PART 1 coach_pages (coach_id PK/FK profiles cascade = 1:1, slug UNIQUE + format check ^[a-z0-9-]{3,40}$, headline/bio/specialties newline-separated/is_published, indexes); PART 2 RLS (cp_select: published OR own OR admin — drafts hidden from anon; cp_write_owner_or_admin FOR ALL); PART 3 profiles select policy RECREATED as self OR is_coach_over(id) OR coach_of(auth.uid())=id (client reads ONLY his assigned coach's row — needed by the my-coach card; anon resolves to nothing); PART 4 NOTIFY pgrst. Header carries paste-safe steps + END OF SCRIPT marker; footer verify includes app-level flow (coach publishes → /coaches/{slug} renders in a private window).
+- API /api/coach/landing (GET own page + suggested slug; PUT upsert onConflict coach_id — requireCoach, slug regex → 400 invalid_slug, 23505 → 409 slug_taken, 42P01 → 503 migration_missing pointing owner at 0031; staff-role guard re-checks profile).
+- API /api/admin/assignments (GET staff list role in coach|admin for the dropdown; PATCH {client_id, coach_id} — requireAdmin, validates client role='client' + target staff, self-assignment rejected, 1:1 upsert, assigned_by = the performing admin; roster-scoped notifications follow automatically from 0030 routing).
+- PUBLIC /coaches/[slug] (server component, service-role fetch, ISR 300min... revalidate=300, nodejs runtime): published-only + coach role verified, else notFound() 404; generateMetadata (title/headline/description/canonical/OG profile); self-contained RTL Arabic marketing layout (hero avatar-or-initial, name, headline, specialty chips, bio paragraphs, signup CTA /auth?mode=signup&next=/coaches/{slug}, MuscleHub footer) — NO site menus per owner answer 3.
+- COACH EDITOR /coach/landing (staff-gated page + CoachLandingEditor): slug field (normalized lowercase), headline, bio, specialties one-per-line, publish toggle + save-draft, live public URL + copy-link + preview, status badge (published/draft), Arabic error/success copy.
+- NAV: use-nav View 'coach-landing' (+ pathForView + viewForPath); SiteHeader Group 7a staff-only item «صفحتي العامة» (Globe icon) — internal only, public menus untouched.
+- ADMIN REASSIGNMENT: CoachView ClientWithMeta += assigned_coach_id/name (RPC path populates; fallback nulls); isAdmin-only المدرب column with per-row staff <select> → PATCH → optimistic row update; staff list loaded once via GET /api/admin/assignments; plain coaches see NO column (assignment is the owner's job).
+- CLIENT MY-COACH CARD: new MyCoachCard component on /dashboard (after header) — reads own coach_assignments row with FK embed coach:profiles!coach_assignments_coach_id_fkey + renders name/avatar/initials; hidden when unassigned, pre-0030/0031, or on error (graceful).
+- types.ts: coach_pages Table (Row/Insert/Update/Relationships FK coach_pages_coach_id_fkey) + CoachPage export.
+- Verification: tsc 0 errors · vitest 153/153 (13 files) · eslint 0 errors on all touched files · check-stale-refs ✓ · check-ui-wiring ✓ · next build ✓ — 4 new routes compiled: /api/admin/assignments, /api/coach/landing, /coach/landing, /coaches/[slug].
+
+Stage Summary:
+- Multi-coach Phase 2B complete in code; the ONLY owner manual step is pasting 0031 (raw link shared in chat). Code is forward-compatible: before 0031 runs, the editor shows migration_missing guidance, the public page 404s, the my-coach card stays hidden, and the reassignment column already works (0030 tables live).
+- Deliberately out of scope (candidate 2C): sitemap inclusion for landing pages, coach directory page, per-coach payment/profit reports, analytics on landing visits.
+- Docs: AGENTS.md clause 7 extended with the 2B surfaces + laws. Commit pushed to origin/main.

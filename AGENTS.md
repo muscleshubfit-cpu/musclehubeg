@@ -662,9 +662,21 @@ Process:
        (assigned coach of clientId → fallback admin; NEVER a broadcast)
        and broadcast messaging is roster-scoped per coach. Admin-only
        APIs (leads/saved-results/blog helpers/queue-health) use
-       requireAdmin(). REMAINING (Phase 2B): per-coach public landing
-       pages (not in menus), admin reassignment UI, client "my coach"
-       card.
+       requireAdmin(). PHASE 2B BUILT (migration 0031 — one-paste):
+       coach_pages (1:1 per coach, slug UNIQUE ^[a-z0-9-]{3,40}$,
+       is_published) powers the PUBLIC landing /coaches/[slug]
+       (server-side service-role fetch, published-only, proper 404,
+       NOT in any menu — the coach shares the URL himself, owner
+       answer 3; internal staff nav item صفحتي العامة is the only
+       entry). Coach edits via /coach/landing + /api/coach/landing
+       (GET/PUT, requireCoach, upsert on coach_id, slug-taken → 409).
+       Assignment UI is ADMIN-ONLY: /api/admin/assignments (GET staff
+       list, PATCH {client_id, coach_id} upsert 1:1 with role checks)
+       + the المدرب column in the coach clients table (isAdmin only).
+       Client "my coach" card (MyCoachCard on /dashboard) reads
+       coach_assignments + assigned coach profile — profiles select
+       policy was extended in 0031: a client may read ONLY his
+       assigned coach's row via coach_of(auth.uid()) = id.
 - **USAGE LIMIT ENFORCEMENT LAW (2026-08-28, T-AI-DEEP-AUDIT-V2, owner
   directive «توسع وعمق اكبر … والتأكد من ايفو وطبيعه عضوية المستخدم فى
   حدود الاستخدام»):** every limit advertised in `memberships.ts` MUST be

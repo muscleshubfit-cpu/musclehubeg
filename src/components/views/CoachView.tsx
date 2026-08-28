@@ -45,18 +45,26 @@ type ClientWithMeta = {
   hasFitQ: boolean;
   // payment request info
   hasPendingPayment: boolean;
+  // multi-coach assignment (0030A — admin reassignment UI, Phase 2B)
+  assigned_coach_id: string | null;
+  assigned_coach_name: string | null;
 };
+
+type StaffMember = { id: string; full_name: string | null; email: string | null; role: string };
 
 export function CoachView() {
   const { t, lang } = useI18n();
   const isAr = lang === "ar";
-  const { profile } = useAuth();
+  const { profile, isAdmin } = useAuth();
   const { navigate } = useNav();
   const [clients, setClients] = useState<ClientWithMeta[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [activeTab, setActiveTab] = useState<FilterTab>("all");
   const [pendingRequests, setPendingRequests] = useState<any[]>([]);
+  // Admin reassignment (Phase 2B): staff dropdown + per-row saving state
+  const [staff, setStaff] = useState<StaffMember[]>([]);
+  const [reassigning, setReassigning] = useState<string | null>(null);
 
   // Broadcast notification state
   const [showBroadcast, setShowBroadcast] = useState(false);
@@ -105,6 +113,8 @@ export function CoachView() {
               hasNutriQ: !!row.nutri_q_status,
               hasFitQ: !!row.fit_q_status,
               hasPendingPayment: (row.pending_payments || 0) > 0,
+              assigned_coach_id: row.assigned_coach_id ?? null,
+              assigned_coach_name: row.assigned_coach_name ?? null,
             } as ClientWithMeta;
           });
           setClients(enriched);
@@ -156,6 +166,8 @@ export function CoachView() {
               hasNutriQ: !!nutriQ,
               hasFitQ: !!fitQ,
               hasPendingPayment,
+              assigned_coach_id: null,
+              assigned_coach_name: null,
             } as ClientWithMeta;
           }),
         );
@@ -169,6 +181,46 @@ export function CoachView() {
       }
     })();
   }, []);
+
+  // Admin reassignment (Phase 2B): load the staff list once for the dropdown
+  useEffect(() => {
+    if (!isAdmin) return;
+    (async () => {
+      try {
+        const res = await fetch("/api/admin/assignments");
+        if (res.ok) {
+          const json = await res.json();
+          setStaff(json.staff ?? []);
+        }
+      } catch {
+        // dropdown stays empty — the column still shows current names
+      }
+    })();
+  }, [isAdmin]);
+
+  async function reassignClient(clientId: string, coachId: string) {
+    if (!coachId) return;
+    setReassigning(clientId);
+    try {
+      const res = await fetch("/api/admin/assignments", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ client_id: clientId, coach_id: coachId }),
+      });
+      if (res.ok) {
+        const target = staff.find((x) => x.id === coachId);
+        setClients((prev) =>
+          prev.map((c) =>
+            c.id === clientId
+              ? { ...c, assigned_coach_id: coachId, assigned_coach_name: target?.full_name || "—" }
+              : c,
+          ),
+        );
+      }
+    } finally {
+      setReassigning(null);
+    }
+  }
 
   // Compute counts for each filter tab
   const counts = useMemo(() => {
@@ -515,6 +567,11 @@ export function CoachView() {
                   <th className="p-3 text-start text-xs font-normal uppercase tracking-wide text-[#6e6e73]">
                     {isAr ? "العضوية" : "Membership"}
                   </th>
+                  {isAdmin && (
+                    <th className="p-3 text-start text-xs font-normal uppercase tracking-wide text-[#6e6e73]">
+                      {isAr ? "المدرب" : "Coach"}
+                    </th>
+                  )}
                   <th className="p-3 text-start text-xs font-normal uppercase tracking-wide text-[#6e6e73]">
                     {t("coach.expiry")}
                   </th>
@@ -631,6 +688,22 @@ export function CoachView() {
                           <span className="text-xs font-normal text-[#6e6e73]">—</span>
                         )}
                       </td>
+                      {isAdmin && (
+                        <td className="p-3">
+                          <select
+                            value={c.assigned_coach_id ?? ""}
+                            disabled={reassigning === c.id || staff.length === 0}
+                            onChange={(e) => reassignClient(c.id, e.target.value)}
+                            className="max-w-[11rem] rounded-lg border border-[#d2d2d7] bg-white px-2 py-1.5 text-xs outline-none focus:border-[#0071e3] disabled:opacity-50"
+                          >
+                            {staff.map((s) => (
+                              <option key={s.id} value={s.id}>
+                                {(s.full_name || s.email || s.id) + (s.role === "admin" ? (isAr ? " (أدمن)" : " (admin)") : "")}
+                              </option>
+                            ))}
+                          </select>
+                        </td>
+                      )}
                       <td className="p-3 font-normal text-[#6e6e73]">
                         {c.sub?.end_date ? new Date(c.sub.end_date).toLocaleDateString() : "—"}
                       </td>
