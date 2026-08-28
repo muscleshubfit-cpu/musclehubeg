@@ -2835,3 +2835,15 @@ Work Log:
 
 Stage Summary:
 - Owner gets editor-safe verification; the 0-rows pitfall is documented in-file. Commit pushed.
+
+---
+Task ID: T-0030-APPLIED-2026-08-29
+Agent: Main (Super Z — Implementation Agent)
+Task: Owner confirmed 0030 4-part split (A→B→C→D) ran successfully on production and verification queries passed («تم»).
+
+Work Log:
+- Multi-coach FOUNDATION is now LIVE on the production database: coach_assignments populated (1:1, all clients → admin), is_coach_over() RLS scoping active, admin-exclusive locks active, admin_notifications.target_coach_id routing active, get_coach_client_list() widened.
+- No repo change in this entry; unlocks Phase 2B (coach landing pages + admin reassignment UI + client my-coach card).
+
+Stage Summary:
+- Phase 2A CLOSED as fully applied. Phase 2B started (T-PHASE-2B).
