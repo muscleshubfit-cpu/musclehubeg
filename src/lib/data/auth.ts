@@ -57,12 +57,13 @@ export async function signUpEmail(
  clearReferralCookie();
  }
  } catch {}
- // Notify coach about new pending client
+ // Notify the ASSIGNED coach about new pending client (multi-coach routing)
  await createAdminNotification(
  "new_client",
  "عميل جديد سجّل (بانتظار التأكيد)! ",
  `${fullName} (${email}) انضم للمنصة — في انتظار تأكيد البريد الإلكتروني.`,
  "coach",
+ data.user.id,
  ).catch(() => {});
  return { error: null, profile: null, needsConfirmation: true };
  }
@@ -76,12 +77,13 @@ export async function signUpEmail(
  referral_code: null,
  created_at: new Date().toISOString(),
  };
- // Notify coach about new client
+ // Notify the ASSIGNED coach about new client (multi-coach routing)
  await createAdminNotification(
  "new_client",
  "عميل جديد سجّل! ",
  `${fullName} (${email}) انضم للمنصة. اطمئن على استبياناته وجهّز خططه.`,
  "coach",
+ data.user.id,
  ).catch(() => {});
  // Track referral if cookie exists
  try {
@@ -118,7 +120,7 @@ export async function signUpEmail(
  write(LS_PROFILES, profiles);
  write<Session>(LS_SESSION, { userId: id, email });
  // Notify coach
- await createAdminNotification("new_client", "عميل جديد", `${fullName} سجّل`, "coach").catch(() => {});
+ await createAdminNotification("new_client", "عميل جديد", `${fullName} سجّل`, "coach", id).catch(() => {});
  return { error: null, profile: profiles[id] };
 }
 

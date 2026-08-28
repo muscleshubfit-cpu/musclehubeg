@@ -479,6 +479,7 @@ export type Database = {
           body: string | null;
           link: string | null;
           target_role: string;
+          target_coach_id: string | null;
           read: boolean;
           created_at: string;
         };
@@ -489,6 +490,7 @@ export type Database = {
           body?: string | null;
           link?: string | null;
           target_role?: string;
+          target_coach_id?: string | null;
           read?: boolean;
           created_at?: string;
         };
@@ -498,9 +500,43 @@ export type Database = {
           body?: string | null;
           link?: string | null;
           target_role?: string;
+          target_coach_id?: string | null;
           read?: boolean;
         };
-        Relationships: [];
+        Relationships: [
+          { foreignKeyName: "admin_notifications_target_coach_id_fkey"; columns: ["target_coach_id"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] },
+        ];
+      };
+      coach_assignments: {
+        Row: {
+          id: string;
+          client_id: string;
+          coach_id: string;
+          assigned_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          client_id: string;
+          coach_id: string;
+          assigned_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          client_id?: string;
+          coach_id?: string;
+          assigned_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          { foreignKeyName: "coach_assignments_client_id_fkey"; columns: ["client_id"]; isOneToOne: true; referencedRelation: "profiles"; referencedColumns: ["id"] },
+          { foreignKeyName: "coach_assignments_coach_id_fkey"; columns: ["coach_id"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] },
+          { foreignKeyName: "coach_assignments_assigned_by_fkey"; columns: ["assigned_by"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] },
+        ];
       };
       referrals: {
         Row: {
@@ -982,6 +1018,8 @@ export type Database = {
           pending_payments: number;
           nutri_q_status: string;
           fit_q_status: string;
+          assigned_coach_id: string | null;
+          assigned_coach_name: string | null;
         }[];
       };
     };

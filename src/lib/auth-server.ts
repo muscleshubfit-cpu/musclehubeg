@@ -203,6 +203,29 @@ export async function requireCoach(
 }
 
 /**
+ * Require platform ADMIN (role === 'admin' ONLY). Admin-exclusive
+ * surfaces (tool leads, saved-results admin, blog CMS + helpers,
+ * referrals admin, audit/queue health) reject plain coaches with 403 —
+ * owner answer 6 of the multi-coach design (2026-08-29).
+ */
+export async function requireAdmin(
+  request: NextRequest,
+): Promise<AuthUser | Response> {
+  const user = await getAuthUser(request);
+  if (!user) {
+    const { NextResponse } = await import("next/server");
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  if (user.role !== "admin") {
+    const { NextResponse } = await import("next/server");
+    return NextResponse.json({ error: "Forbidden — admin only" }, {
+      status: 403,
+    });
+  }
+  return user;
+}
+
+/**
  * Convenience: read the auth user using next/headers cookies (for server
  * components / server actions where NextRequest isn't available).
  * Not used by API routes — they use getAuthUser(request) above.

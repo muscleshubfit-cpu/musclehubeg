@@ -79,7 +79,13 @@ export async function markAdminNotificationsRead() {
  write(LS_PREFIX + "admin_notifs", all);
 }
 
-export async function createAdminNotification(type: string, title: string, body: string, link?: string) {
+export async function createAdminNotification(
+ type: string,
+ title: string,
+ body: string,
+ link?: string,
+ clientId?: string,
+) {
  if (isSupabaseConfigured && supabase) {
  // Use the server-side endpoint instead of direct supabase insert.
  // The RLS policy on admin_notifications only allows coaches to
@@ -87,11 +93,15 @@ export async function createAdminNotification(type: string, title: string, body:
  // client-side code (new_client, questionnaire_submitted, new_ticket,
  // payment_request) where the user is NOT a coach. The server endpoint
  // uses supabaseAdmin (service_role) to bypass RLS.
+ //
+ // MULTI-COACH ROUTING: `clientId` lets the server route the bell
+ // notification to the client's ASSIGNED coach (target_coach_id)
+ // instead of the legacy broadcast-to-all-staff.
  try {
  const res = await fetch("/api/notifications/admin", {
  method: "POST",
  headers: { "Content-Type": "application/json" },
- body: JSON.stringify({ type, title, body, link }),
+ body: JSON.stringify({ type, title, body, link, clientId }),
  });
  if (!res.ok) {
  const err = await res.json().catch(() => ({}));

@@ -79,12 +79,13 @@ export async function activatePlan(planId: string, clientId: string) {
  "خطتك الجديدة جاهزة الآن. اطّلع عليها من صفحة خططي.",
  "/plans",
  );
- // Notify coach (confirmation)
+ // Notify coach (confirmation — routed to the client's assigned coach)
  await createAdminNotification(
  "plan_approved",
  "تم تفعيل خطة للعميل ",
  `خطة ${plan?.type === "meal" ? "تغذية" : "تمارين"} تم تفعيلها وإرسالها للعميل.`,
  "coach",
+ clientId,
  ).catch(() => {});
  return data;
  }

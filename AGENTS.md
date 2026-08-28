@@ -644,12 +644,23 @@ Process:
        promote hardened to never downgrade an admin); the owner account
        is admin (0029B promotes every pre-existing coach row). Adding a
        coach = INSERT into coach_emails; adding an admin = manual SQL.
-    7) FUTURE (owner-approved design, NOT yet built): multi-coach
-       system — coach_assignments (1 client ↔ 1 coach), per-coach
-       landing pages (not in menus), notifications routed to the
-       assigned coach via target_coach_id, payments scoped per coach,
-       client sees their coach. Built ON TOP of this law when owner
-       gives the go signal.
+    7) MULTI-COACH FOUNDATION (2026-08-29, owner-approved design —
+       BUILT in Phase 40, migration RUN_ON_SUPABASE_0030_MULTI_COACH.sql):
+       `coach_assignments` (1 client ↔ 1 coach, client_id UNIQUE) is
+       the source of truth. `is_coach_over(client_id)` is THE client-
+       data RLS predicate (admin OR the assigned coach) — NEVER use
+       bare is_coach() for client data; admin-exclusive tables (tool
+       leads, blog, referrals admin, audit_log, coach_emails) are
+       locked to is_admin() (owner answer 6). New AND existing clients
+       auto-assign to the admin (general coach) until reassigned;
+       allowlisted staff emails are never assigned as clients. Coach
+       bell notifications route via admin_notifications.target_coach_id
+       (assigned coach of clientId → fallback admin; NEVER a broadcast)
+       and broadcast messaging is roster-scoped per coach. Admin-only
+       APIs (leads/saved-results/blog helpers/queue-health) use
+       requireAdmin(). REMAINING (Phase 2B): per-coach public landing
+       pages (not in menus), admin reassignment UI, client "my coach"
+       card.
 - **USAGE LIMIT ENFORCEMENT LAW (2026-08-28, T-AI-DEEP-AUDIT-V2, owner
   directive «توسع وعمق اكبر … والتأكد من ايفو وطبيعه عضوية المستخدم فى
   حدود الاستخدام»):** every limit advertised in `memberships.ts` MUST be

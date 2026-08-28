@@ -2774,3 +2774,23 @@ Stage Summary:
 - Deliverable: supabase/migrations/RUN_ON_SUPABASE_0029_ADMIN_ROLE_ALL_IN_ONE.sql — owner pastes it into Supabase SQL Editor ONCE; raw link shared in chat.
 - No code behavior changes in this task; code side was already complete (7811bc3). UI is forward-compatible either way (staff semantics already cover the current account while it still holds role='coach').
 - After the SQL runs: owner account shows role='admin', /admin/* gate opens for them, auto-promotion can no longer downgrade admins.
+
+---
+Task ID: T-MULTI-COACH-FOUNDATION-2026-08-29
+Agent: Main (Super Z — Implementation Agent)
+Task: Owner confirmed 0029 ALL-IN-ONE ran successfully («تم Success. No rows returned») — build the multi-coach FOUNDATION (Phase 2A) on the approved 7 discussion answers. Owner note: all work so far happened in THIS same conversation (pre-compaction), not another one — recorded as corrected.
+
+Work Log:
+- AUDIT of the is_coach() RLS surface (all 16 migrations): every client-data policy granted ANY coach access to EVERY client (questionnaires, plans, progress, subscriptions, tickets+messages, chat, notifications, subscription_requests), and admin-exclusive tables (tool_leads, blog_posts, referrals, audit_log, coach_emails) were coach-wide too; get_coach_client_list() (0020 RPC) returned ALL clients to any staff; admin_notifications broadcast target_role='coach' to all staff.
+- NEW supabase/migrations/RUN_ON_SUPABASE_0030_MULTI_COACH.sql (single paste, idempotent, no ALTER TYPE → no mid-script commit needed): PART 1 coach_assignments (client_id UNIQUE = 1:1, no-self check, indexes, RLS: select admin|own-coach|self-row, write admin-only); PART 2 helpers coach_of(client) + is_coach_over(client) = admin OR assigned coach (STABLE SECURITY DEFINER, granted); PART 3 auto-assign trigger on profiles INSERT (new client → the admin, allowlisted staff emails excluded — order-proof guard); PART 4 backfill every existing client → admin; PART 5 ~20 client-data policies rewritten is_coach() → is_coach_over(client col) with SAME policy names (profiles, subscriptions ×3, nutriq/fitq ×2 each, progress, plans ×4, tickets ×2, ticket_messages ×2 subquery form, chat, notifications ×3); PART 6 admin-exclusive policies is_coach() → is_admin() (referrals ×3, earnings ×3, tool_leads ×3, blog_posts ×2, audit_log, coach_emails); payments scoped per coach (subscription_requests ×3 via is_coach_over(user_id)); PART 7 admin_notifications.target_coach_id (FK profiles, partial index) + select/update policies = admin OR (staff AND (null legacy OR mine)); PART 8 get_coach_client_list() DROPPED+RECREATED (return type widened): plain coach → ONLY his clients, admin → all + assigned_coach_id/assigned_coach_name; PART 9 NOTIFY pgrst.
+- auth-server.ts: NEW requireAdmin() (role==='admin' or 403 "Forbidden — admin only").
+- Admin-exclusive API guards swapped requireCoach → requireAdmin: /api/admin/leads (3 call sites), /api/admin/saved-results, /api/admin/blog/cleanup, /api/blog/fetch-images, /api/blog/suggest-image, /api/ai/queue-health (2).
+- NOTIFICATION ROUTING (owner answer 4): /api/notifications/admin now accepts clientId → resolves target_coach_id (assigned coach via service role → fallback: first admin) and writes it on insert; paypal capture-order serverCreateAdminNotification gained the same resolution + call site passes user_id; createAdminNotification() gained clientId param forwarded to the API; ALL 6 call sites pass the client id (subscriptions payment_request, questionnaires questionnaire_submitted, plans plan_approved, tickets new_ticket, auth new_client ×3); broadcast route roster-scoped: plain coach "all" targets ONLY his assigned clients (in-filter), single/selected targets outside his roster → 403, admin unrestricted.
+- src/lib/supabase/types.ts: coach_assignments table type (Row/Insert/Update/Relationships), admin_notifications.target_coach_id + FK relationship, get_coach_client_list Returns += assigned_coach_id/assigned_coach_name.
+- Verification: tsc 0 errors · vitest 153/153 (13 files) · check-stale-refs ✓ · check-ui-wiring ✓ · next build ✓ (compiled successfully).
+
+Stage Summary:
+- Multi-coach FOUNDATION is live-in-waiting: the SQL (0030) is the ONLY owner manual step; code is forward-compatible (plain-coach isolation activates the moment 0030 runs + a second coach exists).
+- Deliberately OUT of scope (Phase 2B, next): per-coach public landing pages (coach_pages table + /coaches/[slug], self-promoted, not in menus), admin reassignment UI (columns already exposed by the RPC), client "my coach" card.
+- Docs: AGENTS.md ROLE MODEL v2 LAW clause 7 rewritten to MULTI-COACH FOUNDATION (built, with the remaining-2B list); PROGRESS.md Phase 40.
+- Commit: pushed to origin/main.

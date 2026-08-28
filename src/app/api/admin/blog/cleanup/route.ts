@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireCoach, isAuthConfigured } from "@/lib/auth-server";
+import { requireAdmin, isAuthConfigured } from "@/lib/auth-server";
 import { supabaseAdmin, isSupabaseAdminConfigured } from "@/lib/supabase/admin";
 
 /**
@@ -107,7 +107,7 @@ type FixReport = {
 
 export async function POST(request: NextRequest) {
   // Auth gate — accept EITHER:
-  //   (a) Coach cookie session (via requireCoach), OR
+  //   (a) Coach cookie session (via requireAdmin), OR
   //   (b) CRON_SECRET header (Authorization: Bearer <CRON_SECRET>),
   //       so automated maintenance scripts + GitHub Actions can call it
   //       without a coach login session.
@@ -118,7 +118,7 @@ export async function POST(request: NextRequest) {
 
   if (!isCronAuthed) {
     if (isAuthConfigured) {
-      const auth = await requireCoach(request);
+      const auth = await requireAdmin(request);
       if (auth instanceof Response) return auth;
     }
   }

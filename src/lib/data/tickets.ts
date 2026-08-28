@@ -33,8 +33,8 @@ export async function createTicket(clientId: string, subject: string, body: stri
  .single();
  if (error) throw new Error(error.message);
  await supabase.from("ticket_messages").insert({ ticket_id: ticket.id, sender_id: clientId, body });
- // Notify coach
- await createAdminNotification("new_ticket", "تذكرة دعم جديدة ", `موضوع: ${subject}`, "coach-support").catch(() => {});
+ // Notify the ASSIGNED coach (multi-coach routing via clientId)
+ await createAdminNotification("new_ticket", "تذكرة دعم جديدة ", `موضوع: ${subject}`, "coach-support", clientId).catch(() => {});
  return ticket;
  }
  const all = read<any[]>(LS_TICKETS, []);

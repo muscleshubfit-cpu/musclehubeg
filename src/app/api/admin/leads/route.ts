@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireCoach, isAuthConfigured } from "@/lib/auth-server";
+import { requireAdmin, isAuthConfigured } from "@/lib/auth-server";
 import { supabaseAdmin, isSupabaseAdminConfigured } from "@/lib/supabase/admin";
 
 /**
@@ -7,11 +7,11 @@ import { supabaseAdmin, isSupabaseAdminConfigured } from "@/lib/supabase/admin";
  *
  * Returns all tool leads, optionally filtered by tool_slug.
  * Uses the service-role key to bypass RLS (the caller is verified
- * as a coach via requireCoach before we get here).
+ * as a coach via requireAdmin before we get here).
  */
 export async function GET(request: NextRequest) {
   if (isAuthConfigured) {
-    const auth = await requireCoach(request);
+    const auth = await requireAdmin(request);
     if (auth instanceof Response) return auth;
   }
 
@@ -56,7 +56,7 @@ export async function GET(request: NextRequest) {
  */
 export async function PATCH(request: NextRequest) {
   if (isAuthConfigured) {
-    const auth = await requireCoach(request);
+    const auth = await requireAdmin(request);
     if (auth instanceof Response) return auth;
   }
 
@@ -104,7 +104,7 @@ export async function PATCH(request: NextRequest) {
  */
 export async function DELETE(request: NextRequest) {
   if (isAuthConfigured) {
-    const auth = await requireCoach(request);
+    const auth = await requireAdmin(request);
     if (auth instanceof Response) return auth;
   }
 

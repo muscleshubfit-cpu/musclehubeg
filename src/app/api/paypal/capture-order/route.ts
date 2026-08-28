@@ -98,17 +98,43 @@ async function serverCreateNotification(
  * Replicates createAdminNotification() from data.ts — inserts into
  * the admin_notifications table so the coach sees it in their
  * dashboard notification bell.
+ *
+ * MULTI-COACH ROUTING: resolves the client's ASSIGNED coach
+ * (coach_assignments → target_coach_id); falls back to the admin
+ * (general coach) when unassigned. Never a broadcast to all staff.
  */
 async function serverCreateAdminNotification(
   type: string,
   title: string,
   body: string,
   link?: string,
+  clientId?: string,
 ) {
   if (!isSupabaseAdminConfigured || !supabaseAdmin) return;
+
+  let targetCoachId: string | null = null;
+  if (clientId) {
+    const { data: asg } = await supabaseAdmin
+      .from("coach_assignments")
+      .select("coach_id")
+      .eq("client_id", clientId)
+      .maybeSingle();
+    targetCoachId = (asg as { coach_id: string } | null)?.coach_id ?? null;
+  }
+  if (!targetCoachId) {
+    const { data: adm } = await supabaseAdmin
+      .from("profiles")
+      .select("id")
+      .eq("role", "admin")
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    targetCoachId = (adm as { id: string } | null)?.id ?? null;
+  }
+
   const { error } = await supabaseAdmin
     .from("admin_notifications")
-    .insert({ type, title, body, link, target_role: "coach" });
+    .insert({ type, title, body, link, target_role: "coach", target_coach_id: targetCoachId });
   if (error) console.error("[paypal/capture-order] Admin notification insert error:", error.message);
 }
 
@@ -479,12 +505,13 @@ export async function POST(request: NextRequest) {
       user.email || "—",
     );
 
-    // Notify the coach about the new PayPal payment
+    // Notify the client's ASSIGNED coach about the new PayPal payment
     await serverCreateAdminNotification(
       "payment_request",
       "دفع PayPal جديد ✅",
       `تم دفع $${paymentAmountForRecord.toFixed(2)} عبر PayPal لخطة ${plan_tier} (${duration_months} ${duration_months === 1 ? "شهر" : "أشهر"}). الاشتراك مُفعّل تلقائياً.`,
       "coach-payments",
+      user_id,
     );
 
     console.log(

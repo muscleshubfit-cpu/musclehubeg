@@ -25,7 +25,15 @@ import { supabaseAdmin, isSupabaseAdminConfigured } from "@/lib/supabase/admin";
  * length-capped to prevent abuse.
  *
  * Body:
- *   { type: string, title: string, body: string, link?: string }
+ *   { type: string, title: string, body: string, link?: string,
+ *     clientId?: string }
+ *
+ * MULTI-COACH ROUTING (owner answer 4, 2026-08-29): coach bell
+ * notifications are NEVER broadcast to all staff anymore. When
+ * `clientId` is provided, the notification is routed to that client's
+ * ASSIGNED coach via `target_coach_id` (coach_assignments). With no
+ * clientId — or no assignment — it falls back to the admin (general
+ * coach). The admin also sees everything regardless.
  *
  * Returns:
  *   { ok: true, id: string } on success
@@ -62,7 +70,7 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json().catch(() => ({}));
-  const { type, title, body: notifBody, link } = body;
+  const { type, title, body: notifBody, link, clientId } = body;
 
   if (!type || !title) {
     return NextResponse.json(
@@ -84,6 +92,28 @@ export async function POST(request: NextRequest) {
   const safeBody = notifBody ? String(notifBody).slice(0, MAX_BODY_LEN) : null;
   const safeLink = link ? String(link).slice(0, MAX_LINK_LEN) : null;
 
+  // MULTI-COACH ROUTING: resolve the ONE coach this notification is for.
+  // assigned coach of clientId → fallback: the admin (general coach).
+  let targetCoachId: string | null = null;
+  if (typeof clientId === "string" && clientId.length > 0) {
+    const { data: asg } = await supabaseAdmin
+      .from("coach_assignments")
+      .select("coach_id")
+      .eq("client_id", clientId)
+      .maybeSingle();
+    targetCoachId = (asg as { coach_id: string } | null)?.coach_id ?? null;
+  }
+  if (!targetCoachId) {
+    const { data: adm } = await supabaseAdmin
+      .from("profiles")
+      .select("id")
+      .eq("role", "admin")
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    targetCoachId = (adm as { id: string } | null)?.id ?? null;
+  }
+
   const { data, error } = await supabaseAdmin
     .from("admin_notifications")
     .insert({
@@ -91,6 +121,7 @@ export async function POST(request: NextRequest) {
       title: safeTitle,
       body: safeBody,
       link: safeLink,
+      target_coach_id: targetCoachId,
     })
     .select("id")
     .single();

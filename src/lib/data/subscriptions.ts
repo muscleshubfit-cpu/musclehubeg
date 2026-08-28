@@ -87,12 +87,13 @@ export async function submitSubscriptionRequest(req: any) {
  }
  const { data, error } = await supabase.from("subscription_requests").insert(req).select().single();
  if (error) throw new Error(error.message);
- // Notify coach about new payment request
+ // Notify THE ASSIGNED COACH about new payment request (multi-coach routing)
  await createAdminNotification(
  "payment_request",
  "طلب دفع جديد ",
  `${req.full_name} طلب اشتراك ${req.plan_tier} لمدة ${req.duration_months} شهر — $${req.price_usd}`,
  "coach-payments",
+ req.user_id,
  ).catch(() => {});
  return data;
  }

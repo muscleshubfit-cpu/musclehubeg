@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireCoach, isAuthConfigured } from "@/lib/auth-server";
+import { requireAdmin, isAuthConfigured } from "@/lib/auth-server";
 import { supabaseAdmin, isSupabaseAdminConfigured } from "@/lib/supabase/admin";
 
 /**
@@ -28,7 +28,7 @@ const STUCK_QUEUE_MINUTES = 30;
 
 export async function GET(request: NextRequest) {
   if (isAuthConfigured) {
-    const auth = await requireCoach(request);
+    const auth = await requireAdmin(request);
     if (auth instanceof Response) return auth;
   }
   if (!isSupabaseAdminConfigured || !supabaseAdmin) {
@@ -136,7 +136,7 @@ export async function GET(request: NextRequest) {
  */
 export async function DELETE(request: NextRequest) {
   if (isAuthConfigured) {
-    const auth = await requireCoach(request);
+    const auth = await requireAdmin(request);
     if (auth instanceof Response) return auth;
   }
   if (!isSupabaseAdminConfigured || !supabaseAdmin) {

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { requireCoach, isAuthConfigured } from "@/lib/auth-server";
+import { requireAdmin, isAuthConfigured } from "@/lib/auth-server";
 
 /**
  * GET /api/admin/saved-results
@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ results: [], total: 0, demo: true });
   }
 
-  const auth = await requireCoach(request);
+  const auth = await requireAdmin(request);
   if (auth instanceof Response) return auth;
 
   const { searchParams } = new URL(request.url);

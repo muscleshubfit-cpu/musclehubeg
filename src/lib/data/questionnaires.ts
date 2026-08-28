@@ -44,13 +44,15 @@ export async function upsertQuestionnaire(
  .select()
  .single();
  if (error) throw new Error(error.message);
- // If submitted, notify coach (fire-and-forget — don't block on notification)
+ // If submitted, notify the ASSIGNED coach (fire-and-forget — don't block
+ // on notification; routed via clientId → target_coach_id)
  if (status === "submitted") {
  createAdminNotification(
  "questionnaire_submitted",
  "استبيان جديد للمراجعة ",
  `استبيان ${type === "nutrition" ? "التغذية" : "اللياقة"} — بانتظار مراجعتك`,
  "coach",
+ clientId,
  ).catch(() => {});
  }
  return row;

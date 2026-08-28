@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireCoach, isAuthConfigured } from "@/lib/auth-server";
+import { requireCoach, isAuthConfigured, type AuthUser } from "@/lib/auth-server";
 import { supabaseAdmin, isSupabaseAdminConfigured } from "@/lib/supabase/admin";
 
 /**
  * POST /api/notifications/broadcast
  *
- * Coach-only endpoint to send notifications to:
+ * Staff endpoint to send notifications to:
  *   - ALL clients (target: "all")
  *   - SELECTED clients (target: "selected", userIds: string[])
  *   - A SINGLE client (target: "single", userId: string)
@@ -16,11 +16,18 @@ import { supabaseAdmin, isSupabaseAdminConfigured } from "@/lib/supabase/admin";
  *
  * Uses supabaseAdmin (service_role) to bypass RLS and insert
  * notifications for all targeted clients at once.
+ *
+ * MULTI-COACH SCOPING (owner answer 1/7, 2026-08-29): a plain coach
+ * can only message HIS assigned clients (coach_assignments). "all"
+ * means all-of-MY-clients for a coach, all site clients for the
+ * admin. Targets outside the coach's roster are rejected with 403.
  */
 export async function POST(request: NextRequest) {
+  let caller: AuthUser | null = null;
   if (isAuthConfigured) {
     const auth = await requireCoach(request);
     if (auth instanceof Response) return auth;
+    caller = auth;
   }
 
   if (!isSupabaseAdminConfigured || !supabaseAdmin) {
@@ -47,12 +54,36 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  // --- Multi-coach scoping: resolve the caller's client roster ---
+  // (caller is non-null when isAuthConfigured — requireCoach passed;
+  // in demo mode there is no session and the route degrades as before)
+  const isAdmin = caller?.role === "admin";
+  const callerId = caller?.id ?? null;
+
+  let allowedClientIds: Set<string> | null = null; // null = unrestricted (admin)
+  if (!isAdmin && callerId) {
+    const { data: assigned } = await supabaseAdmin
+      .from("coach_assignments")
+      .select("client_id")
+      .eq("coach_id", callerId);
+    allowedClientIds = new Set(((assigned ?? []) as { client_id: string }[]).map((r) => r.client_id));
+  }
+
+  const ensureAllowed = (clientId: string) =>
+    !allowedClientIds || allowedClientIds.has(clientId);
+
   // --- Single client ---
   if (target === "single") {
     if (!userId) {
       return NextResponse.json(
         { error: "Missing userId for single target" },
         { status: 400 },
+      );
+    }
+    if (!ensureAllowed(userId)) {
+      return NextResponse.json(
+        { error: "Forbidden — client is not assigned to you" },
+        { status: 403 },
       );
     }
     const { data, error } = await supabaseAdmin
@@ -82,7 +113,16 @@ export async function POST(request: NextRequest) {
       );
     }
     // Limit to 500 to prevent abuse
-    const ids = userIds.slice(0, 500);
+    const requested = userIds.slice(0, 500) as string[];
+    const ids = allowedClientIds
+      ? requested.filter((uid: string) => allowedClientIds!.has(uid))
+      : requested;
+    if (ids.length === 0) {
+      return NextResponse.json(
+        { error: "Forbidden — none of the selected clients are assigned to you" },
+        { status: 403 },
+      );
+    }
     const notifications = ids.map((uid: string) => ({
       user_id: uid,
       type: "coach_message",
@@ -99,11 +139,18 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: true, sent: notifications.length });
   }
 
-  // --- Broadcast to ALL clients ---
-  const { data: clients, error: clientsError } = await supabaseAdmin
+  // --- Broadcast to ALL clients ("all" = my clients for a plain coach) ---
+  let clientsQuery = supabaseAdmin
     .from("profiles")
     .select("id")
     .eq("role", "client");
+  if (allowedClientIds) {
+    if (allowedClientIds.size === 0) {
+      return NextResponse.json({ ok: true, sent: 0, message: "No assigned clients" });
+    }
+    clientsQuery = clientsQuery.in("id", [...allowedClientIds]);
+  }
+  const { data: clients, error: clientsError } = await clientsQuery;
 
   if (clientsError) {
     return NextResponse.json({ error: clientsError.message }, { status: 500 });
