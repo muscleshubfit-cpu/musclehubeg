@@ -472,13 +472,35 @@ async function runArticleGenerate(payload: any) {
   }
 
   const sys = isAr
-    ? "أنت كاتب محتوى رياضي خبير لموقع MuscleHubEG (مدونة لياقة وتغذية مصرية). تكتب بالعربية الفصحى المبسّطة بنبرة تحفيزية عملية، وتلتزم حرفياً بتعليمات الإخراج JSON."
-    : "You are MuscleHubEG's senior fitness & nutrition content writer (Egyptian fitness blog). Write in clear, practical English and follow the JSON output contract literally.";
+    ? "أنت كاتب محتوى رياضي خبير لموقع MuscleHubEG (مدونة لياقة وتغذية مصرية). تكتب بالعربية الفصحى المبسّطة بنبرة تحفيزية عملية، وتلتزم حرفياً بتعليمات الإخراج JSON. تكتب بعمق وتفصيل — المقالات السطحية القصيرة مرفوضة."
+    : "You are MuscleHubEG's senior fitness & nutrition content writer (Egyptian fitness blog). Write in clear, practical English and follow the JSON output contract literally. Write with depth and detail — shallow short articles are rejected.";
+
+  // ANTI-FORMULA OPENING (owner: «نفس العناوين الثابتة القديمة ومقال سيء»):
+  // every generation draws a random structural archetype so consecutive
+  // articles don't share the same formulaic skeleton.
+  const ARCHETYPES_AR = [
+    "افتتح بقصة قصيرة واقعية لشخص واجه نفس المشكلة ثم اربطها بالموضوع",
+    "افتتح بسؤال محدد حقيقي يتساءل عنه القارئ فعلاً ثم أجب عليه بالتدريج",
+    "افتتح برقم أو إحصائية مفاجئة مرتبطة بالموضوع (بأرقام معقولة دون اختراع مصادر)",
+    "افتتح بخطأ شائع يفعله معظم الناس في هذا الموضوع بالتحديد ثم صحّحه",
+    "افتتح بمقارنة سريعة (قبل/بعد) أو (خرافة/حقيقة) توضح الفائدة العملية",
+  ];
+  const ARCHETYPES_EN = [
+    "Open with a short real-life scenario of someone facing this exact problem, then tie it to the topic",
+    "Open with a specific genuine question readers actually ask, then answer it progressively",
+    "Open with a surprising but reasonable number or fact related to the topic (no invented sources)",
+    "Open with a common mistake most people make in this exact area, then correct it",
+    "Open with a quick before/after or myth/reality contrast showing the practical benefit",
+  ];
+  const archetype = isAr
+    ? ARCHETYPES_AR[Math.floor(Math.random() * ARCHETYPES_AR.length)]
+    : ARCHETYPES_EN[Math.floor(Math.random() * ARCHETYPES_EN.length)];
 
   const lines = [
     isAr
       ? `اكتب مقالاً كاملاً جاهزاً للنشر عن: «${topic}»`
       : `Write a complete, publication-ready article about: "${topic}"`,
+    isAr ? `الهيكل الافتتاحي لهذا المقال تحديداً: ${archetype}.` : `Opening structure for THIS article: ${archetype}.`,
     tone && (isAr ? `النبرة: ${tone}.` : `Tone: ${tone}.`),
     audience && (isAr ? `الجمهور المستهدف: ${audience}.` : `Target audience: ${audience}.`),
     category && (isAr ? `التصنيف: ${category}.` : `Category: ${category}.`),
@@ -487,8 +509,8 @@ async function runArticleGenerate(payload: any) {
         ? `الكلمات المفتاحية التي يجب أن تظهر طبيعياً: ${keywords.join("، ")}.`
         : `Focus keywords to weave in naturally: ${keywords.join(", ")}.`),
     isAr
-      ? "المتطلبات: 800-1200 كلمة، مقدمة جذابة، عناوين فرعية ## منظمة (5-8 أقسام)، نقاط وقوائم عند الحاجة، نصائح عملية قابلة للتطبيق، خاتمة بدعوة لاتخاذ إجراء. بدون جداول HTML وبدون صور وبدون صيغة LaTeX."
-      : "Requirements: 800-1200 words, engaging intro, 5-8 organized ## subheadings, bullets where useful, actionable advice, conclusion with a call-to-action. No HTML tables, no images, no LaTeX.",
+      ? "المتطلبات الصارمة: 1100-1400 كلمة (شرط إلزامي — المقالات الأقصر تُرفض وتُعاد الكتابة)، مقدمة غير نمطية (ممنوع البدء بـ«في عالم اللياقة» أو أي حشو عام)، 6-9 عناوين فرعية ## منظمة، أمثلة وأرقام عملية محددة داخل الأقسام، قسم «أخطاء شائعة»، قسم تطبيقي خطوة بخطوة قابل للتنفيذ فوراً، خاتمة بدعوة لاتخاذ إجراء. بدون جداول HTML وبدون صور وبدون صيغة LaTeX."
+      : "Hard requirements: 1100-1400 words (mandatory — shorter drafts are rejected and rewritten), a non-generic hook (never open with filler like 'In the world of fitness…'), 6-9 organized ## subheadings, concrete examples and practical numbers inside sections, a common-mistakes section, an immediately actionable step-by-step section, conclusion with a call-to-action. No HTML tables, no images, no LaTeX.",
     isAr
       ? "أعد JSON فقط بالشكل الحرفي (بدون أسوار كود):"
       : "Return ONLY JSON in this exact shape (no code fences):",
@@ -497,7 +519,7 @@ async function runArticleGenerate(payload: any) {
  "excerpt": "${isAr ? "ملخص تشويقي سطرين" : "two-line teaser"}",
  "meta_description": "${isAr ? "وصف ميتا 120-155 حرفاً" : "120-155 char meta description"}",
  "tags": ["${isAr ? "5-8 وسوم قصيرة" : "5-8 short tags"}"],
- "markdown": "${isAr ? "المقال كاملاً بصيغة Markdown تبدأ بعنوان ## أول قسم (بدون تكرار العنوان الرئيسي)" : "full article in Markdown starting with the first ## section (never repeat the main title)"}"
+ "markdown": "${isAr ? "المقال كاملاً (1100-1400 كلمة) بصيغة Markdown تبدأ بعنوان ## أول قسم (بدون تكرار العنوان الرئيسي)" : "full article (1100-1400 words) in Markdown starting with the first ## section (never repeat the main title)"}"
 }`,
   ].filter(Boolean);
 
@@ -512,10 +534,10 @@ async function runArticleGenerate(payload: any) {
       // max_tokens). 7000 reserved tokens LOCKED this job out of Groq →
       // OpenRouter-only → free-pool 429s + 60s aborts (observed: attempt 1
       // died, attempt 2 needed 138s). 5000 still covers the 800-1200-word
-      // contract with a wide margin (~3600+ Arabic words) while the real
-      // request stays under Groq's 8000 TPM → the fast reliable Groq path
-      // is reachable again.
-      maxTokens: 5000,
+      // 6000 (2026-08-28e quality bump): est ≈ prompt(~175t) + 6000 + 800
+      // ≈ 6975 < 7200 → STILL Groq-eligible, with headroom for the
+      // mandatory 1100-1400-word contract incl. reasoning overhead.
+      maxTokens: 6000,
       jsonMode: true,
       ...HEAVY,
     },
@@ -530,6 +552,19 @@ async function runArticleGenerate(payload: any) {
   if (!title || markdown.length < 200) {
     throw new Error("النموذج لم يُرجع مقالاً كاملاً — حاول مرة أخرى.");
   }
+
+  // QUALITY FLOOR (2026-08-28e, owner: «مقال سيءء… ومدة التوليد قصيرة جدا»):
+  // a 5-second shallow draft must NEVER land as done. Below ~550 words the
+  // article cannot fulfil the 1100-1400-word contract → throw → failJob
+  // requeues the attempt (different lead model next round) → only drafts
+  // that clear the floor ever get materialized.
+  const wordCount = markdown.split(/\s+/).filter(Boolean).length;
+  if (wordCount < 550) {
+    throw new Error(
+      `QUALITY FLOOR: draft too shallow (${wordCount} words < 550 required) - requeueing for a deeper rewrite`,
+    );
+  }
+  console.log(`[article_generate] word count: ${wordCount}`);
   const tags = Array.isArray(parsed.tags)
     ? parsed.tags.map((t: any) => String(t).trim()).filter(Boolean).slice(0, 10)
     : [];

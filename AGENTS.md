@@ -787,6 +787,18 @@ Process:
        done=N failedPermanent=0. (c) GHA actions pinned to v5
        (checkout/setup-node, Node 24 internals) — Node 20 deprecation
        warnings in logs are HISTORY; node-version stays 22.
+    8) ARTICLE QUALITY FLOOR + ANTI-FORMULA (2026-08-28e, owner:
+       «مقال سيء ونفس العناوين الثابتة القديمة ومدة التوليد قصيرة جدا»):
+       (a) the article contract is 1100-1400 words MANDATORY with
+       6-9 ## sections, concrete numbers, common-mistakes + step-by-step
+       sections, and a non-generic hook; (b) each generation draws a
+       RANDOM opening archetype (scenario/question/statistic/mistake/
+       contrast) so consecutive drafts never share one skeleton;
+       (c) markdown under ~550 words throws QUALITY FLOOR → failJob
+       requeues (different lead model) → only deep drafts materialize —
+       a shallow 5-second draft can never land as done; (d) maxTokens
+       6000 keeps the chain Groq-eligible (≈6975 < 7200) while funding
+       the depth contract.
 - Never log the AI response in production code paths (it can contain
   user PII or partial reasoning that should not be persisted).
 - Local fallbacks (`src/lib/ai-local.ts`) exist so the app degrades
