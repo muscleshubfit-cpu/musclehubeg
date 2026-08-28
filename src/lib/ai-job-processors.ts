@@ -19,6 +19,7 @@ import {
 } from "@/lib/plan-generator";
 import type { ClientContext } from "@/lib/ai-local";
 import { generateSocialPost } from "@/lib/social-posts";
+import { pickSmartTopic } from "@/lib/blog-topics";
 
 /* Shared quality knobs for heavy jobs (GHA sets AI_CHAIN_TOTAL_BUDGET_MS
  * = 180000 — three tries × generous timeouts, strongest models first). */
@@ -354,19 +355,46 @@ async function runExerciseRegenerate(payload: any) {
  * Phase-15-deleted client-side generator (owner report 2026-08-28: coaches
  * had no generation entry at all, only a banner pointing at a dead button).
  *
+ * TOPIC-AUTO (2026-08-28b): an empty/short topic is valid — pickSmartTopic()
+ * (the automated blog pipeline's topic brain) chooses a fresh, non-duplicate
+ * title in the requested language, so the generation system picks its own
+ * subject when the coach doesn't supply one.
+ *
  * Output contract with BlogEditorView prefill (sessionStorage hand-off):
  * { title, markdown, excerpt, meta_description, tags[], language, source }
+ * + topic diagnostics: { topic, autoTopic, focus_keyword, topic_rationale, category }
  */
 async function runArticleGenerate(payload: any) {
-  const topic = String(payload.topic || "").trim();
-  if (topic.length < 5) throw new Error("article_generate: missing topic");
+  let topic = String(payload.topic || "").trim();
   const isAr = payload.language !== "en";
   const tone = String(payload.tone || "").trim();
   const audience = String(payload.audience || "").trim();
-  const category = String(payload.category || "").trim();
+  let category = String(payload.category || "").trim();
   const keywords = Array.isArray(payload.keywords)
     ? payload.keywords.map((k: any) => String(k).trim()).filter(Boolean).slice(0, 8)
     : [];
+
+  // TOPIC-AUTO (2026-08-28b): when the coach leaves the topic empty, the
+  // SAME smart topic system that powers the automated blog pipeline
+  // (pickSmartTopic — AI pick with curated per-language fallbacks, rotation
+  // across content pillars, duplicate-check against published posts) picks
+  // the article's title. Owner directive: «مفروض يختار العنوان بنفس نظام
+  // التوليد».
+  let autoTopic = false;
+  let topicRationale = "";
+  let focusKeyword = "";
+  if (topic.length < 5) {
+    const pick = await pickSmartTopic(category || undefined, isAr ? "ar" : "en");
+    if (!pick?.topic) {
+      throw new Error("article_generate: empty topic and smart topic pick failed");
+    }
+    topic = pick.topic;
+    focusKeyword = pick.focusKeyword || "";
+    topicRationale = pick.rationale || "";
+    if (!category && pick.category) category = pick.category;
+    autoTopic = true;
+    console.log(`[article_generate] auto-picked topic: "${topic}" (pillar: ${pick.category})`);
+  }
 
   const sys = isAr
     ? "أنت كاتب محتوى رياضي خبير لموقع MuscleHubEG (مدونة لياقة وتغذية مصرية). تكتب بالعربية الفصحى المبسّطة بنبرة تحفيزية عملية، وتلتزم حرفياً بتعليمات الإخراج JSON."
@@ -431,6 +459,10 @@ async function runArticleGenerate(payload: any) {
     tags,
     language: isAr ? ("ar" as const) : ("en" as const),
     topic,
+    autoTopic,
+    focus_keyword: focusKeyword,
+    topic_rationale: topicRationale,
+    category: category || undefined,
     source: model,
   };
 }

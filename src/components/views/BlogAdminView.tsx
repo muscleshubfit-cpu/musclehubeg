@@ -103,15 +103,13 @@ export function BlogAdminView() {
   }, [watchArticleJob]);
 
   const submitGeneration = async () => {
+    // TOPIC-AUTO (2026-08-28b): an empty topic is VALID — the processor
+    // picks the title via pickSmartTopic (the blog pipeline's topic brain).
     const topic = genTopic.trim();
-    if (topic.length < 5) {
-      toast.error(isAr ? "اكتب موضوع المقال (5 أحرف على الأقل)" : "Topic needs at least 5 characters");
-      return;
-    }
     setGenBusy(true);
     try {
       const jobId = await enqueueAiJobClient("article_generate", {
-        topic,
+        topic, // may be "" → system picks the title
         language: genLang,
         tone: genTone.trim(),
         keywords: genKeywords
@@ -299,8 +297,8 @@ export function BlogAdminView() {
             <p className="text-sm font-semibold text-foreground">{isAr ? "توليد المقالات بالذكاء الاصطناعي" : "AI Article Generation"}</p>
             <p className="text-xs text-muted-foreground mt-0.5">
               {isAr
-                ? "اكتب الموضوع والمولّد يكتب مقالاً كاملاً (عنوان + محتوى + وصف ميتا + وسوم) ويفتحه لك في المحرر للمراجعة."
-                : "Give a topic and get a complete article draft (title + body + meta + tags) opened in the editor for review."}
+                ? "اكتب الموضوع أو سيبه فاضي والنظام يختار العنوان بنفسه — ويكتب مقالاً كاملاً (عنوان + محتوى + وصف ميتا + وسوم) ويفتحه لك في المحرر للمراجعة."
+                : "Give a topic — or leave it empty and let the system pick the title — and get a complete article draft (title + body + meta + tags) opened in the editor for review."}
             </p>
           </div>
         </div>
@@ -320,7 +318,8 @@ export function BlogAdminView() {
           <div className="flex items-center gap-2.5 text-xs">
             <Loader2 className="h-4 w-4 animate-spin text-primary" />
             <span className="font-medium text-foreground">
-              {isAr ? "جاري توليد مقال:" : "Generating:"} {genJob.topic}
+              {isAr ? "جاري توليد مقال:" : "Generating:"}{" "}
+              {genJob.topic || (isAr ? "النظام بيختار العنوان الأنسب تلقائياً…" : "the system is picking the best title…")}
             </span>
             <span className="text-muted-foreground">
               — {isAr ? "عادةً 1-3 دقائق، تقدر تكمل تنقل والنتيجة هتتفتح لوحدها." : "usually 1-3 minutes; the editor opens automatically when done."}
@@ -509,16 +508,21 @@ export function BlogAdminView() {
           <div className="space-y-3.5 py-1">
             <div className="space-y-1.5">
               <label className="text-xs font-medium text-foreground">
-                {isAr ? "موضوع المقال *" : "Article topic *"}
+                {isAr ? "موضوع المقال (اختياري)" : "Article topic (optional)"}
               </label>
               <textarea
                 value={genTopic}
                 onChange={(e) => setGenTopic(e.target.value)}
                 rows={3}
                 maxLength={300}
-                placeholder={isAr ? "مثال: أفضل تمارين لحرق دهون البطن للمبتدئين في المنزل" : "e.g. Best home cardio exercises for beginners to burn belly fat"}
+                placeholder={isAr ? "اكتب الموضوع أو سيبه فاضي والنظام يختار… مثال: أفضل تمارين لحرق دهون البطن للمبتدئين" : "Leave empty for auto-pick, or e.g. Best home cardio exercises for beginners"}
                 className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-hidden"
               />
+              <p className="text-[11px] leading-relaxed text-muted-foreground">
+                {isAr
+                  ? "لو سيبته فاضي، نفس نظام اختيار مواضيع المدونة الآلي هيختار عنوان جديد غير مكرر (بعد فحص المقالات المنشورة) ويولّد المقال عنه."
+                  : "If left empty, the same automated topic-picker that powers the blog pipeline picks a fresh non-duplicate title (checked against published posts) and generates the article."}
+              </p>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
@@ -570,7 +574,7 @@ export function BlogAdminView() {
 
             <button
               onClick={submitGeneration}
-              disabled={genBusy || genTopic.trim().length < 5}
+              disabled={genBusy}
               className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {genBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}

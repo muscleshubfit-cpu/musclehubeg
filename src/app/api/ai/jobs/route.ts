@@ -119,8 +119,8 @@ export async function POST(request: NextRequest) {
         requestedBy: userId ?? null,
       }));
     } catch (e: any) {
-      // Required-field violations (e.g. article_generate without a topic)
-      // are client errors, not server faults.
+      // Required-field violations are client errors, not server faults.
+      // (article_generate no longer requires a topic — empty = smart pick.)
       if (e instanceof JobPayloadError) {
         return NextResponse.json({ error: e.message }, { status: 400 });
       }

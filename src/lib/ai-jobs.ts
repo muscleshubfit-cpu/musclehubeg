@@ -11,12 +11,15 @@
  *   exercise_regenerate  swap one exercise (library-filtered, injury-safe)
  *   article_tool         paraphrase | summarize | proofread | seo_pack |
  *                        subheadings (+ legacy editor tool aliases)
- *   article_generate     coach asks a COMPLETE new article draft from a
- *                        topic (title + markdown body + meta + tags) —
- *                        restored 2026-08-28: the Phase-15 deletion of the
- *                        old client-side generator left coaches with NO
- *                        generation entry at all (owner report «توليد
- *                        المقالات للكوتش غير موجود»)
+ *   article_generate     coach asks a COMPLETE new article draft (title +
+ *                        markdown body + meta + tags) — restored 2026-08-28;
+ *                        2026-08-28b: topic is now OPTIONAL — an empty topic
+ *                        makes the PROCESSOR pick a fresh title via
+ *                        pickSmartTopic() (the same smart topic system the
+ *                        automated blog pipeline uses) so the generation
+ *                        system itself chooses the article's subject
+ *                        (owner report: «مفروض يختار العنوان بنفس نظام
+ *                        التوليد»)
  *   social_post          facebook | instagram | x/twitter | linkedin × tone
  *
  * WRITE PATHS:
@@ -189,14 +192,14 @@ export function sanitizeJobPayload(type: AiJobType, raw: any): Record<string, an
       };
     }
     case "article_generate": {
+      // TOPIC-AUTO LAW (2026-08-28b): an empty topic is a FEATURE — the
+      // processor auto-picks a fresh, non-duplicate title through the same
+      // pickSmartTopic() system the automated blog pipeline uses. The queue
+      // slot is never burned on garbage: pickSmartTopic has curated
+      // per-language fallbacks, so a topic ALWAYS exists before generation.
       const topic = str(p.topic, 300).trim();
-      if (topic.length < 5) {
-        // Fail loudly at the trust boundary — an empty topic would burn a
-        // queue slot + provider quota on a garbage generation.
-        throw new JobPayloadError("موضوع المقال مطلوب (5 أحرف على الأقل).");
-      }
       return {
-        topic,
+        topic, // may be "" → processor-side smart pick
         language: p.language === "en" ? "en" : "ar",
         tone: str(p.tone, 60),
         audience: str(p.audience, 120),

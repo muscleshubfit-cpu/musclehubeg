@@ -13,7 +13,6 @@ import {
   sanitizeJobPayload,
   isAiJobType,
   JOB_GATE,
-  JobPayloadError,
 } from "../ai-jobs";
 import { articleSlugFromTitle } from "../ai-jobs-client";
 
@@ -58,9 +57,14 @@ describe("article_generate — sanitizeJobPayload", () => {
     expect((out.keywords as string[]).every((k) => k.length <= 40)).toBe(true);
   });
 
-  it("throws JobPayloadError for a missing/short topic (400 path, never 500)", () => {
-    expect(() => sanitizeJobPayload("article_generate", {})).toThrow(JobPayloadError);
-    expect(() => sanitizeJobPayload("article_generate", { topic: "abc" })).toThrow(JobPayloadError);
+  it("TOPIC-AUTO: empty/short topic is ACCEPTED (processor smart-picks the title)", () => {
+    // 2026-08-28b: topic became optional — an empty topic makes the
+    // PROCESSOR pick a fresh title via pickSmartTopic (the blog pipeline's
+    // topic brain), per owner directive «مفروض يختار العنوان بنفس نظام
+    // التوليد». The sanitizer must pass it through as "" (no throw).
+    expect(sanitizeJobPayload("article_generate", {}).topic).toBe("");
+    expect(sanitizeJobPayload("article_generate", { topic: "abc" }).topic).toBe("abc");
+    expect(sanitizeJobPayload("article_generate", { topic: "  " }).topic).toBe("");
   });
 
   it("accepts en language", () => {

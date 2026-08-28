@@ -754,6 +754,15 @@ Process:
        BlogEditorView `?ai=1` prefill with an explicit AI-provenance
        banner. Drafts are NEVER auto-published; slug follows the M15
        Latin-only law via `articleSlugFromTitle`.
+    5) TOPIC-AUTO LAW (2026-08-28b): `article_generate` topic is
+       OPTIONAL — an empty/short topic means the PROCESSOR picks the
+       title via `pickSmartTopic()` (`blog-topics.ts`), the SAME smart
+       topic brain the automated blog pipeline uses (AI pick in the
+       requested language, pillar rotation, curated per-language
+       fallbacks, duplicate-check against published posts). The
+       sanitizer must NEVER throw for a missing topic; the result carries
+       `autoTopic: true` + `focus_keyword` + `topic_rationale` for
+       provenance (owner: «مفروض يختار العنوان بنفس نظام التوليد»).
 - Never log the AI response in production code paths (it can contain
   user PII or partial reasoning that should not be persisted).
 - Local fallbacks (`src/lib/ai-local.ts`) exist so the app degrades
