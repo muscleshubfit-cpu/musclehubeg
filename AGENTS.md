@@ -763,6 +763,19 @@ Process:
        sanitizer must NEVER throw for a missing topic; the result carries
        `autoTopic: true` + `focus_keyword` + `topic_rationale` for
        provenance (owner: «مفروض يختار العنوان بنفس نظام التوليد»).
+    6) TYPE-ROTATION LAW (2026-08-28c, owner: «عايز يكون فى تدوير لنوع
+       المقالات»): auto-picked topics MUST rotate across the content
+       pillars. `pickSmartTopic` merges published posts AND recent DONE
+       `article_generate` results (`getRecentGeneratedTopics`) into the
+       rotation/duplicate state — a pillar just generated (even
+       unpublished) is excluded from the next auto-pick; with zero
+       history the pillar is randomized (cold start never pins the first
+       pillar). BlogAdminView exposes «نوع المقال» pills: "تدوير تلقائي"
+       (default, sends no category) or one pinned pillar; the picked
+       category flows into the draft prefill. The processor's article
+       call reserves maxTokens ≤ 5000 so prompt/4 + maxTokens + 800 stays
+       under the 7200 Groq-eligibility line — reserving 7000+ LOCKS the
+       job out of Groq (OpenRouter-only → free-pool 429 storms).
 - Never log the AI response in production code paths (it can contain
   user PII or partial reasoning that should not be persisted).
 - Local fallbacks (`src/lib/ai-local.ts`) exist so the app degrades

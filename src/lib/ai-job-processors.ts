@@ -432,7 +432,15 @@ async function runArticleGenerate(payload: any) {
       tag: "ai-job:article-generate",
       systemPrompt: sys,
       temperature: 0.7,
-      maxTokens: 7000,
+      // GROQ ELIGIBILITY LAW (2026-08-28c): the chain skips Groq when
+      // prompt/4 + maxTokens + 800 > 7200 (Groq free TPM counts prompt +
+      // max_tokens). 7000 reserved tokens LOCKED this job out of Groq →
+      // OpenRouter-only → free-pool 429s + 60s aborts (observed: attempt 1
+      // died, attempt 2 needed 138s). 5000 still covers the 800-1200-word
+      // contract with a wide margin (~3600+ Arabic words) while the real
+      // request stays under Groq's 8000 TPM → the fast reliable Groq path
+      // is reachable again.
+      maxTokens: 5000,
       jsonMode: true,
       ...HEAVY,
     },

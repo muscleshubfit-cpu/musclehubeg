@@ -34,6 +34,10 @@ const CONTENT_PILLARS = [
   "wellness",
 ] as const;
 
+// Public read-only view (tests + tooling): the pillar set MUST stay in
+// 1:1 sync with BLOG_CATEGORIES ids in src/lib/blog.ts.
+export const PILLAR_IDS: readonly string[] = CONTENT_PILLARS;
+
 type Pillar = (typeof CONTENT_PILLARS)[number];
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -155,6 +159,39 @@ export async function getRecentPostsByLanguage(lang: "en" | "ar", limit = 100): 
     category: p.category || "",
     slug: p.slug || "",
   }));
+}
+
+/**
+ * ROTATION MEMORY (2026-08-28c, owner: «عايز يكون فى تدوير لنوع المقالات»):
+ * published posts alone made pickRotationCategory DEGENERATE while the blog
+ * is young — with zero/sparse published rows every pillar scores Infinity,
+ * the stable sort keeps CONTENT_PILLARS order and EVERY auto-pick landed on
+ * "nutrition" (observed twice in a row in run 33168556482). Merging the
+ * recent DONE article_generate job results (generated-but-not-yet-published
+ * titles) into the rotation state fixes BOTH problems:
+ *   1. the pillar genuinely rotates on EVERY generation, published or not;
+ *   2. duplicate-check also sees titles the pipeline already generated, so
+ *      two consecutive auto-picks can't land on near-identical topics.
+ */
+export async function getRecentGeneratedTopics(lang: "en" | "ar", limit = 20): Promise<{ title: string; focusKeyword: string; category: string; slug: string }[]> {
+  if (!isSupabaseAdminConfigured || !supabaseAdmin) return [];
+  const { data, error } = await supabaseAdmin
+    .from("ai_jobs" as any)
+    .select("result")
+    .eq("job_type", "article_generate")
+    .eq("status", "done")
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (error || !data) return [];
+  return (data as any[])
+    .map((r) => r?.result)
+    .filter((res) => res && res.title && (res.language ?? lang) === lang)
+    .map((res) => ({
+      title: String(res.title || ""),
+      focusKeyword: String(res.focus_keyword || ""),
+      category: String(res.category || ""),
+      slug: "",
+    }));
 }
 
 /**
@@ -493,11 +530,22 @@ export async function pickSmartTopic(
   preferredCategory?: string,
   language: "en" | "ar" = "en",
 ): Promise<TopicPick> {
-  const recent = await getRecentPostsByLanguage(language);
+  // ROTATION MEMORY: published posts + recently GENERATED (possibly
+  // unpublished) article_generate results — see getRecentGeneratedTopics.
+  const [published, generated] = await Promise.all([
+    getRecentPostsByLanguage(language),
+    getRecentGeneratedTopics(language),
+  ]);
+  const recent = [...published, ...generated];
   const category: Pillar =
     preferredCategory && (CONTENT_PILLARS as readonly string[]).includes(preferredCategory)
       ? (preferredCategory as Pillar)
-      : pickRotationCategory(recent);
+      : recent.length
+        ? pickRotationCategory(recent)
+        // COLD-START ROTATION: with zero history the stable sort would pin
+        // the first pillar forever — randomize instead so even the very
+        // first auto-picks spread across the content types.
+        : CONTENT_PILLARS[Math.floor(Math.random() * CONTENT_PILLARS.length)];
 
   const now = new Date();
   const monthLabel = now.toLocaleString("en-US", { month: "long", year: "numeric" });

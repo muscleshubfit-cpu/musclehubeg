@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { useI18n } from "@/lib/i18n";
 import { useRouter } from "next/navigation";
-import { BLOG_CATEGORIES, getCategoryLabel, parseTableOfContents, renderMarkdown } from "@/lib/blog";
+import { BLOG_CATEGORIES, VALID_CATEGORY_IDS, getCategoryLabel, parseTableOfContents, renderMarkdown } from "@/lib/blog";
 import { adminGetPost, adminCreatePost, adminUpdatePost, calculateSEOScore, calculateWordCount, calculateReadingTime, type AdminBlogPost } from "@/lib/blog-admin";
 import { runAiJob, AI_ARTICLE_DRAFT_KEY, articleSlugFromTitle } from "@/lib/ai-jobs-client";
 import { toast } from "sonner";
@@ -73,6 +73,9 @@ export function BlogEditorView({ mode, postId }: { mode: "new" | "edit"; postId?
  tags: Array.isArray(d.tags) ? d.tags.map(String) : p.tags,
  slug: articleSlugFromTitle(String(d.title)), // M15 law: Latin-only slug
  language: d.language === "en" ? "en" : "ar",
+ // TYPE-ROTATION (2026-08-28c): the generated draft lands under the
+ // pillar the topic brain picked (only when it's a known category id).
+ category: VALID_CATEGORY_IDS.has(String(d.category)) ? String(d.category) : p.category,
  reading_time: calculateReadingTime(String(d.markdown)),
  }));
  setAiPrefilled(true);

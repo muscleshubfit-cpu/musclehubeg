@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useI18n } from "@/lib/i18n";
 import { useRouter } from "next/navigation";
 import { getBlogStats, adminListPosts, adminDeletePost, adminDuplicatePost, type AdminBlogPost } from "@/lib/blog-admin";
-import { getCategoryLabel } from "@/lib/blog";
+import { getCategoryLabel, BLOG_CATEGORIES } from "@/lib/blog";
 import { enqueueAiJobClient, getAiJob, AI_ARTICLE_DRAFT_KEY, readPendingArticleJob, writePendingArticleJob } from "@/lib/ai-jobs-client";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -30,6 +30,10 @@ export function BlogAdminView() {
   const [genLang, setGenLang] = useState<"ar" | "en">("ar");
   const [genTone, setGenTone] = useState("");
   const [genKeywords, setGenKeywords] = useState("");
+  // TYPE-ROTATION SELECTOR (2026-08-28c): "" = auto-rotation across the
+  // content pillars (the blog pipeline's rotation brain); otherwise the
+  // coach pins a specific type (fitness, nutrition, workout, health…).
+  const [genCategory, setGenCategory] = useState<string>("");
   const [genBusy, setGenBusy] = useState(false);
   const [genJob, setGenJob] = useState<{ id: string; topic: string } | null>(null);
   const activeGenWatcher = useRef<string | null>(null);
@@ -66,6 +70,7 @@ export function BlogAdminView() {
                   meta_description: r.meta_description || "",
                   tags: Array.isArray(r.tags) ? r.tags : [],
                   language: r.language === "en" ? "en" : "ar",
+                  category: r.category || "",
                 }),
               );
             } catch {
@@ -112,6 +117,7 @@ export function BlogAdminView() {
         topic, // may be "" → system picks the title
         language: genLang,
         tone: genTone.trim(),
+        category: genCategory || undefined, // "" = rotate across types
         keywords: genKeywords
           .split(/[,،]/)
           .map((k) => k.trim())
@@ -125,6 +131,7 @@ export function BlogAdminView() {
       setGenTopic("");
       setGenKeywords("");
       setGenTone("");
+      setGenCategory("");
       toast.success(isAr ? "تم إرسال طلب التوليد — جاري التنفيذ في الخلفية ⏳" : "Generation queued — running in the background");
       void watchArticleJob(entry);
     } catch (e: any) {
@@ -570,6 +577,50 @@ export function BlogAdminView() {
                 placeholder={isAr ? "تمارين منزلية، حرق الدهون، زيادة" : "home workout, fat loss"}
                 className="w-full rounded-lg border border-border bg-background px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-hidden"
               />
+            </div>
+
+            {/* TYPE-ROTATION SELECTOR — auto-rotate across the content
+                pillars, or pin one specific type (2026-08-28c) */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-foreground">
+                {isAr ? "نوع المقال (اختياري — التدوير التلقائي هو الافتراضي)" : "Article type (optional — auto-rotation by default)"}
+              </label>
+              <div className="flex flex-wrap gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setGenCategory("")}
+                  className={`rounded-full border px-3 py-1 text-[11px] font-medium transition-all ${
+                    genCategory === ""
+                      ? "border-primary bg-primary/10 text-primary"
+                      : "border-border text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {isAr ? "تدوير تلقائي 🔄" : "Auto-rotate 🔄"}
+                </button>
+                {BLOG_CATEGORIES.map((c) => (
+                  <button
+                    key={c.id}
+                    type="button"
+                    onClick={() => setGenCategory(c.id)}
+                    className={`rounded-full border px-3 py-1 text-[11px] font-medium transition-all ${
+                      genCategory === c.id
+                        ? "border-primary bg-primary/10 text-primary"
+                        : "border-border text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    {isAr ? c.ar : c.en}
+                  </button>
+                ))}
+              </div>
+              <p className="text-[11px] leading-relaxed text-muted-foreground">
+                {isAr
+                  ? genCategory === ""
+                    ? "التدوير التلقائي: كل توليد بيختار نوعاً مختلفاً عن اللي قبله (تغذية ← تمارين ← صحة…) بناءً على آخر المقالات المولّدة والمنشورة."
+                    : "هيولّد المقال ضمن النوع المختار تحديداً."
+                  : genCategory === ""
+                    ? "Auto-rotation: every generation picks a different type than the previous one (nutrition → workout → health…) based on recent generated & published posts."
+                    : "The article will be generated within the selected type."}
+              </p>
             </div>
 
             <button

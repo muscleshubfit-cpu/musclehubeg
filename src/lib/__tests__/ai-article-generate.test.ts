@@ -15,6 +15,32 @@ import {
   JOB_GATE,
 } from "../ai-jobs";
 import { articleSlugFromTitle } from "../ai-jobs-client";
+import { pickRotationCategory, PILLAR_IDS } from "../blog-topics";
+
+describe("article_generate — type rotation (owner: «عايز يكون فى تدوير لنوع المقالات»)", () => {
+  it("rotates AWAY from the last-generated pillar", () => {
+    // ROTATION MEMORY feeds generated-but-unpublished results into this
+    // pure function — one nutrition generation must push the next auto-pick
+    // to a different content type.
+    const next = pickRotationCategory([{ category: "nutrition" }]);
+    expect(next).not.toBe("nutrition");
+  });
+
+  it("covers the owner's named types (fitness, nutrition, workout, health)", () => {
+    for (const c of ["fitness", "nutrition", "workout", "health"]) {
+      expect(PILLAR_IDS).toContain(c);
+    }
+  });
+
+  it("keeps rotating across a mixed history (never repeats the most recent)", () => {
+    const history = [
+      { category: "workout" },
+      { category: "nutrition" },
+      { category: "health" },
+    ];
+    expect(pickRotationCategory(history)).not.toBe("workout"); // most recent wins the exclusion
+  });
+});
 
 describe("article_generate — registry", () => {
   it("is a registered job type behind the coach gate", () => {
