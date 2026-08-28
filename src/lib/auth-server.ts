@@ -39,13 +39,20 @@ export type MembershipTier =
 export type AuthUser = {
   id: string;
   email?: string;
-  role: "client" | "coach";
+  role: "client" | "coach" | "admin";
   full_name?: string | null;
+  /**
+   * Staff flag — true for role coach AND admin (platform staff).
+   * Staff bypass ALL consumer usage limits (EVO chat, plan quotas,
+   * swaps) — STAFF QUOTA SEMANTICS. Client gating stays tier-driven.
+   */
+  is_staff: boolean;
   /**
    * Active membership tier for the user, resolved from the
    * `subscriptions` table (status='active', most recent). Falls back
-   * to "free" if no active subscription exists. Coaches are treated
-   * as "coaching" tier automatically.
+   * to "free" if no active subscription exists. Staff (coach/admin)
+   * are treated as "coaching" tier automatically for display gates —
+   * hard limits are bypassed via is_staff.
    */
   membership_tier: MembershipTier;
 };
@@ -108,7 +115,9 @@ export async function getAuthUser(
   // The membership_tier field picks the BEST membership (not coaching).
   // Coaching EVO limits are merged via getLimits() in the client.
   let membership_tier: MembershipTier = "free";
-  if (profile.role === "coach") {
+  if (profile.role !== "client") {
+    // Staff (coach | admin) — "coaching" tier unlocks subscriber UI gates;
+    // hard limits are bypassed server-side via is_staff.
     membership_tier = "coaching";
   } else {
     const { data: subs } = await supabase
@@ -145,6 +154,7 @@ export async function getAuthUser(
     email: user.email,
     role: profile.role,
     full_name: profile.full_name,
+    is_staff: profile.role !== "client",
     membership_tier,
   };
 }
@@ -170,7 +180,10 @@ export async function requireUser(
 }
 
 /**
- * Require a coach (role === "coach"). Returns the user, or a 401/403 response.
+ * Require platform staff (role coach OR admin). Returns the user, or a
+ * 401/403 response. Kept the name `requireCoach` (callers are staff-gated
+ * surfaces) — semantics are now STAFF: the admin account passes every
+ * gate a coach passes.
  */
 export async function requireCoach(
   request: NextRequest,
@@ -180,9 +193,9 @@ export async function requireCoach(
     const { NextResponse } = await import("next/server");
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-  if (user.role !== "coach") {
+  if (user.role === "client") {
     const { NextResponse } = await import("next/server");
-    return NextResponse.json({ error: "Forbidden — coach only" }, {
+    return NextResponse.json({ error: "Forbidden — staff only" }, {
       status: 403,
     });
   }
@@ -221,7 +234,9 @@ export async function getAuthUserFromHeaders(): Promise<AuthUser | null> {
   if (!profile) return null;
 
   let membership_tier: MembershipTier = "free";
-  if (profile.role === "coach") {
+  if (profile.role !== "client") {
+    // Staff (coach | admin) — "coaching" tier unlocks subscriber UI gates;
+    // hard limits are bypassed server-side via is_staff.
     membership_tier = "coaching";
   } else {
     const { data: subs } = await supabase
@@ -256,6 +271,7 @@ export async function getAuthUserFromHeaders(): Promise<AuthUser | null> {
     email: user.email,
     role: profile.role,
     full_name: profile.full_name,
+    is_staff: profile.role !== "client",
     membership_tier,
   };
 }

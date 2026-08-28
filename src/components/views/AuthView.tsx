@@ -61,7 +61,7 @@ export function AuthView({ mode, next }: { mode: "login" | "signup"; next?: stri
           toast.error(error);
         } else {
           toast.success(t("auth.welcomeBack"));
-          goAfterLogin(profile?.role === "coach");
+          goAfterLogin(profile?.role !== "client");
         }
       }
     } finally {

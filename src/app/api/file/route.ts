@@ -54,7 +54,8 @@ export async function GET(request: NextRequest) {
   }
 
   const isOwner = Boolean(user && user.id && path.startsWith(`${user.id}/`));
-  const isCoach = user?.role === "coach";
+  // Staff (coach | admin) can read any client file (owner-or-coach rule).
+  const isCoach = user?.role !== "client";
   if (!isOwner && !isCoach) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }

@@ -148,12 +148,20 @@ export async function countThisMonthPlanUsage(
  * Check the MONTHLY plan-generation quota (D4 fix).
  * The only member-reachable "EVO builds me a plan" surface is this chat,
  * so this is where the advertised per-month numbers become real.
+ *
+ * STAFF QUOTA SEMANTICS (2026-08-29): staffHint=true (role coach|admin)
+ * bypasses the quota entirely — platform staff are never limited by
+ * consumer tiers. Usage is still recorded for analytics.
  */
 export async function checkEvoPlanQuota(
   userId: string,
   kind: EvoPlanKind,
   tierHint?: string | null,
+  staffHint?: boolean,
 ): Promise<{ allowed: boolean; used: number; limit: number | null; unlimited: boolean }> {
+  if (staffHint) {
+    return { allowed: true, used: 0, limit: null, unlimited: true };
+  }
   const tier = sanitizeTier(tierHint) ?? (await resolveTierFromDb(userId));
   const limit = planQuotaFor(tier, kind);
   if (limit === null) {
@@ -289,20 +297,27 @@ async function countThisWeekSwaps(
 /**
  * Check if a user can send another EVO chat message.
  *
- * @param userId   Verified profile id (never trust body-supplied ids).
- * @param tierHint Pre-computed membership tier from getAuthUser()
- *                 (active + expiry filtered). When omitted, falls back to
- *                 an admin-client DB lookup.
+ * @param userId    Verified profile id (never trust body-supplied ids).
+ * @param tierHint  Pre-computed membership tier from getAuthUser()
+ *                  (active + expiry filtered). When omitted, falls back to
+ *                  an admin-client DB lookup.
+ * @param staffHint True when getAuthUser() resolved the caller as platform
+ *                  staff (role coach|admin) — bypasses the limit entirely
+ *                  (STAFF QUOTA SEMANTICS). Usage stays recorded.
  */
 export async function checkEvoChatLimit(
   userId: string,
   tierHint?: string | null,
+  staffHint?: boolean,
 ): Promise<{
   allowed: boolean;
   used: number;
   limit: number | null;
   unlimited: boolean;
 }> {
+  if (staffHint) {
+    return { allowed: true, used: 0, limit: null, unlimited: true };
+  }
   const tier =
     sanitizeTier(tierHint) ?? (await resolveTierFromDb(userId));
   const limit = evoChatLimitFor(tier);
@@ -326,17 +341,24 @@ export async function checkEvoChatLimit(
  * insert).
  *
  * @param tierHint Same contract as checkEvoChatLimit.
+ * @param staffHint True for platform staff (coach|admin) — bypasses the
+ *                  weekly limit (STAFF QUOTA SEMANTICS); still recorded.
  */
 export async function checkAndRecordSwap(
   userId: string,
   swapType: "meal" | "exercise",
   tierHint?: string | null,
+  staffHint?: boolean,
 ): Promise<{
   allowed: boolean;
   used: number;
   limit: number | null;
   unlimited: boolean;
 }> {
+  if (staffHint) {
+    await recordSwap(userId, swapType);
+    return { allowed: true, used: 0, limit: null, unlimited: true };
+  }
   const tier = sanitizeTier(tierHint) ?? (await resolveTierFromDb(userId));
   const limit = swapLimitForTier(tier);
 

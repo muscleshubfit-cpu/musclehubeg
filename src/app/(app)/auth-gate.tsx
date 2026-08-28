@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/use-auth";
 import { AppLayout } from "@/components/AppLayout";
 
@@ -10,26 +10,62 @@ import { AppLayout } from "@/components/AppLayout";
  * progress, chat, coach/*, ...). Centralizes the auth check so each
  * page.tsx only has to render its own view.
  *
+ * ROLE SURFACE LAW (2026-08-29): the (app) group mixes CLIENT surfaces
+ * (dashboard, plans, progress, questionnaires, referral, support) with
+ * STAFF surfaces (/coach, /coach/*). Platform staff (coach | admin) are
+ * redirected away from client surfaces to /coach — the same UI must NOT
+ * be served to staff and consumers. /admin/* has its own gate
+ * (admin-gate.tsx, admin-exclusive).
+ *
  * NOTE: This is a client component (uses useAuth/useEffect), so it CANNOT
- * export `metadata`. The parent `layout.tsx` (server component) exports
- * the `metadata` (including `noindex`) and renders this gate as its body.
+ * export `metadata`. The parent `layout.tsx` (server component) exports the
+ * metadata (including `noindex`) and renders this gate as its body.
  */
+
+/** Client-only surfaces inside the (app) group — staff never see these. */
+const CLIENT_ONLY_PATHS = [
+  "/dashboard",
+  "/plans",
+  "/progress",
+  "/questionnaires",
+  "/referral",
+  "/support",
+];
+
 export function AuthGate({ children }: { children: React.ReactNode }) {
  const { profile, loading } = useAuth();
+ const pathname = usePathname();
  const router = useRouter();
 
  useEffect(() => {
- if (!loading && !profile) {
- router.replace("/auth");
- }
- }, [loading, profile, router]);
+   if (loading) return;
+   if (!profile) {
+     router.replace("/auth");
+     return;
+   }
+   // Staff (coach | admin): client-only surfaces are not theirs — bounce
+   // to the coach dashboard. Exact-prefix match so /coach/* never matches
+   // /coach pages themselves.
+   const isStaff = profile.role === "coach" || profile.role === "admin";
+   if (isStaff && CLIENT_ONLY_PATHS.includes(pathname)) {
+     router.replace("/coach");
+   }
+ }, [loading, profile, pathname, router]);
 
- if (loading || !profile) {
- return (
- <div className="flex min-h-screen items-center justify-center">
- <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
- </div>
- );
+ const isStaff =
+   !loading &&
+   !!profile &&
+   (profile.role === "coach" || profile.role === "admin");
+ if (
+   loading ||
+   !profile ||
+   (isStaff && CLIENT_ONLY_PATHS.includes(pathname))
+ ) {
+   return (
+     <div className="flex min-h-screen items-center justify-center">
+       <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+     </div>
+   );
  }
 
  return <AppLayout>{children}</AppLayout>;

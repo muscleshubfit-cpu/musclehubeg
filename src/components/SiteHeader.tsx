@@ -60,7 +60,7 @@ function NotificationBellHeader({ isAdmin = false }: { isAdmin?: boolean }) {
 export function SiteHeader({ variant = "landing" }: { variant?: "landing" | "app" }) {
   const { t, lang } = useI18n();
   const { navigate } = useNav();
-  const { profile, isCoach, signOutAsync } = useAuth();
+  const { profile, isCoach, isAdmin, signOutAsync } = useAuth();
   const isLoggedIn = !!profile;
   const isAr = lang === "ar";
   const [open, setOpen] = useState(false);
@@ -85,7 +85,9 @@ export function SiteHeader({ variant = "landing" }: { variant?: "landing" | "app
     return () => window.removeEventListener("keydown", handler);
   }, [open]);
 
-  const blogHref = isCoach ? "/admin/blog" : isAr ? "/ar/blog" : "/blog";
+  // Blog link: admin manages the CMS (/admin/blog); everyone else —
+  // including future coach accounts — reads the public blog.
+  const blogHref = isAdmin ? "/admin/blog" : isAr ? "/ar/blog" : "/blog";
 
   // ─── Menu data model (grouped) ─────────────────────────────────────────
   // The drawer is organised into clear sections:
@@ -131,40 +133,46 @@ export function SiteHeader({ variant = "landing" }: { variant?: "landing" | "app
   });
 
   // Group 2: Paid Services (Coaching + Memberships + EVO AI Coach)
-  groups.push({
-    id: "paid-services",
-    title: isAr ? "الخدمات المدفوعة" : "Paid Services",
-    items: [
-      {
-        label: isAr ? "الكوتشينج" : "Coaching",
-        icon: Users,
-        href: "/coaching",
-      },
-      {
-        label: isAr ? "العضويات" : "Memberships",
-        icon: Sparkles,
-        href: "/memberships",
-      },
-      {
-        label: "EVO AI Coach",
-        icon: Bot,
-        href: "/evo",
-      },
-    ],
-  });
+  // ROLE SURFACE LAW (2026-08-29): hidden from platform staff — the
+  // owner/coach must not browse his own sales funnel in the header.
+  if (!isCoach) {
+    groups.push({
+      id: "paid-services",
+      title: isAr ? "الخدمات المدفوعة" : "Paid Services",
+      items: [
+        {
+          label: isAr ? "الكوتشينج" : "Coaching",
+          icon: Users,
+          href: "/coaching",
+        },
+        {
+          label: isAr ? "العضويات" : "Memberships",
+          icon: Sparkles,
+          href: "/memberships",
+        },
+        {
+          label: "EVO AI Coach",
+          icon: Bot,
+          href: "/evo",
+        },
+      ],
+    });
+  }
 
-  // Group 3: Affiliate Program (public marketing page)
-  groups.push({
-    id: "affiliate",
-    title: isAr ? "الأفلييت" : "Affiliate",
-    items: [
-      {
-        label: isAr ? "برنامج الأفلييت" : "Affiliate Program",
-        icon: Gift,
-        href: "/affiliate",
-      },
-    ],
-  });
+  // Group 3: Affiliate Program (public marketing page) — staff never see it
+  if (!isCoach) {
+    groups.push({
+      id: "affiliate",
+      title: isAr ? "الأفلييت" : "Affiliate",
+      items: [
+        {
+          label: isAr ? "برنامج الأفلييت" : "Affiliate Program",
+          icon: Gift,
+          href: "/affiliate",
+        },
+      ],
+    });
+  }
 
   // Group 4: Tools (dropdown — expandable to show all 6 tools + meal planner)
   // Per Owner directive 2026-08-25: tools must be a dropdown menu showing all
@@ -252,7 +260,7 @@ export function SiteHeader({ variant = "landing" }: { variant?: "landing" | "app
     });
   }
 
-  // Group 7: Coach (admin items)
+  // Group 7a: Coach (staff work items — coach | admin)
   if (isLoggedIn && isCoach) {
     groups.push({
       id: "coach",
@@ -261,6 +269,17 @@ export function SiteHeader({ variant = "landing" }: { variant?: "landing" | "app
         { label: isAr ? "لوحة الكوتش" : "Coach Dashboard", icon: LayoutDashboard, onClick: () => navigate("coach") },
         { label: isAr ? "المدفوعات" : "Payments", icon: Crown, onClick: () => navigate("coach-payments") },
         { label: isAr ? "دعم العملاء" : "Client Support", icon: LifeBuoy, onClick: () => navigate("coach-support") },
+      ],
+    });
+  }
+
+  // Group 7b: Admin-exclusive items (owner directive 2026-08-29 — Q6:
+  // leads / saved results / blog CMS / referrals admin are admin-only).
+  if (isLoggedIn && isAdmin) {
+    groups.push({
+      id: "admin",
+      title: isAr ? "إدارة المنصة" : "Platform Admin",
+      items: [
         { label: isAr ? "أدوات Leads" : "Tool Leads", icon: Calculator, href: "/admin/leads" },
         { label: isAr ? "النتائج المحفوظة" : "Saved Results", icon: Bookmark, href: "/admin/saved-results" },
         { label: isAr ? "الإحالات" : "Referrals", icon: Gift, onClick: () => navigate("admin-referrals") },

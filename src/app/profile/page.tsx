@@ -20,6 +20,7 @@ import {
   Save,
   Loader2,
   Crown,
+  ShieldCheck,
   Bell,
   Dumbbell,
   Apple,
@@ -36,7 +37,7 @@ import { cn } from "@/lib/utils";
 export default function ProfilePage() {
   const { lang } = useI18n();
   const isAr = lang === "ar";
-  const { profile, loading, signOutAsync } = useAuth();
+  const { profile, loading, signOutAsync, isCoach, isAdmin } = useAuth();
   const { navigate } = useNav();
 
   const [fullName, setFullName] = useState("");
@@ -215,27 +216,47 @@ export default function ProfilePage() {
               <p className="mt-0.5 text-sm font-normal text-[#6e6e73]" dir="ltr">
                 {profile.phone || ""}
               </p>
-              {/* Membership badge */}
+              {/* Membership badge — staff (coach/admin) get a ROLE badge
+                  instead: the platform owner is not a subscriber of his
+                  own product, and never sees an upgrade CTA. */}
               <div className="mt-3 flex flex-wrap items-center justify-center gap-2 sm:justify-start">
-                <span
-                  className={cn(
-                    "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium",
-                    tier === "pro" && "bg-[#1d1d1f] text-white",
-                    tier === "premium" && "bg-[#0071e3]/10 text-[#0071e3]",
-                    tier === "free" && "bg-[#6e6e73]/10 text-[#6e6e73]",
-                    tier === "coaching" && "bg-[#8b5cf6]/10 text-[#8b5cf6]",
-                  )}
-                >
-                  <Crown className="h-3 w-3" />
-                  {isAr ? membership?.nameAr : membership?.nameEn}
-                </span>
-                {tier === "free" && (
-                  <a
-                    href="/memberships"
-                    className="text-xs font-medium text-[#0071e3] hover:underline"
+                {isCoach ? (
+                  <span
+                    className={cn(
+                      "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium",
+                      isAdmin
+                        ? "bg-[#1d1d1f] text-white"
+                        : "bg-[#8b5cf6]/10 text-[#8b5cf6]",
+                    )}
                   >
-                    {isAr ? "ترقية العضوية ›" : "Upgrade ›"}
-                  </a>
+                    <ShieldCheck className="h-3 w-3" />
+                    {isAdmin
+                      ? isAr ? "إدارة المنصة" : "Platform Admin"
+                      : isAr ? "مدرب معتمد" : "Coach"}
+                  </span>
+                ) : (
+                  <>
+                    <span
+                      className={cn(
+                        "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium",
+                        tier === "pro" && "bg-[#1d1d1f] text-white",
+                        tier === "premium" && "bg-[#0071e3]/10 text-[#0071e3]",
+                        tier === "free" && "bg-[#6e6e73]/10 text-[#6e6e73]",
+                        tier === "coaching" && "bg-[#8b5cf6]/10 text-[#8b5cf6]",
+                      )}
+                    >
+                      <Crown className="h-3 w-3" />
+                      {isAr ? membership?.nameAr : membership?.nameEn}
+                    </span>
+                    {tier === "free" && (
+                      <a
+                        href="/memberships"
+                        className="text-xs font-medium text-[#0071e3] hover:underline"
+                      >
+                        {isAr ? "ترقية العضوية ›" : "Upgrade ›"}
+                      </a>
+                    )}
+                  </>
                 )}
               </div>
             </div>

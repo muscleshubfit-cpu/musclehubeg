@@ -22,7 +22,7 @@ export type Database = {
           email: string | null;
           full_name: string | null;
           phone: string | null;
-          role: "client" | "coach";
+          role: "client" | "coach" | "admin";
           avatar_url: string | null;
           referral_code: string | null;
           created_at: string;
@@ -32,7 +32,7 @@ export type Database = {
           email?: string | null;
           full_name?: string | null;
           phone?: string | null;
-          role?: "client" | "coach";
+          role?: "client" | "coach" | "admin";
           avatar_url?: string | null;
           referral_code?: string | null;
           created_at?: string;
@@ -41,7 +41,7 @@ export type Database = {
           email?: string | null;
           full_name?: string | null;
           phone?: string | null;
-          role?: "client" | "coach";
+          role?: "client" | "coach" | "admin";
           avatar_url?: string | null;
           referral_code?: string | null;
         };
@@ -945,7 +945,7 @@ export type Database = {
       };
       get_profile_role: {
         Args: { p_user_id: string };
-        Returns: "client" | "coach";
+        Returns: "client" | "coach" | "admin";
       };
       extend_subscription: {
         Args: {
@@ -986,7 +986,7 @@ export type Database = {
       };
     };
     Enums: {
-      user_role: "client" | "coach";
+      user_role: "client" | "coach" | "admin";
       questionnaire_status: "draft" | "submitted" | "approved" | "needs_info";
       subscription_status: "active" | "expired" | "pending";
       plan_type: "meal" | "workout";

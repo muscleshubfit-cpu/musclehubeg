@@ -11,7 +11,7 @@ import { openEvoFloatingChat } from "@/lib/evo-chat-context";
 
 export function AppLayout({ children }: { children: ReactNode }) {
   const { t, lang } = useI18n();
-  const { profile, isCoach } = useAuth();
+  const { profile, isCoach, isAdmin } = useAuth();
   const { view, navigate } = useNav();
   const isAr = lang === "ar";
 
@@ -28,14 +28,22 @@ export function AppLayout({ children }: { children: ReactNode }) {
     { to: "referral", label: t("nav.referral"), emoji: "🎁" },
     { to: "memberships", label: t("nav.pricing"), emoji: "👑" },
   ];
+  // STAFF NAV (coach | admin): the coach's work surface. Clients first —
+  // the questionnaire review queue inside each client page is the coach's
+  // entry point (owner directive: نقطة اطلاع الكوتش على الاستبيانات).
   const coachNav: NavItem[] = [
     { to: "coach", label: t("nav.clients"), emoji: "👥" },
     { to: "coach-support", label: t("nav.support.coach"), emoji: "🔧" },
     { to: "coach-payments", label: t("nav.admin"), emoji: "💳" },
+  ];
+  // ADMIN-EXCLUSIVE nav items (owner directive 2026-08-29 — answers Q6):
+  // blog CMS, referrals admin, tool leads, saved results are hidden from
+  // future coach accounts; the admin (owner / general coach) sees them.
+  const coachNavAdmin: NavItem[] = [
     { to: "blog-admin", label: isAr ? "المدونة" : "Blog", emoji: "📝" },
     { to: "admin-referrals", label: isAr ? "الإحالات" : "Referrals", emoji: "🎁" },
   ];
-  // Custom external links for coach-only pages that live outside the View
+  // Custom external links for admin-only pages that live outside the View
   // type (real URLs under /admin/*). Saved Results was previously reachable
   // only from the header drawer — deep-audit fix (2026-08-28) puts it on par
   // with Tool Leads in the persistent sidebar.
@@ -43,7 +51,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
     { href: "/admin/leads", label: isAr ? "Leads الأدوات" : "Tool Leads", emoji: "📨" },
     { href: "/admin/saved-results", label: isAr ? "النتائج المحفوظة" : "Saved Results", emoji: "🔖" },
   ];
-  const nav = isCoach ? coachNav : clientNav;
+  const nav = isCoach ? [...coachNav, ...(isAdmin ? coachNavAdmin : [])] : clientNav;
 
   return (
     <div className="flex min-h-screen flex-col bg-white text-[#1d1d1f]">
@@ -82,7 +90,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
                   </button>
                 );
               })}
-              {isCoach && coachExtraLinks.map((link) => {
+              {isAdmin && coachExtraLinks.map((link) => {
                 const active = view === ("admin-leads" as any);
                 return (
                   <a
@@ -134,7 +142,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
                     </button>
                   );
                 })}
-                {isCoach && coachExtraLinks.map((link) => (
+                {isAdmin && coachExtraLinks.map((link) => (
                   <a
                     key={link.href}
                     href={link.href}

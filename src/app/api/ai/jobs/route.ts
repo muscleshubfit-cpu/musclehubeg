@@ -79,12 +79,13 @@ export async function POST(request: NextRequest) {
         const coachAuth = await requireCoach(request);
         if (coachAuth instanceof Response) return coachAuth;
       }
-    } else if (authRole === "coach") {
-      // T-4PILLAR-COMPLETE (2026-08-28): staff crafting client plans use
-      // meal/exercise swaps as an EDITING tool, not as client self-service —
-      // quota-bypass them. The weekly C16 limit stays exactly as-is for
-      // clients (free 0 · premium 3 · pro 6 · coaching 3), and EVO-chat
-      // plan-creation quotas (Phase 20 D4) are untouched.
+    } else if (authRole && authRole !== "client") {
+      // STAFF QUOTA SEMANTICS (T-4PILLAR + admin role 2026-08-29): staff
+      // (coach | admin) crafting client plans use meal/exercise swaps as
+      // an EDITING tool, not as client self-service — quota-bypass them.
+      // The weekly C16 limit stays exactly as-is for clients (free 0 ·
+      // premium 3 · pro 6 · coaching 3), and EVO-chat plan-creation
+      // quotas (Phase 20 D4) are untouched.
     } else {
       // user_swap_meal | user_swap_exercise → enforce C16 weekly tier limit.
       // Record-at-enqueue mirrors the previous swap system exactly: quota

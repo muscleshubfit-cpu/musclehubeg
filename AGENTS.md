@@ -599,9 +599,10 @@ Process:
        `supabase/migrations/RUN_ON_SUPABASE_0027_STORAGE_BUCKETS.sql`
        (idempotent, no policies — service role bypasses RLS). Client
        data-URL fallback in QuestionnairesView stays as a safety net.
-    2) COACH SIDEBAR COMPLETENESS: AppLayout `coachExtraLinks` must list
-       EVERY `/admin/*` page (currently Tool Leads + Saved Results); a
-       coach-only page reachable from one surface only is a defect.
+    2) ADMIN SIDEBAR COMPLETENESS (2026-08-29 role-model v2): AppLayout
+       `coachExtraLinks` must list EVERY `/admin/*` page (currently Tool
+       Leads + Saved Results) and is rendered for `isAdmin` ONLY — these
+       surfaces are admin-exclusive, never coach-visible.
     3) AUDIT BASELINE (all verified wired 2026-08-28): 15 blog-editor AI
        buttons → article_tool(11)+social_post(4) handled by
        `src/lib/ai-job-processors.ts` via GHA runner; plan
@@ -609,6 +610,44 @@ Process:
        meal_regenerate, exercise_regenerate, payments review, receipts,
        broadcasts, admin leads/referrals/saved-results/blog CRUD — all
        consistent. Re-audit after ANY new button+endpoint pair.
+- **ROLE MODEL v2 LAW (2026-08-29, owner directive «فحص حالة الدخول بحساب
+  ادمن/كوتش … نفس ما يظهر للمستخدمين يظهر للادمن و نفس حدود الاستخدام وده
+  مش منطقى» + approved discussion answers):** `profiles.role` is the
+  THREE-value enum `client | coach | admin` (migrations
+  RUN_ON_SUPABASE_0029A + 0029B — run in that order; ALTER TYPE and its
+  first use cannot share one transaction). The semantics are NON-NEGOTIABLE:
+    1) STAFF = coach ∪ admin. `isCoach` in use-auth now means STAFF;
+       `is_staff` on `AuthUser` (auth-server) is the server twin.
+       SQL `is_coach()` was REDEFINED as `role IN ('coach','admin')` —
+       every existing RLS policy keeps working unchanged and the admin
+       inherits full coach data access. NEVER rewrite policies back to
+       `= 'coach'` only.
+    2) ADMIN-EXCLUSIVE surfaces: /admin/* (blog CMS, tool leads, saved
+       results, referrals admin) — AdminGate requires `role==='admin'`;
+       future coach accounts are bounced to /coach. AppLayout renders
+       blog/leads/saved-results/referrals-admin links for isAdmin only.
+    3) STAFF-BLOCKED client surfaces: /dashboard /plans /progress
+       /questionnaires /referral /support are CLIENT-only — AuthGate
+       redirects staff to /coach (ROLE SURFACE LAW: staff and consumers
+       never share a UI).
+    4) STAFF QUOTA EXEMPTION: staffHint (from auth.is_staff) short-
+       circuits checkEvoChatLimit / checkEvoPlanQuota /
+       checkAndRecordSwap to unlimited — platform staff are never
+       limited by consumer tiers on EVO either. Usage stays recorded.
+    5) NO SALES FUNNEL FOR STAFF: SiteHeader hides Paid Services
+       (Coaching/Memberships/EVO) + Affiliate groups from staff; the
+       profile page shows a ROLE badge (إدارة المنصة / مدرب معتمد),
+       never a membership card or upgrade CTA.
+    6) PROMOTION: coach_emails allowlist → role='coach' only (auto-
+       promote hardened to never downgrade an admin); the owner account
+       is admin (0029B promotes every pre-existing coach row). Adding a
+       coach = INSERT into coach_emails; adding an admin = manual SQL.
+    7) FUTURE (owner-approved design, NOT yet built): multi-coach
+       system — coach_assignments (1 client ↔ 1 coach), per-coach
+       landing pages (not in menus), notifications routed to the
+       assigned coach via target_coach_id, payments scoped per coach,
+       client sees their coach. Built ON TOP of this law when owner
+       gives the go signal.
 - **USAGE LIMIT ENFORCEMENT LAW (2026-08-28, T-AI-DEEP-AUDIT-V2, owner
   directive «توسع وعمق اكبر … والتأكد من ايفو وطبيعه عضوية المستخدم فى
   حدود الاستخدام»):** every limit advertised in `memberships.ts` MUST be
@@ -714,14 +753,14 @@ Process:
        AND only if it is still `status='draft'` — a failed/late
        generation must never destroy an existing (possibly approved)
        plan.
-    4) STAFF QUOTA SEMANTICS: `role='coach'` requesters bypass the
-       weekly swap quota at `/api/ai/jobs` — meal/exercise swaps are
-       the coach's PLAN-EDITING tools, not client self-service. The
-       client-facing C16 weekly limits (free 0 · premium 3 · pro 6 ·
-       coaching 3) and the EVO monthly plan quotas are untouched.
-       Coach-side exercise swap lives in PlanViewerModal edit mode
-       (per-exercise Wand2 button → exercise_regenerate → in-place
-       replace → explicit حفظ).
+    4) STAFF QUOTA SEMANTICS: staff requesters (role `coach` OR `admin`)
+       bypass the weekly swap quota at `/api/ai/jobs` — meal/exercise
+       swaps are the staff's PLAN-EDITING tools, not client
+       self-service. The client-facing C16 weekly limits (free 0 ·
+       premium 3 · pro 6 · coaching 3) are untouched. Coach-side
+       exercise swap lives in PlanViewerModal edit mode (per-exercise
+       Wand2 button → exercise_regenerate → in-place replace → explicit
+       حفظ).
 - **EVENT-DRIVEN AI DISPATCH LAW (2026-08-28, T-PLAN-GEN-ARTICLEGEN,
   owner «توليد الخطط لا يعمل» + «توليد المقالات للكوتش غير موجود»):**
   the `ai_jobs` queue worker (`process-ai-jobs.yml`) is a GitHub cron —

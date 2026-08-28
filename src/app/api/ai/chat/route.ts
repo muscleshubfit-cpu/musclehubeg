@@ -87,6 +87,7 @@ export async function POST(request: NextRequest) {
     let userId: string | undefined;
     let userName: string | undefined;
     let authTier: string | null = null;
+    let authIsStaff = false;
     if (isAuthConfigured) {
       const auth = await requireUser(request);
       if (!(auth instanceof Response)) {
@@ -94,6 +95,9 @@ export async function POST(request: NextRequest) {
         userName = auth.full_name || auth.email || undefined;
         // G3/G4 fix: already verified active + non-expired by getAuthUser().
         authTier = auth.membership_tier;
+        // STAFF QUOTA SEMANTICS: platform staff (coach|admin) bypass
+        // every consumer usage limit below.
+        authIsStaff = auth.is_staff;
       }
       // If auth fails (401), we continue as anonymous — EVO is free for all
     }
@@ -130,7 +134,7 @@ export async function POST(request: NextRequest) {
     let limitValue: number | null = null;
     let anonKey: string | undefined;
     if (userId) {
-      const limitCheck = await checkEvoChatLimit(userId, authTier);
+      const limitCheck = await checkEvoChatLimit(userId, authTier, authIsStaff);
       limitUsed = limitCheck.used;
       limitValue = limitCheck.limit;
       if (!limitCheck.allowed) {
@@ -199,7 +203,12 @@ export async function POST(request: NextRequest) {
     // evoWorkoutPlanLimit. Swap intents intentionally NOT counted here —
     // they ride the weekly /api/ai/jobs quota (no double-billing).
     if (intent.isPlanCreation && isPaidTier && userId) {
-      const quota = await checkEvoPlanQuota(userId, intent.planDomain, authTier);
+      const quota = await checkEvoPlanQuota(
+        userId,
+        intent.planDomain,
+        authTier,
+        authIsStaff,
+      );
       if (!quota.allowed) {
         const domainLabel =
           intent.planDomain === "nutrition" ? "meal" : "workout";

@@ -22,7 +22,13 @@ import type { Profile } from "@/lib/supabase/types";
 type AuthCtx = {
  profile: Profile | null;
  loading: boolean;
+ /** STAFF semantics: true for role coach AND admin. Gates every coach
+  * surface (clients, support, payments). Admin additionally gets the
+  * admin-exclusive surfaces via isAdmin. */
  isCoach: boolean;
+ /** role === "admin" — platform owner. Admin-exclusive: blog admin,
+  * tool leads, saved results, referrals admin. */
+ isAdmin: boolean;
  signUp: (email: string, password: string, fullName: string, phone: string) => Promise<{ error: string | null; needsConfirmation?: boolean }>;
  signIn: (email: string, password: string) => Promise<{ error: string | null; profile: Profile | null }>;
  signInGoogle: (nextPath?: string) => Promise<{ error: string | null }>;
@@ -97,7 +103,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
  value={{
  profile,
  loading,
- isCoach: profile?.role === "coach",
+ isCoach: profile?.role === "coach" || profile?.role === "admin",
+ isAdmin: profile?.role === "admin",
  signUp,
  signIn,
  signInGoogle,

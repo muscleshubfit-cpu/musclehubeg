@@ -49,8 +49,8 @@ export function useMembershipTier(
       return;
     }
 
-    // Coaches auto-resolve to "coaching"
-    if (profile.role === "coach") {
+    // Staff (coach | admin) auto-resolve to "coaching" for UI gates
+    if (profile.role !== "client") {
       setTier("coaching");
       setLoading(false);
       return;

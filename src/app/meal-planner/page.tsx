@@ -86,7 +86,7 @@ export default function MealPlannerPage() {
 
   useEffect(() => {
     if (!profile) return;
-    if (profile.role === "coach") {
+    if (profile.role !== "client") {
       setTier("coaching");
       return;
     }
