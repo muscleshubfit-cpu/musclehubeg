@@ -32,6 +32,8 @@ import {
   Target,
   Activity,
   Pizza,
+  Megaphone,
+  ShieldQuestion,
 } from "lucide-react";
 import { LanguageToggle } from "@/components/LanguageToggle";
 import { useI18n } from "@/lib/i18n";
@@ -271,6 +273,9 @@ export function SiteHeader({ variant = "landing" }: { variant?: "landing" | "app
         { label: isAr ? "المدفوعات" : "Payments", icon: Crown, onClick: () => navigate("coach-payments") },
         { label: isAr ? "دعم العملاء" : "Client Support", icon: LifeBuoy, onClick: () => navigate("coach-support") },
         { label: isAr ? "صفحتي العامة" : "My Public Page", icon: Globe, onClick: () => navigate("coach-landing") },
+        // 0037 — «أعلن معنا» + the dedicated coach→site support channel
+        { label: isAr ? "أعلن معنا" : "Advertise with us", icon: Megaphone, onClick: () => navigate("coach-ads") },
+        { label: isAr ? "دعم المدربين" : "Coach Support", icon: ShieldQuestion, onClick: () => navigate("coach-help") },
       ],
     });
   }

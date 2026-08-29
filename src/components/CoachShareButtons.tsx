@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Facebook, Twitter, Send, Link2, Check } from "lucide-react";
 
 type Props = {
   /** Pre-filled share message (localized by the caller). */
@@ -9,7 +10,6 @@ type Props = {
   url?: string;
   /** Button labels + copy-label, localized by the caller. */
   labels: {
-    whatsapp: string;
     facebook: string;
     x: string;
     telegram: string;
@@ -19,13 +19,14 @@ type Props = {
 };
 
 /**
- * FOR-COACHES SHARE BUTTONS — TEXT-ONLY by owner decree
- * («لا تستخدم ايقونات او ايموجى فقط كتابة وكروت وازرار بنفس طابع الموقع»).
+ * FOR-COACHES SHARE BUTTONS — icon upgrade per owner directive
+ * («ايقونات المشاركه ضيفها عادى انا اقصد بدون ايقونات فى الاقسام
+ * فى الصفحة نفسها»): icons are FINE on the share buttons; the page's
+ * content sections stay text-only.
  *
- * Deliberately does NOT reuse ShareButtons (that one renders lucide icons).
- * No icons, no emojis — plain text buttons styled with the site's Apple-like
- * tokens (#0071e3 accent, rounded-full, #e5e5ea rings). Share targets are the
- * standard intent URLs (no JS SDK): WhatsApp, Facebook, X, Telegram + copy.
+ * OWNER DECREE (2026-08-30): «معادا زر واتساب لن نضيفها» — the WhatsApp
+ * share target is REMOVED. Remaining targets: Facebook, X, Telegram +
+ * copy-link (lucide icons — no WhatsApp glyph exists in lucide anyway).
  */
 export function CoachShareButtons({ message, url, labels }: Props) {
   const [copied, setCopied] = useState(false);
@@ -35,25 +36,23 @@ export function CoachShareButtons({ message, url, labels }: Props) {
     (typeof window !== "undefined"
       ? window.location.href
       : "https://musclehubeg.vercel.app/for-coaches");
-  const fullText = `${message}\n${shareUrl}`;
   const enc = encodeURIComponent;
 
   const links = [
     {
-      label: labels.whatsapp,
-      href: `https://wa.me/?text=${enc(fullText)}`,
-    },
-    {
       label: labels.facebook,
       href: `https://www.facebook.com/sharer/sharer.php?u=${enc(shareUrl)}&quote=${enc(message)}`,
+      icon: Facebook,
     },
     {
       label: labels.x,
       href: `https://twitter.com/intent/tweet?text=${enc(message)}&url=${enc(shareUrl)}`,
+      icon: Twitter,
     },
     {
       label: labels.telegram,
       href: `https://t.me/share/url?url=${enc(shareUrl)}&text=${enc(message)}`,
+      icon: Send,
     },
   ];
 
@@ -80,16 +79,22 @@ export function CoachShareButtons({ message, url, labels }: Props) {
           href={l.href}
           target="_blank"
           rel="noopener noreferrer"
-          className="rounded-full bg-[#0071e3] px-6 py-2.5 text-sm font-semibold text-white shadow-md shadow-[#0071e3]/20 transition-all duration-300 hover:bg-[#0077ed] hover:shadow-lg"
+          className="inline-flex items-center gap-2 rounded-full bg-[#0071e3] px-6 py-2.5 text-sm font-semibold text-white shadow-md shadow-[#0071e3]/20 transition-all duration-300 hover:bg-[#0077ed] hover:shadow-lg"
         >
+          <l.icon className="h-4 w-4" aria-hidden="true" />
           {l.label}
         </a>
       ))}
       <button
         type="button"
         onClick={copyLink}
-        className="rounded-full border border-[#d2d2d7] bg-white px-6 py-2.5 text-sm font-semibold text-[#1d1d1f] transition-all duration-300 hover:border-[#0071e3] hover:text-[#0071e3]"
+        className="inline-flex items-center gap-2 rounded-full border border-[#d2d2d7] bg-white px-6 py-2.5 text-sm font-semibold text-[#1d1d1f] transition-all duration-300 hover:border-[#0071e3] hover:text-[#0071e3]"
       >
+        {copied ? (
+          <Check className="h-4 w-4" aria-hidden="true" />
+        ) : (
+          <Link2 className="h-4 w-4" aria-hidden="true" />
+        )}
         {copied ? labels.copied : labels.copy}
       </button>
     </div>

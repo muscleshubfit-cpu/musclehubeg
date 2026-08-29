@@ -22,6 +22,65 @@
 /** Completed AI plan generations allowed per client, per kind, per month. */
 export const COACH_AI_PLAN_LIMIT = 4;
 
+/* ------------------------------------------------------------------ */
+/* OWNER PRICING (2026-08-30 decree:                                   */
+/* «اسعار المدربين لكل عميل تتعمل ٣٠٠ الشهر / ٨٠٠ ٣ شهور»)              */
+/* The per-client fee the coach pays THE SITE is now PACKAGE-based:    */
+/* 1 client-month = 300 EGP, 3 client-months = 800 EGP (bundle).       */
+/* Single source of truth for BOTH the server debit math               */
+/* (/api/coach/subscriptions/activate) and the coach-facing UI.        */
+/* ------------------------------------------------------------------ */
+
+export const COACH_CLIENT_PACKAGES: ReadonlyArray<{
+  months: number;
+  priceEgp: number;
+}> = [
+  { months: 1, priceEgp: 300 },
+  { months: 3, priceEgp: 800 },
+];
+
+/**
+ * Activation cost for a given duration. Package prices ALWAYS win for
+ * 1 and 3 months (owner decree — coach_fees.fee_per_client can no
+ * longer undercut them). Any other duration (e.g. legacy 12-month
+ * activations) stays linear on the coach's monthly base: his admin-set
+ * fee_per_client if one exists, otherwise the 300 EGP monthly rate.
+ */
+export function coachActivationCostEgp(
+  months: number,
+  feePerClient = 0,
+): number {
+  const pkg = COACH_CLIENT_PACKAGES.find((p) => p.months === months);
+  if (pkg) return pkg.priceEgp;
+  const monthly = feePerClient > 0 ? feePerClient : COACH_CLIENT_PACKAGES[0].priceEgp;
+  return Math.round(monthly * months * 100) / 100;
+}
+
+/* ------------------------------------------------------------------ */
+/* «أعلن معنا» — COACH AD PACKAGES (fixed-duration, fixed-price,       */
+/* paid from the wallet — same fixed-price law, never percentage).     */
+/* ⚠️ OWNER TUNABLE: adjust prices here only — server debit + UI +     */
+/* homepage featured strip all read these constants.                   */
+/* ------------------------------------------------------------------ */
+
+export const COACH_AD_PACKAGES: ReadonlyArray<{
+  id: string;
+  days: number;
+  priceEgp: number;
+  ar: string;
+  en: string;
+}> = [
+  { id: "week", days: 7, priceEgp: 100, ar: "أسبوع", en: "1 week" },
+  { id: "month", days: 30, priceEgp: 300, ar: "شهر", en: "1 month" },
+  { id: "quarter", days: 90, priceEgp: 800, ar: "٣ شهور", en: "3 months" },
+];
+
+export type CoachAdPackage = (typeof COACH_AD_PACKAGES)[number];
+
+export function coachAdPackageById(id: unknown): CoachAdPackage | null {
+  return COACH_AD_PACKAGES.find((p) => p.id === id) ?? null;
+}
+
 /** UTC calendar-month window for the coach AI quota (resets on the 1st). */
 export function coachAiMonthStartISO(now: Date = new Date()): string {
   return new Date(

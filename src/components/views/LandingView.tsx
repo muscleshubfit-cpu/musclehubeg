@@ -256,6 +256,18 @@ export function LandingView() {
 
   const [latestPosts, setLatestPosts] = useState<BlogPost[]>([]);
   const [featuredPosts, setFeaturedPosts] = useState<BlogPost[]>([]);
+  // 0037 «أعلن معنا» — coaches with a running ad (homepage featured strip)
+  type FeaturedCoach = { slug: string | null; name: string; headline: string; photo: string | null };
+  const [featuredCoaches, setFeaturedCoaches] = useState<FeaturedCoach[]>([]);
+
+  useEffect(() => {
+    // Silent fetch — the strip only renders when active ads exist, so a
+    // failed/empty call must never affect the homepage.
+    fetch("/api/coaches/featured")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((json) => setFeaturedCoaches(json?.coaches ?? []))
+      .catch(() => setFeaturedCoaches([]));
+  }, []);
 
   useEffect(() => {
     (async () => {
@@ -661,6 +673,127 @@ export function LandingView() {
         </div>
       </section>
 
+      {/* ===================== 9.5 FEATURED COACHES («أعلن معنا» ads) ===================== */}
+      {featuredCoaches.length > 0 && (
+        <section className="bg-[#f5f5f7] px-4 py-12 md:py-20">
+          <div className="mx-auto max-w-5xl">
+            <h2 className="text-center text-3xl font-semibold tracking-tight md:text-4xl" style={{ color: PALETTE.textPrim }}>
+              {isAr ? "مدربون مميزون" : "Featured Coaches"}
+            </h2>
+            <p className="mx-auto mt-3 max-w-md text-center text-base font-normal" style={{ color: PALETTE.textSec }}>
+              {isAr
+                ? "مدربون معتمدون على المنصة — اضغط على أي مدرب لزيارة صفحته."
+                : "Certified coaches on the platform — tap any coach to visit his page."}
+            </p>
+            <div className="mt-8 grid grid-cols-2 gap-4 md:grid-cols-4">
+              {featuredCoaches.map((coach, i) => {
+                const href = coach.slug ? `/coaches/${coach.slug}` : "/coaching";
+                return (
+                  <a
+                    key={`${coach.slug || coach.name}-${i}`}
+                    href={href}
+                    className="group block rounded-3xl bg-white p-5 text-center transition-all duration-300"
+                    style={{ boxShadow: "0 1px 2px rgba(29, 37, 46, 0.04)" }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.boxShadow = "0 4px 16px rgba(201, 228, 252, 0.45)";
+                      e.currentTarget.style.transform = "translateY(-1px)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.boxShadow = "0 1px 2px rgba(29, 37, 46, 0.04)";
+                      e.currentTarget.style.transform = "translateY(0)";
+                    }}
+                  >
+                    {coach.photo ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={coach.photo}
+                        alt={coach.name}
+                        className="mx-auto h-16 w-16 rounded-full object-cover ring-4 ring-[#f5f5f7]"
+                      />
+                    ) : (
+                      <div className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-[#0071e3]/10 text-xl font-semibold text-[#0071e3]">
+                        {(coach.name.trim().charAt(0) || "M")}
+                      </div>
+                    )}
+                    <p className="mt-3 truncate text-sm font-semibold" style={{ color: PALETTE.textPrim }}>
+                      {coach.name}
+                    </p>
+                    {coach.headline && (
+                      <p className="mt-1 line-clamp-2 text-xs font-normal" style={{ color: PALETTE.textSec }}>
+                        {coach.headline}
+                      </p>
+                    )}
+                  </a>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* ===================== 9.7 JOIN AS A COACH (owner-approved homepage block) ===================== */}
+      <section className="px-4 py-12 md:py-20" style={{ backgroundColor: PALETTE.sectionDark }}>
+        <div className="mx-auto max-w-4xl text-center">
+          <Reveal>
+            <span
+              className="inline-flex items-center rounded-full px-4 py-1.5 text-xs font-medium"
+              style={{ backgroundColor: "rgba(0, 113, 227, 0.15)", color: "#7CB8F8" }}
+            >
+              {isAr ? "للمدربين والأخصائيين" : "For Coaches & Specialists"}
+            </span>
+          </Reveal>
+          <Reveal delay={100}>
+            <h2 className="mt-4 text-3xl font-semibold tracking-tight text-white md:text-5xl">
+              {isAr ? "أنت مدرب؟ اعمل شغلك كله من مكان واحد." : "Are you a coach? Run your whole business from one place."}
+            </h2>
+          </Reveal>
+          <Reveal delay={150}>
+            <p className="mx-auto mt-4 max-w-xl text-base font-normal md:text-lg" style={{ color: "#A1A1A6" }}>
+              {isAr
+                ? "سعر عميلك قرارك وحدك، وبتحصّل فلوسك بنفسك — والموقع بياخد رسوم ثابتة فقط، من غير أي نسبة من شغلك."
+                : "Your client's price is your call alone, and you collect your money yourself — the site charges a fixed fee only, never a percentage of your work."}
+            </p>
+          </Reveal>
+          <Reveal delay={200}>
+            <div className="mx-auto mt-8 grid max-w-2xl gap-3 text-start md:grid-cols-3">
+              {[
+                isAr
+                  ? { t: "أسعارك إيدك", d: "تحدد سعر عميلك وتحصّله بنفسك — صفر٪ عمولة" }
+                  : { t: "Your prices", d: "Set your price and collect directly — 0% commission" },
+                isAr
+                  ? { t: "عملاؤك وصلاحياتك معاهم", d: "خطط وإدارة كاملة لعملائك من لوحة الكوتش" }
+                  : { t: "Your clients, your rules", d: "Full plans & management from the coach dashboard" },
+                isAr
+                  ? { t: "أدوات المنصة معاك", d: "EVO، ٨٦٨+ تمرين، ٨٬٨٣٠+ أكلة، وصفحة عامة لك" }
+                  : { t: "Platform tools included", d: "EVO, 868+ exercises, 8,830+ foods, and your own page" },
+              ].map((item) => (
+                <div
+                  key={item.t}
+                  className="rounded-2xl p-5"
+                  style={{ backgroundColor: "rgba(255, 255, 255, 0.06)" }}
+                >
+                  <p className="text-sm font-semibold text-white">{item.t}</p>
+                  <p className="mt-1.5 text-xs font-normal leading-relaxed" style={{ color: "#A1A1A6" }}>
+                    {item.d}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </Reveal>
+          <Reveal delay={250}>
+            <div className="mt-8">
+              <a
+                href="/for-coaches"
+                className="rounded-full px-8 py-3.5 text-base font-medium text-white transition-opacity hover:opacity-90"
+                style={{ backgroundColor: PALETTE.brand }}
+              >
+                {isAr ? "انضم كمدرب ›" : "Join as a coach ›"}
+              </a>
+            </div>
+          </Reveal>
+        </div>
+      </section>
+
       {/* ===================== 10. Premium Memberships ===================== */}
       <section className="px-4 py-12 md:py-20" style={{ backgroundColor: PALETTE.sectionGray }}>
         <div className="mx-auto max-w-5xl">
@@ -857,6 +990,27 @@ export function LandingView() {
       {/* ===================== FOOTER ===================== */}
       <footer className="border-t border-[#d2d2d7] bg-[#f5f5f7] px-4 py-10 text-[#6e6e73]">
         <div className="mx-auto max-w-6xl">
+          {/* Owner-approved (2026-08-30): «انضم كمدرب» CTA strip — the coach
+              funnel entry point lives at the very top of the footer. */}
+          <a
+            href="/for-coaches"
+            className="group mb-8 flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-[#1d1d1f] px-6 py-5 transition-opacity hover:opacity-95"
+          >
+            <span>
+              <span className="block text-base font-semibold text-white md:text-lg">
+                {isAr ? "أنت مدرب؟ انضم كمدرب على MuscleHubEG" : "Are you a coach? Join MuscleHubEG as a coach"}
+              </span>
+              <span className="mt-0.5 block text-xs font-normal text-[#a1a1a6]">
+                {isAr
+                  ? "أسعارك إيدك، عملاؤك معاك، وصفحة عامة باسمك — التسجيل بياخد دقيقة."
+                  : "Your prices, your clients, your own public page — signup takes a minute."}
+              </span>
+            </span>
+            <span className="rounded-full bg-[#0071e3] px-5 py-2.5 text-sm font-medium text-white transition-opacity group-hover:opacity-90">
+              {isAr ? "انضم كمدرب ›" : "Join as a coach ›"}
+            </span>
+          </a>
+
           <div className="grid gap-8 md:grid-cols-3 lg:grid-cols-5">
             {/* Brand */}
             <div>

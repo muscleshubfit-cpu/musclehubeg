@@ -376,7 +376,6 @@ export default function ForCoachesPage() {
             <CoachShareButtons
               message={shareMsg}
               labels={{
-                whatsapp: "WhatsApp",
                 facebook: isAr ? "فيسبوك" : "Facebook",
                 x: "X",
                 telegram: "Telegram",

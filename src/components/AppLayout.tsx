@@ -39,6 +39,12 @@ export function AppLayout({ children }: { children: ReactNode }) {
     // per client from this balance — top-up via InstaPay / Vodafone
     // Cash / PayPal + receipt → admin review. Activation debits it.
     { to: "coach-wallet", label: isAr ? "محفظتي" : "My Wallet", emoji: "👛" },
+    // «أعلن معنا» (0037): fixed-duration ad packages — the featured card
+    // runs on the homepage «مدربون مميزون» strip. Wallet debited.
+    { to: "coach-ads", label: isAr ? "أعلن معنا" : "Advertise", emoji: "📣" },
+    // «دعم المدربين» (0037): the coach → site support channel, separate
+    // from the site's client support (client support belongs to coach).
+    { to: "coach-help", label: isAr ? "دعم المدربين" : "Coach Support", emoji: "🛟" },
   ];
   // ADMIN-EXCLUSIVE nav items (owner directive 2026-08-29 — answers Q6):
   // blog CMS, referrals admin, tool leads, saved results are hidden from

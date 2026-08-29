@@ -380,6 +380,38 @@ Cache headers (set in `vercel.json` + `next.config.ts`):
   verified at signup. Spam risk is mitigated by the rate limit +
   honeypot; switch to invite/confirm flows later if abuse appears.
 
+### Coach Boost Security Notes (2026-08-30, migration 0037)
+
+- **Public storage bucket `coach-public`:** the ONLY public bucket in
+  the project — required because coach profile photos must render for
+  ANONYMOUS visitors on public pages (private-bucket `/api/file` URLs
+  403 for logged-out users). Mitigations:
+  - Writes are authenticated-only, scoped to the coach's own
+    `<auth.uid()>/` folder via storage RLS (`storage.foldername`).
+  - Bucket caps: 5 MB/file, mime jpg/png/webp only; the landing API
+    additionally accepts only same-origin
+    `/storage/v1/object/public/coach-public/…` paths or https URLs and
+    caps results_photos at 6 entries with 120-char captions.
+  - **Content-risk trade-off (accepted):** a coach can publish
+    arbitrary images on HIS OWN published page. Owner moderation lever:
+    flip `coach_pages.is_published` off (the page and its gallery
+    disappear everywhere, including the ads strip — /api/coaches/
+    featured only surfaces coaches whose profile role passed the
+    service-side check and whose pages are published).
+- **Ads (`coach_ads`):** no client-side write policies at all — every
+  purchase runs through the server route, which debits the wallet
+  atomically (refund on failure) and validates the package against the
+  server-side constants. The debit uses ledger kind `adjust` with an
+  «إعلان — …» note (0035's `coach_adjust_wallet` kind check is
+  intentionally NOT altered to avoid function drift).
+- **Coach support messages:** RLS = coach reads/inserts his own rows;
+  admin replies are service-role only (admin API is AdminGate-guarded
+  by role='admin' server-side).
+- **Pricing authority:** `coachActivationCostEgp()` (coach-limits.ts)
+  is the single debit calculator; `coach_fees.fee_per_client` can no
+  longer undercut the owner's 300/800 package prices for 1/3-month
+  activations (it remains the linear base only for legacy durations).
+
 ---
 
 ## 12. PayPal Payment Security

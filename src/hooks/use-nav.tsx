@@ -20,6 +20,8 @@ export type View =
  | "coach-payments"
  | "coach-landing"
  | "coach-wallet"
+ | "coach-ads"
+ | "coach-help"
  | "referral"
  | "blog"
  | "about"
@@ -62,6 +64,10 @@ function pathForView(view: View, params: Record<string, any> = {}): string {
  return "/coach/payments";
  case "coach-wallet":
  return "/coach/wallet";
+ case "coach-ads":
+ return "/coach/ads";
+ case "coach-help":
+ return "/coach/help";
  case "coach-support":
  return "/coach/support";
  case "coach-landing":
@@ -85,6 +91,8 @@ function viewForPath(pathname: string): View {
  if (pathname === "/" || pathname === "") return "landing";
  if (pathname.startsWith("/coach/payments")) return "coach-payments";
  if (pathname.startsWith("/coach/wallet")) return "coach-wallet";
+ if (pathname.startsWith("/coach/ads")) return "coach-ads";
+ if (pathname.startsWith("/coach/help")) return "coach-help";
  if (pathname.startsWith("/coach/support")) return "coach-support";
  if (pathname.startsWith("/coach/landing")) return "coach-landing";
  if (pathname.startsWith("/coach/")) return "coach-client";

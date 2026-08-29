@@ -16,6 +16,41 @@ import { supabaseAdmin, isSupabaseAdminConfigured } from "@/lib/supabase/admin";
 
 const SLUG_RE = /^[a-z0-9-]{3,40}$/;
 
+/** 0037 — safe external URL: https only, no spaces, sane length. */
+function safeSocialUrl(raw: unknown): string {
+  const s = String(raw ?? "").trim().slice(0, 300);
+  if (!s) return "";
+  if (!/^https:\/\/[^\s]+$/i.test(s)) return "";
+  return s;
+}
+
+/**
+ * 0037 — safe media URL for coach-uploaded PHOTOS: accepts https:// OR a
+ * same-origin public-storage path (/storage/v1/object/public/coach-public/…)
+ * produced by supabase.storage.getPublicUrl(). Anything else is dropped.
+ */
+function safeMediaUrl(raw: unknown): string {
+  const s = String(raw ?? "").trim().slice(0, 500);
+  if (!s) return "";
+  if (s.startsWith("/storage/v1/object/public/coach-public/") && !s.includes("..")) return s;
+  if (!/^https:\/\/[^\s]+$/i.test(s)) return "";
+  return s;
+}
+
+/** 0037 — results photos: [{url, caption?}] max 6, https URLs only. */
+function safeResultsPhotos(raw: unknown): Array<{ url: string; caption: string }> {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .slice(0, 6)
+    .map((item) => {
+      const rec = (item ?? {}) as Record<string, unknown>;
+      const url = safeMediaUrl(rec.url);
+      const caption = String(rec.caption ?? "").trim().slice(0, 120);
+      return url ? { url, caption } : null;
+    })
+    .filter((x): x is { url: string; caption: string } => x !== null);
+}
+
 export async function GET(request: NextRequest) {
   let user: AuthUser;
   if (isAuthConfigured) {
@@ -82,6 +117,13 @@ export async function PUT(request: NextRequest) {
     ? body.specialties_en.map((s: unknown) => String(s).slice(0, 80)).filter(Boolean).join("\n").slice(0, 800)
     : String(body.specialties_en ?? "").slice(0, 800);
   const isPublished = Boolean(body.is_published);
+  // 0037 — public profile enrichment
+  const photoUrl = safeMediaUrl(body.photo_url);
+  const resultsPhotos = safeResultsPhotos(body.results_photos);
+  const instagramUrl = safeSocialUrl(body.instagram_url);
+  const facebookUrl = safeSocialUrl(body.facebook_url);
+  const tiktokUrl = safeSocialUrl(body.tiktok_url);
+  const youtubeUrl = safeSocialUrl(body.youtube_url);
 
   if (!SLUG_RE.test(slug)) {
     return NextResponse.json(
@@ -101,8 +143,7 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({ error: "Forbidden — staff only" }, { status: 403 });
   }
 
-  const { data, error } = await supabaseAdmin
-    .from("coach_pages")
+  const { data, error } = (await (supabaseAdmin.from("coach_pages") as any)
     .upsert(
       {
         coach_id: user.id,
@@ -114,12 +155,18 @@ export async function PUT(request: NextRequest) {
         bio_en: bioEn,
         specialties_en: specialtiesEn,
         is_published: isPublished,
+        photo_url: photoUrl,
+        results_photos: resultsPhotos,
+        instagram_url: instagramUrl,
+        facebook_url: facebookUrl,
+        tiktok_url: tiktokUrl,
+        youtube_url: youtubeUrl,
         updated_at: new Date().toISOString(),
       },
       { onConflict: "coach_id" },
     )
     .select()
-    .maybeSingle();
+    .maybeSingle()) as { data: any; error: any };
 
   if (error) {
     const code = (error as { code?: string }).code;
@@ -136,9 +183,9 @@ export async function PUT(request: NextRequest) {
       );
     }
     if (code === "42703") {
-      // Undefined column → the 0032 EN columns are not there yet
+      // Undefined column → 0032 EN columns or 0037 enrichment columns missing
       return NextResponse.json(
-        { error: "migration_missing_0032", message: "أعمدة النسخة الإنجليزية غير موجودة — شغّل هجرة 0032 في Supabase أولًا (raw link في المحادثة)" },
+        { error: "migration_missing", message: "أعمدة الصفحة غير موجودة — شغّل هجرات 0032 و 0037 في Supabase أولًا (raw links في المحادثة)" },
         { status: 503 },
       );
     }

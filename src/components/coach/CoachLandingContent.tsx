@@ -26,6 +26,16 @@ export function CoachLandingContent({
   const copy = resolveLandingCopy(data, lang);
   const name = coachDisplayName(data, lang);
   const initial = name.trim().charAt(0) || "M";
+  // 0037 — the coach-uploaded personal photo wins over the account avatar
+  // (private-bucket avatar URLs 403 for anonymous visitors; the public
+  // bucket photo is always anonymously viewable).
+  const heroPhoto = data.photo_url || data.coach_avatar || null;
+  const socials = [
+    { label: isAr ? "انستجرام" : "Instagram", url: data.social.instagram },
+    { label: isAr ? "فيسبوك" : "Facebook", url: data.social.facebook },
+    { label: isAr ? "تيك توك" : "TikTok", url: data.social.tiktok },
+    { label: isAr ? "يوتيوب" : "YouTube", url: data.social.youtube },
+  ].filter((s) => s.url);
   // COACH ATTRIBUTION (0033): the slug travels in the link — the signup
   // trigger reads coach_slug from metadata and assigns this client to
   // THIS coach (not the admin). Google signups fall back to the 30-day
@@ -47,10 +57,10 @@ export function CoachLandingContent({
 
       {/* Hero */}
       <section className="mx-auto flex max-w-3xl flex-col items-center px-6 pb-16 pt-20 text-center">
-        {data.coach_avatar ? (
+        {heroPhoto ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={data.coach_avatar}
+            src={heroPhoto}
             alt={name}
             className="h-28 w-28 rounded-full object-cover shadow-lg ring-4 ring-[#f5f5f7]"
           />
@@ -90,6 +100,23 @@ export function CoachLandingContent({
             ? `ابدأ متابعتك مع ${name.split(" ")[0]} الآن`
             : `Start your journey with ${name.split(" ")[0]} now`}
         </a>
+
+        {/* 0037 — social profile pills (text-first, site style) */}
+        {socials.length > 0 && (
+          <div className="mt-6 flex flex-wrap justify-center gap-2">
+            {socials.map((s) => (
+              <a
+                key={s.label}
+                href={s.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="rounded-full border border-[#d2d2d7] bg-white px-5 py-2 text-sm font-medium text-[#1d1d1f] transition-colors hover:border-[#0071e3] hover:text-[#0071e3]"
+              >
+                {s.label}
+              </a>
+            ))}
+          </div>
+        )}
       </section>
 
       {/* Bio */}
@@ -103,6 +130,40 @@ export function CoachLandingContent({
               {copy.bio.split("\n").map((para, i) =>
                 para.trim() ? <p key={i}>{para.trim()}</p> : null,
               )}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* 0037 — client results gallery (coach-uploaded photos) */}
+      {data.results_photos.length > 0 && (
+        <section className="mx-auto max-w-3xl px-6 pb-16">
+          <div className="rounded-3xl bg-[#f5f5f7] p-8 md:p-10">
+            <h2 className="mb-2 text-xl font-semibold tracking-tight">
+              {isAr ? "نتائج العملاء" : "Client results"}
+            </h2>
+            <p className="text-sm font-normal text-[#6e6e73]">
+              {isAr
+                ? "صور حقيقية شاركها المدرب لنتائج عملائه — النتائج تختلف من شخص لآخر."
+                : "Real photos shared by the coach of his clients' results — results vary from person to person."}
+            </p>
+            <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3">
+              {data.results_photos.map((photo, i) => (
+                <figure key={photo.url} className="group">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={photo.url}
+                    alt={photo.caption || `${isAr ? "نتيجة عميل" : "Client result"} ${i + 1}`}
+                    loading="lazy"
+                    className="aspect-[3/4] w-full rounded-2xl object-cover shadow-sm transition-shadow group-hover:shadow-md"
+                  />
+                  {photo.caption && (
+                    <figcaption className="mt-2 text-center text-xs font-normal text-[#6e6e73]">
+                      {photo.caption}
+                    </figcaption>
+                  )}
+                </figure>
+              ))}
             </div>
           </div>
         </section>

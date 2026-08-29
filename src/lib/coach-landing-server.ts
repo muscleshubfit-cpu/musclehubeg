@@ -22,11 +22,28 @@ export type CoachLandingCopy = {
   specialties: string[];
 };
 
+/** One client-result photo (0037) — public URL + optional caption. */
+export type CoachResultPhoto = { url: string; caption: string };
+
+/** Social links (0037) — empty string = not set. */
+export type CoachSocialLinks = {
+  instagram: string;
+  facebook: string;
+  tiktok: string;
+  youtube: string;
+};
+
 export type CoachLandingData = {
   slug: string;
   is_published: boolean;
   coach_name: string;
   coach_avatar: string | null;
+  /** 0037 — coach-uploaded personal photo (public bucket), beats avatar */
+  photo_url: string | null;
+  /** 0037 — client results photos gallery */
+  results_photos: CoachResultPhoto[];
+  /** 0037 — social profile links */
+  social: CoachSocialLinks;
   /** Arabic content (0031 columns) */
   ar: CoachLandingCopy;
   /** English content (0032 columns) */
@@ -37,18 +54,32 @@ function splitSpecialties(raw: string | null | undefined): string[] {
   return (raw || "").split("\n").map((s) => s.trim()).filter(Boolean);
 }
 
+/** 0037 — defensive jsonb parse of the results-photos array. */
+function parseResultsPhotos(raw: unknown): CoachResultPhoto[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .slice(0, 6)
+    .map((item) => {
+      const rec = (item ?? {}) as Record<string, unknown>;
+      const url = typeof rec.url === "string" ? rec.url : "";
+      const caption = typeof rec.caption === "string" ? rec.caption.slice(0, 120) : "";
+      return url ? { url, caption } : null;
+    })
+    .filter((x): x is CoachResultPhoto => x !== null);
+}
+
 export async function fetchCoachLanding(
   slug: string,
 ): Promise<CoachLandingData | null> {
   if (!isSupabaseAdminConfigured || !supabaseAdmin) return null;
 
-  const { data: page } = await supabaseAdmin
-    .from("coach_pages")
+  const { data: page } = (await supabaseAdmin
+    .from("coach_pages" as any)
     .select(
-      "slug, headline, bio, specialties, headline_en, bio_en, specialties_en, is_published, coach_id",
+      "slug, headline, bio, specialties, headline_en, bio_en, specialties_en, is_published, coach_id, photo_url, results_photos, instagram_url, facebook_url, tiktok_url, youtube_url",
     )
     .eq("slug", slug)
-    .maybeSingle();
+    .maybeSingle()) as { data: any };
 
   if (!page || !page.is_published) return null;
 
@@ -65,6 +96,14 @@ export async function fetchCoachLanding(
     is_published: page.is_published,
     coach_name: prof.full_name || "",
     coach_avatar: prof.avatar_url || null,
+    photo_url: page.photo_url || null,
+    results_photos: parseResultsPhotos(page.results_photos),
+    social: {
+      instagram: page.instagram_url || "",
+      facebook: page.facebook_url || "",
+      tiktok: page.tiktok_url || "",
+      youtube: page.youtube_url || "",
+    },
     ar: {
       headline: page.headline || "",
       bio: page.bio || "",

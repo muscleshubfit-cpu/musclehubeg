@@ -72,6 +72,7 @@ import { NotificationForm } from "@/components/NotificationForm";
 import { isSupabaseConfigured } from "@/lib/data/helpers";
 import {
  COACH_AI_PLAN_LIMIT,
+ COACH_CLIENT_PACKAGES,
  COACH_PAYMENT_METHODS,
  coachPaymentMethodLabel,
  type CoachPaymentMethod,
@@ -109,7 +110,7 @@ export function CoachClientView({ clientId }: { clientId: string }) {
 
  // Subscription form
  const [tier, setTier] = useState<string>("premium");
- const [months, setMonths] = useState<Duration>(12);
+ const [months, setMonths] = useState<Duration>(1);
  const [startDate, setStartDate] = useState<string>("");
  const [endDate, setEndDate] = useState<string>("");
  const [savingSub, setSavingSub] = useState(false);
@@ -786,8 +787,8 @@ export function CoachClientView({ clientId }: { clientId: string }) {
  <h2 className="text-lg font-semibold">{t("coach.subscriptionMgmt")}</h2>
  <p className="mt-1 text-sm font-normal text-[#6e6e73]">
  {lang === "ar"
- ? "حصّل من العميل بره الموقع (كاش / فودافون كاش / انستاباي) ثم فعّل اشتراكه من هنا — التفعيل هيخصم رسوم العميل الشهرية من محفظتك (اشحنها من صفحة محفظتي)، والعميل هيوصل إشعار فورًا."
- : "Collect from the client outside the site (cash / Vodafone Cash / InstaPay), then activate here — activation debits the monthly per-client fee from your wallet (top it up from My Wallet), and the client is notified instantly."}
+ ? "حصّل من العميل بره الموقع (كاش / فودافون كاش / انستاباي) ثم فعّل اشتراكه من هنا — التفعيل هيخصم رسوم العميل من محفظتك (شهر ٣٠٠ ج.م — ٣ شهور ٨٠٠ ج.م، اشحنها من صفحة محفظتي)، والعميل هيوصل إشعار فورًا."
+ : "Collect from the client outside the site (cash / Vodafone Cash / InstaPay), then activate here — activation debits the per-client fee from your wallet (1 month 300 EGP — 3 months 800 EGP; top up from My Wallet), and the client is notified instantly."}
  </p>
  <p className="mt-1 text-sm font-normal text-[#6e6e73]">
  {lang === "ar"
@@ -814,8 +815,12 @@ export function CoachClientView({ clientId }: { clientId: string }) {
  </div>
  <div>
  <Label>{t("checkout.duration")}</Label>
- <div className="mt-1.5 grid grid-cols-3 gap-2">
- {([1, 12] as Duration[]).map((d) => (
+ {/* OWNER PRICING (2026-08-30): 300 EGP / client-month, 800 EGP
+ for 3 months — package prices shown on the buttons. */}
+ <div className="mt-1.5 grid grid-cols-2 gap-2">
+ {([1, 3] as Duration[]).map((d) => {
+ const pkg = COACH_CLIENT_PACKAGES.find((p) => p.months === d);
+ return (
  <button
  key={d}
  onClick={() => setMonths(d)}
@@ -825,8 +830,14 @@ export function CoachClientView({ clientId }: { clientId: string }) {
  )}
  >
  {d} {t("pricing.months")}
+ {pkg && (
+ <span className="mt-0.5 block text-xs font-normal text-[#6e6e73]" dir="ltr">
+ {pkg.priceEgp} EGP
+ </span>
+ )}
  </button>
- ))}
+ );
+ })}
  </div>
  </div>
  <div>

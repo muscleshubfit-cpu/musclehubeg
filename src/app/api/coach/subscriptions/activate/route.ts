@@ -3,6 +3,7 @@ import { requireUser } from "@/lib/auth-server";
 import { supabaseAdmin, isSupabaseAdminConfigured } from "@/lib/supabase/admin";
 import {
   COACH_ACTIVATABLE_TIERS,
+  coachActivationCostEgp,
   isCoachPaymentMethod,
   type CoachPaymentMethod,
 } from "@/lib/coach-limits";
@@ -131,8 +132,10 @@ export async function POST(request: NextRequest) {
   }
 
   // ── 0035 WALLET GATE — no paid slot, no activation (coaches only). ──
-  // cost = coach_fees.fee_per_client × months (fee 0 / unset = free;
-  // the admin controls the price table on /admin/assignments).
+  // OWNER PRICING (2026-08-30): «اسعار المدربين لكل عميل تتعمل ٣٠٠
+  // الشهر / ٨٠٠ ٣ شهور» — package prices for 1 and 3 months ALWAYS win;
+  // other durations stay linear on the coach's monthly base (his
+  // admin-set fee_per_client, else the 300 EGP monthly rate).
   const paymentId = crypto.randomUUID();
   let walletCost = 0;
   if (auth.role === "coach") {
@@ -149,7 +152,7 @@ export async function POST(request: NextRequest) {
         .maybeSingle(),
     ]);
     const fee = Number((feeRes.data as any)?.fee_per_client ?? 0) || 0;
-    walletCost = Math.round(fee * months * 100) / 100;
+    walletCost = coachActivationCostEgp(months, fee);
     if (walletCost > 0) {
       const missingTable = [feeRes.error, walletRes.error]
         .find(Boolean)

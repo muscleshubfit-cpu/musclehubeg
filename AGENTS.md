@@ -834,6 +834,46 @@ Process:
         the site takes the FIXED activation fee from (a), never a
         percentage); coaches may also subscribe to site memberships
         (Premium/Pro) for the site's own features.
+    (g) COACH BOOST PACKAGE (owner directives 2026-08-30: pricing
+        «اسعار المدربين لكل عميل تتعمل ٣٠٠ الشهر / ٨٠٠ ٣ شهور»، «أعلن
+        معنا»، «دعم للمدربين غير دعم الموقع»، «دعم العملاء خاص بالمدرب»،
+        «معادا زر واتساب لن نضيفها»):
+        1) OWNER PRICING — per-client fees are PACKAGE-based in
+           coach-limits.ts (COACH_CLIENT_PACKAGES: 1mo=300, 3mo=800 EGP;
+           coachActivationCostEgp is the single debit calculator used by
+           /api/coach/subscriptions/activate). Package prices ALWAYS win
+           for 1/3 months; other durations stay linear on the coach's
+           admin-set fee_per_client (else 300/mo). Admins stay
+           wallet-exempt.
+        2) ADS («أعلن معنا») — coach_ads table (0037): fixed-duration
+           packages (COACH_AD_PACKAGES in coach-limits.ts — OWNER
+           TUNABLE: week=100, month=300, quarter=800 EGP) paid by
+           ATOMIC wallet debit (coach_adjust_wallet, kind 'adjust') in
+           POST /api/coach/ads; debit-before-write with refund on
+           failure; buying while active EXTENDS ends_at. The ad is a
+           featured card on the homepage «مدربون مميزون» strip served by
+           the PUBLIC GET /api/coaches/featured (time-boxed, ends_at >
+           now). Admin visibility via admin_notifications.
+        3) PUBLIC PROFILE ENRICHMENT — coach_pages gains photo_url,
+           results_photos (jsonb ≤6), instagram/facebook/tiktok/youtube
+           (0037). Photos upload browser-direct to the PUBLIC
+           'coach-public' storage bucket (5 MB, jpg/png/webp, own
+           `<uid>/` folder enforced by storage RLS); the API only
+           accepts same-origin /storage/v1/object/public/coach-public/
+           paths or https:// URLs. Private-bucket avatar URLs 403 for
+           anonymous visitors — the public page therefore prefers
+           photo_url over profiles.avatar_url.
+        4) COACH SUPPORT CHANNEL — coach_support_messages (0037):
+           coach → site threads at /coach/help (staff nav «دعم
+           المدربين»); admin replies via /api/admin/coach-support
+           (AdminGate) + instant notification. CLIENT SUPPORT BELONGS
+           TO THE COACH — the site team supports coaches on platform
+           matters only; the legal pages (terms/privacy, AR+EN) carry
+           the full coach-liability disclaimer.
+        5) SHARE BUTTONS LAW — icons ARE allowed on share buttons;
+           the WhatsApp share target is REMOVED by owner decree
+           (CoachShareButtons: Facebook/X/Telegram + copy-link,
+           lucide icons). Page content sections remain text-only.
 - **USAGE LIMIT ENFORCEMENT LAW (2026-08-28, T-AI-DEEP-AUDIT-V2, owner
   directive «توسع وعمق اكبر … والتأكد من ايفو وطبيعه عضوية المستخدم فى
   حدود الاستخدام»):** every limit advertised in `memberships.ts` MUST be

@@ -3133,3 +3133,35 @@ Stage Summary:
 - OWNER STEP: run RUN_ON_SUPABASE_0036_HARDEN_SIGNUP_ROLE.sql via raw link + NOTIFY reload (in script).
 - Instant activation trade-off: email not verified at signup (email_confirm:true) — documented in SECURITY.md; flip to invite/confirm if abuse appears.
 - Share kit lives on the landing page (text-only); no nav/footer changes (page spreads via its own share buttons).
+
+---
+Task ID: T-COACH-BOOST-2026-08-30
+Agent: Main (Super Z — Implementation Agent)
+Task: Owner-approved coach boost package — «موافق معادا زر واتساب لن نضيفها، دعم العملاء خاص بالمدرب + اسعار المدربين لكل عميل تتعمل ٣٠٠ الشهر/ ٨٠٠ ٣ شهور»: footer + homepage coach section, public profile enrichment (photo/results/social), «أعلن معنا» fixed-duration ads, legal coach disclaimer, dedicated coach support channel, share icons WITHOUT WhatsApp, per-client pricing 300/800.
+
+Work Log:
+- Audited first: coach-limits.ts (fee_per_client × months math), activate route (wallet gate + coach_adjust_wallet signature), CoachClientView durations [1,12], coach_pages schema (0031/0032), CoachLandingContent/Editor, ticket system (client→coach only — no coach→site channel), storage buckets (all PRIVATE → public photos impossible → new public bucket needed), nav wiring (use-nav/AppLayout/SiteHeader), LandingView sections + footer, StaticPageView legal content.
+- src/lib/coach-limits.ts: OWNER PRICING — COACH_CLIENT_PACKAGES (1mo=300, 3mo=800 EGP) + coachActivationCostEgp() single-source debit calculator (packages ALWAYS win for 1/3 months; other durations linear on admin-set fee_per_client else 300/mo); COACH_AD_PACKAGES (week=100/7d, month=300/30d, quarter=800/90d — OWNER TUNABLE) + coachAdPackageById().
+- activate route: walletCost = coachActivationCostEgp(months, fee) — owner package prices now authoritative; admin exemption untouched.
+- CoachClientView: duration buttons [1,3] with «٣٠٠ EGP / ٨٠٠ EGP» price labels, default months=1, explainer text shows the prices.
+- RUN_ON_SUPABASE_0037_COACH_BOOST.sql (6.1KB, idempotent, END OF SCRIPT 0037): coach_pages +photo_url/results_photos(jsonb)/instagram_url/facebook_url/tiktok_url/youtube_url; coach_ads table (package week|month|quarter, days, price_egp, status active|cancelled, starts/ends) + RLS (owner read, service-only writes) + idx; coach_support_messages (parent_id threads, sender_role coach|admin, status open|answered|closed) + RLS (owner read/insert-coach-rows); PUBLIC storage bucket coach-public (5MB, jpg/png/webp) + 4 storage policies (public read; authenticated own-folder write/update/delete via storage.foldername) + VERIFY block.
+- /api/coach/ads (GET packages+balance+history / POST {package_id}): server-priced from constants, atomic wallet debit (kind 'adjust', note «إعلان — باقة …») BEFORE write, refund on failure, EXTEND ends_at when buying while active, admin_notifications (coach_ad) + coach notification; 42P01 → 0037-missing message.
+- /api/coaches/featured (PUBLIC GET, ISR 60): active ads (ends_at>now) → profiles + published coach_pages → homepage strip payload; 42P01/empty → {coaches:[]} (never errors the homepage).
+- CoachAdsView + (app)/coach/ads: status card (running until X / none), balance + wallet link, 3 package cards («تمديد» mode when active), history list; nav view 'coach-ads'.
+- CoachLandingEditor: personal photo upload + results photos (≤6, per-photo caption + remove) browser-direct to coach-public under <uid>/ (5MB/jpg/png/webp guarded, supabase null-guarded) + 4 social URL inputs; PUT payload extended; publicUrl origin-stripped to same-origin path (server validator shape).
+- /api/coach/landing PUT: safeSocialUrl (https only) + safeMediaUrl (https OR /storage/v1/object/public/coach-public/ no '..') + safeResultsPhotos (≤6, {url,caption}) — 42703 message now names 0032+0037.
+- coach-landing-server: fetch + types for new fields (parseResultsPhotos defensive); CoachLandingContent: hero photo (photo_url || avatar_url — fixes the private-bucket 403 for anonymous visitors), social text-pill row, «نتائج العملاء» gallery section (2/3-col grid, captions, «النتائج تختلف» disclaimer).
+- Coach support channel: /api/coach/support (GET threads + POST create; admin_notification bell) + /api/admin/coach-support (GET all threads with names / POST reply + status + instant notification) + CoachHelpView (/coach/help: «مين بيساعد مين» scope card — site helps coaches, coach supports HIS clients) + AdminCoachSupportView (/admin/coach-support, AdminGate) + nav 'coach-help' in AppLayout coachNav + SiteHeader coach group (Megaphone/ShieldQuestion icons).
+- Homepage (LandingView): «مدربون مميزون» strip after Coaching Preview (silent fetch, renders only when active ads exist) + dark «أنت مدرب؟» section (text-only, 3 cards: أسعارك إيدك / عملاؤك وصلاحياتك معاهم / أدوات المنصة معاك + CTA /for-coaches) + footer CTA strip («انضم كمدرب» top of footer, /for-coaches ×2 total).
+- CoachShareButtons: WhatsApp REMOVED (owner decree «معادا زر واتساب لن نضيفها») → Facebook/X/Telegram + copy-link with lucide icons (Facebook/Twitter/Send/Link2/Check); for-coaches page labels updated; page content sections remain text-only.
+- Legal (StaticPageView): terms + «مسؤولية المدربين وعملائهم» (AR) / «Coach & Client Responsibility» (EN) — site is not a party, coach solely responsible for advice/content/collections, client support is the coach's job; privacy + «محتوى المدربين» / «Coach-Authored Content».
+- Verified: tsc 0 errors (new-table queries cast `{data,error}` at destructuring per codebase any-cast law) / eslint 0 errors (35 warnings = pre-existing no-explicit-any style) / vitest 153-153 / next build ✓ (6 new routes registered: /api/coach/ads, /api/coach/support, /api/admin/coach-support, /api/coaches/featured, /coach/ads, /coach/help); smoke via next start: homepage /for-coaches links ×2 + section present, /terms carries the disclaimer, /for-coaches share = 3 intents + copy, ZERO wa.me.
+- Docs: AGENTS.md §7(g) COACH BOOST PACKAGE (5 laws), SECURITY.md «Coach Boost Security Notes» (public bucket rationale/trade-off, ads no-client-write, RLS, pricing authority), PROGRESS.md header + dated section.
+
+Stage Summary:
+- Owner pricing live: 300 EGP/client-month, 800 EGP/client-3-months, enforced server-side, displayed in the activation UI.
+- «أعلن معنا» live end-to-end: packages → wallet debit → homepage featured strip → coach public page.
+- Public coach pages now carry photo, results gallery and socials; photos are anonymously viewable (public bucket) for the first time.
+- Dedicated coach support channel live (site↔coach threads) + legal liability disclaimer; client support explicitly the coach's responsibility.
+- Share kit: icons ON, WhatsApp OFF (owner decree).
+- OWNER STEP: run RUN_ON_SUPABASE_0037_COACH_BOOST.sql via raw link (tables + policies + public bucket + VERIFY); ad package prices (100/300/800) are OWNER-TUNABLE in coach-limits.ts COACH_AD_PACKAGES — flagged to the owner in the delivery message.
