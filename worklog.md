@@ -2869,3 +2869,32 @@ Stage Summary:
 - Multi-coach Phase 2B complete in code; the ONLY owner manual step is pasting 0031 (raw link shared in chat). Code is forward-compatible: before 0031 runs, the editor shows migration_missing guidance, the public page 404s, the my-coach card stays hidden, and the reassignment column already works (0030 tables live).
 - Deliberately out of scope (candidate 2C): sitemap inclusion for landing pages, coach directory page, per-coach payment/profit reports, analytics on landing visits.
 - Docs: AGENTS.md clause 7 extended with the 2B surfaces + laws. Commit pushed to origin/main.
+
+---
+Task ID: T-COACH-LANDING-I18N-2026-08-29
+Agent: Main (Super Z — Implementation Agent)
+Task: Owner feedback on Phase 2B «مفروض الموقع لغتين عربى وانجليزى والانجليزي وانت كاتب عربى» — the public coach landing /coaches/{slug} shipped Arabic-only; make it bilingual (AR + EN) following the site's existing mirror law.
+
+Work Log:
+- Sandbox was recycled between sessions → re-cloned (f332c84 stale, 158 mode-only false diffs via core.fileMode false, restored sandbox-dropped src/app/api/upload/route.ts) → fast-forwarded to origin/main 93a9699 (PHASE 2B + 0031 confirmed applied by owner: "Success. No rows returned تم").
+- Migration RUN_ON_SUPABASE_0032_COACH_PAGES_I18N.sql (one-paste, ~3.9KB, idempotent, END OF SCRIPT 0032 marker): coach_pages += headline_en / bio_en / specialties_en (text NOT NULL DEFAULT '', same newline format as AR specialties) + notify pgrst reload. No tables/policies touched → RLS identical.
+- NEW src/lib/coach-landing-server.ts — single server-side fetch (service-role, published-only, coach role check, null → 404) returning BOTH language copies; resolveLandingCopy() CROSS-LANGUAGE FALLBACK: EN page = headline_en||headline (AR), AR page = headline||headline_en → a one-language page renders fully on BOTH mirrors (no empty sections ever).
+- NEW src/components/coach/CoachLandingContent.tsx — shared SERVER component (no "use client": ISR + first-paint SEO intact, language follows the URL never localStorage, same pattern as /ar/blog/[slug]); per-lang chrome (CTA "ابدأ متابعتك مع X الآن"/"Start your journey with X now", نبذة عن المدرب/About the coach, footer home link /ar vs /), dir/lang attributes per mirror, floating LanguageToggle (I18nProvider is global in root layout so the client toggle mounts on the server page).
+- Refactored src/app/coaches/[slug]/page.tsx → EN canonical: EN chrome metadata, hreflang {en, ar, x-default=en} absolute via SITE_URL, OG locale en_US, canonical /coaches/{slug}.
+- NEW src/app/ar/coaches/[slug]/page.tsx → AR mirror: Arabic chrome metadata, OG ar_EG, same hreflang pair, canonical /ar/coaches/{slug}. Middleware x-pathname + /ar/layout already serve lang=ar dir=rtl for /ar/*.
+- LanguageToggle: new coach-mirror case BEFORE MIRROR_ROUTES — /^\/coaches\/([^/]+)$/ <-> /^\/ar\/coaches\/([^/]+)$/ same-slug prefix swap (no lookup needed unlike the blog linked_post_id pair); doc-comment updated.
+- CoachLandingEditor: English-optional section (Headline EN / About you EN / Specialties EN, dir=ltr) with the fallback explainer line; state + load + save wired; preview split into معاينة (EN) ↗ + معاينة (AR) ↗.
+- /api/coach/landing PUT: parses headline_en/bio_en/specialties_en (same slice limits as AR: 140/4000/80-per-line-800), persists in the coach_id upsert; new 42703 handler → 503 migration_missing_0032 with an Arabic run-0032 hint (mirrors the 42P01 → run-0031 handler).
+- src/lib/supabase/types.ts: coach_pages Row/Insert/Update += the 3 EN columns (Row: string; Insert/Update: optional).
+- AGENTS.md §7 multi-coach law extended: 0032 + mirror law + cross-language fallback + 42703 hint.
+
+Verification:
+- bunx tsc --noEmit → 0 errors
+- eslint (8 touched files) → 0 errors (1 pre-existing unused-directive warning in CoachLandingEditor, present before this task)
+- bunx vitest run → 153/153 (13 files) — no regression
+- bunx next build → ✓ compiled, 956 pages, routes registered: ƒ /coaches/[slug] + ƒ /ar/coaches/[slug]
+
+Stage Summary:
+- The public coach landing is now BILINGUAL per the site's mirror convention: EN /coaches/{slug} + AR /ar/coaches/{slug}, language follows the URL, on-page toggle switches between them, hreflang pair emitted, 404 for unknown/unpublished slugs on BOTH mirrors.
+- OWNER MANUAL STEP: run RUN_ON_SUPABASE_0032_COACH_PAGES_I18N.sql in Supabase SQL Editor (raw link, single paste, expected "Success. No rows returned") — until then the EN editor fields save-blocks with a friendly 503 hint and the public pages still work (AR content fallback).
+- No Phase 2B feature changed otherwise: admin reassignment + MyCoachCard untouched; landing pages stay out of all menus per owner answer 3.

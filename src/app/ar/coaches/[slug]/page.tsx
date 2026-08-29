@@ -8,21 +8,19 @@ import {
 } from "@/lib/coach-landing-server";
 
 /**
- * MULTI-COACH PHASE 2B — PUBLIC coach landing page, EN CANONICAL mirror.
+ * MULTI-COACH PHASE 2B — PUBLIC coach landing page, AR MIRROR.
  * Owner answer 3 (2026-08-29): each coach has a private-to-promote
  * public page — it is NEVER in any menu; the coach shares the URL
  * himself. Reachable while logged-out (published pages only).
  *
- * BILINGUAL MIRROR LAW (site convention, same as the blog):
- *   EN canonical: /coaches/{slug}      ← this file
- *   AR mirror:    /ar/coaches/{slug}   ← src/app/ar/coaches/[slug]
- * The language follows the URL (server-rendered, never localStorage);
- * LanguageToggle navigates between the two mirrors. Coach content that
- * was only written in one language falls back across mirrors (see
- * resolveLandingCopy).
- *
- * Migration 0031 created coach_pages; migration 0032 added the EN
- * content columns. Unknown or unpublished slugs → proper 404.
+ * BILINGUAL MIRROR LAW (site convention, same as /ar/blog/[slug]):
+ *   EN canonical: /coaches/{slug}
+ *   AR mirror:    /ar/coaches/{slug}   ← this file
+ * Root layout + middleware already serve `lang="ar" dir="rtl"` for
+ * /ar/* via the x-pathname header; this page renders Arabic chrome and
+ * resolves coach content with the cross-language fallback (AR copy, or
+ * EN copy when the coach only wrote English). Unknown or unpublished
+ * slugs → proper 404.
  */
 
 export const revalidate = 300; // 5 min ISR — landing copy changes rarely
@@ -40,22 +38,22 @@ export async function generateMetadata({
 
   if (!data) {
     return {
-      title: "Page not found — MuscleHub Egypt",
+      title: "الصفحة غير موجودة — MuscleHub Egypt",
       robots: { index: false, follow: false },
     };
   }
 
-  const copy = resolveLandingCopy(data, "en");
-  const name = coachDisplayName(data, "en");
-  const title = `${name} — ${copy.headline || "Certified coach on MuscleHub"}`;
+  const copy = resolveLandingCopy(data, "ar");
+  const name = coachDisplayName(data, "ar");
+  const title = `${name} — ${copy.headline || "مدرب معتمد على MuscleHub"}`;
   const description =
-    copy.bio.slice(0, 160) || `Book private coaching with ${name} on MuscleHub Egypt`;
+    copy.bio.slice(0, 160) || `احجز متابعة خاصة مع ${name} على MuscleHub Egypt`;
 
   return {
     title,
     description,
     alternates: {
-      canonical: `/coaches/${slug}`,
+      canonical: `/ar/coaches/${slug}`,
       languages: {
         en: `${SITE_URL}/coaches/${slug}`,
         ar: `${SITE_URL}/ar/coaches/${slug}`,
@@ -64,16 +62,16 @@ export async function generateMetadata({
     },
     openGraph: {
       type: "profile",
-      url: `${SITE_URL}/coaches/${slug}`,
+      url: `${SITE_URL}/ar/coaches/${slug}`,
       title,
       description,
       siteName: "MuscleHub Egypt",
-      locale: "en_US",
+      locale: "ar_EG",
     },
   };
 }
 
-export default async function CoachLandingPage({
+export default async function CoachLandingPageAr({
   params,
 }: {
   params: Promise<{ slug: string }>;
@@ -82,5 +80,5 @@ export default async function CoachLandingPage({
   const data = await fetchCoachLanding(slug);
   if (!data) notFound();
 
-  return <CoachLandingContent data={data} lang="en" />;
+  return <CoachLandingContent data={data} lang="ar" />;
 }

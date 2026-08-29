@@ -75,6 +75,12 @@ export async function PUT(request: NextRequest) {
   const specialties = Array.isArray(body.specialties)
     ? body.specialties.map((s: unknown) => String(s).slice(0, 80)).filter(Boolean).join("\n").slice(0, 800)
     : String(body.specialties ?? "").slice(0, 800);
+  // English copy (migration 0032) — optional, same limits as the AR fields
+  const headlineEn = String(body.headline_en ?? "").slice(0, 140);
+  const bioEn = String(body.bio_en ?? "").slice(0, 4000);
+  const specialtiesEn = Array.isArray(body.specialties_en)
+    ? body.specialties_en.map((s: unknown) => String(s).slice(0, 80)).filter(Boolean).join("\n").slice(0, 800)
+    : String(body.specialties_en ?? "").slice(0, 800);
   const isPublished = Boolean(body.is_published);
 
   if (!SLUG_RE.test(slug)) {
@@ -104,6 +110,9 @@ export async function PUT(request: NextRequest) {
         headline,
         bio,
         specialties,
+        headline_en: headlineEn,
+        bio_en: bioEn,
+        specialties_en: specialtiesEn,
         is_published: isPublished,
         updated_at: new Date().toISOString(),
       },
@@ -123,6 +132,13 @@ export async function PUT(request: NextRequest) {
     if (code === "42P01") {
       return NextResponse.json(
         { error: "migration_missing", message: "جدول الصفحات غير موجود — شغّل هجرة 0031 في Supabase أولًا" },
+        { status: 503 },
+      );
+    }
+    if (code === "42703") {
+      // Undefined column → the 0032 EN columns are not there yet
+      return NextResponse.json(
+        { error: "migration_missing_0032", message: "أعمدة النسخة الإنجليزية غير موجودة — شغّل هجرة 0032 في Supabase أولًا (raw link في المحادثة)" },
         { status: 503 },
       );
     }

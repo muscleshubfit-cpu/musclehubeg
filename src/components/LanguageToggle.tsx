@@ -18,6 +18,8 @@ import { getBlogPost, getLinkedPost } from "@/lib/blog";
  *   /exercises   <-> /ar/exercises
  *   /foods       <-> /ar/foods
  *   /memberships <-> /ar/memberships
+ *   /coaches/[slug] <-> /ar/coaches/[slug] (same slug — multi-coach
+ *                   public landing, migration 0032 i18n follow-up)
  *
  * Pages without Arabic mirrors (e.g. /coaching, /evo, /tools/*, /about,
  * /faq, /privacy, /terms, /contact, /meal-planner, /affiliate): just
@@ -51,6 +53,18 @@ export function LanguageToggle() {
  }
  // No translated version exists yet — land on the blog list in the new language.
  router.push(nextLang === "ar" ? "/ar/blog" : "/blog");
+ return;
+ }
+
+ // Multi-coach public landing: /coaches/[slug] <-> /ar/coaches/[slug].
+ // Same slug serves both languages (migration 0032), so the mirror is
+ // a pure prefix swap — no lookup needed (unlike the blog pair).
+ const coachEnMatch = pathname.match(/^\/coaches\/([^/]+)$/);
+ const coachArMatch = pathname.match(/^\/ar\/coaches\/([^/]+)$/);
+ if (coachEnMatch || coachArMatch) {
+ const slug = (coachEnMatch || coachArMatch)![1];
+ setLang(nextLang);
+ router.push(nextLang === "ar" ? `/ar/coaches/${slug}` : `/coaches/${slug}`);
  return;
  }
 

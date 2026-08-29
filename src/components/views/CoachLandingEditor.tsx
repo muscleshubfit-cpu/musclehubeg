@@ -16,6 +16,9 @@ type LandingPage = {
   headline: string;
   bio: string;
   specialties: string;
+  headline_en?: string;
+  bio_en?: string;
+  specialties_en?: string;
   is_published: boolean;
 } | null;
 
@@ -28,6 +31,11 @@ export function CoachLandingEditor() {
   const [headline, setHeadline] = useState("");
   const [bio, setBio] = useState("");
   const [specialties, setSpecialties] = useState("");
+  // English copy (migration 0032) — optional, falls back to the AR
+  // fields on the public page when left empty.
+  const [headlineEn, setHeadlineEn] = useState("");
+  const [bioEn, setBioEn] = useState("");
+  const [specialtiesEn, setSpecialtiesEn] = useState("");
   const [published, setPublished] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -45,6 +53,9 @@ export function CoachLandingEditor() {
           setHeadline(json.page?.headline ?? "");
           setBio(json.page?.bio ?? "");
           setSpecialties(json.page?.specialties ?? "");
+          setHeadlineEn(json.page?.headline_en ?? "");
+          setBioEn(json.page?.bio_en ?? "");
+          setSpecialtiesEn(json.page?.specialties_en ?? "");
           setPublished(Boolean(json.page?.is_published));
         } else {
           setMessage({
@@ -69,6 +80,11 @@ export function CoachLandingEditor() {
     [specialties],
   );
 
+  const specialtiesEnList = useMemo(
+    () => specialtiesEn.split("\n").map((s) => s.trim()).filter(Boolean),
+    [specialtiesEn],
+  );
+
   async function save(publish: boolean) {
     setSaving(true);
     setMessage(null);
@@ -81,6 +97,9 @@ export function CoachLandingEditor() {
           headline,
           bio,
           specialties: specialtiesList,
+          headline_en: headlineEn,
+          bio_en: bioEn,
+          specialties_en: specialtiesEnList,
           is_published: publish,
         }),
       });
@@ -151,14 +170,24 @@ export function CoachLandingEditor() {
             {copied ? (isAr ? "تم النسخ ✓" : "Copied ✓") : isAr ? "نسخ الرابط" : "Copy link"}
           </button>
           {publicUrl && (
-            <a
-              href={`/coaches/${slug}`}
-              target="_blank"
-              rel="noreferrer"
-              className="rounded-full border border-[#d2d2d7] bg-white px-5 py-2.5 text-sm font-normal transition-opacity hover:opacity-70"
-            >
-              {isAr ? "معاينة ↗" : "Preview ↗"}
-            </a>
+            <>
+              <a
+                href={`/coaches/${slug}`}
+                target="_blank"
+                rel="noreferrer"
+                className="rounded-full border border-[#d2d2d7] bg-white px-5 py-2.5 text-sm font-normal transition-opacity hover:opacity-70"
+              >
+                {isAr ? "معاينة (EN) ↗" : "Preview (EN) ↗"}
+              </a>
+              <a
+                href={`/ar/coaches/${slug}`}
+                target="_blank"
+                rel="noreferrer"
+                className="rounded-full border border-[#d2d2d7] bg-white px-5 py-2.5 text-sm font-normal transition-opacity hover:opacity-70"
+              >
+                {isAr ? "معاينة (AR) ↗" : "Preview (AR) ↗"}
+              </a>
+            </>
           )}
         </div>
         <div className={`mt-2 inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-medium ${
@@ -225,6 +254,57 @@ export function CoachLandingEditor() {
             placeholder={isAr ? "خسارة الوزن\nبناء العضلات\nتغذية رياضية" : "Weight loss\nMuscle building\nSports nutrition"}
             className="w-full rounded-xl border border-[#d2d2d7] bg-white px-4 py-2.5 text-sm outline-none focus:border-[#0071e3]"
           />
+        </div>
+
+        {/* English copy — optional (migration 0032). The public page
+            falls back to the Arabic fields above when left empty. */}
+        <div className="rounded-2xl border border-[#d2d2d7] bg-white p-5">
+          <p className="mb-4 text-xs font-medium uppercase tracking-wide text-[#6e6e73]" dir="ltr">
+            English version — optional
+            <span className="ms-2 normal-case">{isAr ? "(النسخة الإنجليزية — اختيارية)" : "(optional)"}</span>
+          </p>
+
+          <div className="space-y-5" dir="ltr">
+            <div>
+              <label className="mb-2 block text-sm font-medium">Headline (EN)</label>
+              <input
+                value={headlineEn}
+                onChange={(e) => setHeadlineEn(e.target.value)}
+                maxLength={140}
+                placeholder="Certified fitness coach — a custom nutrition & training plan for you"
+                className="w-full rounded-xl border border-[#d2d2d7] bg-white px-4 py-2.5 text-sm outline-none focus:border-[#0071e3]"
+              />
+            </div>
+
+            <div>
+              <label className="mb-2 block text-sm font-medium">About you (EN)</label>
+              <textarea
+                value={bioEn}
+                onChange={(e) => setBioEn(e.target.value)}
+                rows={5}
+                maxLength={4000}
+                placeholder="Write a short bio: experience, method, client results…"
+                className="w-full rounded-xl border border-[#d2d2d7] bg-white px-4 py-2.5 text-sm outline-none focus:border-[#0071e3]"
+              />
+            </div>
+
+            <div>
+              <label className="mb-2 block text-sm font-medium">Specialties (EN — one per line)</label>
+              <textarea
+                value={specialtiesEn}
+                onChange={(e) => setSpecialtiesEn(e.target.value)}
+                rows={4}
+                maxLength={800}
+                placeholder={"Weight loss\nMuscle building\nSports nutrition"}
+                className="w-full rounded-xl border border-[#d2d2d7] bg-white px-4 py-2.5 text-sm outline-none focus:border-[#0071e3]"
+              />
+            </div>
+          </div>
+          <p className="mt-3 text-xs font-normal text-[#6e6e73]">
+            {isAr
+              ? "لو سيبتها فاضية، الصفحة الإنجليزية هتعرض المحتوى العربي تلقائيًا — والعكس صحيح."
+              : "Left empty, the English page automatically shows the Arabic content — and vice versa."}
+          </p>
         </div>
 
         {message && (

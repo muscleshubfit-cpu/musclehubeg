@@ -676,7 +676,19 @@ Process:
        Client "my coach" card (MyCoachCard on /dashboard) reads
        coach_assignments + assigned coach profile — profiles select
        policy was extended in 0031: a client may read ONLY his
-       assigned coach's row via coach_of(auth.uid()) = id.
+       assigned coach's row via coach_of(auth.uid()) = id. 0032 (i18n
+       follow-up, owner feedback «الموقع لغتين»): coach_pages gains
+       headline_en/bio_en/specialties_en and the landing is BILINGUAL
+       per the site mirror law — EN canonical /coaches/[slug] + AR
+       mirror /ar/coaches/[slug], SAME slug both sides, shared server
+       component CoachLandingContent (per-URL language, never
+       localStorage; hreflang en+ar+x-default=EN; on-page floating
+       LanguageToggle navigates the prefix swap). Cross-language
+       FALLBACK: empty EN copy renders the AR content and vice versa
+       (a one-language page works on both mirrors). Coach editor
+       صفحتي العامة has an English-optional section + EN/AR preview
+       links; PUT /api/coach/landing persists the EN columns (42703 →
+       run-0032 hint).
 - **USAGE LIMIT ENFORCEMENT LAW (2026-08-28, T-AI-DEEP-AUDIT-V2, owner
   directive «توسع وعمق اكبر … والتأكد من ايفو وطبيعه عضوية المستخدم فى
   حدود الاستخدام»):** every limit advertised in `memberships.ts` MUST be

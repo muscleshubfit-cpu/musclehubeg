@@ -545,6 +545,9 @@ export type Database = {
           headline: string;
           bio: string;
           specialties: string;
+          headline_en: string;
+          bio_en: string;
+          specialties_en: string;
           is_published: boolean;
           created_at: string;
           updated_at: string;
@@ -555,6 +558,9 @@ export type Database = {
           headline?: string;
           bio?: string;
           specialties?: string;
+          headline_en?: string;
+          bio_en?: string;
+          specialties_en?: string;
           is_published?: boolean;
           created_at?: string;
           updated_at?: string;
@@ -565,6 +571,9 @@ export type Database = {
           headline?: string;
           bio?: string;
           specialties?: string;
+          headline_en?: string;
+          bio_en?: string;
+          specialties_en?: string;
           is_published?: boolean;
           created_at?: string;
           updated_at?: string;
