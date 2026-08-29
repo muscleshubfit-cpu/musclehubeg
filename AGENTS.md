@@ -694,6 +694,22 @@ Process:
        صفحتي العامة has an English-optional section + EN/AR preview
        links; PUT /api/coach/landing persists the EN columns (42703 →
        run-0032 hint).
+       TEAM MANAGEMENT (owner feedback «ما فيش طريقه لتعيين المدرب نفسه
+       بمعنى اخر اضافه مدرب للموقع»): adding a coach is NO LONGER
+       manual SQL — /api/admin/staff (requireAdmin) POST {email,
+       full_name?} auto-picks the path: email registered as CLIENT →
+       instant promote; new email → Supabase auth.admin.inviteUserByEmail
+       (coach sets his own password via the emailed link; profile then
+       flipped to role='coach' server-side, service role bypasses the
+       0017 no-role-change RLS). BOTH paths upsert the email into
+       coach_emails so auto_promote_coach_if_allowed() keeps protecting
+       the role on every login. PATCH {user_id, action:"demote"} flips a
+       coach back to client ONLY when coach_assignments holds zero rows
+       for him (reassign first — no orphaned 1:1s) and NEVER for admins;
+       it deletes the allowlist row so 0017 cannot flip him back on next
+       login. UI lives ON /admin/assignments as a third section (add-
+       coach card + demote link on coach staff cards) — one page owns
+       the whole coach lifecycle: add → assign clients → demote.
 - **USAGE LIMIT ENFORCEMENT LAW (2026-08-28, T-AI-DEEP-AUDIT-V2, owner
   directive «توسع وعمق اكبر … والتأكد من ايفو وطبيعه عضوية المستخدم فى
   حدود الاستخدام»):** every limit advertised in `memberships.ts` MUST be

@@ -538,6 +538,21 @@ export type Database = {
           { foreignKeyName: "coach_assignments_assigned_by_fkey"; columns: ["assigned_by"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] },
         ];
       };
+      coach_emails: {
+        Row: {
+          email: string;
+          created_at: string;
+        };
+        Insert: {
+          email: string;
+          created_at?: string;
+        };
+        Update: {
+          email?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       coach_pages: {
         Row: {
           coach_id: string;

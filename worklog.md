@@ -2938,3 +2938,34 @@ Stage Summary:
 - Assignment flow is now unmissable: sidebar 🤝 تعيين المدربين → staff cards + searchable client list + instant reassignment with toast.
 - DIAGNOSTIC NOTE for owner: if the sidebar entry or the المدرب column does NOT appear for his account, the DB role is not 'admin' — verify with `select email, role from public.profiles where role in ('coach','admin');` and promote with an explicit UPDATE (no JWT claim dependency — role is read live from profiles on every session load).
 - No schema changes; no owner manual SQL needed for this task.
+
+---
+Task ID: T-ADMIN-ADD-COACH-2026-08-29
+Agent: Main (Super Z — Implementation Agent)
+Task: Owner feedback «ده بالنسبه لتعيين العملاء عند المدربين لكن ما فيش طريقه لتعيين المدرب نفسه بمعنى اخر اضافه مدرب للموقع» — assigning clients works (T-ADMIN-ASSIGNMENTS-PAGE), but there is NO way to ADD a coach to the site; until now the only path was manual SQL (insert into coach_emails + update profiles.role).
+
+Work Log:
+- NEW src/app/api/admin/staff/route.ts (requireAdmin, admin-exclusive; mirrors the /api/admin/assignments patterns):
+  • POST {email, full_name?} → adds a coach with TWO automatic paths:
+    - "promoted": profile exists with role='client' → instant role flip to coach (service role bypasses the 0017 no-role-change RLS) — no email needed.
+    - "invited": brand-new email → supabaseAdmin.auth.admin.inviteUserByEmail (verified signature in installed auth-js: (email, {data, redirectTo})) — the coach receives the standard Supabase invite email and sets his OWN password via the link (emailRedirectTo = SITE_URL/auth?next=/coach); the on_auth_user_created trigger (0001) creates the profile as client, then the route flips role='coach'; if the trigger never ran (fresh env) the route upserts the profile row itself. Recovery path: invite 422 "already registered" (auth user without profile) → one profiles re-check → promote if found, else honest 409 auth_exists_no_profile.
+    - BOTH paths upsert the email (lowercased) into coach_emails so auto_promote_coach_if_allowed() (0017 SECURITY DEFINER) keeps re-protecting the coach role on every login.
+    - Guards: invalid email → 400; already coach/admin → 409 already_staff with role-specific Arabic message.
+  • PATCH {user_id, action:"demote"} → coach back to client. Refusals: admin target (409 cannot_demote_admin), non-coach target (409), coach still holding coach_assignments rows (409 coach_has_clients + count — forces reassign-first so the 0030 1:1 law is never orphaned). On success deletes his coach_emails allowlist row so 0017 auto-promote cannot flip him back on next login.
+- src/components/views/AdminAssignmentsView.tsx — the dedicated assignments page now owns the FULL coach lifecycle (add → assign clients → demote):
+  • NEW third section at top «إضافة مدرب للموقع / Add a coach»: email (dir=ltr) + optional name + button; Enter-key submit; per-action toasts — invited → explains the invite email + password link flow (8s duration), promoted → "كان عميلًا وأصبح مدربًا الآن"; staff list refreshed after success.
+  • Staff coach cards gained a red «تحويله إلى عميل عادي / Convert back to client» action (confirm() guard; admins get no button; API messages surface verbatim on 409s).
+- src/lib/supabase/types.ts: coach_emails table type added (Row/Insert/Update, Relationships []) — was missing entirely.
+- AGENTS.md §7: TEAM MANAGEMENT law appended (two-path add, allowlist protection, demote guards, single lifecycle page).
+- NO DB MIGRATION NEEDED: coach_emails (0017), profiles.role, coach_assignments (0030) all live already — zero owner manual steps, Vercel deploy is the only rollout.
+
+Verification:
+- bunx tsc --noEmit → 0 errors
+- eslint (3 touched files) → 0 errors, 1 pre-existing-style warning (no-explicit-any on the RPC row mapping, present before this task)
+- bunx vitest run → 153/153 (13 files) — no regression
+- bunx next build → ✓ compiled, ƒ /api/admin/staff registered
+
+Stage Summary:
+- The admin can now add coaches from the UI: sidebar تعيين المدربين → «إضافة مدرب للموقع» → either instant-promote an existing client or email-invite a new coach (he sets his own password). Demote keeps the roster safe (reassign-first guard).
+- Owner note: Supabase invite emails use the built-in SMTP (rate-limited on free tier ~2-4/hour) — fine for occasional coach additions; check Spam if the invite doesn't arrive. If the invite link lands the coach on the bare site URL, the AuthGate still routes him to /coach by role.
+- No schema changes; no owner manual SQL needed for this task.

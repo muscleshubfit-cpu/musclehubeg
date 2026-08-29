@@ -11,8 +11,13 @@ import { toast } from "sonner";
  * column inside /coach was too easy to miss). This surface makes the
  * 1-client ↔ 1-coach assignment OBVIOUS:
  *
- *   1. Staff cards — every coach/admin + his assigned-client count.
- *   2. Client rows — search, current coach, and a picker that PATCHes
+ *   1. ADD COACH — owner feedback «ما فيش طريقه لتعيين المدرب نفسه
+ *      بمعنى اخر اضافه مدرب للموقع»: invite a brand-new coach by email
+ *      (Supabase invite → he sets his own password) or promote an
+ *      existing client instantly — POST /api/admin/staff.
+ *   2. Staff cards — every coach/admin + his assigned-client count +
+ *      demote (تحويله لعميل) for coaches via PATCH /api/admin/staff.
+ *   3. Client rows — search, current coach, and a picker that PATCHes
  *      /api/admin/assignments (admin-exclusive, DB mirrors via RLS).
  *
  * Mounted at /admin/assignments — the AdminGate layout bounces anyone
@@ -40,6 +45,12 @@ export function AdminAssignmentsView() {
   const [loading, setLoading] = useState(true);
   const [rpcFailed, setRpcFailed] = useState(false);
   const [savingId, setSavingId] = useState<string | null>(null);
+
+  // Add-coach form state
+  const [newEmail, setNewEmail] = useState("");
+  const [newName, setNewName] = useState("");
+  const [adding, setAdding] = useState(false);
+  const [demotingId, setDemotingId] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -76,6 +87,85 @@ export function AdminAssignmentsView() {
       }
     })();
   }, []);
+
+  async function refreshStaff() {
+    const res = await fetch("/api/admin/assignments");
+    if (res.ok) {
+      const json = await res.json();
+      setStaff(json.staff ?? []);
+      setCounts(json.counts ?? {});
+    }
+  }
+
+  async function addCoach() {
+    const email = newEmail.trim();
+    if (!email) {
+      toast.error(isAr ? "اكتب بريد المدرب أولًا" : "Enter the coach's email first");
+      return;
+    }
+    setAdding(true);
+    try {
+      const res = await fetch("/api/admin/staff", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, full_name: newName.trim() || undefined }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (res.ok) {
+        if (json.action === "invited") {
+          toast.success(
+            isAr
+              ? `تم إرسال دعوة إلى ${email} — هيوصله إيميل فيه لينك تحديد كلمة المرور، وبعد ما يحددها هيظهر هنا كمدرب`
+              : `Invite sent to ${email} — he will receive an email with a password link and appear here as a coach once he sets it`,
+            { duration: 8000 },
+          );
+        } else {
+          toast.success(
+            isAr
+              ? `${email} كان عميلًا وأصبح مدربًا الآن`
+              : `${email} was a client and is now a coach`,
+          );
+        }
+        setNewEmail("");
+        setNewName("");
+        await refreshStaff();
+      } else {
+        toast.error(json.message || json.error || (isAr ? "فشل إضافة المدرب" : "Failed to add the coach"));
+      }
+    } finally {
+      setAdding(false);
+    }
+  }
+
+  async function demoteCoach(s: Staff) {
+    const ok = confirm(
+      isAr
+        ? `تحويل ${s.full_name || s.email} إلى عميل عادي؟`
+        : `Convert ${s.full_name || s.email} back to a regular client?`,
+    );
+    if (!ok) return;
+    setDemotingId(s.id);
+    try {
+      const res = await fetch("/api/admin/staff", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_id: s.id, action: "demote" }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (res.ok) {
+        toast.success(
+          isAr
+            ? `تم تحويل ${s.full_name || s.email} إلى عميل عادي`
+            : `${s.full_name || s.email} is now a regular client`,
+        );
+        await refreshStaff();
+      } else {
+        toast.error(json.message || json.error || (isAr ? "فشل التحويل" : "Failed to demote"));
+      }
+    } finally {
+      setDemotingId(null);
+    }
+  }
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -155,6 +245,49 @@ export function AdminAssignmentsView() {
         </p>
       </div>
 
+      {/* Add coach */}
+      <section className="rounded-3xl border border-[#0071e3]/20 bg-[#0071e3]/[0.04] p-6 md:p-8">
+        <h2 className="text-lg font-semibold tracking-tight">
+          {isAr ? "إضافة مدرب للموقع" : "Add a coach"}
+        </h2>
+        <p className="mt-1 text-sm font-normal text-[#6e6e73]">
+          {isAr
+            ? "اكتب بريد المدرب الجديد: لو غير مسجل هيوصله دعوة على إيميله يحدد منها كلمة المرور بنفسه، ولو مسجل كعميل هيتمت ترقيته لمدرب فورًا."
+            : "Enter the new coach's email: if he is not registered yet he receives an invite to set his own password; if he is already a client he is promoted instantly."}
+        </p>
+        <div className="mt-4 flex flex-col gap-3 sm:flex-row">
+          <input
+            type="email"
+            dir="ltr"
+            value={newEmail}
+            onChange={(e) => setNewEmail(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !adding) addCoach();
+            }}
+            placeholder="coach@example.com"
+            className="flex-1 rounded-xl border border-[#d2d2d7] bg-white px-4 py-2.5 text-sm outline-none focus:border-[#0071e3]"
+          />
+          <input
+            value={newName}
+            onChange={(e) => setNewName(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !adding) addCoach();
+            }}
+            placeholder={isAr ? "الاسم (اختياري)" : "Name (optional)"}
+            className="flex-1 rounded-xl border border-[#d2d2d7] bg-white px-4 py-2.5 text-sm outline-none focus:border-[#0071e3]"
+          />
+          <button
+            onClick={addCoach}
+            disabled={adding}
+            className="rounded-xl bg-[#0071e3] px-6 py-2.5 text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+          >
+            {adding
+              ? (isAr ? "جارٍ الإضافة…" : "Adding…")
+              : (isAr ? "إضافة مدرب" : "Add coach")}
+          </button>
+        </div>
+      </section>
+
       {/* Staff cards */}
       <section>
         <h2 className="mb-3 text-sm font-medium uppercase tracking-wide text-[#6e6e73]">
@@ -184,6 +317,17 @@ export function AdminAssignmentsView() {
                 {isAr ? "العملاء الحاليون: " : "Current clients: "}
                 <span className="font-medium text-[#1d1d1f]">{counts[s.id] ?? 0}</span>
               </p>
+              {s.role === "coach" && (
+                <button
+                  onClick={() => demoteCoach(s)}
+                  disabled={demotingId === s.id}
+                  className="mt-3 text-xs font-medium text-[#ff3b30] transition-opacity hover:opacity-70 disabled:opacity-50"
+                >
+                  {demotingId === s.id
+                    ? (isAr ? "جارٍ التحويل…" : "Converting…")
+                    : (isAr ? "تحويله إلى عميل عادي" : "Convert back to client")}
+                </button>
+              )}
             </div>
           ))}
           {staff.length === 0 && (
