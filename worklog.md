@@ -2912,3 +2912,29 @@ Stage Summary:
 - STATE: multi-coach system LIVE end-to-end — 1:1 assignments, scoped RLS, coach-scoped notifications, admin reassignment column, client my-coach card, self-promoted public landing pages in AR + EN with on-page toggle and hreflang pair.
 - Vercel auto-deploys e14f04e; public mirrors /coaches/{slug} + /ar/coaches/{slug} go live with the deploy (ISR 300s).
 - Open optional follow-ups floated to owner: (a) coach display-name EN field for the landing mirrors, (b) review pass on admin reassignment UX.
+
+---
+Task ID: T-ADMIN-ASSIGNMENTS-PAGE-2026-08-29
+Agent: Main (Super Z — Implementation Agent)
+Task: Owner feedback «مفيش لسة طريقة لتعيين المدربين» — the Phase 2B reassignment existed only as an inline المدرب column inside the /coach clients table (isAdmin-gated); make the assignment flow an OBVIOUS dedicated admin surface.
+
+Work Log:
+- NEW src/components/views/AdminAssignmentsView.tsx — dedicated admin assignments page:
+  • Staff section: one card per coach/admin (name, email, role badge أدمن/مدرب, live assigned-client count).
+  • Clients section: search by name/email + table (client → current coach badge → "— اختر مدربًا —" picker) → PATCH /api/admin/assignments → optimistic update + sonner toast.
+  • Client rows come from getCoachClientListOptimized() (get_coach_client_list RPC, 0030D — admin variant carries assigned_coach_id/name). RPC null → honest 0030D hint banner (staff cards still render).
+  • Unassigned counter in the section header (X عميل — Y غير معيّن).
+- NEW src/app/admin/assignments/page.tsx — inside /admin layout → AdminGate (role='admin' only; coach → /coach, client → /dashboard) + noindex inherited from the admin layout metadata.
+- GET /api/admin/assignments extended (backward compatible): now also returns counts: Record<coach_id, n> computed from a service-role coach_assignments read. CoachView's inline usage ignores the new field.
+- AppLayout coachExtraLinks: NEW admin-only sidebar entry { /admin/assignments, تعيين المدربين / Coach assignments, 🤝 } — rendered only when isAdmin (same block as Tool Leads / Saved Results).
+- AGENTS.md §7: assignment UI now documented as TWO surfaces (dedicated page + inline column).
+
+Verification:
+- bunx tsc --noEmit → 0 errors
+- eslint (4 touched files) → 0 errors, 2 pre-existing-style warnings (no-explicit-any on the RPC row mapping, same pattern as CoachView)
+- bunx next build → ✓ compiled, 957 pages, ƒ /admin/assignments + ƒ /api/admin/assignments registered
+
+Stage Summary:
+- Assignment flow is now unmissable: sidebar 🤝 تعيين المدربين → staff cards + searchable client list + instant reassignment with toast.
+- DIAGNOSTIC NOTE for owner: if the sidebar entry or the المدرب column does NOT appear for his account, the DB role is not 'admin' — verify with `select email, role from public.profiles where role in ('coach','admin');` and promote with an explicit UPDATE (no JWT claim dependency — role is read live from profiles on every session load).
+- No schema changes; no owner manual SQL needed for this task.

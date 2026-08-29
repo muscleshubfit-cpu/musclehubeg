@@ -671,8 +671,13 @@ Process:
        entry). Coach edits via /coach/landing + /api/coach/landing
        (GET/PUT, requireCoach, upsert on coach_id, slug-taken → 409).
        Assignment UI is ADMIN-ONLY: /api/admin/assignments (GET staff
-       list, PATCH {client_id, coach_id} upsert 1:1 with role checks)
-       + the المدرب column in the coach clients table (isAdmin only).
+       list + per-coach counts, PATCH {client_id, coach_id} upsert 1:1
+       with role checks) with TWO surfaces: the DEDICATED page
+       /admin/assignments (owner feedback «مفيش لسة طريقة لتعيين
+       المدربين» — staff cards + searchable client rows + per-client
+       coach picker, AdminGate-protected, sidebar entry تعيين المدربين
+       in coachExtraLinks) AND the quick المدرب column inside the
+       /coach clients table (isAdmin only).
        Client "my coach" card (MyCoachCard on /dashboard) reads
        coach_assignments + assigned coach profile — profiles select
        policy was extended in 0031: a client may read ONLY his

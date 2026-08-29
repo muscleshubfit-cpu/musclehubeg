@@ -35,7 +35,18 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  return NextResponse.json({ staff: data ?? [] });
+  // Per-staff assigned-client counts (admin assignments management page).
+  // Service-role read of coach_assignments — no RLS dance needed here.
+  const { data: assignmentRows } = await supabaseAdmin
+    .from("coach_assignments")
+    .select("coach_id");
+  const counts: Record<string, number> = {};
+  for (const row of assignmentRows ?? []) {
+    const coachId = (row as { coach_id: string }).coach_id;
+    counts[coachId] = (counts[coachId] ?? 0) + 1;
+  }
+
+  return NextResponse.json({ staff: data ?? [], counts });
 }
 
 export async function PATCH(request: NextRequest) {

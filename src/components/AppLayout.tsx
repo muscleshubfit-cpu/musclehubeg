@@ -48,6 +48,9 @@ export function AppLayout({ children }: { children: ReactNode }) {
   // only from the header drawer — deep-audit fix (2026-08-28) puts it on par
   // with Tool Leads in the persistent sidebar.
   const coachExtraLinks = [
+    // Phase 2B follow-up («مفيش لسة طريقة لتعيين المدربين»): the 1↔1
+    // client↔coach assignment got its OWN obvious admin surface.
+    { href: "/admin/assignments", label: isAr ? "تعيين المدربين" : "Coach assignments", emoji: "🤝" },
     { href: "/admin/leads", label: isAr ? "Leads الأدوات" : "Tool Leads", emoji: "📨" },
     { href: "/admin/saved-results", label: isAr ? "النتائج المحفوظة" : "Saved Results", emoji: "🔖" },
   ];
