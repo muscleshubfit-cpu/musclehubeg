@@ -8,22 +8,26 @@ import {
 } from "@/lib/coach-limits";
 
 /**
- * COACH ACTIVATES A CLIENT'S SUBSCRIPTION AFTER OFFLINE PAYMENT (0034).
+ * COACH ACTIVATES A CLIENT'S SUBSCRIPTION AFTER OFFLINE PAYMENT (0034)
+ * + WALLET GATE (0035).
  *
- * OWNER MODEL: the coach collects the money OUTSIDE the site (cash /
- * Vodafone Cash / InstaPay / bank transfer) and then activates the
- * subscription himself from the client's page. The site never touches
- * that money — it only RECORDS who activated what for whom, so the
- * admin has a full audit ledger (coach_payments) and the client sees
- * the receipt on his dashboard.
+ * OWNER MODEL: the coach collects the money from HIS client OUTSIDE the
+ * site (cash / Vodafone Cash / InstaPay / bank transfer) and then
+ * activates the subscription from the client's page. BUT the coach also
+ * pays THE SITE a monthly fixed fee per client (coach_fees × months)
+ * from his WALLET: since 0035 a coach can only activate when his wallet
+ * balance covers fee_per_client × months — the fee is debited
+ * atomically (coach_adjust_wallet) BEFORE extending, and refunded if
+ * the activation itself fails. ADMINS are exempt (no wallet check).
+ * The site still never touches the coach↔client money — it RECORDS it
+ * (coach_payments) and the client sees the receipt on his dashboard.
  *
  * POST /api/coach/subscriptions/activate
  *   { client_id, tier, months, amount?, method?, note? }
  *
  * - coach: may ONLY activate for his own assigned clients (verified
  *   against coach_assignments — poaching-proof, mirrors /api/coach/claim).
- * - admin: may activate for anyone (keeps the manual override the owner
- *   already had via the same form).
+ * - admin: may activate for anyone (wallet-exempt manual override).
  * - The extension itself runs extend_subscription() (0018 math, now
  *   0034-guarded) through the service role, then a coach_payments row
  *   is written and the client gets a notification.
@@ -126,6 +130,79 @@ export async function POST(request: NextRequest) {
     }
   }
 
+  // ── 0035 WALLET GATE — no paid slot, no activation (coaches only). ──
+  // cost = coach_fees.fee_per_client × months (fee 0 / unset = free;
+  // the admin controls the price table on /admin/assignments).
+  const paymentId = crypto.randomUUID();
+  let walletCost = 0;
+  if (auth.role === "coach") {
+    const [feeRes, walletRes] = await Promise.all([
+      supabaseAdmin
+        .from("coach_fees" as any)
+        .select("fee_per_client")
+        .eq("coach_id", auth.id)
+        .maybeSingle(),
+      supabaseAdmin
+        .from("coach_wallets" as any)
+        .select("balance")
+        .eq("coach_id", auth.id)
+        .maybeSingle(),
+    ]);
+    const fee = Number((feeRes.data as any)?.fee_per_client ?? 0) || 0;
+    walletCost = Math.round(fee * months * 100) / 100;
+    if (walletCost > 0) {
+      const missingTable = [feeRes.error, walletRes.error]
+        .find(Boolean)
+        ?.message.includes("coach_wallet");
+      if (missingTable) {
+        return NextResponse.json(
+          {
+            error: "db_error",
+            message: "شغّل هجرة 0035 أولًا (RUN_ON_SUPABASE_0035_COACH_WALLET.sql)",
+          },
+          { status: 503 },
+        );
+      }
+      const balance = Number((walletRes.data as any)?.balance ?? 0);
+      if (balance < walletCost) {
+        return NextResponse.json(
+          {
+            error: "insufficient_wallet",
+            message: `رصيد محفظتك (${balance} EGP) مش كفاية لتفعيل ${months} ${months === 1 ? "شهر" : "شهور"} — المطلوب ${walletCost} EGP. اشحن المحفظة الأول (انستاباي / فودافون كاش / PayPal) وهيتم التفعيل فورًا.`,
+            balance,
+            cost: walletCost,
+          },
+          { status: 402 },
+        );
+      }
+    }
+  }
+
+  // ── Debit the wallet FIRST (atomic) so no failure can leave a free
+  // slot; refunded below if the activation itself fails.
+  if (walletCost > 0) {
+    const { error: debitErr } = await (supabaseAdmin as any).rpc("coach_adjust_wallet", {
+      p_coach_id: auth.id,
+      p_amount: -walletCost,
+      p_kind: "activation",
+      p_ref_id: paymentId,
+      p_note: `تفعيل ${months} ${months === 1 ? "شهر" : "شهور"} — عميل ${(target as any).full_name ?? clientId}`,
+      p_created_by: auth.id,
+    });
+    if (debitErr) {
+      const insufficient = debitErr.message.includes("insufficient");
+      return NextResponse.json(
+        {
+          error: "insufficient_wallet",
+          message: insufficient
+            ? "رصيد محفظتك مش كفاية — اشحن المحفظة الأول (انستاباي / فودافون كاش / PayPal)."
+            : "فشل خصم رسوم التفعيل من المحفظة — حاول تاني.",
+        },
+        { status: 402 },
+      );
+    }
+  }
+
   // Extend / create the subscription (0018 math — preserves paid days).
   // Service-role call → passes the 0034 guard.
   const subscriptionType = tier === "coaching" ? "coaching" : "membership";
@@ -144,6 +221,17 @@ export async function POST(request: NextRequest) {
     const friendly = msg.includes("assigned coach")
       ? "العميل ده مش من عملاؤك"
       : `فشل تفعيل الاشتراك: ${msg}`;
+    // Refund the wallet debit — the coach never pays for a failed slot.
+    if (walletCost > 0) {
+      await (supabaseAdmin as any).rpc("coach_adjust_wallet", {
+        p_coach_id: auth.id,
+        p_amount: walletCost,
+        p_kind: "adjust",
+        p_ref_id: paymentId,
+        p_note: "استرداد — فشل تفعيل الاشتراك",
+        p_created_by: auth.id,
+      });
+    }
     return NextResponse.json(
       { error: "activation_failed", message: friendly },
       { status: 502 },
@@ -151,7 +239,6 @@ export async function POST(request: NextRequest) {
   }
 
   // Ledger row — the admin's audit trail of offline collections.
-  const paymentId = crypto.randomUUID();
   const { error: payErr } = await supabaseAdmin
     .from("coach_payments" as any)
     .insert({

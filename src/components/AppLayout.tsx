@@ -35,6 +35,10 @@ export function AppLayout({ children }: { children: ReactNode }) {
     { to: "coach", label: t("nav.clients"), emoji: "👥" },
     { to: "coach-support", label: t("nav.support.coach"), emoji: "🔧" },
     { to: "coach-payments", label: t("nav.admin"), emoji: "💳" },
+    // COACH WALLET (0035): the coach pays THE SITE a monthly fixed fee
+    // per client from this balance — top-up via InstaPay / Vodafone
+    // Cash / PayPal + receipt → admin review. Activation debits it.
+    { to: "coach-wallet", label: isAr ? "محفظتي" : "My Wallet", emoji: "👛" },
   ];
   // ADMIN-EXCLUSIVE nav items (owner directive 2026-08-29 — answers Q6):
   // blog CMS, referrals admin, tool leads, saved results are hidden from
@@ -51,6 +55,8 @@ export function AppLayout({ children }: { children: ReactNode }) {
     // Phase 2B follow-up («مفيش لسة طريقة لتعيين المدربين»): the 1↔1
     // client↔coach assignment got its OWN obvious admin surface.
     { href: "/admin/assignments", label: isAr ? "تعيين المدربين" : "Coach assignments", emoji: "🤝" },
+    // 0035: receipt review + manual wallet credit (محافظ المدربين).
+    { href: "/admin/wallets", label: isAr ? "محافظ المدربين" : "Coach wallets", emoji: "👛" },
     { href: "/admin/leads", label: isAr ? "Leads الأدوات" : "Tool Leads", emoji: "📨" },
     { href: "/admin/saved-results", label: isAr ? "النتائج المحفوظة" : "Saved Results", emoji: "🔖" },
   ];

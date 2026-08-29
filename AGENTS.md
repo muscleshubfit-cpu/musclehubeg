@@ -764,6 +764,45 @@ Process:
         (meal/exercise regenerate, content edits) and MANUAL plan
         uploads are UNLIMITED; admins unlimited; CLIENT tier limits
         unchanged (owner: «حدود استخدام العملاء مفيهاش تغيير»).
+- **COACH WALLET + RECEIPT REVIEW + MONTHLY QUOTA (owner model
+  2026-08-29, migration 0035 — «اقتراحاتك موافق عليها لكن paymob و فورى
+  لاحقاً»: the coach pays THE SITE a monthly fixed fee per client from
+  a WALLET; top-ups via the site's existing rails — InstaPay /
+  Vodafone Cash / PayPal LINK (no fixed prices) — with receipt upload
+  and MANUAL admin crediting; Paymob/Fawry automation is a later
+  phase):**
+    (a) 0035 tables: coach_wallets (balance >= 0, RLS admin-all /
+        coach-read-own), coach_topup_requests (pending → approved |
+        rejected, receipt_path REQUIRED, RLS admin-all / coach
+        insert+read-own) and coach_wallet_transactions (signed-amount
+        audit ledger, RLS admin-all / coach-read-own). The ONLY wallet
+        writer is coach_adjust_wallet() — SECURITY DEFINER, service-
+        role/admin-guarded, row-locked, raises 'insufficient wallet
+        balance' instead of going negative.
+    (b) ACTIVATION GATE («المدرب يقدر يفعل اشتراك عميل فقط لو المدرب
+        دفع للموقع للعميل»): /api/coach/subscriptions/activate now
+        computes fee_per_client × months for role='coach', refuses
+        with 402 insufficient_wallet when the balance is short, DEBITS
+        atomically BEFORE extend_subscription and REFUNDS if the
+        activation fails. Fee 0/unset = free activation; ADMINS are
+        wallet-exempt. coach_payments stays the audit row of what the
+        coach collected from HIS client (never the site's cut).
+    (c) TOP-UP FLOW: POST /api/coach/wallet/topup (staff, receipt
+        mandatory, receipts bucket reuse) → admin reviews on
+        /admin/wallets (GET /api/admin/wallets; PATCH
+        /api/admin/wallets/topups approve=atomic credit + notify,
+        reject=reason + notify; POST /api/admin/wallets/adjust = manual
+        ± with mandatory note). Coach surface: /coach/wallet (محفظتي —
+        balance, the three rails with QR/PayPal link, request form,
+        history, ledger) added to the staff nav; admin link محافظ
+        المدربين in coachExtraLinks. SITE_PAYMENT_CONTACTS holds the
+        rails; the PayPal payment link is an OWNER-SUPPLIED placeholder
+        to swap in coach-limits.ts.
+    (d) MONTHLY QUOTA (owner: «العداد شهرى»): the coach AI quota now
+        counts only the CURRENT UTC CALENDAR MONTH's done jobs —
+        coachAiMonthStartISO() applied in BOTH /api/ai/jobs (enforce)
+        and /api/coach/ai-usage (readout). Editing + manual upload
+        stay unlimited; client tier limits unchanged.
 - **USAGE LIMIT ENFORCEMENT LAW (2026-08-28, T-AI-DEEP-AUDIT-V2, owner
   directive «توسع وعمق اكبر … والتأكد من ايفو وطبيعه عضوية المستخدم فى
   حدود الاستخدام»):** every limit advertised in `memberships.ts` MUST be

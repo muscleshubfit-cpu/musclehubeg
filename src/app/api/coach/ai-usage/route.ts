@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireUser } from "@/lib/auth-server";
 import { supabaseAdmin, isSupabaseAdminConfigured } from "@/lib/supabase/admin";
-import { COACH_AI_PLAN_LIMIT } from "@/lib/coach-limits";
+import { COACH_AI_PLAN_LIMIT, coachAiMonthStartISO } from "@/lib/coach-limits";
 
 /**
  * COACH AI QUOTA READOUT (0034) — GET /api/coach/ai-usage?clientId=<uuid>
@@ -32,7 +32,10 @@ async function countCompleted(
     .eq("requested_by", coachId)
     .eq("job_type", jobType)
     .eq("status", "done")
-    .eq("payload->>clientId", clientId);
+    .eq("payload->>clientId", clientId)
+    // Owner: «العداد شهرى» — readout mirrors the monthly enforcement
+    // window in /api/ai/jobs (resets on the 1st, UTC).
+    .gte("created_at", coachAiMonthStartISO());
   if (error) {
     console.error("[api/coach/ai-usage] count error:", error.message);
     return 0; // fail open — same soft-quota convention as tier-limits

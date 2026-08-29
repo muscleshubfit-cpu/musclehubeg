@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireUser, requireCoach, isAuthConfigured } from "@/lib/auth-server";
 import { checkAndRecordSwap } from "@/lib/tier-limits";
-import { COACH_AI_PLAN_LIMIT } from "@/lib/coach-limits";
+import { COACH_AI_PLAN_LIMIT, coachAiMonthStartISO } from "@/lib/coach-limits";
 import {
   isAiJobType,
   JOB_GATE,
@@ -155,7 +155,10 @@ export async function POST(request: NextRequest) {
         .eq("requested_by", userId!)
         .eq("job_type", type)
         .eq("status", "done")
-        .eq("payload->>clientId", clientId);
+        .eq("payload->>clientId", clientId)
+        // 0034 → 0035 (owner: «العداد شهرى») — only THIS calendar month's
+        // completed generations burn the quota; it resets on the 1st.
+        .gte("created_at", coachAiMonthStartISO());
       if (!cntErr && (count ?? 0) >= COACH_AI_PLAN_LIMIT) {
         const kindAr = type === "plan_nutrition" ? "تغذية" : "تمارين";
         return NextResponse.json(

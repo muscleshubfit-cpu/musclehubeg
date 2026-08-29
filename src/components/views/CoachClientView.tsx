@@ -786,8 +786,8 @@ export function CoachClientView({ clientId }: { clientId: string }) {
  <h2 className="text-lg font-semibold">{t("coach.subscriptionMgmt")}</h2>
  <p className="mt-1 text-sm font-normal text-[#6e6e73]">
  {lang === "ar"
- ? "حصّل من العميل بره الموقع (كاش / فودافون كاش / انستاباي) ثم فعّل اشتراكه من هنا — العميل هيوصل إشعار فورًا، والأدمن يشوف العملية في سجل تفعيلات المدربين."
- : "Collect outside the site (cash / Vodafone Cash / InstaPay), then activate here — the client is notified instantly and the admin sees it in the payments ledger."}
+ ? "حصّل من العميل بره الموقع (كاش / فودافون كاش / انستاباي) ثم فعّل اشتراكه من هنا — التفعيل هيخصم رسوم العميل الشهرية من محفظتك (اشحنها من صفحة محفظتي)، والعميل هيوصل إشعار فورًا."
+ : "Collect from the client outside the site (cash / Vodafone Cash / InstaPay), then activate here — activation debits the monthly per-client fee from your wallet (top it up from My Wallet), and the client is notified instantly."}
  </p>
  <p className="mt-1 text-sm font-normal text-[#6e6e73]">
  {lang === "ar"

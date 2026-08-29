@@ -3049,3 +3049,34 @@ Stage Summary:
 - OWNER MANUAL STEP: run RUN_ON_SUPABASE_0034_COACH_ACTIVATION.sql (raw link in chat) — until then activation requests fail with the guard exception and coach-payments reads 503 with the hint; AI quota counting already works (ai_jobs exists).
 - Payment/activation options presented to owner: A) manual activation + ledger (SHIPPED — fits cash/Vodafone Cash/InstaPay reality), B) payment-request/invoice flow (later), C) online self-checkout for coach clients (later — needs coach payouts).
 - Tunables flagged to owner: quota period (shipped = per-client total; monthly reset is a one-line change), method list, EGP currency default.
+
+---
+Task ID: T-COACH-WALLET-0035-2026-08-29
+Agent: Main (Super Z — Implementation Agent)
+Task: Owner approved the wallet model — «اقتراحاتك موافق عليها لكن paymob و فورى لاحقاً… هنستخدم وسائل الدفع الحالية انستاباى وفودافون كاش و PayPal… يضاف طرق الدفع فى داش بورد المدرب ورصيد محفظة… وسيلة رفع ايصالات او سكرين شوت بالدفع والادمن يراجعهم ويكتب الرصيد يدوى لمحفظة المدرب. راجع ما تم الاول ثم ابداء التنفيذ». Also: AI quota confirmed MONTHLY («العداد شهرى»), coach→site fee MONTHLY, activation only when the coach paid the site for the client.
+
+Work Log:
+- REVIEW FIRST (owner directive): synced origin/main (sandbox was stale at f332c84 → reset to 047ad0a), re-read AGENTS.md §3/§7, worklog T-0033/T-COACH-LIMITS entries, 0033 coach_fees, 0034 extend_subscription guard + coach_payments ledger + 4+4 quota, /api/upload receipts bucket allowlist, uploadReceipt/getReceiptSignedUrl helpers, CheckoutView rails (musclehub@instapay / 01000000000 / QR images).
+- MIGRATION RUN_ON_SUPABASE_0035_COACH_WALLET.sql (6.9KB, one paste, idempotent, END OF SCRIPT 0035):
+  • coach_wallets (coach_id PK, balance ≥0, currency EGP; RLS admin-all / coach-read-own).
+  • coach_topup_requests (amount>0, method ∈ instapay|vodafone_cash|paypal, receipt_path NOT NULL, status pending→approved|rejected, admin_note, reviewed_by/at; RLS admin-all / coach insert+read-own).
+  • coach_wallet_transactions (signed amount, balance_after, ref_id, created_by; RLS admin-all / coach-read-own).
+  • coach_adjust_wallet(): THE ONLY wallet writer — SECURITY DEFINER, service_role|is_admin guard, row-locked upsert, raises 'insufficient wallet balance' rather than going negative, writes a ledger row, returns the new balance.
+- LIB coach-limits.ts: COACH_TOPUP_METHODS + labels + isCoachTopupMethod + coachTopupMethodLabel; SITE_PAYMENT_CONTACTS (instapay musclehub@instapay + QR, vodafone_cash 01000000000 + QR, paypal LINK — PLACEHOLDER pending owner's real link, flagged ⚠️ in code); coachAiMonthStartISO() (UTC calendar-month window); doc-block rewritten for the wallet model.
+- APIs: GET /api/coach/wallet (balance + fee_per_client + topups + transactions, 503 with run-0035 hint pre-migration); POST /api/coach/wallet/topup (staff, amount 0<x≤1M, receipt REQUIRED — receipts/ prefix, pending-only insert); GET /api/admin/wallets (per-staff balance + fee + live client_count + topup queue with FK-embedded coach names); PATCH /api/admin/wallets/topups (approve = atomic credit RPC then status flip pending-guarded + notify; reject = reason + notify; double-credit impossible — approve only on status='pending'); POST /api/admin/wallets/adjust (manual ±, note mandatory, staff-only target, notify).
+- ACTIVATION GATE in /api/coach/subscriptions/activate (owner question answered «صح»): role='coach' → cost = coach_fees.fee_per_client × months; balance < cost → 402 insufficient_wallet with an Arabic charge-now message; debit runs BEFORE extend_subscription (paymentId as ref), REFUND (kind adjust, «استرداد — فشل تفعيل الاشتراك») if activation fails — no failure can leave a free slot. Fee 0/unset = free; admins exempt. coach_payments unchanged (what the coach collected from HIS client).
+- MONTHLY QUOTA (owner: «العداد شهرى»): .gte(created_at, coachAiMonthStartISO()) added in BOTH /api/ai/jobs (enforcement) and /api/coach/ai-usage (readout) — 4 nutrition + 4 workout per client per UTC calendar month, resets on the 1st; failed jobs still never burn quota; editing + manual upload unlimited.
+- UI: NEW /coach/wallet (CoachWalletView — balance hero + fee line, three top-up rails with QR/copy/PayPal-link + method select, amount+note+receipt form reusing uploadReceipt, top-up history with status badges + receipt viewer, signed ledger table) + staff-nav item «محفظتي»; NEW /admin/wallets (AdminWalletsView — pending queue with receipt viewer + accept/reject, balances table with fee/clients, manual adjust form, reviewed history) + admin link «محافظ المدربين» in coachExtraLinks; use-nav View 'coach-wallet' + path mappings; CoachClientView activation copy now explains the wallet debit.
+- types.ts: coach_wallets + coach_topup_requests + coach_wallet_transactions; AGENTS.md §7: COACH WALLET + RECEIPT REVIEW + MONTHLY QUOTA law ((a)–(d)).
+
+Verification:
+- bunx tsc --noEmit → 0 errors (fixed RPC/`as any` casts after first run)
+- eslint (17 touched files) → 0 errors; warnings all pre-existing no-explicit-any style + one <img> matching CheckoutView's QR pattern
+- bunx vitest run → 153/153 (13 files)
+- bunx next build → ✓ compiled; ƒ /coach/wallet, /admin/wallets, /api/coach/wallet, /api/coach/wallet/topup, /api/admin/wallets, /api/admin/wallets/topups, /api/admin/wallets/adjust registered
+
+Stage Summary:
+- The B2B loop is now fully money-closed: coach brings clients (0033) → coach tops up his wallet via InstaPay/Vodafone Cash/PayPal + receipt → admin reviews & credits manually (0035) → coach activates client subscriptions which DEBIT fee_per_client × months (no balance, no activation; refund on failure) → 4+4 AI quota per client PER MONTH with unlimited edit/manual upload → coach_payments + wallet ledger + fee bill give the admin a complete audit trail.
+- OWNER MANUAL STEP: run RUN_ON_SUPABASE_0035_COACH_WALLET.sql (raw link in chat) — until then wallet reads/activations by coaches return 503 with the run-0035 hint; AI monthly quota works without it.
+- OWNER ACTION PENDING: real PayPal payment link — swap the placeholder in SITE_PAYMENT_CONTACTS.paypal (coach-limits.ts).
+- Later phases (owner-approved deferral): Paymob + Fawry automated top-ups; coach-fee collection automation.

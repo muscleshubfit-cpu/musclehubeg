@@ -622,6 +622,115 @@ export type Database = {
           { foreignKeyName: "coach_payments_subscription_id_fkey"; columns: ["subscription_id"]; isOneToOne: false; referencedRelation: "subscriptions"; referencedColumns: ["id"] },
         ];
       };
+      coach_wallets: {
+        Row: {
+          coach_id: string;
+          balance: number;
+          currency: string;
+          updated_at: string;
+        };
+        Insert: {
+          coach_id: string;
+          balance?: number;
+          currency?: string;
+          updated_at?: string;
+        };
+        Update: {
+          coach_id?: string;
+          balance?: number;
+          currency?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          { foreignKeyName: "coach_wallets_coach_id_fkey"; columns: ["coach_id"]; isOneToOne: true; referencedRelation: "profiles"; referencedColumns: ["id"] },
+        ];
+      };
+      coach_topup_requests: {
+        Row: {
+          id: string;
+          coach_id: string;
+          amount: number;
+          currency: string;
+          method: string;
+          receipt_path: string;
+          note: string | null;
+          status: string;
+          admin_note: string | null;
+          reviewed_by: string | null;
+          reviewed_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          coach_id: string;
+          amount: number;
+          currency?: string;
+          method: string;
+          receipt_path: string;
+          note?: string | null;
+          status?: string;
+          admin_note?: string | null;
+          reviewed_by?: string | null;
+          reviewed_at?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          coach_id?: string;
+          amount?: number;
+          currency?: string;
+          method?: string;
+          receipt_path?: string;
+          note?: string | null;
+          status?: string;
+          admin_note?: string | null;
+          reviewed_by?: string | null;
+          reviewed_at?: string | null;
+          created_at?: string;
+        };
+        Relationships: [
+          { foreignKeyName: "coach_topup_requests_coach_id_fkey"; columns: ["coach_id"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] },
+          { foreignKeyName: "coach_topup_requests_reviewed_by_fkey"; columns: ["reviewed_by"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] },
+        ];
+      };
+      coach_wallet_transactions: {
+        Row: {
+          id: string;
+          coach_id: string;
+          kind: string;
+          amount: number;
+          balance_after: number;
+          ref_id: string | null;
+          note: string | null;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          coach_id: string;
+          kind: string;
+          amount: number;
+          balance_after: number;
+          ref_id?: string | null;
+          note?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          coach_id?: string;
+          kind?: string;
+          amount?: number;
+          balance_after?: number;
+          ref_id?: string | null;
+          note?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Relationships: [
+          { foreignKeyName: "coach_wallet_transactions_coach_id_fkey"; columns: ["coach_id"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] },
+        ];
+      };
       coach_pages: {
         Row: {
           coach_id: string;
