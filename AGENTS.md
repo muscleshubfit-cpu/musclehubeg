@@ -847,7 +847,8 @@ Process:
            wallet-exempt.
         2) ADS («أعلن معنا») — coach_ads table (0037): fixed-duration
            packages (COACH_AD_PACKAGES in coach-limits.ts — OWNER
-           TUNABLE: week=100, month=300, quarter=800 EGP) paid by
+           TUNABLE, trial values set 2026-08-30: week=100, month=350,
+           quarter=900 EGP) paid by
            ATOMIC wallet debit (coach_adjust_wallet, kind 'adjust') in
            POST /api/coach/ads; debit-before-write with refund on
            failure; buying while active EXTENDS ends_at. The ad is a
@@ -874,6 +875,17 @@ Process:
            the WhatsApp share target is REMOVED by owner decree
            (CoachShareButtons: Facebook/X/Telegram + copy-link,
            lucide icons). Page content sections remain text-only.
+        6) WHATSAPP CONTACT LAW (owner directive 2026-08-30: «زرار
+           تواصل واتساب يظهر للعملاء بعد تفعيل اشتراكهم — المدرب يضيف
+           رقم واتساب الخاص به») — the coach saves his own number in
+           the landing editor (coach_pages.whatsapp_phone, normalized
+           to international digits server-side). It is served ONLY
+           through /api/my/coach-whatsapp, which gates on the caller's
+           ACTIVE subscription (status='active' AND end_date > now) +
+           his coach_assignments row; MyCoachCard renders the button
+           from that response. The number NEVER appears on the public
+           landing page, in featured strips, or to any visitor, and it
+           is NOT a share target (see 5).
 - **USAGE LIMIT ENFORCEMENT LAW (2026-08-28, T-AI-DEEP-AUDIT-V2, owner
   directive «توسع وعمق اكبر … والتأكد من ايفو وطبيعه عضوية المستخدم فى
   حدود الاستخدام»):** every limit advertised in `memberships.ts` MUST be

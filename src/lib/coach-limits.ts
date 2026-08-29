@@ -71,8 +71,8 @@ export const COACH_AD_PACKAGES: ReadonlyArray<{
   en: string;
 }> = [
   { id: "week", days: 7, priceEgp: 100, ar: "أسبوع", en: "1 week" },
-  { id: "month", days: 30, priceEgp: 300, ar: "شهر", en: "1 month" },
-  { id: "quarter", days: 90, priceEgp: 800, ar: "٣ شهور", en: "3 months" },
+  { id: "month", days: 30, priceEgp: 350, ar: "شهر", en: "1 month" },
+  { id: "quarter", days: 90, priceEgp: 900, ar: "٣ شهور", en: "3 months" },
 ];
 
 export type CoachAdPackage = (typeof COACH_AD_PACKAGES)[number];

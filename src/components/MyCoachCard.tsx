@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/lib/supabase/client";
+import { MessageCircle } from "lucide-react";
 
 /**
  * MULTI-COACH PHASE 2B — client "my coach" card.
@@ -11,6 +12,12 @@ import { supabase } from "@/lib/supabase/client";
  * auth.uid()) + the assigned coach's profile row (profiles select
  * policy grants the client his assigned coach — migration 0031).
  * Renders nothing while unassigned / before migrations / on error.
+ *
+ * 0037 — WHATSAPP CONTACT (owner directive: «زرار تواصل واتساب يظهر
+ * للعملاء بعد تفعيل اشتراكهم — المدرب يضيف رقم واتساب الخاص به»):
+ * the button renders ONLY when /api/my/coach-whatsapp returns a
+ * number — the SERVER gates it on an active subscription + the
+ * coach having saved his number. Never shown to visitors.
  */
 
 type CoachInfo = {
@@ -25,6 +32,16 @@ export function MyCoachCard() {
   const isAr = lang === "ar";
   const { profile } = useAuth();
   const [coach, setCoach] = useState<CoachInfo | null>(null);
+  // 0037 — coach WhatsApp number (server-gated: active subscription only)
+  const [waPhone, setWaPhone] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Silent — a null/failed response simply means no button.
+    fetch("/api/my/coach-whatsapp")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((json) => setWaPhone(json?.phone ?? null))
+      .catch(() => setWaPhone(null));
+  }, []);
 
   useEffect(() => {
     if (!profile || !supabase) return;
@@ -78,6 +95,17 @@ export function MyCoachCard() {
             ? "يتابع خطتك ونتائجك ويجيب على استفساراتك داخل الموقع"
             : "Follows your plan and results, and answers your questions in-app"}
         </p>
+        {waPhone && (
+          <a
+            href={`https://wa.me/${waPhone}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-3 inline-flex items-center gap-2 rounded-full bg-[#34c759] px-4 py-2 text-xs font-semibold text-white transition-opacity hover:opacity-90"
+          >
+            <MessageCircle className="h-3.5 w-3.5" aria-hidden="true" />
+            {isAr ? "تواصل واتساب مع مدربك" : "WhatsApp your coach"}
+          </a>
+        )}
       </div>
     </div>
   );

@@ -94,6 +94,8 @@ export function CoachLandingEditor() {
   const [facebook, setFacebook] = useState("");
   const [tiktok, setTiktok] = useState("");
   const [youtube, setYoutube] = useState("");
+  // 0037 — the coach's own WhatsApp number (shown to his activated clients)
+  const [whatsapp, setWhatsapp] = useState("");
   const [busyUpload, setBusyUpload] = useState<"photo" | "results" | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -121,6 +123,7 @@ export function CoachLandingEditor() {
           setFacebook(json.page?.facebook_url ?? "");
           setTiktok(json.page?.tiktok_url ?? "");
           setYoutube(json.page?.youtube_url ?? "");
+          setWhatsapp(json.page?.whatsapp_phone ?? "");
         } else {
           setMessage({
             kind: "err",
@@ -171,6 +174,7 @@ export function CoachLandingEditor() {
           facebook_url: facebook.trim(),
           tiktok_url: tiktok.trim(),
           youtube_url: youtube.trim(),
+          whatsapp_phone: whatsapp.trim(),
         }),
       });
       const json = await res.json().catch(() => ({}));
@@ -557,6 +561,27 @@ export function CoachLandingEditor() {
                 className="w-full rounded-xl border border-[#d2d2d7] bg-white px-4 py-2.5 text-sm outline-none focus:border-[#0071e3]"
               />
             </div>
+          </div>
+
+          {/* 0037 — WhatsApp contact number (for his ACTIVATED clients) */}
+          <div className="mt-4 rounded-2xl bg-[#f5f5f7] p-4">
+            <label className="mb-1 block text-sm font-medium">
+              {isAr ? "رقم الواتساب لتواصل عملائك" : "WhatsApp number for your clients"}
+            </label>
+            <p className="mb-3 text-xs font-normal text-[#6e6e73]">
+              {isAr
+                ? "الرقم ده بيظهر كزر «تواصل واتساب» عند عملائك المفعّل اشتراكهم فقط — مش بيظهر على صفحتك العامة ولا لأي زائر. اكتبه بأي صيغة (مثال: 01012345678) وهو هيتحفظ تلقائيًا بالصيغة الدولية."
+                : "This number renders as a «WhatsApp your coach» button for your ACTIVATED clients only — never on your public page or to visitors. Any format works (e.g. 01012345678); it is saved normalized automatically."}
+            </p>
+            <input
+              value={whatsapp}
+              onChange={(e) => setWhatsapp(e.target.value)}
+              maxLength={20}
+              inputMode="tel"
+              dir="ltr"
+              placeholder="01012345678"
+              className="w-full rounded-xl border border-[#d2d2d7] bg-white px-4 py-2.5 text-sm outline-none focus:border-[#0071e3]"
+            />
           </div>
         </div>
 

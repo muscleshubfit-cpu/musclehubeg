@@ -3165,3 +3165,24 @@ Stage Summary:
 - Dedicated coach support channel live (site↔coach threads) + legal liability disclaimer; client support explicitly the coach's responsibility.
 - Share kit: icons ON, WhatsApp OFF (owner decree).
 - OWNER STEP: run RUN_ON_SUPABASE_0037_COACH_BOOST.sql via raw link (tables + policies + public bucket + VERIFY); ad package prices (100/300/800) are OWNER-TUNABLE in coach-limits.ts COACH_AD_PACKAGES — flagged to the owner in the delivery message.
+
+---
+Task ID: T-COACH-BOOST-2-2026-08-30
+Agent: Main (Super Z — Implementation Agent)
+Task: Owner follow-up directives — «مقترحك القادم انا وافقت عليه» + ad prices «أسبوع 100ج / شهر 350ج / 3 شهور 900ج» + confirmation of the per-client 300/800 platform-fee model («المدرب هو المسؤول عن اسعاره مع عملائه... يتم خصم عمولة المنصة من محفظة المدرب») + NEW: client-facing WhatsApp contact button post-activation («زرار تواصل واتساب يظهر للعملاء بعد تفعيل اشتراكهم — المدرب يضيف رقم واتساب الخاص به»). 0037 NOT yet run by owner — amended in place.
+
+Work Log:
+- COACH_AD_PACKAGES updated to the owner's trial values: week=100, month=350, quarter=900 EGP (single file — server debit + CoachAdsView + admin views all read it).
+- Confirmed (no change needed): activation already debits the coach's wallet the fixed per-client fee (coachActivationCostEgp: 300/1mo, 800/3mo) while client prices stay the coach's own — exactly the owner's described model.
+- RUN_ON_SUPABASE_0037_COACH_BOOST.sql AMENDED BEFORE the owner ran it: + coach_pages.whatsapp_phone (text default '') + VERIFY updated 6→7 columns. Same raw link serves the new content.
+- /api/coach/landing: safeWhatsappPhone() — digits only, 00/EG-local 01xxxxxxxxx → 20xxxxxxxxxx (intl/wa.me shape), 8–16 digits else dropped; stored on PUT.
+- NEW PUBLIC-AUTH GET /api/my/coach-whatsapp: 4 server-side gates — auth → ACTIVE subscription (status='active' AND end_date > now, mirrors the app's isActive) → coach_assignments → coach_pages.whatsapp_phone (service role, publish-state-irrelevant). Returns {phone:null} for every non-match (client UI stays simple).
+- MyCoachCard (client dashboard): fetches the API silently; renders a green «تواصل واتساب مع مدربك» button (lucide MessageCircle, wa.me link) ONLY when the server returns a number. Never shown to visitors / on the public page / as a share target.
+- CoachLandingEditor: «رقم الواتساب لتواصل عملائك» field with an explicit scope hint (activated clients only, any format, auto-normalized).
+- AGENTS.md §7(g): ad prices updated + new law (6) WHATSAPP CONTACT LAW.
+- Verified: tsc 0 / eslint 0 errors (10 pre-existing-style warnings) / vitest 153-153 / next build ✓ (/api/my/coach-whatsapp registered) / smoke: unauthenticated GET → 401 (gate works).
+
+Stage Summary:
+- Owner's ad trial pricing (100/350/900) live; per-client 300/800 wallet-fee model confirmed as already implemented.
+- WhatsApp contact: coach adds number → only his ACTIVATED clients see the button on their dashboard.
+- OWNER STEP unchanged: run the (amended) 0037 raw link — it now also creates whatsapp_phone. VERIFY expects 7 coach_pages columns.

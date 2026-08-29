@@ -51,6 +51,25 @@ function safeResultsPhotos(raw: unknown): Array<{ url: string; caption: string }
     .filter((x): x is { url: string; caption: string } => x !== null);
 }
 
+/**
+ * 0037 — coach's own WhatsApp number → NORMALIZED INTERNATIONAL DIGITS
+ * (wa.me shape, e.g. 2010XXXXXXXX from 010XXXXXXXX / +20 10… / 20…).
+ * Accepts any country: only Egyptian-style local 01XXXXXXXXX is
+ * rewritten (→ 20…); everything else is kept as digits. 8–16 digits.
+ * Empty string = not set. The number is NEVER rendered on the public
+ * landing page — it is served only to the coach's OWN activated
+ * clients through /api/my/coach-whatsapp (active-subscription gated).
+ */
+function safeWhatsappPhone(raw: unknown): string {
+  const digits = String(raw ?? "").replace(/\D/g, "").slice(0, 20);
+  if (!digits) return "";
+  let n = digits;
+  if (n.startsWith("00")) n = n.slice(2);
+  if (/^0[125]\d{9}$/.test(n)) n = `20${n.slice(1)}`; // EG local 01/02/05xxxxxxxxx
+  if (n.length < 8 || n.length > 16) return "";
+  return n;
+}
+
 export async function GET(request: NextRequest) {
   let user: AuthUser;
   if (isAuthConfigured) {
@@ -124,6 +143,7 @@ export async function PUT(request: NextRequest) {
   const facebookUrl = safeSocialUrl(body.facebook_url);
   const tiktokUrl = safeSocialUrl(body.tiktok_url);
   const youtubeUrl = safeSocialUrl(body.youtube_url);
+  const whatsappPhone = safeWhatsappPhone(body.whatsapp_phone);
 
   if (!SLUG_RE.test(slug)) {
     return NextResponse.json(
@@ -161,6 +181,7 @@ export async function PUT(request: NextRequest) {
         facebook_url: facebookUrl,
         tiktok_url: tiktokUrl,
         youtube_url: youtubeUrl,
+        whatsapp_phone: whatsappPhone,
         updated_at: new Date().toISOString(),
       },
       { onConflict: "coach_id" },

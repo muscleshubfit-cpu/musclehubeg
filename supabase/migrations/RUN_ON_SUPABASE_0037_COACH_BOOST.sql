@@ -18,6 +18,10 @@ alter table public.coach_pages add column if not exists instagram_url text not n
 alter table public.coach_pages add column if not exists facebook_url text not null default '';
 alter table public.coach_pages add column if not exists tiktok_url text not null default '';
 alter table public.coach_pages add column if not exists youtube_url text not null default '';
+-- Coach's own WhatsApp number (digits only, intl form e.g. 2010XXXXXXXX).
+-- Surfaced to HIS activated clients via /api/my/coach-whatsapp (server
+-- gates on an active subscription) — never on the public landing page.
+alter table public.coach_pages add column if not exists whatsapp_phone text not null default '';
 
 -- PART B — coach_ads ------------------------------------------------------
 create table if not exists public.coach_ads (
@@ -90,8 +94,8 @@ create policy coach_public_owner_delete on storage.objects for delete to authent
 -- VERIFY (run these — expect the values shown):
 --   select column_name from information_schema.columns
 --     where table_name='coach_pages'
---       and column_name in ('photo_url','results_photos','instagram_url','facebook_url','tiktok_url','youtube_url');
---   → 6 rows
+--       and column_name in ('photo_url','results_photos','instagram_url','facebook_url','tiktok_url','youtube_url','whatsapp_phone');
+--   → 7 rows
 --   select tablename, policyname from pg_policies
 --     where tablename in ('coach_ads','coach_support_messages') order by 1;
 --   → coach_ads: coach_ads_owner_read | coach_support_messages: 2 policies
