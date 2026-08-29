@@ -1226,6 +1226,7 @@ export type Database = {
           p_tier: string;
           p_months: number;
           p_subscription_type?: string;
+          p_request_id?: string | null;
         };
         Returns: {
           id: string;

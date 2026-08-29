@@ -124,7 +124,9 @@ export async function reviewSubscriptionRequest(id: string, action: "approve" | 
  const start = new Date();
  const end = new Date();
  end.setMonth(end.getMonth() + req.duration_months);
- await upsertSubscription(req.user_id, req.plan_tier, req.duration_months, start.toISOString(), end.toISOString());
+ // 0042 EVIDENCE GATE: pass the approved request id — the RPC consumes
+ // it (consumed_at) so the activation is provably tied to a paid request.
+ await upsertSubscription(req.user_id, req.plan_tier, req.duration_months, start.toISOString(), end.toISOString(), req.id);
  // Notify the user
  await createNotification(req.user_id, "subscription_approved", "تم تفعيل اشتراكك!", `تم الموافقة على طلب اشتراكك (${req.plan_tier}) لمدة ${req.duration_months} أشهر.`, "/dashboard");
  // Award affiliate commission through the new engine (idempotent, transaction-level).
@@ -312,11 +314,14 @@ export async function listSubscriptionsForClient(clientId: string) {
  return read<any[]>(LS_SUBS, []).filter((s) => s.client_id === clientId);
 }
 
-export async function upsertSubscription(clientId: string, tier: string, months: number, startDate?: string, endDate?: string) {
+export async function upsertSubscription(clientId: string, tier: string, months: number, startDate?: string, endDate?: string, requestId?: string | null) {
  if (isSupabaseConfigured && supabase) {
  // Use migration 0018's extend_subscription() RPC which atomically
  // extends an existing subscription (preserving remaining paid days)
  // instead of overwriting it. Fixes C10 (early renewal lost paid days).
+ // 0042: coaches MUST pass the approved payment request id — the RPC
+ // consumes it atomically (no evidence → no activation). Server routes
+ // (service role) pass null.
  const subscriptionType = tier === "coaching" ? "coaching" : "membership";
  const { data, error } = await supabase
  .rpc("extend_subscription", {
@@ -324,6 +329,7 @@ export async function upsertSubscription(clientId: string, tier: string, months:
  p_tier: tier,
  p_months: months,
  p_subscription_type: subscriptionType,
+ p_request_id: requestId ?? null,
  });
  if (error) throw new Error(error.message);
  return data;

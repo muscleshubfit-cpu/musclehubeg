@@ -231,6 +231,8 @@ export async function POST(request: NextRequest) {
       p_tier: tier,
       p_months: months,
       p_subscription_type: subscriptionType,
+      // 0042: the wallet debit + ledger row above ARE the evidence here
+      p_request_id: null,
     },
   );
 

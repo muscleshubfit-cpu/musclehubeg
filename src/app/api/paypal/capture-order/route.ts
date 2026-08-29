@@ -75,6 +75,8 @@ async function serverUpsertSubscription(
       p_tier: tier,
       p_months: months,
       p_subscription_type: subscriptionType,
+      // 0042: service-role callers are evidence-exempt (PayPal IS the proof)
+      p_request_id: null,
     });
   if (error) throw new Error(error.message);
   return data;
