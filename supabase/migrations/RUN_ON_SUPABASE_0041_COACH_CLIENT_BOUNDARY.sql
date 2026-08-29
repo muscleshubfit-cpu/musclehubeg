@@ -20,6 +20,12 @@
 --   POLICY, not a function → verified via pg_policies.with_check.
 --   DDL (Parts A/B/C) untouched. First run rolled back (single txn) —
 --   RE-RUN THE WHOLE SCRIPT.
+-- REV 3 (2026-08-30): verify consolidated to ONE grid (editor shows only
+--   the last statement's grid) + V3 match fixed: pg_get_expr renormalizes
+--   policy text ('exists (' in DDL → 'EXISTS((SELECT' in catalog), so the
+--   literal match was a FALSE ALARM on a healthy policy. Now: ilike
+--   '%exists(%' + '%subscriptions%' + with_check text shown as proof.
+--   DDL still untouched — REV 3 is a verify-only change.
 -- PASTE SAFETY: raw url only → SQL Editor → Ctrl+End must show:
 --   END OF SCRIPT 0041   → Run → expect: Success. No rows returned
 -- =====================================================================
@@ -181,25 +187,34 @@ create policy plans_insert_coach
 notify pgrst, 'reload schema';
 
 -- ============================================================
--- VERIFY (run after paste)
+-- VERIFY (run after paste) — REV 3: ONE grid, all checks at once
+-- Expect: rpc_rebuilt=t | subs_policies_found=3 | plans_gate_active=t
+--         + plans_with_check_text = proof (contains EXISTS + subscriptions
+--         + 'coaching' + 'active'). NOTE: pg_get_expr renormalizes policy
+--         text, so 'exists (' in DDL appears as 'EXISTS((SELECT' here —
+--         never string-match the source spelling.
 -- ============================================================
--- V1: RPC rebuilt → expect t
-select position('0041' in coalesce(pg_get_functiondef('public.get_coach_client_list()'::regprocedure),'')) > 0 as rpc_rebuilt;
+select
+  (select position('0041' in coalesce(pg_get_functiondef('public.get_coach_client_list()'::regprocedure),'')) > 0)
+    as rpc_rebuilt,
 
--- V2: subscriptions policies → expect the 3 rows below
--- (pg_policies — information_schema.policies does not exist in Postgres)
-select policyname, cmd
-from pg_catalog.pg_policies
-where schemaname = 'public' and tablename = 'subscriptions'
-  and policyname in ('subs_select_owner_or_coach','subs_insert_self_or_coach','subs_update_self_or_coach')
-order by 1;
+  (select count(*) from pg_catalog.pg_policies
+    where schemaname = 'public' and tablename = 'subscriptions'
+      and policyname in ('subs_select_owner_or_coach','subs_insert_self_or_coach','subs_update_self_or_coach'))
+    as subs_policies_found,
 
--- V3: plans insert policy rebuilt → expect t
--- (plans_insert_coach is a POLICY, not a function → check with_check)
-select position('exists (' in coalesce(with_check,'')) > 0 as plans_gate_active
-from pg_catalog.pg_policies
-where schemaname = 'public' and tablename = 'plans'
-  and policyname = 'plans_insert_coach';
+  (select count(*) from pg_catalog.pg_policies
+    where schemaname = 'public' and tablename = 'plans'
+      and policyname = 'plans_insert_coach'
+      and with_check ilike '%exists(%'
+      and with_check ilike '%subscriptions%') = 1
+    as plans_gate_active,
+
+  (select coalesce(with_check, '<<POLICY plans_insert_coach MISSING>>')
+    from pg_catalog.pg_policies
+    where schemaname = 'public' and tablename = 'plans'
+      and policyname = 'plans_insert_coach')
+    as plans_with_check_text;
 
 -- V4 (app-level): coach opens his client list → premium/pro rows gone.
 
