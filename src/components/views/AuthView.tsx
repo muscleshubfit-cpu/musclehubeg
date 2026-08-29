@@ -144,7 +144,7 @@ export function AuthView({ mode, next, coach }: { mode: "login" | "signup"; next
           className="text-lg font-semibold tracking-tight"
           onClick={() => navigate("landing")}
         >
-          MuscleHub
+          Musclehubeg
         </button>
         <LanguageToggle />
       </header>
@@ -325,7 +325,7 @@ export function AuthView({ mode, next, coach }: { mode: "login" | "signup"; next
       </main>
 
       <footer className="mt-auto border-t border-[#d2d2d7] py-6 text-center text-xs font-normal text-[#6e6e73]">
-        © {new Date().getFullYear()} MuscleHub. {isAr ? "كل الحقوق محفوظة." : "All rights reserved."}
+        © {new Date().getFullYear()} Musclehubeg. {isAr ? "كل الحقوق محفوظة." : "All rights reserved."}
       </footer>
     </div>
   );

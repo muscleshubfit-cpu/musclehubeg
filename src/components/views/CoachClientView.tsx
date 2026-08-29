@@ -787,8 +787,8 @@ export function CoachClientView({ clientId }: { clientId: string }) {
  <h2 className="text-lg font-semibold">{t("coach.subscriptionMgmt")}</h2>
  <p className="mt-1 text-sm font-normal text-[#6e6e73]">
  {lang === "ar"
- ? "حصّل من العميل بره الموقع (كاش / فودافون كاش / انستاباي) ثم فعّل اشتراكه من هنا — التفعيل هيخصم رسوم العميل من محفظتك (شهر ٣٠٠ ج.م — ٣ شهور ٨٠٠ ج.م، اشحنها من صفحة محفظتي)، والعميل هيوصل إشعار فورًا."
- : "Collect from the client outside the site (cash / Vodafone Cash / InstaPay), then activate here — activation debits the per-client fee from your wallet (1 month 300 EGP — 3 months 800 EGP; top up from My Wallet), and the client is notified instantly."}
+ ? "حصّل من العميل بره الموقع (كاش / فودافون كاش / انستاباي) ثم فعّل اشتراكه من هنا — التفعيل هيخصم رسوم العميل من محفظتك (شهر 6$ — ٣ شهور 16$، اشحنها من صفحة محفظتي)، والعميل هيوصل إشعار فورًا."
+ : "Collect from the client outside the site (cash / Vodafone Cash / InstaPay), then activate here — activation debits the per-client fee from your wallet (1 month $6 — 3 months $16; top up from My Wallet), and the client is notified instantly."}
  </p>
  <p className="mt-1 text-sm font-normal text-[#6e6e73]">
  {lang === "ar"
@@ -815,8 +815,8 @@ export function CoachClientView({ clientId }: { clientId: string }) {
  </div>
  <div>
  <Label>{t("checkout.duration")}</Label>
- {/* OWNER PRICING (2026-08-30): 300 EGP / client-month, 800 EGP
- for 3 months — package prices shown on the buttons. */}
+ {/* OWNER PRICING (2026-08-30, GLOBAL USD): $6 / client-month,
+ $16 for 3 months — package prices shown on the buttons. */}
  <div className="mt-1.5 grid grid-cols-2 gap-2">
  {([1, 3] as Duration[]).map((d) => {
  const pkg = COACH_CLIENT_PACKAGES.find((p) => p.months === d);
@@ -832,7 +832,7 @@ export function CoachClientView({ clientId }: { clientId: string }) {
  {d} {t("pricing.months")}
  {pkg && (
  <span className="mt-0.5 block text-xs font-normal text-[#6e6e73]" dir="ltr">
- {pkg.priceEgp} EGP
+ {pkg.priceUsd}$
  </span>
  )}
  </button>
@@ -1546,7 +1546,7 @@ function PlanViewerModal({ plan, onClose, onRegenerate }: { plan: any; onClose: 
 <div class="brand">
  <div class="brand-logo">MH</div>
  <div>
- <div class="brand-name">MuscleHub</div>
+ <div class="brand-name">Musclehubeg</div>
  <div class="brand-tag">كوتش أونلاين للتغذية واللياقة | musclehubeg.vercel.app</div>
  </div>
 </div>
@@ -1667,7 +1667,7 @@ function PlanViewerModal({ plan, onClose, onRegenerate }: { plan: any; onClose: 
  html += `<h2> ملاحظات عامة</h2><p>${notes}</p>`;
  }
 
- html += `<div class="footer">© ${new Date().getFullYear()} MuscleHub | musclehubeg.vercel.app<br>هذا التقرير مُعد لأغراض إرشادية — يُرجى استشارة طبيب مختص قبل بدء أي نظام غذائي أو تناول مكملات.</div>`;
+ html += `<div class="footer">© ${new Date().getFullYear()} Musclehubeg | musclehubeg.vercel.app<br>هذا التقرير مُعد لأغراض إرشادية — يُرجى استشارة طبيب مختص قبل بدء أي نظام غذائي أو تناول مكملات.</div>`;
  html += `</body></html>`;
  w.document.write(html);
  w.document.close();

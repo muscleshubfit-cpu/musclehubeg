@@ -9,8 +9,6 @@ import {
   COACH_TOPUP_METHODS,
   SITE_PAYMENT_CONTACTS,
   PAYPAL_TOPUP_MIN_USD,
-  PAYPAL_USD_TO_EGP_RATE,
-  paypalUsdFromEgp,
   coachTopupMethodLabel,
   type CoachTopupMethod,
 } from "@/lib/coach-limits";
@@ -20,8 +18,10 @@ import { uploadReceipt, getReceiptSignedUrl } from "@/lib/data";
  * COACH WALLET (0035) — /coach/wallet
  *
  * OWNER MODEL: the coach pays THE SITE a monthly fixed fee per client.
+ * GLOBAL USD (owner decree 2026-08-30): the wallet ledger is USD and
+ * PayPal charges 1:1 — the coach types a USD amount and pays exactly it.
  * This view = balance + top-up rails:
- *   • PayPal (AUTOMATED — 0035 phase 2): the coach types an EGP amount,
+ *   • PayPal (AUTOMATED — 0035 phase 2): the coach types a USD amount,
  *     pays through the PayPal JS SDK, and the wallet is credited
  *     INSTANTLY by /api/paypal/capture-order (coach_adjust_wallet).
  *     InstaPay/Vodafone Cash stay MANUAL (receipt → admin review).
@@ -101,27 +101,27 @@ function usePayPalScript(shouldLoad: boolean) {
 }
 
 /**
- * PayPal buttons for the wallet top-up. The EGP amount is read at CLICK
- * time through getAmountEgp() (a ref-backed getter) so the buttons never
+ * PayPal buttons for the wallet top-up. The USD amount is read at CLICK
+ * time through getAmountUsd() (a ref-backed getter) so the buttons never
  * need re-rendering when the coach edits the amount.
  */
 function WalletPayPalButtons({
-  getAmountEgp,
+  getAmountUsd,
   onSuccess,
   onError,
   isAr,
 }: {
-  getAmountEgp: () => number;
+  getAmountUsd: () => number;
   onSuccess: () => void;
   onError: (msg: string) => void;
   isAr: boolean;
 }) {
   const paypalRef = useRef<HTMLDivElement>(null);
   const renderedRef = useRef(false);
-  const amountRef = useRef(getAmountEgp);
+  const amountRef = useRef(getAmountUsd);
   useEffect(() => {
-    amountRef.current = getAmountEgp;
-  }, [getAmountEgp]);
+    amountRef.current = getAmountUsd;
+  }, [getAmountUsd]);
   const [processing, setProcessing] = useState(false);
 
   useEffect(() => {
@@ -138,7 +138,7 @@ function WalletPayPalButtons({
           const res = await fetch("/api/paypal/create-order", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ purpose: "wallet_topup", amountEgp: amountRef.current() }),
+            body: JSON.stringify({ purpose: "wallet_topup", amountUsd: amountRef.current() }),
           });
           const data = await res.json();
           if (!res.ok || !data.orderId) {
@@ -211,11 +211,11 @@ export function CoachWalletView() {
   const [submitting, setSubmitting] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  // Instant PayPal top-up state (0035 phase 2)
+  // Instant PayPal top-up state (0035 phase 2) — USD 1:1 (0038 decree)
   const [payAmount, setPayAmount] = useState("");
-  const MIN_TOPUP_EGP = Math.ceil((PAYPAL_TOPUP_MIN_USD * PAYPAL_USD_TO_EGP_RATE) / 5) * 5;
-  const payEgp = Number(payAmount);
-  const payValid = Number.isFinite(payEgp) && payEgp >= MIN_TOPUP_EGP && payEgp <= 1_000_000;
+  const MIN_TOPUP_USD = PAYPAL_TOPUP_MIN_USD;
+  const payUsd = Number(payAmount);
+  const payValid = Number.isFinite(payUsd) && payUsd >= MIN_TOPUP_USD && payUsd <= 1_000_000;
   const { loaded: paypalLoaded, error: paypalError } = usePayPalScript(true);
 
   const load = useCallback(async () => {
@@ -330,13 +330,13 @@ export function CoachWalletView() {
             <div className="mt-2 text-5xl font-semibold tracking-tight" dir="ltr">
               {fmt(data?.balance ?? 0)}{" "}
               <span className="text-xl font-normal text-white/60">
-                {data?.currency ?? "EGP"}
+                {data?.currency ?? "USD"}
               </span>
             </div>
             <p className="mt-3 text-sm font-normal text-white/60">
               {isAr
-                ? `رسوم العميل الشهرية: ${fmt(data?.fee_per_client ?? 0)} ${data?.fee_currency ?? "EGP"} — تفعيل ٣ شهور = ${fmt((data?.fee_per_client ?? 0) * 3)}، وهكذا.`
-                : `Per-client monthly fee: ${fmt(data?.fee_per_client ?? 0)} ${data?.fee_currency ?? "EGP"} — activating 3 months = ${fmt((data?.fee_per_client ?? 0) * 3)}, and so on.`}
+                ? `رسوم العميل الشهرية: ${fmt(data?.fee_per_client ?? 0)}$ — باقة ٣ شهور = ${fmt(16)}$ (سعر ثابت)، وأي مدة أخرى = الرسوم الشهرية × الشهور.`
+                : `Per-client monthly fee: ${fmt(data?.fee_per_client ?? 0)}$ — 3-month package = ${fmt(16)}$ (fixed price), any other duration = monthly fee × months.`}
             </p>
           </div>
 
@@ -364,35 +364,35 @@ export function CoachWalletView() {
               </div>
               <p className="mt-1.5 text-sm font-normal text-[#6e6e73]">
                 {isAr
-                  ? `اكتب المبلغ بالجنيه، ادفع بالدولار عبر PayPal، والرصيد يضاف لمحفظتك فورًا بدون مراجعة (سعر الصرف ${PAYPAL_USD_TO_EGP_RATE} ج.م/دولار تقريبًا).`
-                  : `Type the amount in EGP, pay in USD via PayPal, and the balance is credited instantly — no review (rate ≈ ${PAYPAL_USD_TO_EGP_RATE} EGP/USD).`}
+                  ? "اكتب المبلغ بالدولار وادفع نفس المبلغ عبر PayPal، والرصيد يضاف لمحفظتك فورًا بدون مراجعة."
+                  : "Type the amount in USD, pay exactly it via PayPal, and the balance is credited instantly — no review."}
               </p>
 
               <div className="mt-4 grid gap-4 sm:grid-cols-2">
                 <div>
                   <label className="text-sm font-medium">
-                    {isAr ? "مبلغ الشحن (جنيه)" : "Top-up amount (EGP)"}
+                    {isAr ? "مبلغ الشحن (دولار USD)" : "Top-up amount (USD)"}
                   </label>
                   <input
                     type="number"
-                    min={MIN_TOPUP_EGP}
-                    step="1"
+                    min={MIN_TOPUP_USD}
+                    step="0.5"
                     value={payAmount}
                     onChange={(e) => setPayAmount(e.target.value)}
-                    placeholder={isAr ? `مثال: 500 (أدنى ${MIN_TOPUP_EGP})` : `e.g. 500 (min ${MIN_TOPUP_EGP})`}
+                    placeholder={isAr ? `مثال: 20 (أدنى ${MIN_TOPUP_USD})` : `e.g. 20 (min ${MIN_TOPUP_USD})`}
                     className="mt-1.5 w-full rounded-xl border border-[#d2d2d7] px-4 py-2.5 text-sm outline-none focus:border-[#0071e3]"
                     dir="ltr"
                   />
                 </div>
                 <div>
                   <label className="text-sm font-medium">
-                    {isAr ? "المطلوب دفعه عبر PayPal" : "PayPal charge"}
+                    {isAr ? "الرصيد المضاف لمحفظتك" : "Wallet credit"}
                   </label>
                   <div
                     className="mt-1.5 flex h-[42px] items-center rounded-xl bg-[#f5f5f7] px-4 text-sm font-medium text-[#1d1d1f]"
                     dir="ltr"
                   >
-                    {payValid ? `$${paypalUsdFromEgp(payEgp).toFixed(2)} USD` : "—"}
+                    {payValid ? `${payUsd.toFixed(2)} USD` : "—"}
                   </div>
                 </div>
               </div>
@@ -401,8 +401,8 @@ export function CoachWalletView() {
                 {!payValid ? (
                   <div className="rounded-xl bg-[#f5f5f7] p-4 text-center text-sm text-[#6e6e73]">
                     {isAr
-                      ? `اكتب مبلغ صحيح (${MIN_TOPUP_EGP} ج.م أو أكثر) لتفعيل زر PayPal`
-                      : `Enter a valid amount (${MIN_TOPUP_EGP} EGP or more) to enable the PayPal button`}
+                      ? `اكتب مبلغ صحيح (${MIN_TOPUP_USD}$ أو أكثر) لتفعيل زر PayPal`
+                      : `Enter a valid amount (${MIN_TOPUP_USD} USD or more) to enable the PayPal button`}
                   </div>
                 ) : paypalError ? (
                   <div className="rounded-xl bg-[#ff3b30]/5 p-4 text-center text-sm text-[#ff3b30]">
@@ -412,7 +412,7 @@ export function CoachWalletView() {
                   </div>
                 ) : paypalLoaded ? (
                   <WalletPayPalButtons
-                    getAmountEgp={() => Number(payAmount)}
+                    getAmountUsd={() => Number(payAmount)}
                     onSuccess={handlePayPalSuccess}
                     onError={handlePayPalError}
                     isAr={isAr}
@@ -498,15 +498,15 @@ export function CoachWalletView() {
             <div className="mt-6 grid gap-4 sm:grid-cols-2">
               <div>
                 <label className="text-sm font-medium">
-                  {isAr ? "المبلغ اللي دفعته" : "Amount you paid"}
+                  {isAr ? "المبلغ اللي دفعته (دولار USD)" : "Amount you paid (USD)"}
                 </label>
                 <input
                   type="number"
-                  min="1"
+                  min="0.5"
                   step="0.01"
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
-                  placeholder={isAr ? "مثال: 1500" : "e.g. 1500"}
+                  placeholder={isAr ? "مثال: 30" : "e.g. 30"}
                   className="mt-1.5 w-full rounded-xl border border-[#d2d2d7] px-4 py-2.5 text-sm outline-none focus:border-[#0071e3]"
                   dir="ltr"
                 />

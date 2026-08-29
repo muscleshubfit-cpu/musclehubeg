@@ -4,7 +4,7 @@ import type { Metadata } from "next";
  * M30 fix: English-first metadata for /tools/calorie-calculator.
  */
 export const metadata: Metadata = {
-  title: "Calorie Calculator | MuscleHubEG — Calculate Your Daily Needs",
+  title: "Calorie Calculator | Musclehubeg — Calculate Your Daily Needs",
   description:
     "Calculate your daily calorie needs and macros (protein, carbs, fat) based on your weight, height, age, and activity level. Free and accurate using the Mifflin-St Jeor equation.",
   keywords: [
@@ -20,7 +20,7 @@ export const metadata: Metadata = {
     canonical: "https://musclehubeg.vercel.app/tools/calorie-calculator",
   },
   openGraph: {
-    title: "Calorie Calculator | MuscleHubEG",
+    title: "Calorie Calculator | Musclehubeg",
     description: "Calculate your daily calorie needs and macros for free.",
     type: "website",
     locale: "en_US",
@@ -28,7 +28,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Calorie Calculator | MuscleHubEG",
+    title: "Calorie Calculator | Musclehubeg",
     description: "Calculate your daily calorie needs and macros for free.",
   },
 };

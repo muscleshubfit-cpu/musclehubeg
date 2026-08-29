@@ -17,42 +17,51 @@
  *    uploads are UNLIMITED by owner decree.
  *  - Site clients keep the exact same tier limits as before — nothing
  *    changes on the client side.
+ *  - CURRENCY (owner decree 2026-08-30: «التسعير يكون كله بالدولار
+ *    لكامل الموقع لأن الموقع عالمى وغير محدد لمصر — مثلا ٣٠٠ جنيه
+ *    تصبح ٦ دولار»): EVERY platform-side money figure is USD at the
+ *    owner's fixed rate 50 EGP = $1. The wallet ledger, the per-client
+ *    packages, the ad packages and every UI label are USD-only.
+ *    (Migration 0038 renames coach_ads.price_egp → price_usd, flips all
+ *    stored currency values to 'USD' and converts existing EGP amounts
+ *    at ÷50 once.)
  */
 
 /** Completed AI plan generations allowed per client, per kind, per month. */
 export const COACH_AI_PLAN_LIMIT = 4;
 
 /* ------------------------------------------------------------------ */
-/* OWNER PRICING (2026-08-30 decree:                                   */
-/* «اسعار المدربين لكل عميل تتعمل ٣٠٠ الشهر / ٨٠٠ ٣ شهور»)              */
-/* The per-client fee the coach pays THE SITE is now PACKAGE-based:    */
-/* 1 client-month = 300 EGP, 3 client-months = 800 EGP (bundle).       */
+/* OWNER PRICING (2026-08-30 decrees:                                  */
+/* «اسعار المدربين لكل عميل ٣٠٠ الشهر / ٨٠٠ ٣ شهور» + «التسعير كله     */
+/* بالدولار — ٣٠٠ جنيه تصبح ٦ دولار»)                                  */
+/* The per-client fee the coach pays THE SITE is PACKAGE-based, in USD */
+/* (rate 50 EGP = $1): 1 client-month = $6, 3 client-months = $16.     */
 /* Single source of truth for BOTH the server debit math               */
 /* (/api/coach/subscriptions/activate) and the coach-facing UI.        */
 /* ------------------------------------------------------------------ */
 
 export const COACH_CLIENT_PACKAGES: ReadonlyArray<{
   months: number;
-  priceEgp: number;
+  priceUsd: number;
 }> = [
-  { months: 1, priceEgp: 300 },
-  { months: 3, priceEgp: 800 },
+  { months: 1, priceUsd: 6 },
+  { months: 3, priceUsd: 16 },
 ];
 
 /**
- * Activation cost for a given duration. Package prices ALWAYS win for
- * 1 and 3 months (owner decree — coach_fees.fee_per_client can no
+ * Activation cost for a given duration (USD). Package prices ALWAYS win
+ * for 1 and 3 months (owner decree — coach_fees.fee_per_client can no
  * longer undercut them). Any other duration (e.g. legacy 12-month
  * activations) stays linear on the coach's monthly base: his admin-set
- * fee_per_client if one exists, otherwise the 300 EGP monthly rate.
+ * fee_per_client if one exists, otherwise the $6 monthly rate.
  */
-export function coachActivationCostEgp(
+export function coachActivationCostUsd(
   months: number,
   feePerClient = 0,
 ): number {
   const pkg = COACH_CLIENT_PACKAGES.find((p) => p.months === months);
-  if (pkg) return pkg.priceEgp;
-  const monthly = feePerClient > 0 ? feePerClient : COACH_CLIENT_PACKAGES[0].priceEgp;
+  if (pkg) return pkg.priceUsd;
+  const monthly = feePerClient > 0 ? feePerClient : COACH_CLIENT_PACKAGES[0].priceUsd;
   return Math.round(monthly * months * 100) / 100;
 }
 
@@ -66,13 +75,13 @@ export function coachActivationCostEgp(
 export const COACH_AD_PACKAGES: ReadonlyArray<{
   id: string;
   days: number;
-  priceEgp: number;
+  priceUsd: number;
   ar: string;
   en: string;
 }> = [
-  { id: "week", days: 7, priceEgp: 100, ar: "أسبوع", en: "1 week" },
-  { id: "month", days: 30, priceEgp: 350, ar: "شهر", en: "1 month" },
-  { id: "quarter", days: 90, priceEgp: 900, ar: "٣ شهور", en: "3 months" },
+  { id: "week", days: 7, priceUsd: 2, ar: "أسبوع", en: "1 week" },
+  { id: "month", days: 30, priceUsd: 7, ar: "شهر", en: "1 month" },
+  { id: "quarter", days: 90, priceUsd: 18, ar: "٣ شهور", en: "3 months" },
 ];
 
 export type CoachAdPackage = (typeof COACH_AD_PACKAGES)[number];
@@ -188,21 +197,8 @@ export type CoachWalletKind = "topup" | "activation" | "adjust";
 /* ------------------------------------------------------------------ */
 
 /**
- * USD → EGP conversion used ONLY for PayPal wallet top-ups.
- * PayPal charges USD; the wallet ledger is EGP. SINGLE SOURCE OF TRUTH
- * for BOTH the server credit math (/api/paypal/capture-order) and the
- * client display (CoachWalletView) — keep both on this one constant.
- *
- * ⚠️ OWNER TUNABLE: update this number when the rate drifts. No fixed
- * prices by owner decree — the coach types his own top-up amount; this
- * is only the conversion rate for the USD charge.
+ * Minimum PayPal charge in USD (protects against dust top-ups).
+ * The wallet ledger is USD (owner global-currency decree), so PayPal
+ * charges are 1:1 — the coach types a USD amount and pays exactly it.
  */
-export const PAYPAL_USD_TO_EGP_RATE = 50;
-
-/** Minimum PayPal charge in USD (protects against dust top-ups). */
 export const PAYPAL_TOPUP_MIN_USD = 0.5;
-
-/** Convert an EGP top-up amount into the USD PayPal charge (2 decimals). */
-export function paypalUsdFromEgp(egpAmount: number): number {
-  return Math.round((egpAmount / PAYPAL_USD_TO_EGP_RATE) * 100) / 100;
-}

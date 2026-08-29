@@ -78,7 +78,7 @@ export function BlogEditorView({ mode, postId }: { mode: "new" | "edit"; postId?
  featured_image: "",
  cover_alt: "",
  reading_time: 1,
- author: "MuscleHub",
+ author: "Musclehubeg",
  is_published: false,
  faq_json: [],
  });

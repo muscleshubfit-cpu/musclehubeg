@@ -156,7 +156,7 @@ export async function POST(request: NextRequest) {
       // deterministic ledger ref). This webhook NEVER credits — crediting
       // from two paths would risk double-credit races.
       const customId: string = event?.resource?.custom_id || "";
-      let topupContext: { purpose?: string; egp_amount?: number; user_id?: string } | null = null;
+      let topupContext: { purpose?: string; usd_amount?: number; egp_amount?: number; user_id?: string } | null = null;
       try {
         topupContext = customId.startsWith("{") ? JSON.parse(customId) : null;
       } catch {
@@ -167,7 +167,7 @@ export async function POST(request: NextRequest) {
           event?.resource?.supplementary_data?.related_ids?.order_id || resourceId;
         console.log(
           `[paypal/webhook] Wallet top-up capture: order=${relatedOrderId} ` +
-          `egp=${topupContext.egp_amount} user=${topupContext.user_id}. ` +
+          `usd=${topupContext.usd_amount ?? (topupContext.egp_amount !== undefined ? topupContext.egp_amount / 50 : "?")} user=${topupContext.user_id}. ` +
           "Credit is handled (idempotently) by /api/paypal/capture-order — no action here.",
         );
       } else {

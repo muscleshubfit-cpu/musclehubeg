@@ -30,7 +30,7 @@ export function BlogView() {
  <header className="border-b border-border bg-background/80 backdrop-blur">
  <div className="mx-auto flex h-16 max-w-4xl items-center justify-between px-4">
  <h1 className="font-display text-xl font-bold">
- {isAr ? "مدونة MuscleHub" : "MuscleHub Blog"}
+ {isAr ? "مدونة Musclehubeg" : "Musclehubeg Blog"}
  </h1>
  <Badge variant="secondary">{posts.length} {isAr ? "مقال" : "articles"}</Badge>
  </div>

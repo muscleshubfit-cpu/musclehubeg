@@ -352,7 +352,7 @@ export function seedLocalData() {
  [coachId]: {
  id: coachId,
  email: "ahmed@coach.app",
- full_name: "MuscleHubEG Coach",
+ full_name: "Musclehubeg Coach",
  phone: "+20 100 000 0000",
  role: "coach",
  avatar_url: null,

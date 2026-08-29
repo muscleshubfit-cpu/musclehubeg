@@ -139,7 +139,7 @@ export function DashboardView() {
                         <p className="mt-0.5 text-[10px] font-medium text-[#34c759]">
                           {isAr ? "مفعّلة بواسطة مدربك" : "Activated by your coach"}
                           {pay.method ? ` · ${coachPaymentMethodLabel(pay.method, isAr ? "ar" : "en")}` : ""}
-                          {pay.amount != null ? ` · ${Number(pay.amount).toLocaleString()} ${pay.currency || "EGP"}` : ""}
+                          {pay.amount != null ? ` · ${Number(pay.amount).toLocaleString()} ${pay.currency || "USD"}` : ""}
                         </p>
                       )}
                     </div>

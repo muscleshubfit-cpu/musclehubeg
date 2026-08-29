@@ -25,12 +25,12 @@ export async function generateMetadata({
 
   if (!exercise) {
     return {
-      title: "Exercise Not Found — MuscleHubEG",
+      title: "Exercise Not Found — Musclehubeg",
       robots: { index: false, follow: false },
     };
   }
 
-  const title = `${exercise.nameEn} — Proper Form & Instructions | MuscleHubEG`;
+  const title = `${exercise.nameEn} — Proper Form & Instructions | Musclehubeg`;
   const description = `Learn how to perform ${exercise.nameEn} with proper form. Target muscles: ${exercise.primaryMuscles.join(", ")}. Equipment: ${EQUIPMENT_LABELS[exercise.equipment].en}. Level: ${LEVEL_LABELS[exercise.level].en}.`;
   const url = `https://musclehubeg.vercel.app/exercises/${exercise.slug}`;
 
@@ -45,7 +45,7 @@ export async function generateMetadata({
       url,
       title,
       description,
-      siteName: "MuscleHubEG",
+      siteName: "Musclehubeg",
       locale: "en_US",
     },
     twitter: {

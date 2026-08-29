@@ -38,7 +38,6 @@ import {
   payPalOrderRefUuid,
   resolvePlanPrice,
 } from "@/lib/paypal";
-import { paypalUsdFromEgp } from "@/lib/coach-limits";
 import { supabaseAdmin, isSupabaseAdminConfigured } from "@/lib/supabase/admin";
 
 // Commission rate — same value as in src/lib/referral.ts (0.20 = 20%)
@@ -359,9 +358,12 @@ async function serverProcessAffiliateCommission(
  * Wallet top-up capture (0035 phase 2) — coach paid THE SITE via PayPal.
  *
  * The custom_id (server-signed at create time) carries { purpose,
- * user_id, egp_amount }. The credit amount is the SERVER-generated
- * egp_amount — verified against PayPal's captured USD via the shared
- * rate constant — never a client-supplied number.
+ * user_id, usd_amount } (GLOBAL USD decree 2026-08-30 — the wallet
+ * ledger is USD and PayPal charges 1:1; a legacy egp_amount custom_id
+ * from pre-0038 in-flight orders is converted at the fixed rate 50 EGP
+ * = $1). The credit amount is the SERVER-generated USD amount —
+ * verified against PayPal's captured USD — never a client-supplied
+ * number.
  *
  * Idempotency: the ledger ref is a deterministic UUID5 of the PayPal
  * order id (payPalOrderRefUuid), so a retried capture / replayed order
@@ -371,7 +373,7 @@ async function serverProcessAffiliateCommission(
 async function handleWalletTopupCapture(
   orderId: string,
   userId: string,
-  egpAmount: number,
+  usdAmount: number,
   captured: { currency: string; value: string } | null,
 ): Promise<Response> {
   if (!isSupabaseAdminConfigured || !supabaseAdmin) {
@@ -381,11 +383,11 @@ async function handleWalletTopupCapture(
     );
   }
 
-  // 1. Validate the server-signed EGP amount
-  const egp = Number(egpAmount);
-  if (!Number.isFinite(egp) || egp <= 0 || egp > 1_000_000) {
+  // 1. Validate the server-signed USD amount
+  const usd = Math.round(Number(usdAmount) * 100) / 100;
+  if (!Number.isFinite(usd) || usd <= 0 || usd > 1_000_000) {
     console.error(
-      `[paypal/capture-order] Top-up: invalid egp_amount in custom_id: ${egpAmount}. Order: ${orderId}`,
+      `[paypal/capture-order] Top-up: invalid usd_amount in custom_id: ${usdAmount}. Order: ${orderId}`,
     );
     return NextResponse.json(
       { error: "Payment verification failed (invalid order metadata).", orderId },
@@ -393,13 +395,12 @@ async function handleWalletTopupCapture(
     );
   }
 
-  // 2. Amount verification — PayPal's captured USD must match the EGP
-  //    amount via the shared rate (± $0.02 tolerance for rounding).
-  const expectedUsd = paypalUsdFromEgp(egp);
+  // 2. Amount verification — PayPal's captured USD must equal the
+  //    USD credit 1:1 (± $0.02 tolerance for rounding).
   const capturedValue = captured ? parseFloat(captured.value) : 0;
-  if (!captured || captured.currency !== "USD" || Math.abs(capturedValue - expectedUsd) > 0.02) {
+  if (!captured || captured.currency !== "USD" || Math.abs(capturedValue - usd) > 0.02) {
     console.error(
-      `[paypal/capture-order] Top-up amount mismatch: expected $${expectedUsd}, captured ${captured?.currency} ${capturedValue}. Order: ${orderId}`,
+      `[paypal/capture-order] Top-up amount mismatch: expected $${usd}, captured ${captured?.currency} ${capturedValue}. Order: ${orderId}`,
     );
     return NextResponse.json(
       { error: "Payment amount mismatch. Please contact support.", orderId },
@@ -433,7 +434,7 @@ async function handleWalletTopupCapture(
     "coach_adjust_wallet",
     {
       p_coach_id: userId,
-      p_amount: egp,
+      p_amount: usd,
       p_kind: "topup",
       p_ref_id: refUuid,
       p_note: topupNote,
@@ -462,7 +463,7 @@ async function handleWalletTopupCapture(
     .from("coach_topup_requests" as any)
     .insert({
       coach_id: userId,
-      amount: egp,
+      amount: usd,
       method: "paypal",
       status: "approved",
       receipt_path: "", // automated flow — no receipt; empty passes NOT NULL
@@ -483,14 +484,14 @@ async function handleWalletTopupCapture(
       user_id: userId,
       type: "wallet_topup_approved",
       title: "تم شحن محفظتك عبر PayPal ✅",
-      body: `اتشحن ${egp} EGP في محفظتك — الرصيد الجديد ${newBalance}.`,
+      body: `اتشحن ${usd}$ في محفظتك — الرصيد الجديد ${newBalance}.`,
       link: "/coach/wallet",
     });
     if (notifyErr) console.error("[paypal/capture-order] Top-up notify error:", notifyErr.message);
   }
 
   console.log(
-    `[paypal/capture-order] SUCCESS: PayPal order ${orderId} captured, wallet credited +${egp} EGP for coach ${userId} (new balance ${newBalance})`,
+    `[paypal/capture-order] SUCCESS: PayPal order ${orderId} captured, wallet credited +${usd}$ for coach ${userId} (new balance ${newBalance})`,
   );
 
   return NextResponse.json({
@@ -566,12 +567,14 @@ export async function POST(request: NextRequest) {
   // 6. Parse custom_id to extract the server-signed order context
   // The custom_id was set during Create Order as a JSON string:
   //   subscription → { user_id, plan_tier, duration_months }
-  //   wallet_topup → { purpose: 'wallet_topup', user_id, egp_amount }
+  //   wallet_topup → { purpose: 'wallet_topup', user_id, usd_amount }
+  //                  (legacy pre-0038 orders carry egp_amount → ÷50)
   let contextData: {
     user_id?: string;
     plan_tier?: string;
     duration_months?: number;
     purpose?: string;
+    usd_amount?: number;
     egp_amount?: number;
   };
   try {
@@ -586,7 +589,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const { user_id, plan_tier, duration_months, purpose, egp_amount } = contextData;
+  const { user_id, plan_tier, duration_months, purpose, usd_amount, egp_amount } = contextData;
 
   if (!user_id) {
     console.error(
@@ -609,9 +612,15 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // 7.5 WALLET TOP-UP branch (0035 phase 2) — credit the coach's wallet
+  // 7.5 WALLET TOP-UP branch (0035 phase 2) — credit the coach's wallet.
+  // GLOBAL USD: usd_amount is charged 1:1; a legacy egp_amount (pre-0038
+  // in-flight order) converts at the owner's fixed rate 50 EGP = $1.
   if (purpose === "wallet_topup") {
-    return await handleWalletTopupCapture(orderId, user.id, Number(egp_amount), captureResult.amount);
+    const creditUsd =
+      usd_amount !== undefined && usd_amount !== null
+        ? Number(usd_amount)
+        : Number(egp_amount) / 50;
+    return await handleWalletTopupCapture(orderId, user.id, creditUsd, captureResult.amount);
   }
 
   if (!plan_tier || !duration_months) {

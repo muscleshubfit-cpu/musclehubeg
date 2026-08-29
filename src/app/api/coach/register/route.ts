@@ -216,7 +216,7 @@ export async function POST(request: NextRequest) {
   const { error: walletErr } = await supabaseAdmin
     .from("coach_wallets")
     .upsert(
-      { coach_id: userId, balance: 0, currency: "EGP" },
+      { coach_id: userId, balance: 0, currency: "USD" },
       { onConflict: "coach_id" },
     );
   if (walletErr) {
@@ -231,7 +231,7 @@ export async function POST(request: NextRequest) {
   const { error: notifyErr } = await supabaseAdmin.from("notifications").insert({
     user_id: userId,
     type: "coach_welcome",
-    title: "أهلًا بك كوتش في MuscleHubEG!",
+    title: "أهلًا بك كوتش في Musclehubeg!",
     body:
       "حسابك اتفعّل. ابدأ بإضافة عملائك، حدّد أسعارك بنفسك، وجهّز محفظتك لتفعيل اشتراكاتهم.",
     link: "/coach",

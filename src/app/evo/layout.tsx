@@ -5,7 +5,7 @@ import { getEVOApplicationSchema } from "@/lib/seo";
  * M30 fix: English-first metadata for /evo.
  */
 export const metadata: Metadata = {
-  title: "EVO — AI Fitness Coach | MuscleHubEG",
+  title: "EVO — AI Fitness Coach | Musclehubeg",
   description:
     "EVO is an intelligent performance engine — not just a chatbot. It analyzes your health data, predicts results, updates plans automatically, and provides 24/7 fitness and nutrition consulting via AI. Free for everyone.",
   keywords: [
@@ -18,7 +18,7 @@ export const metadata: Metadata = {
     "smart fitness coach",
   ],
   openGraph: {
-    title: "EVO — AI Fitness Coach | MuscleHubEG",
+    title: "EVO — AI Fitness Coach | Musclehubeg",
     description:
       "An intelligent engine that analyzes your data and updates plans automatically. Free for everyone.",
     type: "website",

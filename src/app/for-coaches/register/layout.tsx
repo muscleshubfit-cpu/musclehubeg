@@ -11,9 +11,9 @@ const SITE = "https://musclehubeg.vercel.app";
 const PAGE_URL = `${SITE}/for-coaches/register`;
 
 export const metadata: Metadata = {
-  title: "تسجيل مدرب — أنشئ حسابك المجاني على MuscleHubEG",
+  title: "تسجيل مدرب — أنشئ حسابك المجاني على Musclehubeg",
   description:
-    "سجّل كمدرب على MuscleHubEG في دقيقة: تفعيل فوري بدون انتظار، أضف عملاءك وحدد أسعارك بنفسك واحصل منهم مباشرة — بدون أي نسبة من دخلك.",
+    "سجّل كمدرب على Musclehubeg في دقيقة: تفعيل فوري بدون انتظار، أضف عملاءك وحدد أسعارك بنفسك واحصل منهم مباشرة — بدون أي نسبة من دخلك.",
   keywords: [
     "تسجيل مدرب",
     "انشاء حساب كوتش",
@@ -29,17 +29,17 @@ export const metadata: Metadata = {
     },
   },
   openGraph: {
-    title: "تسجيل مدرب — MuscleHubEG",
+    title: "تسجيل مدرب — Musclehubeg",
     description:
       "أنشئ حسابك كمدرب مجانًا — تفعيل فوري، عملاؤك بأسعارك، وفلوسك في إيدك.",
     url: PAGE_URL,
-    siteName: "MuscleHubEG",
+    siteName: "Musclehubeg",
     locale: "ar_EG",
     type: "website",
   },
   twitter: {
     card: "summary",
-    title: "تسجيل مدرب — MuscleHubEG",
+    title: "تسجيل مدرب — Musclehubeg",
     description: "أنشئ حسابك كمدرب مجانًا — تفعيل فوري.",
   },
 };

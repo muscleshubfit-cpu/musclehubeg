@@ -23,7 +23,7 @@
  *
  * LOCALIZATION:
  *   - 100% English when lang === "en", 100% Arabic when lang === "ar".
- *   - Brand name "MuscleHubEG" is never translated.
+ *   - Brand name "Musclehubeg" is never translated.
  */
 
 import { useEffect, useMemo, useState } from "react";
@@ -417,8 +417,8 @@ function BannerCard({
           <img
             src={bannerUrl}
             alt={bannerLang === "ar"
-              ? "MuscleHubEG — منصة اللياقة والتغذية الذكية. ابدأ مجانًا."
-              : "MuscleHubEG — Your AI fitness & nutrition coach. Start free."}
+              ? "Musclehubeg — منصة اللياقة والتغذية الذكية. ابدأ مجانًا."
+              : "Musclehubeg — Your AI fitness & nutrition coach. Start free."}
             loading="lazy"
             style={{
               display: "block",
@@ -513,7 +513,7 @@ function getUi(isAr: boolean): UiStrings {
       link: {
         title: "رابط الأفلييت بتاعك",
         subtitle:
-          "استخدم الرابط ده في كل مكان بتعمل فيه توصية لـ MuscleHubEG. كل عملية شراء مؤهلة تتم عن طريقه بتتسجل في حسابك.",
+          "استخدم الرابط ده في كل مكان بتعمل فيه توصية لـ Musclehubeg. كل عملية شراء مؤهلة تتم عن طريقه بتتسجل في حسابك.",
         inputLabel: "رابط الأفلييت",
         copy: "نسخ الرابط",
         copyAria: "نسخ رابط الأفلييت",
@@ -548,7 +548,7 @@ function getUi(isAr: boolean): UiStrings {
     link: {
       title: "YOUR AFFILIATE LINK",
       subtitle:
-        "Use this link anywhere you recommend MuscleHubEG. Every eligible purchase made through it is recorded in your account.",
+        "Use this link anywhere you recommend Musclehubeg. Every eligible purchase made through it is recorded in your account.",
       inputLabel: "Affiliate link",
       copy: "COPY LINK",
       copyAria: "Copy your affiliate link",

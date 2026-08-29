@@ -161,8 +161,8 @@ export type PayPalOrderContext = {
    * embedded in custom_id so capture-order can branch safely.
    */
   purpose?: "subscription" | "wallet_topup";
-  /** Wallet top-up amount in EGP (server-validated) — wallet_topup only. */
-  egpAmount?: number;
+  /** Wallet top-up amount in USD, charged 1:1 (server-validated) — wallet_topup only. GLOBAL USD (owner decree 2026-08-30). */
+  usdAmount?: number;
 };
 
 export type PayPalCreateOrderResult = {
@@ -206,14 +206,14 @@ export async function createPayPalOrder(
   // it is the ONLY reason capture-order can tell a subscription from a
   // wallet top-up. Keep both shapes backward-compatible.
   const description = isTopup
-    ? `MuscleHubEG wallet top-up (${context.egpAmount} EGP)`
-    : `MuscleHubEG ${context.planTier} subscription (${context.durationMonths} month${context.durationMonths === 1 ? "" : "s"})`;
+    ? `Musclehubeg wallet top-up (${context.usdAmount} USD)`
+    : `Musclehubeg ${context.planTier} subscription (${context.durationMonths} month${context.durationMonths === 1 ? "" : "s"})`;
 
   const customId = isTopup
     ? JSON.stringify({
         purpose: "wallet_topup",
         user_id: context.userId,
-        egp_amount: context.egpAmount,
+        usd_amount: context.usdAmount,
       })
     : JSON.stringify({
         user_id: context.userId,
@@ -242,7 +242,7 @@ export async function createPayPalOrder(
     ],
     // application_context controls the PayPal checkout experience
     application_context: {
-      brand_name: "MuscleHubEG",
+      brand_name: "Musclehubeg",
       landing_page: "NO_PREFERENCE", // PayPal chooses Login or Signup
       user_action: "PAY_NOW",
       shipping_preference: "NO_SHIPPING", // digital subscription — no shipping

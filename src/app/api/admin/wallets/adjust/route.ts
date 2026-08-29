@@ -82,7 +82,7 @@ export async function POST(request: NextRequest) {
     user_id: coachId,
     type: "wallet_adjusted",
     title: amount > 0 ? "تم إضافة رصيد لمحفظتك" : "تم تعديل رصيد محفظتك",
-    body: `${amount > 0 ? "+" : ""}${amount} EGP — ${note}`,
+    body: `${amount > 0 ? "+" : ""}${amount}$ — ${note}`,
     link: "/coach/wallet",
   });
 

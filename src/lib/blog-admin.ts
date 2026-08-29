@@ -114,7 +114,7 @@ export async function adminCreatePost(
     featured_image: post.featured_image || "",
     cover_alt: post.cover_alt || "",
     reading_time: post.reading_time || 1,
-    author: post.author || "MuscleHubEG",
+    author: post.author || "Musclehubeg",
     is_published: post.is_published || false,
     published_at: post.is_published ? now : null,
     created_at: now,

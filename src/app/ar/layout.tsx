@@ -17,22 +17,22 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: {
-    default: "MuscleHubEG — منصة اللياقة والتغذية الشاملة",
-    template: "%s — MuscleHubEG",
+    default: "Musclehubeg — منصة اللياقة والتغذية الشاملة",
+    template: "%s — Musclehubeg",
   },
   description:
-    "منصة MuscleHubEG لللياقة والتغذية: مكتبة تمارين (868+)، برامج تدريب، حاسبات لياقة مجانية، قاعدة بيانات أطعمة (8,830+)، مدونة رياضية، وكوتشينج أونلاين مع محرك EVO الذكي.",
+    "منصة Musclehubeg لللياقة والتغذية: مكتبة تمارين (868+)، برامج تدريب، حاسبات لياقة مجانية، قاعدة بيانات أطعمة (8,830+)، مدونة رياضية، وكوتشينج أونلاين مع محرك EVO الذكي.",
   openGraph: {
-    title: "MuscleHubEG — منصة اللياقة والتغذية الشاملة",
+    title: "Musclehubeg — منصة اللياقة والتغذية الشاملة",
     description:
       "868+ تمرين، برامج تدريب جاهزة، حاسبات لياقة مجانية، 8,830+ أكلة بالسعرات والماكروز، مدونة رياضية علمية، وكوتشينج أونلاين مع محرك EVO الذكي.",
-    siteName: "MuscleHubEG",
+    siteName: "Musclehubeg",
     locale: "ar_EG",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "MuscleHubEG — منصة اللياقة والتغذية",
+    title: "Musclehubeg — منصة اللياقة والتغذية",
     description:
       "868+ تمرين، برامج تدريب، حاسبات مجانية، 8,830+ أكلة، مدونة رياضية، وكوتشينج أونلاين مع EVO AI.",
   },

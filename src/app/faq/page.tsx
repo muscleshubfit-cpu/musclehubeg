@@ -8,7 +8,7 @@ import { StaticPageView } from "@/components/views/StaticPageView";
  */
 
 const FAQS_EN = [
-  { q: "What is MuscleHubEG?", a: "A human optimization platform combining the EVO AI engine with a massive exercise and food database for personalized plans and smart tracking." },
+  { q: "What is Musclehubeg?", a: "A human optimization platform combining the EVO AI engine with a massive exercise and food database for personalized plans and smart tracking." },
   { q: "Who is EVO?", a: "EVO is the AI performance engine. It analyzes your data, predicts outcomes, recommends improvements, and updates plans automatically. Available to all members with tier-based limits." },
   { q: "Is there a human coach?", a: "EVO is an AI coach. If you want human supervision, there's a separate human coaching section you can book via the coaching page." },
   { q: "How many daily swaps?", a: "Free: 0. Premium: 3 meal + 3 exercise swaps/week. Pro: 6/week. Coaching: unlimited. Resets weekly." },
@@ -20,7 +20,7 @@ const FAQS_EN = [
 ];
 
 const FAQS_AR = [
-  { q: "ما هي منصة MuscleHubEG؟", a: "منصة متكاملة لللياقة والتغذية تجمع بين محرك الذكاء الاصطناعي EVO وقاعدة بيانات ضخمة للتمارين والأطعمة لتقديم خطط مخصصة وتتبع ذكي لكل مستخدم." },
+  { q: "ما هي منصة Musclehubeg؟", a: "منصة متكاملة لللياقة والتغذية تجمع بين محرك الذكاء الاصطناعي EVO وقاعدة بيانات ضخمة للتمارين والأطعمة لتقديم خطط مخصصة وتتبع ذكي لكل مستخدم." },
   { q: "ما هو EVO؟", a: "EVO هو محرك الأداء الذكي في المنصة. يقوم بتحليل بياناتك، والتنبؤ بالنتائج، واقتراح التحسينات، وتحديث خططك بشكل تلقائي. متاح لجميع الأعضاء وفق حدود العضوية." },
   { q: "هل يوجد مدرب بشري؟", a: "EVO هو مدرب ذكاء اصطناعي. إذا كنت ترغب في متابعة بشرية مباشرة، يتوفر قسم منفصل للكوتشينج البشري يمكنك حجزه عبر صفحة الكوتشينج." },
   { q: "كم عدد عمليات الاستبدال اليومية؟", a: "الباقة المجانية: لا يوجد. Premium: 3 استبدال وجبات + 3 استبدال تمارين أسبوعياً. Pro: 6 أسبوعياً. Coaching: غير محدود. يتم التجديد كل أسبوع." },
@@ -32,9 +32,9 @@ const FAQS_AR = [
 ];
 
 export const metadata: Metadata = {
-  title: "الأسئلة الشائعة — MuscleHubEG | دليل شامل للمنصة",
+  title: "الأسئلة الشائعة — Musclehubeg | دليل شامل للمنصة",
   description:
-    "إجابات على أكثر الأسئلة شيوعاً حول MuscleHubEG: كيف يعمل محرك EVO الذكي، باقات العضوية، طرق الدفع، أمان البيانات، دعم اللغة العربية، والجدول الزمني للنتائج.",
+    "إجابات على أكثر الأسئلة شيوعاً حول Musclehubeg: كيف يعمل محرك EVO الذكي، باقات العضوية، طرق الدفع، أمان البيانات، دعم اللغة العربية، والجدول الزمني للنتائج.",
   alternates: {
     canonical: "https://musclehubeg.vercel.app/faq",
     languages: {
@@ -43,9 +43,9 @@ export const metadata: Metadata = {
     },
   },
   openGraph: {
-    title: "الأسئلة الشائعة — MuscleHubEG",
+    title: "الأسئلة الشائعة — Musclehubeg",
     description:
-      "إجابات شاملة حول منصة MuscleHubEG: محرك EVO الذكي، العضويات، الدفع، الأمان، والمزيد.",
+      "إجابات شاملة حول منصة Musclehubeg: محرك EVO الذكي، العضويات، الدفع، الأمان، والمزيد.",
     url: "https://musclehubeg.vercel.app/faq",
     type: "website",
     locale: "ar_EG",

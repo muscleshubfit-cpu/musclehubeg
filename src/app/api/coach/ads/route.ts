@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
   const [adsRes, walletRes] = await Promise.all([
     supabaseAdmin
       .from("coach_ads" as any)
-      .select("id, package_id, days, price_egp, status, starts_at, ends_at, created_at")
+      .select("id, package_id, days, price_usd, status, starts_at, ends_at, created_at")
       .eq("coach_id", user.id)
       .order("created_at", { ascending: false })
       .limit(20),
@@ -97,7 +97,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const price = pkg.priceEgp;
+  const price = pkg.priceUsd;
 
   // ── Wallet gate + atomic debit (coaches only; admins exempt). ──
   let debited = 0;
@@ -122,7 +122,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           error: "insufficient_wallet",
-          message: `رصيد محفظتك (${balance} EGP) مش كفاية لاشتراك الإعلان — المطلوب ${price} EGP. اشحن المحفظة الأول (انستاباي / فودافون كاش / PayPal).`,
+          message: `رصيد محفظتك (${balance}$) مش كفاية لاشتراك الإعلان — المطلوب ${price}$. اشحن المحفظة الأول (PayPal / انستاباي / فودافون كاش).`,
           balance,
           cost: price,
         },
@@ -137,7 +137,7 @@ export async function POST(request: NextRequest) {
         p_amount: -price,
         p_kind: "adjust",
         p_ref_id: null,
-        p_note: `إعلان — باقة ${pkg.ar} (${price} EGP)`,
+        p_note: `إعلان — باقة ${pkg.ar} (${price}$)`,
         p_created_by: auth.id,
       },
     );
@@ -190,7 +190,7 @@ export async function POST(request: NextRequest) {
           coach_id: auth.id,
           package_id: pkg.id,
           days: pkg.days,
-          price_egp: price,
+          price_usd: price,
           status: "active",
           starts_at: now.toISOString(),
           ends_at: ends.toISOString(),
@@ -209,7 +209,7 @@ export async function POST(request: NextRequest) {
       .insert({
         type: "coach_ad",
         title: "اشتراك إعلان جديد",
-        body: `مدرب اشترك في باقة إعلان (${pkg.ar}) مقابل ${price} EGP — سارية حتى ${endsAr}.`,
+        body: `مدرب اشترك في باقة إعلان (${pkg.ar}) مقابل ${price}$ — سارية حتى ${endsAr}.`,
         link: "/admin/wallets",
         target_role: "coach",
       });
@@ -238,11 +238,11 @@ export async function POST(request: NextRequest) {
         p_created_by: auth.id,
       });
     }
-    if (code === "42P01") {
+    if (code === "42P01" || code === "42703") {
       return NextResponse.json(
         {
           error: "migration_missing",
-          message: "جدول الإعلانات غير موجود — شغّل هجرة 0037 في Supabase أولًا (raw link في المحادثة)",
+          message: "جدول الإعلانات غير جاهز — شغّل هجرة 0038 في Supabase أولًا (raw link في المحادثة)",
         },
         { status: 503 },
       );

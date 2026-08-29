@@ -95,7 +95,7 @@ const WELL_KNOWN_HEALTH_HOSTS = [
   "cdc.gov",
 ];
 
-const RESEARCH_SYSTEM_PROMPT = `You are an expert fitness/nutrition content researcher for MuscleHubEG, an Arabic+English sports platform.
+const RESEARCH_SYSTEM_PROMPT = `You are an expert fitness/nutrition content researcher for Musclehubeg, an Arabic+English sports platform.
 Given a topic and focus keyword, produce research JSON that will guide article writing.
 
 Rules:

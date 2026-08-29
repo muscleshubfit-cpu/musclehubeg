@@ -4,7 +4,7 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   robots: { index: false, follow: false },
-  title: "404 — Page Not Found | MuscleHubEG",
+  title: "404 — Page Not Found | Musclehubeg",
   alternates: {
     canonical: "",
   },

@@ -1,6 +1,6 @@
 /**
  * Affiliate Engine — generic, idempotent, payment-provider-agnostic
- * commission engine for MuscleHubEG.
+ * commission engine for Musclehubeg.
  *
  * Architecture:
  *   Verified Payment

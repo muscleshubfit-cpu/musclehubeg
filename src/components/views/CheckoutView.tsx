@@ -290,7 +290,7 @@ export function CheckoutView({ tier, months }: { tier: TierId | MembershipTier; 
       });
       setDone(true);
       toast.success(
-        isAr ? "تم إرسال طلب الاشتراك! راجعه فريق MuscleHubEG قريباً." : "Subscription request sent!",
+        isAr ? "تم إرسال طلب الاشتراك! راجعه فريق Musclehubeg قريباً." : "Subscription request sent!",
       );
       setTimeout(() => navigate("dashboard"), 3000);
     } catch (e: any) {
@@ -309,7 +309,7 @@ export function CheckoutView({ tier, months }: { tier: TierId | MembershipTier; 
           className="text-lg font-semibold tracking-tight"
           onClick={() => navigate("memberships")}
         >
-          MuscleHub
+          Musclehubeg
           <span className="text-[#0071e3]">EG</span>
         </button>
         <LanguageToggle />
@@ -352,8 +352,8 @@ export function CheckoutView({ tier, months }: { tier: TierId | MembershipTier; 
             </h2>
             <p className="mt-3 text-base font-normal text-[#6e6e73]">
               {isAr
-                ? "استلمنا طلب اشتراكك وإيصال الدفع. راجعه فريق MuscleHubEG قريباً وسيتم تفعيل اشتراكك. ستصللك إشعار فور التفعيل."
-                : "We received your subscription request and payment receipt. The MuscleHubEG team will review and activate your subscription shortly. You'll be notified once it's active."}
+                ? "استلمنا طلب اشتراكك وإيصال الدفع. راجعه فريق Musclehubeg قريباً وسيتم تفعيل اشتراكك. ستصللك إشعار فور التفعيل."
+                : "We received your subscription request and payment receipt. The Musclehubeg team will review and activate your subscription shortly. You'll be notified once it's active."}
             </p>
             <button
               onClick={() => navigate("dashboard")}
@@ -607,7 +607,7 @@ export function CheckoutView({ tier, months }: { tier: TierId | MembershipTier; 
       </main>
 
       <footer className="mt-auto border-t border-border py-8 text-center text-sm text-muted-foreground">
-        © {new Date().getFullYear()} MuscleHubEG. {isAr ? "كل الحقوق محفوظة." : "All rights reserved."}
+        © {new Date().getFullYear()} Musclehubeg. {isAr ? "كل الحقوق محفوظة." : "All rights reserved."}
       </footer>
     </div>
   );

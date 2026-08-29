@@ -170,7 +170,7 @@ export default function CoachingPage() {
             <div className="relative mt-8 aspect-[3/2] w-full overflow-hidden rounded-3xl shadow-2xl">
               <Image
                 src="/images/hero/coaching-1.jpg"
-                alt={isAr ? "منصة MuscleHubEG الذكية" : "MuscleHubEG smart platform"}
+                alt={isAr ? "منصة Musclehubeg الذكية" : "Musclehubeg smart platform"}
                 fill
                 className="object-cover"
                 loading="eager"
@@ -312,17 +312,17 @@ export default function CoachingPage() {
             </Reveal>
             <Reveal delay={150}>
               <p className="mx-auto mt-4 max-w-xl text-center text-lg font-normal text-[#6e6e73] md:text-xl">
-                {isAr ? "+500 عميل غيّروا حياتهم مع MuscleHub." : "500+ clients transformed their lives with MuscleHub."}
+                {isAr ? "+500 عميل غيّروا حياتهم مع Musclehubeg." : "500+ clients transformed their lives with Musclehubeg."}
               </p>
             </Reveal>
 
-            {/* MuscleHub brand mark — above the marquee */}
+            {/* Musclehubeg brand mark — above the marquee */}
             <Reveal delay={200}>
               <div className="mt-10 flex flex-col items-center">
                 <div className="grid h-20 w-20 place-items-center rounded-full bg-[#0071e3] text-3xl font-bold text-white ring-4 ring-white shadow-lg">
                   M
                 </div>
-                <p className="mt-3 text-sm font-semibold">MuscleHub</p>
+                <p className="mt-3 text-sm font-semibold">Musclehubeg</p>
                 <p className="text-xs font-normal text-[#6e6e73]">
                   {isAr ? "منصة لياقة وتغذية أونلاين" : "Online Fitness & Nutrition Platform"}
                 </p>
@@ -403,8 +403,8 @@ export default function CoachingPage() {
             </Reveal>
             <div className="mt-16 grid gap-5 md:grid-cols-2 md:gap-6">
               {[
-                { name: "Starter", price: "$20", period: isAr ? "/شهر" : "/mo", egp: "≈ 1000 ج.م", features: [isAr ? "2 تبديل يومي" : "2 daily swaps", isAr ? "خطة تغذية + تمارين" : "Nutrition + workout", isAr ? "مساعد EVO" : "EVO AI coach", isAr ? "تتبع تقدم" : "Progress tracking"], highlight: false },
-                { name: "Elite", price: "$40", period: isAr ? "/شهر" : "/mo", egp: "≈ 2000 ج.م", features: [isAr ? "تبديلات غير محدودة" : "Unlimited swaps", isAr ? "كوتشينج VIP" : "VIP coaching", isAr ? "استجابة فورية" : "Instant response", isAr ? "أقصى مساءلة" : "Max accountability"], highlight: true },
+                { name: "Starter", price: "$20", period: isAr ? "/شهر" : "/mo", features: [isAr ? "2 تبديل يومي" : "2 daily swaps", isAr ? "خطة تغذية + تمارين" : "Nutrition + workout", isAr ? "مساعد EVO" : "EVO AI coach", isAr ? "تتبع تقدم" : "Progress tracking"], highlight: false },
+                { name: "Elite", price: "$40", period: isAr ? "/شهر" : "/mo", features: [isAr ? "تبديلات غير محدودة" : "Unlimited swaps", isAr ? "كوتشينج VIP" : "VIP coaching", isAr ? "استجابة فورية" : "Instant response", isAr ? "أقصى مساءلة" : "Max accountability"], highlight: true },
               ].map((p, i) => (
                 <Reveal key={i} delay={i * 150}>
                   <div className={`h-full rounded-3xl p-8 md:p-10 ${p.highlight ? "bg-black text-white" : "bg-[#f5f5f7] text-[#1d1d1f]"}`}>
@@ -413,7 +413,6 @@ export default function CoachingPage() {
                       <span className="text-4xl font-semibold tracking-tight md:text-5xl">{p.price}</span>
                       <span className="text-base font-normal opacity-60">{p.period}</span>
                     </div>
-                    <p className="mt-1 text-sm font-normal opacity-60">{p.egp}{p.period}</p>
                     <ul className="mt-8 space-y-3 text-base font-normal">
                       {p.features.map((f, j) => (
                         <li key={j} className="flex items-start gap-3">
@@ -453,7 +452,7 @@ export default function CoachingPage() {
             <Reveal delay={150}>
               <Accordion type="single" collapsible className="mt-12">
                 {[
-                  { q: isAr ? "ما هو الكوتشينج في MuscleHub؟" : "What is MuscleHub coaching?", a: isAr ? "كوتشينج أونلاين مع مدربين وأخصائيين تغذية محترفين. خطط مخصصة + EVO AI + متابعة شخصية." : "Online coaching with professional coaches and nutrition specialists. Personalized plans + EVO AI + personal follow-up." },
+                  { q: isAr ? "ما هو الكوتشينج في Musclehubeg؟" : "What is Musclehubeg coaching?", a: isAr ? "كوتشينج أونلاين مع مدربين وأخصائيين تغذية محترفين. خطط مخصصة + EVO AI + متابعة شخصية." : "Online coaching with professional coaches and nutrition specialists. Personalized plans + EVO AI + personal follow-up." },
                   { q: isAr ? "من هو EVO؟" : "Who is EVO?", a: isAr ? "محرك الأداء الذكي. مش شات بوت — بيحلل بياناتك ويحدّث خططك تلقائياً." : "The intelligent performance engine. Not a chatbot — it analyzes your data and updates plans automatically." },
                   { q: isAr ? "هل الخطط مخصصة؟" : "Are plans personalized?", a: isAr ? "نعم، كل خطة تُبنى من استبياناتك وتتحدث أسبوعياً." : "Yes, built from your questionnaires, updated weekly." },
                   { q: isAr ? "هل المدربين حقيقيين؟" : "Are the coaches real?", a: isAr ? "نعم، المدربين حقيقيين ويراجعون خططك بنفسهم." : "Yes, real coaches review your plans personally." },
@@ -506,7 +505,7 @@ export default function CoachingPage() {
               {isAr ? "شارك صفحة الكوتشينج" : "Share coaching page"}
             </p>
             <ShareButtons
-              title={isAr ? "كوتشينج أونلاين | MuscleHub" : "Online Coaching | MuscleHub"}
+              title={isAr ? "كوتشينج أونلاين | Musclehubeg" : "Online Coaching | Musclehubeg"}
               text={isAr ? "مدربين وأخصائيين تغذية + EVO AI. خطط مخصصة ومتابعة شخصية." : "Coaches & nutrition specialists + EVO AI. Personalized plans and personal follow-up."}
             />
           </div>

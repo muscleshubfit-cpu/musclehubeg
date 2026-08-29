@@ -15,12 +15,12 @@ import { cn } from "@/lib/utils";
  * Buying while an ad is running EXTENDS it — no day is ever lost.
  */
 
-type AdPackage = { id: string; days: number; priceEgp: number; ar: string; en: string };
+type AdPackage = { id: string; days: number; priceUsd: number; ar: string; en: string };
 type AdRow = {
   id: string;
   package_id: string;
   days: number;
-  price_egp: number;
+  price_usd: number;
   status: string;
   starts_at: string;
   ends_at: string;
@@ -162,7 +162,7 @@ export function CoachAdsView() {
             {isAr ? "رصيد محفظتك" : "Your wallet balance"}
           </p>
           <p className="mt-1 text-2xl font-semibold tracking-tight" dir="ltr">
-            {balance.toLocaleString(isAr ? "ar-EG" : "en-US")} EGP
+            {balance.toLocaleString(isAr ? "ar-EG" : "en-US")}$
           </p>
         </div>
         <button
@@ -187,8 +187,7 @@ export function CoachAdsView() {
               {isAr ? `${p.days} يوم ظهور` : `${p.days} days of exposure`}
             </p>
             <p className="mt-4 text-3xl font-semibold tracking-tight" dir="ltr">
-              {p.priceEgp.toLocaleString(isAr ? "ar-EG" : "en-US")}{" "}
-              <span className="text-base font-normal text-[#6e6e73]">EGP</span>
+              {p.priceUsd.toLocaleString(isAr ? "ar-EG" : "en-US")}$
             </p>
             <p className="mt-2 text-xs font-normal text-[#6e6e73]">
               {isAr ? "سعر ثابت — خصم من المحفظة" : "Fixed price — debited from your wallet"}
@@ -241,7 +240,7 @@ export function CoachAdsView() {
                   className="flex flex-wrap items-center justify-between gap-2 rounded-2xl bg-[#f5f5f7] px-4 py-3"
                 >
                   <div>
-                    <p className="text-sm font-medium">{pkgLabel(ad.package_id)} — {ad.price_egp} EGP</p>
+                    <p className="text-sm font-medium">{pkgLabel(ad.package_id)} — {ad.price_usd}$</p>
                     <p className="text-xs font-normal text-[#6e6e73]" dir="ltr">
                       {new Date(ad.starts_at).toLocaleDateString()} → {new Date(ad.ends_at).toLocaleDateString()}
                     </p>

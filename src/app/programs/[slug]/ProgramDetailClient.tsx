@@ -256,8 +256,8 @@ export default function ProgramDetailClient({ program }: { program: WorkoutProgr
           </h2>
           <p className="mt-2 text-sm font-normal text-[#6e6e73]">
             {isAr
-              ? "منصة MuscleHubEG بتعمل خطط مخصصة بناءً على أهدافك ومستواك."
-              : "MuscleHubEG creates personalized plans based on your goals and level."}
+              ? "منصة Musclehubeg بتعمل خطط مخصصة بناءً على أهدافك ومستواك."
+              : "Musclehubeg creates personalized plans based on your goals and level."}
           </p>
           <a
             href="/memberships"

@@ -73,9 +73,9 @@ export async function GET(_request: NextRequest) {
 
   return NextResponse.json({
     balance: walletRes.data ? Number((walletRes.data as any).balance) : 0,
-    currency: (walletRes.data as any)?.currency ?? "EGP",
+    currency: (walletRes.data as any)?.currency ?? "USD",
     fee_per_client: feeRes.data ? Number((feeRes.data as any).fee_per_client) : 0,
-    fee_currency: (feeRes.data as any)?.currency ?? "EGP",
+    fee_currency: (feeRes.data as any)?.currency ?? "USD",
     topups: topupsRes.data ?? [],
     transactions: txnsRes.data ?? [],
   });

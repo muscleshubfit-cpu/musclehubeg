@@ -34,8 +34,6 @@ import {
 } from "@/lib/paypal";
 import {
   PAYPAL_TOPUP_MIN_USD,
-  PAYPAL_USD_TO_EGP_RATE,
-  paypalUsdFromEgp,
 } from "@/lib/coach-limits";
 
 export const runtime = "nodejs";
@@ -60,6 +58,8 @@ export async function POST(request: NextRequest) {
     planTier?: string;
     durationMonths?: number;
     purpose?: string;
+    amountUsd?: number;
+    /** LEGACY (pre-0038 wallets): EGP amount — converted at ÷50. */
     amountEgp?: number;
   };
   try {
@@ -74,9 +74,11 @@ export async function POST(request: NextRequest) {
   const purpose = body.purpose === "wallet_topup" ? "wallet_topup" : "subscription";
 
   // ── WALLET TOP-UP ORDER (0035 phase 2) ──────────────────────────────
-  // No fixed prices by owner decree — the coach types his own EGP amount;
-  // the server converts it to the USD PayPal charge via the shared rate
-  // constant (coach-limits.ts). Staff-only (coaches + admins).
+  // No fixed prices by owner decree — the coach types his own amount.
+  // GLOBAL USD (owner decree 2026-08-30): the wallet ledger is USD, so
+  // the coach types a USD amount and PayPal charges exactly it (1:1).
+  // A legacy amountEgp payload (pre-0038 client) is accepted and
+  // converted at the owner's fixed rate 50 EGP = $1. Staff-only.
   if (purpose === "wallet_topup") {
     if (user.role !== "coach" && user.role !== "admin") {
       return NextResponse.json(
@@ -85,20 +87,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const egp = Number(body.amountEgp);
-    if (!Number.isFinite(egp) || egp <= 0 || egp > 1_000_000) {
+    const legacyEgp = body.amountUsd === undefined && body.amountEgp !== undefined;
+    const usd = Number(body.amountUsd ?? body.amountEgp) / (legacyEgp ? 50 : 1);
+    if (!Number.isFinite(usd) || usd <= 0 || usd > 1_000_000) {
       return NextResponse.json(
         { error: "bad_amount", message: "اكتب مبلغ شحن صحيح" },
         { status: 400 },
       );
     }
 
-    const usd = paypalUsdFromEgp(egp);
-    if (usd < PAYPAL_TOPUP_MIN_USD) {
+    const chargeUsd = Math.round(usd * 100) / 100;
+    if (chargeUsd < PAYPAL_TOPUP_MIN_USD) {
       return NextResponse.json(
         {
           error: "amount_too_small",
-          message: `المبلغ صغير أوي على PayPal — أدنى شحن ${Math.ceil((PAYPAL_TOPUP_MIN_USD * PAYPAL_USD_TO_EGP_RATE) / 5) * 5} جنيه تقريبًا`,
+          message: `المبلغ صغير أوي على PayPal — أدنى شحن ${PAYPAL_TOPUP_MIN_USD}$`,
         },
         { status: 400 },
       );
@@ -106,11 +109,11 @@ export async function POST(request: NextRequest) {
 
     try {
       const order = await createPayPalOrder(
-        { currency: "USD", value: usd.toFixed(2) },
+        { currency: "USD", value: chargeUsd.toFixed(2) },
         {
           userId: user.id,
           purpose: "wallet_topup",
-          egpAmount: Math.round(egp * 100) / 100,
+          usdAmount: chargeUsd,
         },
       );
       const approveLink = order.links.find((l) => l.rel === "approve");
@@ -118,7 +121,7 @@ export async function POST(request: NextRequest) {
         orderId: order.id,
         status: order.status,
         approveUrl: approveLink?.href || null,
-        chargeUsd: usd,
+        chargeUsd,
       });
     } catch (e: any) {
       console.error("[paypal/create-order] Top-up order error:", e?.message);

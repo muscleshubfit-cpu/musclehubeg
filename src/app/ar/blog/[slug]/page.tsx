@@ -18,7 +18,7 @@ export async function generateMetadata({
   const og = await fetchBlogForOG(slug, "ar");
   if (!og) {
     return {
-      title: "المقال غير موجود — MuscleHubEG",
+      title: "المقال غير موجود — Musclehubeg",
       robots: { index: false, follow: false },
     };
   }
@@ -42,7 +42,7 @@ export async function generateMetadata({
       title: og.title,
       description: og.description,
       images: [{ url: og.image, width: 1200, height: 630 }],
-      siteName: "MuscleHubEG",
+      siteName: "Musclehubeg",
       locale: "ar_EG",
     },
     twitter: {

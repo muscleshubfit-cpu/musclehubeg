@@ -30,7 +30,7 @@
 import { callFreeAIFallbackChain, parseJSON } from "@/lib/ai-provider";
 import { externalSearch } from "@/lib/external-search";
 
-export const ARTICLE_SYSTEM_PROMPT = `You are the MuscleHubEG AI Content Assistant — an expert SEO content strategist and copywriter for a premium online nutrition & fitness coaching platform (MuscleHubEG, musclehubeg.vercel.app).
+export const ARTICLE_SYSTEM_PROMPT = `You are the Musclehubeg AI Content Assistant — an expert SEO content strategist and copywriter for a premium online nutrition & fitness coaching platform (Musclehubeg, musclehubeg.vercel.app).
 
 Your job: produce publication-ready blog content optimized for:
  - Google Search (E-E-A-T, helpful content, semantic SEO)
@@ -44,8 +44,8 @@ Style:
  - Structure: H1 + H2/H3 hierarchy, bullet lists, comparison tables where useful.
  - Always include a clear answer to the title question in the first 100 words (AEO).
  - Cite reputable sources (NIH, WHO, ISSN, ACE, Mayo Clinic, Examine.com) by name.
- - The COACHING CTA must invite readers to subscribe to a MuscleHubEG membership plan (Free / Premium / Pro) or book a coaching session via /memberships.
- - Do NOT mention any individual coach name. The platform brand is "MuscleHubEG".
+ - The COACHING CTA must invite readers to subscribe to a Musclehubeg membership plan (Free / Premium / Pro) or book a coaching session via /memberships.
+ - Do NOT mention any individual coach name. The platform brand is "Musclehubeg".
  - Do NOT include a newsletter subscription CTA. The site no longer has one.
  - Do NOT write a CTA section inside the article body. The CTA is rendered
    automatically by the blog article page component (BlogMembershipCard).
@@ -60,7 +60,7 @@ Output: STRICT JSON only. No prose outside the JSON, no markdown fences.`;
  * 3. Return STRICT JSON with Arabic content
  * 4. Scientific terms: transliterate + English abbreviation in parentheses
  */
-export const AR_ARTICLE_SYSTEM_PROMPT = `You are the MuscleHub AI Content Assistant — writing in ARABIC for an Egyptian/Gulf Arabic-speaking audience.
+export const AR_ARTICLE_SYSTEM_PROMPT = `You are the Musclehubeg AI Content Assistant — writing in ARABIC for an Egyptian/Gulf Arabic-speaking audience.
 
 CRITICAL: You MUST write ALL content in Arabic. This includes:
 - Article body: 100% Arabic text
@@ -110,7 +110,7 @@ Use this research data to:
 - Include the trending keywords naturally in your content
 - Find a unique angle that differentiates from competitors` : "";
 
-  return `Generate a complete ENGLISH blog article bundle for MuscleHubEG.
+  return `Generate a complete ENGLISH blog article bundle for Musclehubeg.
 
 INPUT:
  - Topic: ${input.topic || "(none — derive from focus keyword)"}
@@ -207,7 +207,7 @@ const chunk2Prompt = (input: {
   const arTopic = input.topic || "";
   const arFocusKw = input.focusKeyword || "";
 
-  return `Generate a complete ARABIC blog article bundle for MuscleHubEG.
+  return `Generate a complete ARABIC blog article bundle for Musclehubeg.
 
 CONTEXT:
  - Topic (Arabic): ${arTopic || "(none — derive from focus keyword)"}
@@ -318,7 +318,7 @@ const chunk3Prompt = (input: {
   const arTitle = seo?.ar?.seoTitle || "";
   const focusKw = seo?.focusKeyword || input.focusKeyword || "";
 
-  return `Generate PART 3 of a blog article bundle for MuscleHubEG.
+  return `Generate PART 3 of a blog article bundle for Musclehubeg.
 
 CONTEXT:
  - English title: "${enTitle}"
@@ -326,7 +326,7 @@ CONTEXT:
  - Focus keyword: "${focusKw}"
 
 STEP 6 — LINK SUGGESTIONS (MUST be included in both articles):
- - internalLinks: 3-5 suggested internal links to other MuscleHubEG blog posts.
+ - internalLinks: 3-5 suggested internal links to other Musclehubeg blog posts.
    Each: { slug, anchorText, reason, anchorTextAr }
    The anchorText is English; anchorTextAr is the Arabic version of the anchor text.
  - externalLinks: 3-5 authoritative external references (NIH, WHO, Examine.com, ACE, ISSN, Mayo Clinic).
@@ -464,7 +464,7 @@ export function generateLocalArticleBundle(input: {
   const arTitle = `الدليل الشامل: ${rawTopic} لتحقيق أفضل النتائج`;
 
   const enMetaDesc = `Discover science-backed strategies for ${focusKw}. Learn actionable steps, practical nutrition, and training methods to reach your fitness goals.`;
-  const arMetaDesc = `اكتشف أفضل النصائح العلمية والمثبتة حول ${focusKw}. دليلك العملي لتحسين اللياقة البدنية والوصول إلى أهدافك مع MuscleHubEG.`;
+  const arMetaDesc = `اكتشف أفضل النصائح العلمية والمثبتة حول ${focusKw}. دليلك العملي لتحسين اللياقة البدنية والوصول إلى أهدافك مع Musclehubeg.`;
 
   const enArticle = `# ${enTitle}
 
@@ -511,7 +511,7 @@ Follow these actionable steps to optimize your routine:
 Mastering **${focusKw}** is a journey of disciplined daily habits backed by scientific principles. Implement the steps above, track your progress weekly, and adjust your variables as your body adapts.
 
 > **Ready to take your transformation to the next level?**  
-> Join **MuscleHubEG** today for customized workout programs, personalized meal plans, and direct guidance from certified coaches. Visit our [Membership Plans](/memberships) to start your journey.
+> Join **Musclehubeg** today for customized workout programs, personalized meal plans, and direct guidance from certified coaches. Visit our [Membership Plans](/memberships) to start your journey.
 `;
 
   const arArticle = `# ${arTitle}
@@ -557,7 +557,7 @@ Mastering **${focusKw}** is a journey of disciplined daily habits backed by scie
 الوصول إلى أفضل نسخة من جسمك مع **${focusKw}** يتطلب خطة واضحة ومدروسة. ابدأ بتطبيق هذه الخطوات وراقب تطور أدائك أسبوعياً.
 
 > **هل تريد خطة مخصصة بالكامل لجسمك وهدفك؟**  
-> انضم اليوم إلى منصة **MuscleHubEG** واحصل على برامج تدريبية وتغذوية مصممة خصيصاً لك بإشراف مدربين معتمدين. تصفح [باقات الاشتراك](/ar/memberships) وابدأ رحلتك الآن.
+> انضم اليوم إلى منصة **Musclehubeg** واحصل على برامج تدريبية وتغذوية مصممة خصيصاً لك بإشراف مدربين معتمدين. تصفح [باقات الاشتراك](/ar/memberships) وابدأ رحلتك الآن.
 `;
 
   return {
@@ -571,14 +571,14 @@ Mastering **${focusKw}** is a journey of disciplined daily habits backed by scie
         `${cat} workout nutrition`,
       ],
       en: {
-        seoTitle: `${enTitle} | MuscleHubEG`,
-        metaTitle: `${enTitle} | MuscleHubEG Guide`,
+        seoTitle: `${enTitle} | Musclehubeg`,
+        metaTitle: `${enTitle} | Musclehubeg Guide`,
         metaDescription: enMetaDesc,
         slug: slug || "fitness-guide",
       },
       ar: {
-        seoTitle: `${arTitle} | MuscleHubEG`,
-        metaTitle: `${arTitle} | MuscleHubEG`,
+        seoTitle: `${arTitle} | Musclehubeg`,
+        metaTitle: `${arTitle} | Musclehubeg`,
         metaDescription: arMetaDesc,
         slug: slug || "fitness-guide",
       },
@@ -595,8 +595,8 @@ Mastering **${focusKw}** is a journey of disciplined daily habits backed by scie
         answer: "Yes, the principles outlined here are scalable and adaptable for beginners as well as advanced athletes.",
       },
       {
-        question: `How does MuscleHubEG coaching support this process?`,
-        answer: "MuscleHubEG provides customized workout and nutrition plans tailored to your schedule, equipment, and metabolic profile.",
+        question: `How does Musclehubeg coaching support this process?`,
+        answer: "Musclehubeg provides customized workout and nutrition plans tailored to your schedule, equipment, and metabolic profile.",
       },
     ],
     faqAr: [
@@ -609,8 +609,8 @@ Mastering **${focusKw}** is a journey of disciplined daily habits backed by scie
         answer: "نعم، القواعد المذكورة مصممة لتناسب مختلف المستويات من المبتدئين إلى المتقدمين مع إمكانية تعديل شدة التدريب.",
       },
       {
-        question: `كيف يساعدني اشتراك MuscleHubEG في تحقيق هدفي؟`,
-        answer: "توفر لك MuscleHubEG جداول تدريبية وخطط تغذية مخصصة لحالتك الفردية بإشراف مدربين لمتابعة تقدمك أولاً بأول.",
+        question: `كيف يساعدني اشتراك Musclehubeg في تحقيق هدفي؟`,
+        answer: "توفر لك Musclehubeg جداول تدريبية وخطط تغذية مخصصة لحالتك الفردية بإشراف مدربين لمتابعة تقدمك أولاً بأول.",
       },
     ],
     internalLinks: [
@@ -639,9 +639,9 @@ Mastering **${focusKw}** is a journey of disciplined daily habits backed by scie
     },
     socialPosts: {
       facebook: `Ready to elevate your fitness journey? Here is your complete science-backed guide to ${focusKw}.\n\nCheck out the full article on our blog!\n\nRegistration link in the first comment 👇`,
-      linkedin: `Evidence-based insights on ${focusKw}: how progressive overload and balanced macronutrients drive sustainable transformation. Full breakdown on MuscleHubEG blog.`,
+      linkedin: `Evidence-based insights on ${focusKw}: how progressive overload and balanced macronutrients drive sustainable transformation. Full breakdown on Musclehubeg blog.`,
       instagram: `Transform your body with evidence-based methods! 💥 Key takeaways for ${focusKw} inside our latest blog guide. Link in bio!`,
-      x: `Master ${focusKw} with science-backed principles. Check out our latest comprehensive guide on MuscleHubEG! 🏋️‍♂️💪`,
+      x: `Master ${focusKw} with science-backed principles. Check out our latest comprehensive guide on Musclehubeg! 🏋️‍♂️💪`,
     },
     estimatedReadingTime: 5,
     source: "local-structured-generator",
@@ -959,7 +959,7 @@ export async function generateLinksAndSocial(
   const enExcerpt = englishArticle.split(/\s+/).slice(0, 500).join(" ");
   const arExcerpt = arabicArticle.split(/\s+/).slice(0, 500).join(" ");
 
-  const prompt = `Generate PART 3 of a blog article bundle for MuscleHubEG.
+  const prompt = `Generate PART 3 of a blog article bundle for Musclehubeg.
 
 CONTEXT:
  - English title: "${enTitle}"
@@ -973,7 +973,7 @@ ARABIC ARTICLE EXCERPT (for matching anchor text):
 ${arExcerpt}
 
 STEP 6 — LINK SUGGESTIONS (MUST be included in both articles):
- - internalLinks: 3-5 suggested internal links to other MuscleHubEG blog posts.
+ - internalLinks: 3-5 suggested internal links to other Musclehubeg blog posts.
    Each: { slug, anchorText, reason, anchorTextAr }
    IMPORTANT: Choose anchorText that actually appears in the article excerpts above.
    The anchorText is English; anchorTextAr is the Arabic version of the anchor text.

@@ -324,8 +324,8 @@ export default function CalorieCalculatorPage() {
               <ShareButtons
                 title={
                   isAr
-                    ? `نتائجي من حاسبة السعرات: ${result.target} سعرة/يوم | MuscleHubEG`
-                    : `My calorie results: ${result.target} cal/day | MuscleHubEG`
+                    ? `نتائجي من حاسبة السعرات: ${result.target} سعرة/يوم | Musclehubeg`
+                    : `My calorie results: ${result.target} cal/day | Musclehubeg`
                 }
               />
             </div>

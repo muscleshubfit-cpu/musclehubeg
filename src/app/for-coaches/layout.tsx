@@ -21,9 +21,9 @@ const SITE = "https://musclehubeg.vercel.app";
 const PAGE_URL = `${SITE}/for-coaches`;
 
 export const metadata: Metadata = {
-  title: "انضم كمدرب في MuscleHubEG — عملاؤك بأسعارك وفلوسك في إيدك",
+  title: "انضم كمدرب في Musclehubeg — عملاؤك بأسعارك وفلوسك في إيدك",
   description:
-    "سجّل كوتش أو أخصائي تغذية على MuscleHubEG مجانًا: منصة كاملة لإدارة عملائك أنت، خطط تغذية وتمارين بالذكاء الاصطناعي، تحدد سعرك بنفسك وتحصّل من عملائك مباشرة بدون أي نسبة — رسم تفعيل شهري ثابت فقط. تفعيل فوري.",
+    "سجّل كوتش أو أخصائي تغذية على Musclehubeg مجانًا: منصة كاملة لإدارة عملائك أنت، خطط تغذية وتمارين بالذكاء الاصطناعي، تحدد سعرك بنفسك وتحصّل من عملائك مباشرة بدون أي نسبة — رسم تفعيل شهري ثابت فقط. تفعيل فوري.",
   keywords: [
     // Arabic (primary audience)
     "انضم كمدرب",
@@ -44,7 +44,7 @@ export const metadata: Metadata = {
     "personal trainer platform",
     "manage fitness clients",
     "AI meal plans for clients",
-    "MuscleHubEG coach",
+    "Musclehubeg coach",
   ],
   alternates: {
     canonical: PAGE_URL,
@@ -54,11 +54,11 @@ export const metadata: Metadata = {
     },
   },
   openGraph: {
-    title: "انضم كمدرب في MuscleHubEG — درِّب عملاءك بأسعارك وفلوسك في إيدك",
+    title: "انضم كمدرب في Musclehubeg — درِّب عملاءك بأسعارك وفلوسك في إيدك",
     description:
       "منصة كاملة للكوتشات: إدارة عملائك، خطط بالذكاء الاصطناعي، أسعارك بتحددها وتحصّل بنفسك — بدون أي نسبة من دخلك. سجّل مجانًا بتفعيل فوري.",
     url: PAGE_URL,
-    siteName: "MuscleHubEG",
+    siteName: "Musclehubeg",
     locale: "ar_EG",
     type: "website",
     images: [
@@ -66,13 +66,13 @@ export const metadata: Metadata = {
         url: `${SITE}/images/coach-portrait.jpg`,
         width: 1122,
         height: 1402,
-        alt: "انضم كمدرب في MuscleHubEG",
+        alt: "انضم كمدرب في Musclehubeg",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "انضم كمدرب في MuscleHubEG — عملاؤك بأسعارك وفلوسك في إيدك",
+    title: "انضم كمدرب في Musclehubeg — عملاؤك بأسعارك وفلوسك في إيدك",
     description:
       "إدارة عملاء، خطط AI، أسعارك إنت اللي بتحددها وتحصّل بنفسك — بدون نسبة. سجّل مجانًا.",
     images: [`${SITE}/images/coach-portrait.jpg`],
@@ -81,7 +81,7 @@ export const metadata: Metadata = {
 
 const faqSchema = getFAQSchema(COACH_FAQ_AR);
 const breadcrumbSchema = getBreadcrumbSchema([
-  { name: "MuscleHubEG", url: "/" },
+  { name: "Musclehubeg", url: "/" },
   { name: "انضم كمدرب", url: "/for-coaches" },
 ]);
 

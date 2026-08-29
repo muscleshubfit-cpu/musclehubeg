@@ -3,7 +3,7 @@ import { requireUser } from "@/lib/auth-server";
 import { supabaseAdmin, isSupabaseAdminConfigured } from "@/lib/supabase/admin";
 import {
   COACH_ACTIVATABLE_TIERS,
-  coachActivationCostEgp,
+  coachActivationCostUsd,
   isCoachPaymentMethod,
   type CoachPaymentMethod,
 } from "@/lib/coach-limits";
@@ -132,10 +132,11 @@ export async function POST(request: NextRequest) {
   }
 
   // ── 0035 WALLET GATE — no paid slot, no activation (coaches only). ──
-  // OWNER PRICING (2026-08-30): «اسعار المدربين لكل عميل تتعمل ٣٠٠
-  // الشهر / ٨٠٠ ٣ شهور» — package prices for 1 and 3 months ALWAYS win;
-  // other durations stay linear on the coach's monthly base (his
-  // admin-set fee_per_client, else the 300 EGP monthly rate).
+  // OWNER PRICING (2026-08-30): «اسعار المدربين لكل عميل ٣٠٠ الشهر /
+  // ٨٠٠ ٣ شهور» + GLOBAL USD decree («٣٠٠ جنيه تصبح ٦ دولار») — package
+  // prices for 1 and 3 months ALWAYS win in USD ($6 / $16); other
+  // durations stay linear on the coach's monthly base (his admin-set
+  // fee_per_client, else the $6 monthly rate).
   const paymentId = crypto.randomUUID();
   let walletCost = 0;
   if (auth.role === "coach") {
@@ -152,7 +153,7 @@ export async function POST(request: NextRequest) {
         .maybeSingle(),
     ]);
     const fee = Number((feeRes.data as any)?.fee_per_client ?? 0) || 0;
-    walletCost = coachActivationCostEgp(months, fee);
+    walletCost = coachActivationCostUsd(months, fee);
     if (walletCost > 0) {
       const missingTable = [feeRes.error, walletRes.error]
         .find(Boolean)
@@ -171,7 +172,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json(
           {
             error: "insufficient_wallet",
-            message: `رصيد محفظتك (${balance} EGP) مش كفاية لتفعيل ${months} ${months === 1 ? "شهر" : "شهور"} — المطلوب ${walletCost} EGP. اشحن المحفظة الأول (انستاباي / فودافون كاش / PayPal) وهيتم التفعيل فورًا.`,
+            message: `رصيد محفظتك (${balance}$) مش كفاية لتفعيل ${months} ${months === 1 ? "شهر" : "شهور"} — المطلوب ${walletCost}$. اشحن المحفظة الأول (PayPal / انستاباي / فودافون كاش) وهيتم التفعيل فورًا.`,
             balance,
             cost: walletCost,
           },
@@ -252,7 +253,7 @@ export async function POST(request: NextRequest) {
       tier,
       months,
       amount,
-      currency: "EGP",
+      currency: "USD",
       method,
       note,
     });

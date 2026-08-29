@@ -5,7 +5,7 @@ import { SiteHeader } from "@/components/SiteHeader";
  * Public Affiliate Program page.
  *
  * Renders fully in English when the active language is English, and fully
- * in Arabic when the active language is Arabic. The brand name "MuscleHubEG"
+ * in Arabic when the active language is Arabic. The brand name "Musclehubeg"
  * is intentionally never translated.
  *
  * The page is fully public (no auth required). Two CTAs:
@@ -446,7 +446,7 @@ export function AffiliateProgramView() {
 
       {/* ─── Footer ─── */}
       <footer className="mt-auto border-t border-[#d2d2d7] py-6 text-center text-xs font-normal text-[#6e6e73]">
-        © {new Date().getFullYear()} MuscleHubEG. {isAr ? "كل الحقوق محفوظة." : "All rights reserved."}
+        © {new Date().getFullYear()} Musclehubeg. {isAr ? "كل الحقوق محفوظة." : "All rights reserved."}
       </footer>
     </div>
   );
@@ -501,7 +501,7 @@ function getCopy(isAr: boolean): Copy {
       hero: {
         headline: "حوّل تأثيرك إلى دخل.",
         supporting:
-          "شارك MuscleHubEG مع الناس اللي بيثقوا في توصياتك. ساعدهم يتدربوا بطريقة أذكى، يأكلوا أحسن، ويحققوا تقدم حقيقي — واكسب عمولة من عمليات الشراء المؤهلة اللي تتم عبر رابط الأفلييت بتاعك.",
+          "شارك Musclehubeg مع الناس اللي بيثقوا في توصياتك. ساعدهم يتدربوا بطريقة أذكى، يأكلوا أحسن، ويحققوا تقدم حقيقي — واكسب عمولة من عمليات الشراء المؤهلة اللي تتم عبر رابط الأفلييت بتاعك.",
         ctaPrimary: "احصل على رابط الأفلييت بتاعك",
         ctaSecondary: "ابدأ المشاركة",
       },
@@ -512,7 +512,7 @@ function getCopy(isAr: boolean): Copy {
         { value: "آني", label: "تتبع الأرباح بشفافية" },
       ],
       why: {
-        title: "ليه تبقى أفلييت لـ MuscleHubEG؟",
+        title: "ليه تبقى أفلييت لـ Musclehubeg؟",
         subtitle:
           "أنت بتركز على اللي أنت بتعرف تعمله: التوصية بمنصة بتثق فيها. الباقي علينا.",
         cards: [
@@ -530,11 +530,11 @@ function getCopy(isAr: boolean): Copy {
           },
           {
             title: "مفيش دعم عملاء",
-            body: "فريق MuscleHubEG هو اللي بيتعامل مع كل أسئلة العملاء وطلباتهم.",
+            body: "فريق Musclehubeg هو اللي بيتعامل مع كل أسئلة العملاء وطلباتهم.",
           },
         ],
         pitch:
-          "أنت بتشارك MuscleHubEG. MuscleHubEG بيتكفل بتجربة المنتج والعميل. أنت بتكسب عمولات مؤهلة.",
+          "أنت بتشارك Musclehubeg. Musclehubeg بيتكفل بتجربة المنتج والعميل. أنت بتكسب عمولات مؤهلة.",
         disclosure:
           "مفيش وعود بأرقام دخل. الأرباح بتعتمد على حجم وجودة جمهورك ونوع التحويلات.",
       },
@@ -582,7 +582,7 @@ function getCopy(isAr: boolean): Copy {
         steps: [
           {
             title: "احصل على رابطك",
-            body: "خد رابط الأفلييت الشخصي بتاعك من حسابك في MuscleHubEG.",
+            body: "خد رابط الأفلييت الشخصي بتاعك من حسابك في Musclehubeg.",
           },
           {
             title: "شارك",
@@ -590,9 +590,9 @@ function getCopy(isAr: boolean): Copy {
               "شاركه عبر السوشيال ميديا، المحتوى، المجتمعات، الرسائل، أو موقعك.",
           },
           {
-            title: "ساعد الناس تكتشف MuscleHubEG",
+            title: "ساعد الناس تكتشف Musclehubeg",
             body:
-              "الناس اللي بتستخدم رابطك تقدر تستكشف MuscleHubEG وتشتري منتجات أو خدمات مؤهلة.",
+              "الناس اللي بتستخدم رابطك تقدر تستكشف Musclehubeg وتشتري منتجات أو خدمات مؤهلة.",
           },
           {
             title: "اكسب",
@@ -617,7 +617,7 @@ function getCopy(isAr: boolean): Copy {
       finalCta: {
         title: "جاهز تبدأ؟",
         body:
-          "سجّل حساب في MuscleHubEG، روح على قسم الأفلييت في لوحتك، وابدأ المشاركة خلال دقايق.",
+          "سجّل حساب في Musclehubeg، روح على قسم الأفلييت في لوحتك، وابدأ المشاركة خلال دقايق.",
         disclosure:
           "المشاركة في برنامج الأفلييت بتخضع لشروط الاستخدام. نحتفظ بحق إيقاف أي حساب بيخالف سياسات السبام أو الإساءة.",
       },
@@ -628,7 +628,7 @@ function getCopy(isAr: boolean): Copy {
     hero: {
       headline: "TURN YOUR INFLUENCE INTO INCOME.",
       supporting:
-        "Share MuscleHubEG with people who trust your recommendations. Help them train smarter, eat better, and make meaningful progress — while earning commissions from eligible purchases made through your Affiliate link.",
+        "Share Musclehubeg with people who trust your recommendations. Help them train smarter, eat better, and make meaningful progress — while earning commissions from eligible purchases made through your Affiliate link.",
       ctaPrimary: "GET YOUR AFFILIATE LINK",
       ctaSecondary: "START SHARING",
     },
@@ -657,11 +657,11 @@ function getCopy(isAr: boolean): Copy {
         },
         {
           title: "No customer support",
-          body: "The MuscleHubEG team handles every customer question and request.",
+          body: "The Musclehubeg team handles every customer question and request.",
         },
       ],
       pitch:
-        "You share MuscleHubEG. MuscleHubEG handles the product and customer experience. You earn eligible commissions.",
+        "You share Musclehubeg. Musclehubeg handles the product and customer experience. You earn eligible commissions.",
       disclosure:
         "No guaranteed income. Earnings depend on the size and quality of your audience and the conversions you drive.",
     },
@@ -710,7 +710,7 @@ function getCopy(isAr: boolean): Copy {
         {
           title: "Get your link",
           body:
-            "Grab your personal Affiliate link from your MuscleHubEG account.",
+            "Grab your personal Affiliate link from your Musclehubeg account.",
         },
         {
           title: "Share",
@@ -718,9 +718,9 @@ function getCopy(isAr: boolean): Copy {
             "Share it through social media, content, communities, messages, or your website.",
         },
         {
-          title: "Help people discover MuscleHubEG",
+          title: "Help people discover Musclehubeg",
           body:
-            "People using your link can explore MuscleHubEG and purchase eligible products or services.",
+            "People using your link can explore Musclehubeg and purchase eligible products or services.",
         },
         {
           title: "Earn",
@@ -745,7 +745,7 @@ function getCopy(isAr: boolean): Copy {
     finalCta: {
       title: "READY TO START?",
       body:
-        "Sign up for a MuscleHubEG account, visit the Affiliate section in your dashboard, and start sharing in minutes.",
+        "Sign up for a Musclehubeg account, visit the Affiliate section in your dashboard, and start sharing in minutes.",
       disclosure:
         "Participation in the Affiliate Program is subject to our Terms of Use. We reserve the right to suspend any account that violates our spam or abuse policies.",
     },

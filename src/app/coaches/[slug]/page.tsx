@@ -40,16 +40,16 @@ export async function generateMetadata({
 
   if (!data) {
     return {
-      title: "Page not found — MuscleHub Egypt",
+      title: "Page not found — Musclehubeg",
       robots: { index: false, follow: false },
     };
   }
 
   const copy = resolveLandingCopy(data, "en");
   const name = coachDisplayName(data, "en");
-  const title = `${name} — ${copy.headline || "Certified coach on MuscleHub"}`;
+  const title = `${name} — ${copy.headline || "Certified coach on Musclehubeg"}`;
   const description =
-    copy.bio.slice(0, 160) || `Book private coaching with ${name} on MuscleHub Egypt`;
+    copy.bio.slice(0, 160) || `Book private coaching with ${name} on Musclehubeg`;
 
   return {
     title,
@@ -67,7 +67,7 @@ export async function generateMetadata({
       url: `${SITE_URL}/coaches/${slug}`,
       title,
       description,
-      siteName: "MuscleHub Egypt",
+      siteName: "Musclehubeg",
       locale: "en_US",
     },
   };

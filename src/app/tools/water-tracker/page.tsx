@@ -502,8 +502,8 @@ export default function WaterTrackerPage() {
           <ShareButtons
             title={
               isAr
-                ? `سجلت ${consumedToday} مل ماء اليوم (${progressPct}% من هدفي) | MuscleHubEG`
-                : `Logged ${consumedToday} ml water today (${progressPct}% of my goal) | MuscleHubEG`
+                ? `سجلت ${consumedToday} مل ماء اليوم (${progressPct}% من هدفي) | Musclehubeg`
+                : `Logged ${consumedToday} ml water today (${progressPct}% of my goal) | Musclehubeg`
             }
           />
         </div>

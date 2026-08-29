@@ -5,7 +5,7 @@ import type { Metadata } from "next";
  * Arabic mirrors (/ar/programs) have their own layout with Arabic metadata.
  */
 export const metadata: Metadata = {
-  title: "Workout Programs | MuscleHubEG",
+  title: "Workout Programs | Musclehubeg",
   description:
     "Ready-made workout programs for all levels and goals. Home workouts without equipment, dumbbell programs, and full gym programs. Start your fitness journey today.",
   keywords: [
@@ -21,7 +21,7 @@ export const metadata: Metadata = {
     canonical: "https://musclehubeg.vercel.app/programs",
   },
   openGraph: {
-    title: "Workout Programs | MuscleHubEG",
+    title: "Workout Programs | Musclehubeg",
     description: "Ready-made workout programs for all levels and goals.",
     type: "website",
     locale: "en_US",

@@ -143,7 +143,7 @@ export async function GET(request: NextRequest) {
       featured_image: featured,
       cover_alt: title,
       reading_time: Math.max(1, Math.ceil(countWords(review.markdown) / 200)),
-      author: "MuscleHubEG",
+      author: "Musclehubeg",
       is_published: true,
       published_at: now,
       faq_json: bundle.research0?.faqs ?? [],

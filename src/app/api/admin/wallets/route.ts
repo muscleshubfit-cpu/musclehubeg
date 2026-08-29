@@ -70,9 +70,9 @@ export async function GET(_request: NextRequest) {
     email: p.email,
     role: p.role,
     balance: Number(walletMap.get(p.id)?.balance ?? 0),
-    currency: walletMap.get(p.id)?.currency ?? "EGP",
+    currency: walletMap.get(p.id)?.currency ?? "USD",
     fee_per_client: Number(feeMap.get(p.id)?.fee_per_client ?? 0),
-    fee_currency: feeMap.get(p.id)?.currency ?? "EGP",
+    fee_currency: feeMap.get(p.id)?.currency ?? "USD",
     client_count: countMap.get(p.id) ?? 0,
   }));
 

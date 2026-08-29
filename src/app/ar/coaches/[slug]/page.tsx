@@ -38,16 +38,16 @@ export async function generateMetadata({
 
   if (!data) {
     return {
-      title: "الصفحة غير موجودة — MuscleHub Egypt",
+      title: "الصفحة غير موجودة — Musclehubeg",
       robots: { index: false, follow: false },
     };
   }
 
   const copy = resolveLandingCopy(data, "ar");
   const name = coachDisplayName(data, "ar");
-  const title = `${name} — ${copy.headline || "مدرب معتمد على MuscleHub"}`;
+  const title = `${name} — ${copy.headline || "مدرب معتمد على Musclehubeg"}`;
   const description =
-    copy.bio.slice(0, 160) || `احجز متابعة خاصة مع ${name} على MuscleHub Egypt`;
+    copy.bio.slice(0, 160) || `احجز متابعة خاصة مع ${name} على Musclehubeg`;
 
   return {
     title,
@@ -65,7 +65,7 @@ export async function generateMetadata({
       url: `${SITE_URL}/ar/coaches/${slug}`,
       title,
       description,
-      siteName: "MuscleHub Egypt",
+      siteName: "Musclehubeg",
       locale: "ar_EG",
     },
   };

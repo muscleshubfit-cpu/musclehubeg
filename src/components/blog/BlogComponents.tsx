@@ -28,7 +28,7 @@ export function BlogMembershipCard({ lang }: { lang: "en" | "ar" }) {
  <Crown className="h-6 w-6" />
  </span>
  <h3 className="mt-4 text-xl font-semibold tracking-tight md:text-2xl">
- {isAr ? "احجز جلسة كوتشينج مع MuscleHubEG" : "Book a Coaching Session with MuscleHubEG"}
+ {isAr ? "احجز جلسة كوتشينج مع Musclehubeg" : "Book a Coaching Session with Musclehubeg"}
  </h3>
  <p className="mx-auto mt-2 max-w-md text-sm font-normal text-[#6e6e73]">
  {isAr
@@ -49,7 +49,7 @@ export function BlogMembershipCard({ lang }: { lang: "en" | "ar" }) {
  <div className="overflow-hidden rounded-3xl border border-[#0071e3]/20 bg-[#0071e3]/5 p-6 md:p-8">
  <div className="flex flex-col items-center text-center">
  <h3 className="text-xl font-semibold tracking-tight md:text-2xl">
- {isAr ? "أو اختر عضوية MuscleHubEG" : "Or pick a MuscleHubEG plan"}
+ {isAr ? "أو اختر عضوية Musclehubeg" : "Or pick a Musclehubeg plan"}
  </h3>
  <p className="mx-auto mt-2 max-w-md text-sm font-normal text-[#6e6e73]">
  {isAr
@@ -118,8 +118,8 @@ export function BlogMembershipCard({ lang }: { lang: "en" | "ar" }) {
  </h3>
  <p className="mx-auto mt-2 max-w-md text-sm font-normal text-[#6e6e73]">
  {isAr
- ? "شارك MuscleHubEG مع جمهورك واكسب 20% عمولة من كل اشتراك مؤهل. كوكيز 30 يوم."
- : "Share MuscleHubEG with your audience and earn 20% commission on every eligible subscription. 30-day cookie."}
+ ? "شارك Musclehubeg مع جمهورك واكسب 20% عمولة من كل اشتراك مؤهل. كوكيز 30 يوم."
+ : "Share Musclehubeg with your audience and earn 20% commission on every eligible subscription. 30-day cookie."}
  </p>
  <a
  href="/affiliate"
@@ -144,8 +144,8 @@ export function SocialShare({ url, ogUrl, title, description, image, lang }: { u
  // Language-aware share text — always include a summary
  const shortDesc = description ? description.slice(0, 150) + (description.length > 150 ? "..." : "") : (title ? title : "");
  const shareText = isAr
-   ? `${title}\n\n${shortDesc}\n\nاقرأ المقال كاملاً على MuscleHubEG:`
-   : `${title}\n\n${shortDesc}\n\nRead the full article on MuscleHubEG:`;
+   ? `${title}\n\n${shortDesc}\n\nاقرأ المقال كاملاً على Musclehubeg:`
+   : `${title}\n\n${shortDesc}\n\nRead the full article on Musclehubeg:`;
  const encodedShareText = encodeURIComponent(shareText);
 
  const share = (platform: string) => {

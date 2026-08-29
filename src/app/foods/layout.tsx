@@ -5,7 +5,7 @@ import type { Metadata } from "next";
  * Arabic mirrors (/ar/foods) have their own layout with Arabic metadata.
  */
 export const metadata: Metadata = {
-  title: "Food Database | MuscleHubEG",
+  title: "Food Database | Musclehubeg",
   description:
     "Complete food database with calories and macros per 100g. Search foods, filter by protein/carbs/fat, and calculate the grams you need for your goals.",
   keywords: [
@@ -21,7 +21,7 @@ export const metadata: Metadata = {
     canonical: "https://musclehubeg.vercel.app/foods",
   },
   openGraph: {
-    title: "Food Database | MuscleHubEG",
+    title: "Food Database | Musclehubeg",
     description: "Complete food database with calories and macros. Search, filter, and calculate grams.",
     type: "website",
     locale: "en_US",

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "BMI Calculator | MuscleHubEG — Calculate Your Ideal Weight",
+  title: "BMI Calculator | Musclehubeg — Calculate Your Ideal Weight",
   description:
     "Calculate your Body Mass Index (BMI) for free. Find out if your weight is ideal, overweight, or underweight. Accurate and easy-to-use BMI calculator with result interpretation.",
   keywords: [
@@ -16,7 +16,7 @@ export const metadata: Metadata = {
     canonical: "https://musclehubeg.vercel.app/tools/bmi-calculator",
   },
   openGraph: {
-    title: "BMI Calculator | MuscleHubEG",
+    title: "BMI Calculator | Musclehubeg",
     description: "Calculate your Body Mass Index (BMI) for free and find your ideal weight.",
     type: "website",
     locale: "en_US",

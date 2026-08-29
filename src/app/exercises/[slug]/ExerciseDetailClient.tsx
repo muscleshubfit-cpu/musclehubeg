@@ -216,7 +216,7 @@ export default function ExerciseDetailClient({
             {isAr ? "شارك التمرين ده" : "Share this exercise"}
           </p>
           <ShareButtons
-            title={isAr ? `${exercise.nameAr} | MuscleHubEG` : `${exercise.nameEn} | MuscleHubEG`}
+            title={isAr ? `${exercise.nameAr} | Musclehubeg` : `${exercise.nameEn} | Musclehubeg`}
             text={isAr ? exercise.instructionsAr[0] : exercise.instructionsEn[0]}
           />
         </div>

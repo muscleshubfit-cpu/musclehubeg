@@ -22,12 +22,12 @@ export async function generateMetadata({
 
   if (!program) {
     return {
-      title: "Program Not Found — MuscleHubEG",
+      title: "Program Not Found — Musclehubeg",
       robots: { index: false, follow: false },
     };
   }
 
-  const title = `${program.nameEn} — Workout Program | MuscleHubEG`;
+  const title = `${program.nameEn} — Workout Program | Musclehubeg`;
   const description = `${program.nameEn}: ${program.descriptionEn} ${program.days.length}-day ${program.level} program for ${program.goal}. ${program.location}.`;
   const url = `https://musclehubeg.vercel.app/programs/${program.slug}`;
 
@@ -43,7 +43,7 @@ export async function generateMetadata({
       title,
       description,
       images: [{ url: program.image, width: 1200, height: 630 }],
-      siteName: "MuscleHubEG",
+      siteName: "Musclehubeg",
       locale: "en_US",
     },
     twitter: {

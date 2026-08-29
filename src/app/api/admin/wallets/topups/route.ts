@@ -109,7 +109,7 @@ export async function PATCH(request: NextRequest) {
       user_id: coachId,
       type: "wallet_topup_approved",
       title: "تم شحن محفظتك ✅",
-      body: `اتقبل طلب شحن المحفظة بمبلغ ${amount} ${"EGP"} — الرصيد الجديد ${newBalance}.`,
+      body: `اتقبل طلب شحن المحفظة بمبلغ ${amount}$ — الرصيد الجديد ${newBalance}.`,
       link: "/coach/wallet",
     });
 
@@ -139,7 +139,7 @@ export async function PATCH(request: NextRequest) {
     user_id: coachId,
     type: "wallet_topup_rejected",
     title: "طلب شحن المحفظة مرفوض",
-    body: `لم يتم قبول طلب الشحن بمبلغ ${amount} EGP.${adminNote ? ` السبب: ${adminNote}` : ""} راجع إيصال الدفع وحاول تاني.`,
+    body: `لم يتم قبول طلب الشحن بمبلغ ${amount}$.${adminNote ? ` السبب: ${adminNote}` : ""} راجع إيصال الدفع وحاول تاني.`,
     link: "/coach/wallet",
   });
 

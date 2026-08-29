@@ -328,17 +328,17 @@ export function SiteHeader({ variant = "landing" }: { variant?: "landing" | "app
           <button
             onClick={() => navigate("landing")}
             className="flex items-center gap-2"
-            aria-label="MuscleHubEG"
+            aria-label="Musclehubeg"
           >
             <img
               src="/logo.png"
-              alt="MuscleHubEG"
+              alt="Musclehubeg"
               className="hidden h-9 w-auto object-contain md:block"
               loading="eager"
             />
             <img
               src="/icon-192.png"
-              alt="MuscleHubEG"
+              alt="Musclehubeg"
               className="h-9 w-9 rounded-lg object-contain md:hidden"
               loading="eager"
             />
@@ -424,7 +424,7 @@ export function SiteHeader({ variant = "landing" }: { variant?: "landing" | "app
         >
           {/* Drawer header */}
           <div className="flex h-16 items-center justify-between border-b border-[#d2d2d7] px-4">
-            <span className="text-base font-semibold">MuscleHubEG</span>
+            <span className="text-base font-semibold">Musclehubeg</span>
             <button
               onClick={() => setOpen(false)}
               className="flex h-10 w-10 items-center justify-center rounded-lg text-[#1d1d1f] hover:bg-[#f5f5f7]"
@@ -550,7 +550,7 @@ export function SiteHeader({ variant = "landing" }: { variant?: "landing" | "app
 
           {/* Footer */}
           <div className="border-t border-[#d2d2d7] px-4 py-3 text-center text-xs font-normal text-[#6e6e73]">
-            <p>© {new Date().getFullYear()} MuscleHubEG</p>
+            <p>© {new Date().getFullYear()} Musclehubeg</p>
           </div>
         </aside>
       </div>

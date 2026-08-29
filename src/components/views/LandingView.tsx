@@ -52,7 +52,7 @@ const PALETTE = {
 // Backward-compat alias (existing components reference CARD.*)
 const CARD = PALETTE;
 
-// Premium images — MuscleHub Studio Style
+// Premium images — Musclehubeg Studio Style
 const IMAGES = {
   gym: "/images/gym-interior.jpg",
   meal: "/images/meal-clean.jpg",
@@ -379,7 +379,7 @@ export function LandingView() {
       <CenteredSection bg="bg-white">
         <div className="px-4 text-center">
           <p className="text-sm font-normal md:text-base" style={{ color: PALETTE.textSec }}>
-            {isAr ? "ما هي MuscleHub؟" : "What is MuscleHub?"}
+            {isAr ? "ما هي Musclehubeg؟" : "What is Musclehubeg?"}
           </p>
           <h2 className="mx-auto mt-4 max-w-4xl text-4xl font-semibold leading-[1.08] tracking-tight md:text-6xl lg:text-7xl" style={{ color: PALETTE.textPrim }}>
             {isAr ? (
@@ -799,7 +799,7 @@ export function LandingView() {
         <div className="mx-auto max-w-5xl">
           <Reveal>
             <h2 className="text-center text-3xl font-semibold tracking-tight md:text-5xl" style={{ color: PALETTE.textPrim }}>
-              {isAr ? "عضويات MuscleHub المميزة." : "MuscleHub Premium memberships."}
+              {isAr ? "عضويات Musclehubeg المميزة." : "Musclehubeg Premium memberships."}
             </h2>
           </Reveal>
           <Reveal delay={150}>
@@ -998,7 +998,7 @@ export function LandingView() {
           >
             <span>
               <span className="block text-base font-semibold text-white md:text-lg">
-                {isAr ? "أنت مدرب؟ انضم كمدرب على MuscleHubEG" : "Are you a coach? Join MuscleHubEG as a coach"}
+                {isAr ? "أنت مدرب؟ انضم كمدرب على Musclehubeg" : "Are you a coach? Join Musclehubeg as a coach"}
               </span>
               <span className="mt-0.5 block text-xs font-normal text-[#a1a1a6]">
                 {isAr
@@ -1014,7 +1014,7 @@ export function LandingView() {
           <div className="grid gap-8 md:grid-cols-3 lg:grid-cols-5">
             {/* Brand */}
             <div>
-              <p className="text-sm font-semibold text-[#1d1d1f]">MuscleHubEG</p>
+              <p className="text-sm font-semibold text-[#1d1d1f]">Musclehubeg</p>
               <p className="mt-2 text-xs font-normal">{isAr ? "منصة رياضية شاملة." : "Comprehensive sports platform."}</p>
               <p className="mt-3 text-[10px] font-normal text-[#8e8e93]">{isAr ? "© 2026 جميع الحقوق محفوظة" : "© 2026 All rights reserved"}</p>
             </div>

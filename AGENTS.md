@@ -909,6 +909,37 @@ Process:
            / عملاء الموقع (no assignment), each with a live count,
            filtering the table before search + status tabs. Coaches keep
            their RLS-scoped list untouched (no segment control).
+- **GLOBAL USD LAW (owner directive 2026-08-30: «التسعير يكون كله
+  بالدولار لكامل الموقع لأن الموقع عالمى وغير محدد لمصر — احسب فرق سعر
+  العملة، مثلا ٣٠٠ جنيه تصبح ٦ دولار») — fixed owner rate 50 EGP = $1:**
+  every platform-side money figure is USD ONLY.
+    1) SOURCE OF TRUTH: coach-limits.ts — COACH_CLIENT_PACKAGES
+       (1mo=$6, 3mo=$16) + coachActivationCostUsd() (renamed from
+       coachActivationCostEgp) + COACH_AD_PACKAGES (week=$2, month=$7,
+       quarter=$18). PayPal wallet top-ups are 1:1 USD (the coach types
+       USD, pays USD, is credited USD); the old PAYPAL_USD_TO_EGP_RATE /
+       paypalUsdFromEgp helpers are REMOVED.
+    2) SCHEMA (migration 0038): coach_ads.price_egp → price_usd (rename);
+       coach_wallets/coach_topup_requests/coach_fees currency → 'USD'
+       (defaults flipped too); existing EGP amounts (balances, topups,
+       ledger rows, fee_per_client) converted ONCE at ÷50, guarded on
+       price_egp existence so re-running can never double-convert.
+    3) LEGACY COMPAT: create-order accepts amountEgp (÷50) and
+       capture-order accepts a legacy egp_amount custom_id (÷50) so
+       pre-0038 in-flight orders never strand money.
+    4) DISPLAY LAW: user-facing money strings show `$X` / `USD` /
+       «دولار» — never EGP/ج.م. The coaching page EGP-equivalent
+       subtitles were removed; the site is worldwide, never
+       Egypt-specific.
+- **BRAND NAME LAW (owner directive 2026-08-30: «تاكد ان الاسم المكتوب
+  فى الموقع فى اى وصف او صفحات هو (Musclehubeg)»):** the site name is
+  written EXACTLY «Musclehubeg» in every user-visible string — metadata
+  titles/descriptions/OG, i18n copy, legal pages, landing pages,
+  affiliate content, AI-content prompts, PayPal order descriptions and
+  the public/ affiliate banner SVGs. Legacy spellings «MuscleHubEG» /
+  «MuscleHub Egypt» / «MuscleHub» are FORBIDDEN in new code. Lowercase
+  technical identifiers (musclehubeg.vercel.app, payment handles,
+  package name) are not brand text and stay as-is.
 - **USAGE LIMIT ENFORCEMENT LAW (2026-08-28, T-AI-DEEP-AUDIT-V2, owner
   directive «توسع وعمق اكبر … والتأكد من ايفو وطبيعه عضوية المستخدم فى
   حدود الاستخدام»):** every limit advertised in `memberships.ts` MUST be

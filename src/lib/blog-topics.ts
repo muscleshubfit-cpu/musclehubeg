@@ -43,7 +43,7 @@ type Pillar = (typeof CONTENT_PILLARS)[number];
 // ─────────────────────────────────────────────────────────────────────────
 // ENGLISH SYSTEM PROMPT
 // ─────────────────────────────────────────────────────────────────────────
-const TOPIC_SYSTEM_PROMPT_EN = `You are an SEO/GEO content strategist for MuscleHubEG (musclehubeg.vercel.app), a fitness & nutrition platform for an English-speaking audience.
+const TOPIC_SYSTEM_PROMPT_EN = `You are an SEO/GEO content strategist for Musclehubeg (musclehubeg.vercel.app), a fitness & nutrition platform for an English-speaking audience.
 
 You will be told the EXACT content pillar to write about. Pick the single best, specific ARTICLE ANGLE within that pillar.
 
@@ -83,7 +83,7 @@ Return STRICT JSON only, no prose, no markdown fences:
 // ─────────────────────────────────────────────────────────────────────────
 // ARABIC SYSTEM PROMPT
 // ─────────────────────────────────────────────────────────────────────────
-const TOPIC_SYSTEM_PROMPT_AR = `أنت خبير استراتيجية محتوى SEO و GEO لمنصة MuscleHubEG (musclehubeg.vercel.app)، منصة لياقة وتغذية للجمهور العربي (مصر والخليج).
+const TOPIC_SYSTEM_PROMPT_AR = `أنت خبير استراتيجية محتوى SEO و GEO لمنصة Musclehubeg (musclehubeg.vercel.app)، منصة لياقة وتغذية للجمهور العربي (مصر والخليج).
 
 سيتم إخبارك بالقسم المحدد للكتابة فيه. اختر أفضل زاوية مقال محددة ضمن هذا القسم.
 

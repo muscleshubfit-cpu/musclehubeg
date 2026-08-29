@@ -11,11 +11,11 @@ import type { Metadata } from "next";
  * I18nProvider's localStorage/browser detection).
  */
 export const metadata: Metadata = {
-  title: "MuscleHubEG Affiliate Program — Turn Your Influence Into Income",
+  title: "Musclehubeg Affiliate Program — Turn Your Influence Into Income",
   description:
-    "Join the MuscleHubEG Affiliate Program, share smarter fitness and nutrition solutions, and earn commissions from eligible purchases made through your personal Affiliate link.",
+    "Join the Musclehubeg Affiliate Program, share smarter fitness and nutrition solutions, and earn commissions from eligible purchases made through your personal Affiliate link.",
   keywords: [
-    "MuscleHubEG affiliate program",
+    "Musclehubeg affiliate program",
     "fitness affiliate program",
     "nutrition affiliate program",
     "earn commission fitness",
@@ -27,18 +27,18 @@ export const metadata: Metadata = {
     "sports affiliate program",
   ],
   openGraph: {
-    title: "MuscleHubEG Affiliate Program — Turn Your Influence Into Income",
+    title: "Musclehubeg Affiliate Program — Turn Your Influence Into Income",
     description:
-      "Share MuscleHubEG with people who trust your recommendations and earn commissions from eligible purchases.",
+      "Share Musclehubeg with people who trust your recommendations and earn commissions from eligible purchases.",
     type: "website",
     url: "https://musclehubeg.vercel.app/affiliate",
-    siteName: "MuscleHubEG",
+    siteName: "Musclehubeg",
   },
   twitter: {
     card: "summary_large_image",
-    title: "MuscleHubEG Affiliate Program — Turn Your Influence Into Income",
+    title: "Musclehubeg Affiliate Program — Turn Your Influence Into Income",
     description:
-      "Share MuscleHubEG with people who trust your recommendations and earn commissions from eligible purchases.",
+      "Share Musclehubeg with people who trust your recommendations and earn commissions from eligible purchases.",
   },
   alternates: {
     canonical: "https://musclehubeg.vercel.app/affiliate",

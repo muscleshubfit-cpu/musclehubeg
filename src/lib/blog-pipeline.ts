@@ -295,7 +295,7 @@ DO ALL OF THE FOLLOWING:
 3. Fact-guard: remove or soften any specific citation that looks invented (paper names/authors/URLs that may not exist). Keep generic phrasing like "research shows".
 4. Add EXACTLY 2-4 internal links using [anchor](/blog/slug) format on fitting anchor text from the list above (only real slugs).
 5. Add at most 2 external links ONLY to well-known authoritative domains you are certain exist (who.int, ncbi.nlm.nih.gov, cdc.gov, mayoclinic.org) in [anchor](https://...) format.
-6. Append a closing Call-to-Action paragraph inviting the reader to join MuscleHubEG coaching / explore the site.
+6. Append a closing Call-to-Action paragraph inviting the reader to join Musclehubeg coaching / explore the site.
 7. Keep all "## " section structure; output the COMPLETE final article.
 
 Return STRICT JSON only:

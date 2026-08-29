@@ -4,7 +4,7 @@ import type { Metadata } from "next";
  * M30 fix: English-first metadata for /tools.
  */
 export const metadata: Metadata = {
-  title: "Free Fitness Tools | MuscleHubEG — Calculators & Trackers",
+  title: "Free Fitness Tools | Musclehubeg — Calculators & Trackers",
   description:
     "Free fitness and nutrition tools: calorie calculator, BMI calculator, macro calculator, body fat calculator, water tracker, and meal planner.",
   keywords: [
@@ -20,7 +20,7 @@ export const metadata: Metadata = {
     canonical: "https://musclehubeg.vercel.app/tools",
   },
   openGraph: {
-    title: "Free Fitness Tools | MuscleHubEG",
+    title: "Free Fitness Tools | Musclehubeg",
     description: "Free fitness and nutrition calculators for your journey.",
     type: "website",
     locale: "en_US",

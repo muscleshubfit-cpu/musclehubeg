@@ -52,13 +52,13 @@ const GLOBAL_FIXES: Array<{ find: string; replace: string }> = [
   { find: "⌒", replace: "" },
 
   // ---- Coach name removal ----
-  { find: "من المدرب أحمد زكي", replace: "من MuscleHubEG" },
-  { find: "من مدرب أحمد زكي", replace: "من MuscleHubEG" },
-  { find: "من الكوتش أحمد زكي", replace: "من MuscleHubEG" },
-  { find: "مع الكوتش أحمد زكي", replace: "مع MuscleHubEG" },
-  { find: "المدرب أحمد زكي", replace: "MuscleHubEG" },
-  { find: "الكوتش أحمد زكي", replace: "MuscleHubEG" },
-  { find: "أحمد زكي", replace: "MuscleHubEG" },
+  { find: "من المدرب أحمد زكي", replace: "من Musclehubeg" },
+  { find: "من مدرب أحمد زكي", replace: "من Musclehubeg" },
+  { find: "من الكوتش أحمد زكي", replace: "من Musclehubeg" },
+  { find: "مع الكوتش أحمد زكي", replace: "مع Musclehubeg" },
+  { find: "المدرب أحمد زكي", replace: "Musclehubeg" },
+  { find: "الكوتش أحمد زكي", replace: "Musclehubeg" },
+  { find: "أحمد زكي", replace: "Musclehubeg" },
 
   // ---- Newsletter subscription block removal ----
   { find: "## اشترك في نشرة أخبارنا\n", replace: "" },
@@ -82,12 +82,12 @@ const GLOBAL_FIXES: Array<{ find: string; replace: string }> = [
 
   // ---- CTA rewrites (move to membership pitch, remove coach name) ----
   {
-    find: "احصل على خطة تغذية و لياقة شخصنة من MuscleHubEG لتحسين توقيت إحداث البروتين العضلي و تحقيق أهدافك في اللياقة.",
-    replace: "اشترك في MuscleHubEG للحصول على خطة تغذية وتمارين مخصصة لتحسين توقيت إحداث البروتين العضلي وتحقيق أهدافك في اللياقة.",
+    find: "احصل على خطة تغذية و لياقة شخصنة من Musclehubeg لتحسين توقيت إحداث البروتين العضلي و تحقيق أهدافك في اللياقة.",
+    replace: "اشترك في Musclehubeg للحصول على خطة تغذية وتمارين مخصصة لتحسين توقيت إحداث البروتين العضلي وتحقيق أهدافك في اللياقة.",
   },
   {
-    find: "احصل على خطة صوم تريبي مخصصة من MuscleHubEG لزيادة العضلات بشكل أقصى.",
-    replace: "اشترك في MuscleHubEG للحصول على خطة صوم متقطع مخصصة لزيادة العضلات بشكل أقصى.",
+    find: "احصل على خطة صوم تريبي مخصصة من Musclehubeg لزيادة العضلات بشكل أقصى.",
+    replace: "اشترك في Musclehubeg للحصول على خطة صوم متقطع مخصصة لزيادة العضلات بشكل أقصى.",
   },
   { find: "خطة صوم تريبي مخصصة", replace: "خطة صوم متقطع مخصصة" },
   { find: "خطة شخصنة", replace: "خطة مخصصة" },

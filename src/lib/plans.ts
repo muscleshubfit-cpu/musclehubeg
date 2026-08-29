@@ -24,12 +24,10 @@ export type Tier = {
  swapLimit: number | null;
 };
 
-// Prices in USD:
+// Prices in USD (GLOBAL USD decree 2026-08-30 — the site is worldwide,
+// never Egypt-specific; the old EGP-equivalent display was removed):
 // - Starter: $20/month or $200/year (≈ 2 months free)
 // - Elite: $40/month or $400/year (≈ 2 months free)
-// EGP equivalent (≈ 50 EGP per $1):
-// - Starter: ≈ 1000 ج.م/شهر or ≈ 10000 ج.م/سنة
-// - Elite: ≈ 2000 ج.م/شهر or ≈ 20000 ج.م/سنة
 export const TIERS: Tier[] = [
  {
  id: "starter",
@@ -115,9 +113,4 @@ export function savingsFor(id: TierId): { months: number; amount: number; percen
  amount,
  percent: Math.round((amount / monthly) * 100),
  };
-}
-
-/** Get EGP equivalent for a USD price (≈ 50 EGP per $1). */
-export function usdToEgp(usd: number): number {
- return usd * 50;
 }

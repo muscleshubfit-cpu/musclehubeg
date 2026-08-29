@@ -266,7 +266,7 @@ export async function callAI(
         ...(cfg.provider === "openrouter"
           ? {
               "HTTP-Referer": "https://musclehubeg.vercel.app",
-              "X-Title": "MuscleHub Blog CMS",
+              "X-Title": "Musclehubeg Blog CMS",
             }
           : {}),
       },
