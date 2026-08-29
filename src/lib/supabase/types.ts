@@ -576,6 +576,52 @@ export type Database = {
           { foreignKeyName: "coach_fees_coach_id_fkey"; columns: ["coach_id"]; isOneToOne: true; referencedRelation: "profiles"; referencedColumns: ["id"] },
         ];
       };
+      coach_payments: {
+        Row: {
+          id: string;
+          coach_id: string;
+          client_id: string;
+          subscription_id: string | null;
+          tier: string;
+          months: number;
+          amount: number | null;
+          currency: string;
+          method: string;
+          note: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          coach_id: string;
+          client_id: string;
+          subscription_id?: string | null;
+          tier: string;
+          months: number;
+          amount?: number | null;
+          currency?: string;
+          method?: string;
+          note?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          coach_id?: string;
+          client_id?: string;
+          subscription_id?: string | null;
+          tier?: string;
+          months?: number;
+          amount?: number | null;
+          currency?: string;
+          method?: string;
+          note?: string | null;
+          created_at?: string;
+        };
+        Relationships: [
+          { foreignKeyName: "coach_payments_coach_id_fkey"; columns: ["coach_id"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] },
+          { foreignKeyName: "coach_payments_client_id_fkey"; columns: ["client_id"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] },
+          { foreignKeyName: "coach_payments_subscription_id_fkey"; columns: ["subscription_id"]; isOneToOne: false; referencedRelation: "subscriptions"; referencedColumns: ["id"] },
+        ];
+      };
       coach_pages: {
         Row: {
           coach_id: string;

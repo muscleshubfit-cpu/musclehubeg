@@ -3017,3 +3017,35 @@ Stage Summary:
 - Verification checklist handed to owner: (1) landing signup → client lands under THAT coach with green badge «عميل جابه المدرب X»; (2) coach dashboard «+ دعوة عميل» → invitee lands under him; (3) Google signup through landing → toast «تم ربطك بالمدرب …» on first session; (4) fees section editable with live totals.
 - Vercel auto-deploys b95678e (attribution APIs + UI live together with the trigger).
 - Open later phases (owner floated, not scheduled): coach dashboards/permissions/usage-limits; coach-fee collection automation.
+
+---
+Task ID: T-COACH-LIMITS-ACTIVATION-2026-08-29
+Agent: Main (Super Z — Implementation Agent)
+Task: Owner defined the coach usage-limits phase — «حدود استخدام العملاء مفيهاش تغيير عن عملاء الموقع … للمدربين توليد الخطط بالذكاء الاصطناعي ٤ مرات تغذية و ٤ تمارين لكل عميل مع امكانية التعديل و رفع الخطط اليدوى بدون حدود ، تفعيل الاشتراكات لكل عميل بعد الدفع عن طريق المدرب (محتاج اقتراحات لنقطة الدفع والتفعيل)».
+
+Work Log:
+- INTERPRETATION LOCKED: client-side limits unchanged (a coach's client with an active tier gets exactly the site limits); coach AI generation capped PER CLIENT 4 nutrition + 4 workout; editing + manual upload unlimited; coach collects payment OUTSIDE the site and activates the subscription himself — the site RECORDS.
+- MIGRATION RUN_ON_SUPABASE_0034_COACH_ACTIVATION.sql (7.2KB, one paste, idempotent, END OF SCRIPT 0034):
+  • PART 1 rebuilds extend_subscription() with a CALLER GUARD — service_role JWT (PayPal capture/webhook + server routes) OR is_admin() OR the client's assigned coach (coach_assignments). Closes the pre-existing hole where ANY authenticated user could self-extend to Pro via this SECURITY DEFINER RPC (0018 math untouched: remaining-paid-days preserved, row lock).
+  • PART 2 coach_payments ledger (id, coach_id, client_id, subscription_id, tier, months 1-24, amount nullable, currency default EGP, method ∈ cash|vodafone_cash|instapay|bank_transfer|other, note; RLS admin-all / coach-select-own / client-select-own / coach-insert-own-client via coach_of).
+  • PART 3 notify pgrst + negative-test VERIFY block.
+- LIB src/lib/coach-limits.ts — COACH_AI_PLAN_LIMIT=4, COACH_PAYMENT_METHODS (+labels), isCoachPaymentMethod, COACH_ACTIVATABLE_TIERS (premium|pro|coaching).
+- NEW /api/coach/subscriptions/activate (POST, staff-only): validates uuid/tier/months 1-12/amount 0-10M/method/note ≤500; coach verified vs coach_assignments (admin passes); target role='client'; runs extend_subscription via service role; writes coach_payments (pre-generated uuid, ledger failure NEVER blocks an active subscription); notifies the client (subscription_activated → /dashboard).
+- NEW /api/coach/ai-usage (GET ?clientId=): per-client used/limit for nutrition+workout counted from ai_jobs (requested_by=coach, job_type=plan_*, status='done', payload->>'clientId'), done-only so failed generations never burn quota; admins unlimited:true. Ownership-checked for coaches.
+- PATCHED /api/ai/jobs POST: plan_nutrition/plan_workout + authRole='coach' → payload.clientId must be a uuid (400), coach must own the client (403 «العميل ده مش من عملاؤك»), quota ≥4 done jobs → 429 Arabic message pointing to unlimited edit/manual paths. Admins keep staff-bypass. (Fixed mid-flight: ai_jobs terminal success status is 'done', NOT 'completed' — verified against ai-jobs.ts + plan-jobs.ts before shipping.)
+- CoachClientView: aiUsage state + refreshAiUsage (load + after every materialized draft) → CoachAIPlanGenerator gains quota/lang props: used/limit chips per button, cap-disables generate, amber hint «التعديل والرفع اليدوي متاح بدون حدود». Subscription form: new amount/method/note fields + rewritten copy «حصّل من العميل بره الموقع…»; updateSub → POST /api/coach/subscriptions/activate when Supabase wired (localStorage fallback kept for demo).
+- DashboardView (client): coach_payments fetched client-side (RLS client-select-own) keyed by subscription_id → green «مفعّلة بواسطة مدربك · طريقة الدفع · المبلغ» line on the subscription card.
+- AdminAssignmentsView: «سجل تفعيلات المدربين — الدفعات اليدوية» table (date, coach, client, tier, months, amount, method, note) via NEW /api/admin/coach-payments (requireAdmin, FK-embedded coach/client names, 503 with run-0034 hint when table missing; section hidden on error/empty).
+- types.ts: coach_payments table added. AGENTS.md §7: COACH ACTIVATION + OFFLINE PAYMENTS + COACH AI QUOTA law ((a)-(d) incl. "activate route must stay the ONLY writer of coach_payments").
+
+Verification:
+- bunx tsc --noEmit → 0 errors (bun install re-run after sandbox recycle; bun.lock untouched)
+- eslint (9 touched files) → 0 errors; warnings all pre-existing no-explicit-any style
+- bunx vitest run → 153/153 (13 files)
+- bunx next build → ✓ compiled; ƒ /api/coach/ai-usage, ƒ /api/coach/subscriptions/activate, ƒ /api/admin/coach-payments registered
+
+Stage Summary:
+- The coach B2B loop is complete: bring clients (0033) → generate 4+4 AI plans per client with unlimited edit/manual upload (0034) → collect offline → activate with one button → client notified + admin ledger + fee bill (0033 coach_fees).
+- OWNER MANUAL STEP: run RUN_ON_SUPABASE_0034_COACH_ACTIVATION.sql (raw link in chat) — until then activation requests fail with the guard exception and coach-payments reads 503 with the hint; AI quota counting already works (ai_jobs exists).
+- Payment/activation options presented to owner: A) manual activation + ledger (SHIPPED — fits cash/Vodafone Cash/InstaPay reality), B) payment-request/invoice flow (later), C) online self-checkout for coach clients (later — needs coach payouts).
+- Tunables flagged to owner: quota period (shipped = per-client total; monthly reset is a one-line change), method list, EGP currency default.

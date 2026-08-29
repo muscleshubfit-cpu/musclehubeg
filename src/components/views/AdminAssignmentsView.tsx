@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useI18n } from "@/lib/i18n";
 import { getCoachClientListOptimized } from "@/lib/data";
+import { coachPaymentMethodLabel } from "@/lib/coach-limits";
 import { toast } from "sonner";
 
 /**
@@ -59,6 +60,22 @@ export function AdminAssignmentsView() {
   const [feeDrafts, setFeeDrafts] = useState<Record<string, string>>({});
   const [savingFeeId, setSavingFeeId] = useState<string | null>(null);
 
+  // 0034 — PAYMENTS LEDGER: every subscription a coach activated after
+  // collecting payment OUTSIDE the site (cash / Vodafone Cash / InstaPay).
+  type PaymentRow = {
+    id: string;
+    tier: string;
+    months: number;
+    amount: number | null;
+    currency: string;
+    method: string;
+    note: string | null;
+    created_at: string;
+    coach: { full_name: string | null; email: string | null } | null;
+    client: { full_name: string | null; email: string | null } | null;
+  };
+  const [payments, setPayments] = useState<PaymentRow[] | null>(null);
+
   // Add-coach form state
   const [newEmail, setNewEmail] = useState("");
   const [newName, setNewName] = useState("");
@@ -86,6 +103,13 @@ export function AdminAssignmentsView() {
           const rows = (feesJson.coaches ?? []) as FeeRow[];
           setFees(rows);
           setFeeDrafts(Object.fromEntries(rows.map((c) => [c.id, String(c.fee_per_client)])));
+        }
+
+        // Offline-payment ledger (0034). On failure it stays null → section hidden.
+        const paysRes = await fetch("/api/admin/coach-payments?limit=50");
+        if (paysRes.ok) {
+          const paysJson = await paysRes.json();
+          setPayments((paysJson.payments ?? []) as PaymentRow[]);
         }
 
         if (clientRows && clientRows.length >= 0) {
@@ -489,6 +513,69 @@ export function AdminAssignmentsView() {
                     </tr>
                   );
                 })}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
+
+      {/* 0034 — Offline payments ledger: who activated what for whom */}
+      {payments && payments.length > 0 && (
+        <section className="rounded-3xl bg-[#f5f5f7] p-6 md:p-8">
+          <h2 className="text-lg font-semibold tracking-tight">
+            {isAr ? "سجل تفعيلات المدربين — الدفعات اليدوية" : "Coach activations — offline payments"}
+          </h2>
+          <p className="mt-1 text-sm font-normal text-[#6e6e73]">
+            {isAr
+              ? "كل اشتراك فعّله المدرب لأحد عملائه بعد تحصيل المبلغ بره الموقع (كاش / فودافون كاش / انستاباي / تحويل بنكي)."
+              : "Every subscription a coach activated after collecting payment outside the site (cash / wallets / InstaPay / bank)."}
+          </p>
+          <div className="mt-5 overflow-x-auto">
+            <table className="w-full min-w-[720px] text-start">
+              <thead>
+                <tr className="border-b border-[#d2d2d7] text-xs font-normal uppercase tracking-wide text-[#6e6e73]">
+                  <th className="p-3 text-start">{isAr ? "التاريخ" : "Date"}</th>
+                  <th className="p-3 text-start">{isAr ? "المدرب" : "Coach"}</th>
+                  <th className="p-3 text-start">{isAr ? "العميل" : "Client"}</th>
+                  <th className="p-3 text-start">{isAr ? "الباقة" : "Tier"}</th>
+                  <th className="p-3 text-start">{isAr ? "المدة" : "Duration"}</th>
+                  <th className="p-3 text-start">{isAr ? "المبلغ" : "Amount"}</th>
+                  <th className="p-3 text-start">{isAr ? "طريقة الدفع" : "Method"}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {payments.map((p) => (
+                  <tr key={p.id} className="border-b border-[#d2d2d7]/60 hover:bg-white/50">
+                    <td className="p-3 text-xs text-[#6e6e73]">
+                      {new Date(p.created_at).toLocaleDateString(isAr ? "ar-EG" : "en-US")}
+                    </td>
+                    <td className="p-3">
+                      <div className="font-medium">{p.coach?.full_name || "—"}</div>
+                      <div className="text-xs font-normal text-[#6e6e73]" dir="ltr">
+                        {p.coach?.email || ""}
+                      </div>
+                    </td>
+                    <td className="p-3">
+                      <div className="font-medium">{p.client?.full_name || "—"}</div>
+                      <div className="text-xs font-normal text-[#6e6e73]" dir="ltr">
+                        {p.client?.email || ""}
+                      </div>
+                    </td>
+                    <td className="p-3 font-medium">{p.tier}</td>
+                    <td className="p-3">
+                      {p.months} {isAr ? "شهر" : "mo"}
+                    </td>
+                    <td className="p-3 font-semibold">
+                      {p.amount != null ? `${Number(p.amount).toLocaleString()} ${p.currency}` : "—"}
+                    </td>
+                    <td className="p-3">
+                      <span className="rounded-full bg-white px-2.5 py-0.5 text-xs font-medium">
+                        {coachPaymentMethodLabel(p.method, isAr ? "ar" : "en")}
+                      </span>
+                      {p.note && <div className="mt-1 max-w-[220px] text-xs text-[#6e6e73]">{p.note}</div>}
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>

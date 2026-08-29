@@ -6,6 +6,8 @@ import { useAuth } from "@/hooks/use-auth";
 import { useNav } from "@/hooks/use-nav";
 import { MyCoachCard } from "@/components/MyCoachCard";
 import { listProgress, listPlans, listSubscriptionsForClient } from "@/lib/data";
+import { supabase, isSupabaseConfigured } from "@/lib/data/helpers";
+import { coachPaymentMethodLabel } from "@/lib/coach-limits";
 import { getTier } from "@/lib/plans";
 import { MEMBERSHIPS } from "@/lib/memberships";
 
@@ -17,6 +19,18 @@ export function DashboardView() {
   const [progress, setProgress] = useState<any[]>([]);
   const [plans, setPlans] = useState<any[]>([]);
   const [allSubs, setAllSubs] = useState<any[]>([]);
+  // 0034: coach-activated receipts — subscription_id → payment row. The
+  // client sees «مفعّلة بواسطة مدربك» on subscriptions his coach activated
+  // after collecting payment outside the site.
+  type CoachPayRow = {
+    subscription_id: string | null;
+    amount: number | null;
+    currency: string;
+    method: string;
+    note: string | null;
+    created_at: string;
+  };
+  const [coachPays, setCoachPays] = useState<Record<string, CoachPayRow>>({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -31,6 +45,18 @@ export function DashboardView() {
         setProgress(p);
         setPlans(pl);
         setAllSubs(subs);
+        // Coach-payment receipts (RLS: client reads only his own rows).
+        if (isSupabaseConfigured && supabase && subs.length > 0) {
+          const { data: pays } = await supabase
+            .from("coach_payments")
+            .select("subscription_id, amount, currency, method, note, created_at")
+            .eq("client_id", profile.id);
+          const map: Record<string, CoachPayRow> = {};
+          for (const row of (pays as CoachPayRow[] | null) ?? []) {
+            if (row?.subscription_id) map[row.subscription_id] = row;
+          }
+          setCoachPays(map);
+        }
       } finally {
         setLoading(false);
       }
@@ -92,6 +118,7 @@ export function DashboardView() {
                 const days = s.end_date
                   ? Math.max(0, Math.ceil((new Date(s.end_date).getTime() - Date.now()) / 864e5))
                   : null;
+                const pay = coachPays[s.id];
                 return (
                   <div key={s.id} className="flex items-center justify-between">
                     <div>
@@ -106,6 +133,13 @@ export function DashboardView() {
                       {days !== null && (
                         <p className="mt-1 text-xs font-normal text-[#6e6e73]">
                           {days} {isAr ? "يوم متبقي" : "days left"}
+                        </p>
+                      )}
+                      {pay && (
+                        <p className="mt-0.5 text-[10px] font-medium text-[#34c759]">
+                          {isAr ? "مفعّلة بواسطة مدربك" : "Activated by your coach"}
+                          {pay.method ? ` · ${coachPaymentMethodLabel(pay.method, isAr ? "ar" : "en")}` : ""}
+                          {pay.amount != null ? ` · ${Number(pay.amount).toLocaleString()} ${pay.currency || "EGP"}` : ""}
                         </p>
                       )}
                     </div>

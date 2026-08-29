@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireUser, requireCoach, isAuthConfigured } from "@/lib/auth-server";
 import { checkAndRecordSwap } from "@/lib/tier-limits";
+import { COACH_AI_PLAN_LIMIT } from "@/lib/coach-limits";
 import {
   isAiJobType,
   JOB_GATE,
@@ -108,6 +109,64 @@ export async function POST(request: NextRequest) {
             { status: 429, headers: { "Retry-After": "3600" } },
           );
         }
+      }
+    }
+
+    // ── 0034: COACH PER-CLIENT AI QUOTA (4 nutrition + 4 workout) ─────
+    // Owner model: plan_* generation is capped PER CLIENT for coaches —
+    // counting COMPLETED jobs of the same kind (failed generations never
+    // burn quota). Editing tools (meal/exercise regenerate — handled
+    // above with staff bypass) and manual uploads stay UNLIMITED.
+    // Admins remain unlimited (staff quota semantics). A coach may also
+    // only generate for his OWN clients — ownership verified below.
+    if (
+      isAuthConfigured &&
+      (type === "plan_nutrition" || type === "plan_workout") &&
+      authRole === "coach"
+    ) {
+      const clientId = String((payload as any)?.clientId ?? "");
+      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(clientId)) {
+        return NextResponse.json(
+          { error: "الخطة محتاج عميل محدد — افتح صفحة العميل ثم ولّد الخطة منه." },
+          { status: 400 },
+        );
+      }
+      const { supabaseAdmin, isSupabaseAdminConfigured } = await import(
+        "@/lib/supabase/admin"
+      );
+      if (!isSupabaseAdminConfigured || !supabaseAdmin) {
+        return NextResponse.json({ error: "Server not configured" }, { status: 501 });
+      }
+      const { data: owned } = await supabaseAdmin
+        .from("coach_assignments")
+        .select("client_id")
+        .eq("client_id", clientId)
+        .eq("coach_id", userId!)
+        .maybeSingle();
+      if (!owned) {
+        return NextResponse.json(
+          { error: "العميل ده مش من عملاؤك — كل مدرب يولّد خطط لعملائه هو فقط." },
+          { status: 403 },
+        );
+      }
+      const { count, error: cntErr } = await supabaseAdmin
+        .from("ai_jobs" as any)
+        .select("*", { count: "exact", head: true })
+        .eq("requested_by", userId!)
+        .eq("job_type", type)
+        .eq("status", "done")
+        .eq("payload->>clientId", clientId);
+      if (!cntErr && (count ?? 0) >= COACH_AI_PLAN_LIMIT) {
+        const kindAr = type === "plan_nutrition" ? "تغذية" : "تمارين";
+        return NextResponse.json(
+          {
+            error: `وصلت للحد الأقصى: ${COACH_AI_PLAN_LIMIT} خطط ${kindAr} بالذكاء الاصطناعي للعميل ده (${count}/${COACH_AI_PLAN_LIMIT}). تقدر تعدّل الخطة الحالية بحرية أو ترفع خطة يدوي — من غير حدود.`,
+            rateLimited: true,
+            used: count ?? 0,
+            limit: COACH_AI_PLAN_LIMIT,
+          },
+          { status: 429, headers: { "Retry-After": "86400" } },
+        );
       }
     }
 

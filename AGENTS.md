@@ -734,6 +734,36 @@ Process:
        /admin/assignments: live count × fee total per coach. (e)
        CoachView shows the «عملاؤك الخاصون فقط» badge + «+ دعوة عميل»
        invite form for plain coaches; the admin's own view is unchanged.
+- **COACH ACTIVATION + OFFLINE PAYMENTS + COACH AI QUOTA (owner model
+  2026-08-29, migration 0034 — «تفعيل الاشتراكات لكل عميل بعد الدفع عن
+  طريق المدرب»): the coach collects OUTSIDE the site (cash / Vodafone
+  Cash / InstaPay / bank transfer) and activates the subscription
+  himself; the site never touches that money — it only RECORDS.**
+    (a) extend_subscription() is now GUARDED (0034 rebuild): only the
+        service role (PayPal capture/webhook, server routes), an ADMIN,
+        or the client's ASSIGNED COACH may call it — the old
+        any-authenticated-user self-upgrade hole is closed.
+    (b) POST /api/coach/subscriptions/activate {client_id, tier,
+        months, amount?, method?, note?} (staff only): coaches are
+        verified against coach_assignments, targets must be
+        role='client', tier ∈ premium|pro|coaching, months 1-12; the
+        route runs extend_subscription via service role, writes a
+        coach_payments ledger row (RLS: admin all · coach own · client
+        reads own), and notifies the client. It must stay the ONLY
+        writer of coach_payments.
+    (c) The subscription form in CoachClientView collects
+        amount/method/note; the ledger powers «سجل تفعيلات المدربين»
+        on /admin/assignments and the «مفعّلة بواسطة مدربك» receipt
+        line on the client dashboard (DashboardView).
+    (d) COACH AI QUOTA: plan generation is capped PER CLIENT at
+        COACH_AI_PLAN_LIMIT=4 nutrition + 4 workout (coach-limits.ts) —
+        enforced in POST /api/ai/jobs for role='coach' (ownership check
+        vs coach_assignments + count of ai_jobs status='done' per
+        payload->>'clientId'; failed jobs never burn quota) and shown
+        as used/limit chips via GET /api/coach/ai-usage. EDITING
+        (meal/exercise regenerate, content edits) and MANUAL plan
+        uploads are UNLIMITED; admins unlimited; CLIENT tier limits
+        unchanged (owner: «حدود استخدام العملاء مفيهاش تغيير»).
 - **USAGE LIMIT ENFORCEMENT LAW (2026-08-28, T-AI-DEEP-AUDIT-V2, owner
   directive «توسع وعمق اكبر … والتأكد من ايفو وطبيعه عضوية المستخدم فى
   حدود الاستخدام»):** every limit advertised in `memberships.ts` MUST be

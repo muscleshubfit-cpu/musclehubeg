@@ -69,6 +69,13 @@ import {
  type PendingPlanJob,
 } from "@/lib/plan-jobs";
 import { NotificationForm } from "@/components/NotificationForm";
+import { isSupabaseConfigured } from "@/lib/data/helpers";
+import {
+ COACH_AI_PLAN_LIMIT,
+ COACH_PAYMENT_METHODS,
+ coachPaymentMethodLabel,
+ type CoachPaymentMethod,
+} from "@/lib/coach-limits";
 
 // Unified tier list — combines new membership tiers (Premium, Pro, Coaching)
 // with legacy tiers (Starter, Elite) for backward compatibility. Used in the
@@ -106,6 +113,11 @@ export function CoachClientView({ clientId }: { clientId: string }) {
  const [startDate, setStartDate] = useState<string>("");
  const [endDate, setEndDate] = useState<string>("");
  const [savingSub, setSavingSub] = useState(false);
+ // 0034: offline-payment fields — the coach collects OUTSIDE the site
+ // (cash / Vodafone Cash / InstaPay) then records it with the activation.
+ const [payAmount, setPayAmount] = useState<string>("");
+ const [payMethod, setPayMethod] = useState<CoachPaymentMethod>("cash");
+ const [payNote, setPayNote] = useState<string>("");
 
  // Plan upload form
  const [planType, setPlanType] = useState<"meal" | "workout">("meal");
@@ -117,6 +129,9 @@ export function CoachClientView({ clientId }: { clientId: string }) {
  const [generating, setGenerating] = useState<"workout" | "nutrition" | null>(null);
  const [approving, setApproving] = useState<string | null>(null);
  const [viewingPlan, setViewingPlan] = useState<any | null>(null);
+ // 0034: per-client AI quota readout (4 nutrition + 4 workout per client)
+ type AiUsage = { unlimited: boolean; limit: number; nutrition: { used: number; limit: number }; workout: { used: number; limit: number } };
+ const [aiUsage, setAiUsage] = useState<AiUsage | null>(null);
 
  // T-4PILLAR-COMPLETE (2026-08-28): plan jobs are queued on GitHub Actions
  // (~10 min), so a blocking poll that dies with the tab used to STRAND the
@@ -214,6 +229,24 @@ export function CoachClientView({ clientId }: { clientId: string }) {
  void scanRecoverableJobs();
  }, [scanRecoverableJobs]);
 
+ // 0034: live AI-quota readout for THIS client (4 nutrition + 4 workout
+ // per client; failed generations never burn quota; admins unlimited).
+ const refreshAiUsage = useCallback(async () => {
+ if (!isSupabaseConfigured) return;
+ try {
+ const res = await fetch(`/api/coach/ai-usage?clientId=${encodeURIComponent(clientId)}`);
+ if (!res.ok) return;
+ const data = await res.json().catch(() => null);
+ if (data) setAiUsage(data);
+ } catch {
+ /* best-effort */
+ }
+ }, [clientId]);
+
+ useEffect(() => {
+ void refreshAiUsage();
+ }, [refreshAiUsage]);
+
  const materializePlanDraft = useCallback(
  async (entry: PendingPlanJob, result: any) => {
  const { title, content } = (result ?? {}) as { title: string; content: any };
@@ -245,9 +278,10 @@ export function CoachClientView({ clientId }: { clientId: string }) {
  if (entry.clientId === clientId) {
  setPlans(await listAllClientPlans(clientId));
  }
+ void refreshAiUsage();
  void scanRecoverableJobs();
  },
- [clientId, scanRecoverableJobs],
+ [clientId, scanRecoverableJobs, refreshAiUsage],
  );
 
  const watchPlanJob = useCallback(
@@ -360,10 +394,37 @@ export function CoachClientView({ clientId }: { clientId: string }) {
  const updateSub = async () => {
  setSavingSub(true);
  try {
+ if (isSupabaseConfigured) {
+ // 0034: activation goes through the server route — extend_subscription
+ // (service role, 0034-guarded) + coach_payments ledger + client notification.
+ const res = await fetch("/api/coach/subscriptions/activate", {
+ method: "POST",
+ headers: { "Content-Type": "application/json" },
+ body: JSON.stringify({
+ client_id: clientId,
+ tier,
+ months,
+ amount: payAmount.trim() === "" ? null : Number(payAmount),
+ method: payMethod,
+ note: payNote.trim() || null,
+ }),
+ });
+ const json = await res.json().catch(() => null);
+ if (!res.ok) throw new Error(json?.message || json?.error || t("common.error"));
+ setPayAmount("");
+ setPayNote("");
+ toast.success(
+ isAr
+ ? `تم تفعيل الاشتراك ✅ العميل وصل إشعار — والدفع اتسجل في سجل تفعيلات المدربين.`
+ : `Subscription activated ✅ — the client was notified and the payment was logged.`,
+ );
+ } else {
+ // Demo/local fallback — direct write, no ledger.
  const start = startDate ? new Date(startDate).toISOString() : new Date().toISOString();
  const end = endDate ? new Date(endDate).toISOString() : new Date(Date.now() + months * 30 * 864e5).toISOString();
  await upsertSubscription(clientId, tier, months, start, end);
  toast.success(t("coach.subUpdated"));
+ }
  // Reload all subscriptions to show the updated list
  const updatedSubs = await listSubscriptionsForClient(clientId);
  setAllSubs(updatedSubs);
@@ -725,8 +786,13 @@ export function CoachClientView({ clientId }: { clientId: string }) {
  <h2 className="text-lg font-semibold">{t("coach.subscriptionMgmt")}</h2>
  <p className="mt-1 text-sm font-normal text-[#6e6e73]">
  {lang === "ar"
- ? "أضف أو حدّث اشتراك. لو العميل عنده اشتراك بنفس النوع، هيتحدّث. لو نوع مختلف، هيتضاف كاشتراك جديد."
- : "Add or update a subscription. If the client already has the same tier, it updates. If different, it adds a new subscription."}
+ ? "حصّل من العميل بره الموقع (كاش / فودافون كاش / انستاباي) ثم فعّل اشتراكه من هنا — العميل هيوصل إشعار فورًا، والأدمن يشوف العملية في سجل تفعيلات المدربين."
+ : "Collect outside the site (cash / Vodafone Cash / InstaPay), then activate here — the client is notified instantly and the admin sees it in the payments ledger."}
+ </p>
+ <p className="mt-1 text-sm font-normal text-[#6e6e73]">
+ {lang === "ar"
+ ? "لو العميل عنده اشتراك بنفس النوع، المدة هتتجمع على المتبقي. لو نوع مختلف، هيتضاف كاشتراك جديد."
+ : "Same tier extends the remaining days; a different tier is added as a new subscription."}
  </p>
  <div className="mt-4 grid gap-4 sm:grid-cols-2">
  <div>
@@ -770,6 +836,46 @@ export function CoachClientView({ clientId }: { clientId: string }) {
  <div>
  <Label htmlFor="end">{t("coach.setExpiry")}</Label>
  <Input id="end" type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="mt-1.5" />
+ </div>
+ <div>
+ <Label htmlFor="pay-amount">{isAr ? "المبلغ اللي اتاخد من العميل (اختياري)" : "Amount collected (optional)"}</Label>
+ <Input
+ id="pay-amount"
+ type="number"
+ min="0"
+ step="1"
+ dir="ltr"
+ value={payAmount}
+ onChange={(e) => setPayAmount(e.target.value)}
+ placeholder="0"
+ className="mt-1.5"
+ />
+ </div>
+ <div>
+ <Label htmlFor="pay-method">{isAr ? "طريقة الدفع" : "Payment method"}</Label>
+ <select
+ id="pay-method"
+ value={payMethod}
+ onChange={(e) => setPayMethod(e.target.value as CoachPaymentMethod)}
+ className="mt-1.5 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
+ >
+ {COACH_PAYMENT_METHODS.map((m) => (
+ <option key={m.id} value={m.id}>
+ {isAr ? m.ar : m.en}
+ </option>
+ ))}
+ </select>
+ </div>
+ <div className="sm:col-span-2">
+ <Label htmlFor="pay-note">{isAr ? "ملاحظة (اختياري)" : "Note (optional)"}</Label>
+ <Input
+ id="pay-note"
+ value={payNote}
+ onChange={(e) => setPayNote(e.target.value)}
+ maxLength={500}
+ className="mt-1.5"
+ placeholder={isAr ? "مثال: دفعة أولى — باقي ٥٠٠" : "e.g. first installment — 500 remaining"}
+ />
  </div>
  </div>
  <Button className="mt-5" onClick={updateSub} disabled={savingSub}>
@@ -889,6 +995,8 @@ export function CoachClientView({ clientId }: { clientId: string }) {
  generating={generating}
  onGenerate={generateAIPlan}
  t={t}
+ quota={aiUsage}
+ lang={lang}
  />
 
  {/* T-4PILLAR-COMPLETE: live status of queued plan jobs for THIS client.
@@ -2426,11 +2534,26 @@ function CoachAIPlanGenerator({
  generating,
  onGenerate,
  t,
+ quota,
+ lang,
 }: {
  generating: string | null;
  onGenerate: (planType: "workout" | "nutrition", overrides?: any) => Promise<void>;
  t: (key: string) => string;
+ quota: { unlimited: boolean; limit: number; nutrition: { used: number; limit: number }; workout: { used: number; limit: number } } | null;
+ lang: "ar" | "en";
 }) {
+ const isAr = lang === "ar";
+ const atCap = (k: "nutrition" | "workout") =>
+ !!quota && !quota.unlimited && quota[k].used >= quota[k].limit;
+ const usageLine = (k: "nutrition" | "workout") => {
+ if (!quota || quota.unlimited) return null;
+ return (
+ <div className="mt-0.5 text-[11px] font-medium text-muted-foreground">
+ {quota[k].used}/{quota[k].limit} {isAr ? "مستخدمة" : "used"}
+ </div>
+ );
+ };
  const [showAdvanced, setShowAdvanced] = useState(false);
  const [targetCalories, setTargetCalories] = useState("");
  const [proteinG, setProteinG] = useState("");
@@ -2477,7 +2600,7 @@ function CoachAIPlanGenerator({
  <div className="mt-5 grid gap-3 sm:grid-cols-2">
  <button
  onClick={() => handleGenerate("nutrition")}
- disabled={generating !== null}
+ disabled={generating !== null || atCap("nutrition")}
  className="group flex items-center justify-between gap-3 rounded-2xl border border-border bg-background p-4 text-start transition-all hover:border-primary/40 hover:shadow-glow disabled:opacity-50"
  >
  <div className="flex items-center gap-3">
@@ -2490,7 +2613,9 @@ function CoachAIPlanGenerator({
  </span>
  <div>
  <div className="font-semibold">{t("coach.genNutrition")}</div>
+ {usageLine("nutrition") ?? (
  <div className="text-xs text-muted-foreground">{t("coach.aiHint")}</div>
+ )}
  </div>
  </div>
  <Wand2 className="h-4 w-4 text-muted-foreground transition-colors group-hover:text-primary" />
@@ -2498,7 +2623,7 @@ function CoachAIPlanGenerator({
 
  <button
  onClick={() => handleGenerate("workout")}
- disabled={generating !== null}
+ disabled={generating !== null || atCap("workout")}
  className="group flex items-center justify-between gap-3 rounded-2xl border border-border bg-background p-4 text-start transition-all hover:border-primary/40 hover:shadow-glow disabled:opacity-50"
  >
  <div className="flex items-center gap-3">
@@ -2511,12 +2636,24 @@ function CoachAIPlanGenerator({
  </span>
  <div>
  <div className="font-semibold">{t("coach.genWorkout")}</div>
+ {usageLine("workout") ?? (
  <div className="text-xs text-muted-foreground">{t("coach.aiHint")}</div>
+ )}
  </div>
  </div>
  <Wand2 className="h-4 w-4 text-muted-foreground transition-colors group-hover:text-primary" />
  </button>
  </div>
+
+ {/* 0034 — cap hint: generation is limited per client, everything
+ else (editing, manual upload) stays unlimited by owner decree. */}
+ {(atCap("nutrition") || atCap("workout")) && (
+ <p className="mt-3 rounded-xl border border-amber-500/30 bg-amber-500/5 px-3 py-2 text-xs font-medium text-amber-600">
+ {isAr
+ ? "وصلت الحد الأقصى للتوليد بالذكاء الاصطناعي عند العميل ده — التعديل على الخطط والرفع اليدوي متاح بدون حدود."
+ : "AI generation cap reached for this client — editing plans and manual uploads stay unlimited."}
+ </p>
+ )}
 
  {/* Advanced options toggle */}
  <button
