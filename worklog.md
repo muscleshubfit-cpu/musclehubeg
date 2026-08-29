@@ -3206,3 +3206,25 @@ Stage Summary:
 - Coach clients are now permanently outside the affiliate system at the money moment, regardless of attribution order (ref cookie first / coach first / OAuth claim).
 - Admin clients surface separates coach clients from site clients with live counts.
 - Owner can run 0037 NOW — it is byte-identical to the previously delivered link.
+
+---
+Task ID: T-GLOBAL-USD-BRAND-QA-2026-08-30
+Agent: Main (Super Z — Implementation Agent)
+Task: Owner directives — «التسعير كله بالدولار لكامل الموقع» (rate 50 EGP=$1) + «الاسم المكتوب هو Musclehubeg» + real usage test for every role.
+
+Work Log:
+- USD conversion (rate 50:1, owner example 300 EGP=$6): COACH_CLIENT_PACKAGES $6/$16 (priceUsd) + coachActivationCostEgp→coachActivationCostUsd; COACH_AD_PACKAGES $2/$7/$18; PayPal top-ups 1:1 USD (removed PAYPAL_USD_TO_EGP_RATE/paypalUsdFromEgp; create-order takes amountUsd, legacy amountEgp ÷50 compat; capture-order usd_amount custom_id, legacy egp_amount ÷50 compat); wallet/fees currency fallbacks 'USD'; all staff money messages $; CoachAdsView/CoachWalletView/CoachClientView/DashboardView USD display; i18n pricing.egp → USD/دولار; plans.ts usdToEgp removed; coaching page EGP-equivalent subtitles removed; for-coaches copy currency-agnostic.
+- Migration 0038 GLOBAL_USD: coach_ads.price_egp→price_usd rename + currency flip EGP→USD + one-shot ÷50 conversion of balances/topups/ledger/fees, guarded on price_egp existence (re-run-proof).
+- Brand law: «Musclehubeg» exact spelling everywhere — 82 src files (MuscleHubEG/MuscleHub Egypt/MuscleHub → Musclehubeg) + 12 public assets (affiliate SVG banners, robots, manifest, sw). Payment handles/domains untouched.
+- REAL USAGE TEST (agent-browser on production https://musclehubeg.vercel.app):
+  - PASS: homepage EN+AR (RTL ok, no h-scroll on 390px mobile), coach section ×2 /for-coaches links, featured strip empty-state silent, /for-coaches, /coaching ($20/$40, zero EGP), /memberships, /terms, /privacy, /tools, /blog, /faq, /contact, sitemap — ZERO console/page errors.
+  - PASS: brand title «Musclehubeg — Comprehensive Sports Platform…» live.
+  - PASS: all 8 staff routes (/admin/* ×5, /coach/* ×3) gate → /auth.
+  - CRITICAL BUG FOUND: ALL signups fail — auth/v1/signup → 500 «Database error saving new user» (client SDK + admin.createUser both). DB-level trigger chain failure (handle_new_user → profiles → trg_auto_assign_client). Blocks client AND coach registration in production.
+  - Shipped 0039_SIGNUP_DIAGNOSTIC: Probe A (profiles insert alone) + Probe B (full auth.users replay) with SQLSTATE/SQLERRM surfacing + trigger/function/constraint inventory — owner runs it and reports output for the precise fix.
+  - Coach/client/admin authenticated walkthroughs BLOCKED by the signup bug (no test accounts can be created) — pending the fix.
+- Verified: tsc 0 / eslint 0 errors / vitest 153-153 / build ✓. Committed a79b6d2 (USD+brand) + 0039, pushed via PAT.
+
+Stage Summary:
+- Owner steps: (1) run 0038 GLOBAL_USD raw link; (2) run 0039 DIAGNOSTIC raw link and send the output — signup stays broken until the DB error is identified and fixed.
+- Site-wide USD + Musclehubeg brand are LIVE in production.
