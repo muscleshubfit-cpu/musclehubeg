@@ -67,6 +67,12 @@ export function CoachView() {
   const [staff, setStaff] = useState<StaffMember[]>([]);
   const [reassigning, setReassigning] = useState<string | null>(null);
 
+  // OWNER DIRECTIVE (2026-08-30) — «فصل بين عملاء المدربين وعملاء الموقع»:
+  // admin-only top-level segment above the status tabs. «عملاء المدربين» =
+  // clients with a coach_assignments row (assigned_coach_id from the
+  // get_coach_client_list RPC); «عملاء الموقع» = clients with no coach.
+  const [clientSegment, setClientSegment] = useState<"all" | "coach" | "site">("all");
+
   // Broadcast notification state
   const [showBroadcast, setShowBroadcast] = useState(false);
 
@@ -243,6 +249,9 @@ export function CoachView() {
       premium: clients.filter((c) => c.sub?.tier === "premium").length,
       pro: clients.filter((c) => c.sub?.tier === "pro").length,
       coaching: clients.filter((c) => c.sub?.tier === "coaching").length,
+      // Owner directive: admin split — coach clients vs site clients
+      coach_clients: clients.filter((c) => !!c.assigned_coach_id).length,
+      site_clients: clients.filter((c) => !c.assigned_coach_id).length,
     };
   }, [clients]);
 
@@ -250,6 +259,10 @@ export function CoachView() {
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     return clients.filter((c) => {
+      // Admin segment filter (owner directive: coach clients ≠ site clients).
+      // Coaches are unaffected — the RPC already scopes their list.
+      if (isAdmin && clientSegment === "coach" && !c.assigned_coach_id) return false;
+      if (isAdmin && clientSegment === "site" && c.assigned_coach_id) return false;
       // Search filter
       if (q) {
         const matches =
@@ -282,7 +295,7 @@ export function CoachView() {
           return true;
       }
     });
-  }, [clients, search, activeTab]);
+  }, [clients, search, activeTab, isAdmin, clientSegment]);
 
   if (loading)
     return (
@@ -601,6 +614,58 @@ export function CoachView() {
             className="w-full max-w-xs rounded-full border border-[#d2d2d7] bg-white px-5 py-2.5 text-sm font-normal outline-none focus:border-[#0071e3]"
           />
         </div>
+
+        {/* Admin segment control — «فصل بين عملاء المدربين وعملاء الموقع»
+            (owner directive). Coach clients have a coach_assignments row;
+            site clients came to the site directly with no coach. */}
+        {isAdmin && (
+          <div className="mb-5 flex flex-wrap gap-2">
+            {(
+              [
+                {
+                  id: "all" as const,
+                  labelAr: "كل العملاء",
+                  labelEn: "All clients",
+                  count: counts.all,
+                },
+                {
+                  id: "coach" as const,
+                  labelAr: "عملاء المدربين",
+                  labelEn: "Coach clients",
+                  count: counts.coach_clients,
+                },
+                {
+                  id: "site" as const,
+                  labelAr: "عملاء الموقع",
+                  labelEn: "Site clients",
+                  count: counts.site_clients,
+                },
+              ]
+            ).map((seg) => {
+              const active = clientSegment === seg.id;
+              return (
+                <button
+                  key={seg.id}
+                  onClick={() => setClientSegment(seg.id)}
+                  className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-all ${
+                    active
+                      ? "bg-[#1d1d1f] text-white"
+                      : "border border-[#d2d2d7] bg-white text-[#1d1d1f] hover:bg-white/80"
+                  }`}
+                >
+                  {isAr ? seg.labelAr : seg.labelEn}
+                  <span
+                    className={`grid h-5 min-w-5 place-items-center rounded-full px-1 text-[10px] font-bold ${
+                      active ? "bg-white/20 text-white" : "bg-[#f5f5f7] text-[#6e6e73]"
+                    }`}
+                  >
+                    {seg.count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        )}
 
         {/* Filter tabs */}
         <div className="mb-6 flex flex-wrap gap-2">

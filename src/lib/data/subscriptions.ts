@@ -142,6 +142,25 @@ export async function reviewSubscriptionRequest(id: string, action: "approve" | 
  // If anything fails inside the engine, the try/catch swallows the error
  // so the subscription approval itself is not blocked.
  try {
+ // OWNER DECREE (2026-08-30) — «عميل المدرب لا يُحسب فى نظام الأفيليت»:
+ // a client who CHOSE A COACH (coach_assignments row — via the coach's
+ // landing page, an invite, or an admin assignment) can subscribe to any
+ // site plan, but his payment must NEVER generate affiliate commission.
+ // The gate lives at the money moment (commission time) so it covers
+ // every attribution order (ref cookie first / coach first / OAuth claim).
+ // RLS makes the row visible exactly to the actors who can review here:
+ // admin (is_admin) and the client's own coach (coach_id = auth.uid()).
+ const { data: coachRow } = await supabase
+ .from("coach_assignments")
+ .select("coach_id")
+ .eq("client_id", req.user_id)
+ .maybeSingle();
+ if (coachRow) {
+ console.info(
+ "[reviewSubscriptionRequest] Affiliate commission SKIPPED — client has a coach (owner decree: coach clients are outside the affiliate system):",
+ req.user_id,
+ );
+ } else {
  const paymentAmount = req.price_usd ? Number(req.price_usd) : 10; // already USD
  await processSubscriptionInitialPayment(
    req.user_id,
@@ -149,6 +168,7 @@ export async function reviewSubscriptionRequest(id: string, action: "approve" | 
    req.id,
    req.plan_tier,
  );
+ }
  } catch (e) {
  console.error("[reviewSubscriptionRequest] Affiliate commission error:", e);
  }

@@ -886,6 +886,29 @@ Process:
            from that response. The number NEVER appears on the public
            landing page, in featured strips, or to any visitor, and it
            is NOT a share target (see 5).
+        7) AFFILIATE EXCLUSION LAW (owner directive 2026-08-30: «لو
+           العميل مسجل فى الموقع واختار مدرب محدد يقدر يشترك لكن لا
+           يحتسب فى نظام الافيليت») — a client with a coach_assignments
+           row (coach landing signup, invite, or admin assignment) can
+           buy any site plan, but his payment NEVER generates affiliate
+           commission. The gate lives at the only two commission choke
+           points: reviewSubscriptionRequest() (manual receipt approval)
+           and serverProcessAffiliateCommission() in
+           /api/paypal/capture-order (automated PayPal). Both check
+           coach_assignments by client_id BEFORE the engine; a hit skips
+           the whole engine (no affiliate_transactions row, no
+           affiliate_commissions row, no referral_earnings, no
+           notification, referrals row simply stays pending). The coach
+           client activation route (/api/coach/subscriptions/activate)
+           never touched the affiliate system (wallet debit only).
+        8) ADMIN CLIENTS SPLIT LAW (owner directive 2026-08-30: «داش
+           بورد الادمن العملاء محتاج فصل بين عملاء المدربين وعملاء
+           الموقع») — the staff clients surface (CoachView, «العملاء»)
+           carries an ADMIN-ONLY top-level segment above the status
+           tabs: كل العملاء / عملاء المدربين (assigned_coach_id present)
+           / عملاء الموقع (no assignment), each with a live count,
+           filtering the table before search + status tabs. Coaches keep
+           their RLS-scoped list untouched (no segment control).
 - **USAGE LIMIT ENFORCEMENT LAW (2026-08-28, T-AI-DEEP-AUDIT-V2, owner
   directive «توسع وعمق اكبر … والتأكد من ايفو وطبيعه عضوية المستخدم فى
   حدود الاستخدام»):** every limit advertised in `memberships.ts` MUST be

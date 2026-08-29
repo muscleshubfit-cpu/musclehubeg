@@ -206,6 +206,25 @@ async function serverProcessAffiliateCommission(
   if (!isSupabaseAdminConfigured || !supabaseAdmin) return;
   if (paymentAmount <= 0) return;
 
+  // OWNER DECREE (2026-08-30) — «عميل المدرب لا يُحسب فى نظام الأفيليت»:
+  // a client who CHOSE A COACH (coach_assignments row) can pay for any site
+  // plan via PayPal, but his payment must NEVER generate affiliate
+  // commission. Service-role read → no RLS ambiguity. This is the mirror
+  // of the gate in reviewSubscriptionRequest() so BOTH payment paths
+  // (manual receipt approval + automated PayPal capture) enforce it.
+  const { data: coachRow } = await supabaseAdmin
+    .from("coach_assignments")
+    .select("coach_id")
+    .eq("client_id", userId)
+    .maybeSingle();
+  if (coachRow) {
+    console.log(
+      "[paypal/capture-order] Affiliate commission SKIPPED — client has a coach (owner decree: coach clients are outside the affiliate system):",
+      userId,
+    );
+    return;
+  }
+
   // 1. Look up the affiliate for this user
   const { data: referral } = await supabaseAdmin
     .from("referrals")
