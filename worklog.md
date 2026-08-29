@@ -3228,3 +3228,19 @@ Work Log:
 Stage Summary:
 - Owner steps: (1) run 0038 GLOBAL_USD raw link; (2) run 0039 DIAGNOSTIC raw link and send the output — signup stays broken until the DB error is identified and fixed.
 - Site-wide USD + Musclehubeg brand are LIVE in production.
+
+---
+Task ID: T-SIGNUP-HOTFIX-0040-2026-08-30
+Agent: Main (Super Z — Implementation Agent)
+Task: Owner pasted the COMPLETE 0039 v3 single-grid output (PROBE_RESULT + inventories 1-5) — identify the signup-500 root cause from the decisive data and ship the fix.
+
+Work Log:
+- ROOT CAUSE PROVEN: PROBE-SIGNUP failed with SQLSTATE=42703 'record "new" has no field "raw_user_meta_data"' at auto_assign_client_to_admin() line 15 (assignment v_meta := coalesce(new.raw_user_meta_data, ...)). The function is a trigger ON public.profiles, but the 0033 rebuild wrote it reading new.raw_user_meta_data — a column that exists ONLY on auth.users. Failure chain: GoTrue inserts auth.users -> handle_new_user (0036 hardened, confirmed live + innocent) inserts profiles -> trg_auto_assign_client fires -> 42703 -> entire insert aborts -> GoTrue returns 500 «Database error saving new user». TRIGGERS inventory confirms both triggers attached; PROFILES_CONSTRAINTS confirms profiles_id_fkey CASCADE; last successful signup 2026-08-27 17:09 => broken since the 0033 paste (on/before 27 Aug), NOT related to today's USD/brand deploy (app code was never the cause).
+- FIX (0040 SIGNUP HOTFIX): rebuild auto_assign_client_to_admin() byte-identical to the 0033 intent (coach_emails staff guard, Priority 1 coach_id invite, Priority 2 coach_slug landing, admin fallback, security definer, search_path=public) with ONE change: v_meta read from auth.users by new.id (select coalesce(u.raw_user_meta_data,'{}') ... + null guard for profile-without-auth-row). Idempotent create-or-replace; no tables/RLS/policies touched.
+- Embedded PROBE-40: replays the exact signup chain with coach_slug metadata that deliberately misses Priority 2 -> exercises the admin fallback (expected coach_assignments rows=1), then self-cleans probe + legacy diag emails (FK cascade verified: coach_assignments.client_id -> profiles ON DELETE CASCADE from 0030A).
+- VERIFY grids: V1 fix_present=t / still_broken=f (pg_get_functiondef), V2 both triggers attached, V3 latest signups. 7322 bytes <= 7.3KB limit; END OF SCRIPT 0040 marker; paste-safety header kept.
+- Housekeeping: synced local clone (origin was 30 ahead, incl. 0039 v3 a48e548); restored a working-tree artifact (emptied src/app/api/upload/route.ts — restored from HEAD, not committed); core.fileMode=false to suppress 158 mode-only noise files.
+
+Stage Summary:
+- Signup-500 root cause identified WITH CERTAINTY + one-file hotfix delivered: supabase/migrations/RUN_ON_SUPABASE_0040_SIGNUP_HOTFIX.sql (raw link to owner).
+- OWNER STEPS: run the 0040 raw link in SQL Editor -> expect FIX-40/PROBE-40 OK warnings (or V1 grid) -> then a REAL signup from the site must succeed -> report back so the blocked per-role authenticated walkthrough (client/coach/admin) can finally run.
