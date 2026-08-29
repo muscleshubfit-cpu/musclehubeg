@@ -711,12 +711,14 @@ export async function POST(request: NextRequest) {
       user.email || "—",
     );
 
-    // Notify the client's ASSIGNED coach about the new PayPal payment
+    // Notify about the new PayPal payment — 0043 MODEL: type
+    // payment_request routes to the ADMIN only (site membership B2C),
+    // link → /admin/payments (never the assigned coach).
     await serverCreateAdminNotification(
       "payment_request",
       "دفع PayPal جديد ✅",
       `تم دفع $${paymentAmountForRecord.toFixed(2)} عبر PayPal لخطة ${plan_tier} (${duration_months} ${duration_months === 1 ? "شهر" : "أشهر"}). الاشتراك مُفعّل تلقائياً.`,
-      "coach-payments",
+      "/admin/payments",
       user_id,
     );
 

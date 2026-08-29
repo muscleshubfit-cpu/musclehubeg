@@ -116,8 +116,10 @@ export function CoachClientView({ clientId }: { clientId: string }) {
  // still pick any tier (manual override).
  const [tier, setTier] = useState<string>("coaching");
  const [months, setMonths] = useState<Duration>(1);
- const [startDate, setStartDate] = useState<string>("");
- const [endDate, setEndDate] = useState<string>("");
+ // 0043 OWNER FIX: the manual start/end date inputs are GONE — the server
+ // (extend_subscription, 0018 math) computes dates from the selected
+ // duration; the UI now only PREVIEWS that computation. Manual editing
+ // was always silently ignored by the API and misled staff.
  const [savingSub, setSavingSub] = useState(false);
  // 0034: offline-payment fields — the coach collects OUTSIDE the site
  // (cash / Vodafone Cash / InstaPay) then records it with the activation.
@@ -228,8 +230,7 @@ export function CoachClientView({ clientId }: { clientId: string }) {
  if (s) {
  setTier(s.tier);
  setMonths(s.months);
- setStartDate(s.start_date ? s.start_date.slice(0, 10) : "");
- setEndDate(s.end_date ? s.end_date.slice(0, 10) : "");
+ // 0043: no manual date prefill — dates are computed/previewed only.
  }
  setLoading(false);
  })();
@@ -455,10 +456,12 @@ export function CoachClientView({ clientId }: { clientId: string }) {
  : `Subscription activated ✅ — the client was notified and the payment was logged.`,
  );
  } else {
- // Demo/local fallback — direct write, no ledger.
- const start = startDate ? new Date(startDate).toISOString() : new Date().toISOString();
- const end = endDate ? new Date(endDate).toISOString() : new Date(Date.now() + months * 30 * 864e5).toISOString();
- await upsertSubscription(clientId, tier, months, start, end);
+ // Demo/local fallback — direct write, no ledger. Dates computed the
+ // same way the server does (0043: no manual date inputs anymore).
+ const start = new Date();
+ const end = new Date();
+ end.setMonth(end.getMonth() + months);
+ await upsertSubscription(clientId, tier, months, start.toISOString(), end.toISOString());
  toast.success(t("coach.subUpdated"));
  }
  // Reload all subscriptions to show the updated list
@@ -890,13 +893,39 @@ export function CoachClientView({ clientId }: { clientId: string }) {
  })}
  </div>
  </div>
- <div>
- <Label htmlFor="start">{t("coach.setStart")}</Label>
- <Input id="start" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="mt-1.5" />
+ {/* 0043 OWNER FIX — computed dates preview (replaces the two manual
+     date inputs). Mirrors extend_subscription (0018): an ACTIVE same-tier
+     subscription stacks the new months on its remaining end_date;
+     otherwise the subscription starts now and ends now + months. */}
+ <div className="sm:col-span-2">
+ <Label>{t("coach.datesAutoTitle")}</Label>
+ <div className="mt-1.5 rounded-xl border border-border bg-[#f5f5f7] p-4 text-sm">
+ <p className="font-medium text-[#1d1d1f]" dir="ltr">
+ {(() => {
+ const activeSameTier = allSubs.find(
+ (x: any) =>
+ x.tier === tier &&
+ x.status === "active" &&
+ x.end_date &&
+ new Date(x.end_date).getTime() > Date.now(),
+ );
+ const base = activeSameTier ? new Date(activeSameTier.end_date) : new Date();
+ const end = new Date(base);
+ end.setMonth(end.getMonth() + months);
+ const endStr = end.toLocaleDateString(isAr ? "ar-EG" : "en-US");
+ return activeSameTier
+ ? (isAr
+ ? `اشتراك شغال بنفس النوع — المدة بتتجمع على المتبقي، الجديد هينتهي: ${endStr}`
+ : `Same-tier subscription active — months stack on the remaining time; new end: ${endStr}`)
+ : (isAr
+ ? `هيبدأ: اليوم → هينتهي: ${endStr}`
+ : `Starts today → ends: ${endStr}`);
+ })()}
+ </p>
+ <p className="mt-1 text-xs font-normal text-[#6e6e73]">
+ {t("coach.datesAutoHint")}
+ </p>
  </div>
- <div>
- <Label htmlFor="end">{t("coach.setExpiry")}</Label>
- <Input id="end" type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="mt-1.5" />
  </div>
  <div>
  <Label htmlFor="pay-amount">{isAr ? "المبلغ اللي اتاخد من العميل (اختياري)" : "Amount collected (optional)"}</Label>

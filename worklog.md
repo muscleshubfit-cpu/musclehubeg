@@ -3260,3 +3260,20 @@ Work Log:
 Stage Summary:
 - Coaches are hard-bounded to their own product: they cannot SEE site memberships (UI + RPC + RLS), cannot SELL them (403), and cannot GENERATE/UPLOAD plans for a client without the paid $6/$16 activation (server 402 + DB RLS + UI locks). Wallet bypass via direct subscription writes is closed.
 - OWNER STEPS: run 0041 raw link (after 0040 if not yet), then re-test: coach + unactivated client → plan generation locked; after activation → unlocked; client list shows no premium/pro anywhere for coaches.
+
+---
+Task ID: T-TERMINOLOGY-0043-2026-08-30
+Agent: Main (Super Z — Implementation Agent)
+Task: Owner model decree — «فصل المصطلحات» بين كوتشينج الموقع (B2C/أدمن) ونظام المدربين (B2B خارجي) + خانتا التاريخ اليدوي خطأ + سؤال «ليه معملتش تهجير 0042». Plan approved («تم» + answer «أ»).
+
+Work Log:
+- 0042 ran by owner BEFORE this commit (5/5 true) — closed the pre-existing breakage: all 3 extend_subscription call sites already passed the 5-arg signature on main, so the live 4-arg function would have failed every activation/approval (PGRST202). Explained the urgency to the owner.
+- 0043 (RUN_ON_SUPABASE_0043_PAYMENTS_ADMIN_ONLY.sql, 16 stmts, pglast-validated): (1) subscription_requests RLS — dropped the 3 coach policies (0010/0030/0030C lineage), added sr_admin_select/update/delete (is_admin); client insert-own + select-own intact. (2) get_coach_client_list rebuilt (same 0041 signature) — pending_payments = case when is_admin() then (real count) else 0 end. (3) REALIGNMENT: probe temp table captures the OLD state (pending by tier, approved/rejected, coach_payments non-coaching rows, subscription_type mismatches) → subscription_type normalized to tier → final SINGLE grid = probe columns + 5 verify columns. Idempotent, nothing dropped.
+- APP: /coach/payments page DELETED → /admin/payments (AdminGate layout) rendering AdminPaymentsView (renamed from CoachPaymentsView; descriptive AR/EN title + terminology subtitle). use-nav: coach-payments → admin-payments view. SiteHeader: «المدفوعات» removed from coach group; «عضويات الموقع» added to admin group. AppLayout: same move in the sidebar (coachNavAdmin). /api/notifications/admin: type=payment_request routes to ADMIN ONLY (skips coach_assignments lookup). submitSubscriptionRequest + capture-order links → /admin/payments. AdminNotificationBell accepts legacy "coach-payments" AND "/admin/payments" links.
+- DATE FIX (owner complaint): the two manual date inputs in CoachClientView were never sent by updateSub() (server computes via extend_subscription 0018 math) — misleading UI. Removed inputs + state; added computed preview mirroring the RPC math (active same-tier sub → months stack on remaining end_date; else now→now+months), calendar-month accurate, AR/EN (coach.datesAutoTitle/datesAutoHint + inline preview strings). Demo fallback now computes dates the same way.
+- DOCS: AGENTS.md law (10) TERMINOLOGY LAW (a site coaching B2C / b coach system B2B / c date computation / d realignment) + PROGRESS.md dated 0043 section + «آخر تحديث» line.
+- Verified: pglast full parse (16 stmts) + structural checks; tsc 0; eslint 0; vitest 153/153; next build ✓ (/admin/payments present, /coach/payments gone); smoke home 200 / activate unauth 401 / admin-payments 200 (AdminGate client-side).
+
+Stage Summary:
+- The two money worlds are now separated at UI + API + RLS + docs: site membership requests = admin-only surface (/admin/payments); coaches keep wallet + client-page B2B flow; payment_request notifications never reach coaches; dates are computed, never hand-edited.
+- OWNER STEPS: run 0043 raw link → expect one grid (coach_policies_gone=t, admin_policies_present=t, client_policies_intact=t, rpc_pending_admin_only=t, types_remaining_mismatch=0 + probe_* old-state columns) → then retest: coach sees no payments nav/banner/requests; admin reviews from «عضويات الموقع»; date preview updates with duration buttons.

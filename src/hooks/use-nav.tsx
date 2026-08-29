@@ -17,7 +17,7 @@ export type View =
  | "coach"
  | "coach-client"
  | "coach-support"
- | "coach-payments"
+ | "admin-payments"
  | "coach-landing"
  | "coach-wallet"
  | "coach-ads"
@@ -60,8 +60,10 @@ function pathForView(view: View, params: Record<string, any> = {}): string {
  }
  case "coach-client":
  return params.clientId ? `/coach/${encodeURIComponent(params.clientId)}` : "/coach";
- case "coach-payments":
- return "/coach/payments";
+ // 0043 TERMINOLOGY: site-membership payment requests are reviewed by
+ // the ADMIN only (site coaching = B2C/admin; coach system = B2B).
+ case "admin-payments":
+ return "/admin/payments";
  case "coach-wallet":
  return "/coach/wallet";
  case "coach-ads":
@@ -89,7 +91,7 @@ function pathForView(view: View, params: Record<string, any> = {}): string {
 /** Reverse mapping: current pathname -> View, used for active-tab highlighting. */
 function viewForPath(pathname: string): View {
  if (pathname === "/" || pathname === "") return "landing";
- if (pathname.startsWith("/coach/payments")) return "coach-payments";
+ if (pathname.startsWith("/admin/payments")) return "admin-payments";
  if (pathname.startsWith("/coach/wallet")) return "coach-wallet";
  if (pathname.startsWith("/coach/ads")) return "coach-ads";
  if (pathname.startsWith("/coach/help")) return "coach-help";

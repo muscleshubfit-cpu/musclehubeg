@@ -87,12 +87,14 @@ export async function submitSubscriptionRequest(req: any) {
  }
  const { data, error } = await supabase.from("subscription_requests").insert(req).select().single();
  if (error) throw new Error(error.message);
- // Notify THE ASSIGNED COACH about new payment request (multi-coach routing)
+ // Notify THE ADMIN about new payment request — 0043 MODEL: site
+ // membership purchases (B2C) are reviewed by the admin only; coaches
+ // never see them (terminology law). Link → /admin/payments.
  await createAdminNotification(
  "payment_request",
  "طلب دفع جديد ",
  `${req.full_name} طلب اشتراك ${req.plan_tier} لمدة ${req.duration_months} شهر — $${req.price_usd}`,
- "coach-payments",
+ "/admin/payments",
  req.user_id,
  ).catch(() => {});
  return data;

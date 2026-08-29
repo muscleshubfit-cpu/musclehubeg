@@ -583,8 +583,11 @@ export function CoachView() {
         </div>
       </div>
 
-      {/* Pending payment requests — actionable banner */}
-      {pendingRequests.length > 0 && (
+      {/* Pending payment requests — actionable banner (0043: ADMIN ONLY).
+          SITE membership requests are B2C/admin business per the
+          terminology law — coaches' lists return 0 pending from the RPC
+          and the admin gets the review link to /admin/payments. */}
+      {isAdmin && pendingRequests.length > 0 && (
         <div className="rounded-3xl border border-[#0071e3]/20 bg-[#0071e3]/5 p-6">
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1">
@@ -600,7 +603,7 @@ export function CoachView() {
               </p>
             </div>
             <button
-              onClick={() => navigate("coach-payments")}
+              onClick={() => navigate("admin-payments")}
               className="shrink-0 rounded-full bg-[#0071e3] px-5 py-2.5 text-sm font-normal text-white transition-opacity hover:opacity-90"
             >
               {isAr ? "مراجعة الطلبات ›" : "Review requests ›"}

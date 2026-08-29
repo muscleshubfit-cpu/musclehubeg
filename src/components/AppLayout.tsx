@@ -34,7 +34,9 @@ export function AppLayout({ children }: { children: ReactNode }) {
   const coachNav: NavItem[] = [
     { to: "coach", label: t("nav.clients"), emoji: "👥" },
     { to: "coach-support", label: t("nav.support.coach"), emoji: "🔧" },
-    { to: "coach-payments", label: t("nav.admin"), emoji: "💳" },
+    // 0043 TERMINOLOGY: «المدفوعات» removed from the coach nav — site
+    // membership requests are admin-only (coachNavAdmin below). The
+    // coach's B2B money surfaces are the client page + his wallet.
     // COACH WALLET (0035): the coach pays THE SITE a monthly fixed fee
     // per client from this balance — top-up via InstaPay / Vodafone
     // Cash / PayPal + receipt → admin review. Activation debits it.
@@ -52,6 +54,9 @@ export function AppLayout({ children }: { children: ReactNode }) {
   const coachNavAdmin: NavItem[] = [
     { to: "blog-admin", label: isAr ? "المدونة" : "Blog", emoji: "📝" },
     { to: "admin-referrals", label: isAr ? "الإحالات" : "Referrals", emoji: "🎁" },
+    // 0043: SITE membership payment requests (B2C) — admin-only review
+    // at /admin/payments (site coaching ≠ coach system B2B).
+    { to: "admin-payments", label: isAr ? "عضويات الموقع" : "Site memberships", emoji: "💳" },
   ];
   // Custom external links for admin-only pages that live outside the View
   // type (real URLs under /admin/*). Saved Results was previously reachable

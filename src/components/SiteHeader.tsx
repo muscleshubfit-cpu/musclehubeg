@@ -270,7 +270,9 @@ export function SiteHeader({ variant = "landing" }: { variant?: "landing" | "app
       title: isAr ? "إدارة الكوتش" : "Coach Admin",
       items: [
         { label: isAr ? "لوحة الكوتش" : "Coach Dashboard", icon: LayoutDashboard, onClick: () => navigate("coach") },
-        { label: isAr ? "المدفوعات" : "Payments", icon: Crown, onClick: () => navigate("coach-payments") },
+      // 0043 TERMINOLOGY: the old «المدفوعات» coach item is GONE —
+      // site-membership payment requests are admin-only (see group 7b);
+      // the coach's B2B money surface is his client page + wallet.
         { label: isAr ? "دعم العملاء" : "Client Support", icon: LifeBuoy, onClick: () => navigate("coach-support") },
         { label: isAr ? "صفحتي العامة" : "My Public Page", icon: Globe, onClick: () => navigate("coach-landing") },
         // 0037 — «أعلن معنا» + the dedicated coach→site support channel
@@ -289,6 +291,8 @@ export function SiteHeader({ variant = "landing" }: { variant?: "landing" | "app
       items: [
         { label: isAr ? "أدوات Leads" : "Tool Leads", icon: Calculator, href: "/admin/leads" },
         { label: isAr ? "النتائج المحفوظة" : "Saved Results", icon: Bookmark, href: "/admin/saved-results" },
+        // 0043: site-membership payment requests (B2C) — admin-only review.
+        { label: isAr ? "عضويات الموقع" : "Site memberships", icon: Crown, onClick: () => navigate("admin-payments") },
         { label: isAr ? "الإحالات" : "Referrals", icon: Gift, onClick: () => navigate("admin-referrals") },
         { label: isAr ? "إدارة المدونة" : "Blog Admin", icon: FileText, href: "/admin/blog" },
       ],

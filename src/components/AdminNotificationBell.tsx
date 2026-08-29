@@ -44,7 +44,9 @@ export function AdminNotificationBell() {
  if (!link) return;
  if (link === "coach") navigate("coach");
  else if (link === "coach-support") navigate("coach-support");
- else if (link === "coach-payments") navigate("coach-payments");
+ // 0043: legacy rows carry "coach-payments"; new rows carry
+ // "/admin/payments" — both land on the admin-only review page.
+ else if (link === "coach-payments" || link === "/admin/payments") navigate("admin-payments");
  };
 
  return (

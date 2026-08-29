@@ -935,6 +935,49 @@ Process:
               (the old insert/update policy let a console user bypass
               the wallet debit entirely); get_coach_client_list rebuilt
               role-aware (sub_* columns coaching-only for coaches).
+        10) TERMINOLOGY LAW — SITE COACHING vs COACH SYSTEM (owner
+            decree 2026-08-30: «فى التباس هنا بين كوتشينج الموقع
+            وكوتشينج المدربين… لازم نعمل فصل مصطلحات… ويتم توثيقه
+            لعدم حدوث اى لبس مستقبلاً»). TWO different money worlds
+            that share the word «كوتشينج» — never mix them:
+            a) SITE COACHING / كوتشينج الموقع (B2C — ADMIN ONLY):
+               everything sold on /memberships (premium, pro, AND the
+               site's own coaching product — kept per owner answer
+               «أ»). Client pays THE SITE: PayPal = auto-activate
+               (capture-order), manual InstaPay/Vodafone Cash = receipt
+               uploaded in checkout → subscription_requests. Reviewed
+               ONLY by the admin at /admin/payments (AdminPaymentsView;
+               the old /coach/payments page is REMOVED). DB: 0043
+               dropped every coach RLS policy on subscription_requests
+               (select/update/delete = is_admin() only). The
+               payment_request notification routes to the admin, never
+               to the assigned coach. Data type: premium/pro rows are
+               subscription_type='membership'.
+            b) COACH SYSTEM / نظام المدربين (B2B — external, per coach):
+               the coach collects from HIS client OUTSIDE the site
+               (cash / Vodafone Cash / InstaPay), then activates from
+               the client page. The site NEVER touches that money — it
+               RECORDS it (amount/method/note in coach_payments) and
+               takes its fee from the coach WALLET: $6/client-month,
+               $16/3-months, debited per activation; repeated wallet
+               debits = duration extensions / renewals. Coaching tier
+               ONLY (0041 c). Coaches have NO payment-request surface;
+               their money screens are the client page + /coach/wallet.
+               Data type: coaching rows are subscription_type='coaching'.
+            c) DATE COMPUTATION LAW (owner: «فى خانتين لتاريخ البدء
+               والانتهاء بيحدّثوا يدوياً وده خطأ») — start/end dates are
+               NEVER hand-edited. Duration is picked from the existing
+               buttons and extend_subscription (0018 math) computes the
+               dates: active same-tier sub → months stack on the
+               remaining end_date; otherwise now → now+months. The UI
+               shows a computed PREVIEW only (CoachClientView, i18n
+               coach.datesAuto*); the old manual date inputs were
+               silently ignored by the API and are removed.
+            d) OLD-DATA REALIGNMENT (migration 0043): probe grid first
+               (pending requests by tier, coach-activated non-coaching
+               ledger rows, type mismatches), then subscription_type
+               normalized to the tier. History is preserved — no
+               destructive corrections.
 - **GLOBAL USD LAW (owner directive 2026-08-30: «التسعير يكون كله
   بالدولار لكامل الموقع لأن الموقع عالمى وغير محدد لمصر — احسب فرق سعر
   العملة، مثلا ٣٠٠ جنيه تصبح ٦ دولار») — fixed owner rate 50 EGP = $1:**

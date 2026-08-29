@@ -94,8 +94,15 @@ export async function POST(request: NextRequest) {
 
   // MULTI-COACH ROUTING: resolve the ONE coach this notification is for.
   // assigned coach of clientId → fallback: the admin (general coach).
+  //
+  // 0043 MODEL EXCEPTION — `payment_request` is ADMIN-ONLY: buying a SITE
+  // membership with a manual receipt is site coaching (B2C) and per the
+  // owner's terminology decree the coach never sees it, even if the buyer
+  // is his own client. Skip the assignment lookup so the row lands on the
+  // admin (target_coach_id = admin id), matching the /admin/payments page.
+  const routeToAdminOnly = type === "payment_request";
   let targetCoachId: string | null = null;
-  if (typeof clientId === "string" && clientId.length > 0) {
+  if (!routeToAdminOnly && typeof clientId === "string" && clientId.length > 0) {
     const { data: asg } = await supabaseAdmin
       .from("coach_assignments")
       .select("coach_id")

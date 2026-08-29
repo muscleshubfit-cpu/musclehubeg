@@ -293,8 +293,9 @@ const en: Dict = {
  "coach.manage": "Manage",
  "coach.profile": "Profile",
  "coach.subscriptionMgmt": "Subscription",
- "coach.setExpiry": "Subscription expiry date",
- "coach.setStart": "Subscription start date",
+ // 0043: manual date inputs removed — dates are computed from the duration.
+ "coach.datesAutoTitle": "Dates (auto-calculated)",
+ "coach.datesAutoHint": "The dates are calculated automatically from the selected duration — manual editing is no longer needed.",
  "coach.updateSub": "Update subscription",
  "coach.subUpdated": "Subscription updated",
  "coach.uploadMeal": "Upload meal plan",
@@ -666,8 +667,9 @@ const ar: Dict = {
  "coach.manage": "إدارة",
  "coach.profile": "الملف الشخصي",
  "coach.subscriptionMgmt": "الاشتراك",
- "coach.setExpiry": "تاريخ انتهاء الاشتراك",
- "coach.setStart": "تاريخ بدء الاشتراك",
+ // 0043: خانات التاريخ اليدوية اتشالت — التواريخ بتتحسب من المدة المختارة.
+ "coach.datesAutoTitle": "التواريخ (بتتحسب تلقائي)",
+ "coach.datesAutoHint": "مفيش تدوير تواريخ يدوي — اختار المدة والموقع بيحسب البداية والنهاية لوحده وبيجمع المدة على المتبقي لو العميل عنده اشتراك شغال بنفس النوع.",
  "coach.updateSub": "تحديث الاشتراك",
  "coach.subUpdated": "تم تحديث الاشتراك",
  "coach.uploadMeal": "رفع خطة وجبات",

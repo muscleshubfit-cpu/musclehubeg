@@ -9,9 +9,24 @@ import { MEMBERSHIPS } from "@/lib/memberships";
 import { getTier, type TierId } from "@/lib/plans";
 import { toast } from "sonner";
 
+/**
+ * ADMIN PAYMENTS VIEW (0043 — renamed from CoachPaymentsView).
+ *
+ * TERMINOLOGY LAW (AGENTS.md §10): this surface reviews SITE COACHING
+ * (B2C) purchases only — clients who paid THE SITE manually (InstaPay /
+ * Vodafone Cash) and uploaded a receipt (subscription_requests). Under
+ * the owner's model decree these are ADMIN-ONLY:
+ *   - UI:  /coach/payments page removed; this lives at /admin/payments.
+ *   - DB:  0043 dropped every coach RLS policy on subscription_requests.
+ *   - API: payment_request notifications route to the admin, never to
+ *          the assigned coach.
+ * The coach's own money flow (B2B) is the wallet + coach_payments ledger
+ * and lives in CoachClientView / CoachWalletView — never here.
+ */
+
 type FilterTab = "pending" | "approved" | "rejected" | "all";
 
-export function CoachPaymentsView() {
+export function AdminPaymentsView() {
   const { t, lang } = useI18n();
   const isAr = lang === "ar";
   const { navigate } = useNav();
@@ -85,8 +100,14 @@ export function CoachPaymentsView() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">{t("nav.admin")}</h1>
-        <p className="mt-2 text-base font-normal text-[#6e6e73] md:text-lg">{t("admin.subtitle")}</p>
+        <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">
+          {isAr ? "عضويات الموقع — طلبات الدفع" : "Site memberships — payment requests"}
+        </h1>
+        <p className="mt-2 max-w-3xl text-base font-normal text-[#6e6e73] md:text-lg">
+          {isAr
+            ? "طلبات عملاء دفعوا للموقع يدويًا (انستاباي / فودافون كاش) ورفعوا إيصال — مراجعتها للأدمن فقط. مدفوعات المدربين مع عملائهم (نظام المدربين B2B) بتنصرف من محفظة المدرب ومش ظاهرة هنا."
+            : "Clients who paid THE SITE manually (InstaPay / Vodafone Cash) and uploaded a receipt — admin reviews them. Coach↔client money (the B2B coach system) flows through the coach wallet and never appears here."}
+        </p>
       </div>
 
       {/* Tabs — Apple-style segmented control */}
