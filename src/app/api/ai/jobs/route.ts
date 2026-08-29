@@ -149,6 +149,31 @@ export async function POST(request: NextRequest) {
           { status: 403 },
         );
       }
+      // ── OWNER DECREE (2026-08-30): «المدرب قدر يولد خطط للعميل بدون ما
+      // يدفع او يفعل اشتراك العميل» — plan generation REQUIRES an ACTIVE
+      // PAID coaching subscription (the $6/$16 wallet activation).
+      // Assignment alone is NOT enough. Admins bypass (staff semantics —
+      // this whole block only runs for authRole === "coach").
+      const nowIso = new Date().toISOString();
+      const { data: activeCoaching } = await supabaseAdmin
+        .from("subscriptions")
+        .select("id")
+        .eq("client_id", clientId)
+        .eq("tier", "coaching")
+        .eq("status", "active")
+        .or(`end_date.is.null,end_date.gt.${nowIso}`)
+        .limit(1)
+        .maybeSingle();
+      if (!activeCoaching) {
+        return NextResponse.json(
+          {
+            error:
+              "العميل ده لسه مش مفعّل — فعّل اشتراكه الأول من صفحته (شهر 6$ — ٣ شهور 16$ بتخصم من محفظتك) وبعدها تقدر تولّد له خطط.",
+            code: "client_not_activated",
+          },
+          { status: 402 },
+        );
+      }
       const { count, error: cntErr } = await supabaseAdmin
         .from("ai_jobs" as any)
         .select("*", { count: "exact", head: true })

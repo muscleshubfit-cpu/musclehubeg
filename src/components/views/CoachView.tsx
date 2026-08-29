@@ -325,9 +325,15 @@ export function CoachView() {
     { id: "no_questionnaire", labelAr: "بدون استبيان", labelEn: "No questionnaire", count: counts.no_questionnaire, color: "#ff3b30" },
     { id: "pending_payment", labelAr: "بانتظار الدفع", labelEn: "Pending payment", count: counts.pending_payment, color: "#0071e3" },
     { id: "expired", labelAr: "منتهي", labelEn: "Expired", count: counts.expired, color: "#8b5cf6" },
-    // Membership tier filters — group by plan
-    { id: "premium", labelAr: "بريميوم", labelEn: "Premium", count: counts.premium, color: "#0071e3" },
-    { id: "pro", labelAr: "برو", labelEn: "Pro", count: counts.pro, color: "#1d1d1f" },
+    // Membership tier filters — group by plan. OWNER BOUNDARY (2026-08-30):
+    // «المدرب شايف اشتراك العميل فى الموقع نفسه ده خطأ» — premium/pro are
+    // SITE memberships; the coach never sees them. Admin-only pills.
+    ...(isAdmin
+      ? ([
+          { id: "premium", labelAr: "بريميوم", labelEn: "Premium", count: counts.premium, color: "#0071e3" },
+          { id: "pro", labelAr: "برو", labelEn: "Pro", count: counts.pro, color: "#1d1d1f" },
+        ] as const)
+      : []),
     { id: "coaching", labelAr: "كوتشينج", labelEn: "Coaching", count: counts.coaching, color: "#8b5cf6" },
   ];
 

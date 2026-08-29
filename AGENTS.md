@@ -909,6 +909,32 @@ Process:
            / عملاء الموقع (no assignment), each with a live count,
            filtering the table before search + status tabs. Coaches keep
            their RLS-scoped list untouched (no segment control).
+        9) COACH CLIENT BOUNDARY LAW (owner reports 2026-08-30:
+           «المدرب شايف اشتراك العميل فى الموقع نفسه (عضويات الموقع)
+           ده خطأ» + «المدرب قدر يولد خطط للعميل بدون ما يدفع او يفعل
+           اشتراك العميل») — the coach's world is HIS coaching product
+           only; site memberships are invisible to him:
+           a) VISIBILITY: coach client surfaces (CoachView list + pills,
+              CoachClientView subscription tab) show coaching-tier data
+              ONLY for coach callers (admins keep the full picture,
+              incl. premium/pro pills + best-tier sub columns).
+           b) GENERATION GATE: plan generation (AI plan_nutrition/
+              plan_workout via /api/ai/jobs) AND manual plans
+              (/api/plans/normalize + addPlan) require the client to
+              carry an ACTIVE coaching subscription (status='active',
+              end_date>now) AND the caller to be his assigned coach —
+              enforced server-side (402 client_not_activated) AND at
+              the DB level (plans_insert_coach RLS, migration 0041).
+              Admins bypass (staff semantics).
+           c) ACTIVATION TIER: coaches activate ONLY tier='coaching'
+              ($6/$16 wallet debit); premium/pro are SITE memberships
+              sold on the site, never from the coach dashboard
+              (route returns 403 coach_tier_forbidden for coaches).
+           d) DB HARDENING (migration 0041): subscriptions RLS — coach
+              selects coaching rows only, direct insert/update revoked
+              (the old insert/update policy let a console user bypass
+              the wallet debit entirely); get_coach_client_list rebuilt
+              role-aware (sub_* columns coaching-only for coaches).
 - **GLOBAL USD LAW (owner directive 2026-08-30: «التسعير يكون كله
   بالدولار لكامل الموقع لأن الموقع عالمى وغير محدد لمصر — احسب فرق سعر
   العملة، مثلا ٣٠٠ جنيه تصبح ٦ دولار») — fixed owner rate 50 EGP = $1:**

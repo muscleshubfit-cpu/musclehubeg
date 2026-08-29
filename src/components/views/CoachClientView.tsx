@@ -31,6 +31,7 @@ const ClientWeightChart = dynamic(
 );
 import { useI18n } from "@/lib/i18n";
 import { useNav } from "@/hooks/use-nav";
+import { useAuth } from "@/hooks/use-auth";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -98,6 +99,9 @@ export function CoachClientView({ clientId }: { clientId: string }) {
  const { t, dir, lang } = useI18n();
  const isAr = lang === "ar";
  const { navigate } = useNav();
+ // OWNER BOUNDARY (2026-08-30): admins manage everything; coaches must
+ // NEVER see site memberships (premium/pro) — only their coaching product.
+ const { isAdmin } = useAuth();
  const [client, setClient] = useState<any | null>(null);
  const [sub, setSub] = useState<any | null>(null);
  const [allSubs, setAllSubs] = useState<any[]>([]);
@@ -108,8 +112,9 @@ export function CoachClientView({ clientId }: { clientId: string }) {
  const [loading, setLoading] = useState(true);
  const [tab, setTab] = useState<"overview" | "subscription" | "plans" | "ai-plans" | "questionnaires" | "progress" | "notifications">("overview");
 
- // Subscription form
- const [tier, setTier] = useState<string>("premium");
+ // Subscription form — coaching is the coach's ONLY product; admins may
+ // still pick any tier (manual override).
+ const [tier, setTier] = useState<string>("coaching");
  const [months, setMonths] = useState<Duration>(1);
  const [startDate, setStartDate] = useState<string>("");
  const [endDate, setEndDate] = useState<string>("");
@@ -133,6 +138,26 @@ export function CoachClientView({ clientId }: { clientId: string }) {
  // 0034: per-client AI quota readout (4 nutrition + 4 workout per client)
  type AiUsage = { unlimited: boolean; limit: number; nutrition: { used: number; limit: number }; workout: { used: number; limit: number } };
  const [aiUsage, setAiUsage] = useState<AiUsage | null>(null);
+
+ // ── OWNER DECREE (2026-08-30): «المدرب قدر يولد خطط للعميل بدون ما يدفع
+ // او يفعل اشتراك العميل» — plan generation (AI + manual) is a PAID
+ // feature: it requires an ACTIVE coaching subscription for this client
+ // ($6/$16 wallet activation). Admins bypass (staff semantics). Enforced
+ // here for UX AND server-side in /api/ai/jobs + /api/plans/normalize.
+ const hasActiveCoaching = useMemo(
+ () =>
+ allSubs.some(
+ (s: any) =>
+ s.tier === "coaching" &&
+ s.status === "active" &&
+ (!s.end_date || new Date(s.end_date).getTime() > Date.now()),
+ ),
+ [allSubs],
+ );
+ const planGateOpen = isAdmin || hasActiveCoaching;
+ const planGateMessage = isAr
+ ? "توليد الخطط مقفول لحد ما تفعّل اشتراك العميل — من تبويب الاشتراك (شهر 6$ — ٣ شهور 16$ بتخصم من محفظتك)."
+ : "Plan generation is locked until you activate this client's subscription — from the Subscription tab (1 month $6 — 3 months $16 debited from your wallet).";
 
  // T-4PILLAR-COMPLETE (2026-08-28): plan jobs are queued on GitHub Actions
  // (~10 min), so a blocking poll that dies with the tab used to STRAND the
@@ -172,11 +197,17 @@ export function CoachClientView({ clientId }: { clientId: string }) {
  setClient(c);
  // Get ALL subs for this client (multiple allowed now)
  const clientSubs = subs.filter((x) => x.client_id === clientId);
- setAllSubs(clientSubs);
+ // OWNER BOUNDARY (2026-08-30): the coach sees ONLY the coaching-tier
+ // subscription — site memberships (premium/pro) are the site's business,
+ // never his. Admins keep the full picture.
+ const visibleSubs: any[] = isAdmin
+ ? clientSubs
+ : clientSubs.filter((x: any) => x.tier === "coaching");
+ setAllSubs(visibleSubs);
  // Set the primary sub — separate coaching from memberships
  // Pick best MEMBERSHIP tier (pro > premium). If only coaching, pick coaching.
- const hasCoaching = clientSubs.some((s: any) => s.tier === "coaching");
- const membershipSubs = clientSubs.filter((s: any) => ["premium", "pro"].includes(s.tier));
+ const hasCoaching = visibleSubs.some((s: any) => s.tier === "coaching");
+ const membershipSubs = visibleSubs.filter((s: any) => ["premium", "pro"].includes(s.tier));
  let s: any = null;
  if (membershipSubs.length > 0) {
  const priority = (tier: string) => {
@@ -364,6 +395,10 @@ export function CoachClientView({ clientId }: { clientId: string }) {
  overrides?: any,
  replacePlan?: any,
  ) => {
+ if (!planGateOpen) {
+ toast.error(planGateMessage);
+ return;
+ }
  setGenerating(planType);
  try {
  const jobId = await enqueueAiJobClient(
@@ -428,10 +463,15 @@ export function CoachClientView({ clientId }: { clientId: string }) {
  }
  // Reload all subscriptions to show the updated list
  const updatedSubs = await listSubscriptionsForClient(clientId);
- setAllSubs(updatedSubs);
+ // OWNER BOUNDARY: same visibility rule as the loader — coach sees only
+ // his coaching product; admins see everything.
+ const visibleUpdated: any[] = isAdmin
+ ? updatedSubs
+ : updatedSubs.filter((x: any) => x.tier === "coaching");
+ setAllSubs(visibleUpdated);
  // Update primary sub — separate coaching from memberships
- const hasCoaching = updatedSubs.some((s: any) => s.tier === "coaching");
- const membershipSubs = updatedSubs.filter((s: any) => ["premium", "pro"].includes(s.tier));
+ const hasCoaching = visibleUpdated.some((s: any) => s.tier === "coaching");
+ const membershipSubs = visibleUpdated.filter((s: any) => ["premium", "pro"].includes(s.tier));
  let s: any = null;
  if (membershipSubs.length > 0) {
  const priority = (t: string) => {
@@ -454,6 +494,10 @@ export function CoachClientView({ clientId }: { clientId: string }) {
 
  const uploadPlan = async () => {
  if (!planTitle.trim()) return;
+ if (!planGateOpen) {
+ toast.error(planGateMessage);
+ return;
+ }
  setUploading(true);
  try {
  await addPlan({
@@ -486,12 +530,16 @@ export function CoachClientView({ clientId }: { clientId: string }) {
  toast.error("اكتب عنوان الخطة والصق محتواها في حقل الملاحظات أولاً.");
  return;
  }
+ if (!planGateOpen) {
+ toast.error(planGateMessage);
+ return;
+ }
  setNormalizing(true);
  try {
  const res = await fetch("/api/plans/normalize", {
  method: "POST",
  headers: { "Content-Type": "application/json" },
- body: JSON.stringify({ text: planNotes, planType }),
+ body: JSON.stringify({ text: planNotes, planType, clientId }),
  });
  if (!res.ok) {
  const err = await res.json().catch(() => ({}));
@@ -799,7 +847,9 @@ export function CoachClientView({ clientId }: { clientId: string }) {
  <div>
  <Label>{t("checkout.plan")}</Label>
  <div className="mt-1.5 grid grid-cols-2 gap-2 sm:grid-cols-3">
- {ALL_TIERS.map((tierObj) => (
+ {/* OWNER BOUNDARY: the coach sells ONLY his coaching package —
+ premium/pro are SITE memberships. Admins keep the full picker. */}
+ {(isAdmin ? ALL_TIERS : ALL_TIERS.filter((tierObj) => tierObj.id === "coaching")).map((tierObj) => (
  <button
  key={tierObj.id}
  onClick={() => setTier(tierObj.id)}
@@ -898,6 +948,11 @@ export function CoachClientView({ clientId }: { clientId: string }) {
 
  {tab === "plans" && (
  <div className="space-y-6">
+ {!planGateOpen && (
+ <div className="rounded-xl border border-[#ff9500]/30 bg-[#ff9500]/10 p-4 text-sm font-medium text-[#b45309]">
+ {planGateMessage}
+ </div>
+ )}
  <Card className="p-6 shadow-card">
  <h2 className="flex items-center gap-2 text-lg font-semibold">
  <Upload className="h-4 w-4 text-primary" />
@@ -1002,6 +1057,11 @@ export function CoachClientView({ clientId }: { clientId: string }) {
 
  {tab === "ai-plans" && (
  <div className="space-y-6">
+ {!planGateOpen && (
+ <div className="rounded-xl border border-[#ff9500]/30 bg-[#ff9500]/10 p-4 text-sm font-medium text-[#b45309]">
+ {planGateMessage}
+ </div>
+ )}
  <CoachAIPlanGenerator
  generating={generating}
  onGenerate={generateAIPlan}

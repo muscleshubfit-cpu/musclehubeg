@@ -71,6 +71,20 @@ export async function POST(request: NextRequest) {
       { status: 400 },
     );
   }
+  // ── OWNER DECREE (2026-08-30): «المدرب شايف اشتراك العميل فى الموقع
+  // نفسه ده خطأ» — coaches sell ONLY their coaching package. Site
+  // memberships (premium/pro) are sold on the site itself, never from
+  // the coach dashboard. Admins keep the manual override for all tiers.
+  if (auth.role === "coach" && tier !== "coaching") {
+    return NextResponse.json(
+      {
+        error: "coach_tier_forbidden",
+        message:
+          "المدرب يفعّل باقة الكوتشينج فقط — عضويات الموقع (بريميوم / برو) بتتباع من الموقع نفسه مش من عند المدرب.",
+      },
+      { status: 403 },
+    );
+  }
   if (!Number.isInteger(months) || months < 1 || months > 12) {
     return NextResponse.json(
       { error: "bad_months", message: "المدة من شهر إلى ١٢ شهر" },

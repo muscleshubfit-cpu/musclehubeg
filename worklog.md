@@ -3244,3 +3244,19 @@ Work Log:
 Stage Summary:
 - Signup-500 root cause identified WITH CERTAINTY + one-file hotfix delivered: supabase/migrations/RUN_ON_SUPABASE_0040_SIGNUP_HOTFIX.sql (raw link to owner).
 - OWNER STEPS: run the 0040 raw link in SQL Editor -> expect FIX-40/PROBE-40 OK warnings (or V1 grid) -> then a REAL signup from the site must succeed -> report back so the blocked per-role authenticated walkthrough (client/coach/admin) can finally run.
+
+---
+Task ID: T-COACH-BOUNDARY-0041-2026-08-30
+Agent: Main (Super Z — Implementation Agent)
+Task: Owner reports — «المدرب شايف اشتراك العميل فى الموقع نفسه (عضويات الموقع) ده خطأ» + «المدرب قدر يولد خطط للعميل بدون ما يدفع او يفعل اشتراك العميل».
+
+Work Log:
+- AUDIT: (a) /api/ai/jobs checked assignment + quota but NOT active coaching sub → any assigned client (e.g. invited) got free AI plan generation. (b) /api/plans/normalize (OpenRouter-burning) had NO client gate at all. (c) /api/coach/subscriptions/activate accepted COACH_ACTIVATABLE_TIERS=[premium,pro,coaching] → coach could mint SITE memberships. (d) CoachClientView showed ALL client subs ("كل الاشتراكات") + membership-preferred "primary sub" + full tier picker. (e) CoachView showed premium/pro filter pills + tier badges from get_coach_client_list (RPC prefers pro>premium>coaching). (f) DB: subscriptions RLS allowed coach direct INSERT/UPDATE — a console user could bypass the wallet debit entirely; plans insert had no activation requirement.
+- APP FIXES: /api/ai/jobs — active coaching sub required for coach plan jobs (402 client_not_activated, Arabic message). /api/plans/normalize — clientId now required for coaches + assignment + active-sub gate (UI sends clientId). activate route — coach restricted to tier='coaching' (403 coach_tier_forbidden; admins keep override). CoachClientView — isAdmin scoping: coach sees ONLY coaching subs (loader + reload), coaching-only tier picker (default coaching), planGateOpen = isAdmin || activeCoachingSub with orange gate notice in plans + ai-plans tabs and guards in queuePlanJob/uploadPlan/normalizeAndUpload. CoachView — premium/pro filter pills now ADMIN-ONLY.
+- DB FIXES (RUN_ON_SUPABASE_0041_COACH_CLIENT_BOUNDARY.sql, 7071 bytes, END OF SCRIPT marker): get_coach_client_list rebuilt role-aware (coach → coaching-only sub columns; admin → best tier; status/end_date/months now read the SAME row as tier — fixes old mismatch); subscriptions RLS: coach SELECT coaching rows only, INSERT/UPDATE revoked (client self + admin only); plans RLS: plans_insert_coach requires active coaching sub (or admin). Idempotent drop+create; notify pgrst.
+- AGENTS.md §7(g): new law (9) COACH CLIENT BOUNDARY LAW (a visibility / b generation gate / c activation tier / d DB hardening).
+- Verified: tsc 0 (after build regenerates next-env.d.ts) / eslint 0 errors / vitest 153-153 / next build ✓ / smoke: home 200, activate unauth 401 (ai-jobs/normalize unauth demo-mode paths pre-existing).
+
+Stage Summary:
+- Coaches are hard-bounded to their own product: they cannot SEE site memberships (UI + RPC + RLS), cannot SELL them (403), and cannot GENERATE/UPLOAD plans for a client without the paid $6/$16 activation (server 402 + DB RLS + UI locks). Wallet bypass via direct subscription writes is closed.
+- OWNER STEPS: run 0041 raw link (after 0040 if not yet), then re-test: coach + unactivated client → plan generation locked; after activation → unlocked; client list shows no premium/pro anywhere for coaches.
