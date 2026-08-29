@@ -26,6 +26,15 @@
 --   literal match was a FALSE ALARM on a healthy policy. Now: ilike
 --   '%exists(%' + '%subscriptions%' + with_check text shown as proof.
 --   DDL still untouched — REV 3 is a verify-only change.
+-- REV 4 (2026-08-30): CRITICAL DDL FIX in PART C. Owner's verify paste
+--   exposed the policy rendered as (s.client_id = s.client_id) — the
+--   unqualified `client_id` inside the EXISTS bound to the INNER
+--   subscriptions alias (inner scope wins), degrading the paid-activation
+--   gate to "any active coaching sub for ANY client". Fix: outer ref
+--   qualified as plans.client_id (validated against the real Postgres
+--   grammar via libpg_query + pg_dump's canonical correlated-policy
+--   rendering). Verify now whitespace-insensitive + discriminates the
+--   self-compare bug. Owner must RE-RUN the whole script (idempotent).
 -- PASTE SAFETY: raw url only → SQL Editor → Ctrl+End must show:
 --   END OF SCRIPT 0041   → Run → expect: Success. No rows returned
 -- =====================================================================
@@ -176,7 +185,14 @@ create policy plans_insert_coach
       public.is_admin()
       or exists (
         select 1 from public.subscriptions s
-        where s.client_id = client_id
+        -- REV 4 CRITICAL FIX: outer ref MUST be qualified as plans.client_id.
+        -- The previous unqualified `client_id` bound to the INNER s.client_id
+        -- (inner scope wins) → rendered s.client_id = s.client_id →
+        -- always-true self-compare → paid-activation gate degraded to
+        -- "any active coaching sub for ANY client". Never leave an outer
+        -- column unqualified inside a policy subquery when the inner table
+        -- has a column with the same name.
+        where s.client_id = plans.client_id
           and s.tier = 'coaching'
           and s.status = 'active'
           and (s.end_date is null or s.end_date > now())
@@ -187,12 +203,13 @@ create policy plans_insert_coach
 notify pgrst, 'reload schema';
 
 -- ============================================================
--- VERIFY (run after paste) — REV 3: ONE grid, all checks at once
+-- VERIFY (run after paste) — REV 4: ONE grid, all checks at once
+-- Matching is whitespace/case-insensitive and grounded in the EMPIRICAL
+-- pg_get_expr rendering (owner paste): 'EXISTS ( SELECT 1' / 's.client_id ='
+-- The s.client_id=plans.client_id check DISCRIMINATES the REV 2 bug
+-- (s.client_id = s.client_id would keep plans_gate_active=false).
 -- Expect: rpc_rebuilt=t | subs_policies_found=3 | plans_gate_active=t
---         + plans_with_check_text = proof (contains EXISTS + subscriptions
---         + 'coaching' + 'active'). NOTE: pg_get_expr renormalizes policy
---         text, so 'exists (' in DDL appears as 'EXISTS((SELECT' here —
---         never string-match the source spelling.
+--         + plans_with_check_text shows (s.client_id = plans.client_id)
 -- ============================================================
 select
   (select position('0041' in coalesce(pg_get_functiondef('public.get_coach_client_list()'::regprocedure),'')) > 0)
@@ -206,8 +223,10 @@ select
   (select count(*) from pg_catalog.pg_policies
     where schemaname = 'public' and tablename = 'plans'
       and policyname = 'plans_insert_coach'
-      and with_check ilike '%exists(%'
-      and with_check ilike '%subscriptions%') = 1
+      and position('exists(select1fromsubscriptions' in lower(regexp_replace(with_check, '\s', '', 'g'))) > 0
+      and position('s.client_id=plans.client_id'  in lower(regexp_replace(with_check, '\s', '', 'g'))) > 0
+      and position('tier=''coaching'''             in lower(regexp_replace(with_check, '\s', '', 'g'))) > 0
+      and position('status=''active'''             in lower(regexp_replace(with_check, '\s', '', 'g'))) > 0) = 1
     as plans_gate_active,
 
   (select coalesce(with_check, '<<POLICY plans_insert_coach MISSING>>')
