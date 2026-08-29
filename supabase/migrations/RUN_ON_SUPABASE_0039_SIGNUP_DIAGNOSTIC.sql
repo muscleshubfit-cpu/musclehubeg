@@ -1,31 +1,27 @@
 -- ============================================================ 0039 ======
--- SIGNUP DIAGNOSTIC v2 (2026-08-30) — REAL BUG FROM THE USAGE TEST:
+-- SIGNUP DIAGNOSTIC v3 (2026-08-30) — REAL BUG FROM THE USAGE TEST:
 --   ALL signups fail with «Database error saving new user»
 --   (auth/v1/signup → 500, admin.createUser → 500).
 --
--- v1 RESULT: PROBE-A hit profiles_id_fkey (expected — a profile cannot
--- exist without a real auth.users row), which ABORTED the script before
--- the real probe ran. v2 fixes that:
---   • NO aborting exceptions — every probe reports via WARNING and the
---     script always reaches the end.
---   • PROBE-SIGNUP replays the EXACT signup insert (auth.users row →
---     on_auth_user_created → handle_new_user → profiles →
---     trg_auto_assign_client) and surfaces SQLSTATE + SQLERRM +
---     PG_EXCEPTION_CONTEXT (the exact function and line that throws).
---   • Success path reports the created profile + assignment, then
---     DELETES the probe user (profile cascades via FK) — nothing left.
+-- WHY v3: v1 aborted early (Probe A hit the profiles→auth.users FK —
+-- expected), v2 printed results as WARNINGS which are easy to miss.
+-- v3 prints EVERYTHING as ONE result grid at the end — copy that grid.
 --
--- THIS SCRIPT WRITES NOTHING PERMANENT. Run it, then copy the FULL
--- "Messages" output back to the chat.
+-- THIS SCRIPT WRITES NOTHING PERMANENT (the probe user is deleted; the
+-- only output is the final SELECT). Safe to run any number of times.
 -- END OF SCRIPT 0039 — no schema is modified by this file.
 -- =========================================================================
+
+create temp table if not exists _mh_diag (k text, v text);
+delete from _mh_diag;
 
 -- ============ PROBE — full signup replay (the real path) =================
 do $$
 declare
-  v_id   uuid := gen_random_uuid();
-  v_msg  text;
-  v_ctx  text;
+  v_id    uuid := gen_random_uuid();
+  v_info  text;
+  v_asg   text;
+  v_ctx   text;
 begin
   begin
     insert into auth.users (
@@ -44,63 +40,87 @@ begin
       now(), now(), '', '', '', ''
     );
 
-    -- The insert + trigger chain survived — report what it created.
     select coalesce(
       (select 'profile created, role=' || role::text from public.profiles where id = v_id),
-      'profile NOT created (trigger returned but inserted nothing)'
-    ) into v_msg;
-
+      'profile NOT created'
+    ) into v_info;
     select coalesce(
-      (select 'assignment → coach=' || coach_id::text
-         from public.coach_assignments where client_id = v_id),
-      'no coach assignment'
-    ) into v_ctx;
+      (select 'assignment → ' || coach_id::text from public.coach_assignments where client_id = v_id),
+      'no assignment'
+    ) into v_asg;
 
-    -- Cleanup (profiles.id FK is ON DELETE CASCADE)
-    delete from auth.users where id = v_id;
+    delete from auth.users where id = v_id;  -- profiles cascade via FK
 
-    raise warning 'PROBE-SIGNUP OK >> % | % (probe user deleted — nothing left behind)',
-      v_msg, v_ctx;
+    insert into _mh_diag values
+      ('PROBE_RESULT', 'OK — trigger chain works | ' || v_info || ' | ' || v_asg || ' | probe user deleted');
 
   exception when others then
     get stacked diagnostics v_ctx = PG_EXCEPTION_CONTEXT;
-    raise warning
-      'PROBE-SIGNUP FAILED >> SQLSTATE=% | MSG=% | CONTEXT=[%]',
-      sqlstate, sqlerrm, v_ctx;
-    -- best-effort cleanup in case a partial row survived
+    insert into _mh_diag values
+      ('PROBE_RESULT', 'FAILED >> SQLSTATE=' || sqlstate || ' | MSG=' || sqlerrm || ' | CONTEXT=[' || v_ctx || ']');
     begin delete from auth.users where id = v_id; exception when others then null; end;
   end;
 end $$;
 
--- ============ INVENTORY 1 — every custom trigger on the chain ============
-select tgrelid::regclass as on_table,
-       tgname            as trigger_name,
-       p.proname         as function_name
-from pg_trigger t
-join pg_proc p on p.oid = t.tgfoid
-where tgrelid in ('auth.users'::regclass, 'public.profiles'::regclass)
-  and not tgisinternal
-order by 1, 2;
+-- ============ INVENTORY — all custom triggers on the chain ===============
+do $$
+declare r record; s text := '';
+begin
+  for r in
+    select tgrelid::regclass::text as t, tgname, p.proname
+    from pg_trigger t join pg_proc p on p.oid = t.tgfoid
+    where tgrelid in ('auth.users'::regclass, 'public.profiles'::regclass)
+      and not tgisinternal
+    order by 1, 2
+  loop
+    s := s || r.t || ' :: ' || r.tgname || ' -> ' || r.proname || '  ||  ';
+  end loop;
+  insert into _mh_diag values ('TRIGGERS', coalesce(nullif(s,''), 'NONE FOUND'));
+end $$;
 
--- ============ INVENTORY 2 — live source of handle_new_user ===============
--- (which version is ACTUALLY deployed: 0001 casts metadata role to the
---  user_role enum; 0036 hardcodes 'client' and contains the text
---  "0036 HARDENING")
-select prosrc as handle_new_user_source
-from pg_proc where proname = 'handle_new_user';
+-- ============ INVENTORY — live handle_new_user version ===================
+do $$
+declare src text;
+begin
+  select prosrc into src from pg_proc where proname = 'handle_new_user';
+  insert into _mh_diag values
+    ('HANDLE_NEW_USER_VERSION',
+     case when src like '%0036 HARDENING%' then '0036 (hardened, role hardcoded client)'
+          when src like '%::user_role%' then '0001 ORIGINAL (casts metadata role!)'
+          else 'UNKNOWN VARIANT' end
+     || ' | first 200 chars: ' || left(regexp_replace(src, '\s+', ' ', 'g'), 200));
+end $$;
 
--- ============ INVENTORY 3 — live source of auto_assign ===================
-select prosrc as auto_assign_client_source
-from pg_proc where proname = 'auto_assign_client_to_admin';
+-- ============ INVENTORY — live auto_assign source ========================
+do $$
+declare src text;
+begin
+  select prosrc into src from pg_proc where proname = 'auto_assign_client_to_admin';
+  insert into _mh_diag values
+    ('AUTO_ASSIGN_SOURCE', left(regexp_replace(coalesce(src,'MISSING'), '\s+', ' ', 'g'), 300));
+end $$;
 
--- ============ INVENTORY 4 — profiles constraints ==========================
-select conname as constraint_name, contype as type,
-       pg_get_constraintdef(oid) as definition
-from pg_constraint
-where conrelid = 'public.profiles'::regclass;
+-- ============ INVENTORY — profiles constraints ===========================
+do $$
+declare r record; s text := '';
+begin
+  for r in
+    select conname, pg_get_constraintdef(oid) as def
+    from pg_constraint where conrelid = 'public.profiles'::regclass
+  loop
+    s := s || r.conname || ' : ' || r.def || '  ||  ';
+  end loop;
+  insert into _mh_diag values ('PROFILES_CONSTRAINTS', coalesce(nullif(s,''), 'NONE'));
+end $$;
 
--- ============ INVENTORY 5 — recent auth users (did ANY signup land?) =====
-select count(*) as total_auth_users from auth.users;
-select email, confirmed_at is not null as confirmed, created_at
-from auth.users order by created_at desc limit 5;
+-- ============ INVENTORY — auth users summary =============================
+insert into _mh_diag
+select 'AUTH_USERS_SUMMARY',
+       'count=' || count(*) ||
+       ' | last signup=' || coalesce(max(created_at)::text,'none') ||
+       ' (' || coalesce((select email from auth.users order by created_at desc limit 1),'-') || ')'
+from auth.users;
+
+-- ============ OUTPUT — the ONE grid to copy ==============================
+select k, v from _mh_diag order by k;
 -- ==================================================== END OF SCRIPT 0039
