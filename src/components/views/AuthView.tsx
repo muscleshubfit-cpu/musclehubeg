@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useI18n } from "@/lib/i18n";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,9 +10,12 @@ import { useNav } from "@/hooks/use-nav";
 import { useAuth } from "@/hooks/use-auth";
 import { isSupabaseConfigured } from "@/lib/supabase/client";
 import { safeNext } from "@/lib/safe-redirect";
+import { setCoachSlugCookie, clearCoachSlugCookie, getCoachSlugCookie } from "@/lib/coach-cookie";
 import { toast } from "sonner";
 
-export function AuthView({ mode, next }: { mode: "login" | "signup"; next?: string }) {
+const SLUG_RE = /^[a-z0-9-]{3,40}$/;
+
+export function AuthView({ mode, next, coach }: { mode: "login" | "signup"; next?: string; coach?: string }) {
   const { t, lang } = useI18n();
   const { navigate } = useNav();
   const { signIn, signUp, signInGoogle } = useAuth();
@@ -26,6 +29,16 @@ export function AuthView({ mode, next }: { mode: "login" | "signup"; next?: stri
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [needsConfirmation, setNeedsConfirmation] = useState(false);
+
+  // COACH ATTRIBUTION (0033): the signup CTA on a coach's landing page
+  // links here as /auth?mode=signup&coach={slug}. Persist the slug in a
+  // 30-day cookie so it survives BOTH signup paths — email metadata
+  // (primary) and the Google OAuth round-trip (claimed later by the
+  // CoachSlugClaimer via /api/coach/claim).
+  const coachSlug = coach && SLUG_RE.test(coach) ? coach : getCoachSlugCookie();
+  useEffect(() => {
+    if (coach && SLUG_RE.test(coach)) setCoachSlugCookie(coach);
+  }, [coach]);
 
   // After a successful login, redirect to `next` if provided (e.g. /checkout),
   // otherwise fall back to the coach/client dashboard.
@@ -44,12 +57,21 @@ export function AuthView({ mode, next }: { mode: "login" | "signup"; next?: stri
     setLoading(true);
     try {
       if (isSignup) {
-        const { error, needsConfirmation: needsConf } = await signUp(email, password, fullName, phone);
+        const { error, needsConfirmation: needsConf } = await signUp(
+          email,
+          password,
+          fullName,
+          phone,
+          coachSlug,
+        );
         if (error) {
           toast.error(error);
         } else if (needsConf) {
           // M6 fix: email confirmation required — don't redirect to dashboard.
           // Show a "check your email" screen instead.
+          // Attribution already happened at insert time (metadata → 0033
+          // trigger) — the cookie's job is done.
+          clearCoachSlugCookie();
           setNeedsConfirmation(true);
         } else {
           toast.success(t("auth.accountCreated"));

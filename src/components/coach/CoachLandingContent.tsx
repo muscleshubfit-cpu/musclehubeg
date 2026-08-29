@@ -26,7 +26,13 @@ export function CoachLandingContent({
   const copy = resolveLandingCopy(data, lang);
   const name = coachDisplayName(data, lang);
   const initial = name.trim().charAt(0) || "M";
-  const signupHref = `/auth?mode=signup&next=${encodeURIComponent(
+  // COACH ATTRIBUTION (0033): the slug travels in the link — the signup
+  // trigger reads coach_slug from metadata and assigns this client to
+  // THIS coach (not the admin). Google signups fall back to the 30-day
+  // cookie + /api/coach/claim.
+  const signupHref = `/auth?mode=signup&coach=${encodeURIComponent(
+    data.slug,
+  )}&next=${encodeURIComponent(
     isAr ? `/ar/coaches/${data.slug}` : `/coaches/${data.slug}`,
   )}`;
 

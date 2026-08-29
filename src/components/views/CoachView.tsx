@@ -13,6 +13,7 @@ import {
 } from "@/lib/data";
 import { getTier } from "@/lib/plans";
 import { MEMBERSHIPS } from "@/lib/memberships";
+import { toast } from "sonner";
 import { NotificationForm } from "@/components/NotificationForm";
 import { cn } from "@/lib/utils";
 
@@ -68,6 +69,13 @@ export function CoachView() {
 
   // Broadcast notification state
   const [showBroadcast, setShowBroadcast] = useState(false);
+
+  // COACH-INVITES-CLIENT (0033, owner answer 1 «الطريقتين»): the coach
+  // brings clients either via his landing page or by personal invite.
+  const [showInvite, setShowInvite] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteName, setInviteName] = useState("");
+  const [inviting, setInviting] = useState(false);
   const [broadcastTarget, setBroadcastTarget] = useState<"all" | "selected" | "single">("all");
   const [selectedClientIds, setSelectedClientIds] = useState<Set<string>>(new Set());
   const [selectedSingleId, setSelectedSingleId] = useState("");
@@ -327,6 +335,38 @@ export function CoachView() {
     setSelectedClientIds(new Set());
   };
 
+  async function inviteClient() {
+    const email = inviteEmail.trim();
+    if (!email) {
+      toast.error(isAr ? "اكتب بريد العميل أولًا" : "Enter the client's email first");
+      return;
+    }
+    setInviting(true);
+    try {
+      const res = await fetch("/api/coach/clients/invite", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, full_name: inviteName.trim() || undefined }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (res.ok) {
+        toast.success(
+          isAr
+            ? `تم إرسال دعوة إلى ${email} — هيظهر عندك هنا أول ما يسجّل`
+            : `Invite sent to ${email} — he will appear here once he signs up`,
+          { duration: 7000 },
+        );
+        setInviteEmail("");
+        setInviteName("");
+        setShowInvite(false);
+      } else {
+        toast.error(json.message || json.error || (isAr ? "فشل إرسال الدعوة" : "Invite failed"));
+      }
+    } finally {
+      setInviting(false);
+    }
+  }
+
   // Build sendMode for NotificationForm
   const notifSendMode =
     broadcastTarget === "all"
@@ -340,22 +380,78 @@ export function CoachView() {
       <div>
         <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">{t("coach.title")}</h1>
         <p className="mt-2 text-base font-normal text-[#6e6e73] md:text-lg">{t("coach.subtitle")}</p>
+        {!isAdmin && (
+          <p className="mt-2 inline-block rounded-full bg-[#0071e3]/10 px-4 py-1.5 text-xs font-medium text-[#0071e3]">
+            {isAr
+              ? "عملاؤك الخاصون فقط — جيب عملاءك عبر صفحتك العامة أو ادعُهم بإيميل"
+              : "Your private clients only — bring clients via your public page or invite them by email"}
+          </p>
+        )}
       </div>
 
-      {/* Broadcast notification button */}
-      <div className="flex items-center gap-3">
+      {/* Actions: broadcast + invite client */}
+      <div className="flex flex-wrap items-center gap-3">
         <button
           onClick={() => setShowBroadcast(!showBroadcast)}
           className="rounded-full bg-[#1d1d1f] px-5 py-2.5 text-sm font-normal text-white transition-opacity hover:opacity-90"
         >
           {isAr ? "إرسال إشعار للعملاء" : "Send notification to clients"}
         </button>
+        {!isAdmin && (
+          <button
+            onClick={() => setShowInvite(!showInvite)}
+            className="rounded-full bg-[#0071e3] px-5 py-2.5 text-sm font-normal text-white transition-opacity hover:opacity-90"
+          >
+            {showInvite
+              ? (isAr ? "إغلاق الدعوة" : "Close invite")
+              : (isAr ? "+ دعوة عميل" : "+ Invite a client")}
+          </button>
+        )}
         {selectedClientIds.size > 0 && (
           <span className="rounded-full bg-[#0071e3]/10 px-3 py-1 text-xs font-medium text-[#0071e3]">
             {selectedClientIds.size} {isAr ? "عميل محدد" : "selected"}
           </span>
         )}
       </div>
+
+      {/* Invite-client form (coach brings his own clients — 0033) */}
+      {showInvite && !isAdmin && (
+        <div className="rounded-3xl border border-[#0071e3]/20 bg-[#0071e3]/[0.04] p-6">
+          <p className="text-sm font-medium">
+            {isAr ? "دعوة عميل جديد بالبريد" : "Invite a new client by email"}
+          </p>
+          <p className="mt-1 text-xs font-normal text-[#6e6e73]">
+            {isAr
+              ? "هيوصله دعوة على إيميله يحدد منها كلمة المرور — وبمجرد ما يسجّل يبقى عميلك وتشوف بياناته هنا."
+              : "He receives an invite email to set his own password — once he signs up he becomes your client and you see his data here."}
+          </p>
+          <div className="mt-4 flex flex-col gap-3 sm:flex-row">
+            <input
+              type="email"
+              dir="ltr"
+              value={inviteEmail}
+              onChange={(e) => setInviteEmail(e.target.value)}
+              placeholder="client@example.com"
+              className="flex-1 rounded-xl border border-[#d2d2d7] bg-white px-4 py-2.5 text-sm outline-none focus:border-[#0071e3]"
+            />
+            <input
+              value={inviteName}
+              onChange={(e) => setInviteName(e.target.value)}
+              placeholder={isAr ? "الاسم (اختياري)" : "Name (optional)"}
+              className="flex-1 rounded-xl border border-[#d2d2d7] bg-white px-4 py-2.5 text-sm outline-none focus:border-[#0071e3]"
+            />
+            <button
+              onClick={inviteClient}
+              disabled={inviting}
+              className="rounded-xl bg-[#0071e3] px-6 py-2.5 text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+            >
+              {inviting
+                ? (isAr ? "جارٍ الإرسال…" : "Sending…")
+                : (isAr ? "إرسال الدعوة" : "Send invite")}
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Broadcast form */}
       {showBroadcast && (

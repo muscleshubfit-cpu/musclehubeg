@@ -553,6 +553,29 @@ export type Database = {
         };
         Relationships: [];
       };
+      coach_fees: {
+        Row: {
+          coach_id: string;
+          fee_per_client: number;
+          currency: string;
+          updated_at: string;
+        };
+        Insert: {
+          coach_id: string;
+          fee_per_client?: number;
+          currency?: string;
+          updated_at?: string;
+        };
+        Update: {
+          coach_id?: string;
+          fee_per_client?: number;
+          currency?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          { foreignKeyName: "coach_fees_coach_id_fkey"; columns: ["coach_id"]; isOneToOne: true; referencedRelation: "profiles"; referencedColumns: ["id"] },
+        ];
+      };
       coach_pages: {
         Row: {
           coach_id: string;

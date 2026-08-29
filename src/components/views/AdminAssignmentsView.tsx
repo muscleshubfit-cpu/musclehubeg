@@ -46,6 +46,19 @@ export function AdminAssignmentsView() {
   const [rpcFailed, setRpcFailed] = useState(false);
   const [savingId, setSavingId] = useState<string | null>(null);
 
+  // COACH FEES (owner answer 3 — «سعر ثابت على كل عميل قابل للتعديل»):
+  // per-coach flat fee, editable inline; total = live client count × fee.
+  type FeeRow = {
+    id: string;
+    full_name: string | null;
+    email: string | null;
+    fee_per_client: number;
+    currency: string;
+  };
+  const [fees, setFees] = useState<FeeRow[]>([]);
+  const [feeDrafts, setFeeDrafts] = useState<Record<string, string>>({});
+  const [savingFeeId, setSavingFeeId] = useState<string | null>(null);
+
   // Add-coach form state
   const [newEmail, setNewEmail] = useState("");
   const [newName, setNewName] = useState("");
@@ -64,6 +77,15 @@ export function AdminAssignmentsView() {
           const json = await assignmentsRes.json();
           setStaff(json.staff ?? []);
           setCounts(json.counts ?? {});
+        }
+
+        // Coach fees (independent of the RPC — loads even if 0030D RPC is missing)
+        const feesRes = await fetch("/api/admin/coach-fees");
+        if (feesRes.ok) {
+          const feesJson = await feesRes.json();
+          const rows = (feesJson.coaches ?? []) as FeeRow[];
+          setFees(rows);
+          setFeeDrafts(Object.fromEntries(rows.map((c) => [c.id, String(c.fee_per_client)])));
         }
 
         if (clientRows && clientRows.length >= 0) {
@@ -94,6 +116,45 @@ export function AdminAssignmentsView() {
       const json = await res.json();
       setStaff(json.staff ?? []);
       setCounts(json.counts ?? {});
+    }
+  }
+
+  async function refreshFees() {
+    const res = await fetch("/api/admin/coach-fees");
+    if (res.ok) {
+      const json = await res.json();
+      setFees(json.coaches ?? []);
+      setFeeDrafts(
+        Object.fromEntries(
+          ((json.coaches ?? []) as FeeRow[]).map((c) => [c.id, String(c.fee_per_client)]),
+        ),
+      );
+    }
+  }
+
+  async function saveFee(coachId: string) {
+    const raw = feeDrafts[coachId] ?? "0";
+    const fee = Number(raw);
+    if (!Number.isFinite(fee) || fee < 0) {
+      toast.error(isAr ? "اكتب سعرًا صحيحًا (0 أو أكثر)" : "Enter a valid price (0 or more)");
+      return;
+    }
+    setSavingFeeId(coachId);
+    try {
+      const res = await fetch("/api/admin/coach-fees", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ coach_id: coachId, fee_per_client: fee }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (res.ok) {
+        toast.success(isAr ? "تم حفظ السعر" : "Fee saved");
+        await refreshFees();
+      } else {
+        toast.error(json.message || json.error || (isAr ? "فشل الحفظ" : "Save failed"));
+      }
+    } finally {
+      setSavingFeeId(null);
     }
   }
 
@@ -180,6 +241,29 @@ export function AdminAssignmentsView() {
     () => clients.filter((c) => !c.coachId).length,
     [clients],
   );
+
+  // Source split (owner model 2026-08-29): a client assigned to an
+  // ADMIN is a SITE client (the general coach's pool); a client
+  // assigned to a plain COACH is a coach-brought private client.
+  const staffRoleById = useMemo(
+    () => Object.fromEntries(staff.map((s) => [s.id, s.role])),
+    [staff],
+  );
+  const siteClientsCount = useMemo(
+    () => clients.filter((c) => staffRoleById[c.coachId ?? ""] === "admin").length,
+    [clients, staffRoleById],
+  );
+  const coachClientsCount = useMemo(
+    () => clients.filter((c) => staffRoleById[c.coachId ?? ""] === "coach").length,
+    [clients, staffRoleById],
+  );
+  const clientCountByCoach = useMemo(() => {
+    const map: Record<string, number> = {};
+    for (const c of clients) {
+      if (c.coachId) map[c.coachId] = (map[c.coachId] ?? 0) + 1;
+    }
+    return map;
+  }, [clients]);
 
   async function reassign(client: ClientRow, coachId: string) {
     if (!coachId || coachId === client.coachId) return;
@@ -338,13 +422,88 @@ export function AdminAssignmentsView() {
         </div>
       </section>
 
+      {/* Coach fees — fixed per-client price (owner answer 3) */}
+      {fees.length > 0 && (
+        <section className="rounded-3xl bg-[#f5f5f7] p-6 md:p-8">
+          <h2 className="text-lg font-semibold tracking-tight">
+            {isAr ? "اشتراك المدربين — سعر ثابت لكل عميل" : "Coach billing — fixed fee per client"}
+          </h2>
+          <p className="mt-1 text-sm font-normal text-[#6e6e73]">
+            {isAr
+              ? "سعر ثابت يدفعه المدرب عن كل عميل من عملائه، قابل للتعديل في أي وقت. الإجمالي بيتحدث تلقائيًا مع عدد عملائه الحالي."
+              : "A flat fee each coach pays per client, editable anytime. The monthly total updates automatically with his current client count."}
+          </p>
+          <div className="mt-5 overflow-x-auto">
+            <table className="w-full min-w-[640px] text-start">
+              <thead>
+                <tr className="border-b border-[#d2d2d7] text-xs font-normal uppercase tracking-wide text-[#6e6e73]">
+                  <th className="p-3 text-start">{isAr ? "المدرب" : "Coach"}</th>
+                  <th className="p-3 text-start">{isAr ? "عملاؤه" : "His clients"}</th>
+                  <th className="p-3 text-start">{isAr ? "السعر لكل عميل" : "Fee per client"}</th>
+                  <th className="p-3 text-start">{isAr ? "الإجمالي" : "Total"}</th>
+                  <th className="p-3 text-start"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {fees.map((f) => {
+                  const n = clientCountByCoach[f.id] ?? 0;
+                  const draft = Number(feeDrafts[f.id] ?? "0");
+                  const total = (Number.isFinite(draft) ? draft : 0) * n;
+                  return (
+                    <tr key={f.id} className="border-b border-[#d2d2d7]/60 hover:bg-white/50">
+                      <td className="p-3">
+                        <div className="font-medium">{f.full_name || "—"}</div>
+                        <div className="text-xs font-normal text-[#6e6e73]" dir="ltr">
+                          {f.email || f.id}
+                        </div>
+                      </td>
+                      <td className="p-3 font-medium">{n}</td>
+                      <td className="p-3">
+                        <input
+                          type="number"
+                          min="0"
+                          step="1"
+                          dir="ltr"
+                          value={feeDrafts[f.id] ?? "0"}
+                          onChange={(e) =>
+                            setFeeDrafts((prev) => ({ ...prev, [f.id]: e.target.value }))
+                          }
+                          className="w-28 rounded-xl border border-[#d2d2d7] bg-white px-3 py-2 text-sm outline-none focus:border-[#0071e3]"
+                        />
+                        <span className="ms-2 text-xs text-[#6e6e73]">{f.currency}</span>
+                      </td>
+                      <td className="p-3 font-semibold">
+                        {total.toLocaleString()} {f.currency}
+                      </td>
+                      <td className="p-3">
+                        <button
+                          onClick={() => saveFee(f.id)}
+                          disabled={savingFeeId === f.id}
+                          className="rounded-xl bg-[#1d1d1f] px-4 py-2 text-xs font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+                        >
+                          {savingFeeId === f.id
+                            ? (isAr ? "جارٍ الحفظ…" : "Saving…")
+                            : (isAr ? "حفظ" : "Save")}
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
+
       {/* Clients */}
       <section className="rounded-3xl bg-[#f5f5f7] p-6 md:p-8">
         <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
           <h2 className="text-lg font-semibold tracking-tight">
             {isAr ? "العملاء" : "Clients"}
             <span className="ms-2 text-sm font-normal text-[#6e6e73]">
-              {isAr ? `(${clients.length} عميل — ${unassignedCount} غير معيّن)` : `(${clients.length} clients — ${unassignedCount} unassigned)`}
+              {isAr
+                ? `(${clients.length} عميل — ${siteClientsCount} عميل موقع — ${coachClientsCount} عملاء مدربين)`
+                : `(${clients.length} clients — ${siteClientsCount} site — ${coachClientsCount} coach-brought)`}
             </span>
           </h2>
           <input
@@ -383,9 +542,15 @@ export function AdminAssignmentsView() {
                   </td>
                   <td className="p-3">
                     {c.coachName ? (
-                      <span className="rounded-full bg-[#0071e3]/10 px-3 py-1 text-xs font-medium text-[#0071e3]">
-                        {c.coachName}
-                      </span>
+                      staffRoleById[c.coachId ?? ""] === "admin" ? (
+                        <span className="rounded-full bg-[#1d1d1f]/5 px-3 py-1 text-xs font-medium text-[#1d1d1f]">
+                          {isAr ? "عميل موقع — الكوتش العام" : "Site client — general coach"}
+                        </span>
+                      ) : (
+                        <span className="rounded-full bg-[#34c759]/10 px-3 py-1 text-xs font-medium text-[#248a3d]">
+                          {isAr ? `عميل جابه المدرب ${c.coachName}` : `Brought by ${c.coachName}`}
+                        </span>
+                      )
                     ) : (
                       <span className="rounded-full bg-[#ff9500]/10 px-3 py-1 text-xs font-medium text-[#ff9500]">
                         {isAr ? "غير معيّن" : "Unassigned"}

@@ -710,6 +710,30 @@ Process:
        login. UI lives ON /admin/assignments as a third section (add-
        coach card + demote link on coach staff cards) — one page owns
        the whole coach lifecycle: add → assign clients → demote.
+       CLIENT ATTRIBUTION + COACH FEES (owner model 2026-08-29, migration
+       0033 — «المدرب مسؤول عن جلب عملائه»: coaches pay a FIXED
+       per-client fee (not a %), bring their own clients, have NO claim
+       on site clients; site clients belong to the admin/general coach;
+       AFFILIATE IS SITE-CLIENTS-ONLY; coach dashboards/permissions/
+       usage-limits are a LATER phase): (a) the rebuilt
+       auto_assign_client_to_admin() trigger resolves signup metadata in
+       priority order — coach_id (personal invite) → coach_slug (landing
+       page signup via /auth?mode=signup&coach={slug}) → fallback admin;
+       both paths only accept a target whose role='coach'. (b) Google
+       OAuth signups carry no metadata → the mh_coach_slug 30-day cookie
+       (coach-cookie.ts, set by AuthView from the ?coach= param) is
+       claimed by CoachSlugClaimer (root layout, inside AuthProvider)
+       via POST /api/coach/claim — which reassigns ONLY while the client
+       is still with an admin (never poaches a real coach's client).
+       (c) Coach-side invite: POST /api/coach/clients/invite (requireCoach)
+       sends a Supabase invite with coach_id metadata; existing clients
+       are REFUSED (409) — only the admin reassigns (owner answer 2).
+       (d) coach_fees table (coach_id PK, fee_per_client, currency,
+       RLS admin-write/coach-read-own) + /api/admin/coach-fees
+       (GET/PATCH requireAdmin) power the admin fee table on
+       /admin/assignments: live count × fee total per coach. (e)
+       CoachView shows the «عملاؤك الخاصون فقط» badge + «+ دعوة عميل»
+       invite form for plain coaches; the admin's own view is unchanged.
 - **USAGE LIMIT ENFORCEMENT LAW (2026-08-28, T-AI-DEEP-AUDIT-V2, owner
   directive «توسع وعمق اكبر … والتأكد من ايفو وطبيعه عضوية المستخدم فى
   حدود الاستخدام»):** every limit advertised in `memberships.ts` MUST be

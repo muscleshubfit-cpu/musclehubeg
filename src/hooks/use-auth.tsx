@@ -29,7 +29,7 @@ type AuthCtx = {
  /** role === "admin" — platform owner. Admin-exclusive: blog admin,
   * tool leads, saved results, referrals admin. */
  isAdmin: boolean;
- signUp: (email: string, password: string, fullName: string, phone: string) => Promise<{ error: string | null; needsConfirmation?: boolean }>;
+ signUp: (email: string, password: string, fullName: string, phone: string, coachSlug?: string | null) => Promise<{ error: string | null; needsConfirmation?: boolean }>;
  signIn: (email: string, password: string) => Promise<{ error: string | null; profile: Profile | null }>;
  signInGoogle: (nextPath?: string) => Promise<{ error: string | null }>;
  signOutAsync: () => Promise<void>;
@@ -75,8 +75,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
  }, []);
 
  const signUp = useCallback(
- async (email: string, password: string, fullName: string, phone: string) => {
- const { error, profile: p, needsConfirmation } = await signUpEmail(email, password, fullName, phone);
+ async (email: string, password: string, fullName: string, phone: string, coachSlug?: string | null) => {
+ const { error, profile: p, needsConfirmation } = await signUpEmail(email, password, fullName, phone, coachSlug);
  if (!error && p) setProfile(p);
  return { error, needsConfirmation };
  },

@@ -21,6 +21,11 @@ import {
  type Session,
 } from "./helpers";
 import { createAdminNotification } from "./notifications";
+// Coach-attribution cookie lives outside the data layer (client helper).
+import {
+ getCoachSlugCookie,
+ clearCoachSlugCookie,
+} from "../coach-cookie";
 
 /* -------------------------------------------------------------------------- */
 /* Public API */
@@ -31,12 +36,25 @@ export async function signUpEmail(
  password: string,
  fullName: string,
  phone: string,
+ coachSlug?: string | null,
 ): Promise<{ error: string | null; profile: Profile | null; needsConfirmation?: boolean }> {
  if (isSupabaseConfigured && supabase) {
+ // COACH ATTRIBUTION (0033): a slug from /auth?coach={slug} (or the
+ // 30-day cookie set by the landing page CTA) travels in the signup
+ // metadata — the rebuilt auto-assign trigger assigns this client to
+ // that coach INSTEAD of the admin. No slug → site client → admin.
+ const resolvedCoachSlug = coachSlug || getCoachSlugCookie() || undefined;
  const { data, error } = await supabase.auth.signUp({
  email,
  password,
- options: { data: { full_name: fullName, phone, role: "client" } },
+ options: {
+  data: {
+   full_name: fullName,
+   phone,
+   role: "client",
+   ...(resolvedCoachSlug ? { coach_slug: resolvedCoachSlug } : {}),
+  },
+ },
  });
  if (error) return { error: error.message, profile: null };
  if (data.user) {
@@ -48,6 +66,8 @@ export async function signUpEmail(
  // Instead, return needsConfirmation=true so the caller shows a
  // "Check your email" screen.
  if (!data.session) {
+ // Attribution done at insert time — the cookie's job is over.
+ clearCoachSlugCookie();
  // Track referral before returning — the cookie may expire by the
  // time the user confirms their email.
  try {
@@ -85,6 +105,7 @@ export async function signUpEmail(
  "coach",
  data.user.id,
  ).catch(() => {});
+ clearCoachSlugCookie();
  // Track referral if cookie exists
  try {
  const refCode = getReferralCookie();

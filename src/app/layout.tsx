@@ -8,6 +8,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { I18nProvider } from "@/lib/i18n";
 import { AuthProvider } from "@/hooks/use-auth";
 import { ReferralCookieChecker } from "@/components/ReferralCookieChecker";
+import { CoachSlugClaimer } from "@/components/CoachSlugClaimer";
 import { CookieConsent } from "@/components/CookieConsent";
 import { EvoChatProvider } from "@/lib/evo-chat-context";
 import { EvoFloatingWidget } from "@/components/EvoFloatingWidget";
@@ -115,6 +116,9 @@ export default async function RootLayout({
         <CookieConsent />
         <I18nProvider>
           <AuthProvider>
+            {/* COACH ATTRIBUTION (0033) — claims a coach-signup cookie for
+                Google OAuth clients (needs useAuth → inside AuthProvider). */}
+            <CoachSlugClaimer />
             <EvoChatProvider>
               {/* C23 fix: wrap children in a div with id="main-content-skip"
                   so the skip-to-content link always has a target, on both

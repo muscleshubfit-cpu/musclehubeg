@@ -14,6 +14,10 @@ function AuthPageInner() {
   // `next` is the path the user wanted to reach before being bounced to /auth
   // (e.g. /checkout?tier=essential&months=6). After login we send them back there.
   const next = searchParams.get("next") || undefined;
+  // COACH ATTRIBUTION (0033): ?coach={slug} comes from the signup CTA on
+  // a coach's landing page /coaches/{slug}. The slug is validated in
+  // AuthView (SLUG_RE) and persisted to a 30-day cookie there.
+  const coach = searchParams.get("coach") || undefined;
 
   useEffect(() => {
     if (!loading && profile) {
@@ -37,7 +41,7 @@ function AuthPageInner() {
     );
   }
 
-  return <AuthView mode={mode} next={next} />;
+  return <AuthView mode={mode} next={next} coach={coach} />;
 }
 
 export default function Page() {

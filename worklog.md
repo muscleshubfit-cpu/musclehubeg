@@ -2969,3 +2969,36 @@ Stage Summary:
 - The admin can now add coaches from the UI: sidebar تعيين المدربين → «إضافة مدرب للموقع» → either instant-promote an existing client or email-invite a new coach (he sets his own password). Demote keeps the roster safe (reassign-first guard).
 - Owner note: Supabase invite emails use the built-in SMTP (rate-limited on free tier ~2-4/hour) — fine for occasional coach additions; check Spam if the invite doesn't arrive. If the invite link lands the coach on the bare site URL, the AuthGate still routes him to /coach by role.
 - No schema changes; no owner manual SQL needed for this task.
+
+---
+Task ID: T-PHASE-3-ATTRIBUTION-FEES-2026-08-29
+Agent: Main (Super Z — Implementation Agent)
+Task: Owner business model for multi-coach + 4 answers — «المدربين هيدفعوا نسبه عن عملائهم بالتالي هم المسؤولين عن جلب عملائهم ما لهمش دعوه بعملاء الموقع … عملاء الموقع عملاء للادمن او الكوتش العام … بالوضع الحالي للعملاء كلهم في مكان واحد وده خطا». Answers: (1) BOTH client-bringing paths (landing signup + coach invite), (2) admin keeps manual reassignment, (3) FIXED editable price per client (not %), (4) existing clients stay admin's. Plus laws: affiliate = site clients only; coach dashboards/permissions/usage-limits = later phase.
+
+Work Log:
+- MIGRATION RUN_ON_SUPABASE_0033_CLIENT_ATTRIBUTION.sql (4.9KB, one paste, idempotent, END OF SCRIPT 0033 marker):
+  • PART 1 rebuilds auto_assign_client_to_admin() with ATTRIBUTION priority: metadata coach_id (uuid regex-guarded, role='coach' verified) → metadata coach_slug (join coach_pages, role='coach' verified) → fallback admin (site client, unchanged). Staff-emails-never-clients guard preserved.
+  • PART 2 coach_fees (coach_id PK/FK cascade, fee_per_client numeric ≥0 default 0, currency default 'USD'; RLS: admin ALL via is_admin(), coach SELECT own row for the future dashboard).
+  • PART 3 notify pgrst.
+- COOKIES src/lib/coach-cookie.ts — mh_coach_slug 30-day cookie helpers (mirror of referral-cookie.ts).
+- SIGNUP METADATA PATH: /auth/page.tsx reads ?coach= → AuthView (new coach prop, SLUG_RE-validated) sets the cookie + passes slug → use-auth signUp signature +coachSlug → signUpEmail embeds coach_slug in auth metadata (cookie fallback read inside signUpEmail; cookie cleared on both email-success paths — attribution happened at insert time).
+- GOOGLE OAUTH PATH (no metadata possible): NEW CoachSlugClaimer (root layout, inside AuthProvider) — on first client session with a slug cookie → POST /api/coach/claim → toast «تم ربطك بالمدرب X» → cookie consumed either way.
+- NEW /api/coach/claim (POST {slug}, requireUser client-only): resolves slug→coach (role verified), reassigns ONLY when the client's current owner is an ADMIN (still a site client) — real-coach clients can never be poached (409 already_has_coach); idempotent upsert.
+- NEW /api/coach/clients/invite (POST {email, full_name?}, requireCoach): coach's invite embeds coach_id metadata → 0033 trigger assigns to HIM; safety net upserts profile + coach_assignments if the trigger lags; admin's own invite carries no coach_id → site client → admin. Existing emails REFUSED 409 (only the admin reassigns — answer 2). emailRedirectTo /auth?next=/dashboard.
+- NEW /api/admin/coach-fees (GET coaches+fees / PATCH {coach_id, fee_per_client}, requireAdmin, target role-verified, 0..1M bound).
+- CoachView: «عملاؤك الخاصون فقط…» badge (plain coaches only) + «+ دعوة عميل» toggle form (email+name → invite → 7s toast; admin view unchanged).
+- AdminAssignmentsView: client rows now show SOURCE badges — عميل موقع — الكوتش العام (neutral) vs عميل جابه المدرب X (green) vs غير معيّن; header counters split (N عميل — M عميل موقع — K عملاء مدربين); NEW «اشتراك المدربين — سعر ثابت لكل عميل» section: per-coach fee input + live count×fee total + save (fees load independent of the 0030D RPC).
+- CoachLandingContent: signup CTA now /auth?mode=signup&coach={slug}&next=<mirror>.
+- types.ts: coach_fees table added.
+- AGENTS.md §7: CLIENT ATTRIBUTION + COACH FEES law (priority order, claim rules, invite rules, fee table, affiliate-is-site-only + later-phase note).
+
+Verification:
+- bunx tsc --noEmit → 0 errors
+- eslint (14 touched files) → 0 errors, 10 warnings (9 pre-existing no-explicit-any in CoachView/AdminAssignmentsView mapping blocks + 1 pre-existing directive note)
+- bunx vitest run → 153/153 (13 files)
+- bunx next build → ✓ compiled; ƒ /api/coach/claim, ƒ /api/coach/clients/invite, ƒ /api/admin/coach-fees registered
+
+Stage Summary:
+- The owner's model is now the CODE'S model: coaches bring clients (landing attribution + personal invites), site clients belong to the admin, nobody poaches anybody, fees are a fixed editable per-client price with a live bill table, affiliate stays site-only.
+- OWNER MANUAL STEP: run RUN_ON_SUPABASE_0033_CLIENT_ATTRIBUTION.sql (raw link in chat) — until then landing/invite signups still land on the admin (old trigger) and the fees section stays hidden (coach_fees missing → GET errors are swallowed, table renders only with rows).
+- Later phases floated by the owner: coach dashboards/permissions/usage-limits; possible coach-fee collection automation.
