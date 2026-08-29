@@ -15,6 +15,11 @@
 --   C. plans RLS: coach inserts (manual + AI draft) need an ACTIVE
 --      coaching subscription; admins exempt.
 -- Idempotent (drop+create). No tables dropped, no grants changed.
+-- REV 2 (2026-08-30): VERIFY section fixed — information_schema.policies
+--   does NOT exist in Postgres → pg_policies; plans_insert_coach is a
+--   POLICY, not a function → verified via pg_policies.with_check.
+--   DDL (Parts A/B/C) untouched. First run rolled back (single txn) —
+--   RE-RUN THE WHOLE SCRIPT.
 -- PASTE SAFETY: raw url only → SQL Editor → Ctrl+End must show:
 --   END OF SCRIPT 0041   → Run → expect: Success. No rows returned
 -- =====================================================================
@@ -182,15 +187,19 @@ notify pgrst, 'reload schema';
 select position('0041' in coalesce(pg_get_functiondef('public.get_coach_client_list()'::regprocedure),'')) > 0 as rpc_rebuilt;
 
 -- V2: subscriptions policies → expect the 3 rows below
-select policy_name, cmd
-from information_schema.policies
+-- (pg_policies — information_schema.policies does not exist in Postgres)
+select policyname, cmd
+from pg_catalog.pg_policies
 where schemaname = 'public' and tablename = 'subscriptions'
-  and policy_name in ('subs_select_owner_or_coach','subs_insert_self_or_coach','subs_update_self_or_coach')
+  and policyname in ('subs_select_owner_or_coach','subs_insert_self_or_coach','subs_update_self_or_coach')
 order by 1;
 
 -- V3: plans insert policy rebuilt → expect t
-select position('exists (' in coalesce(pg_get_functiondef('public.plans_insert_coach'::regprocedure),'')) > 0 as plans_gate_active
-where exists (select 1 from pg_proc where proname = 'plans_insert_coach');
+-- (plans_insert_coach is a POLICY, not a function → check with_check)
+select position('exists (' in coalesce(with_check,'')) > 0 as plans_gate_active
+from pg_catalog.pg_policies
+where schemaname = 'public' and tablename = 'plans'
+  and policyname = 'plans_insert_coach';
 
 -- V4 (app-level): coach opens his client list → premium/pro rows gone.
 
