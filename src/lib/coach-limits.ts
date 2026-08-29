@@ -104,9 +104,11 @@ export function coachTopupMethodLabel(
  * The SITE's own payment contacts, shown on the coach wallet page.
  * InstaPay/Vodafone values mirror the client checkout (CheckoutView).
  *
- * ⚠️ OWNER ACTION: `paypal.link` is a PLACEHOLDER — the owner asked for
- * "a new PayPal payment link" for wallet top-ups (no fixed prices).
- * Swap the value below when the owner provides the real link.
+ * PAYPAL (0035 phase 2): top-ups via PayPal are now AUTOMATED through
+ * the existing PayPal API integration (create-order → capture-order →
+ * coach_adjust_wallet) — see CoachWalletView's instant top-up rail.
+ * `paypal.value/link` below is kept only as a display fallback; swap it
+ * if the owner ever wants a manual paypal.me rail back.
  */
 export const SITE_PAYMENT_CONTACTS: Record<
   CoachTopupMethod,
@@ -119,3 +121,29 @@ export const SITE_PAYMENT_CONTACTS: Record<
 
 /** Wallet ledger kinds (mirrors 0035 coach_wallet_transactions.kind). */
 export type CoachWalletKind = "topup" | "activation" | "adjust";
+
+/* ------------------------------------------------------------------ */
+/* PAYPAL AUTOMATED TOP-UP (0035 phase 2 — owner directive:            */
+/* «PayPal معمول ربط بـ API وويب هوك — نضيف دفع المدربين ويفعل بعد     */
+/*  الدفع الناجح ويضاف الرصيد لمحفظة المدرب»)                          */
+/* ------------------------------------------------------------------ */
+
+/**
+ * USD → EGP conversion used ONLY for PayPal wallet top-ups.
+ * PayPal charges USD; the wallet ledger is EGP. SINGLE SOURCE OF TRUTH
+ * for BOTH the server credit math (/api/paypal/capture-order) and the
+ * client display (CoachWalletView) — keep both on this one constant.
+ *
+ * ⚠️ OWNER TUNABLE: update this number when the rate drifts. No fixed
+ * prices by owner decree — the coach types his own top-up amount; this
+ * is only the conversion rate for the USD charge.
+ */
+export const PAYPAL_USD_TO_EGP_RATE = 50;
+
+/** Minimum PayPal charge in USD (protects against dust top-ups). */
+export const PAYPAL_TOPUP_MIN_USD = 0.5;
+
+/** Convert an EGP top-up amount into the USD PayPal charge (2 decimals). */
+export function paypalUsdFromEgp(egpAmount: number): number {
+  return Math.round((egpAmount / PAYPAL_USD_TO_EGP_RATE) * 100) / 100;
+}

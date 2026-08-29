@@ -13,18 +13,30 @@
  *
  * Request body:
  *   { planTier: string, durationMonths: number }
+ *   — OR, for coach wallet top-ups (0035 phase 2):
+ *   { purpose: "wallet_topup", amountEgp: number }
  *
  * Response (200):
  *   { orderId: string, status: string, approveUrl: string | null }
  *
- * Response (400): invalid plan/duration
+ * Response (400): invalid plan/duration or top-up amount
  * Response (401): not authenticated
+ * Response (403): top-up requested by a non-staff user
  * Response (500): PayPal API error or misconfiguration
  */
 
 import { NextRequest, NextResponse } from "next/server";
 import { requireUser } from "@/lib/auth-server";
-import { createPayPalOrder, isPaypalConfigured, resolvePlanPrice } from "@/lib/paypal";
+import {
+  createPayPalOrder,
+  isPaypalConfigured,
+  resolvePlanPrice,
+} from "@/lib/paypal";
+import {
+  PAYPAL_TOPUP_MIN_USD,
+  PAYPAL_USD_TO_EGP_RATE,
+  paypalUsdFromEgp,
+} from "@/lib/coach-limits";
 
 export const runtime = "nodejs";
 
@@ -44,7 +56,12 @@ export async function POST(request: NextRequest) {
   }
 
   // 3. Parse + validate request body
-  let body: { planTier?: string; durationMonths?: number };
+  let body: {
+    planTier?: string;
+    durationMonths?: number;
+    purpose?: string;
+    amountEgp?: number;
+  };
   try {
     body = await request.json();
   } catch {
@@ -54,6 +71,65 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  const purpose = body.purpose === "wallet_topup" ? "wallet_topup" : "subscription";
+
+  // ── WALLET TOP-UP ORDER (0035 phase 2) ──────────────────────────────
+  // No fixed prices by owner decree — the coach types his own EGP amount;
+  // the server converts it to the USD PayPal charge via the shared rate
+  // constant (coach-limits.ts). Staff-only (coaches + admins).
+  if (purpose === "wallet_topup") {
+    if (user.role !== "coach" && user.role !== "admin") {
+      return NextResponse.json(
+        { error: "forbidden", message: "شحن المحفظة متاح للمدربين فقط" },
+        { status: 403 },
+      );
+    }
+
+    const egp = Number(body.amountEgp);
+    if (!Number.isFinite(egp) || egp <= 0 || egp > 1_000_000) {
+      return NextResponse.json(
+        { error: "bad_amount", message: "اكتب مبلغ شحن صحيح" },
+        { status: 400 },
+      );
+    }
+
+    const usd = paypalUsdFromEgp(egp);
+    if (usd < PAYPAL_TOPUP_MIN_USD) {
+      return NextResponse.json(
+        {
+          error: "amount_too_small",
+          message: `المبلغ صغير أوي على PayPal — أدنى شحن ${Math.ceil((PAYPAL_TOPUP_MIN_USD * PAYPAL_USD_TO_EGP_RATE) / 5) * 5} جنيه تقريبًا`,
+        },
+        { status: 400 },
+      );
+    }
+
+    try {
+      const order = await createPayPalOrder(
+        { currency: "USD", value: usd.toFixed(2) },
+        {
+          userId: user.id,
+          purpose: "wallet_topup",
+          egpAmount: Math.round(egp * 100) / 100,
+        },
+      );
+      const approveLink = order.links.find((l) => l.rel === "approve");
+      return NextResponse.json({
+        orderId: order.id,
+        status: order.status,
+        approveUrl: approveLink?.href || null,
+        chargeUsd: usd,
+      });
+    } catch (e: any) {
+      console.error("[paypal/create-order] Top-up order error:", e?.message);
+      return NextResponse.json(
+        { error: "Failed to create PayPal order. Please try again." },
+        { status: 500 },
+      );
+    }
+  }
+
+  // ── SUBSCRIPTION ORDER (unchanged path) ────────────────────────────
   const { planTier, durationMonths } = body;
 
   if (!planTier || typeof planTier !== "string") {

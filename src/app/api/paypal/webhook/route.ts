@@ -149,12 +149,35 @@ export async function POST(request: NextRequest) {
   );
 
   switch (eventType) {
-    case "PAYMENT.CAPTURE.COMPLETED":
-      console.log(
-        `[paypal/webhook] Capture completed: ${resourceId}. ` +
-        "Subscription activation is handled by /api/paypal/capture-order.",
-      );
+    case "PAYMENT.CAPTURE.COMPLETED": {
+      // 0035 phase 2 — wallet top-up captures are visible here for
+      // support/reconciliation ONLY. The wallet credit happens in
+      // /api/paypal/capture-order (authoritative, idempotent via the
+      // deterministic ledger ref). This webhook NEVER credits — crediting
+      // from two paths would risk double-credit races.
+      const customId: string = event?.resource?.custom_id || "";
+      let topupContext: { purpose?: string; egp_amount?: number; user_id?: string } | null = null;
+      try {
+        topupContext = customId.startsWith("{") ? JSON.parse(customId) : null;
+      } catch {
+        topupContext = null;
+      }
+      if (topupContext?.purpose === "wallet_topup") {
+        const relatedOrderId =
+          event?.resource?.supplementary_data?.related_ids?.order_id || resourceId;
+        console.log(
+          `[paypal/webhook] Wallet top-up capture: order=${relatedOrderId} ` +
+          `egp=${topupContext.egp_amount} user=${topupContext.user_id}. ` +
+          "Credit is handled (idempotently) by /api/paypal/capture-order — no action here.",
+        );
+      } else {
+        console.log(
+          `[paypal/webhook] Capture completed: ${resourceId}. ` +
+          "Subscription activation is handled by /api/paypal/capture-order.",
+        );
+      }
       break;
+    }
 
     case "PAYMENT.CAPTURE.DENIED":
       console.log(

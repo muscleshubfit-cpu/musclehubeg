@@ -4,10 +4,13 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { Upload, Copy, ExternalLink, Wallet } from "lucide-react";
+import { Upload, Copy, ExternalLink, Wallet, Loader2, Zap } from "lucide-react";
 import {
   COACH_TOPUP_METHODS,
   SITE_PAYMENT_CONTACTS,
+  PAYPAL_TOPUP_MIN_USD,
+  PAYPAL_USD_TO_EGP_RATE,
+  paypalUsdFromEgp,
   coachTopupMethodLabel,
   type CoachTopupMethod,
 } from "@/lib/coach-limits";
@@ -17,10 +20,14 @@ import { uploadReceipt, getReceiptSignedUrl } from "@/lib/data";
  * COACH WALLET (0035) — /coach/wallet
  *
  * OWNER MODEL: the coach pays THE SITE a monthly fixed fee per client.
- * This view = balance + the three top-up rails (InstaPay / Vodafone
- * Cash / PayPal link — no fixed prices, the coach types what he paid)
- * + receipt upload + request history + ledger. The admin reviews the
- * receipts on /admin/wallets and credits the wallet manually.
+ * This view = balance + top-up rails:
+ *   • PayPal (AUTOMATED — 0035 phase 2): the coach types an EGP amount,
+ *     pays through the PayPal JS SDK, and the wallet is credited
+ *     INSTANTLY by /api/paypal/capture-order (coach_adjust_wallet).
+ *     InstaPay/Vodafone Cash stay MANUAL (receipt → admin review).
+ *   • InstaPay / Vodafone Cash: pay, upload the receipt, the admin
+ *     reviews on /admin/wallets and credits the wallet manually.
+ * + request history + ledger.
  */
 
 type WalletData = {
@@ -55,6 +62,143 @@ const kindLabel = (kind: string, isAr: boolean) => {
   return isAr ? "تعديل إداري" : "Admin adjust";
 };
 
+// ───────────────────────────────────────────────────────────────────────
+// PayPal JS SDK (instant wallet top-up) — mirrors CheckoutView's loader
+// ───────────────────────────────────────────────────────────────────────
+
+const PAYPAL_PUBLIC_CLIENT_ID = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID || "";
+
+function usePayPalScript(shouldLoad: boolean) {
+  const [loaded, setLoaded] = useState(false);
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    if (!shouldLoad || loaded || error) return;
+    if (!PAYPAL_PUBLIC_CLIENT_ID) {
+      console.error("[paypal] NEXT_PUBLIC_PAYPAL_CLIENT_ID is not set");
+      setError(true);
+      return;
+    }
+    const scriptId = "paypal-sdk-script";
+    const existing = document.getElementById(scriptId);
+    if (existing) {
+      setLoaded(true);
+      return;
+    }
+    const script = document.createElement("script");
+    script.id = scriptId;
+    script.src = `https://www.paypal.com/sdk/js?client-id=${PAYPAL_PUBLIC_CLIENT_ID}&currency=USD&intent=capture`;
+    script.async = true;
+    script.onload = () => setLoaded(true);
+    script.onerror = () => {
+      console.error("[paypal] Failed to load PayPal JS SDK");
+      setError(true);
+    };
+    document.head.appendChild(script);
+  }, [shouldLoad, loaded, error]);
+
+  return { loaded, error };
+}
+
+/**
+ * PayPal buttons for the wallet top-up. The EGP amount is read at CLICK
+ * time through getAmountEgp() (a ref-backed getter) so the buttons never
+ * need re-rendering when the coach edits the amount.
+ */
+function WalletPayPalButtons({
+  getAmountEgp,
+  onSuccess,
+  onError,
+  isAr,
+}: {
+  getAmountEgp: () => number;
+  onSuccess: () => void;
+  onError: (msg: string) => void;
+  isAr: boolean;
+}) {
+  const paypalRef = useRef<HTMLDivElement>(null);
+  const renderedRef = useRef(false);
+  const amountRef = useRef(getAmountEgp);
+  useEffect(() => {
+    amountRef.current = getAmountEgp;
+  }, [getAmountEgp]);
+  const [processing, setProcessing] = useState(false);
+
+  useEffect(() => {
+    if (renderedRef.current || !paypalRef.current) return;
+    const w = window as any;
+    if (!w.paypal?.Buttons) return;
+
+    renderedRef.current = true;
+
+    w.paypal
+      .Buttons({
+        style: { layout: "vertical", color: "gold", shape: "pill", label: "paypal" },
+        createOrder: async () => {
+          const res = await fetch("/api/paypal/create-order", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ purpose: "wallet_topup", amountEgp: amountRef.current() }),
+          });
+          const data = await res.json();
+          if (!res.ok || !data.orderId) {
+            throw new Error(data.message || data.error || "Failed to create order");
+          }
+          return data.orderId;
+        },
+        onApprove: async (data: { orderID: string }) => {
+          setProcessing(true);
+          try {
+            const res = await fetch("/api/paypal/capture-order", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ orderId: data.orderID }),
+            });
+            const result = await res.json();
+            if (res.ok && result.success) {
+              toast.success(
+                isAr ? "تم شحن محفظتك بنجاح! 🎉" : "Wallet topped up successfully! 🎉",
+              );
+              onSuccess();
+            } else {
+              toast.error(result.error || (isAr ? "فشل الدفع" : "Payment failed"));
+              onError(result.error || "Capture failed");
+            }
+          } catch (e: any) {
+            toast.error(e.message || (isAr ? "خطأ في المعالجة" : "Processing error"));
+            onError(e.message);
+          } finally {
+            setProcessing(false);
+          }
+        },
+        onCancel: () => {
+          toast.info(isAr ? "تم إلغاء الدفع" : "Payment cancelled");
+        },
+        onError: (err: any) => {
+          console.error("[paypal] Wallet button error:", err);
+          toast.error(isAr ? "حدث خطأ. حاول مرة أخرى." : "An error occurred. Please try again.");
+          onError("PayPal button error");
+        },
+      })
+      .render(paypalRef.current)
+      .catch((e: any) => {
+        console.error("[paypal] Render error:", e);
+        renderedRef.current = false;
+      });
+  }, [isAr, onSuccess, onError]);
+
+  if (processing) {
+    return (
+      <div className="flex items-center justify-center gap-2 py-4 text-sm text-[#6e6e73]">
+        <Loader2 className="h-4 w-4 animate-spin" />
+        {isAr ? "جاري معالجة الدفع وشحن المحفظة..." : "Processing payment and wallet credit..."}
+      </div>
+    );
+  }
+
+  return <div ref={paypalRef} className="paypal-buttons-container" />;
+}
+
 export function CoachWalletView() {
   const { lang } = useI18n();
   const isAr = lang === "ar";
@@ -66,6 +210,13 @@ export function CoachWalletView() {
   const [receipt, setReceipt] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  // Instant PayPal top-up state (0035 phase 2)
+  const [payAmount, setPayAmount] = useState("");
+  const MIN_TOPUP_EGP = Math.ceil((PAYPAL_TOPUP_MIN_USD * PAYPAL_USD_TO_EGP_RATE) / 5) * 5;
+  const payEgp = Number(payAmount);
+  const payValid = Number.isFinite(payEgp) && payEgp >= MIN_TOPUP_EGP && payEgp <= 1_000_000;
+  const { loaded: paypalLoaded, error: paypalError } = usePayPalScript(true);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -84,6 +235,15 @@ export function CoachWalletView() {
   useEffect(() => {
     load();
   }, [load]);
+
+  const handlePayPalSuccess = useCallback(() => {
+    setPayAmount("");
+    load();
+  }, [load]);
+
+  const handlePayPalError = useCallback(() => {
+    /* toast already shown by the buttons component */
+  }, []);
 
   const submit = async () => {
     const amt = Number(amount);
@@ -187,13 +347,98 @@ export function CoachWalletView() {
             </h2>
             <p className="mt-1 text-sm font-normal text-[#6e6e73]">
               {isAr
+                ? "شحن فوري عبر PayPal — أو ادفع انستاباي / فودافون كاش وارفع الإيصال والأدمن يراجع ويشحن رصيدك."
+                : "Instant top-up via PayPal — or pay via InstaPay / Vodafone Cash, upload the receipt, and the admin reviews + credits your wallet."}
+            </p>
+
+            {/* ── INSTANT PAYPAL RAIL (automated credit) ── */}
+            <div className="mt-5 rounded-2xl border border-[#0071e3]/30 bg-[#0071e3]/[0.03] p-5">
+              <div className="flex items-center gap-2">
+                <Zap className="h-4 w-4 text-[#0071e3]" />
+                <h3 className="text-base font-semibold">
+                  {isAr ? "شحن فوري عبر PayPal" : "Instant top-up via PayPal"}
+                </h3>
+                <span className="rounded-full bg-[#34c759]/10 px-2.5 py-0.5 text-xs font-medium text-[#248a3d]">
+                  {isAr ? "الرصيد يضاف تلقائيًا" : "Auto credit"}
+                </span>
+              </div>
+              <p className="mt-1.5 text-sm font-normal text-[#6e6e73]">
+                {isAr
+                  ? `اكتب المبلغ بالجنيه، ادفع بالدولار عبر PayPal، والرصيد يضاف لمحفظتك فورًا بدون مراجعة (سعر الصرف ${PAYPAL_USD_TO_EGP_RATE} ج.م/دولار تقريبًا).`
+                  : `Type the amount in EGP, pay in USD via PayPal, and the balance is credited instantly — no review (rate ≈ ${PAYPAL_USD_TO_EGP_RATE} EGP/USD).`}
+              </p>
+
+              <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label className="text-sm font-medium">
+                    {isAr ? "مبلغ الشحن (جنيه)" : "Top-up amount (EGP)"}
+                  </label>
+                  <input
+                    type="number"
+                    min={MIN_TOPUP_EGP}
+                    step="1"
+                    value={payAmount}
+                    onChange={(e) => setPayAmount(e.target.value)}
+                    placeholder={isAr ? `مثال: 500 (أدنى ${MIN_TOPUP_EGP})` : `e.g. 500 (min ${MIN_TOPUP_EGP})`}
+                    className="mt-1.5 w-full rounded-xl border border-[#d2d2d7] px-4 py-2.5 text-sm outline-none focus:border-[#0071e3]"
+                    dir="ltr"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium">
+                    {isAr ? "المطلوب دفعه عبر PayPal" : "PayPal charge"}
+                  </label>
+                  <div
+                    className="mt-1.5 flex h-[42px] items-center rounded-xl bg-[#f5f5f7] px-4 text-sm font-medium text-[#1d1d1f]"
+                    dir="ltr"
+                  >
+                    {payValid ? `$${paypalUsdFromEgp(payEgp).toFixed(2)} USD` : "—"}
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-4">
+                {!payValid ? (
+                  <div className="rounded-xl bg-[#f5f5f7] p-4 text-center text-sm text-[#6e6e73]">
+                    {isAr
+                      ? `اكتب مبلغ صحيح (${MIN_TOPUP_EGP} ج.م أو أكثر) لتفعيل زر PayPal`
+                      : `Enter a valid amount (${MIN_TOPUP_EGP} EGP or more) to enable the PayPal button`}
+                  </div>
+                ) : paypalError ? (
+                  <div className="rounded-xl bg-[#ff3b30]/5 p-4 text-center text-sm text-[#ff3b30]">
+                    {isAr
+                      ? "مفيش إعدادات PayPal — استخدم شحن انستاباي / فودافون كاش"
+                      : "PayPal is not configured — use InstaPay / Vodafone Cash top-up"}
+                  </div>
+                ) : paypalLoaded ? (
+                  <WalletPayPalButtons
+                    getAmountEgp={() => Number(payAmount)}
+                    onSuccess={handlePayPalSuccess}
+                    onError={handlePayPalError}
+                    isAr={isAr}
+                  />
+                ) : (
+                  <div className="flex items-center justify-center gap-2 py-4 text-sm text-[#6e6e73]">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    {isAr ? "جارٍ تحميل PayPal…" : "Loading PayPal…"}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* ── MANUAL RAILS (receipt → admin review) ── */}
+            <h3 className="mt-6 text-base font-semibold">
+              {isAr ? "شحن بإيصال — مراجعة الأدمن" : "Receipt top-up — admin review"}
+            </h3>
+            <p className="mt-1 text-sm font-normal text-[#6e6e73]">
+              {isAr
                 ? "ادفع بأي وسيلة من دول بأي مبلغ، ارفع إيصال الدفع، والأدمن يراجع ويشحن رصيدك."
                 : "Pay via any rail below with any amount, upload the receipt, and the admin reviews + credits your wallet."}
             </p>
 
-            {/* Method cards */}
-            <div className="mt-5 grid gap-4 sm:grid-cols-3">
-              {COACH_TOPUP_METHODS.map((m) => {
+            {/* Method cards — InstaPay / Vodafone Cash only (PayPal is instant above) */}
+            <div className="mt-4 grid gap-4 sm:grid-cols-2">
+              {COACH_TOPUP_METHODS.filter((m) => m.id !== "paypal").map((m) => {
                 const contact = SITE_PAYMENT_CONTACTS[m.id];
                 const active = method === m.id;
                 return (
@@ -352,12 +597,16 @@ export function CoachWalletView() {
                             </span>
                           </td>
                           <td className="p-3">
-                            <button
-                              onClick={() => openReceipt(t.receipt_path)}
-                              className="text-xs font-medium text-[#0071e3] hover:underline"
-                            >
-                              {isAr ? "عرض" : "View"}
-                            </button>
+                            {t.receipt_path ? (
+                              <button
+                                onClick={() => openReceipt(t.receipt_path)}
+                                className="text-xs font-medium text-[#0071e3] hover:underline"
+                              >
+                                {isAr ? "عرض" : "View"}
+                              </button>
+                            ) : (
+                              <span className="text-xs text-[#6e6e73]">—</span>
+                            )}
                           </td>
                           <td className="p-3 text-xs text-[#6e6e73]">{t.admin_note || "—"}</td>
                         </tr>

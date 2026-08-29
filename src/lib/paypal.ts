@@ -22,6 +22,8 @@
  * Live base URL:    https://api-m.paypal.com
  */
 
+import crypto from "node:crypto";
+
 import { MEMBERSHIPS } from "@/lib/memberships";
 import { getTier } from "@/lib/plans";
 
@@ -41,6 +43,37 @@ const PAYPAL_BASE_URL =
 export const isPaypalConfigured = Boolean(
   PAYPAL_CLIENT_ID && PAYPAL_CLIENT_SECRET,
 );
+
+// ─────────────────────────────────────────────────────────────────────────
+// Deterministic ledger ref for PayPal wallet top-ups (RFC 4122 v5)
+// ─────────────────────────────────────────────────────────────────────────
+
+const TOPUP_REF_NS = crypto
+  .createHash("sha1")
+  .update("mhe-paypal-wallet-topup-v1")
+  .digest()
+  .subarray(0, 16);
+
+/**
+ * Deterministic UUID (RFC 4122 version 5) derived from a PayPal order ID.
+ *
+ * coach_wallet_transactions.ref_id is a uuid column while PayPal order IDs
+ * are opaque strings — this maps each PayPal order to a STABLE uuid so the
+ * capture endpoint can dedupe retries/webhook replays by checking the
+ * ledger instead of trusting the caller. Same orderId → same uuid, always.
+ */
+export function payPalOrderRefUuid(orderId: string): string {
+  const hash = crypto
+    .createHash("sha1")
+    .update(TOPUP_REF_NS)
+    .update(orderId, "utf8")
+    .digest();
+  const b = Array.from(hash.subarray(0, 16));
+  b[6] = (b[6] & 0x0f) | 0x50; // version 5
+  b[8] = (b[8] & 0x3f) | 0x80; // RFC 4122 variant
+  const hex = b.map((x) => x.toString(16).padStart(2, "0")).join("");
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+}
 
 // ─────────────────────────────────────────────────────────────────────────
 // Access Token (OAuth2) — cached in-memory
@@ -119,9 +152,17 @@ export type PayPalOrderContext = {
   /** The user's ID in our system (for custom_id + reference_id) */
   userId: string;
   /** The plan tier ID (e.g. 'premium', 'pro', 'coaching', 'starter', 'elite') */
-  planTier: string;
+  planTier?: string;
   /** Duration in months (1 or 12) */
-  durationMonths: number;
+  durationMonths?: number;
+  /**
+   * Order purpose — 'subscription' (default, client memberships) or
+   * 'wallet_topup' (coach wallet credit, 0035 phase 2). The purpose is
+   * embedded in custom_id so capture-order can branch safely.
+   */
+  purpose?: "subscription" | "wallet_topup";
+  /** Wallet top-up amount in EGP (server-validated) — wallet_topup only. */
+  egpAmount?: number;
 };
 
 export type PayPalCreateOrderResult = {
@@ -158,6 +199,32 @@ export async function createPayPalOrder(
   const accessToken = await getPayPalAccessToken();
   const orderUrl = `${PAYPAL_BASE_URL}/v2/checkout/orders`;
 
+  const isTopup = context.purpose === "wallet_topup";
+
+  // Order description + custom_id + reference_id depend on the purpose.
+  // custom_id is the SERVER-SIGNED context the capture endpoint parses —
+  // it is the ONLY reason capture-order can tell a subscription from a
+  // wallet top-up. Keep both shapes backward-compatible.
+  const description = isTopup
+    ? `MuscleHubEG wallet top-up (${context.egpAmount} EGP)`
+    : `MuscleHubEG ${context.planTier} subscription (${context.durationMonths} month${context.durationMonths === 1 ? "" : "s"})`;
+
+  const customId = isTopup
+    ? JSON.stringify({
+        purpose: "wallet_topup",
+        user_id: context.userId,
+        egp_amount: context.egpAmount,
+      })
+    : JSON.stringify({
+        user_id: context.userId,
+        plan_tier: context.planTier,
+        duration_months: context.durationMonths,
+      });
+
+  const referenceId = isTopup
+    ? `mhe-topup-${context.userId}`
+    : `mhe-${context.userId}-${context.planTier}-${context.durationMonths}m`;
+
   // Build the order payload per PayPal Orders API v2 spec
   const payload = {
     intent: "CAPTURE",
@@ -167,14 +234,10 @@ export async function createPayPalOrder(
           currency_code: amount.currency,
           value: amount.value,
         },
-        description: `MuscleHubEG ${context.planTier} subscription (${context.durationMonths} month${context.durationMonths === 1 ? "" : "s"})`,
-        custom_id: JSON.stringify({
-          user_id: context.userId,
-          plan_tier: context.planTier,
-          duration_months: context.durationMonths,
-        }),
+        description,
+        custom_id: customId,
         // reference_id is a shorter identifier — used by PayPal for reconciliation
-        reference_id: `mhe-${context.userId}-${context.planTier}-${context.durationMonths}m`,
+        reference_id: referenceId,
       },
     ],
     // application_context controls the PayPal checkout experience

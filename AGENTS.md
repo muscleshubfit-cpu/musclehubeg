@@ -793,16 +793,31 @@ Process:
         /api/admin/wallets/topups approve=atomic credit + notify,
         reject=reason + notify; POST /api/admin/wallets/adjust = manual
         ± with mandatory note). Coach surface: /coach/wallet (محفظتي —
-        balance, the three rails with QR/PayPal link, request form,
-        history, ledger) added to the staff nav; admin link محافظ
-        المدربين in coachExtraLinks. SITE_PAYMENT_CONTACTS holds the
-        rails; the PayPal payment link is an OWNER-SUPPLIED placeholder
-        to swap in coach-limits.ts.
+        balance, the rails with QR, request form, history, ledger)
+        added to the staff nav; admin link محافظ المدربين in
+        coachExtraLinks. SITE_PAYMENT_CONTACTS holds the manual rails.
     (d) MONTHLY QUOTA (owner: «العداد شهرى»): the coach AI quota now
         counts only the CURRENT UTC CALENDAR MONTH's done jobs —
         coachAiMonthStartISO() applied in BOTH /api/ai/jobs (enforce)
         and /api/coach/ai-usage (readout). Editing + manual upload
         stay unlimited; client tier limits unchanged.
+    (e) PAYPAL AUTOMATED TOP-UP (owner directive 2026-08-29: «PayPal
+        معمول ربط بـ API و ويب هوك بالفعل — نضيف دفع المدربين ويفعل بعد
+        الدفع الناجح ويضاف الرصيد الى محفظة المدرب؛ التفعيل اليدوى من
+        الادمن لوسائل دفع انستاباى وفودافون كاش»): create-order accepts
+        { purpose: 'wallet_topup', amountEgp } (staff-only, no fixed
+        prices — the coach types his own EGP amount; the server converts
+        to the USD charge via PAYPAL_USD_TO_EGP_RATE in coach-limits.ts,
+        the SINGLE source of truth for server math AND client display —
+        update that one constant when the rate drifts). capture-order
+        branches on custom_id.purpose: verifies user_id (IDOR) +
+        PayPal-captured USD vs egp_amount (± $0.02), then credits via
+        coach_adjust_wallet with a DETERMINISTIC UUID5 ledger ref
+        (payPalOrderRefUuid(orderId)) so retries/replays are idempotent,
+        inserts an auto-APPROVED coach_topup_requests row (receipt_path
+        '' — automated flow) and notifies the coach. The PayPal webhook
+        stays LOG-ONLY — it must NEVER credit (double-credit race).
+        InstaPay/Vodafone Cash remain the manual receipt rails in (c).
 - **USAGE LIMIT ENFORCEMENT LAW (2026-08-28, T-AI-DEEP-AUDIT-V2, owner
   directive «توسع وعمق اكبر … والتأكد من ايفو وطبيعه عضوية المستخدم فى
   حدود الاستخدام»):** every limit advertised in `memberships.ts` MUST be

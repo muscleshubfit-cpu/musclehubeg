@@ -3080,3 +3080,33 @@ Stage Summary:
 - OWNER MANUAL STEP: run RUN_ON_SUPABASE_0035_COACH_WALLET.sql (raw link in chat) — until then wallet reads/activations by coaches return 503 with the run-0035 hint; AI monthly quota works without it.
 - OWNER ACTION PENDING: real PayPal payment link — swap the placeholder in SITE_PAYMENT_CONTACTS.paypal (coach-limits.ts).
 - Later phases (owner-approved deferral): Paymob + Fawry automated top-ups; coach-fee collection automation.
+
+---
+Task ID: T-PAYPAL-TOPUP-2026-08-29
+Agent: Main (Super Z — Implementation Agent)
+Task: Owner confirmed 0034+0035 applied on production («تم Success. No rows returned») and directed the PayPal phase: «بالنسبة لباى بال معمول ربط ب Api و ويب هوك بالفعل للخدمات الاخرى ممكن نضيف دفع المدربين ويفعل بعد الدفع الناجح ويضاف الرصيد الى محفظة المدرب ، التفعيل اليدوى من الادمن لوسائل دفع انستاباى وفودافون كاش» — i.e. PayPal top-ups become AUTOMATED through the EXISTING PayPal API integration; InstaPay/Vodafone Cash stay manual (already shipped in 0035).
+
+Work Log:
+- REVIEW FIRST: worklog T-COACH-LIMITS/T-COACH-WALLET entries, 0035 schema (coach_wallets / coach_topup_requests receipt_path NOT NULL / coach_wallet_transactions kind∈topup|activation|adjust, coach_adjust_wallet(p_coach_id,p_amount,p_kind,p_ref_id uuid,p_note,p_created_by)), paypal.ts (create/capture + custom_id contract), create-order/capture-order/webhook routes, CheckoutView PayPal JS SDK pattern, /api/coach/wallet(+topup) + /api/admin/wallets(topups), CoachWalletView.
+- ARCHITECTURE LOCKED (mirrors the subscription invariant «capture-order is authoritative, webhook log-only»): purpose tag in custom_id branches the SHARED PayPal flow; the webhook NEVER credits (double-credit race) — it only logs richer wallet-topup context for reconciliation. NO new migration needed — credit goes through the existing 0035 RPC.
+- LIB paypal.ts: PayPalOrderContext gains purpose ('subscription' default | 'wallet_topup') + egpAmount; createPayPalOrder builds purpose-specific description/custom_id/reference_id (subscription custom_id shape UNCHANGED = backward compatible); NEW payPalOrderRefUuid(orderId) — deterministic RFC-4122-v5 uuid from the PayPal order id (node:crypto sha1, no deps) used as coach_wallet_transactions.ref_id so retries/replays are detectable (ref_id column is uuid, PayPal ids are strings).
+- LIB coach-limits.ts: PAYPAL_USD_TO_EGP_RATE=50 (SINGLE source of truth for server credit math AND client display — owner tunable when the rate drifts) + PAYPAL_TOPUP_MIN_USD=0.5 + paypalUsdFromEgp(); SITE_PAYMENT_CONTACTS.paypal demoted to display fallback (⚠️ placeholder note removed — PayPal is automated now).
+- /api/paypal/create-order: accepts { purpose:'wallet_topup', amountEgp } — staff-only (403 for clients), amount 0<x≤1M EGP, min-charge guard (Arabic «المبلغ صغير أوي على PayPal»), server computes USD via the shared rate (client NEVER sends USD), order created with wallet_topup custom_id; subscription path untouched.
+- /api/paypal/capture-order: after custom_id parse → user_id check FIRST, then IDOR guard, then purpose==='wallet_topup' → handleWalletTopupCapture: (1) validate server-signed egp_amount, (2) verify PayPal-captured USD vs egp via the shared rate ±$0.02 (currency must be USD), (3) idempotency — existing wallet transaction with ref_id=uuid5(orderId) AND kind='topup' → return already_credited, (4) credit via coach_adjust_wallet(kind 'topup', note «شحن محفظة عبر PayPal — order X», created_by=coach) — failure = 500 CRITICAL log (money captured, admin adjusts manually), (5) auto-APPROVED coach_topup_requests row (receipt_path '' passes NOT NULL, admin_note «شحن تلقائي عبر PayPal», note `PayPal order X`) → shows in coach history + admin wallets page, (6) notification wallet_topup_approved + response carries the new balance. Subscription path fully preserved (just renumbered M8 step).
+- /api/paypal/webhook: PAYMENT.CAPTURE.COMPLETED now parses custom_id — wallet_topup captures log order/egp/user explicitly («no action here — capture-order credits idempotently»); still 200-only, still zero crediting.
+- UI CoachWalletView: NEW instant PayPal rail (Zap icon + «الرصيد يضاف تلقائيًا» badge) — EGP amount input with live USD charge preview, PayPal JS SDK buttons (lazy loader copied from CheckoutView; amount read at click-time via ref getter so buttons never re-render), success → toast + wallet reload; manual rails grid now InstaPay/Vodafone Cash only (PayPal filtered out); receipt cell renders «—» for automated rows (empty receipt_path); copy updated. Fixed react-hooks/refs eslint error (ref write moved into useEffect) + a TDZ hazard (handlePayPalSuccess uses load → moved below its declaration).
+- AGENTS.md §7(e): PAYPAL AUTOMATED TOP-UP law — purpose-tagged orders, single rate constant, UUID5 idempotent ledger ref, webhook-never-credits, InstaPay/Vodafone manual rails unchanged.
+
+Verification:
+- bunx tsc --noEmit → 0 errors
+- eslint (6 touched files) → 0 errors (22 warnings, all pre-existing no-explicit-any style + one <img> matching CheckoutView's QR pattern)
+- bunx vitest run → 153/153 (13 files)
+- bunx next build → ✓ compiled; ƒ /api/paypal/{create,capture}-order + webhook + /coach/wallet registered
+
+Stage Summary:
+- PayPal wallet top-ups are now SELF-SERVICE: coach types EGP → pays USD in the PayPal popup → wallet credited instantly via coach_adjust_wallet (idempotent, rate-verified) → history + ledger + notification + admin visibility, no admin action. InstaPay/Vodafone Cash stay the manual receipt rails. The old «swap the PayPal placeholder link» owner action is OBSOLETE (rail removed in favor of the automated flow; constant remains as display fallback).
+- NO migration required — 0034+0035 (already applied) cover everything.
+- OWNER TUNABLE: PAYPAL_USD_TO_EGP_RATE=50 in src/lib/coach-limits.ts — one constant drives the charge shown to the coach AND the credit math; update it when the rate drifts.
+- Env unchanged: PAYPAL_CLIENT_ID/SECRET/MODE/WEBHOOK_ID (server) + NEXT_PUBLIC_PAYPAL_CLIENT_ID (client) — same integration as client checkout.
+- Residual risk (documented, accepted): if capture succeeds but the process dies BEFORE the credit RPC, the coach contacts support with the PayPal receipt and the admin credits via /api/admin/wallets/adjust; the webhook log line carries order/egp/user for reconciliation. Zero double-credit paths exist.
+- Later phases (owner-approved deferral): Paymob + Fawry automated top-ups; coach-fee collection automation.

@@ -32,7 +32,13 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { requireUser } from "@/lib/auth-server";
-import { capturePayPalOrder, isPaypalConfigured, resolvePlanPrice } from "@/lib/paypal";
+import {
+  capturePayPalOrder,
+  isPaypalConfigured,
+  payPalOrderRefUuid,
+  resolvePlanPrice,
+} from "@/lib/paypal";
+import { paypalUsdFromEgp } from "@/lib/coach-limits";
 import { supabaseAdmin, isSupabaseAdminConfigured } from "@/lib/supabase/admin";
 
 // Commission rate — same value as in src/lib/referral.ts (0.20 = 20%)
@@ -330,6 +336,153 @@ async function serverProcessAffiliateCommission(
   console.log(`[paypal/capture-order] Commission created: $${commissionAmount} for affiliate ${referral.referrer_id}`);
 }
 
+/**
+ * Wallet top-up capture (0035 phase 2) — coach paid THE SITE via PayPal.
+ *
+ * The custom_id (server-signed at create time) carries { purpose,
+ * user_id, egp_amount }. The credit amount is the SERVER-generated
+ * egp_amount — verified against PayPal's captured USD via the shared
+ * rate constant — never a client-supplied number.
+ *
+ * Idempotency: the ledger ref is a deterministic UUID5 of the PayPal
+ * order id (payPalOrderRefUuid), so a retried capture / replayed order
+ * finds the existing 'topup' transaction and returns the balance
+ * WITHOUT crediting twice.
+ */
+async function handleWalletTopupCapture(
+  orderId: string,
+  userId: string,
+  egpAmount: number,
+  captured: { currency: string; value: string } | null,
+): Promise<Response> {
+  if (!isSupabaseAdminConfigured || !supabaseAdmin) {
+    return NextResponse.json(
+      { error: "Payment system is not configured. Please contact support.", orderId },
+      { status: 500 },
+    );
+  }
+
+  // 1. Validate the server-signed EGP amount
+  const egp = Number(egpAmount);
+  if (!Number.isFinite(egp) || egp <= 0 || egp > 1_000_000) {
+    console.error(
+      `[paypal/capture-order] Top-up: invalid egp_amount in custom_id: ${egpAmount}. Order: ${orderId}`,
+    );
+    return NextResponse.json(
+      { error: "Payment verification failed (invalid order metadata).", orderId },
+      { status: 500 },
+    );
+  }
+
+  // 2. Amount verification — PayPal's captured USD must match the EGP
+  //    amount via the shared rate (± $0.02 tolerance for rounding).
+  const expectedUsd = paypalUsdFromEgp(egp);
+  const capturedValue = captured ? parseFloat(captured.value) : 0;
+  if (!captured || captured.currency !== "USD" || Math.abs(capturedValue - expectedUsd) > 0.02) {
+    console.error(
+      `[paypal/capture-order] Top-up amount mismatch: expected $${expectedUsd}, captured ${captured?.currency} ${capturedValue}. Order: ${orderId}`,
+    );
+    return NextResponse.json(
+      { error: "Payment amount mismatch. Please contact support.", orderId },
+      { status: 409 },
+    );
+  }
+
+  // 3. Idempotency — already credited for this PayPal order?
+  const refUuid = payPalOrderRefUuid(orderId);
+  const { data: existing } = await supabaseAdmin
+    .from("coach_wallet_transactions" as any)
+    .select("id")
+    .eq("ref_id", refUuid)
+    .eq("kind", "topup")
+    .maybeSingle();
+  if (existing) {
+    console.log(
+      `[paypal/capture-order] Top-up order ${orderId} already credited (ref ${refUuid}) — skipping`,
+    );
+    return NextResponse.json({
+      success: true,
+      status: "COMPLETED",
+      wallet: "already_credited",
+      orderId,
+    });
+  }
+
+  // 4. Credit the wallet — the ONLY writer is coach_adjust_wallet (0035)
+  const topupNote = `شحن محفظة عبر PayPal — order ${orderId}`;
+  const { data: newBalance, error: rpcErr } = await (supabaseAdmin as any).rpc(
+    "coach_adjust_wallet",
+    {
+      p_coach_id: userId,
+      p_amount: egp,
+      p_kind: "topup",
+      p_ref_id: refUuid,
+      p_note: topupNote,
+      p_created_by: userId,
+    },
+  );
+
+  if (rpcErr) {
+    // Money WAS captured but the credit failed — critical state; the
+    // admin can credit manually via /api/admin/wallets/adjust.
+    console.error(
+      `[paypal/capture-order] CRITICAL: PayPal order ${orderId} captured but wallet credit failed: ${rpcErr.message}`,
+    );
+    return NextResponse.json(
+      {
+        error: "Payment was captured but the wallet credit failed. Please contact support with your order ID.",
+        orderId,
+      },
+      { status: 500 },
+    );
+  }
+
+  // 5. History row (best-effort) — shows in the coach's top-up history
+  //    and the admin wallets page as an auto-approved PayPal top-up.
+  const { error: histErr } = await supabaseAdmin
+    .from("coach_topup_requests" as any)
+    .insert({
+      coach_id: userId,
+      amount: egp,
+      method: "paypal",
+      status: "approved",
+      receipt_path: "", // automated flow — no receipt; empty passes NOT NULL
+      note: `PayPal order ${orderId}`,
+      admin_note: "شحن تلقائي عبر PayPal",
+      reviewed_at: new Date().toISOString(),
+    });
+  if (histErr) {
+    console.error(
+      "[paypal/capture-order] Top-up history insert error (non-blocking):",
+      histErr.message,
+    );
+  }
+
+  // 6. Notify the coach (best-effort)
+  {
+    const { error: notifyErr } = await supabaseAdmin.from("notifications").insert({
+      user_id: userId,
+      type: "wallet_topup_approved",
+      title: "تم شحن محفظتك عبر PayPal ✅",
+      body: `اتشحن ${egp} EGP في محفظتك — الرصيد الجديد ${newBalance}.`,
+      link: "/coach/wallet",
+    });
+    if (notifyErr) console.error("[paypal/capture-order] Top-up notify error:", notifyErr.message);
+  }
+
+  console.log(
+    `[paypal/capture-order] SUCCESS: PayPal order ${orderId} captured, wallet credited +${egp} EGP for coach ${userId} (new balance ${newBalance})`,
+  );
+
+  return NextResponse.json({
+    success: true,
+    status: "COMPLETED",
+    wallet: "credited",
+    balance: newBalance,
+    orderId,
+  });
+}
+
 export async function POST(request: NextRequest) {
   // 1. Auth check — must be a logged-in user
   const userOrResponse = await requireUser(request);
@@ -391,9 +544,17 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // 6. Parse custom_id to extract user_id, plan_tier, duration_months
-  // The custom_id was set during Create Order as a JSON string.
-  let contextData: { user_id?: string; plan_tier?: string; duration_months?: number };
+  // 6. Parse custom_id to extract the server-signed order context
+  // The custom_id was set during Create Order as a JSON string:
+  //   subscription → { user_id, plan_tier, duration_months }
+  //   wallet_topup → { purpose: 'wallet_topup', user_id, egp_amount }
+  let contextData: {
+    user_id?: string;
+    plan_tier?: string;
+    duration_months?: number;
+    purpose?: string;
+    egp_amount?: number;
+  };
   try {
     contextData = JSON.parse(captureResult.customId || "{}");
   } catch {
@@ -406,11 +567,11 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const { user_id, plan_tier, duration_months } = contextData;
+  const { user_id, plan_tier, duration_months, purpose, egp_amount } = contextData;
 
-  if (!user_id || !plan_tier || !duration_months) {
+  if (!user_id) {
     console.error(
-      `[paypal/capture-order] Missing fields in custom_id: ${JSON.stringify(contextData)}`,
+      `[paypal/capture-order] Missing user_id in custom_id: ${JSON.stringify(contextData)}`,
     );
     return NextResponse.json(
       { error: "Payment verification failed (missing order metadata)." },
@@ -429,7 +590,22 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // 7.5. M8 fix: verify the captured amount matches the expected price.
+  // 7.5 WALLET TOP-UP branch (0035 phase 2) — credit the coach's wallet
+  if (purpose === "wallet_topup") {
+    return await handleWalletTopupCapture(orderId, user.id, Number(egp_amount), captureResult.amount);
+  }
+
+  if (!plan_tier || !duration_months) {
+    console.error(
+      `[paypal/capture-order] Missing fields in custom_id: ${JSON.stringify(contextData)}`,
+    );
+    return NextResponse.json(
+      { error: "Payment verification failed (missing order metadata)." },
+      { status: 500 },
+    );
+  }
+
+  // 7.6. M8 fix: verify the captured amount matches the expected price.
   // Defense-in-depth — prevents a bug in create-order or a PayPal API
   // change from granting a subscription without full payment.
   const expectedPrice = resolvePlanPrice(plan_tier, duration_months);
