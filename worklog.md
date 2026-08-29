@@ -2898,3 +2898,17 @@ Stage Summary:
 - The public coach landing is now BILINGUAL per the site's mirror convention: EN /coaches/{slug} + AR /ar/coaches/{slug}, language follows the URL, on-page toggle switches between them, hreflang pair emitted, 404 for unknown/unpublished slugs on BOTH mirrors.
 - OWNER MANUAL STEP: run RUN_ON_SUPABASE_0032_COACH_PAGES_I18N.sql in Supabase SQL Editor (raw link, single paste, expected "Success. No rows returned") — until then the EN editor fields save-blocks with a friendly 503 hint and the public pages still work (AR content fallback).
 - No Phase 2B feature changed otherwise: admin reassignment + MyCoachCard untouched; landing pages stay out of all menus per owner answer 3.
+
+---
+Task ID: T-0032-APPLIED-2026-08-29
+Agent: Main (Super Z — Implementation Agent)
+Task: Record owner confirmation «تم Success. No rows returned» — migration 0032 (coach_pages EN columns) applied on production.
+
+Work Log:
+- Owner ran RUN_ON_SUPABASE_0032_COACH_PAGES_I18N.sql via the verified raw link; expected result matched exactly.
+- No code changes. Multi-coach Phase 2B is now FULLY closed: DB foundation (0030A-D) + landing/reassignment/my-coach (0031) + bilingual landing (0032) all applied.
+
+Stage Summary:
+- STATE: multi-coach system LIVE end-to-end — 1:1 assignments, scoped RLS, coach-scoped notifications, admin reassignment column, client my-coach card, self-promoted public landing pages in AR + EN with on-page toggle and hreflang pair.
+- Vercel auto-deploys e14f04e; public mirrors /coaches/{slug} + /ar/coaches/{slug} go live with the deploy (ISR 300s).
+- Open optional follow-ups floated to owner: (a) coach display-name EN field for the landing mirrors, (b) review pass on admin reassignment UX.
