@@ -3002,3 +3002,18 @@ Stage Summary:
 - The owner's model is now the CODE'S model: coaches bring clients (landing attribution + personal invites), site clients belong to the admin, nobody poaches anybody, fees are a fixed editable per-client price with a live bill table, affiliate stays site-only.
 - OWNER MANUAL STEP: run RUN_ON_SUPABASE_0033_CLIENT_ATTRIBUTION.sql (raw link in chat) — until then landing/invite signups still land on the admin (old trigger) and the fees section stays hidden (coach_fees missing → GET errors are swallowed, table renders only with rows).
 - Later phases floated by the owner: coach dashboards/permissions/usage-limits; possible coach-fee collection automation.
+
+---
+Task ID: T-0033-APPLIED-2026-08-29
+Agent: Main (Super Z — Implementation Agent)
+Task: Record owner confirmation «تم» — migration 0033 (client attribution + coach_fees) applied on production.
+
+Work Log:
+- Owner ran RUN_ON_SUPABASE_0033_CLIENT_ATTRIBUTION.sql in Supabase SQL Editor (raw link, single paste, END OF SCRIPT 0033 marker verified before run).
+- No code changes. Multi-coach PHASE 3 (owner business model) is now FULLY closed: attribution trigger (metadata coach_id → coach_slug → admin fallback) + coach_fees table (admin-write / coach-read-own RLS) live on production.
+
+Stage Summary:
+- STATE: the owner's B2B model is now the production model end-to-end — coaches bring their OWN clients (landing CTA ?coach={slug} metadata path + personal email invites with coach_id metadata; Google-OAuth signups claim via 30-day mh_coach_slug cookie + CoachSlugClaimer → /api/coach/claim, admin-owned clients only), site clients stay the admin's, nobody poaches a real-coach client (409), admin keeps manual reassignment, fees are a fixed editable per-client price with a live count×fee bill table on /admin/assignments, affiliate stays site-clients-only.
+- Verification checklist handed to owner: (1) landing signup → client lands under THAT coach with green badge «عميل جابه المدرب X»; (2) coach dashboard «+ دعوة عميل» → invitee lands under him; (3) Google signup through landing → toast «تم ربطك بالمدرب …» on first session; (4) fees section editable with live totals.
+- Vercel auto-deploys b95678e (attribution APIs + UI live together with the trigger).
+- Open later phases (owner floated, not scheduled): coach dashboards/permissions/usage-limits; coach-fee collection automation.
