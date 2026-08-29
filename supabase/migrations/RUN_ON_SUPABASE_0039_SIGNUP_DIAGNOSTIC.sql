@@ -1,62 +1,81 @@
 -- ============================================================ 0039 ======
--- SIGNUP DIAGNOSTIC (2026-08-30) — REAL BUG FOUND BY THE USAGE TEST:
+-- SIGNUP DIAGNOSTIC v2 (2026-08-30) — REAL BUG FROM THE USAGE TEST:
 --   ALL signups fail with «Database error saving new user»
---   (auth/v1/signup → 500, admin.createUser → 500) since at least
---   2026-08-30. The auth.users → handle_new_user → profiles →
---   trg_auto_assign_client chain throws INSIDE the database; this
---   script makes the database TELL US the exact error.
+--   (auth/v1/signup → 500, admin.createUser → 500).
 --
--- READ THIS: this script WRITES NOTHING (every probe rolls back).
--- Run it in the Supabase SQL editor, then COPY THE FULL OUTPUT
--- (the Messages / Results tab) and send it back.
+-- v1 RESULT: PROBE-A hit profiles_id_fkey (expected — a profile cannot
+-- exist without a real auth.users row), which ABORTED the script before
+-- the real probe ran. v2 fixes that:
+--   • NO aborting exceptions — every probe reports via WARNING and the
+--     script always reaches the end.
+--   • PROBE-SIGNUP replays the EXACT signup insert (auth.users row →
+--     on_auth_user_created → handle_new_user → profiles →
+--     trg_auto_assign_client) and surfaces SQLSTATE + SQLERRM +
+--     PG_EXCEPTION_CONTEXT (the exact function and line that throws).
+--   • Success path reports the created profile + assignment, then
+--     DELETES the probe user (profile cascades via FK) — nothing left.
+--
+-- THIS SCRIPT WRITES NOTHING PERMANENT. Run it, then copy the FULL
+-- "Messages" output back to the chat.
 -- END OF SCRIPT 0039 — no schema is modified by this file.
 -- =========================================================================
 
--- ============ PROBE A — profiles insert alone (no auth.users) ============
+-- ============ PROBE — full signup replay (the real path) =================
 do $$
 declare
-  v_id uuid := gen_random_uuid();
+  v_id   uuid := gen_random_uuid();
+  v_msg  text;
+  v_ctx  text;
 begin
-  insert into public.profiles (id, email, full_name, role)
-  values (v_id, 'diag-profile-probe@example.com', 'diag probe', 'client');
+  begin
+    insert into auth.users (
+      instance_id, id, aud, role, email, encrypted_password,
+      email_confirmed_at, raw_app_meta_data, raw_user_meta_data,
+      created_at, updated_at,
+      confirmation_token, recovery_token, email_change_token_new, email_change
+    ) values (
+      '00000000-0000-0000-0000-000000000000', v_id,
+      'authenticated', 'authenticated',
+      'diag-signup-probe@example.com',
+      crypt('diag-probe-password', gen_salt('bf')),
+      now(),
+      '{"provider":"email","providers":["email"]}'::jsonb,
+      '{"full_name":"diag probe"}'::jsonb,
+      now(), now(), '', '', '', ''
+    );
 
-  -- success → abort the DO block so NOTHING is saved
-  raise exception 'PROBE-A OK: profiles insert works (rolled back, nothing saved)';
-exception
-  when others then
-    raise exception 'PROBE-A FAILED >> SQLSTATE=% | SQLERRM=% | CONTEXT=%',
-      sqlstate, sqlerrm, coalesce(sqlerrm, '') || ' ' || 'see CONTEXT above';
-end $$;
+    -- The insert + trigger chain survived — report what it created.
+    select coalesce(
+      (select 'profile created, role=' || role::text from public.profiles where id = v_id),
+      'profile NOT created (trigger returned but inserted nothing)'
+    ) into v_msg;
 
--- ============ PROBE B — full signup replay (auth.users insert) ===========
-do $$
-declare
-  v_id uuid := gen_random_uuid();
-begin
-  insert into auth.users (
-    instance_id, id, aud, role, email, encrypted_password,
-    email_confirmed_at, raw_app_meta_data, raw_user_meta_data,
-    created_at, updated_at,
-    confirmation_token, recovery_token, email_change_token_new, email_change
-  ) values (
-    '00000000-0000-0000-0000-000000000000', v_id, 'authenticated', 'authenticated',
-    'diag-signup-probe@example.com', crypt('diag-probe-password', gen_salt('bf')),
-    now(), '{"provider":"email","providers":["email"]}'::jsonb,
-    '{"full_name":"diag probe"}'::jsonb,
-    now(), now(), '', '', '', ''
-  );
+    select coalesce(
+      (select 'assignment → coach=' || coach_id::text
+         from public.coach_assignments where client_id = v_id),
+      'no coach assignment'
+    ) into v_ctx;
 
-  -- success → abort the DO block so NOTHING is saved
-  raise exception 'PROBE-B OK: full signup chain works (rolled back, nothing saved)';
-exception
-  when others then
-    raise exception 'PROBE-B FAILED >> SQLSTATE=% | SQLERRM=%',
-      sqlstate, sqlerrm;
+    -- Cleanup (profiles.id FK is ON DELETE CASCADE)
+    delete from auth.users where id = v_id;
+
+    raise warning 'PROBE-SIGNUP OK >> % | % (probe user deleted — nothing left behind)',
+      v_msg, v_ctx;
+
+  exception when others then
+    get stacked diagnostics v_ctx = PG_EXCEPTION_CONTEXT;
+    raise warning
+      'PROBE-SIGNUP FAILED >> SQLSTATE=% | MSG=% | CONTEXT=[%]',
+      sqlstate, sqlerrm, v_ctx;
+    -- best-effort cleanup in case a partial row survived
+    begin delete from auth.users where id = v_id; exception when others then null; end;
+  end;
 end $$;
 
 -- ============ INVENTORY 1 — every custom trigger on the chain ============
-select tgrelid::regclass as on_table, tgname as trigger_name,
-       p.proname as function_name
+select tgrelid::regclass as on_table,
+       tgname            as trigger_name,
+       p.proname         as function_name
 from pg_trigger t
 join pg_proc p on p.oid = t.tgfoid
 where tgrelid in ('auth.users'::regclass, 'public.profiles'::regclass)
@@ -64,6 +83,9 @@ where tgrelid in ('auth.users'::regclass, 'public.profiles'::regclass)
 order by 1, 2;
 
 -- ============ INVENTORY 2 — live source of handle_new_user ===============
+-- (which version is ACTUALLY deployed: 0001 casts metadata role to the
+--  user_role enum; 0036 hardcodes 'client' and contains the text
+--  "0036 HARDENING")
 select prosrc as handle_new_user_source
 from pg_proc where proname = 'handle_new_user';
 
@@ -71,13 +93,13 @@ from pg_proc where proname = 'handle_new_user';
 select prosrc as auto_assign_client_source
 from pg_proc where proname = 'auto_assign_client_to_admin';
 
--- ============ INVENTORY 4 — profiles constraints (unique/not-null) =======
+-- ============ INVENTORY 4 — profiles constraints ==========================
 select conname as constraint_name, contype as type,
        pg_get_constraintdef(oid) as definition
 from pg_constraint
 where conrelid = 'public.profiles'::regclass;
 
--- ============ INVENTORY 5 — auth.users own state =========================
+-- ============ INVENTORY 5 — recent auth users (did ANY signup land?) =====
 select count(*) as total_auth_users from auth.users;
 select email, confirmed_at is not null as confirmed, created_at
 from auth.users order by created_at desc limit 5;
