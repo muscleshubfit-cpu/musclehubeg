@@ -818,6 +818,22 @@ Process:
         '' — automated flow) and notifies the coach. The PayPal webhook
         stays LOG-ONLY — it must NEVER credit (double-credit race).
         InstaPay/Vodafone Cash remain the manual receipt rails in (c).
+    (f) COACH SELF-REGISTRATION (owner directive 2026-08-29: «التسجيل
+        الفورى» via the /for-coaches funnel): POST /api/coach/register
+        is PUBLIC (rate-limited 3/10min/IP, honeypot field `website`)
+        and creates the auth user SERVER-SIDE (email_confirm: true →
+        instant activation) — role is NEVER taken from client metadata:
+        the service role promotes the profile to 'coach' and upserts the
+        coach_emails allowlist (0017 auto-promote keeps protecting it),
+        then seeds a 0-balance coach_wallets row + welcome/admin
+        notifications. Migration 0036 HARDENS handle_new_user(): signup
+        metadata can never set a role — profiles are always born
+        'client' and staff roles are granted server-side only. Coach
+        authority covers HIS OWN clients only (never site clients);
+        client prices belong to the coach (he sets and collects them;
+        the site takes the FIXED activation fee from (a), never a
+        percentage); coaches may also subscribe to site memberships
+        (Premium/Pro) for the site's own features.
 - **USAGE LIMIT ENFORCEMENT LAW (2026-08-28, T-AI-DEEP-AUDIT-V2, owner
   directive «توسع وعمق اكبر … والتأكد من ايفو وطبيعه عضوية المستخدم فى
   حدود الاستخدام»):** every limit advertised in `memberships.ts` MUST be

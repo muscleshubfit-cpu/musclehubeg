@@ -23,6 +23,9 @@ Allow: /foods
 Allow: /foods/*
 Allow: /coaching
 Allow: /evo
+# FOR-COACHES — coach recruitment funnel (public, SEO-indexed)
+Allow: /for-coaches
+Allow: /for-coaches/register
 
 # Block private/authenticated pages
 Disallow: /dashboard

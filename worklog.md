@@ -3110,3 +3110,26 @@ Stage Summary:
 - Env unchanged: PAYPAL_CLIENT_ID/SECRET/MODE/WEBHOOK_ID (server) + NEXT_PUBLIC_PAYPAL_CLIENT_ID (client) — same integration as client checkout.
 - Residual risk (documented, accepted): if capture succeeds but the process dies BEFORE the credit RPC, the coach contacts support with the PayPal receipt and the admin credits via /api/admin/wallets/adjust; the webhook log line carries order/egp/user for reconciliation. Zero double-credit paths exist.
 - Later phases (owner-approved deferral): Paymob + Fawry automated top-ups; coach-fee collection automation.
+
+---
+Task ID: T-FOR-COACHES-2026-08-29
+Agent: Main (Super Z — Implementation Agent)
+Task: Coach recruitment landing page (/for-coaches) + INSTANT coach self-registration (/for-coaches/register + /api/coach/register) + full bilingual SEO + text-only share buttons — owner approved the proposals and instant registration («موافق على المقترحات والتسجيل الفورى»), with the laws: coach authority over HIS clients only (not the site's / not EVO coaching site clients), client prices belong to the coach (sets + collects freely), coaches can subscribe to site memberships.
+
+Work Log:
+- Audited first: 0001 handle_new_user trigger (read role from metadata!), /api/admin/staff promotion model, coach_emails allowlist + 0017 auto_promote, 0033 attribution, 0035 wallet, memberships page pattern, ShareButtons (icon-based — unusable for «لا ايقونات»), public/images assets, robots.txt blocks (/coach, /auth) → new public routes chosen: /for-coaches + /for-coaches/register.
+- src/app/for-coaches/page.tsx: bilingual (useI18n) landing — hero + trust strip, «سعر عميلك قرارك وحدك» (owner price/money law: set freely, collect directly, ZERO percentage — fixed activation fee only), «عملاؤك أنت وصلاحياتك معاهم» (authority law + EVO AI limits 4+4/client/month, edit/manual unlimited), memberships upsell (Premium/Pro for site features), 4-step how-it-works, image feature blocks, FAQ, share, final CTA. NO icons/emojis anywhere (owner decree). Images = STATIC imports (coach-portrait/dumbbell-gym/meal-nutrition/hero-coaching) via next/image → AVIF/WebP conversion.
+- src/components/CoachShareButtons.tsx: TEXT-ONLY share (WhatsApp/Facebook/X/Telegram intents + copy-link button), site tokens, zero icons.
+- src/app/for-coaches/register/page.tsx: bilingual form (name/email/password≥8/phone optional + honeypot `website`), submit → /api/coach/register → auto signIn with chosen password → redirect /coach; error mapping AR (server messages) / EN (code map); terms/privacy links.
+- src/app/api/coach/register/route.ts: PUBLIC, rate-limited 3/10min/IP (tools/lead pattern), honeypot → fake ok; server-side supabaseAdmin.auth.admin.createUser(email_confirm:true = instant per owner), metadata has NO role (signup_source:'coach_landing'); upsert coach_emails allowlist; promote profiles.role='coach' service-side (insert fallback mirrors staff route); upsert coach_wallets balance 0 (42P01 tolerated); welcome notification (notifications) + admin notification (admin_notifications type new_coach → /admin/assignments).
+- supabase/migrations/RUN_ON_SUPABASE_0036_HARDEN_SIGNUP_ROLE.sql (≤3KB, idempotent, END OF SCRIPT 0036): handle_new_user() now ALWAYS creates profiles as 'client' — closes the pre-existing metadata self-promote-to-coach hole (critical now that a PUBLIC coach funnel exists); trigger re-created idempotently + VERIFY block.
+- SEO: for-coaches/layout.tsx (AR-first title/description/keywords, OG ar_EG + image, twitter card, canonical + hreflang self-entries, JSON-LD FAQPage + BreadcrumbList from src/lib/seo.ts), register/layout.tsx metadata; sitemap.ts +2 URLs (0.9 weekly / 0.75 monthly); robots.txt Allow /for-coaches + /for-coaches/register; shared FAQ single-source src/app/for-coaches/content.ts (page + schema never drift).
+- Docs: AGENTS.md §7 law (f) COACH SELF-REGISTRATION; SECURITY.md §11 new subsection (endpoint hardening + role law + instant-activation trade-off accepted by owner); PROGRESS.md header + feature line.
+- Verified: tsc 0 / eslint 0 errors (new files 0 warnings) / vitest 153-153 / next build ✓ (/for-coaches + /for-coaches/register registered); smoke: titles + canonical + JSON-LD + sitemap entries render; API reachable (sandbox without env → 500 not-configured, expected).
+
+Stage Summary:
+- Public coach funnel live: landing → register → instant coach account (0-balance wallet, allowlisted, welcomed) → /coach.
+- Security: role NEVER from client metadata anywhere; 0036 closes the historical trigger hole for ALL signup paths.
+- OWNER STEP: run RUN_ON_SUPABASE_0036_HARDEN_SIGNUP_ROLE.sql via raw link + NOTIFY reload (in script).
+- Instant activation trade-off: email not verified at signup (email_confirm:true) — documented in SECURITY.md; flip to invite/confirm if abuse appears.
+- Share kit lives on the landing page (text-only); no nav/footer changes (page spreads via its own share buttons).

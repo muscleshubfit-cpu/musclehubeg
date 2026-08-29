@@ -1,6 +1,6 @@
 # PROGRESS.md — MuscleHub Status Board
 
-> **آخر تحديث:** 2026-08-27 (توجيهات المالك — قصر المزودين OpenRouter+Groq، إصلاحات EVO الحرجة، ميزانية ≤60s، migrations 0021+0022)
+> **آخر تحديث:** 2026-08-29 (صفحة جذب المدربين /for-coaches + تسجيل مدرب فوري + ترميز أمان 0036)
 > **قاعدة التحكم:** هذا الملف هو لوحة التحكم والتسليم المشتركة. لا ننتقل لأي خطوة قادمة دون تحديث هذا الملف والحصول على الموافقة البشرية.
 > **مصدر الحقيقة:** الكود الفعلي (`src/**` + `supabase/migrations/`) يتفوق على هذا الملف (§12.8). كل الأرقام في القسم 1 تم التحقق منها فعلياً في مهمة #4.
 > **الأرشيف الكامل:** المحتوى التاريخي التفصيلي منقول إلى `archive/PROGRESS_ARCHIVE.md`.
@@ -23,6 +23,7 @@
 - **الإشعارات**: polling 30s + إشعارات الكوتش + weekly cron (Vercel)
 - **أنظمة أخرى**: Referral (20% commission) + progress tracking + questionnaires + PayPal checkout
 - **PayPal Integration**: ✅ مكتملاً (`src/lib/paypal.ts` + 3 API routes + migration `0016`)
+- **انضم كمدرب (For-Coaches)**: ✅ صفحة هبوط ثنائية اللغة `/for-coaches` + تسجيل مدرب فوري `/for-coaches/register` + API عام `/api/coach/register` (rate limit + honeypot) + SEO كامل (metadata عربية، hreflang، JSON-LD، sitemap، robots) + مشاركة نصية بدون أيقونات + migration 0036 لتقوية `handle_new_user`
 - **SEO + AdSense**: ads.txt + noindex على الصفحات الخاصة + hreflang مصحح + 404 noindex
 - **Blog EN/AR Separation**: ✅ EN/AR مستقلان بالكامل (كل لغة لها SEO + FAQ + image + social + reading time مستقلة)
 

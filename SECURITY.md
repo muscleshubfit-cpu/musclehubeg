@@ -356,6 +356,30 @@ Cache headers (set in `vercel.json` + `next.config.ts`):
   RLS policies to check `profiles.role = 'coach'`. Defined in
   migration `0002_blog_posts_and_is_coach_grant.sql`.
 
+### Coach Self-Registration (2026-08-29, migration 0036)
+
+- **Endpoint:** `POST /api/coach/register` — PUBLIC (it must be: it is
+  the signup form behind `/for-coaches/register`). Hardened:
+  - Rate limited in-memory: 3 attempts / 10 min / IP (same pattern as
+    `/api/tools/lead`); per-instance caveat documented there applies.
+  - Honeypot field `website`: filled → fake success, nothing created.
+  - Password minimum 8 chars enforced server-side (not just HTML).
+- **Role assignment law:** the role is NEVER read from client-sent
+  signup metadata. The auth user is created server-side with plain
+  metadata; the service role then promotes the profile to `coach` and
+  upserts `coach_emails` (0017 `auto_promote_coach_if_allowed()`
+  re-protects the role on every future login).
+- **Migration 0036** hardens `handle_new_user()`: profiles are ALWAYS
+  born `role='client'` — before it, the trigger trusted
+  `raw_user_meta_data->>'role'`, so a hand-crafted signup API call
+  could self-promote to coach. That hole is closed for ALL signup
+  paths (email, OAuth, admin invite — none of them legitimately send
+  a role in metadata).
+- **Instant activation trade-off (accepted by owner «التسجيل الفورى»):**
+  accounts are created with `email_confirm: true`, so the email is not
+  verified at signup. Spam risk is mitigated by the rate limit +
+  honeypot; switch to invite/confirm flows later if abuse appears.
+
 ---
 
 ## 12. PayPal Payment Security
