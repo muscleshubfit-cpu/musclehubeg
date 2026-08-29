@@ -3186,3 +3186,23 @@ Stage Summary:
 - Owner's ad trial pricing (100/350/900) live; per-client 300/800 wallet-fee model confirmed as already implemented.
 - WhatsApp contact: coach adds number → only his ACTIVATED clients see the button on their dashboard.
 - OWNER STEP unchanged: run the (amended) 0037 raw link — it now also creates whatsapp_phone. VERIFY expects 7 coach_pages columns.
+
+---
+Task ID: T-AFFILIATE-SPLIT-2026-08-30
+Agent: Main (Super Z — Implementation Agent)
+Task: Owner directives before running 0037 — «لو العميل مسجل فى الموقع واختار مدرب محدد يقدر يشترك لكن لا يحتسب فى نظام الافيليت» + «داش بورد الادمن العملاء محتاج فصل بين عملاء المدربين وعملاء الموقع».
+
+Work Log:
+- Audited the affiliate engine (affiliate-engine.ts): commissions are created at exactly TWO choke points — reviewSubscriptionRequest() (manual receipt approval) and serverProcessAffiliateCommission() in /api/paypal/capture-order (automated PayPal). Coach client activation (/api/coach/subscriptions/activate) never touched affiliates (wallet debit only).
+- Gate 1 (subscriptions.ts): before the engine call, query coach_assignments by client_id (RLS-visible to admin + the client's own coach — exactly the actors who can review). Row exists → skip the ENTIRE engine (no affiliate_transactions / commissions / referral_earnings / notification; stale referrals row just stays pending).
+- Gate 2 (paypal/capture-order): same check with supabaseAdmin (service role, no RLS ambiguity) at the top of serverProcessAffiliateCommission → early return + log.
+- CoachView admin split: new clientSegment state ("all" | "coach" | "site") + counts (coach_clients/site_clients via assigned_coach_id from the get_coach_client_list RPC) + ADMIN-ONLY pill row above the status tabs (كل العملاء / عملاء المدربين / عملاء الموقع) filtering before search + tabs. Coach list untouched (RLS-scoped, no segment control).
+- Docs: AGENTS.md §7(g) laws 7 (AFFILIATE EXCLUSION LAW) + 8 (ADMIN CLIENTS SPLIT LAW); PROGRESS.md dated section + corrected stale ad-price line to 100/350/900.
+- NO migration needed — 0037 UNCHANGED; same raw link remains final.
+- Verified: tsc 0 / eslint 0 errors (pre-existing warnings only) / vitest 153-153 / next build ✓ / smoke: home 200, POST /api/paypal/capture-order unauth → 401.
+- Committed aee70b6, pushed via PAT; fetch verified origin/main == HEAD.
+
+Stage Summary:
+- Coach clients are now permanently outside the affiliate system at the money moment, regardless of attribution order (ref cookie first / coach first / OAuth claim).
+- Admin clients surface separates coach clients from site clients with live counts.
+- Owner can run 0037 NOW — it is byte-identical to the previously delivered link.
