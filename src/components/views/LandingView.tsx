@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useI18n } from "@/lib/i18n";
-import { useNav } from "@/hooks/use-nav";
 import { useAuth } from "@/hooks/use-auth";
 import {
   Accordion,
@@ -51,26 +50,6 @@ const PALETTE = {
 
 // Backward-compat alias (existing components reference CARD.*)
 const CARD = PALETTE;
-
-// Premium images — Musclehubeg Studio Style
-const IMAGES = {
-  gym: "/images/gym-interior.jpg",
-  meal: "/images/meal-clean.jpg",
-  running: "/images/running-outdoor.jpg",
-  dumbbell: "/images/dumbbell-gym.jpg",
-  tracker: "/images/fitness-tracker.jpg",
-  fitnessDark: "/images/fitness-dark.jpg",
-  fitnessPortrait: "/images/fitness-portrait.jpg",
-  mealDark: "/images/meal-dark.jpg",
-  mealBowl: "/images/meal-bowl.jpg",
-  yoga: "/images/yoga-studio.jpg",
-  // Hero athlete images (uploaded by Owner 2026-08-25)
-  heroAthlete1: "/images/hero/athlete-1.jpg",
-  heroAthlete2: "/images/hero/athlete-2.jpg",
-  heroAthleteBiceps: "/images/hero/athlete-biceps.jpg",
-  heroAthleteFuturistic: "/images/hero/athlete-futuristic.jpg",
-  heroTrainerSpotting: "/images/hero/trainer-spotting.jpg",
-};
 
 // Disabled Reveal — animations were causing jarring "shake" effects
 // during scroll. Now just renders children directly without any
@@ -250,7 +229,6 @@ function BlogCarousel({
 
 export function LandingView() {
   const { lang } = useI18n();
-  const { navigate } = useNav();
   const { isCoach } = useAuth();
   const isAr = lang === "ar";
 
@@ -272,8 +250,12 @@ export function LandingView() {
   useEffect(() => {
     (async () => {
       const posts = await listBlogPosts(lang);
-      // Latest 8 posts
-      const latest = posts.slice(0, 8);
+      // Split posts across the two carousels WITHOUT ever repeating a post.
+      // (Audit 2026-08-30: the old fill-from-latest logic could show the same
+      // article in BOTH "Latest" and "Featured".) Latest takes the first
+      // half (up to 8); Featured takes a daily-random pick from the rest.
+      const latestCount = Math.min(8, Math.ceil(posts.length / 2));
+      const latest = posts.slice(0, latestCount);
       setLatestPosts(latest);
 
       // Featured: random selection (different from latest, changes daily)
@@ -285,14 +267,9 @@ export function LandingView() {
         const hashB = (b.id + seed).split("").reduce((acc, c) => acc + c.charCodeAt(0), 0);
         return hashA - hashB;
       });
-      // Ensure featured posts are different from latest
+      // Featured draws ONLY from non-latest posts → no duplicates possible.
       const latestIds = new Set(latest.map((p) => p.id));
       const featured = shuffled.filter((p) => !latestIds.has(p.id)).slice(0, 6);
-      // If not enough non-latest posts, fill from latest
-      if (featured.length < 6) {
-        const extra = shuffled.filter((p) => !featured.some((f) => f.id === p.id)).slice(0, 6 - featured.length);
-        featured.push(...extra);
-      }
       setFeaturedPosts(featured);
     })();
   }, [lang]);
@@ -339,7 +316,7 @@ export function LandingView() {
             </p>
             <div className="mt-8 flex flex-wrap items-center justify-center gap-3 md:justify-start md:gap-5">
               <a
-                href="/memberships"
+                href={isAr ? "/ar/memberships" : "/memberships"}
                 className="rounded-full px-7 py-3.5 font-medium text-white transition-opacity hover:opacity-90 md:text-base"
                 style={{ backgroundColor: PALETTE.brand }}
               >
@@ -447,7 +424,7 @@ export function LandingView() {
           </div>
         </div>
       </section>
-      <GradientFade from="bg-[#f5f5f7]" to="bg-[#f5f5f7]" />
+      {/* (removed: GradientFade gray→gray — audit 2026-08-30, purely dead strip) */}
 
       {/* ===================== 4. FREE TOOLS ===================== */}
       <section className="bg-[#f5f5f7] px-4 py-12 md:py-20">
@@ -503,21 +480,41 @@ export function LandingView() {
             </Reveal>
           </div>
           <div className="mt-10 grid grid-cols-2 gap-4 md:grid-cols-4">
+            {/* Audit 2026-08-30: the homepage showed "Cardio" (0 exercises in the
+                library). Replaced by ALL 7 real muscle groups + an 8th dark
+                browse-all tile (replaces the old standalone button). */}
             {[
-              { emoji: "💪", labelAr: "صدر", labelEn: "Chest", slug: "chest", count: EXERCISES.filter(e => e.category === "chest").length, image: "/images/categories/exercises/chest.png" },
-              { emoji: "🦵", labelAr: "أرجل", labelEn: "Legs", slug: "legs", count: EXERCISES.filter(e => e.category === "legs").length, image: "/images/categories/exercises/legs.png" },
-              { emoji: "🎯", labelAr: "كور", labelEn: "Core", slug: "core", count: EXERCISES.filter(e => e.category === "core").length, image: "/images/categories/exercises/core.png" },
-              { emoji: "❤️", labelAr: "كارديو", labelEn: "Cardio", slug: "cardio", count: EXERCISES.filter(e => e.category === "cardio").length, image: "/images/categories/exercises/cardio.png" },
-            ].map((cat, i) => (
-              <Reveal key={cat.slug} delay={i * 80}>
-                <LandingExerciseCategoryCard cat={cat} isAr={isAr} />
+              { emoji: "💪", labelAr: "صدر", labelEn: "Chest", slug: "chest", image: "/images/categories/exercises/chest.png" },
+              { emoji: "🔙", labelAr: "ظهر", labelEn: "Back", slug: "back", image: "/images/categories/exercises/back.png" },
+              { emoji: "🏆", labelAr: "أكتاف", labelEn: "Shoulders", slug: "shoulders", image: "/images/categories/exercises/shoulders.png" },
+              { emoji: "🦵", labelAr: "أرجل", labelEn: "Legs", slug: "legs", image: "/images/categories/exercises/legs.png" },
+              { emoji: "💪", labelAr: "بايسبس", labelEn: "Biceps", slug: "biceps", image: "/images/categories/exercises/biceps.png" },
+              { emoji: "🏋️", labelAr: "ترايسبس", labelEn: "Triceps", slug: "triceps", image: "/images/categories/exercises/triceps.png" },
+              { emoji: "🎯", labelAr: "بطن/كور", labelEn: "Core", slug: "core", image: "/images/categories/exercises/core.png" },
+            ].map((cat) => (
+              <Reveal key={cat.slug}>
+                <LandingExerciseCategoryCard
+                  cat={{ ...cat, count: EXERCISES.filter((e) => e.category === cat.slug).length }}
+                  isAr={isAr}
+                />
               </Reveal>
             ))}
-          </div>
-          <div className="mt-8 text-center">
-            <a href="/exercises" className="inline-block rounded-full px-6 py-2.5 text-sm font-medium text-white transition-opacity hover:opacity-90" style={{ backgroundColor: PALETTE.textPrim }}>
-              {isAr ? "تصفّح كل التمارين ›" : "Browse all exercises ›"}
-            </a>
+            {/* 8th tile — browse-all CTA (replaces the old button below) */}
+            <Reveal>
+              <a
+                href={isAr ? "/ar/exercises" : "/exercises"}
+                className="group flex h-full flex-col items-center justify-center rounded-3xl p-4 text-center transition-all duration-300"
+                style={{ backgroundColor: PALETTE.sectionDark, color: "#FFFFFF", boxShadow: "0 1px 2px rgba(29, 37, 46, 0.04)" }}
+                onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-1px)"; }}
+                onMouseLeave={(e) => { e.currentTarget.style.transform = "translateY(0)"; }}
+              >
+                <span className="text-3xl">🏋️</span>
+                <span className="mt-2 text-base font-semibold">{isAr ? "كل التمارين" : "All Exercises"}</span>
+                <span className="mt-1 text-xs font-normal" style={{ color: "#A1A1A6" }}>
+                  {EXERCISES.length}+ {isAr ? "تمرين" : "exercises"}
+                </span>
+              </a>
+            </Reveal>
           </div>
         </div>
       </section>
@@ -575,10 +572,10 @@ export function LandingView() {
           </div>
           <div className="mt-10 grid grid-cols-2 gap-4 md:grid-cols-4">
             {[
-              { emoji: "🥩", titleAr: "بروتين", titleEn: "Protein", descAr: "لحم، دجاج، بيض", descEn: "Meat, chicken, eggs", image: "/images/categories/foods/protein.png" },
-              { emoji: "🍚", titleAr: "كارب", titleEn: "Carbs", descAr: "أرز، شوفان، بطاطس", descEn: "Rice, oats, potato", image: "/images/categories/foods/carb.png" },
-              { emoji: "🥑", titleAr: "دهون", titleEn: "Fats", descAr: "أفوكادو، مكسرات", descEn: "Avocado, nuts", image: "/images/categories/foods/fat.png" },
-              { emoji: "🍎", titleAr: "فواكه وخضار", titleEn: "Fruits & Veg", descAr: "طازجة وصحية", descEn: "Fresh and healthy", image: "/images/categories/foods/fruit.png" },
+              { emoji: "🥩", titleAr: "بروتين", titleEn: "Protein", descAr: "لحم، دجاج، بيض", descEn: "Meat, chicken, eggs", slug: "protein", image: "/images/categories/foods/protein.png" },
+              { emoji: "🍚", titleAr: "كارب", titleEn: "Carbs", descAr: "أرز، شوفان، بطاطس", descEn: "Rice, oats, potato", slug: "carb", image: "/images/categories/foods/carb.png" },
+              { emoji: "🥑", titleAr: "دهون", titleEn: "Fats", descAr: "أفوكادو، مكسرات", descEn: "Avocado, nuts", slug: "fat", image: "/images/categories/foods/fat.png" },
+              { emoji: "🍎", titleAr: "فواكه", titleEn: "Fruits", descAr: "طازجة وصحية", descEn: "Fresh and healthy", slug: "fruit", image: "/images/categories/foods/fruit.png" },
             ].map((cat, i) => (
               <Reveal key={cat.titleEn} delay={i * 80}>
                 <LandingFoodCategoryCard cat={cat} isAr={isAr} />
@@ -586,16 +583,17 @@ export function LandingView() {
             ))}
           </div>
           <div className="mt-8 text-center">
-            <a href="/foods" className="inline-block rounded-full px-6 py-2.5 text-sm font-medium text-white transition-opacity hover:opacity-90" style={{ backgroundColor: PALETTE.textPrim }}>
+            <a href={isAr ? "/ar/foods" : "/foods"} className="inline-block rounded-full px-6 py-2.5 text-sm font-medium text-white transition-opacity hover:opacity-90" style={{ backgroundColor: PALETTE.textPrim }}>
               {isAr ? "تصفّح كل الأكلات ›" : "Browse all foods ›"}
             </a>
           </div>
         </div>
-      <GradientFade from="bg-white" to="bg-[#f5f5f7]" />
       </section>
 
       {/* ===================== 8. BLOG (raised higher) — Latest + Featured carousels ===================== */}
       {latestPosts.length > 0 && (
+        <>
+        <GradientFade from="bg-white" to="bg-[#f5f5f7]" />
         <section className="bg-[#f5f5f7] px-4 py-12 md:py-20">
           <div className="mx-auto max-w-6xl">
             {/* Latest Posts — carousel with light cards */}
@@ -628,6 +626,7 @@ export function LandingView() {
             )}
           </div>
         </section>
+        </>
       )}
 
       {/* ===================== 9. COACHING PREVIEW ===================== */}
@@ -661,7 +660,7 @@ export function LandingView() {
                   {isAr ? "اعرف أكثر ›" : "Learn more ›"}
                 </a>
                 <a
-                  href="/memberships"
+                  href={isAr ? "/ar/memberships" : "/memberships"}
                   className="rounded-full px-6 py-2.5 text-sm font-normal transition-opacity hover:opacity-90"
                   style={{ backgroundColor: PALETTE.sectionGray, color: PALETTE.textPrim }}
                 >
@@ -687,7 +686,7 @@ export function LandingView() {
             </p>
             <div className="mt-8 grid grid-cols-2 gap-4 md:grid-cols-4">
               {featuredCoaches.map((coach, i) => {
-                const href = coach.slug ? `/coaches/${coach.slug}` : "/coaching";
+                const href = coach.slug ? `${isAr ? "/ar" : ""}/coaches/${coach.slug}` : "/coaching";
                 return (
                   <a
                     key={`${coach.slug || coach.name}-${i}`}
@@ -815,7 +814,7 @@ export function LandingView() {
             {/* Premium tier — standard card */}
             <Reveal delay={200}>
               <a
-                href="/memberships"
+                href={isAr ? "/ar/memberships" : "/memberships"}
                 className="group block rounded-3xl p-6 transition-all duration-300"
                 style={{
                   backgroundColor: PALETTE.surface,
@@ -859,7 +858,7 @@ export function LandingView() {
             {/* Pro tier — featured card (deeper accent + brand border) */}
             <Reveal delay={300}>
               <a
-                href="/memberships"
+                href={isAr ? "/ar/memberships" : "/memberships"}
                 className="group block rounded-3xl p-6 transition-all duration-300"
                 style={{
                   backgroundColor: PALETTE.surface,
@@ -919,7 +918,7 @@ export function LandingView() {
                   : "Or start with the Free plan — 868+ exercises, 8,830+ foods, 5 calculators, EVO 10 messages/day."}
               </p>
               <a
-                href="/memberships"
+                href={isAr ? "/ar/memberships" : "/memberships"}
                 className="inline-flex items-center gap-2 rounded-full px-6 py-2.5 text-sm font-semibold transition-all duration-300"
                 style={{
                   backgroundColor: PALETTE.surface,
@@ -935,7 +934,71 @@ export function LandingView() {
         </div>
       </section>
 
-      {/* ===================== 11. FAQ ===================== */}
+      {/* ===================== 11. AFFILIATE PROGRAM ===================== */}
+      {/* Audit 2026-08-30: /affiliate had ZERO homepage presence (footer/header
+          only). Owner-approved addition. Hidden from platform staff per the
+          ROLE SURFACE LAW (same rule as the header drawer). Facts match
+          AffiliateProgramView: 20% subscription commission, 30-day cookie
+          window for one-time products, $10 minimum payout. */}
+      {!isCoach && (
+        <section className="bg-white px-4 py-12 md:py-20">
+          <div className="mx-auto max-w-4xl text-center">
+            <Reveal>
+              <span
+                className="inline-flex items-center rounded-full px-4 py-1.5 text-xs font-medium"
+                style={{ backgroundColor: PALETTE.brandSoft, color: PALETTE.brandDeep }}
+              >
+                {isAr ? "برنامج الأفلييت" : "Affiliate Program"}
+              </span>
+            </Reveal>
+            <Reveal delay={100}>
+              <h2 className="mt-4 text-3xl font-semibold tracking-tight md:text-5xl" style={{ color: PALETTE.textPrim }}>
+                {isAr ? "حوّل تأثيرك إلى دخل." : "Turn your influence into income."}
+              </h2>
+            </Reveal>
+            <Reveal delay={150}>
+              <p className="mx-auto mt-4 max-w-xl text-base font-normal md:text-lg" style={{ color: PALETTE.textSec }}>
+                {isAr
+                  ? "شارك رابط الأفلييت الخاص فيك، واكسب عمولة 20% من كل اشتراك مؤهل يتم عن طريقه — تتبع آني للأرباح، والصرف من 10$."
+                  : "Share your personal affiliate link and earn a 20% commission on every qualified subscription — real-time tracking, $10 minimum payout."}
+              </p>
+            </Reveal>
+            <Reveal delay={200}>
+              <div className="mx-auto mt-8 grid max-w-2xl gap-3 md:grid-cols-3">
+                {[
+                  isAr
+                    ? { v: "20%", d: "عمولة على الاشتراكات المؤهلة" }
+                    : { v: "20%", d: "Commission on qualified subscriptions" },
+                  isAr
+                    ? { v: "30 يوم", d: "تتبع بالكوكيز للمنتجات لمرة واحدة" }
+                    : { v: "30 days", d: "Cookie tracking for one-time products" },
+                  isAr
+                    ? { v: "10$", d: "الحد الأدنى للصرف" }
+                    : { v: "$10", d: "Minimum payout" },
+                ].map((s) => (
+                  <div key={s.d} className="rounded-2xl p-5" style={{ backgroundColor: PALETTE.tint }}>
+                    <p className="text-xl font-semibold" style={{ color: PALETTE.textPrim }}>{s.v}</p>
+                    <p className="mt-1 text-xs font-normal leading-relaxed" style={{ color: PALETTE.textSec }}>{s.d}</p>
+                  </div>
+                ))}
+              </div>
+            </Reveal>
+            <Reveal delay={250}>
+              <div className="mt-8">
+                <a
+                  href="/affiliate"
+                  className="rounded-full px-8 py-3.5 text-base font-medium text-white transition-opacity hover:opacity-90"
+                  style={{ backgroundColor: PALETTE.brand }}
+                >
+                  {isAr ? "اكسب كأفلييت ›" : "Earn as an affiliate ›"}
+                </a>
+              </div>
+            </Reveal>
+          </div>
+        </section>
+      )}
+
+      {/* ===================== 12. FAQ ===================== */}
       <section className="bg-[#f5f5f7] px-4 py-12 md:py-20">
         <div className="mx-auto max-w-3xl">
           <Reveal>
@@ -960,7 +1023,7 @@ export function LandingView() {
         </div>
       </section>
 
-      {/* ===================== 11. FINAL CTA ===================== */}
+      {/* ===================== 13. FINAL CTA ===================== */}
       <section className="px-4 py-12 text-center md:py-20" style={{ backgroundColor: PALETTE.sectionWhite }}>
         <Reveal>
           <h2 className="mx-auto max-w-3xl text-4xl font-semibold leading-[1.05] tracking-tight md:text-6xl lg:text-7xl" style={{ color: PALETTE.textPrim }}>
@@ -970,7 +1033,7 @@ export function LandingView() {
         <Reveal delay={200}>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-4 md:gap-6">
             <a
-              href="/memberships"
+              href={isAr ? "/ar/memberships" : "/memberships"}
               className="rounded-full px-7 py-3 text-base font-medium text-white transition-opacity hover:opacity-90"
               style={{ backgroundColor: PALETTE.brand }}
             >
@@ -1024,7 +1087,7 @@ export function LandingView() {
               <p className="text-[10px] font-semibold uppercase tracking-wider">{isAr ? "الخدمات المدفوعة" : "Paid Services"}</p>
               <ul className="mt-3 space-y-2 text-xs">
                 <li><a href="/coaching" className="hover:underline">{isAr ? "الكوتشينج" : "Coaching"}</a></li>
-                <li><a href="/memberships" className="hover:underline">{isAr ? "العضويات" : "Memberships"}</a></li>
+                <li><a href={isAr ? "/ar/memberships" : "/memberships"} className="hover:underline">{isAr ? "العضويات" : "Memberships"}</a></li>
                 <li><a href="/evo" className="hover:underline">EVO AI Coach</a></li>
               </ul>
             </div>
@@ -1055,10 +1118,10 @@ export function LandingView() {
             <div>
               <p className="text-[10px] font-semibold uppercase tracking-wider">{isAr ? "المحتوى" : "Resources"}</p>
               <ul className="mt-3 space-y-2 text-xs">
-                <li><a href="/exercises" className="hover:underline">{isAr ? "مكتبة التمارين" : "Exercises"}</a></li>
+                <li><a href={isAr ? "/ar/exercises" : "/exercises"} className="hover:underline">{isAr ? "مكتبة التمارين" : "Exercises"}</a></li>
                 <li><a href="/programs" className="hover:underline">{isAr ? "برامج التدريب" : "Programs"}</a></li>
-                <li><a href="/foods" className="hover:underline">{isAr ? "مكتبة الأكلات" : "Foods"}</a></li>
-                <li><a href="/blog" className="hover:underline">{isAr ? "المدونة" : "Blog"}</a></li>
+                <li><a href={isAr ? "/ar/foods" : "/foods"} className="hover:underline">{isAr ? "مكتبة الأكلات" : "Foods"}</a></li>
+                <li><a href={isAr ? "/ar/blog" : "/blog"} className="hover:underline">{isAr ? "المدونة" : "Blog"}</a></li>
               </ul>
             </div>
           </div>
@@ -1069,11 +1132,13 @@ export function LandingView() {
           <div className="mt-8 border-t border-[#d2d2d7] pt-6">
             <p className="text-[10px] font-semibold uppercase tracking-wider mb-3">{isAr ? "قانوني وأساسي" : "Legal & Basic"}</p>
             <ul className="flex flex-wrap gap-x-6 gap-y-2 text-xs">
-              <li><button onClick={() => navigate("about")} className="hover:underline">{isAr ? "من نحن" : "About"}</button></li>
-              <li><button onClick={() => navigate("contact")} className="hover:underline">{isAr ? "تواصل معنا" : "Contact"}</button></li>
-              <li><button onClick={() => navigate("faq")} className="hover:underline">{isAr ? "أسئلة شائعة" : "FAQ"}</button></li>
-              <li><button onClick={() => navigate("privacy")} className="hover:underline">{isAr ? "الخصوصية" : "Privacy"}</button></li>
-              <li><button onClick={() => navigate("terms")} className="hover:underline">{isAr ? "الشروط" : "Terms"}</button></li>
+              {/* Audit 2026-08-30: was navigate() buttons → always EN. Real links
+                  now, AR-aware for pages that have Arabic mirrors. */}
+              <li><a href={isAr ? "/ar/about" : "/about"} className="hover:underline">{isAr ? "من نحن" : "About"}</a></li>
+              <li><a href="/contact" className="hover:underline">{isAr ? "تواصل معنا" : "Contact"}</a></li>
+              <li><a href={isAr ? "/ar/faq" : "/faq"} className="hover:underline">{isAr ? "أسئلة شائعة" : "FAQ"}</a></li>
+              <li><a href="/privacy" className="hover:underline">{isAr ? "الخصوصية" : "Privacy"}</a></li>
+              <li><a href="/terms" className="hover:underline">{isAr ? "الشروط" : "Terms"}</a></li>
             </ul>
           </div>
 
@@ -1127,7 +1192,7 @@ function LandingToolCard({ tool, isAr }: { tool: any; isAr: boolean }) {
 function LandingExerciseCategoryCard({ cat, isAr }: { cat: any; isAr: boolean }) {
   return (
     <a
-      href={`/exercises?cat=${cat.slug}`}
+      href={`${isAr ? "/ar" : ""}/exercises?cat=${cat.slug}`}
       className="group block overflow-hidden rounded-3xl text-center transition-all duration-300"
       style={{
         backgroundColor: PALETTE.tint,
@@ -1206,7 +1271,7 @@ function LandingProgramCard({ prog, isAr }: { prog: any; isAr: boolean }) {
 function LandingFoodCategoryCard({ cat, isAr }: { cat: any; isAr: boolean }) {
   return (
     <a
-      href={`/foods?cat=${cat.slug}`}
+      href={`${isAr ? "/ar" : ""}/foods?cat=${cat.slug}`}
       className="group block overflow-hidden rounded-3xl transition-all duration-300"
       style={{
         backgroundColor: PALETTE.tint,

@@ -387,3 +387,44 @@ Method: 2 python scripts hit **37 production URLs** (all EN static pages + detai
 2. `curl -s https://musclehubeg.vercel.app/ar/faq | grep -c 'ar-EG'` → >0 (Arabic OG locale)
 3. `curl -s https://musclehubeg.vercel.app/foods/chicken-breast | grep -o NutritionInformation` → found
 4. Search Console → Sitemaps: resubmit; request indexing for /ar/about + /ar/faq
+
+## Homepage UI Repair + Reformat (2026-08-30)
+
+### Audit findings (production + real-browser verified before this commit)
+
+| # | Defect | Impact |
+|---|---|---|
+| 1 | All 4 food cards → `/foods?cat=undefined` (slug field missing from card data) | Every food tile opened the EMPTY «0 foods / No results» state |
+| 2 | Cardio card advertised «0 exercises» | Library has ZERO cardio entries; back (114) & shoulders (125) not shown at all |
+| 3 | AR leaks: category cards + footer Resources + 7× /memberships + legal buttons (navigate → always-EN) | Arabic visitor dropped onto English pages although AR mirrors exist |
+| 4 | Same post in BOTH «Latest» & «Featured» carousels | 4 live duplicates on the homepage |
+| 5 | Affiliate program: no homepage section | A whole service invisible on the landing page |
+| 6 | Dead code: IMAGES const (15 paths), gray→gray GradientFade, dup section numbering | Maintenance noise |
+
+### Fixes
+
+| Fix | Detail |
+|---|---|
+| Food slugs | `protein / carb / fat / fruit`; «فواكه وخضار» relabeled «فواكه / Fruits» (matches real filter) |
+| Exercise grid | ALL 7 real categories with live counts + 8th dark «All Exercises 868+» tile (replaces old button) |
+| AR-aware links | `/ar/exercises?cat=*`, `/ar/foods?cat=*`, `/ar/blog`, `/ar/about`, `/ar/faq`, `/ar/memberships` (×7), `/ar/coaches/[slug]`; legal buttons now crawlable `<a>`; programs/tools stay EN (no mirrors — documented) |
+| Dedup carousels | latest = min(8, ceil(n/2)); featured only from remainder — node-simulated n=1..30 ALL PASS |
+| Affiliate section | Section 11 (between Memberships & FAQ): badge + «حوّل تأثيرك إلى دخل.» + 20% / 30-day / $10 chips + CTA; hidden for staff (ROLE SURFACE LAW) |
+| Cleanup | IMAGES removed, dead fade removed, food fade moved inside blog conditional, sections renumbered 11/12/13 |
+
+### Verification evidence
+
+| Check | Result |
+|---|---|
+| tsc / eslint / vitest / build | 0 · 0 errors · 160/160 · OK |
+| Local smoke EN (agent-browser) | 7 category cards w/ real counts (84/114/125/297/78/71/99) + All tile · `/foods?cat=protein|carb|fat|fruit` · affiliate section + CTA · NO «0 exercises» · NO undefined |
+| Local smoke AR (agent-browser) | `/ar/exercises?cat=` ×7 · `/ar/foods?cat=` ×4 · footer: /ar/exercises /ar/foods /ar/blog /ar/about /ar/faq · memberships → /ar/memberships ×7 · ZERO undefined hrefs |
+| Dedup simulation | n=1..30 → 0 duplicates possible (n=14: latest 7 + featured 6 unique) |
+
+### Post-deploy verification (owner)
+
+1. Open the homepage → exercise grid shows 8 tiles (Chest/Back/Shoulders/Legs/Biceps/Triceps/Core + dark «All»), NO cardio card
+2. Click any food tile → filtered foods list opens (NOT «No results»)
+3. Switch to العربية → same tiles now link to /ar/... pages
+4. Scroll under Memberships → new «برنامج الأفلييت» section appears (not visible for staff accounts)
+5. Blog: no article appears twice across Latest + Featured

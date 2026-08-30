@@ -3442,3 +3442,28 @@ Stage Summary:
 - Follow-up: GSC resubmit + indexing requests for /ar/about /ar/faq; monitor AI-crawler referrals in analytics
 - Commit SHA: (this commit)
 - Push status: pushed
+
+---
+Task ID: 6 (Homepage UI Repair + Reformat — Phase 45)
+Agent: Main Agent (Super Z)
+Task: تنفيذ خطة إصلاح وإعادة تنسيق الصفحة الرئيسية كاملة («نفذ الخطة كلها») بعد تدقيق مالك معتمد
+
+Work Log:
+- البيئة اتعملتها reset أثناء الجلسة → إعادة استنساخ المستودع (HEAD = ac96863، مهمة SEO/GEO السابقة كانت مرفوعة قبل الـ reset) + npm install
+- تعديل واحد: src/components/views/LandingView.tsx (كل الإصلاحات الستة):
+  1) كروت الأكلات ×4: إضافة slug (protein/carb/fat/fruit) + إعادة تسمية «فواكه وخضار»→«فواكه/Fruits» لمطابقة الفلتر الحقيقي — القبل: كلها /foods?cat=undefined (صفحة «0 foods» فاضية)
+  2) شبكة التمارين: كارديو (0 تمرين) → كل التصنيفات السبعة الحقيقية بعداد حي (84/114/125/297/78/71/99) + بلاطة «كل التمارين 868+» داكنة بدل الزر القديم
+  3) تسريب اللغة في /ar: كروت تمارين/أكلات + فوتر (تمارين/أكلات/مدونة) + كل روابط /memberships (×7) + أزرار قانوني (navigate→<a>) كلها بقت AR-aware؛ /coaches/[slug] AR-prefixed؛ programs/tools بتفضل EN (لا مرايا — النمط الموثق)
+  4) منع تكرار المقالات: latest=min(8,ceil(n/2)) وfeatured من الباقي فقط (محاكاة n=1..30: صفر تكرار)
+  5) قسم برنامج الأفلييت الجديد (11 بين العضويات والأسئلة): badge+عنوان+شرائح 20%/30يوم/10$+CTA — أرقام من AffiliateProgramView نفسها؛ مخفي للموظفين (ROLE SURFACE LAW)
+  6) تنظيف: ثابت IMAGES (15 مسار) + GradientFade رمادي→رمادي بعد EVO + نقل fade الأكلات داخل شرط المدونة + إعادة ترقيم الأقسام 11/12/13
+- إزالة useNav/navigate غير المستخدمين من LandingView
+- §3.5: tsc 0 · eslint 0 errors (743 تحذير مسبق repo-wide) · vitest 160/160 (14 ملف) · next build ✓
+- فحص محلي agent-browser على :3779: EN = 7 كروت بعداد حقيقي + بلاطة All + /foods?cat=protein..fruit + قسم أفلييت ✓ / AR = /ar/exercises?cat=×7 + /ar/foods?cat=×4 + فوتر عربي + صفر undefined ✓ + لقطات الشاشة
+- ملاحظة: قسم المدونة محليًا مخفي (لا .env/Supabase في البيئة الجديدة) — منطق التكرار اتحقق منه بالمحاكاة + هيتأكد على الإنتاج بعد النشر
+- المستندات: PROGRESS.md Phase 45 + QA_CHECKLIST.md قسم كامل (نتائج/إصلاحات/أدلة/خطوات ما بعد النشر) + worklog
+
+Stage Summary:
+- 6/6 إصلاحات من الخطة المعتمدة منفذة في commit واحد على LandingView.tsx فقط (ملف واحد = أقل سطح تماس)
+- كل بوابات §3.5 خضراء + فحص متصفح محلي EN/AR أخضر
+- بانتظار: push + نشر Vercel + تحقق إنتاجي (شملًا عدم التكرار على قاعدة البيانات الحقيقية)
