@@ -1263,6 +1263,53 @@ export type Database = {
           assigned_coach_name: string | null;
         }[];
       };
+      // 0047 (Phase 52) — server-side paging/filtering/sorting. bigint
+      // (total_count) arrives as a string from PostgREST.
+      get_coach_client_list_paged: {
+        Args: {
+          p_limit: number;
+          p_offset: number;
+          p_search: string | null;
+          p_filter: string;
+          p_segment: string;
+          p_sort: string;
+        };
+        Returns: {
+          client_id: string;
+          client_email: string;
+          client_full_name: string;
+          client_phone: string;
+          client_avatar_url: string;
+          client_created_at: string;
+          sub_tier: string;
+          sub_status: string;
+          sub_end_date: string;
+          sub_months: number;
+          pending_payments: number;
+          nutri_q_status: string;
+          fit_q_status: string;
+          assigned_coach_id: string | null;
+          assigned_coach_name: string | null;
+          total_count: string;
+        }[];
+      };
+      get_coach_client_stats: {
+        Args: Record<string, never>;
+        Returns: {
+          total: string;
+          active: string;
+          expiring: string;
+          no_plan: string;
+          no_questionnaire: string;
+          pending_payment: string;
+          expired: string;
+          premium: string;
+          pro: string;
+          coaching: string;
+          coach_clients: string;
+          site_clients: string;
+        }[];
+      };
     };
     Enums: {
       user_role: "client" | "coach" | "admin";

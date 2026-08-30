@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/hooks/use-auth";
 import { useNav } from "@/hooks/use-nav";
@@ -10,11 +10,16 @@ import {
   listSubscriptionRequests,
   getQuestionnaire,
   getCoachClientListOptimized,
+  getCoachClientListPaged,
+  getCoachClientStats,
+  type CoachClientStats,
 } from "@/lib/data";
 import { getTier } from "@/lib/plans";
 import { MEMBERSHIPS } from "@/lib/memberships";
 import { toast } from "sonner";
+import { Loader2 } from "lucide-react";
 import { NotificationForm } from "@/components/NotificationForm";
+import { Pagination } from "@/components/Pagination";
 import { cn } from "@/lib/utils";
 
 type FilterTab =
@@ -53,6 +58,71 @@ type ClientWithMeta = {
 
 type StaffMember = { id: string; full_name: string | null; email: string | null; role: string };
 
+type ClientPickerHit = Pick<ClientWithMeta, "id" | "full_name" | "email" | "phone">;
+
+/** Row shape shared by get_coach_client_list_paged + get_coach_client_list (0043 columns). */
+type CoachClientRpcRow = {
+  client_id: string;
+  client_full_name: string | null;
+  client_email: string | null;
+  client_phone: string | null;
+  client_created_at: string;
+  sub_tier: string | null;
+  sub_status: string | null;
+  sub_end_date: string | null;
+  sub_months: number | null;
+  pending_payments: number | null;
+  nutri_q_status: string | null;
+  fit_q_status: string | null;
+  assigned_coach_id: string | null;
+  assigned_coach_name: string | null;
+  total_count?: number | string;
+};
+
+function fmtNum(n: number, isAr: boolean) {
+  return n.toLocaleString(isAr ? "ar-EG" : "en-US");
+}
+
+/**
+ * Phase 52: one mapper shared by the paged RPC (0047) and the legacy
+ * optimized RPC — both return the same row shape (0043 columns).
+ */
+function enrichClientRow(row: CoachClientRpcRow): ClientWithMeta {
+  const now = Date.now();
+  const sub = row.sub_tier
+    ? {
+        tier: row.sub_tier,
+        status: row.sub_status,
+        end_date: row.sub_end_date,
+        months: row.sub_months,
+        client_id: row.client_id,
+      }
+    : undefined;
+  const isActive =
+    sub && sub.status === "active" && sub.end_date && new Date(sub.end_date).getTime() > now;
+  const isExpiring =
+    isActive && sub.end_date && new Date(sub.end_date).getTime() - now < 14 * 864e5;
+  const isExpired =
+    sub && (sub.status !== "active" || (sub.end_date && new Date(sub.end_date).getTime() <= now));
+  return {
+    id: row.client_id,
+    full_name: row.client_full_name,
+    email: row.client_email,
+    phone: row.client_phone,
+    created_at: row.client_created_at,
+    sub,
+    isActive: !!isActive,
+    isExpiring: !!isExpiring,
+    isExpired: !!isExpired,
+    hasSub: !!sub,
+    hasNutriQ: !!row.nutri_q_status,
+    hasFitQ: !!row.fit_q_status,
+    hasPendingPayment: (row.pending_payments || 0) > 0,
+    assigned_coach_id: row.assigned_coach_id ?? null,
+    assigned_coach_name: row.assigned_coach_name ?? null,
+  } as ClientWithMeta;
+}
+
 export function CoachView() {
   const { t, lang } = useI18n();
   const isAr = lang === "ar";
@@ -86,55 +156,153 @@ export function CoachView() {
   const [selectedClientIds, setSelectedClientIds] = useState<Set<string>>(new Set());
   const [selectedSingleId, setSelectedSingleId] = useState("");
 
+  // ─── Phase 52 — «تخيل لو فى ١٠٠٠٠٠٠٠ مستخدم مسجل»: server-side paging.
+  // pagedMode=true → one page per fetch via get_coach_client_list_paged
+  // (0047). If that RPC is missing (migration not applied yet) the legacy
+  // full-list path takes over and the UI slices it instead — nothing breaks.
+  const [pagedMode, setPagedMode] = useState(true);
+  const [stats, setStats] = useState<CoachClientStats | null>(null);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
+  const [totalCount, setTotalCount] = useState(0);
+  const [sort, setSort] = useState<"newest" | "oldest" | "name" | "expiry">("newest");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [refreshing, setRefreshing] = useState(false);
+  const firstLoad = useRef(true);
+  // Single-client broadcast picker — a full <select> is unusable at scale;
+  // type to search name/email/phone instead.
+  const [singleQuery, setSingleQuery] = useState("");
+  const [singleResults, setSingleResults] = useState<ClientPickerHit[]>([]);
+  const [singleChosen, setSingleChosen] = useState<{ id: string; label: string } | null>(null);
+
+  // Stats + pending payment requests — one small load, independent of paging.
   useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const [st, reqs] = await Promise.all([
+          getCoachClientStats(),
+          listSubscriptionRequests("pending").catch(() => []),
+        ]);
+        if (!cancelled) {
+          setStats(st);
+          setPendingRequests(reqs as any[]);
+        }
+      } catch {
+        /* stats stay null → tab pills count the loaded page/list instead */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // PAGED path (0047): the DB applies search/segment/tab/sort and returns
+  // ONE page + total_count. If the RPC is missing (migration not applied
+  // yet) we flip to the legacy full-list path below — nothing breaks.
+  useEffect(() => {
+    if (!pagedMode) return;
+    let cancelled = false;
+    if (firstLoad.current) setLoading(true);
+    else setRefreshing(true);
+    (async () => {
+      const rows = await getCoachClientListPaged({
+        limit: pageSize,
+        offset: (page - 1) * pageSize,
+        search: debouncedSearch,
+        filter: activeTab,
+        segment: isAdmin ? clientSegment : "all",
+        sort,
+      });
+      if (cancelled) return;
+      if (rows === null) {
+        // 0047 RPC not applied → legacy full-list mode takes over.
+        firstLoad.current = true;
+        setPagedMode(false);
+        return;
+      }
+      setClients(rows.map(enrichClientRow));
+      setTotalCount(rows.length ? Number(rows[0].total_count) || 0 : 0);
+      firstLoad.current = false;
+      setLoading(false);
+      setRefreshing(false);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [pagedMode, page, pageSize, debouncedSearch, activeTab, clientSegment, sort, isAdmin]);
+
+  // Reset to page 1 whenever the query shape changes.
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedSearch, activeTab, clientSegment, sort, pageSize]);
+
+  // Debounce the search box (350ms) so typing doesn't hammer the DB.
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(search), 350);
+    return () => clearTimeout(t);
+  }, [search]);
+
+  // Single-client picker search — paged mode asks the DB for the first 8
+  // matches; legacy filters the in-memory list. Debounced 300ms.
+  useEffect(() => {
+    const q = singleQuery.trim();
+    if (broadcastTarget !== "single" || !q) {
+      setSingleResults([]);
+      return;
+    }
+    const t = setTimeout(async () => {
+      if (pagedMode) {
+        const rows = await getCoachClientListPaged({
+          limit: 8,
+          offset: 0,
+          search: q,
+          filter: "all",
+          segment: isAdmin ? clientSegment : "all",
+          sort: "newest",
+        });
+        setSingleResults(
+          rows
+            ? rows.map((r) => ({
+                id: r.client_id,
+                full_name: r.client_full_name,
+                email: r.client_email,
+                phone: r.client_phone,
+              }))
+            : [],
+        );
+      } else {
+        const ql = q.toLowerCase();
+        setSingleResults(
+          clients
+            .filter(
+              (c) =>
+                (c.full_name || "").toLowerCase().includes(ql) ||
+                (c.email || "").toLowerCase().includes(ql) ||
+                (c.phone || "").toLowerCase().includes(ql),
+            )
+            .slice(0, 8)
+            .map((c) => ({ id: c.id, full_name: c.full_name, email: c.email, phone: c.phone })),
+        );
+      }
+    }, 300);
+    return () => clearTimeout(t);
+  }, [singleQuery, broadcastTarget, pagedMode, isAdmin, clientSegment, clients]);
+
+  // LEGACY path (0047 RPC not applied, or local dev without Supabase):
+  // the old full-list load — unchanged behavior, the UI still paginates by
+  // slicing it locally. Kept as the graceful fallback so the owner can
+  // apply the migration whenever he is ready.
+  useEffect(() => {
+    if (pagedMode) return;
+    let cancelled = false;
     (async () => {
       try {
         // Decision 1 fix: try the optimized RPC first (1 query instead of 2N+3)
         const optimized = await getCoachClientListOptimized();
 
         if (optimized && optimized.length >= 0) {
-          // RPC returned data — build client list from the single query result
-          const now = Date.now();
-          const enriched: ClientWithMeta[] = optimized.map((row: any) => {
-            const sub = row.sub_tier
-              ? {
-                  tier: row.sub_tier,
-                  status: row.sub_status,
-                  end_date: row.sub_end_date,
-                  months: row.sub_months,
-                  client_id: row.client_id,
-                }
-              : undefined;
-            const isActive =
-              sub && sub.status === "active" && sub.end_date && new Date(sub.end_date).getTime() > now;
-            const isExpiring =
-              isActive && sub.end_date && new Date(sub.end_date).getTime() - now < 14 * 864e5;
-            const isExpired =
-              sub && (sub.status !== "active" || (sub.end_date && new Date(sub.end_date).getTime() <= now));
-            const hasSub = !!sub;
-
-            return {
-              id: row.client_id,
-              full_name: row.client_full_name,
-              email: row.client_email,
-              phone: row.client_phone,
-              created_at: row.client_created_at,
-              sub,
-              isActive: !!isActive,
-              isExpiring: !!isExpiring,
-              isExpired: !!isExpired,
-              hasSub,
-              hasNutriQ: !!row.nutri_q_status,
-              hasFitQ: !!row.fit_q_status,
-              hasPendingPayment: (row.pending_payments || 0) > 0,
-              assigned_coach_id: row.assigned_coach_id ?? null,
-              assigned_coach_name: row.assigned_coach_name ?? null,
-            } as ClientWithMeta;
-          });
-          setClients(enriched);
-          // Still need pending requests for the payments UI
-          const reqs = await listSubscriptionRequests("pending");
-          setPendingRequests(reqs as any[]);
+          setClients((optimized as any[]).map(enrichClientRow));
           setLoading(false);
           return;
         }
@@ -146,6 +314,7 @@ export function CoachView() {
           listSubscriptionRequests("pending"),
         ]);
 
+        const now = Date.now();
         const enrichedFallback = await Promise.all(
           (c as any[]).map(async (client) => {
             const sub = (s as any[]).find((x) => x.client_id === client.id);
@@ -186,15 +355,20 @@ export function CoachView() {
           }),
         );
 
-        setClients(enrichedFallback);
-        setPendingRequests(reqs as any[]);
+        if (!cancelled) {
+          setClients(enrichedFallback);
+          setPendingRequests(reqs as any[]);
+        }
       } catch (e) {
         console.error("[CoachView] load failed", e);
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     })();
-  }, []);
+    return () => {
+      cancelled = true;
+    };
+  }, [pagedMode]);
 
   // Admin reassignment (Phase 2B): load the staff list once for the dropdown
   useEffect(() => {
@@ -236,8 +410,26 @@ export function CoachView() {
     }
   }
 
-  // Compute counts for each filter tab
+  // Tab counts — paged mode reads them from get_coach_client_stats()
+  // (computed by the DB over the WHOLE scope, not just the loaded page);
+  // legacy mode counts the in-memory full list.
   const counts = useMemo(() => {
+    if (pagedMode && stats) {
+      return {
+        all: stats.total,
+        active: stats.active,
+        expiring: stats.expiring,
+        no_plan: stats.no_plan,
+        no_questionnaire: stats.no_questionnaire,
+        pending_payment: stats.pending_payment,
+        expired: stats.expired,
+        premium: stats.premium,
+        pro: stats.pro,
+        coaching: stats.coaching,
+        coach_clients: stats.coach_clients,
+        site_clients: stats.site_clients,
+      };
+    }
     return {
       all: clients.length,
       active: clients.filter((c) => c.isActive).length,
@@ -253,12 +445,15 @@ export function CoachView() {
       coach_clients: clients.filter((c) => !!c.assigned_coach_id).length,
       site_clients: clients.filter((c) => !c.assigned_coach_id).length,
     };
-  }, [clients]);
+  }, [clients, stats, pagedMode]);
 
-  // Apply search + active filter
+  // Paged mode: the server already applied search+segment+tab — the loaded
+  // page IS the result set. Legacy: filter + sort client-side (unchanged,
+  // plus a client-side sort so the sort box works before 0047 is applied).
   const filtered = useMemo(() => {
+    if (pagedMode) return clients;
     const q = search.trim().toLowerCase();
-    return clients.filter((c) => {
+    const rows = clients.filter((c) => {
       // Admin segment filter (owner directive: coach clients ≠ site clients).
       // Coaches are unaffected — the RPC already scopes their list.
       if (isAdmin && clientSegment === "coach" && !c.assigned_coach_id) return false;
@@ -295,7 +490,35 @@ export function CoachView() {
           return true;
       }
     });
-  }, [clients, search, activeTab, isAdmin, clientSegment]);
+    const sorted = [...rows];
+    sorted.sort((a, b) => {
+      switch (sort) {
+        case "oldest":
+          return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+        case "name":
+          return (a.full_name || a.email || "").localeCompare(
+            b.full_name || b.email || "",
+            isAr ? "ar" : "en",
+          );
+        case "expiry": {
+          const ax = a.sub?.end_date ? new Date(a.sub.end_date).getTime() : Infinity;
+          const bx = b.sub?.end_date ? new Date(b.sub.end_date).getTime() : Infinity;
+          return ax - bx;
+        }
+        default:
+          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      }
+    });
+    return sorted;
+  }, [clients, search, activeTab, isAdmin, clientSegment, pagedMode, sort, isAr]);
+
+  // What the pager counts + the rows of the current page. Paged mode:
+  // server rows as-is. Legacy: slice the filtered list locally.
+  const pagerTotal = pagedMode ? totalCount : filtered.length;
+  const pageRows = useMemo(
+    () => (pagedMode ? filtered : filtered.slice((page - 1) * pageSize, page * pageSize)),
+    [filtered, pagedMode, page, pageSize],
+  );
 
   if (loading)
     return (
@@ -304,11 +527,6 @@ export function CoachView() {
       </div>
     );
 
-  const now = Date.now();
-  const activeSubs = clients.filter((c) => c.isActive);
-  const expiringSoon = clients.filter((c) => c.isExpiring);
-
-  // Helper: get membership tier name from old or new system
   const tierName = (subTier: string) => {
     const m = MEMBERSHIPS.find((x) => x.id === subTier);
     if (m) return isAr ? m.nameAr : m.nameEn;
@@ -347,7 +565,7 @@ export function CoachView() {
   };
 
   const selectVisibleClients = () => {
-    setSelectedClientIds(new Set(filtered.map((c) => c.id)));
+    setSelectedClientIds(new Set(pageRows.map((c) => c.id)));
   };
 
   const clearSelection = () => {
@@ -389,7 +607,7 @@ export function CoachView() {
   // Build sendMode for NotificationForm
   const notifSendMode =
     broadcastTarget === "all"
-      ? { kind: "all" as const, totalCount: clients.length }
+      ? { kind: "all" as const, totalCount: counts.all }
       : broadcastTarget === "selected"
         ? { kind: "selected" as const, userIds: Array.from(selectedClientIds) }
         : { kind: "single" as const, userId: selectedSingleId };
@@ -497,20 +715,20 @@ export function CoachView() {
             </p>
             <div className="flex flex-wrap gap-2">
               <button
-                onClick={() => { setBroadcastTarget("all"); clearSelection(); setSelectedSingleId(""); }}
+                onClick={() => { setBroadcastTarget("all"); clearSelection(); setSelectedSingleId(""); setSingleChosen(null); }}
                 className={`rounded-full px-4 py-2 text-xs font-medium transition-all ${broadcastTarget === "all" ? "bg-[#1d1d1f] text-white" : "bg-white text-[#6e6e73] hover:bg-white/80"}`}
               >
                 {isAr ? "جميع العملاء" : "All clients"}
-                <span className="ms-1 opacity-60">({clients.length})</span>
+                <span className="ms-1 opacity-60">({counts.all})</span>
               </button>
               <button
-                onClick={() => { setBroadcastTarget("selected"); setSelectedSingleId(""); }}
+                onClick={() => { setBroadcastTarget("selected"); setSelectedSingleId(""); setSingleChosen(null); }}
                 className={`rounded-full px-4 py-2 text-xs font-medium transition-all ${broadcastTarget === "selected" ? "bg-[#1d1d1f] text-white" : "bg-white text-[#6e6e73] hover:bg-white/80"}`}
               >
                 {isAr ? "عملاء محددون" : "Selected clients"}
               </button>
               <button
-                onClick={() => { setBroadcastTarget("single"); clearSelection(); }}
+                onClick={() => { setBroadcastTarget("single"); clearSelection(); setSingleChosen(null); }}
                 className={`rounded-full px-4 py-2 text-xs font-medium transition-all ${broadcastTarget === "single" ? "bg-[#1d1d1f] text-white" : "bg-white text-[#6e6e73] hover:bg-white/80"}`}
               >
                 {isAr ? "عميل واحد" : "Single client"}
@@ -518,24 +736,60 @@ export function CoachView() {
             </div>
           </div>
 
-          {/* Single client dropdown */}
+          {/* Single client picker — searchable (Phase 52: a full <select>
+              is unusable at scale; type to search name/email/phone) */}
           {broadcastTarget === "single" && (
             <div className="mb-5">
               <p className="mb-2 text-xs font-medium uppercase tracking-wide text-[#6e6e73]">
                 {isAr ? "اختر العميل" : "Select client"}
               </p>
-              <select
-                value={selectedSingleId}
-                onChange={(e) => setSelectedSingleId(e.target.value)}
-                className="w-full rounded-xl border border-[#d2d2d7] bg-white px-4 py-2.5 text-sm outline-none focus:border-[#0071e3]"
-              >
-                <option value="">{isAr ? "— اختر عميل —" : "— Select a client —"}</option>
-                {clients.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.full_name || c.email || c.id}
-                  </option>
-                ))}
-              </select>
+              {selectedSingleId && singleChosen ? (
+                <span className="inline-flex items-center gap-2 rounded-full bg-[#0071e3]/10 px-4 py-2 text-sm font-medium text-[#0071e3]">
+                  {singleChosen.label}
+                  <button
+                    onClick={() => { setSelectedSingleId(""); setSingleChosen(null); }}
+                    aria-label={isAr ? "إلغاء الاختيار" : "Clear selection"}
+                    className="text-[#0071e3]/70 transition-opacity hover:text-[#0071e3]"
+                  >
+                    ×
+                  </button>
+                </span>
+              ) : (
+                <div className="relative">
+                  <input
+                    value={singleQuery}
+                    onChange={(e) => setSingleQuery(e.target.value)}
+                    placeholder={isAr ? "اكتب اسم أو بريد أو رقم العميل…" : "Type a name, email or phone…"}
+                    className="w-full rounded-xl border border-[#d2d2d7] bg-white px-4 py-2.5 text-sm outline-none focus:border-[#0071e3]"
+                  />
+                  {singleResults.length > 0 && (
+                    <div className="absolute inset-x-0 z-10 mt-1 max-h-56 overflow-y-auto rounded-2xl border border-[#d2d2d7] bg-white p-1 shadow-lg shadow-black/5">
+                      {singleResults.map((r) => (
+                        <button
+                          key={r.id}
+                          onClick={() => {
+                            setSelectedSingleId(r.id);
+                            setSingleChosen({ id: r.id, label: r.full_name || r.email || r.id });
+                            setSingleQuery("");
+                            setSingleResults([]);
+                          }}
+                          className="flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2 text-start text-sm transition-colors hover:bg-[#f5f5f7]"
+                        >
+                          <span className="font-medium">{r.full_name || "—"}</span>
+                          <span className="truncate text-xs font-normal text-[#6e6e73]" dir="ltr">
+                            {r.email || r.phone || ""}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  {singleQuery.trim() && singleResults.length === 0 && (
+                    <p className="mt-1 px-1 text-xs text-[#86868b]">
+                      {isAr ? "مفيش نتايج مطابقة" : "No matches"}
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
@@ -574,6 +828,7 @@ export function CoachView() {
               setShowBroadcast(false);
               setSelectedClientIds(new Set());
               setSelectedSingleId("");
+              setSingleChosen(null);
             }}
             onSelectAll={selectVisibleClients}
             onClearSelection={clearSelection}
@@ -581,19 +836,18 @@ export function CoachView() {
         </div>
       )}
 
-      {/* Stats
-      {/* Stats — Apple-style large numbers */}
+      {/* Stats — Apple-style large numbers (paged mode: DB-wide counts) */}
       <div className="grid gap-4 sm:grid-cols-3">
         <div className="rounded-2xl bg-[#f5f5f7] p-6">
-          <p className="text-3xl font-semibold tracking-tight">{clients.length}</p>
+          <p className="text-3xl font-semibold tracking-tight">{fmtNum(counts.all, isAr)}</p>
           <p className="mt-1 text-xs font-normal text-[#6e6e73]">{t("coach.totalClients")}</p>
         </div>
         <div className="rounded-2xl bg-[#f5f5f7] p-6">
-          <p className="text-3xl font-semibold tracking-tight text-[#34c759]">{activeSubs.length}</p>
+          <p className="text-3xl font-semibold tracking-tight text-[#34c759]">{fmtNum(counts.active, isAr)}</p>
           <p className="mt-1 text-xs font-normal text-[#6e6e73]">{t("coach.activeSubs")}</p>
         </div>
         <div className="rounded-2xl bg-[#f5f5f7] p-6">
-          <p className="text-3xl font-semibold tracking-tight text-[#ff9500]">{expiringSoon.length}</p>
+          <p className="text-3xl font-semibold tracking-tight text-[#ff9500]">{fmtNum(counts.expiring, isAr)}</p>
           <p className="mt-1 text-xs font-normal text-[#6e6e73]">{t("coach.expiringSoon")}</p>
         </div>
       </div>
@@ -630,13 +884,29 @@ export function CoachView() {
       {/* Clients list with filter tabs */}
       <div className="rounded-3xl bg-[#f5f5f7] p-6 md:p-8">
         <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
-          <h2 className="text-xl font-semibold tracking-tight">{t("coach.clients")}</h2>
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder={t("coach.searchClients")}
-            className="w-full max-w-xs rounded-full border border-[#d2d2d7] bg-white px-5 py-2.5 text-sm font-normal outline-none focus:border-[#0071e3]"
-          />
+          <h2 className="flex items-center gap-2 text-xl font-semibold tracking-tight">
+            {t("coach.clients")}
+            {refreshing && <Loader2 className="h-4 w-4 animate-spin text-[#86868b]" />}
+          </h2>
+          <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder={t("coach.searchClients")}
+              className="w-full max-w-xs rounded-full border border-[#d2d2d7] bg-white px-5 py-2.5 text-sm font-normal outline-none focus:border-[#0071e3]"
+            />
+            <select
+              value={sort}
+              onChange={(e) => setSort(e.target.value as "newest" | "oldest" | "name" | "expiry")}
+              aria-label={isAr ? "الترتيب" : "Sort"}
+              className="rounded-full border border-[#d2d2d7] bg-white px-4 py-2.5 text-sm font-normal outline-none focus:border-[#0071e3]"
+            >
+              <option value="newest">{isAr ? "الأحدث تسجيلًا" : "Newest"}</option>
+              <option value="oldest">{isAr ? "الأقدم تسجيلًا" : "Oldest"}</option>
+              <option value="name">{isAr ? "الاسم" : "Name"}</option>
+              <option value="expiry">{isAr ? "الأقرب انتهاءً" : "Expiring first"}</option>
+            </select>
+          </div>
         </div>
 
         {/* Admin segment control — «فصل بين عملاء المدربين وعملاء الموقع»
@@ -734,8 +1004,8 @@ export function CoachView() {
                     <th className="w-10 p-3">
                       <input
                         type="checkbox"
-                        checked={filtered.length > 0 && filtered.every((c) => selectedClientIds.has(c.id))}
-                        onChange={() => filtered.every((c) => selectedClientIds.has(c.id)) ? clearSelection() : selectVisibleClients()}
+                        checked={pageRows.length > 0 && pageRows.every((c) => selectedClientIds.has(c.id))}
+                        onChange={() => pageRows.every((c) => selectedClientIds.has(c.id)) ? clearSelection() : selectVisibleClients()}
                         className="h-4 w-4 rounded accent-[#0071e3]"
                       />
                     </th>
@@ -766,7 +1036,7 @@ export function CoachView() {
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((c) => {
+                {pageRows.map((c) => {
                   return (
                     <tr key={c.id} className={cn("border-b border-[#d2d2d7]/60 hover:bg-white/50", selectedClientIds.has(c.id) && "bg-[#0071e3]/5")}>
                       {broadcastTarget === "selected" && (
@@ -907,6 +1177,20 @@ export function CoachView() {
             </table>
           </div>
         )}
+
+        {/* Pager — server-side in paged mode (0047), local slicing in legacy.
+            Renders nothing when the list is empty. */}
+        <Pagination
+          page={page}
+          pageSize={pageSize}
+          total={pagerTotal}
+          onPageChange={setPage}
+          onPageSizeChange={setPageSize}
+          sizes={[25, 50, 100]}
+          isAr={isAr}
+          busy={refreshing}
+          className="mt-6 border-t border-[#d2d2d7]/60 pt-4"
+        />
       </div>
     </div>
   );

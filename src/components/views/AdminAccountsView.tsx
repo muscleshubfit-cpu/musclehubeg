@@ -5,6 +5,7 @@ import { useI18n } from "@/lib/i18n";
 import { Search, Trash2, Loader2, FlaskConical, Users, X } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { Pagination } from "@/components/Pagination";
 
 /**
  * ADMIN ACCOUNTS MANAGER (0045 + mobile bulk-delete round).
@@ -42,6 +43,8 @@ type Account = {
 
 type RoleFilter = "all" | "client" | "coach" | "admin" | "test";
 
+const ACCOUNTS_PAGE_SIZE = 25;
+
 export function AdminAccountsView() {
   const { lang } = useI18n();
   const isAr = lang === "ar";
@@ -55,6 +58,9 @@ export function AdminAccountsView() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkConfirm, setBulkConfirm] = useState(false);
   const [bulkBusy, setBulkBusy] = useState(false);
+  // Phase 52 — render the accounts list page by page (25 per page) so the
+  // DOM stays bounded no matter how many accounts exist.
+  const [page, setPage] = useState(1);
 
   const load = async () => {
     setLoading(true);
@@ -89,15 +95,31 @@ export function AdminAccountsView() {
 
   const testCount = rows.filter((r) => r.is_test_account).length;
 
+  // Phase 52 — paginate the rendered list; new search/filter → page 1;
+  // deletions clamp the page back into range.
+  const totalPages = Math.max(1, Math.ceil(filtered.length / ACCOUNTS_PAGE_SIZE));
+  const pageRows = useMemo(
+    () => filtered.slice((page - 1) * ACCOUNTS_PAGE_SIZE, page * ACCOUNTS_PAGE_SIZE),
+    [filtered, page],
+  );
+  useEffect(() => {
+    if (page > totalPages) setPage(totalPages);
+  }, [page, totalPages]);
+  useEffect(() => {
+    setPage(1);
+  }, [query, roleFilter]);
+
   // Selection helpers — only non-admin rows are selectable (server skips
-  // admins anyway; mirroring the guard keeps the UI honest).
-  const selectableFiltered = useMemo(
-    () => filtered.filter((r) => r.role !== "admin"),
-    [filtered],
+  // admins anyway; mirroring the guard keeps the UI honest). Select-all
+  // acts on the VISIBLE PAGE only — selecting an unbounded filtered set
+  // for a bulk delete is unsafe at scale.
+  const selectablePage = useMemo(
+    () => pageRows.filter((r) => r.role !== "admin"),
+    [pageRows],
   );
   const allSelected =
-    selectableFiltered.length > 0 &&
-    selectableFiltered.every((r) => selected.has(r.id));
+    selectablePage.length > 0 &&
+    selectablePage.every((r) => selected.has(r.id));
 
   const toggleSelect = (id: string) => {
     setSelected((prev) => {
@@ -113,9 +135,9 @@ export function AdminAccountsView() {
     setSelected((prev) => {
       const next = new Set(prev);
       if (allSelected) {
-        selectableFiltered.forEach((r) => next.delete(r.id));
+        selectablePage.forEach((r) => next.delete(r.id));
       } else {
-        selectableFiltered.forEach((r) => next.add(r.id));
+        selectablePage.forEach((r) => next.add(r.id));
       }
       return next;
     });
@@ -388,7 +410,7 @@ export function AdminAccountsView() {
               ? isAr ? `محدد: ${selected.size}` : `${selected.size} selected`
               : isAr ? "علّم على الحسابات اللي عايز تمسحها" : "Tick the accounts you want to delete"}
           </span>
-          {selectableFiltered.length > 0 && (
+          {selectablePage.length > 0 && (
             <button
               onClick={toggleSelectAll}
               className={cn(
@@ -399,8 +421,8 @@ export function AdminAccountsView() {
               )}
             >
               {allSelected
-                ? isAr ? "إلغاء تحديد الكل" : "Deselect all"
-                : isAr ? "تحديد الكل" : "Select all"}
+                ? isAr ? "إلغاء تحديد الصفحة" : "Deselect page"
+                : isAr ? "تحديد الصفحة الظاهرة" : "Select visible page"}
             </button>
           )}
         </div>
@@ -423,7 +445,7 @@ export function AdminAccountsView() {
           {/* ═══ MOBILE (below md): stacked cards — actions always visible.
                   The old wide table clipped the Actions column here. ═══ */}
           <div className="space-y-3 md:hidden">
-            {filtered.map((acc) => {
+            {pageRows.map((acc) => {
               const badge = roleBadge(acc.role);
               return (
                 <div
@@ -477,8 +499,8 @@ export function AdminAccountsView() {
                       type="checkbox"
                       checked={allSelected}
                       onChange={toggleSelectAll}
-                      disabled={selectableFiltered.length === 0}
-                      aria-label={isAr ? "تحديد الكل" : "Select all"}
+                      disabled={selectablePage.length === 0}
+                      aria-label={isAr ? "تحديد الصفحة الظاهرة" : "Select visible page"}
                       className="h-4 w-4 cursor-pointer accent-[#0071e3] disabled:cursor-not-allowed disabled:opacity-30"
                     />
                   </th>
@@ -489,7 +511,7 @@ export function AdminAccountsView() {
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((acc) => {
+                {pageRows.map((acc) => {
                   const badge = roleBadge(acc.role);
                   const busy = busyId === acc.id;
                   return (
@@ -535,6 +557,18 @@ export function AdminAccountsView() {
             </table>
           </div>
         </>
+      )}
+
+      {/* Pager — page-by-page rendering of the loaded list */}
+      {!loading && filtered.length > 0 && (
+        <Pagination
+          page={page}
+          pageSize={ACCOUNTS_PAGE_SIZE}
+          total={filtered.length}
+          onPageChange={setPage}
+          isAr={isAr}
+          className="border-t border-[#d2d2d7]/60 pt-4"
+        />
       )}
 
       <p className="text-xs text-[#6e6e73]">

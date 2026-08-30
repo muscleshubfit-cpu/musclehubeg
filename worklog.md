@@ -3568,3 +3568,21 @@ Work Log:
 
 Stage Summary:
 - Committed + pushed; production verify: avatar→console, hub page, review queue missing tab + remind button, register onboarding
+
+---
+Task ID: 11
+Agent: Super Z (main)
+Task: Phase 52 — admin dashboard regroup + client list at scale (musclehubeg)
+
+Work Log:
+- Admin home: flat 13-card grid → 5 labelled sections (المدربون / العملاء والعضويات / المحتوى / النمو والتسويق / حسابي) + quick-stats strip (4 linked tiles fed by the new stats RPC + pending-pages API)
+- Migration 0047 (RUN_ON_SUPABASE_0047_CLIENT_LIST_PAGED.sql): get_coach_client_list_paged (one page + total_count, in-DB search/filter/segment/sort, same role boundary as 0043, clamped limit ≤100, stable tiebreaker) + get_coach_client_stats (12 counts, one row) — both security definer, idempotent, verify grid |1|1|0|0|1|
+- CoachView rewired: server-side paging (debounced search, 25/50/100, tabs/segment/sort all server-side), shared Pagination component («يعرض X–Y من Z» + page window + size select + busy), stats/tabs from stats RPC, broadcast totalCount = DB total, single-client broadcast picker = searchable (first 8 matches), select-all = visible page
+- Legacy fallback intact: 0047 missing → pagedMode=false → old full-list path + local slicing (site safe before migration runs)
+- data layer: getCoachClientListPaged + getCoachClientStats + typed Functions entries (total_count bigint = string → coerced)
+- AdminAccountsView: 25/page + shared pager + select-all page-scoped («تحديد الصفحة الظاهرة»)
+- §3.5: tsc 0 · eslint 0 errors (23 warnings = exact baseline parity on touched set) · vitest 160/160 · next build ✓
+- Local smoke :3779: / /admin /admin/accounts /admin/coach-system /auth = 200; unauth admin APIs refuse (env-less config guard); .env.local removed after smoke
+
+Stage Summary:
+- Committed + pushed; owner step: run 0047 in Supabase SQL Editor (raw link provided) — before that, production auto-runs the legacy path with no breakage

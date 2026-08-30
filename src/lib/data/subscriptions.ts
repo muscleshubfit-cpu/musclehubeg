@@ -59,6 +59,80 @@ export async function getCoachClientListOptimized() {
 }
 
 // ---------------------------------------------------------------------------
+// PAGED client list (Phase 52 — «تخيل لو فى ١٠٠٠٠٠٠٠ مستخدم مسجل»)
+// Server-side paging/filtering/sorting inside Postgres. Returns null when
+// the 0047 RPC is not applied yet → callers fall back to the full-list path.
+// ---------------------------------------------------------------------------
+
+export type CoachClientPageOpts = {
+  limit?: number;
+  offset?: number;
+  search?: string;
+  filter?: string; // all|active|expiring|no_plan|no_questionnaire|pending_payment|expired|premium|pro|coaching
+  segment?: string; // all|coach|site (admin only)
+  sort?: string; // newest|oldest|name|expiry
+};
+
+export async function getCoachClientListPaged(opts: CoachClientPageOpts = {}) {
+ if (isSupabaseConfigured && supabase) {
+ try {
+ const { data, error } = await supabase.rpc("get_coach_client_list_paged", {
+ p_limit: Math.max(1, Math.min(opts.limit ?? 25, 100)),
+ p_offset: Math.max(0, opts.offset ?? 0),
+ p_search: opts.search?.trim() || null,
+ p_filter: opts.filter || "all",
+ p_segment: opts.segment || "all",
+ p_sort: opts.sort || "newest",
+ });
+ if (!error && data) return data;
+ if (error) console.warn("[data] get_coach_client_list_paged not ready:", error.message);
+ } catch (e) {
+ console.warn("[data] get_coach_client_list_paged failed, using fallback:", e);
+ }
+ }
+ return null;
+}
+
+export type CoachClientStats = {
+ total: number;
+ active: number;
+ expiring: number;
+ no_plan: number;
+ no_questionnaire: number;
+ pending_payment: number;
+ expired: number;
+ premium: number;
+ pro: number;
+ coaching: number;
+ coach_clients: number;
+ site_clients: number;
+};
+
+/** One row of tab counts over the caller's scope (admin → everyone; coach → his clients). */
+export async function getCoachClientStats(): Promise<CoachClientStats | null> {
+ if (isSupabaseConfigured && supabase) {
+ try {
+ const { data, error } = await supabase.rpc("get_coach_client_stats");
+ if (!error && data && data.length > 0) {
+ const s = data[0];
+ const n = (v: unknown) => Number(v) || 0;
+ return {
+ total: n(s.total), active: n(s.active), expiring: n(s.expiring),
+ no_plan: n(s.no_plan), no_questionnaire: n(s.no_questionnaire),
+ pending_payment: n(s.pending_payment), expired: n(s.expired),
+ premium: n(s.premium), pro: n(s.pro), coaching: n(s.coaching),
+ coach_clients: n(s.coach_clients), site_clients: n(s.site_clients),
+ };
+ }
+ if (error) console.warn("[data] get_coach_client_stats not ready:", error.message);
+ } catch (e) {
+ console.warn("[data] get_coach_client_stats failed:", e);
+ }
+ }
+ return null;
+}
+
+// ---------------------------------------------------------------------------
 // Subscription Requests (for coach payments page)
 // ---------------------------------------------------------------------------
 
