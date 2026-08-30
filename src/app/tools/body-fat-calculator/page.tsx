@@ -186,9 +186,11 @@ export default function BodyFatCalculatorPage() {
             </div>
 
             <AdSenseAd format="auto" />
-            <OtherTools current="body-fat-calculator" />
           </div>
         )}
+
+        {/* DELIVERY 0050: other-tools links always visible at the bottom (owner request) */}
+        <OtherTools current="body-fat-calculator" />
 
         <div className="mt-12 space-y-4 text-base font-normal leading-relaxed text-[#6e6e73]">
           <h2 className="text-xl font-semibold tracking-tight text-[#1d1d1f]">{isAr ? "إزاي تحسب نسبة الدهون؟" : "How to calculate body fat?"}</h2>

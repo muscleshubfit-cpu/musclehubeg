@@ -332,9 +332,11 @@ export default function CalorieCalculatorPage() {
 
             {/* AdSense */}
             <AdSenseAd format="auto" />
-            <OtherTools current="calorie-calculator" />
           </div>
         )}
+
+        {/* DELIVERY 0050: other-tools links always visible at the bottom (owner request) */}
+        <OtherTools current="calorie-calculator" />
 
         {/* SEO content */}
         <div className="mt-12 space-y-4 text-base font-normal leading-relaxed text-[#6e6e73]">

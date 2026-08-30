@@ -7,6 +7,8 @@ import { getExerciseImages, getFallbackSVG, getExerciseImageUrl } from "@/lib/ex
 import { SearchX } from "lucide-react";
 import Image from "next/image";
 import { ImageWithFallback } from "@/components/ui/image-with-fallback";
+import { Pagination } from "@/components/Pagination";
+import { MembershipPromo, ExploreMore } from "@/components/PageBottomPromo";
 import {
   EXERCISES,
   CATEGORY_LABELS,
@@ -18,10 +20,9 @@ import {
   type Level,
 } from "@/lib/exercises";
 
-// Page size for incremental rendering. 868 exercises at once is heavy on
-// low-end devices — we render PAGE_SIZE results immediately, then load
-// more on scroll / button click.
-const PAGE_SIZE = 48;
+// DELIVERY 0050: true pagination — owner asked for 20 exercises per page
+// with navigation buttons (replaces infinite scroll / load-more).
+const PAGE_SIZE = 20;
 
 export default function ExercisesPage({ lang: langProp }: { lang?: Lang } = {}) {
   const { lang: ctxLang } = useI18n();
@@ -33,36 +34,32 @@ export default function ExercisesPage({ lang: langProp }: { lang?: Lang } = {}) 
   const [level, setLevel] = useState<Level | "all">("all");
   const [search, setSearch] = useState("");
 
-  // Visible count — incremental render (avoids jank with 868 cards).
-  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  // Current page (1-based) — true pagination, 20 cards per page.
+  const [page, setPage] = useState(1);
 
   const filtered = useMemo(
     () => filterExercises({ category, equipment, level, search }),
     [category, equipment, level, search],
   );
 
-  // Reset visible count when filters change.
+  // Reset to the first page whenever filters change (fresh results from top).
   useEffect(() => {
-    setVisibleCount(PAGE_SIZE);
+    setPage(1);
   }, [category, equipment, level, search]);
 
-  const visibleExercises = filtered.slice(0, visibleCount);
-  const hasMore = visibleCount < filtered.length;
+  const visibleExercises = useMemo(
+    () => filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
+    [filtered, page],
+  );
 
-  // Infinite-scroll: load more when user scrolls near the bottom.
-  useEffect(() => {
-    if (!hasMore) return;
-    const onScroll = () => {
-      const nearBottom =
-        window.innerHeight + window.scrollY >=
-        document.documentElement.scrollHeight - 800;
-      if (nearBottom) {
-        setVisibleCount((c) => Math.min(c + PAGE_SIZE, filtered.length));
-      }
-    };
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, [hasMore, filtered.length]);
+  // Page change: jump back to the top of the results list.
+  const changePage = (next: number) => {
+    setPage(next);
+    // Scroll the results header into view so the user sees the new page start.
+    requestAnimationFrame(() => {
+      document.getElementById("results-top")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  };
 
   const categories: (ExerciseCategory | "all")[] = [
     "all",
@@ -181,8 +178,8 @@ export default function ExercisesPage({ lang: langProp }: { lang?: Lang } = {}) 
           </div>
         </div>
 
-        {/* Results count */}
-        <p className="mt-6 text-sm font-normal text-[#6e6e73]">
+        {/* Results count — anchor for scroll-back on page change */}
+        <p id="results-top" className="mt-6 scroll-mt-24 text-sm font-normal text-[#6e6e73]">
           {filtered.length} {isAr ? "تمرين" : "exercises"}
         </p>
 
@@ -272,21 +269,21 @@ export default function ExercisesPage({ lang: langProp }: { lang?: Lang } = {}) 
                 );
               })}
             </div>
-            {/* Load more — manual fallback for infinite scroll */}
-            {hasMore && (
-              <div className="mt-8 text-center">
-                <button
-                  onClick={() => setVisibleCount((c) => Math.min(c + PAGE_SIZE, filtered.length))}
-                  className="rounded-full bg-[#1d1d1f] px-6 py-3 text-sm font-normal text-white transition-opacity hover:opacity-90"
-                >
-                  {isAr
-                    ? `عرض المزيد (${visibleCount.toLocaleString()} من ${filtered.length.toLocaleString()})`
-                    : `Load more (${visibleCount.toLocaleString()} of ${filtered.length.toLocaleString()})`}
-                </button>
-              </div>
-            )}
+            {/* DELIVERY 0050: shared pager (Phase 52 component) — 20 per page */}
+            <Pagination
+              page={page}
+              pageSize={PAGE_SIZE}
+              total={filtered.length}
+              onPageChange={changePage}
+              isAr={isAr}
+              className="mt-10"
+            />
           </>
         )}
+
+        {/* DELIVERY 0050: promotional sections at the bottom of the page */}
+        <MembershipPromo isAr={isAr} />
+        <ExploreMore isAr={isAr} exclude="exercises" />
       </main>
     </div>
   );

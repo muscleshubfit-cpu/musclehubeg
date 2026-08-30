@@ -252,9 +252,11 @@ export default function BMICalculatorPage() {
 
             {/* AdSense */}
             <AdSenseAd format="auto" />
-            <OtherTools current="bmi-calculator" />
           </div>
         )}
+
+        {/* DELIVERY 0050: other-tools links always visible at the bottom (owner request) */}
+        <OtherTools current="bmi-calculator" />
 
         {/* SEO content */}
         <div className="mt-12 space-y-4 text-base font-normal leading-relaxed text-[#6e6e73]">

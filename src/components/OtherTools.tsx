@@ -11,6 +11,10 @@ const ALL_TOOLS = [
   // so we mark them with an absolute path prefix.
   { slug: "/meal-planner", nameAr: "مخطط الوجبات", nameEn: "Meal Planner", emoji: "🍽️", color: "#8b5cf6" },
   { slug: "water-tracker", nameAr: "متتبع الماء", nameEn: "Water Tracker", emoji: "💧", color: "#00b8d9" },
+  // DELIVERY 0050: content libraries are site pages too — owner asked for
+  // «صفحات اخرى من الموقع» at the bottom of every tool page.
+  { slug: "/exercises", nameAr: "مكتبة التمارين", nameEn: "Exercise Library", emoji: "💪", color: "#0071e3" },
+  { slug: "/foods", nameAr: "مكتبة الأكلات", nameEn: "Food Library", emoji: "🥗", color: "#34c759" },
 ];
 
 

@@ -6,6 +6,8 @@ import { useI18n, type Lang } from "@/lib/i18n";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SearchX } from "lucide-react";
 import { ImageWithFallback } from "@/components/ui/image-with-fallback";
+import { Pagination } from "@/components/Pagination";
+import { MembershipPromo, ExploreMore } from "@/components/PageBottomPromo";
 import {
   FOODS,
   CATEGORY_LABELS,
@@ -14,10 +16,11 @@ import {
   type FoodCategory,
 } from "@/lib/foods";
 
-// Page size for incremental rendering. Rendering 8,830 food cards at once
-// crashes the browser (white screen + tab unresponsive). We render the
-// first PAGE_SIZE results immediately, then load more on scroll / button click.
-const PAGE_SIZE = 60;
+// DELIVERY 0050: true pagination — owner asked for 20 foods per page with
+// navigation buttons (replaces infinite scroll / load-more). Rendering
+// thousands of food cards at once crashes low-end devices; 20/page keeps
+// DOM size tiny and predictable.
+const PAGE_SIZE = 20;
 
 export default function FoodsPage({ lang: langProp }: { lang?: Lang } = {}) {
   const { lang: ctxLang } = useI18n();
@@ -35,10 +38,8 @@ export default function FoodsPage({ lang: langProp }: { lang?: Lang } = {}) {
   const [maxCalories, setMaxCalories] = useState<string>("");
   const [showAdvanced, setShowAdvanced] = useState(false);
 
-  // Visible count — incrementally render the filtered foods to avoid
-  // rendering 8,830 cards at once (which crashes the browser).
-  // Reset to PAGE_SIZE whenever filters change.
-  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  // Current page (1-based) — true pagination, 20 cards per page.
+  const [page, setPage] = useState(1);
 
   const filtered = useMemo(
     () =>
@@ -61,26 +62,21 @@ export default function FoodsPage({ lang: langProp }: { lang?: Lang } = {}) {
 
   // Reset visible count when filters change (so user sees fresh results from the top).
   useEffect(() => {
-    setVisibleCount(PAGE_SIZE);
+    setPage(1);
   }, [search, category, activeTags, minProtein, maxCarbs, maxCalories]);
 
-  const visibleFoods = deferredFiltered.slice(0, visibleCount);
-  const hasMore = visibleCount < deferredFiltered.length;
+  const visibleFoods = useMemo(
+    () => deferredFiltered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
+    [deferredFiltered, page],
+  );
 
-  // Infinite-scroll: load more when user scrolls near the bottom.
-  useEffect(() => {
-    if (!hasMore) return;
-    const onScroll = () => {
-      const nearBottom =
-        window.innerHeight + window.scrollY >=
-        document.documentElement.scrollHeight - 800;
-      if (nearBottom) {
-        setVisibleCount((c) => Math.min(c + PAGE_SIZE, deferredFiltered.length));
-      }
-    };
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, [hasMore, deferredFiltered.length]);
+  // Page change: jump back to the top of the results list.
+  const changePage = (next: number) => {
+    setPage(next);
+    requestAnimationFrame(() => {
+      document.getElementById("results-top")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  };
 
   const categories: (FoodCategory | "all")[] = [
     "all",
@@ -231,8 +227,8 @@ export default function FoodsPage({ lang: langProp }: { lang?: Lang } = {}) {
           )}
         </div>
 
-        {/* Results count */}
-        <p className="mt-6 text-sm font-normal text-[#6e6e73]">
+        {/* Results count — anchor for scroll-back on page change */}
+        <p id="results-top" className="mt-6 scroll-mt-24 text-sm font-normal text-[#6e6e73]">
           {deferredFiltered.length} {isAr ? "أكلة" : "foods"}
         </p>
 
@@ -289,21 +285,21 @@ export default function FoodsPage({ lang: langProp }: { lang?: Lang } = {}) {
                 </a>
               ))}
             </div>
-            {/* Load more — manual fallback for infinite scroll (mobile users, slow connections, etc.) */}
-            {hasMore && (
-              <div className="mt-8 text-center">
-                <button
-                  onClick={() => setVisibleCount((c) => Math.min(c + PAGE_SIZE, deferredFiltered.length))}
-                  className="rounded-full bg-[#1d1d1f] px-6 py-3 text-sm font-normal text-white transition-opacity hover:opacity-90"
-                >
-                  {isAr
-                    ? `عرض المزيد (${visibleCount.toLocaleString()} من ${deferredFiltered.length.toLocaleString()})`
-                    : `Load more (${visibleCount.toLocaleString()} of ${deferredFiltered.length.toLocaleString()})`}
-                </button>
-              </div>
-            )}
+            {/* DELIVERY 0050: shared pager (Phase 52 component) — 20 per page */}
+            <Pagination
+              page={page}
+              pageSize={PAGE_SIZE}
+              total={deferredFiltered.length}
+              onPageChange={changePage}
+              isAr={isAr}
+              className="mt-10"
+            />
           </>
         )}
+
+        {/* DELIVERY 0050: promotional sections at the bottom of the page */}
+        <MembershipPromo isAr={isAr} />
+        <ExploreMore isAr={isAr} exclude="foods" />
       </main>
     </div>
   );

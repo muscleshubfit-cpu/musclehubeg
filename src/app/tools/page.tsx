@@ -67,6 +67,27 @@ const tools = [
     color: "#8b5cf6",
     image: "/images/tools/meal-planner.png",
   },
+  // DELIVERY 0050: content libraries cross-linked from the tools hub
+  {
+    slug: "/exercises",
+    nameAr: "مكتبة التمارين",
+    nameEn: "Exercise Library",
+    descAr: "868+ تمرين بالصور والشرح والمستويات",
+    descEn: "868+ exercises with images and guides",
+    emoji: "💪",
+    color: "#0071e3",
+    image: "/images/tools/exercises.png",
+  },
+  {
+    slug: "/foods",
+    nameAr: "مكتبة الأكلات",
+    nameEn: "Food Library",
+    descAr: "8,830+ أكلة بالسعرات والماكروز",
+    descEn: "8,830+ foods with calories and macros",
+    emoji: "🥗",
+    color: "#34c759",
+    image: "/images/tools/foods.png",
+  },
 ];
 
 export default function ToolsPage() {
