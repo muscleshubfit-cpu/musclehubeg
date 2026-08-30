@@ -3351,3 +3351,25 @@ Stage Summary:
 - No code changed in this task; owner decides which items become fix tasks next.
 - Commit SHA: (this commit) docs-only worklog entry
 - Push status: pushed
+
+---
+Task ID: HOMEPAGE-AR-MIRROR-2026-08-30
+Agent: Implementation Agent (Super Z / GLM)
+Task: Homepage logical audit follow-up — /ar was an empty redirect shell; owner ordered a fix plan + implementation. Made /ar a real Arabic homepage with URL-first language resolution and SEO-consistent signals.
+
+Work Log:
+- Pre-verification: git fetch → HEAD 5a5d0ff == origin/main; live-audited prod with curl + headless Chrome (found /ar SSR = 59 visible chars vs 3736 on /; /ar bounced to / and language was guessed from device settings)
+- Fix 1: src/app/ar/page.tsx — replaced redirect("/") with the real LandingView (Arabic metadata already in ar/layout.tsx)
+- Fix 2: src/lib/i18n.tsx — I18nProvider is URL-first: new optional urlLocale prop seeds initial state; usePathname-keyed effect forces ar on /ar/* and keeps legacy localStorage→browser→en order on other routes
+- Fix 3: src/app/layout.tsx — passes server-resolved urlLocale={lang}; resolveLocale cookie fallback demoted to missing-x-pathname-only (stale one-request-behind cookie no longer flips English URLs to lang="ar")
+- Fix 4: src/app/ar/layout.tsx — alternates.canonical = "/ar"
+- Fix 5: src/app/sitemap.ts — added /ar at priority 1 with hreflang alternates on the / ↔ /ar pair
+- Verification per §3.5: tsc 0 errors · eslint 0 errors (743 pre-existing warnings untouched; changed files 0 problems) · vitest 160/160 (14 files) · next build exit 0 · live smoke on `next start`: /ar SSR now 3144 visible chars / 2308 Arabic chars, no redirect, full Arabic RTL screenshot in an English-locale browser, toggle round-trip /ar↔/ correct, / behavior byte-identical
+- Docs updated in the same commit: PROGRESS.md (Phase 41), QA_CHECKLIST.md (Homepage AR Mirror section + post-deploy steps)
+
+Stage Summary:
+- /ar is now a real, indexable Arabic homepage; language follows the URL, not device settings
+- Homepage pair (/, /ar) declared consistently across hreflang + sitemap + canonical
+- Known follow-up (not in scope): /ar/memberships, /ar/exercises, /ar/foods mirrors exist but are not in the sitemap; hreflang for inner pages not yet declared page-by-page
+- Commit SHA: (this commit)
+- Push status: pushed

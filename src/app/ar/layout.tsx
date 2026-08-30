@@ -37,6 +37,10 @@ export const metadata: Metadata = {
       "868+ تمرين، برامج تدريب، حاسبات مجانية، 8,830+ أكلة، مدونة رياضية، وكوتشينج أونلاين مع EVO AI.",
   },
   alternates: {
+    // Homepage AR mirror fix (2026-08-30): /ar is now a real page —
+    // declare its own canonical so Google indexes the Arabic URL itself
+    // (previously /ar redirected to / and had no canonical at all).
+    canonical: "/ar",
     languages: {
       "en": "https://musclehubeg.vercel.app",
       "ar": "https://musclehubeg.vercel.app/ar",

@@ -15,8 +15,28 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const lastModified = new Date();
 
   const staticUrls: MetadataRoute.Sitemap = [
-    // Homepage — highest priority
-    { url: baseUrl, lastModified, changeFrequency: "weekly", priority: 1 },
+    // Homepage pair — highest priority. Homepage AR mirror fix
+    // (2026-08-30): /ar used to redirect to / so it was excluded here;
+    // now it is a real page and is declared WITH hreflang alternates so
+    // Google indexes both language versions correctly.
+    {
+      url: baseUrl,
+      lastModified,
+      changeFrequency: "weekly",
+      priority: 1,
+      alternates: {
+        languages: { en: baseUrl, ar: `${baseUrl}/ar` },
+      },
+    },
+    {
+      url: `${baseUrl}/ar`,
+      lastModified,
+      changeFrequency: "weekly",
+      priority: 1,
+      alternates: {
+        languages: { en: baseUrl, ar: `${baseUrl}/ar` },
+      },
+    },
     // Main platform sections (high priority — core content)
     { url: `${baseUrl}/exercises`, lastModified, changeFrequency: "weekly", priority: 0.9 },
     { url: `${baseUrl}/programs`, lastModified, changeFrequency: "weekly", priority: 0.9 },

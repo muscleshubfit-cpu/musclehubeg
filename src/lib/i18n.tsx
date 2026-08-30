@@ -8,6 +8,7 @@ import {
  useCallback,
  type ReactNode,
 } from "react";
+import { usePathname } from "next/navigation";
 
 export type Lang = "ar" | "en";
 
@@ -769,23 +770,58 @@ type I18nCtx = {
 
 const Ctx = createContext<I18nCtx | null>(null);
 
-export function I18nProvider({ children }: { children: ReactNode }) {
- // English is the DEFAULT language. Arabic is secondary.
- // Detection order: localStorage → browser language → default "en"
- const [lang, setLangState] = useState<Lang>("en");
+export function I18nProvider({
+ children,
+ urlLocale,
+}: {
+ children: ReactNode;
+ /**
+  * Server-resolved locale passed from the root layout
+  * (`resolveLocale()` in `src/app/layout.tsx`), derived from the
+  * `x-pathname` header. Used as the INITIAL state so the server-rendered
+  * HTML matches the URL: `/ar/*` server-renders Arabic strings (SEO +
+  * no flash). Client-side effects below then refine per URL/pref.
+  */
+ urlLocale?: Lang;
+}) {
+ // Initial language: server-resolved URL locale → default "en".
+ const [lang, setLangState] = useState<Lang>(urlLocale ?? "en");
+
+ // Current URL path — drives URL-first language resolution (below).
+ const pathname = usePathname() || "/";
 
  useEffect(() => {
- const saved = typeof window !== "undefined" ? (localStorage.getItem("mhe:lang") as Lang | null) : null;
- if (saved === "ar" || saved === "en") {
-   setLangState(saved);
- } else if (typeof navigator !== "undefined") {
-   // Auto-detect from browser: if browser is Arabic, use Arabic
-   const browserLang = navigator.language?.toLowerCase() || "";
-   if (browserLang.startsWith("ar")) {
+   // H2 fix (homepage AR mirror, 2026-08-30): URL-FIRST resolution.
+   //
+   // 1. `/ar/*` URLs ALWAYS render Arabic — an explicit user choice and
+   //    the only way Google can index the Arabic homepage (previously
+   //    /ar redirected to / and the language was guessed from
+   //    localStorage / browser settings, so crawlers + non-Arabic
+   //    browsers saw English).
+   // 2. Non-/ar URLs keep the legacy behavior (saved preference →
+   //    browser language → "en") so pages WITHOUT an Arabic mirror keep
+   //    their toggle-only UX.
+   const isArPath = pathname === "/ar" || pathname.startsWith("/ar/");
+   if (isArPath) {
      setLangState("ar");
+     return;
    }
- }
- }, []);
+   const saved =
+     typeof window !== "undefined"
+       ? (localStorage.getItem("mhe:lang") as Lang | null)
+       : null;
+   if (saved === "ar" || saved === "en") {
+     setLangState(saved);
+   } else if (typeof navigator !== "undefined") {
+     // Auto-detect from browser: if browser is Arabic, use Arabic
+     const browserLang = navigator.language?.toLowerCase() || "";
+     if (browserLang.startsWith("ar")) {
+       setLangState("ar");
+     } else {
+       setLangState("en");
+     }
+   }
+ }, [pathname]);
 
  useEffect(() => {
    // H1 fix (Option B): this `useEffect` is intentionally RETAINED as a

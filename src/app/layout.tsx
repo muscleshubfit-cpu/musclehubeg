@@ -29,9 +29,14 @@ const websiteSchema = getWebSiteSchema();
  *
  * Precedence (enforced here, NOT in middleware):
  *   1. URL pathname — `/ar/...` → `ar` (cookie can NOT override this)
- *   2. `mhe:locale` cookie — fallback for English routes when the user
- *      has toggled language client-side (currently unused but reserved
- *      for future language-switcher persistence without reload)
+ *   2. `mhe:locale` cookie — ONLY when the `x-pathname` header is
+ *      missing (middleware didn't run — edge case). Previously the
+ *      cookie was trusted on every English path, but the cookie always
+ *      lags one request behind (it is written by the PREVIOUS
+ *      response): navigating /ar → / served `lang="ar"` markup for the
+ *      ENGLISH url. Demoting the fallback to missing-pathname-only
+ *      kills that stale-cookie cross-contamination (homepage AR mirror
+ *      fix, 2026-08-30).
  *   3. Default `en`
  *
  * The middleware writes `mhe:locale` on every request to match the
@@ -58,13 +63,16 @@ async function resolveLocale(): Promise<{ lang: "en" | "ar"; dir: "ltr" | "rtl" 
     return { lang: "ar", dir: "rtl" };
   }
 
-  // 2. Cookie fallback (currently always matches pathname because
-  //    middleware sets it, but reserved for future client-side toggle
-  //    persistence).
-  const c = await cookies();
-  const cookieLocale = c.get("mhe:locale")?.value;
-  if (cookieLocale === "ar") {
-    return { lang: "ar", dir: "rtl" };
+  // 2. Cookie fallback — ONLY when middleware didn't run (no
+  //    `x-pathname` header). Never trust it on a known English path:
+  //    the cookie belongs to the PREVIOUS request and may still say
+  //    `ar` right after navigating away from an /ar url.
+  if (!pathname) {
+    const c = await cookies();
+    const cookieLocale = c.get("mhe:locale")?.value;
+    if (cookieLocale === "ar") {
+      return { lang: "ar", dir: "rtl" };
+    }
   }
 
   // 3. Default
@@ -114,7 +122,7 @@ export default async function RootLayout({
         </a>
         <ReferralCookieChecker />
         <CookieConsent />
-        <I18nProvider>
+        <I18nProvider urlLocale={lang}>
           <AuthProvider>
             {/* COACH ATTRIBUTION (0033) — claims a coach-signup cookie for
                 Google OAuth clients (needs useAuth → inside AuthProvider). */}

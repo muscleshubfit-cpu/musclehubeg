@@ -253,3 +253,27 @@ Critical findings fixed: G1/G2 (tamper-proof `evo_chat_usage` ledger, migration 
 ### Known accepted trade-off (documented)
 
 Blog Step 2a research is model-knowledge based (no live web grounding — that requires the banned direct Gemini SDK). Only trusted health hosts are stored as `host`, URLs are never persisted or published.
+
+## Homepage AR Mirror — /ar Real Page (2026-08-30)
+
+**Task:** HOMEPAGE-AR-MIRROR (owner: «ابدأ خطة إصلاح للأخطاء اللي وجدتها ونفذها»)
+**Files:** `src/app/ar/page.tsx`, `src/lib/i18n.tsx`, `src/app/layout.tsx`, `src/app/ar/layout.tsx`, `src/app/sitemap.ts`
+
+| Check | Command / Method | Result |
+|---|---|---|
+| TypeScript | `npx tsc --noEmit` | ✅ 0 errors (4 pre-existing image-import errors on fresh clone disappear once `next-env.d.ts` is generated — verified identical on a stashed clean tree) |
+| ESLint | `npx eslint .` | ✅ 0 errors / 743 pre-existing warnings; changed files: 0 problems |
+| Tests | `npx vitest run` | ✅ 160/160 (14 files) |
+| Build | `npx next build` | ✅ exit 0, /ar route compiled |
+| Live smoke — /ar SSR | `next start` + curl | ✅ HTTP 200, 3144 visible chars / 2308 Arabic chars (was 59/1 — empty redirect shell), no redirect, URL stays `/ar` |
+| Live smoke — / regression | `next start` + curl | ✅ 3736 visible chars, English unchanged (1 Arabic char = toggle glyph) |
+| Browser E2E (English-locale browser) | agent-browser | ✅ /ar renders full Arabic RTL homepage with no saved preference and English browser settings; toggle /ar→/ (EN) and /→/ar (ع) round-trip correct |
+| SEO consistency | code + build output | ✅ sitemap lists `/` + `/ar` with hreflang alternates; /ar canonical = `/ar` |
+| Sync | `git fetch && rev-parse HEAD vs origin/main` | SYNCED (5a5d0ff) before work |
+
+### Post-deploy verification (owner/Vercel)
+
+1. Open `https://musclehubeg.vercel.app/ar` in a NON-Arabic browser (or incognito with English settings) → full Arabic homepage, URL unchanged.
+2. `curl -s https://musclehubeg.vercel.app/ar | grep -o 'منصتك الرياضية الشاملة' | head -1` → Arabic SSR content present.
+3. `https://musclehubeg.vercel.app/sitemap.xml` contains both `/` and `/ar` with `xhtml:link` alternates.
+4. Google Search Console: request indexing for `/ar` (it was previously an empty redirect shell and may need a nudge).
