@@ -3328,3 +3328,26 @@ Work Log:
 
 Stage Summary:
 - Storefront = owner's PayPal-tied prices (Starter $20 / Elite $40 on /coaching; $39.99 coaching stays /memberships-only); subscriptions = canonical model tiers everywhere; 0045 migration stays valid either way. No DB migration needed for 0046.
+
+---
+Task ID: HOMEPAGE-AUDIT-2026-08-30
+Agent: Super Z (GLM main agent)
+Task: Logical inspection of the homepage (/) — defects, improvements, additions, removals. READ-ONLY audit, no code changes.
+
+Work Log:
+- Read AGENTS.md (1618 lines) + README.md + docs/_NAV_MAP.md before inspecting. Verified local HEAD 084e44c == origin/main == production /api/build-info commitShort (084e44c) — audit applies to live production.
+- Inspected src/app/page.tsx, src/app/ar/page.tsx, src/components/views/LandingView.tsx (1244 lines), src/app/layout.tsx, src/middleware.ts, src/lib/i18n.tsx, src/lib/seo.ts, src/app/metadata.ts, src/app/sitemap.ts, public/robots.txt, src/app/api/coaches/featured/route.ts, src/lib/foods.ts, src/app/foods/page.tsx, src/hooks/use-nav.tsx, SiteHeader.tsx landing variant.
+- DEFECT 1 (critical, user-facing, live): all 4 homepage food-category cards render href="/foods?cat=undefined" — LandingFoodCategoryCard builds /foods?cat=${cat.slug} but the 4 card objects (LandingView.tsx 578-581) carry NO slug property. Verified in live HTML: 4 occurrences of href="/foods?cat=undefined". /foods reads ?cat= (foods/page.tsx 28-31) and filterFoods("undefined") matches nothing → visitors land on an EMPTY food list. Fix: add slug ("protein"|"carb"|"fat") to 3 cards + decide slug handling for the "Fruits & Veg" card (fruit+vegetable are separate FoodCategory values — a single ?cat= cannot express both).
+- DEFECT 2 (SEO, live): /ar returns HTTP 200 with an EMPTY shell (no h1, no content) + <meta http-equiv="refresh" content="1;url=/"> (Next redirect() rendered client-side). metadata.ts alternates.languages declares hreflang ar-EG → /ar → crawlers are pointed at an empty soft-redirect page. sitemap.ts omits /ar while robots.txt Allows it. Decision needed: build a REAL Arabic homepage mirror at /ar (SSR, dir=rtl server-side), or remove the /ar hreflang and stop advertising it.
+- DEFECT 3 (SEO/consistency, live): og:image declared 1200x630 (metadata.ts 93-97) but public/logo.png is actually 1536x1024 — social platforms will crop unpredictably. Also Organization JSON-LD description is Arabic-only on an EN-primary site (seo.ts 38-39) and sameAs only lists the site's own URL (no social profiles).
+- DEFECT 4 (role-model edge): blogHref (LandingView.tsx 303) = "/admin/blog" when isCoach (STAFF = coach ∪ admin). A plain coach clicking "View all ›" hits the admin-only AdminGate and is bounced to /coach. Coaches should get /blog; only admins get /admin/blog.
+- DEFECT 5 (perf hazard): listBlogPosts() fetches ALL published posts with no .limit() on every homepage visit (client-side, twice: latest + featured). With 6 articles/day the payload grows unbounded (~2,000 rows/year). Also the blog section renders NOTHING in SSR HTML (0 /blog/ links in initial HTML — verified live) → crawler-invisible + layout shift.
+- DEFECT 6 (copy inconsistency): free-tier line says "5 calculators" (LandingView.tsx 918-919) while the tools section itself lists 6 free tools and FAQ #1 says "all six tools are free".
+- IMPROVEMENTS (suggested): (a) replace plain <a> with next/link across LandingView + BlogCarousel + footer for SPA navigation + prefetch (footer legal buttons already use navigate()/router — inconsistent); (b) hero Image: add priority + sizes="(max-width:768px) 100vw, 50vw" (fill without sizes defaults to 100vw → oversized mobile download); (c) carousel Image elements also lack sizes; (d) consider a visible desktop nav row — primary destinations are all behind the hamburger drawer; (e) "Start for free" → /memberships twice (hero + final CTA) — consider /auth?mode=signup or /tools as the free-path destination; (f) GradientFade in the Foods section is placed INSIDE </section> (LandingView.tsx 594) unlike every other section; (g) robots.txt: add Disallow: /profile (private authenticated page missing from the block list); (h) featured-carousel fallback can re-show "latest" duplicates when the blog has <14 posts (harmless today with 46+, logic note only).
+- Compliant points verified (no action): FAQ JSON-LD matches visible accordion content; Organization + WebSite schema present; EVO "Start chatting" correctly opens the floating widget via openEvoFloatingChat (EVO SURFACE LAW); no /chat links anywhere; featured-coaches strip calls public GET /api/coaches/featured (time-boxed, capped 8, silent-fail); footer coach CTA per owner 2026-08-30 directive; brand name written "Musclehubeg" everywhere checked; skip-to-content link + aria-labels on carousel buttons; no secrets or PII in the homepage path.
+
+Stage Summary:
+- 6 defects + 8 improvement candidates documented; the only visitor-visible breaking defect is /foods?cat=undefined (4 cards). Everything verified against live production (musclehubeg.vercel.app) + origin/main 084e44c.
+- No code changed in this task; owner decides which items become fix tasks next.
+- Commit SHA: (this commit) docs-only worklog entry
+- Push status: pushed
