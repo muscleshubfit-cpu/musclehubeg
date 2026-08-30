@@ -13,9 +13,13 @@ import { AppLayout } from "@/components/AppLayout";
  * ROLE SURFACE LAW (2026-08-29): the (app) group mixes CLIENT surfaces
  * (dashboard, plans, progress, questionnaires, referral, support) with
  * STAFF surfaces (/coach, /coach/*). Platform staff (coach | admin) are
- * redirected away from client surfaces to /coach — the same UI must NOT
- * be served to staff and consumers. /admin/* has its own gate
- * (admin-gate.tsx, admin-exclusive).
+ * redirected away from client surfaces — the same UI must NOT be served
+ * to staff and consumers. /admin/* has its own gate (admin-gate.tsx,
+ * admin-exclusive).
+ *
+ * 2026-08-30 STAFF CONSOLE IDENTITY: the admin bounces to HIS console
+ * (/admin), the coach to his (/coach) — the admin is not a coach's
+ * assistant; he lands in site management.
  *
  * NOTE: This is a client component (uses useAuth/useEffect), so it CANNOT
  * export `metadata`. The parent `layout.tsx` (server component) exports the
@@ -44,11 +48,11 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
      return;
    }
    // Staff (coach | admin): client-only surfaces are not theirs — bounce
-   // to the coach dashboard. Exact-prefix match so /coach/* never matches
-   // /coach pages themselves.
+   // each role to his own console. Exact-prefix match so /coach/* never
+   // matches /coach pages themselves.
    const isStaff = profile.role === "coach" || profile.role === "admin";
    if (isStaff && CLIENT_ONLY_PATHS.includes(pathname)) {
-     router.replace("/coach");
+     router.replace(profile.role === "admin" ? "/admin" : "/coach");
    }
  }, [loading, profile, pathname, router]);
 

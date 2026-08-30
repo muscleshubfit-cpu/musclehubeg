@@ -47,11 +47,24 @@ export async function GET() {
       .from("profiles")
       .select("id, full_name, avatar_url")
       .in("id", coachIds),
-    supabaseAdmin
-      .from("coach_pages")
-      .select("coach_id, slug, headline, photo_url, is_published")
-      .in("coach_id", coachIds)
-      .eq("is_published", true),
+    // 0046 REVIEW GATE — only APPROVED pages get the public link/headline.
+    // Defensive: before migration 0046 the column is missing (42703) →
+    // retry without the filter (pre-0046 behaviour).
+    (async () => {
+      const gated = await (supabaseAdmin.from("coach_pages") as any)
+        .select("coach_id, slug, headline, photo_url, is_published, review_status")
+        .in("coach_id", coachIds)
+        .eq("is_published", true)
+        .eq("review_status", "approved");
+      if (!gated.error) return gated;
+      if ((gated.error as { code?: string }).code === "42703") {
+        return (supabaseAdmin.from("coach_pages") as any)
+          .select("coach_id, slug, headline, photo_url, is_published")
+          .in("coach_id", coachIds)
+          .eq("is_published", true);
+      }
+      return gated;
+    })(),
   ]);
 
   const profiles = new Map(

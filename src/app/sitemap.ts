@@ -170,6 +170,44 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         languages: { en: `${baseUrl}/faq`, ar: `${baseUrl}/ar/faq` },
       },
     },
+    // FOR-COACHES AR MIRRORS (2026-08-30): the coach-recruitment funnel
+    // now has real Arabic twins with hreflang alternates on both sides.
+    {
+      url: `${baseUrl}/for-coaches`,
+      lastModified,
+      changeFrequency: "monthly",
+      priority: 0.8,
+      alternates: {
+        languages: { en: `${baseUrl}/for-coaches`, ar: `${baseUrl}/ar/for-coaches` },
+      },
+    },
+    {
+      url: `${baseUrl}/ar/for-coaches`,
+      lastModified,
+      changeFrequency: "monthly",
+      priority: 0.8,
+      alternates: {
+        languages: { en: `${baseUrl}/for-coaches`, ar: `${baseUrl}/ar/for-coaches` },
+      },
+    },
+    {
+      url: `${baseUrl}/for-coaches/register`,
+      lastModified,
+      changeFrequency: "monthly",
+      priority: 0.7,
+      alternates: {
+        languages: { en: `${baseUrl}/for-coaches/register`, ar: `${baseUrl}/ar/for-coaches/register` },
+      },
+    },
+    {
+      url: `${baseUrl}/ar/for-coaches/register`,
+      lastModified,
+      changeFrequency: "monthly",
+      priority: 0.7,
+      alternates: {
+        languages: { en: `${baseUrl}/for-coaches/register`, ar: `${baseUrl}/ar/for-coaches/register` },
+      },
+    },
     { url: `${baseUrl}/contact`, lastModified, changeFrequency: "yearly", priority: 0.5 },
     { url: `${baseUrl}/privacy`, lastModified, changeFrequency: "yearly", priority: 0.3 },
     { url: `${baseUrl}/terms`, lastModified, changeFrequency: "yearly", priority: 0.3 },

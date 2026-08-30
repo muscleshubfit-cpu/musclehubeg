@@ -7,7 +7,7 @@ import { AuthView } from "@/components/views/AuthView";
 import { safeNext } from "@/lib/safe-redirect";
 
 function AuthPageInner() {
-  const { profile, loading, isCoach } = useAuth();
+  const { profile, loading, isCoach, isAdmin } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   const mode = (searchParams.get("mode") as "login" | "signup") || "login";
@@ -28,10 +28,12 @@ function AuthPageInner() {
         // Validate `next` to prevent open-redirect attacks (C17 fix).
         window.location.href = safeNext(next);
       } else {
-        router.replace(isCoach ? "/coach" : "/dashboard");
+        // 2026-08-30 STAFF CONSOLE IDENTITY: the admin lands on HIS console
+        // (/admin), the coach on his (/coach) — members on /dashboard.
+        router.replace(isAdmin ? "/admin" : isCoach ? "/coach" : "/dashboard");
       }
     }
-  }, [loading, profile, isCoach, router, next]);
+  }, [loading, profile, isCoach, isAdmin, router, next]);
 
   if (loading || profile) {
     return (

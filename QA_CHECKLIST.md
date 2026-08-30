@@ -517,3 +517,36 @@ Method: 2 python scripts hit **37 production URLs** (all EN static pages + detai
 1. Open داشبورد الأدمن → الحسابات on your PHONE → every account card now shows زر «مسح» وزر «تعليم تجريبي» بوضوح
 2. علّم على أي حسابات → يظهر شريط أسفل الشاشة «محدد: N» + زر أحمر «مسح كل المحدد» → أول ضغطة تحويله لـ«تأكيد المسح!» وثاني ضغطة تمسحهم كلهم
 3. حسابات الأدمن: مربع التحديد وزر المسح مقفولين عليها (محمية حتى مع المسح الجماعي)
+
+## Coach-Page Review + Staff Console Identity + AR For-Coaches Mirrors (2026-08-30)
+
+### Owner requests → delivered
+
+| # | Owner request | Delivered |
+|---|---|---|
+| 1 | Delete test account qa2.intruder…@mhtest.mh-qa.com | Purged via one-off GHA worker block (service-role, log verified DELETED_OK, remaining 0); note: the QA account carried role=admin (intrusion-test artifact) |
+| 2 | «قائمة جديدة لعرض صفحات المدربين لمراجعتها والموافقة او الرفض عليها مع ارسال السبب» | 0046 review system: migration + /admin/coach-pages queue (pending first) + approve / reject-with-required-reason; every coach edit → pending automatically; rejection reason shown to the coach in his landing editor |
+| 3 | «اعاده تنسيق صفحة الادمن وصفحة المدرب لانها بتتعرض كأنهم اعضاء» | Staff console identity: dark banners (admin #1d1d1f / coach violet #8b5cf6) + role chips + section-labelled sidebar + staff-colored active states; NEW /admin console home; admin login lands on /admin |
+| 4 | Shelved topics: AR mirrors + speed + SEO/GEO | /ar/for-coaches + /ar/for-coaches/register real twins (reciprocal hreflang, AR-first metadata, AR FAQ schema, sitemap+robots+llms.txt); speed/SEO re-verified post-deploy |
+
+### Review-system policy (single source of truth)
+
+| State | Public page | Trigger |
+|---|---|---|
+| approved (default) | LIVE | admin approve · admin-own saves · pre-0046 rows |
+| pending | HIDDEN | every coach PUT (edit or first publish) |
+| rejected (+ note) | HIDDEN | admin reject — note 3-500 chars, shown in coach editor |
+
+### Verification evidence
+
+| Check | Result |
+|---|---|
+| tsc / eslint / vitest / build | 0 · 0 errors · 160/160 · ✓ (991 pages) |
+| Real-browser smoke (temp ?__staff override — removed pre-commit) | /admin home grid + 2-pending badge ✓ · review approve/reject flow + textarea gating + counts ✓ · coach violet console ✓ · mobile review cards all actions visible ✓ |
+| AR mirrors (server HTML) | /ar/for-coaches: lang=ar, dir=rtl, AR title + FAQ schema, canonical /ar/for-coaches, hreflang en/ar/x-default pair on BOTH sides ✓ · /ar/for-coaches/register 200 + AR title ✓ |
+
+### Owner actions required after deploy
+
+1. **شغّل هجرة 0046**: افتح Supabase SQL Editor وشغّل `supabase/migrations/RUN_ON_SUPABASE_0046_COACH_PAGE_REVIEW.sql` (آمنة لإعادة التشغيل — الصفحات المعتمدة حاليًا بتفضل شغالة)
+2. افتح داشبورد الأدمن → هتلاقي لوجينك بدخلك على «لوحة الأدمن» الجديدة، وقائمة «صفحات المدربين» فيها أي صفحات في الانتظار (شارة برتقالية بالعد)
+3. جرّب: ارفض صفحة تجريبية بسبب → سجل دخول بالمدرب → افتح «صفحتي» → هتلاقي سبب الرفض ظاهر في الأعلى

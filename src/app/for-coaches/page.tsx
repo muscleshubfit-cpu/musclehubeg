@@ -31,11 +31,14 @@ import imgCoaching from "../../../public/images/hero/coaching-1.jpg";
  * AVIF/WebP at the edge (owner: «استيراد كامل مع التحويل لتخفيف السرعة»).
  */
 
-const REGISTER_HREF = "/for-coaches/register";
+const REGISTER_HREF_BASE = "/for-coaches/register";
 
 export default function ForCoachesPage() {
   const { lang } = useI18n();
   const isAr = lang === "ar";
+  // AR mirror (2026-08-30): the register CTA follows the mirror so an
+  // /ar/for-coaches visitor lands on the Arabic registration URL.
+  const REGISTER_HREF = isAr ? `/ar${REGISTER_HREF_BASE}` : REGISTER_HREF_BASE;
 
   const shareMsg = isAr
     ? "اشتغل كوتش على Musclehubeg — عملاؤك بأسعارك وفلوسك في إيدك:"

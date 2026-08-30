@@ -19,7 +19,7 @@
 - [Memberships](https://musclehubeg.vercel.app/memberships): Free, Premium ($14.99/mo or $119/yr), Pro ($29.99/mo or $239/yr), Coaching ($39.99/mo or $359/yr); Arabic: /ar/memberships
 - [About](https://musclehubeg.vercel.app/about): mission and story; Arabic: /ar/about
 - [FAQ](https://musclehubeg.vercel.app/faq): common questions incl. payment methods (PayPal, InstaPay, Vodafone Cash); Arabic: /ar/faq
-- [For Coaches](https://musclehubeg.vercel.app/for-coaches): coach recruitment — coaches keep 100% of their income, fixed monthly activation fee
+- [For Coaches](https://musclehubeg.vercel.app/for-coaches): coach recruitment — coaches keep 100% of their income, fixed monthly activation fee; Arabic: /ar/for-coaches
 
 ## Key facts
 

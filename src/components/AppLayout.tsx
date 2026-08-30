@@ -9,7 +9,25 @@ import { cn } from "@/lib/utils";
 import { useNav, type View } from "@/hooks/use-nav";
 import { isSupabaseConfigured } from "@/lib/supabase/client";
 import { openEvoFloatingChat } from "@/lib/evo-chat-context";
+import { ShieldCheck, Users } from "lucide-react";
 
+/**
+ * AppLayout — the shell for ALL authenticated surfaces.
+ *
+ * 2026-08-30 OWNER DIRECTIVE — STAFF CONSOLE IDENTITY:
+ * «اعاده تنسيق صفحة الادمن وصفحة المدرب لانها حاليا بتتعرض كأنهم اعضاء»
+ * The old shell rendered staff and members with the IDENTICAL look
+ * (member-blue nav, plain sidebar, welcome line) — the admin console
+ * and coach console now carry their own identity:
+ *   - a dark console banner (🛡 لوحة الأدمن / 👥 لوحة المدرب) with a
+ *     role chip, above the content on BOTH desktop and mobile
+ *   - section-labelled sidebar (إدارة العملاء / إدارة الموقع)
+ *   - staff-colored active states: admin = dark #1d1d1f,
+ *     coach = violet #8b5cf6 (member blue #0071e3 untouched)
+ *
+ * 0046: new admin menu item «صفحات المدربين» — the coach-pages review
+ * queue (approve/reject coach-written public content).
+ */
 export function AppLayout({ children }: { children: ReactNode }) {
   const { t, lang } = useI18n();
   const { profile, isCoach, isAdmin } = useAuth();
@@ -65,6 +83,9 @@ export function AppLayout({ children }: { children: ReactNode }) {
   // only from the header drawer — deep-audit fix (2026-08-28) puts it on par
   // with Tool Leads in the persistent sidebar.
   const coachExtraLinks = [
+    // 0046: coach-pages REVIEW QUEUE — moderation for coach-written
+    // public content (approve / reject with reason).
+    { href: "/admin/coach-pages", label: isAr ? "صفحات المدربين" : "Coach pages", emoji: "🗂️" },
     // Phase 2B follow-up («مفيش لسة طريقة لتعيين المدربين»): the 1↔1
     // client↔coach assignment got its OWN obvious admin surface.
     { href: "/admin/assignments", label: isAr ? "تعيين المدربين" : "Coach assignments", emoji: "🤝" },
@@ -77,6 +98,32 @@ export function AppLayout({ children }: { children: ReactNode }) {
   ];
   const nav = isCoach ? [...coachNav, ...(isAdmin ? coachNavAdmin : [])] : clientNav;
 
+  // ── STAFF CONSOLE IDENTITY (2026-08-30) ──
+  const consoleMeta = isAdmin
+    ? {
+        title: isAr ? "لوحة الأدمن" : "Admin Console",
+        sub: isAr ? "إدارة كاملة للموقع" : "Full site management",
+        chip: isAr ? "أدمن" : "Admin",
+        // admin accent = console dark
+        activeCls: "bg-[#1d1d1f] text-white",
+        icon: <ShieldCheck className="h-5 w-5" />,
+      }
+    : {
+        title: isAr ? "لوحة المدرب" : "Coach Console",
+        sub: isAr ? "إدارة عملائك وأعمالك" : "Manage your clients & business",
+        chip: isAr ? "مدرب" : "Coach",
+        // coach accent = violet
+        activeCls: "bg-[#8b5cf6] text-white",
+        icon: <Users className="h-5 w-5" />,
+      };
+
+  // Sidebar section labels (staff only): business surfaces vs site admin.
+  const sectionLabel = (label: string) => (
+    <p className="px-3 pb-1 pt-4 text-[10px] font-bold uppercase tracking-wider text-[#86868b]">
+      {label}
+    </p>
+  );
+
   return (
     <div className="flex min-h-screen flex-col bg-white text-[#1d1d1f]">
       {!isSupabaseConfigured && (
@@ -88,6 +135,30 @@ export function AppLayout({ children }: { children: ReactNode }) {
       )}
       <SiteHeader variant="app" />
 
+      {/* STAFF CONSOLE BANNER — the admin/coach instantly knows he is in
+          HIS work surface, not the member app. */}
+      {isCoach && (
+        <div
+          className={cn(
+            "border-b",
+            isAdmin ? "border-[#1d1d1f] bg-[#1d1d1f]" : "border-[#8b5cf6] bg-[#8b5cf6]",
+          )}
+        >
+          <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-3 px-4 py-2.5 md:px-6">
+            <div className="flex items-center gap-2.5 text-white">
+              {consoleMeta.icon}
+              <div className="leading-tight">
+                <p className="text-sm font-bold">{consoleMeta.title}</p>
+                <p className="text-[11px] text-white/70">{consoleMeta.sub}</p>
+              </div>
+            </div>
+            <span className="rounded-full bg-white/15 px-2.5 py-1 text-[10px] font-bold text-white">
+              {profile?.full_name || consoleMeta.chip}
+            </span>
+          </div>
+        </div>
+      )}
+
       <div className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 md:px-6 md:py-12">
         {/* Mobile: Large navigation buttons at top (after welcome) */}
         {/* Desktop: sidebar nav on the left */}
@@ -95,7 +166,24 @@ export function AppLayout({ children }: { children: ReactNode }) {
           {/* Desktop sidebar */}
           <aside className="hidden w-48 shrink-0 md:block">
             <nav className="sticky top-24 space-y-1">
-              {nav.map((item) => {
+              {/* Console identity block (staff) */}
+              {isCoach && (
+                <div
+                  className={cn(
+                    "mb-2 rounded-xl p-3 text-white",
+                    isAdmin ? "bg-[#1d1d1f]" : "bg-[#8b5cf6]",
+                  )}
+                >
+                  <div className="flex items-center gap-2">
+                    {consoleMeta.icon}
+                    <p className="text-xs font-bold">{consoleMeta.title}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Section: clients & service (staff) / plain list (member) */}
+              {isCoach && sectionLabel(isAr ? "العملاء والخدمة" : "Clients & service")}
+              {(isCoach ? coachNav : nav).map((item) => {
                 const active = view === item.to;
                 return (
                   <button
@@ -106,7 +194,9 @@ export function AppLayout({ children }: { children: ReactNode }) {
                     className={cn(
                       "block w-full cursor-pointer rounded-lg px-3 py-2 text-start text-sm font-normal transition-colors",
                       active
-                        ? "bg-[#f5f5f7] font-medium text-[#1d1d1f]"
+                        ? isCoach
+                          ? cn(consoleMeta.activeCls, "font-medium")
+                          : "bg-[#f5f5f7] font-medium text-[#1d1d1f]"
                         : "text-[#6e6e73] hover:text-[#1d1d1f]",
                     )}
                   >
@@ -114,24 +204,58 @@ export function AppLayout({ children }: { children: ReactNode }) {
                   </button>
                 );
               })}
-              {isAdmin && coachExtraLinks.map((link) => {
-                // 0045: per-link active state (was hardcoded to admin-leads).
-                const active = (pathname || "").startsWith(link.href) || view === ("admin-leads" as any);
-                return (
+
+              {/* Section: site management (admin nav items + admin-only URLs) */}
+              {isAdmin && (
+                <>
+                  {sectionLabel(isAr ? "إدارة الموقع" : "Site management")}
+                  {coachNavAdmin.map((item) => {
+                    const active = view === item.to;
+                    return (
+                      <button
+                        key={item.to}
+                        onClick={() => navigate(item.to)}
+                        className={cn(
+                          "block w-full cursor-pointer rounded-lg px-3 py-2 text-start text-sm font-normal transition-colors",
+                          active
+                            ? cn(consoleMeta.activeCls, "font-medium")
+                            : "text-[#6e6e73] hover:text-[#1d1d1f]",
+                        )}
+                      >
+                        {item.label}
+                      </button>
+                    );
+                  })}
+                  {coachExtraLinks.map((link) => {
+                    // 0045: per-link active state (was hardcoded to admin-leads).
+                    const active = (pathname || "").startsWith(link.href) || view === ("admin-leads" as any);
+                    return (
+                      <a
+                        key={link.href}
+                        href={link.href}
+                        className={cn(
+                          "block w-full rounded-lg px-3 py-2 text-start text-sm font-normal transition-colors",
+                          active
+                            ? cn(consoleMeta.activeCls, "font-medium")
+                            : "text-[#6e6e73] hover:text-[#1d1d1f]",
+                        )}
+                      >
+                        {link.label}
+                      </a>
+                    );
+                  })}
+                  {/* Console home — the admin's overview dashboard */}
                   <a
-                    key={link.href}
-                    href={link.href}
+                    href="/admin"
                     className={cn(
-                      "block w-full rounded-lg px-3 py-2 text-start text-sm font-normal transition-colors",
-                      active
-                        ? "bg-[#f5f5f7] font-medium text-[#1d1d1f]"
-                        : "text-[#6e6e73] hover:text-[#1d1d1f]",
+                      "mt-3 block w-full rounded-lg border border-[#1d1d1f]/20 px-3 py-2 text-start text-xs font-medium text-[#1d1d1f] transition-colors hover:bg-[#f5f5f7]",
+                      (pathname || "") === "/admin" && "bg-[#f5f5f7]",
                     )}
                   >
-                    {link.label}
+                    {isAr ? "🏛 الرئيسية لوحة الأدمن" : "🏛 Admin home"}
                   </a>
-                );
-              })}
+                </>
+              )}
             </nav>
           </aside>
 
@@ -139,8 +263,9 @@ export function AppLayout({ children }: { children: ReactNode }) {
           <main id="main-content" className="min-w-0 flex-1">
             {/* Mobile: Large nav buttons at top of every page */}
             <div className="mb-8 md:hidden">
-              {/* Welcome message */}
-              {profile && (
+              {/* Welcome message — members only; staff already have the
+                  console banner above (no duplicate greeting). */}
+              {!isCoach && profile && (
                 <p className="mb-4 text-sm font-normal text-[#6e6e73]">
                   {isAr ? "أهلاً" : "Welcome"}, <span className="font-medium text-[#1d1d1f]">{profile.full_name}</span>
                 </p>
@@ -158,7 +283,9 @@ export function AppLayout({ children }: { children: ReactNode }) {
                       className={cn(
                         "flex cursor-pointer items-center gap-2 rounded-2xl px-4 py-3 text-sm font-medium transition-colors",
                         active
-                          ? "bg-[#0071e3] text-white"
+                          ? isCoach
+                            ? consoleMeta.activeCls
+                            : "bg-[#0071e3] text-white"
                           : "bg-[#f5f5f7] text-[#1d1d1f]",
                       )}
                     >
@@ -177,6 +304,15 @@ export function AppLayout({ children }: { children: ReactNode }) {
                     <span className="truncate">{link.label}</span>
                   </a>
                 ))}
+                {isAdmin && (
+                  <a
+                    href="/admin"
+                    className="flex items-center gap-2 rounded-2xl bg-[#1d1d1f] px-4 py-3 text-sm font-medium text-white transition-colors"
+                  >
+                    <span className="text-base">🏛</span>
+                    <span className="truncate">{isAr ? "الرئيسية لوحة الأدمن" : "Admin home"}</span>
+                  </a>
+                )}
               </div>
             </div>
 

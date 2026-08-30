@@ -12,6 +12,14 @@ import { supabaseAdmin, isSupabaseAdminConfigured } from "@/lib/supabase/admin";
  * The landing table (coach_pages) is created by migration 0031 — until
  * the owner runs it, GET returns page:null (the editor shows an empty
  * form and PUT reports the migration as missing).
+ *
+ * 0046 REVIEW LAW (owner: coaches write their own public content):
+ * every coach PUT sends the page to review_status='pending' (review_note
+ * cleared, reviewed_at cleared) — the public page stays hidden until the
+ * admin approves it in /admin/coach-pages. The ADMIN's own saves keep
+ * 'approved' (he IS the reviewer). Before migration 0046 exists the
+ * review columns are skipped gracefully (42703 → 503 with a clear
+ * message telling the owner to run it).
  */
 
 const SLUG_RE = /^[a-z0-9-]{3,40}$/;
@@ -163,6 +171,15 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({ error: "Forbidden — staff only" }, { status: 403 });
   }
 
+  // 0046 REVIEW LAW — a coach edit always re-enters moderation. The admin
+  // IS the reviewer, so his own saves publish straight away.
+  const isAdminSave = (prof as { role: string }).role === "admin";
+  const reviewFields = {
+    review_status: isAdminSave ? "approved" : "pending",
+    review_note: "",
+    reviewed_at: isAdminSave ? new Date().toISOString() : null,
+  };
+
   const { data, error } = (await (supabaseAdmin.from("coach_pages") as any)
     .upsert(
       {
@@ -183,6 +200,7 @@ export async function PUT(request: NextRequest) {
         youtube_url: youtubeUrl,
         whatsapp_phone: whatsappPhone,
         updated_at: new Date().toISOString(),
+        ...reviewFields,
       },
       { onConflict: "coach_id" },
     )
@@ -204,9 +222,10 @@ export async function PUT(request: NextRequest) {
       );
     }
     if (code === "42703") {
-      // Undefined column → 0032 EN columns or 0037 enrichment columns missing
+      // Undefined column → 0032 EN columns, 0037 enrichment or 0046 review
+      // columns missing.
       return NextResponse.json(
-        { error: "migration_missing", message: "أعمدة الصفحة غير موجودة — شغّل هجرات 0032 و 0037 في Supabase أولًا (raw links في المحادثة)" },
+        { error: "migration_missing", message: "أعمدة الصفحة غير موجودة — شغّل هجرات 0032 و 0037 و 0046 في Supabase أولًا (raw links في المحادثة)" },
         { status: 503 },
       );
     }

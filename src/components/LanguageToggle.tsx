@@ -79,6 +79,8 @@ export function LanguageToggle() {
  { en: "/memberships", ar: "/ar/memberships" },
  { en: "/about", ar: "/ar/about" },
  { en: "/faq", ar: "/ar/faq" },
+ { en: "/for-coaches", ar: "/ar/for-coaches" },
+ { en: "/for-coaches/register", ar: "/ar/for-coaches/register" },
  ];
 
  for (const route of MIRROR_ROUTES) {

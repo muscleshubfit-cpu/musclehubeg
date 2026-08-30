@@ -1,43 +1,28 @@
 import type { Metadata } from "next";
 import { getFAQSchema, getBreadcrumbSchema } from "@/lib/seo";
-import { COACH_FAQ_AR } from "./content";
+import { COACH_FAQ_EN } from "./content";
 
 /**
  * FOR-COACHES — SEO layout (server component under a client page).
  *
- * Arabic-FIRST metadata: the recruitment audience is Egyptian coaches,
- * and the owner's directive was «اهتم بالسيو جيدًا». English keywords
- * ride along for the toggle audience. The page itself is ONE bilingual
- * URL (client-side i18n, site-wide pattern) — canonical points to
- * itself; hreflang en/ar entries self-reference the same URL for
- * crawlers that honor them.
+ * EN CANONICAL of the twin pair (2026-08-30 — was a single bilingual
+ * URL with self-referencing hreflang; now mirrors /ar/about & /ar/faq):
+ *   EN canonical: /for-coaches      ← this layout (EN-first metadata)
+ *   AR mirror:    /ar/for-coaches   (Arabic-first metadata)
+ *   The pair (en/ar/x-default) is declared on BOTH sides — no
+ *   self-references, no inherited signals.
  *
- * JSON-LD: FAQPage (semantic value only — Google retired FAQ rich
- * results May 2026, kept per site convention in src/lib/seo.ts) +
- * BreadcrumbList.
+ * JSON-LD: FAQPage (EN questions on the EN side) + BreadcrumbList.
  */
 
 const SITE = "https://musclehubeg.vercel.app";
 const PAGE_URL = `${SITE}/for-coaches`;
 
 export const metadata: Metadata = {
-  title: "انضم كمدرب في Musclehubeg — عملاؤك بأسعارك وفلوسك في إيدك",
+  title: "Coach on Musclehubeg — your clients, your prices, your money",
   description:
-    "سجّل كوتش أو أخصائي تغذية على Musclehubeg مجانًا: منصة كاملة لإدارة عملائك أنت، خطط تغذية وتمارين بالذكاء الاصطناعي، تحدد سعرك بنفسك وتحصّل من عملائك مباشرة بدون أي نسبة — رسم تفعيل شهري ثابت فقط. تفعيل فوري.",
+    "Register as a coach or nutrition specialist on Musclehubeg for free: a complete platform to run your own clients, AI-generated nutrition & workout plans, your pricing and direct collection — zero commission, a fixed monthly activation fee only. Instant activation.",
   keywords: [
-    // Arabic (primary audience)
-    "انضم كمدرب",
-    "تسجيل مدرب",
-    "شغل كوتش اونلاين",
-    "كوتشينج اونلاين في مصر",
-    "منصة مدربين",
-    "إدارة عملاء الكوتش",
-    "خطط تغذية بالذكاء الاصطناعي",
-    "برامج تمارين للعملاء",
-    "كوتش جيم",
-    "أخصائي تغذية اونلاين",
-    "متابعة عملاء التدريب",
-    // English (secondary)
     "join as a coach",
     "coach registration",
     "online coaching platform",
@@ -49,40 +34,41 @@ export const metadata: Metadata = {
   alternates: {
     canonical: PAGE_URL,
     languages: {
-      ar: PAGE_URL,
       en: PAGE_URL,
+      ar: `${SITE}/ar/for-coaches`,
+      "x-default": PAGE_URL,
     },
   },
   openGraph: {
-    title: "انضم كمدرب في Musclehubeg — درِّب عملاءك بأسعارك وفلوسك في إيدك",
+    title: "Coach on Musclehubeg — your clients, your prices, your money",
     description:
-      "منصة كاملة للكوتشات: إدارة عملائك، خطط بالذكاء الاصطناعي، أسعارك بتحددها وتحصّل بنفسك — بدون أي نسبة من دخلك. سجّل مجانًا بتفعيل فوري.",
+      "A complete coach platform: client management, AI plans, your pricing, direct payments — zero commission. Register free with instant activation.",
     url: PAGE_URL,
     siteName: "Musclehubeg",
-    locale: "ar_EG",
+    locale: "en_US",
     type: "website",
     images: [
       {
         url: `${SITE}/images/coach-portrait.jpg`,
         width: 1122,
         height: 1402,
-        alt: "انضم كمدرب في Musclehubeg",
+        alt: "Coach on Musclehubeg",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "انضم كمدرب في Musclehubeg — عملاؤك بأسعارك وفلوسك في إيدك",
+    title: "Coach on Musclehubeg — your clients, your prices, your money",
     description:
-      "إدارة عملاء، خطط AI، أسعارك إنت اللي بتحددها وتحصّل بنفسك — بدون نسبة. سجّل مجانًا.",
+      "Client management, AI plans, your pricing with zero commission. Register free.",
     images: [`${SITE}/images/coach-portrait.jpg`],
   },
 };
 
-const faqSchema = getFAQSchema(COACH_FAQ_AR);
+const faqSchema = getFAQSchema(COACH_FAQ_EN);
 const breadcrumbSchema = getBreadcrumbSchema([
-  { name: "Musclehubeg", url: "/" },
-  { name: "انضم كمدرب", url: "/for-coaches" },
+  { name: "Musclehubeg", url: SITE },
+  { name: "For coaches", url: PAGE_URL },
 ]);
 
 export default function ForCoachesLayout({

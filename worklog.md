@@ -3507,3 +3507,21 @@ Stage Summary:
 - Mobile admin can now SEE and USE delete buttons; bulk delete selected works with server-side protection intact
 - Changed files: src/components/views/AdminAccountsView.tsx, src/app/api/admin/accounts/route.ts (+2 docs)
 - Next: commit+push, Vercel deploy, owner mobile verification
+
+---
+Task ID: 8
+Agent: Super Z (main)
+Task: QA-account purge + coach-page review system + staff console identity + AR for-coaches mirrors (owner multi-part directive)
+
+Work Log:
+- Deleted qa2.intruder.…@mhtest.mh-qa.com via one-off guarded block in the GHA worker (repository_dispatch), log DELETED_OK, block reverted next commit; account was role=admin (QA artifact)
+- 0046 review system: migration (review_status/note/reviewed_at, default approved), coach PUT → pending, admin PATCH approve/reject(note required), public gating in fetchCoachLanding + featured (defensive 42703 fallbacks)
+- New /admin/coach-pages review UI (mobile-first cards) + sidebar menu; coach editor review banners deliver the rejection reason
+- Staff console identity in AppLayout (admin dark / coach violet banners + chips + sidebar sections + accent states); new /admin console home with live pending badge; role-aware login redirects (admin→/admin)
+- AR mirrors: /ar/for-coaches + /ar/for-coaches/register (re-export pattern, AR-first metadata, reciprocal hreflang, sitemap/robots/llms.txt updates, mirror-aware register CTA, LanguageToggle pairs)
+- §3.5 all green; browser smoke via temp ?__staff override (removed pre-commit)
+
+Stage Summary:
+- Coaches' public content is now admin-moderated end-to-end; admin & coach consoles have their own identity; for-coaches funnel is bilingual-indexable
+- Owner must run RUN_ON_SUPABASE_0046 in Supabase (idempotent, zero disruption)
+- Changed: 14 modified + 6 new files (see commit)

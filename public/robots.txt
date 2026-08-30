@@ -32,7 +32,9 @@ Allow: /coaching
 Allow: /evo
 # FOR-COACHES — coach recruitment funnel (public, SEO-indexed)
 Allow: /for-coaches
+Allow: /ar/for-coaches
 Allow: /for-coaches/register
+Allow: /ar/for-coaches/register
 # GEO (2026-08-30): llms.txt — machine-readable site guide for AI engines
 Allow: /llms.txt
 

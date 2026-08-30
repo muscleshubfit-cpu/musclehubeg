@@ -35,6 +35,9 @@ type LandingPage = {
   facebook_url?: string;
   tiktok_url?: string;
   youtube_url?: string;
+  // 0046 — admin review state (migration RUN_ON_SUPABASE_0046)
+  review_status?: "pending" | "approved" | "rejected";
+  review_note?: string;
 } | null;
 
 const MAX_RESULTS_PHOTOS = 6;
@@ -87,6 +90,9 @@ export function CoachLandingEditor() {
   const [bioEn, setBioEn] = useState("");
   const [specialtiesEn, setSpecialtiesEn] = useState("");
   const [published, setPublished] = useState(false);
+  // 0046 — review state shown as a banner (pending / rejected + reason)
+  const [reviewStatus, setReviewStatus] = useState<"pending" | "approved" | "rejected">("approved");
+  const [reviewNote, setReviewNote] = useState("");
   // 0037 — public profile enrichment state
   const [photoUrl, setPhotoUrl] = useState("");
   const [resultsPhotos, setResultsPhotos] = useState<CoachResultPhoto[]>([]);
@@ -117,6 +123,8 @@ export function CoachLandingEditor() {
           setBioEn(json.page?.bio_en ?? "");
           setSpecialtiesEn(json.page?.specialties_en ?? "");
           setPublished(Boolean(json.page?.is_published));
+          setReviewStatus(json.page?.review_status ?? "approved");
+          setReviewNote(json.page?.review_note ?? "");
           setPhotoUrl(json.page?.photo_url ?? "");
           setResultsPhotos(Array.isArray(json.page?.results_photos) ? json.page.results_photos : []);
           setInstagram(json.page?.instagram_url ?? "");
@@ -181,11 +189,19 @@ export function CoachLandingEditor() {
       if (res.ok) {
         setPublished(publish);
         setPage(json.page);
+        // 0046 — the server answers with the fresh review state
+        setReviewStatus(json.page?.review_status ?? "approved");
+        setReviewNote(json.page?.review_note ?? "");
         setMessage({
           kind: "ok",
-          text: publish
-            ? isAr ? "تم النشر — شارك رابط صفحتك مع عملائك" : "Published — share your page link with clients"
-            : isAr ? "تم حفظ المسودة (غير منشورة)" : "Draft saved (not published)",
+          text:
+            (json.page?.review_status ?? "approved") === "pending"
+              ? isAr
+                ? "تم الحفظ — صفحتك دلوقتي في انتظار مراجعة الأدمن وهي تظهر للزوار بعد موافقته"
+                : "Saved — your page is now PENDING admin review and goes public once approved"
+              : publish
+                ? isAr ? "تم النشر — شارك رابط صفحتك مع عملائك" : "Published — share your page link with clients"
+                : isAr ? "تم حفظ المسودة (غير منشورة)" : "Draft saved (not published)",
         });
       } else {
         setMessage({ kind: "err", text: json.message || json.error || (isAr ? "فشل الحفظ" : "Save failed") });
@@ -339,11 +355,56 @@ export function CoachLandingEditor() {
             </>
           )}
         </div>
+        {/* 0046 — REVIEW STATE BANNER (reason delivery channel) */}
+        {reviewStatus === "rejected" && (
+          <div className="rounded-2xl border border-[#ff3b30]/30 bg-[#ff3b30]/5 p-4">
+            <p className="text-sm font-bold text-[#ff3b30]">
+              {isAr ? "الأدمن رفض الصفحة — عدّل المحتوى وابعته تاني" : "The admin rejected your page — edit it and resubmit"}
+            </p>
+            {reviewNote && (
+              <p className="mt-1.5 text-sm leading-relaxed text-[#ff3b30]/90">
+                {isAr ? "سبب الرفض: " : "Reason: "}
+                {reviewNote}
+              </p>
+            )}
+            <p className="mt-1 text-xs text-[#6e6e73]">
+              {isAr
+                ? "صفحتك مش ظاهرة للزوار حاليًا — أول ما تعدّل وتضغط نشر بترجع للمراجعة."
+                : "Your page is hidden from visitors — edit and press publish to send it back to review."}
+            </p>
+          </div>
+        )}
+        {reviewStatus === "pending" && (
+          <div className="rounded-2xl border border-[#ff9500]/30 bg-[#ff9500]/5 p-4">
+            <p className="text-sm font-bold text-[#ff9500]">
+              {isAr ? "صفحتك في انتظار مراجعة الأدمن" : "Your page is pending admin review"}
+            </p>
+            <p className="mt-1 text-xs text-[#6e6e73]">
+              {isAr
+                ? "بتقدر تعدّل براحتك — لكن التعديلات مش بتظهر للزوار غير بعد موافقة الأدمن."
+                : "You can keep editing — changes go live only after the admin approves."}
+            </p>
+          </div>
+        )}
         <div className={`mt-2 inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-medium ${
-          published ? "bg-[#34c759]/10 text-[#34c759]" : "bg-[#ff9500]/10 text-[#ff9500]"
+          reviewStatus === "pending"
+            ? "bg-[#ff9500]/10 text-[#ff9500]"
+            : reviewStatus === "rejected"
+              ? "bg-[#ff3b30]/10 text-[#ff3b30]"
+              : published
+                ? "bg-[#34c759]/10 text-[#34c759]"
+                : "bg-[#ff9500]/10 text-[#ff9500]"
         }`}>
-          <span className={`h-2 w-2 rounded-full ${published ? "bg-[#34c759]" : "bg-[#ff9500]"}`} />
-          {published ? (isAr ? "منشورة للعامة" : "Published") : (isAr ? "غير منشورة (مسودة)" : "Draft (unpublished)")}
+          <span className={`h-2 w-2 rounded-full ${
+            reviewStatus === "rejected" ? "bg-[#ff3b30]" : published && reviewStatus === "approved" ? "bg-[#34c759]" : "bg-[#ff9500]"
+          }`} />
+          {reviewStatus === "pending"
+            ? isAr ? "في انتظار موافقة الأدمن — غير ظاهرة للعامة" : "Pending admin approval — not public"
+            : reviewStatus === "rejected"
+              ? isAr ? "مرفوضة — محتاجة تعديل" : "Rejected — needs edits"
+              : published
+                ? isAr ? "معتمدة ومنشورة للعامة" : "Approved & published"
+                : isAr ? "غير منشورة (مسودة)" : "Draft (unpublished)"}
         </div>
       </div>
 

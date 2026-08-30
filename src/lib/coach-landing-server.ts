@@ -73,46 +73,64 @@ export async function fetchCoachLanding(
 ): Promise<CoachLandingData | null> {
   if (!isSupabaseAdminConfigured || !supabaseAdmin) return null;
 
-  const { data: page } = (await supabaseAdmin
+  // 0046 REVIEW GATE — the public page renders ONLY approved content.
+  // review_status is read defensively: before migration 0046 runs, the
+  // column doesn't exist (42703) → fall back to the legacy select and
+  // treat every row as approved (pre-0046 behaviour preserved).
+  const { data: page, error: pageErr } = (await supabaseAdmin
     .from("coach_pages" as any)
     .select(
-      "slug, headline, bio, specialties, headline_en, bio_en, specialties_en, is_published, coach_id, photo_url, results_photos, instagram_url, facebook_url, tiktok_url, youtube_url",
+      "slug, headline, bio, specialties, headline_en, bio_en, specialties_en, is_published, review_status, coach_id, photo_url, results_photos, instagram_url, facebook_url, tiktok_url, youtube_url",
     )
     .eq("slug", slug)
-    .maybeSingle()) as { data: any };
+    .maybeSingle()) as { data: any; error: any };
 
-  if (!page || !page.is_published) return null;
+  let pageRow = page;
+  if (pageErr && (pageErr as { code?: string }).code === "42703") {
+    const legacy = (await supabaseAdmin
+      .from("coach_pages" as any)
+      .select(
+        "slug, headline, bio, specialties, headline_en, bio_en, specialties_en, is_published, coach_id, photo_url, results_photos, instagram_url, facebook_url, tiktok_url, youtube_url",
+      )
+      .eq("slug", slug)
+      .maybeSingle()) as { data: any };
+    pageRow = legacy.data ? { ...legacy.data, review_status: "approved" } : null;
+  }
+
+  if (!pageRow || !pageRow.is_published) return null;
+  // 0046 — not approved (pending re-review / rejected) → hidden from public.
+  if ((pageRow.review_status ?? "approved") !== "approved") return null;
 
   const { data: prof } = await supabaseAdmin
     .from("profiles")
     .select("full_name, avatar_url, role")
-    .eq("id", page.coach_id)
+    .eq("id", pageRow.coach_id)
     .maybeSingle();
 
   if (!prof || (prof.role !== "coach" && prof.role !== "admin")) return null;
 
   return {
-    slug: page.slug,
-    is_published: page.is_published,
+    slug: pageRow.slug,
+    is_published: pageRow.is_published,
     coach_name: prof.full_name || "",
     coach_avatar: prof.avatar_url || null,
-    photo_url: page.photo_url || null,
-    results_photos: parseResultsPhotos(page.results_photos),
+    photo_url: pageRow.photo_url || null,
+    results_photos: parseResultsPhotos(pageRow.results_photos),
     social: {
-      instagram: page.instagram_url || "",
-      facebook: page.facebook_url || "",
-      tiktok: page.tiktok_url || "",
-      youtube: page.youtube_url || "",
+      instagram: pageRow.instagram_url || "",
+      facebook: pageRow.facebook_url || "",
+      tiktok: pageRow.tiktok_url || "",
+      youtube: pageRow.youtube_url || "",
     },
     ar: {
-      headline: page.headline || "",
-      bio: page.bio || "",
-      specialties: splitSpecialties(page.specialties),
+      headline: pageRow.headline || "",
+      bio: pageRow.bio || "",
+      specialties: splitSpecialties(pageRow.specialties),
     },
     en: {
-      headline: page.headline_en || "",
-      bio: page.bio_en || "",
-      specialties: splitSpecialties(page.specialties_en),
+      headline: pageRow.headline_en || "",
+      bio: pageRow.bio_en || "",
+      specialties: splitSpecialties(pageRow.specialties_en),
     },
   };
 }
