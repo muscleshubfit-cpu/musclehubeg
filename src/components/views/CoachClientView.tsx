@@ -52,7 +52,7 @@ import {
  getQuestionnaire,
  fetchProfile,
 } from "@/lib/data";
-import { TIERS, getTier, type Duration } from "@/lib/plans";
+import { getTier, type Duration } from "@/lib/plans";
 import { MEMBERSHIPS } from "@/lib/memberships";
 import { resolveExerciseImage, getExerciseImage, getExerciseImages, getFallbackSVG } from "@/lib/exercise-images";
 import { EXERCISES } from "@/lib/exercises";
@@ -79,19 +79,17 @@ import {
  type CoachPaymentMethod,
 } from "@/lib/coach-limits";
 
-// Unified tier list — combines new membership tiers (Premium, Pro, Coaching)
-// with legacy tiers (Starter, Elite) for backward compatibility. Used in the
-// subscription form so the coach can pick ANY tier.
+// Unified tier list — the three MODEL tiers (Premium, Pro, Coaching).
+// 0045: legacy Starter/Elite were removed (products retired, rows migrated).
+// Used in the subscription form so the admin can pick ANY model tier.
 const ALL_TIERS: Array<{ id: string; nameAr: string; nameEn: string }> = [
+  // 0045: model tiers ONLY. The legacy starter/elite options were removed —
+  // those products are retired (DB CHECK guard blocks them now; the
+  // historical rows were migrated starter → premium, elite → pro).
   ...MEMBERSHIPS.filter((m) => m.id !== "free").map((m) => ({
     id: m.id,
     nameAr: m.nameAr,
     nameEn: m.nameEn,
-  })),
-  ...TIERS.map((t) => ({
-    id: t.id,
-    nameAr: t.id === "starter" ? "ستارتر" : "إيليت",
-    nameEn: t.id === "starter" ? "Starter" : "Elite",
   })),
 ];
 

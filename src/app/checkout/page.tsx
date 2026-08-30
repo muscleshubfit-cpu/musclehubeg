@@ -5,14 +5,18 @@ import { Suspense, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/hooks/use-auth";
 import { CheckoutView } from "@/components/views/CheckoutView";
-import { MEMBERSHIPS, type MembershipTier } from "@/lib/memberships";
-import { getTier, type TierId, type Duration } from "@/lib/plans";
+import { type MembershipTier } from "@/lib/memberships";
+import { type Duration } from "@/lib/plans";
 
-// Valid tiers across both systems:
-//   - New membership system (premium, pro)
-//   - Legacy coaching system (starter, elite) — kept for any old links
-const VALID_MEMBERSHIP_TIERS: MembershipTier[] = ["premium", "pro"];
-const VALID_LEGACY_TIERS: TierId[] = ["starter", "elite"];
+// 0045 MODEL DECREE: only the three model tiers are sellable.
+//   - premium / pro  → platform memberships (B2C, admin-reviewed manual
+//     payments + PayPal instant)
+//   - coaching       → the $39.99 site-coaching product (B2C, admin)
+// The legacy Starter/Elite products were RETIRED (their subscriptions
+// resolved as "free" — paying clients got nothing; 0045 migrated the
+// existing rows: starter → premium, elite → pro). Old /checkout links
+// with those tiers now redirect to /memberships.
+const VALID_TIERS: MembershipTier[] = ["premium", "pro", "coaching"];
 
 function CheckoutPageInner() {
   const { profile, loading } = useAuth();
@@ -24,9 +28,7 @@ function CheckoutPageInner() {
   const months = (monthsParam === 12 ? 12 : 1) as Duration;
 
   // Validate tier
-  const isValidMembership = VALID_MEMBERSHIP_TIERS.includes(tierParam as MembershipTier);
-  const isValidLegacy = VALID_LEGACY_TIERS.includes(tierParam as TierId);
-  const isValid = isValidMembership || isValidLegacy;
+  const isValid = VALID_TIERS.includes(tierParam as MembershipTier);
   // Always redirect unauthenticated users to login with next=checkout URL preserved
   const nextPath = `/checkout?tier=${encodeURIComponent(tierParam)}&months=${months}`;
   const authHref = `/auth?mode=login&next=${encodeURIComponent(nextPath)}`;

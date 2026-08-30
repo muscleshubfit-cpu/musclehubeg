@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { LanguageToggle } from "@/components/LanguageToggle";
 import { useNav } from "@/hooks/use-nav";
 import { useAuth } from "@/hooks/use-auth";
-import { getTier, type TierId, type Duration, type PaymentMethod } from "@/lib/plans";
+import { type TierId, type Duration, type PaymentMethod } from "@/lib/plans";
 import { MEMBERSHIPS, type MembershipTier } from "@/lib/memberships";
 import { submitSubscriptionRequest, uploadReceipt } from "@/lib/data";
 import { cn } from "@/lib/utils";
@@ -43,7 +43,13 @@ type PlanInfo = {
 
 function resolvePlan(tier: string, months: number, isAr: boolean): PlanInfo | null {
   const m = MEMBERSHIPS.find((x) => x.id === tier);
-  if (m && (m.id === "premium" || m.id === "pro")) {
+  // 0045: 'coaching' ($39.99 site product) is now BUYABLE — before this fix
+  // it resolved to null and /checkout?tier=coaching rendered a dead-end
+  // page with only a "back to memberships" link (owner complaint:
+  // «منتج كوتشينج لا تفعل شىء»). Legacy starter/elite tiers were retired:
+  // the checkout PAGE no longer accepts them (old links redirect to
+  // /memberships), so resolvePlan only ever sees model tiers.
+  if (m && (m.id === "premium" || m.id === "pro" || m.id === "coaching")) {
     const isYearly = months === 12;
     const price = isYearly && m.priceYearly ? m.priceYearly : m.priceMonthly || 0;
     return {
@@ -54,17 +60,6 @@ function resolvePlan(tier: string, months: number, isAr: boolean): PlanInfo | nu
       price,
       durationMonths: months,
       monthlyEquivalent: isYearly ? (m.priceYearly || 0) / 12 : undefined,
-    };
-  }
-
-  const legacy = getTier(tier as TierId);
-  if (legacy) {
-    const price = legacy.prices[months as Duration] ?? legacy.prices[1];
-    return {
-      name: isAr ? tier : tier.charAt(0).toUpperCase() + tier.slice(1),
-      sub: isAr ? "اشتراك" : "Subscription",
-      price,
-      durationMonths: months,
     };
   }
 

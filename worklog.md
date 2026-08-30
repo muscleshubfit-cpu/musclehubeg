@@ -3294,3 +3294,19 @@ Stage Summary:
 - 19 live checks passed across client/coach/B2C/B2B surfaces; signup chain (0040) proven fixed in production; 0043 model verified live end-to-end.
 - 1 real vulnerability found (subscription_requests staff-wide SELECT/UPDATE leak) → 0044 whitelist sweep ready for owner to run.
 - Phase B pending owner SQL: promote qa2.intruder.20260830001245@mhtest.mh-qa.com to admin → then full admin-surface tests + funded coach activation happy paths.
+
+---
+Task ID: 11-0045-coaching-fix-test-accounts
+Agent: Super Z (main)
+Task: Owner feedback after 0044 run + admin promotion — «منتج كوتشينج لا تفعل شىء» + «ضيف فى داشبورد الادمن طريقة للتعليم على الحسابات وزرار مسح».
+
+Work Log:
+- Diagnosed live: 6 REAL starter/elite subscriptions (Aug 11–27) resolve as "free" (tier resolver only knows premium/pro/coaching) — paying clients got nothing; /checkout?tier=coaching dead-end (resolvePlan null) made the $39.99 product unbuyable; pending starter $20 request would have recreated a dead tier on approval.
+- Code: CheckoutView.resolvePlan accepts coaching; checkout page VALID_TIERS = premium/pro/coaching (old links → /memberships); /coaching pricing rewritten to the unified product ($39.99/mo + $359/yr -25%) with useRouter navigation; legacy mapping (elite→pro, starter→premium) added in auth-server + use-membership-tier; CoachClientView admin picker reduced to model tiers; profiles Database type + is_test_account; demo seed profile flagged is_test_account:true.
+- New admin surface: /admin/accounts (AdminAccountsView — search, role/test filters, test badge toggle, two-step delete confirm) + /api/admin/accounts GET/PATCH/DELETE (requireAdmin; deleteUser cascade via service role; self-delete + admin-delete guards) + AppLayout «الحسابات» nav link with per-link active state.
+- Migration RUN_ON_SUPABASE_0045_COACHING_PRODUCT_FIX_TEST_ACCOUNTS.sql: Part A remap + subscriptions_tier_model_guard CHECK (DO-block guarded) ; Part B profiles.is_test_account + profiles_update_admin policy; single final verify grid (remapped counts, tier_values_now, tier_guard_added, test_flag, admin policy). pglast 9 stmts.
+- Validation: tsc 0 / eslint 0 errors / vitest 153-153 / next build ✓ with /admin/accounts + /api/admin/accounts.
+
+Stage Summary:
+- Starter/Elite retired at every layer (UI sell, checkout accept, picker, DB guard); the $39.99 site-coaching product is now purchasable end-to-end; admin can mark test accounts and delete accounts safely.
+- Owner steps: run 0045 raw link (expect remapped_subscription_rows=6, tier_guard_added=true, admin_update_policy_present=true) → retest coaching purchase + accounts surface.

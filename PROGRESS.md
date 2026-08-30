@@ -1,9 +1,20 @@
 # PROGRESS.md — MuscleHub Status Board
 
-> **آخر تحديث:** 2026-08-30 (فحص لايف شامل بـ 5 حسابات تجريبية + هجرة 0044 لمسح بوليسي متسربة على subscription_requests)
+> **آخر تحديث:** 2026-08-30 (هجرة 0045: إصلاح منتج الكوتشينج «لا تفعل شىء» + إدارة الحسابات التجريبية في داشبورد الأدمن)
 > **قاعدة التحكم:** هذا الملف هو لوحة التحكم والتسليم المشتركة. لا ننتقل لأي خطوة قادمة دون تحديث هذا الملف والحصول على الموافقة البشرية.
 > **مصدر الحقيقة:** الكود الفعلي (`src/**` + `supabase/migrations/`) يتفوق على هذا الملف (§12.8). كل الأرقام في القسم 1 تم التحقق منها فعلياً في مهمة #4.
 > **الأرشيف الكامل:** المحتوى التاريخي التفصيلي منقول إلى `archive/PROGRESS_ARCHIVE.md`.
+
+---
+
+## 2026-08-30 — 0045: إصلاح «منتج كوتشينج لا تفعل شىء» + الحسابات التجريبية في لوحة الأدمن
+
+- **شكوى المالك:** «منتج كوتشينج لا تفعل شىء» + «ضيف فى داشبورد الادمن طريقة للتعليم على الحسابات وزرار مسح» (بعد ما شغّل 0044 ورفّع حساب أدمن للاختبار).
+- **التشخيص (مُثبت على القاعدة الحية):** صفحة /coaching كانت بتبيع منتجين قديمين (Starter $20 / Elite $40) بيبنوا اشتراكات tier='starter'/'elite' — وسياق تحديد المستوى (server + client) بيعرف بس premium/pro/coaching، ف**٦ مشتركين حقيقيين (11–27 أغسطس) دفعوا وحلّوا كـ free**. وكمان منتج الكوتشينج $39.99 كان مستحيل شراؤه: /checkout?tier=coaching بيرجّع صفحة ميتة (resolvePlan=null).
+- **الإصلاح (كود):** resolvePlan بيقبل tier=coaching (باي بال فوري + انستاباي/فودافون بمراجعة الأدمن)؛ صفحة /coaching بقت تبيع منتج الكوتشينج الموحد ($39.99/شهر أو $359/سنة بخصم 25%) بدل Starter/Elite؛ صفحة الـ checkout مبتقبلش starter/elite (اللينكات القديمة بترجع لـ /memberships)؛ mapping دفاعي في auth-server + use-membership-tier (elite→pro, starter→premium)؛ منتقي الباقات في CoachClientView (أدمن) بقى بالـ tiers النموذجية بس؛ لايف-ستايت لينكات الأدمن في AppLayout بقت بتتهيأ صح.
+- **الهجرة 0045 (RUN_ON_SUPABASE_0045_COACHING_PRODUCT_FIX_TEST_ACCOUNTS.sql):** الجزء أ = تحويل صفوف starter→premium وelite→pro (اشتراكات + طلبات) + CHECK guard على subscriptions.tier (premium/pro/coaching فقط — أي كاتب مستقبلًا هيمنعه، حتى الـ RPC أو service role)؛ الجزء ب = عمود profiles.is_test_account + بوليسي profiles_update_admin (is_admin، نفس أسلوب 0043). شبكة تحقق واحدة أخيرة: remapped rows / tier_values_now / tier_guard_added / test_flag / admin_update_policy_present. صادق عليها pglast (9 جمل).
+- **واجهة الحسابات الجديدة:** /admin/accounts (AdminGate + لينك «👥 الحسابات» في سايدبار الأدمن) — بحث + فلاتر (عملاء/مدربين/أدمن/تجريبي) + شارة «تجريبي» بزرار تعليم/إلغاء تعليم + زرار مسح بتأكيد خطوتين. API /api/admin/accounts: GET/PATCH/DELETE (requireAdmin). المسح بيتم عبر auth.admin.deleteUser بحذف متسلسل كامل (auth.users → profiles → 34 جدول بيانات). حمايات: ممنوع مسح نفسك، وممنوع مسح حسابات الأدمن.
+- **التحقق:** tsc 0 / eslint 0 errors / vitest 153/153 / next build ✓ (/admin/accounts + /api/admin/accounts موجودين).
 
 ---
 

@@ -25,6 +25,7 @@ export type Database = {
           role: "client" | "coach" | "admin";
           avatar_url: string | null;
           referral_code: string | null;
+          is_test_account: boolean;
           created_at: string;
         };
         Insert: {
@@ -35,6 +36,7 @@ export type Database = {
           role?: "client" | "coach" | "admin";
           avatar_url?: string | null;
           referral_code?: string | null;
+          is_test_account?: boolean;
           created_at?: string;
         };
         Update: {
@@ -44,6 +46,7 @@ export type Database = {
           role?: "client" | "coach" | "admin";
           avatar_url?: string | null;
           referral_code?: string | null;
+          is_test_account?: boolean;
         };
         Relationships: [];
       };

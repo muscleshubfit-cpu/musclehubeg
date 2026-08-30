@@ -95,6 +95,7 @@ export async function signUpEmail(
  role: "client",
  avatar_url: null,
  referral_code: null,
+ is_test_account: false,
  created_at: new Date().toISOString(),
  };
  // Notify the ASSIGNED coach about new client (multi-coach routing)
@@ -136,6 +137,7 @@ export async function signUpEmail(
  role: "client",
  avatar_url: null,
  referral_code: null,
+ is_test_account: false,
  created_at: new Date().toISOString(),
  };
  write(LS_PROFILES, profiles);
@@ -357,6 +359,7 @@ export function seedLocalData() {
  role: "coach",
  avatar_url: null,
  referral_code: null,
+ is_test_account: false,
  created_at: new Date().toISOString(),
  },
  [clientId]: {
@@ -367,6 +370,7 @@ export function seedLocalData() {
  role: "client",
  avatar_url: null,
  referral_code: null,
+ is_test_account: true,
  created_at: new Date().toISOString(),
  },
  };

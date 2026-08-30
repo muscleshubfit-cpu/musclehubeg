@@ -129,19 +129,24 @@ export async function getAuthUser(
     if (subs && subs.length > 0) {
       // Separate coaching from memberships
       const hasCoaching = subs.some((s: any) => s.tier === "coaching");
+      // 0045 legacy compat: starter/elite were the retired coaching-page
+      // products; migration 0045 remapped all rows (starter → premium,
+      // elite → pro). The mapping here is belt-and-suspenders so a stray
+      // legacy row can never downgrade a paying client to "free" again.
       const membershipSubs = subs.filter((s: any) =>
-        ["premium", "pro"].includes(s.tier),
+        ["premium", "pro", "starter", "elite"].includes(s.tier),
       );
 
       if (membershipSubs.length > 0) {
-        // Pick the best membership tier (pro > premium)
+        // Pick the best membership tier (pro/elite > premium/starter)
         const priority = (tier: string) => {
-          if (tier === "pro") return 3;
-          if (tier === "premium") return 2;
+          if (tier === "pro" || tier === "elite") return 3;
+          if (tier === "premium" || tier === "starter") return 2;
           return 0;
         };
         membershipSubs.sort((a: any, b: any) => priority(b.tier) - priority(a.tier));
-        membership_tier = membershipSubs[0].tier as MembershipTier;
+        const best = membershipSubs[0].tier as string;
+        membership_tier = (best === "elite" ? "pro" : best === "starter" ? "premium" : best) as MembershipTier;
       } else if (hasCoaching) {
         // Only coaching, no membership — tier is "coaching" for EVO access
         membership_tier = "coaching";

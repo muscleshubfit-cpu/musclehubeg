@@ -1,6 +1,7 @@
 "use client";
 
 import { type ReactNode } from "react";
+import { usePathname } from "next/navigation";
 import { useAuth } from "@/hooks/use-auth";
 import { useI18n } from "@/lib/i18n";
 import { SiteHeader } from "@/components/SiteHeader";
@@ -13,6 +14,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
   const { t, lang } = useI18n();
   const { profile, isCoach, isAdmin } = useAuth();
   const { view, navigate } = useNav();
+  const pathname = usePathname();
   const isAr = lang === "ar";
 
   type NavItem = { to: View; label: string; emoji: string; action?: "evo-chat" };
@@ -68,6 +70,8 @@ export function AppLayout({ children }: { children: ReactNode }) {
     { href: "/admin/assignments", label: isAr ? "تعيين المدربين" : "Coach assignments", emoji: "🤝" },
     // 0035: receipt review + manual wallet credit (محافظ المدربين).
     { href: "/admin/wallets", label: isAr ? "محافظ المدربين" : "Coach wallets", emoji: "👛" },
+    // 0045 (owner request): mark TEST accounts + delete accounts, one surface.
+    { href: "/admin/accounts", label: isAr ? "الحسابات" : "Accounts", emoji: "👥" },
     { href: "/admin/leads", label: isAr ? "Leads الأدوات" : "Tool Leads", emoji: "📨" },
     { href: "/admin/saved-results", label: isAr ? "النتائج المحفوظة" : "Saved Results", emoji: "🔖" },
   ];
@@ -111,7 +115,8 @@ export function AppLayout({ children }: { children: ReactNode }) {
                 );
               })}
               {isAdmin && coachExtraLinks.map((link) => {
-                const active = view === ("admin-leads" as any);
+                // 0045: per-link active state (was hardcoded to admin-leads).
+                const active = (pathname || "").startsWith(link.href) || view === ("admin-leads" as any);
                 return (
                   <a
                     key={link.href}

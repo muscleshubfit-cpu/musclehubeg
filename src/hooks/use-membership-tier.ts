@@ -63,8 +63,13 @@ export function useMembershipTier(
       .then((sub: any) => {
         if (cancelled) return;
         const t = sub?.tier;
-        if (t && VALID_TIERS.includes(t as MembershipTier)) {
-          setTier(t as MembershipTier);
+        // 0045 legacy compat: retired starter/elite rows (remapped by
+        // migration 0045) still resolve to their successor tiers here so a
+        // paying client can never render as "free" through any code path.
+        const mapped =
+          t === "elite" ? "pro" : t === "starter" ? "premium" : t;
+        if (mapped && VALID_TIERS.includes(mapped as MembershipTier)) {
+          setTier(mapped as MembershipTier);
         } else {
           setTier("free");
         }
