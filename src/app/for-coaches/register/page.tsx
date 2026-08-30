@@ -85,7 +85,9 @@ export default function CoachRegisterPage() {
       }
       setDone(true);
       setLoading(false);
-      router.push("/coach");
+      // Phase 51 (owner: «اى مدرب يسجل مفروض ينتقل لاعداد صفحتة العامة») —
+      // onboarding lands on the public-page editor, not the clients list.
+      router.push("/coach/landing");
     } catch {
       setError(
         isAr

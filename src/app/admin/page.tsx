@@ -50,6 +50,18 @@ export default function AdminConsoleHome() {
 
   const cards: Card[] = [
     {
+      // Phase 51 (owner: «ضيف صفحة لادارة نظام المدربين — زرار فى داشبورد
+      // الادمن — يجمع فيها كل الازرار الخاصة بادارة المدربين») — the hub
+      // leads the grid; individual coach surfaces remain below.
+      href: "/admin/coach-system",
+      emoji: "🎛️",
+      title: isAr ? "إدارة نظام المدربين" : "Coach system",
+      desc: isAr
+        ? "كل أدوات إدارة المدربين في صفحة واحدة — المراجعة والتعيين والمحافظ والدعم"
+        : "Every coach-management tool in one page — review, assignments, wallets, support",
+      badgeKey: "pendingPages",
+    },
+    {
       href: "/admin/coach-pages",
       emoji: "🗂️",
       title: isAr ? "صفحات المدربين" : "Coach pages",
@@ -111,6 +123,23 @@ export default function AdminConsoleHome() {
       emoji: "🔖",
       title: isAr ? "النتائج المحفوظة" : "Saved Results",
       desc: isAr ? "نتائج الأدوات المحفوظة" : "Saved tool results",
+    },
+    // Phase 51 (owner: «مفروض تكون جزء من الداشبورد مثلا زرار الصفحة
+    // الشخصية» + «صفحته العامة مش موجودة فى الداشبورد للادمن») — the
+    // member-style /profile page and the admin's OWN public page are
+    // reachable from his console instead of the header account button
+    // (which now opens this console).
+    {
+      href: "/coach/landing",
+      emoji: "🌐",
+      title: isAr ? "صفحتي العامة" : "My public page",
+      desc: isAr ? "إعداد صفحتك العامة أمام العملاء — وتظهر بعد مراجعتك لها بنفسك" : "Set up your own public coach page",
+    },
+    {
+      href: "/profile",
+      emoji: "👤",
+      title: isAr ? "الصفحة الشخصية" : "Personal page",
+      desc: isAr ? "بياناتك وعضويتك ونتائجك المحفوظة" : "Your info, membership & saved results",
     },
   ];
 

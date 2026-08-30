@@ -370,9 +370,14 @@ export default function ProfilePage() {
             <h2 className="text-lg font-semibold tracking-tight">
               {isAr ? "حدود عضويتك" : "Your Plan Limits"}
             </h2>
-            <a href="/memberships" className="text-xs font-medium text-[#0071e3] hover:underline">
-              {isAr ? "ترقية ›" : "Upgrade ›"}
-            </a>
+            {/* Phase 51 — staff accounts resolve to the coaching tier and
+                never buy site memberships; the member «ترقية» CTA made the
+                page feel member-facing (owner complaint). */}
+            {!isCoach && (
+              <a href="/memberships" className="text-xs font-medium text-[#0071e3] hover:underline">
+                {isAr ? "ترقية ›" : "Upgrade ›"}
+              </a>
+            )}
           </div>
           <div className="mt-4 grid grid-cols-2 gap-3">
             {[

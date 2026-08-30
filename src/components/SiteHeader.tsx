@@ -64,6 +64,13 @@ export function SiteHeader({ variant = "landing" }: { variant?: "landing" | "app
   const { t, lang } = useI18n();
   const { navigate } = useNav();
   const { profile, isCoach, isAdmin, signOutAsync } = useAuth();
+
+  // Phase 51 — the header ACCOUNT button opens the role's own CONSOLE for
+  // staff (admin → /admin, coach → /coach) instead of the member-style
+  // /profile page («عضويتك/أدواتك/حدودك»). Members keep /profile. Staff
+  // still reach /profile via the «الصفحة الشخصية» card inside their
+  // dashboards.
+  const accountHref = isAdmin ? "/admin" : isCoach ? "/coach" : "/profile";
   const isLoggedIn = !!profile;
   const isAr = lang === "ar";
   const [open, setOpen] = useState(false);
@@ -366,7 +373,7 @@ export function SiteHeader({ variant = "landing" }: { variant?: "landing" | "app
             {/* Account icon — profile photo if logged in, generic icon if not */}
             {isLoggedIn ? (
               <a
-                href="/profile"
+                href={accountHref}
                 className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full ring-2 ring-[#0071e3]/20 transition-all hover:ring-[#0071e3]/40"
                 aria-label={isAr ? "حسابي" : "My account"}
               >
@@ -510,7 +517,7 @@ export function SiteHeader({ variant = "landing" }: { variant?: "landing" | "app
               <>
                 {/* Account link */}
                 <a
-                  href="/profile"
+                  href={accountHref}
                   onClick={() => setOpen(false)}
                   className="mb-1 flex items-center gap-3 rounded-lg px-3 py-3 text-start text-sm font-normal transition-colors text-[#1d1d1f] hover:bg-[#f5f5f7]"
                 >

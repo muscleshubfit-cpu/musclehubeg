@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useI18n } from "@/lib/i18n";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,7 +19,8 @@ const SLUG_RE = /^[a-z0-9-]{3,40}$/;
 export function AuthView({ mode, next, coach }: { mode: "login" | "signup"; next?: string; coach?: string }) {
   const { t, lang } = useI18n();
   const { navigate } = useNav();
-  const { signIn, signUp, signInGoogle } = useAuth();
+  const router = useRouter();
+  const { signIn, signUp, signInGoogle, profile } = useAuth();
   const isSignup = mode === "signup";
   const isAr = lang === "ar";
 
@@ -41,12 +43,17 @@ export function AuthView({ mode, next, coach }: { mode: "login" | "signup"; next
   }, [coach]);
 
   // After a successful login, redirect to `next` if provided (e.g. /checkout),
-  // otherwise fall back to the coach/client dashboard.
+  // otherwise fall back to the role's console. Phase 51: admin gets his
+  // /admin console here too (was landing on the coach's clients list).
   const goAfterLogin = (isCoach: boolean) => {
     if (next) {
       // Validate `next` to prevent open-redirect attacks (C17 fix).
       // Use a hard navigation so query params (?tier=...&months=...) are preserved.
       window.location.href = safeNext(next);
+      return;
+    }
+    if (profile?.role === "admin") {
+      router.push("/admin");
       return;
     }
     navigate(isCoach ? "coach" : "dashboard");

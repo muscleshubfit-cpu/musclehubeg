@@ -582,3 +582,33 @@ Owner feedback: «فى جرس الاشعارات بعد الضغط على الا
 1. سجّل دخول بحسابك (أدمن) → اضغط على أي تنبيه في الجرس → العداد والخلفية الملوّنة لازم يختفوا فورًا
 2. جرّب ترفض أو توافق على صفحة مدرب من «صفحات المدربين» → سجّل دخول بالمدرب → جرس إشعارات المدرب هيظهر التنبيه بالنتيجة (ولو رفض، السبب مكتوب)
 3. خلّي المدرب يعدّل صفحته ويحفظ → جرس الأدمن هيوصله «صفحة مدرب بانتظار مراجعتك»
+
+## Staff Navigation Rethink + Coach System Hub + New-Coach Onboarding (2026-08-31)
+
+Owner feedback: header account button opened the member-style /profile («عضويتك/أدواتك/حدودك») for admin+coach; the public page lived only in the main menu; new coaches had no guided page setup; coach-management tools were scattered.
+
+### What changed
+
+| # | Before | Now |
+|---|--------|-----|
+| 1 | Header account (avatar + drawer) → /profile for EVERY role | admin → لوحة الأدمن (/admin) · coach → لوحة الكوتش (/coach) · member keeps /profile |
+| 2 | Member-style page unreachable for staff | «الصفحة الشخصية» card in admin home + button in coach console → /profile (and the member «ترقية» upgrade CTA is hidden for staff there) |
+| 3 | Public page only in the main menu | «صفحتي العامة» 🌐 in the staff sidebar + coach console button + admin home card |
+| 4 | New coach → dumped on the clients list | New coach lands straight on his page editor (/coach/landing) + gets «أكمل إعداد صفحتك العامة» bell; ALSO fixed: the welcome bell used to go to a channel coaches never see — now it reaches them |
+| 5 | Coach with no page was INVISIBLE to the owner | Review queue now lists every staff member — «بدون صفحة» tab + badge, plus a manual «تذكير» button that pings that coach's bell |
+| 6 | Coach tools scattered across 6 places | NEW page «إدارة نظام المدربين» (/admin/coach-system) gathers: صفحات المدربين · تعيين المدربين (+الرسوم والدفعات) · محافظ المدربين · دعم المدربين — first card in admin home + first sidebar extra |
+
+### Verification
+
+| Check | Result |
+|---|---|
+| tsc / eslint / vitest / build | 0 · 0 errors (warnings = exact pre-phase baseline, 0 new) · 160/160 · ✓ |
+| Local smoke | 8 routes 200 incl. new /admin/coach-system; notify API responds; no compile errors |
+
+### Owner steps to verify after deploy (no migration needed)
+
+1. اضغط على صورتك في الهيدر وأنت بأدمنك → لازم تفتح «لوحة الأدمن» (مش صفحة العضويتك)
+2. في لوحة الأدمن هتلاقي كارت جديد في الأول «إدارة نظام المدربين» — دوس عليه: كل أدوات المدربين في صفحة واحدة
+3. «الصفحة الشخصية» و«صفحتي العامة» موجودين دلوقتي ككروت في لوحة الأدمن وأزرار في لوحة الكوتش
+4. سجّل مدرب جديد تجريبي → هيفتح له محرر صفحته على طول، وجرسك يوصلك «مدرب جديد سجّل»، وصفحته تظهر في قائمة المراجعة تحت «بدون صفحة» وزر «تذكير» جنبها
+5. اضغط «تذكير بإكمال الصفحة» → سجّل دخول بالمدرب التجريبي → هتلاقي التنبيه في جرسه

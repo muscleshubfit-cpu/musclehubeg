@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useI18n } from "@/lib/i18n";
 import {
+  BellRing,
   Check,
   ExternalLink,
   Eye,
@@ -20,13 +21,16 @@ import { cn } from "@/lib/utils";
  * لمراجعتها والموافقة او الرفض عليها مع ارسال السبب»
  *
  * The review QUEUE: every coach-written public landing page with its
- * review state. Pending first (the work queue), then rejected, then
- * approved — newest edits first inside each group.
+ * review state. Pending first (the work queue), then «missing» (staff who
+ * never finished setup — Phase 51), then rejected, then approved —
+ * newest edits first inside each group.
  *
  * Actions:
  *   - Approve  → page goes live for the public instantly.
  *   - Reject   → REASON REQUIRED (shown to the coach inside his landing
  *                editor); the page stays hidden until he edits again.
+ *   - Remind   → manual «أكمل إعداد صفحتك» bell to the coach (Phase 51,
+ *                owner: «يضاف الى الاشعارات اليدوية للادمن فى صفحة المدربين»).
  *
  * Mobile-first: rows render as stacked CARDS below md (the accounts-page
  * lesson — a wide table clips the actions column on phones).
@@ -40,21 +44,21 @@ type PageRow = {
   slug: string;
   headline: string;
   is_published: boolean;
-  review_status: "pending" | "approved" | "rejected";
+  review_status: "pending" | "approved" | "rejected" | "missing";
   review_note: string;
   reviewed_at: string | null;
   updated_at: string | null;
   photo_url: string;
 };
 
-type Counts = { total: number; pending: number; rejected: number; approved: number };
-type Filter = "pending" | "rejected" | "approved" | "all";
+type Counts = { total: number; pending: number; rejected: number; approved: number; missing: number };
+type Filter = "pending" | "missing" | "rejected" | "approved" | "all";
 
 export function AdminCoachPagesView() {
   const { lang } = useI18n();
   const isAr = lang === "ar";
   const [pages, setPages] = useState<PageRow[]>([]);
-  const [counts, setCounts] = useState<Counts>({ total: 0, pending: 0, rejected: 0, approved: 0 });
+  const [counts, setCounts] = useState<Counts>({ total: 0, pending: 0, rejected: 0, approved: 0, missing: 0 });
   const [loading, setLoading] = useState(true);
   const [migrationMissing, setMigrationMissing] = useState<string | null>(null);
   const [filter, setFilter] = useState<Filter>("pending");
@@ -69,7 +73,7 @@ export function AdminCoachPagesView() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || data.error || "failed");
       setPages(data.pages ?? []);
-      setCounts(data.counts ?? { total: 0, pending: 0, rejected: 0, approved: 0 });
+      setCounts(data.counts ?? { total: 0, pending: 0, rejected: 0, approved: 0, missing: 0 });
       setMigrationMissing(data.migration_missing ?? null);
     } catch (e: any) {
       toast.error(e.message || (isAr ? "خطأ في تحميل الصفحات" : "Failed to load pages"));
@@ -132,7 +136,36 @@ export function AdminCoachPagesView() {
     }
   };
 
+  /** Phase 51 — manual «complete your page» reminder bell to one coach. */
+  const sendReminder = async (row: PageRow) => {
+    setBusyId(row.coach_id);
+    try {
+      const res = await fetch("/api/admin/coach-pages/notify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ coach_id: row.coach_id }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || data.error || "failed");
+      toast.success(
+        isAr
+          ? `تم إرسال التذكير إلى ${row.coach_name} — هيوصله في جرس إشعاراته`
+          : `Reminder sent to ${row.coach_name} — lands in his bell`,
+      );
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "";
+      toast.error(msg || (isAr ? "تعذر إرسال التذكير" : "Failed to send reminder"));
+    } finally {
+      setBusyId(null);
+    }
+  };
+
   const statusBadge = (status: PageRow["review_status"], isPublished: boolean) => {
+    if (status === "missing")
+      return {
+        cls: "bg-[#86868b]/10 text-[#86868b]",
+        label: isAr ? "بدون صفحة" : "No page yet",
+      };
     if (status === "pending")
       return {
         cls: "bg-[#ff9500]/10 text-[#ff9500]",
@@ -150,6 +183,7 @@ export function AdminCoachPagesView() {
 
   const filterTabs: Array<{ key: Filter; label: string }> = [
     { key: "pending", label: isAr ? `في الانتظار (${counts.pending})` : `Pending (${counts.pending})` },
+    { key: "missing", label: isAr ? `بدون صفحة (${counts.missing})` : `No page (${counts.missing})` },
     { key: "rejected", label: isAr ? `المرفوضة (${counts.rejected})` : `Rejected (${counts.rejected})` },
     { key: "approved", label: isAr ? `المعتمدة (${counts.approved})` : `Approved (${counts.approved})` },
     { key: "all", label: isAr ? `الكل (${counts.total})` : `All (${counts.total})` },
@@ -161,6 +195,26 @@ export function AdminCoachPagesView() {
   /** Approve / reject-with-reason actions — shared by table row & card. */
   const renderActions = (row: PageRow) => {
     const busy = busyId === row.coach_id;
+    // Phase 51 — no page exists yet: the ONLY meaningful action is the
+    // manual reminder (approve/reject would 404 — there is no row).
+    if (row.review_status === "missing") {
+      return (
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={() => sendReminder(row)}
+            disabled={busy}
+            title={isAr ? "إرسال تنبيه «أكمل إعداد صفحتك العامة» للمدرب" : "Send the complete-your-page bell"}
+            className="inline-flex items-center gap-1.5 rounded-full bg-[#0071e3]/10 px-3 py-1.5 text-xs font-medium text-[#0071e3] transition-colors hover:bg-[#0071e3]/20 disabled:opacity-50"
+          >
+            {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <BellRing className="h-3.5 w-3.5" />}
+            {isAr ? "تذكير بإكمال الصفحة" : "Remind to complete"}
+          </button>
+          <span className="text-xs text-[#86868b]">
+            {isAr ? "المدرب لسه ما أنشأش صفحته" : "No page created yet"}
+          </span>
+        </div>
+      );
+    }
     if (rejectId === row.coach_id) {
       return (
         <div className="w-full space-y-2">
@@ -228,6 +282,19 @@ export function AdminCoachPagesView() {
             {isAr ? "رفض" : "Reject"}
           </button>
         )}
+        {/* Phase 51 — manual reminder bell for work-queue rows too
+            (pending/rejected): the owner's re-nudge without waiting. */}
+        {row.review_status !== "approved" && (
+          <button
+            onClick={() => sendReminder(row)}
+            disabled={busy}
+            title={isAr ? "إرسال تنبيه «أكمل إعداد صفحتك» للمدرب" : "Send the complete-your-page bell"}
+            className="inline-flex items-center gap-1.5 rounded-full bg-[#0071e3]/10 px-3 py-1.5 text-xs font-medium text-[#0071e3] transition-colors hover:bg-[#0071e3]/20 disabled:opacity-50"
+          >
+            <BellRing className="h-3.5 w-3.5" />
+            {isAr ? "تذكير" : "Remind"}
+          </button>
+        )}
         {/* Public preview */}
         <a
           href={`/coaches/${row.slug}`}
@@ -251,8 +318,8 @@ export function AdminCoachPagesView() {
         </h1>
         <p className="mt-2 max-w-3xl text-base font-normal text-[#6e6e73] md:text-lg">
           {isAr
-            ? "راجع المحتوى اللي بيكتبه المدربون على صفحاتهم العامة. أي تعديل جديد من المدرب بيرجع الصفحة لـ«في الانتظار» لحد ما توافق — والرفض بيوصله مع السبب في محرر صفحته."
-            : "Review the content coaches write on their public pages. Any coach edit sends the page back to PENDING until you approve — rejections reach the coach with your reason in his editor."}
+            ? "راجع المحتوى اللي بيكتبه المدربون على صفحاتهم العامة. أي تعديل جديد بيرجع الصفحة لـ«في الانتظار» لحد ما توافق — والرفض بيوصله مع السبب. المدرب اللي لسه ما أنشأش صفحته بيظهر هنا بزر «تذكير» بيوصله كإشعار."
+            : "Review the content coaches write on their public pages. Any coach edit sends the page back to PENDING until you approve — rejections reach the coach with your reason. Coaches with no page show a Remind button that pings their bell."}
         </p>
       </div>
 
@@ -320,7 +387,7 @@ export function AdminCoachPagesView() {
                     <p className="mt-2 line-clamp-2 text-sm text-[#1d1d1f]">«{row.headline}»</p>
                   )}
                   <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-[#86868b]">
-                    <span dir="ltr">/coaches/{row.slug}</span>
+                    {row.slug && <span dir="ltr">/coaches/{row.slug}</span>}
                     <span>{isAr ? "آخر تعديل:" : "Edited:"} {fmtDate(row.updated_at)}</span>
                   </div>
                   {row.review_status === "rejected" && row.review_note && (
@@ -361,16 +428,22 @@ export function AdminCoachPagesView() {
                       </td>
                       <td className="max-w-xs p-4">
                         {row.headline && <p className="line-clamp-2">«{row.headline}»</p>}
-                        <a
-                          href={`/coaches/${row.slug}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="mt-0.5 inline-flex items-center gap-1 text-xs text-[#0071e3] hover:underline"
-                          dir="ltr"
-                        >
-                          /coaches/{row.slug}
-                          <ExternalLink className="h-3 w-3" />
-                        </a>
+                        {row.slug ? (
+                          <a
+                            href={`/coaches/${row.slug}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="mt-0.5 inline-flex items-center gap-1 text-xs text-[#0071e3] hover:underline"
+                            dir="ltr"
+                          >
+                            /coaches/{row.slug}
+                            <ExternalLink className="h-3 w-3" />
+                          </a>
+                        ) : (
+                          <p className="mt-0.5 text-xs text-[#86868b]">
+                            {isAr ? "لم ينشئ رابطًا بعد" : "No slug yet"}
+                          </p>
+                        )}
                         {row.review_status === "rejected" && row.review_note && (
                           <p className="mt-1.5 text-xs text-[#ff3b30]">
                             {isAr ? "سبب الرفض:" : "Reason:"} {row.review_note}

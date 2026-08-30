@@ -75,53 +75,98 @@ export async function GET(request: NextRequest) {
 
   const rows = (data ?? []) as CoachPageRow[];
 
-  // Coach identities in one shot.
-  const coachIds = Array.from(new Set(rows.map((r) => r.coach_id)));
-  const { data: profs } = await supabaseAdmin
+  // Phase 51 — include EVERY staff member, even those who never created a
+  // page (review_status «missing»): the owner sees who is lagging and can
+  // send the manual «أكمل إعداد صفحتك» reminder. This is also where a
+  // brand-new coach appears (he gets no coach_pages row until his first
+  // save). Left-join: all staff profiles ↔ their (optional) page row.
+  const { data: staffRows, error: staffErr } = await supabaseAdmin
     .from("profiles")
     .select("id, full_name, email, role, avatar_url")
-    .in("id", coachIds.length > 0 ? coachIds : ["00000000-0000-0000-0000-000000000000"]);
+    .in("role", ["coach", "admin"]);
+  if (staffErr) {
+    return NextResponse.json({ error: staffErr.message }, { status: 500 });
+  }
   const profMap = new Map(
-    ((profs ?? []) as Array<Record<string, unknown>>).map((p) => [String(p.id), p]),
+    ((staffRows ?? []) as Array<Record<string, unknown>>).map((p) => [String(p.id), p]),
   );
+  const pageByCoach = new Map(rows.map((r) => [r.coach_id, r]));
+  // Legacy safety: a coach_pages row whose owner is no longer staff still
+  // shows up (profile fetched separately) instead of silently vanishing.
+  const orphanIds = Array.from(new Set(rows.map((r) => r.coach_id))).filter(
+    (id) => !profMap.has(id),
+  );
+  if (orphanIds.length > 0) {
+    const { data: orph } = await supabaseAdmin
+      .from("profiles")
+      .select("id, full_name, email, role, avatar_url")
+      .in("id", orphanIds);
+    ((orph ?? []) as Array<Record<string, unknown>>).forEach((p) =>
+      profMap.set(String(p.id), p),
+    );
+  }
 
-  const rank = (s: string | null) =>
-    s === "pending" ? 0 : s === "rejected" ? 1 : 2;
+  type Prof = {
+    id: string;
+    full_name: string | null;
+    email: string | null;
+    role: string;
+    avatar_url: string | null;
+  };
+  const toPage = (prof: Prof, r?: CoachPageRow) => ({
+    coach_id: prof.id,
+    coach_name: prof.full_name || "—",
+    coach_email: prof.email || "",
+    coach_role: prof.role || "",
+    slug: r?.slug || "",
+    headline: r?.headline || r?.headline_en || "",
+    is_published: Boolean(r?.is_published),
+    review_status: r ? r.review_status || "approved" : "missing",
+    review_note: r?.review_note || "",
+    reviewed_at: r?.reviewed_at ?? null,
+    updated_at: r?.updated_at ?? null,
+    photo_url: r?.photo_url || "",
+  });
 
-  const pages = rows
-    .map((r) => {
-      const prof = profMap.get(r.coach_id) as
-        | { full_name: string | null; email: string | null; role: string; avatar_url: string | null }
-        | undefined;
-      return {
-        coach_id: r.coach_id,
-        coach_name: prof?.full_name || "—",
-        coach_email: prof?.email || "",
-        coach_role: prof?.role || "",
-        slug: r.slug,
-        headline: r.headline || r.headline_en || "",
-        is_published: Boolean(r.is_published),
-        review_status: r.review_status || "approved",
-        review_note: r.review_note || "",
-        reviewed_at: r.reviewed_at,
-        updated_at: r.updated_at,
-        photo_url: r.photo_url || "",
-      };
-    })
-    // Pending first (the work queue), then rejected, then approved —
-    // most recently edited first inside each group.
+  const pages = (
+    ((staffRows ?? []) as Prof[]).map((prof) => toPage(prof, pageByCoach.get(prof.id)))
+    // orphan page rows (owner not staff anymore)
+    .concat(
+      rows
+        .filter((r) => !((staffRows ?? []) as Prof[]).some((p) => p.id === r.coach_id))
+        .map((r) =>
+          toPage(
+            (profMap.get(r.coach_id) as Prof | undefined) ?? {
+              id: r.coach_id,
+              full_name: null,
+              email: null,
+              role: "",
+              avatar_url: null,
+            },
+            r,
+          ),
+        ),
+    )
+    // Pending first (the work queue), then «missing» (never finished
+    // setup), then rejected, then approved — most recently edited first
+    // inside each group.
     .sort((a, b) => {
+      const rank = (s: string) =>
+        s === "pending" ? 0 : s === "missing" ? 1 : s === "rejected" ? 2 : 3;
       const ra = rank(a.review_status);
       const rb = rank(b.review_status);
       if (ra !== rb) return ra - rb;
       return (b.updated_at || "").localeCompare(a.updated_at || "");
-    });
+    })
+  );
 
   const counts = {
     total: pages.length,
     pending: pages.filter((p) => p.review_status === "pending").length,
     rejected: pages.filter((p) => p.review_status === "rejected").length,
     approved: pages.filter((p) => p.review_status === "approved").length,
+    // Phase 51: staff who never created a page at all.
+    missing: pages.filter((p) => p.review_status === "missing").length,
   };
 
   return NextResponse.json({ pages, counts });

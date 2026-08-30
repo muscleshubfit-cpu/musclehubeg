@@ -53,6 +53,11 @@ export function AppLayout({ children }: { children: ReactNode }) {
   // entry point (owner directive: نقطة اطلاع الكوتش على الاستبيانات).
   const coachNav: NavItem[] = [
     { to: "coach", label: t("nav.clients"), emoji: "👥" },
+    // Phase 51 (owner: «صفحته العامة مش موجودة فى الداشبورد، موجودة فى
+    // القائمة الرئيسية فقط») — the public-page editor moves INTO the
+    // staff sidebar. Coaches AND the admin may own a landing page
+    // (admin saves auto-approve — he IS the reviewer).
+    { to: "coach-landing", label: isAr ? "صفحتي العامة" : "My Public Page", emoji: "🌐" },
     { to: "coach-support", label: t("nav.support.coach"), emoji: "🔧" },
     // 0043 TERMINOLOGY: «المدفوعات» removed from the coach nav — site
     // membership requests are admin-only (coachNavAdmin below). The
@@ -83,6 +88,10 @@ export function AppLayout({ children }: { children: ReactNode }) {
   // only from the header drawer — deep-audit fix (2026-08-28) puts it on par
   // with Tool Leads in the persistent sidebar.
   const coachExtraLinks = [
+    // Phase 51 (owner: «ضيف صفحة لادارة نظام المدربين … يجمع فيها كل
+    // الازرار الخاصة بادارة المدربين») — the coach-system HUB is the
+    // first entry; the individual surfaces below stay for direct access.
+    { href: "/admin/coach-system", label: isAr ? "إدارة نظام المدربين" : "Coach system", emoji: "🎛️" },
     // 0046: coach-pages REVIEW QUEUE — moderation for coach-written
     // public content (approve / reject with reason).
     { href: "/admin/coach-pages", label: isAr ? "صفحات المدربين" : "Coach pages", emoji: "🗂️" },

@@ -3544,3 +3544,27 @@ Work Log:
 Stage Summary:
 - Committed + pushed to origin/main; production to verify: bell click marks read (owner click-test), review approve/reject → coach bell, coach save → admin bell
 - No migration required for this phase
+
+---
+Task ID: 10
+Agent: Super Z (main)
+Task: Phase 51 — staff navigation rethink + coach system hub + new-coach onboarding
+
+Work Log:
+- Sandbox was reset mid-task; repo re-cloned from origin (c0e8452) and deps reinstalled with bun (repo uses bun.lock, no package-lock)
+- next-env.d.ts regenerated via dev spin (gitignored file — tsc needed it for image imports)
+- SiteHeader: accountHref role-aware (admin /admin, coach /coach, member /profile) in header bar + drawer
+- AppLayout: coach-landing 🌐 added to staff sidebar; /admin/coach-system first in admin extras
+- Admin home: hub card first (+pending badge), صفحتي العامة + الصفحة الشخصية cards
+- CoachView: صفحتي العامة + الصفحة الشخصية action buttons
+- /profile: member «ترقية» CTA hidden for staff
+- Register flow: redirect → /coach/landing; welcome notification MOVED from notifications (invisible to coaches — latent bug) to targeted admin_notifications; NEW coach_page_setup bell; new_coach admin bell now links to the review queue
+- GET /api/admin/coach-pages: left-join all staff → «missing» review_status (no page yet) + counts.missing + orphan safety
+- NEW POST /api/admin/coach-pages/notify: manual complete-your-page reminder (requireAdmin, staff-only)
+- AdminCoachPagesView: «بدون صفحة» tab/badge, reminder buttons (only action on missing rows), slug gates
+- NEW /admin/coach-system hub page (4 cards + live pending/missing badges + onboarding note)
+- AuthView: admin login branch added (router.push /admin)
+- §3.5: tsc 0 · eslint 0 errors (28 warnings = exact baseline) · vitest 160/160 · build ✓ · 8-route smoke 200s
+
+Stage Summary:
+- Committed + pushed; production verify: avatar→console, hub page, review queue missing tab + remind button, register onboarding

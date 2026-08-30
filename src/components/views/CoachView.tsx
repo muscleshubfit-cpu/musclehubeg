@@ -408,7 +408,7 @@ export function CoachView() {
         )}
       </div>
 
-      {/* Actions: broadcast + invite client */}
+      {/* Actions: broadcast + invite client + public-page/personal shortcuts */}
       <div className="flex flex-wrap items-center gap-3">
         <button
           onClick={() => setShowBroadcast(!showBroadcast)}
@@ -426,6 +426,21 @@ export function CoachView() {
               : (isAr ? "+ دعوة عميل" : "+ Invite a client")}
           </button>
         )}
+        {/* Phase 51 (owner: «صفحته العامة مش موجودة فى الداشبورد» + «زرار
+            الصفحة الشخصية») — the coach's public-page editor and his
+            member-style personal page, one tap away from his console. */}
+        <button
+          onClick={() => navigate("coach-landing")}
+          className="rounded-full border border-[#0071e3]/40 bg-[#0071e3]/5 px-5 py-2.5 text-sm font-normal text-[#0071e3] transition-colors hover:bg-[#0071e3]/10"
+        >
+          {isAr ? "🌐 صفحتي العامة" : "🌐 My public page"}
+        </button>
+        <a
+          href="/profile"
+          className="rounded-full border border-[#d2d2d7] bg-white px-5 py-2.5 text-sm font-normal text-[#1d1d1f] transition-colors hover:bg-[#f5f5f7]"
+        >
+          {isAr ? "الصفحة الشخصية" : "Personal page"}
+        </a>
         {selectedClientIds.size > 0 && (
           <span className="rounded-full bg-[#0071e3]/10 px-3 py-1 text-xs font-medium text-[#0071e3]">
             {selectedClientIds.size} {isAr ? "عميل محدد" : "selected"}

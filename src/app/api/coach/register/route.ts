@@ -227,18 +227,45 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  // ---------- Welcome notification (coach bell) ----------
-  const { error: notifyErr } = await supabaseAdmin.from("notifications").insert({
-    user_id: userId,
+  // ---------- Coach bell (staff console) — Phase 51 rework ----------
+  // FIX: this used to insert into `notifications` (the MEMBER bell) — but
+  // coaches read `admin_notifications` (AdminNotificationBell), so the
+  // welcome message was INVISIBLE to every coach. Both rows are now
+  // targeted admin_notifications rows (target_coach_id = the new coach —
+  // private to him).
+  const db = supabaseAdmin; // narrowed non-null above — keep TS happy in the closure
+  const coachBell = async (row: {
+    type: string;
+    title: string;
+    body: string;
+    link: string;
+  }) => {
+    const { error } = await db
+      .from("admin_notifications")
+      .insert({ ...row, target_role: "coach", target_coach_id: userId, read: false });
+    if (error) {
+      console.error(`[coach/register] ${row.type} notification error:`, error.message);
+    }
+  };
+
+  await coachBell({
     type: "coach_welcome",
     title: "أهلًا بك كوتش في Musclehubeg!",
     body:
       "حسابك اتفعّل. ابدأ بإضافة عملائك، حدّد أسعارك بنفسك، وجهّز محفظتك لتفعيل اشتراكاتهم.",
     link: "/coach",
   });
-  if (notifyErr) {
-    console.error("[coach/register] welcome notification error:", notifyErr.message);
-  }
+
+  // Phase 51 (owner: «اى مدرب يسجل مفروض ينتقل لاعداد صفحتة العامة مع
+  // تنبيه جديد بإتمامها») — the onboarding bell that pairs with the
+  // redirect to /coach/landing after signup.
+  await coachBell({
+    type: "coach_page_setup",
+    title: "أكمل إعداد صفحتك العامة",
+    body:
+      "صفحتك العامة هى واجهتك أمام العملاء — اكتب نبذتك وتخصصاتك واضبط رابطك، وبتتنشر بعد مراجعة الإدارة.",
+    link: "/coach/landing",
+  });
 
   // ---------- Admin notification (staff inbox) ----------
   const { data: adm } = await supabaseAdmin
@@ -255,8 +282,10 @@ export async function POST(request: NextRequest) {
       .insert({
         type: "new_coach",
         title: "مدرب جديد سجّل بنفسه",
-        body: `${fullName} (${email}) انضم كمدرب عبر صفحة انضم-لنا.`,
-        link: "/admin/assignments",
+        body: `${fullName} (${email}) انضم كمدرب عبر صفحة انضم-لنا — راجع صفحته العامة أول ما يجهزها.`,
+        // Phase 51: the review queue (not assignments) is where the
+        // owner acts on a NEW coach's public page.
+        link: "/admin/coach-pages",
         target_role: "coach",
         target_coach_id: (adm as { id: string }).id,
       });
