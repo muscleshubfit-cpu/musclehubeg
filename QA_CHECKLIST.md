@@ -550,3 +550,35 @@ Method: 2 python scripts hit **37 production URLs** (all EN static pages + detai
 1. **شغّل هجرة 0046**: افتح Supabase SQL Editor وشغّل `supabase/migrations/RUN_ON_SUPABASE_0046_COACH_PAGE_REVIEW.sql` (آمنة لإعادة التشغيل — الصفحات المعتمدة حاليًا بتفضل شغالة)
 2. افتح داشبورد الأدمن → هتلاقي لوجينك بدخلك على «لوحة الأدمن» الجديدة، وقائمة «صفحات المدربين» فيها أي صفحات في الانتظار (شارة برتقالية بالعد)
 3. جرّب: ارفض صفحة تجريبية بسبب → سجل دخول بالمدرب → افتح «صفحتي» → هتلاقي سبب الرفض ظاهر في الأعلى
+
+## Notifications — Click Marks Read + Review-Loop Bells (2026-08-31)
+
+Owner feedback: «فى جرس الاشعارات بعد الضغط على الاشعار بيفضل موجود (غير مقروء)، مفروض يختفى (مقروء)» + audit request to verify the system and fill coverage gaps for admin / coach↔client.
+
+### Root cause & fix
+
+| # | Was | Now |
+|---|-----|-----|
+| 1 | Bell item click only navigated — nothing marked the row read (no per-item mark-read existed at all) | Click = READ: instant visual flip (badge drops, highlight clears) + DB update per row, on BOTH bells (member bell + staff bell) |
+| 2 | Only 5 hardcoded links worked; referral / payout / progress notifications did nothing when clicked | Any notification whose link is a real path opens it directly |
+| 3 | Coach-page review result (approve/reject) reached the coach only via the editor banner | Coach now ALSO gets a private bell row: approve → link to his live public page; reject → «سبب الرفض: …» + link to his editor |
+| 4 | A coach saving his page went to the review queue silently — owner had to poll /admin/coach-pages | Admin gets a bell «صفحة مدرب بانتظار مراجعتك» with a link straight into the queue; deduped to ONE unread reminder per coach (no spam while he iterates; next save after you read it re-rings) |
+
+### Contract notes
+
+- Per-row read: Supabase RLS already allows a member to update his own `notifications` rows and staff/admin to update `admin_notifications` rows (own / broadcast / admin) — no migration needed.
+- Review-result + pending-page rows are `admin_notifications` rows: review results carry `target_coach_id` = the reviewed coach (private, no leak); pending-page rows target admin profiles only.
+- Notification insert failures are logged, never fail the review/save action itself.
+
+### Verification
+
+| Check | Result |
+|---|---|
+| tsc / eslint / vitest / build | 0 · 0 errors (0 new warnings) · 160/160 · ✓ |
+| Local smoke | home + /admin/coach-pages + /coach/landing + /dashboard 200, touched API routes respond, no compile errors |
+
+### Owner steps to verify after deploy (no migration needed this time)
+
+1. سجّل دخول بحسابك (أدمن) → اضغط على أي تنبيه في الجرس → العداد والخلفية الملوّنة لازم يختفوا فورًا
+2. جرّب ترفض أو توافق على صفحة مدرب من «صفحات المدربين» → سجّل دخول بالمدرب → جرس إشعارات المدرب هيظهر التنبيه بالنتيجة (ولو رفض، السبب مكتوب)
+3. خلّي المدرب يعدّل صفحته ويحفظ → جرس الأدمن هيوصله «صفحة مدرب بانتظار مراجعتك»

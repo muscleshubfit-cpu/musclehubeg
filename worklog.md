@@ -3525,3 +3525,22 @@ Stage Summary:
 - Coaches' public content is now admin-moderated end-to-end; admin & coach consoles have their own identity; for-coaches funnel is bilingual-indexable
 - Owner must run RUN_ON_SUPABASE_0046 in Supabase (idempotent, zero disruption)
 - Changed: 14 modified + 6 new files (see commit)
+
+---
+Task ID: 9
+Agent: Super Z (main)
+Task: Phase 50 — notifications: click-marks-read bug + coverage additions (review-loop bells)
+
+Work Log:
+- Audited the full notification system via Explore agent: bells, data layer, API routes, migrations, all insert sites
+- Root cause confirmed: item onClick only navigated; NO per-item mark-read existed (bulk only)
+- Added markNotificationRead(id) + markAdminNotificationRead(id) in src/lib/data/notifications.ts (localStorage fallback included)
+- NotificationBell + AdminNotificationBell: click = optimistic read flip + fire-and-forget DB update; navigation generalized (router.push for any real path; legacy SPA codes kept)
+- /api/admin/coach-pages PATCH: private admin_notifications row to the reviewed coach (approve → live page link; reject → reason in body + editor link), best-effort
+- /api/coach/landing PUT (non-admin save): deduped admin bell «صفحة مدرب بانتظار مراجعتك» → /admin/coach-pages, targeted at admin profiles
+- §3.5: tsc 0 · eslint 0 errors (0 new warnings) · vitest 160/160 · next build ✓ · local smoke 200s + no compile errors
+- Docs: PROGRESS.md Phase 50 + QA_CHECKLIST.md section
+
+Stage Summary:
+- Committed + pushed to origin/main; production to verify: bell click marks read (owner click-test), review approve/reject → coach bell, coach save → admin bell
+- No migration required for this phase

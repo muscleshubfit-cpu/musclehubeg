@@ -17,10 +17,12 @@ import { supabaseAdmin, isSupabaseAdminConfigured } from "@/lib/supabase/admin";
  *                    the page stays hidden from the public until he edits
  *                    again (edit → pending automatically).
  *
- * NOTE ON DELIVERY: admin_notifications is a coach-BROADCAST channel (no
- * user_id), so the rejection reason is delivered where the coach WORKS —
- * the landing editor banner reads review_note directly. No private
- * feedback leaks to other coaches.
+ * DELIVERY (0049): the result — and the rejection reason — now ALSO land
+ * in the coach's own bell. admin_notifications rows with target_coach_id
+ * set are PRIVATE to that coach (RLS: admin or the targeted staff member
+ * only), so no feedback leaks to other coaches. Approve → link to the
+ * live public page; reject → link to the landing editor. Best-effort:
+ * a notification failure never fails the review action itself.
  *
  * Migration guard: before RUN_ON_SUPABASE_0046 the review columns are
  * missing (42703) — GET reports migration_missing instead of crashing.
@@ -179,6 +181,30 @@ export async function PATCH(request: NextRequest) {
       { error: "not_found", message: "مفيش صفحة للمدرب ده" },
       { status: 404 },
     );
+  }
+
+  // 0049 — review result → the coach's own bell (private via
+  // target_coach_id). Approve celebrates + links to the live page;
+  // reject carries the reason in the body and links to the editor.
+  const approved = action === "approve";
+  const approvedSlug =
+    approved && typeof (data as { slug?: string }).slug === "string"
+      ? (data as { slug: string }).slug
+      : "";
+  const { error: notifErr } = await supabaseAdmin.from("admin_notifications").insert({
+    type: approved ? "coach_page_approved" : "coach_page_rejected",
+    title: approved ? "تمت الموافقة على صفحتك العامة" : "صفحتك العامة تحتاج تعديل",
+    body: approved
+      ? "صفحتك ظهرت للجميع على صفحة المدربين — شكرًا لاجتهادك."
+      : `سبب الرفض: ${note}`,
+    link: approvedSlug ? `/coaches/${approvedSlug}` : "/coach/landing",
+    target_role: "coach",
+    target_coach_id: coachId,
+    read: false,
+  });
+  if (notifErr) {
+    // Best-effort only — the review action itself already succeeded.
+    console.error("[coach-pages] coach notification failed:", notifErr.message);
   }
 
   return NextResponse.json({ ok: true, page: data });

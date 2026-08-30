@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Bell, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -11,11 +12,12 @@ import {
 import { useI18n } from "@/lib/i18n";
 import { useNav } from "@/hooks/use-nav";
 import { cn } from "@/lib/utils";
-import { listAdminNotifications, markAdminNotificationsRead } from "@/lib/data";
+import { listAdminNotifications, markAdminNotificationsRead, markAdminNotificationRead } from "@/lib/data";
 
 export function AdminNotificationBell() {
  const { t } = useI18n();
  const { navigate } = useNav();
+ const router = useRouter();
  const [open, setOpen] = useState(false);
  const [items, setItems] = useState<any[]>([]);
  const [loading, setLoading] = useState(true);
@@ -39,14 +41,30 @@ export function AdminNotificationBell() {
  setItems((prev) => prev.map((n) => ({ ...n, read: true })));
  };
 
- const handleNavigate = (link?: string) => {
- setOpen(false);
+ const handleNavigate = (link?: string | null) => {
  if (!link) return;
  if (link === "coach") navigate("coach");
  else if (link === "coach-support") navigate("coach-support");
  // 0043: legacy rows carry "coach-payments"; new rows carry
  // "/admin/payments" — both land on the admin-only review page.
  else if (link === "coach-payments" || link === "/admin/payments") navigate("admin-payments");
+ // 0049 — anything else that is a real path (e.g. the coach-pages
+ // review queue "/admin/coach-pages") opens directly.
+ else if (link.startsWith("/")) router.push(link);
+ };
+
+ // 0049 — clicking a notification = READ (same rule as the client bell).
+ // Optimistic flip + fire-and-forget DB update; RLS lets admins update
+ // any row and staff update their own/broadcast rows.
+ const handleItemClick = (n: { id: string; read: boolean; link?: string | null }) => {
+ setOpen(false);
+ if (!n.read) {
+ setItems((prev) => prev.map((x) => (x.id === n.id ? { ...x, read: true } : x)));
+ void markAdminNotificationRead(n.id).catch((e) =>
+ console.error("[AdminNotificationBell] mark read failed:", e),
+ );
+ }
+ handleNavigate(n.link);
  };
 
  return (
@@ -83,7 +101,7 @@ export function AdminNotificationBell() {
  items.map((n) => (
  <button
  key={n.id}
- onClick={() => handleNavigate(n.link)}
+ onClick={() => handleItemClick(n)}
  className={cn(
  "flex w-full flex-col gap-0.5 border-b border-border/60 px-3 py-2.5 text-start transition-colors hover:bg-secondary",
  !n.read && "bg-gold/5",

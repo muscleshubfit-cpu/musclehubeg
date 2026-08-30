@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Bell, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,12 +13,13 @@ import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/hooks/use-auth";
 import { useNav } from "@/hooks/use-nav";
 import { cn } from "@/lib/utils";
-import { listNotifications, markNotificationsRead } from "@/lib/data";
+import { listNotifications, markNotificationsRead, markNotificationRead } from "@/lib/data";
 
 export function NotificationBell() {
  const { t } = useI18n();
  const { profile } = useAuth();
  const { navigate } = useNav();
+ const router = useRouter();
  const [open, setOpen] = useState(false);
  const [items, setItems] = useState<any[]>([]);
  const [loading, setLoading] = useState(true);
@@ -61,6 +63,28 @@ export function NotificationBell() {
  setItems((prev) => prev.map((n) => ({ ...n, read: true })));
  };
 
+ // 0049 — clicking a notification = READ. Optimistic flip (badge drops,
+ // highlight clears instantly) + fire-and-forget DB update; RLS covers
+ // self-update. Any link that is a real path opens directly — the old
+ // five-entry allowlist dead-ended referral/progress/payout links.
+ const handleItemClick = (n: { id: string; read: boolean; link?: string | null }) => {
+ setOpen(false);
+ if (!n.read) {
+ setItems((prev) => prev.map((x) => (x.id === n.id ? { ...x, read: true } : x)));
+ void markNotificationRead(n.id).catch((e) =>
+ console.error("[NotificationBell] mark read failed:", e),
+ );
+ }
+ const link = typeof n.link === "string" ? n.link : "";
+ if (!link.startsWith("/")) return;
+ if (link === "/dashboard") navigate("dashboard");
+ else if (link === "/memberships") navigate("memberships");
+ else if (link === "/questionnaires") navigate("questionnaires");
+ else if (link === "/plans") navigate("plans");
+ else if (link === "/support") navigate("support");
+ else router.push(link);
+ };
+
  return (
  <Popover open={open} onOpenChange={setOpen}>
  <PopoverTrigger asChild>
@@ -95,14 +119,7 @@ export function NotificationBell() {
  items.map((n) => (
  <button
  key={n.id}
- onClick={() => {
- setOpen(false);
- if (n.link === "/dashboard") navigate("dashboard");
- else if (n.link === "/memberships") navigate("memberships");
- else if (n.link === "/questionnaires") navigate("questionnaires");
- else if (n.link === "/plans") navigate("plans");
- else if (n.link === "/support") navigate("support");
- }}
+ onClick={() => handleItemClick(n)}
  className={cn(
  "flex w-full flex-col gap-0.5 border-b border-border/60 px-3 py-2.5 text-start transition-colors hover:bg-secondary",
  !n.read && "bg-primary/5",

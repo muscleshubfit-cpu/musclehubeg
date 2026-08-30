@@ -164,7 +164,7 @@ export async function PUT(request: NextRequest) {
   // Guard the profile role anyway: only staff may own a landing page.
   const { data: prof } = await supabaseAdmin
     .from("profiles")
-    .select("role")
+    .select("role, full_name")
     .eq("id", user.id)
     .maybeSingle();
   if (!prof || (prof.role !== "coach" && prof.role !== "admin")) {
@@ -230,6 +230,48 @@ export async function PUT(request: NextRequest) {
       );
     }
     return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  // 0049 — a coach save re-entered moderation → ring the ADMIN's bell so
+  // the review queue is discovered without polling /admin/coach-pages.
+  // One unread reminder PER COACH at a time (dedupe by type suffix) keeps
+  // things quiet while a coach iterates on drafts; once read, the next
+  // save re-notifies. Rows are targeted at admin profiles (private —
+  // other coaches see nothing); falls back to a staff broadcast if no
+  // admin profile exists. Best-effort: never fails the coach's save.
+  if (!isAdminSave) {
+    const notifType = `coach_page_pending:${user.id}`;
+    const coachName =
+      ((prof as { full_name?: string | null } | null)?.full_name || "").trim() || "مدرب";
+    const { data: unread } = await supabaseAdmin
+      .from("admin_notifications")
+      .select("id")
+      .eq("type", notifType)
+      .eq("read", false)
+      .limit(1);
+    if (!unread || unread.length === 0) {
+      const { data: admins } = await supabaseAdmin
+        .from("profiles")
+        .select("id")
+        .eq("role", "admin")
+        .limit(5);
+      const targets = ((admins ?? []) as Array<{ id: string }>).map((a) => a.id);
+      const rows = (targets.length > 0 ? targets : [null]).map((tid) => ({
+        type: notifType,
+        title: "صفحة مدرب بانتظار مراجعتك",
+        body: `«${coachName}» حدّث صفحته العامة — محتاجة موافقة قبل ظهورها للجميع.`,
+        link: "/admin/coach-pages",
+        target_role: "admin",
+        target_coach_id: tid,
+        read: false,
+      }));
+      const { error: notifErr } = await supabaseAdmin
+        .from("admin_notifications")
+        .insert(rows);
+      if (notifErr) {
+        console.error("[coach/landing] admin notification failed:", notifErr.message);
+      }
+    }
   }
 
   return NextResponse.json({ page: data });

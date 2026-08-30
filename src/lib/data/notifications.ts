@@ -36,6 +36,20 @@ export async function markNotificationsRead(userId: string) {
  write(LS_PREFIX + "notifs", all);
 }
 
+// 0049 — per-item read: clicking ONE notification marks IT read
+// (owner rule: «بعد الضغط على الاشعار بيفضل موجود غير مقروء — مفروض
+// يختفى مقروء»). RLS notifs_update_self_or_coach lets the owner update
+// his own rows client-side; the bell flips its state optimistically.
+export async function markNotificationRead(id: string) {
+ if (isSupabaseConfigured && supabase) {
+ await supabase.from("notifications").update({ read: true }).eq("id", id);
+ return;
+ }
+ const all = read<any[]>(LS_PREFIX + "notifs", []);
+ all.forEach((n) => { if (n.id === id) n.read = true; });
+ write(LS_PREFIX + "notifs", all);
+}
+
 export async function createNotification(userId: string, type: string, title: string, body: string, link?: string) {
  if (isSupabaseConfigured && supabase) {
  const { data, error } = await supabase
@@ -76,6 +90,19 @@ export async function markAdminNotificationsRead() {
  }
  const all = read<any[]>(LS_PREFIX + "admin_notifs", []);
  all.forEach((n) => { n.read = true; });
+ write(LS_PREFIX + "admin_notifs", all);
+}
+
+// 0049 — staff bell: clicking ONE admin_notification marks IT read
+// (same owner rule as the client bell). RLS allows admins to update any
+// row and staff to update broadcast rows or rows targeted at them.
+export async function markAdminNotificationRead(id: string) {
+ if (isSupabaseConfigured && supabase) {
+ await supabase.from("admin_notifications").update({ read: true }).eq("id", id);
+ return;
+ }
+ const all = read<any[]>(LS_PREFIX + "admin_notifs", []);
+ all.forEach((n) => { if (n.id === id) n.read = true; });
  write(LS_PREFIX + "admin_notifs", all);
 }
 
