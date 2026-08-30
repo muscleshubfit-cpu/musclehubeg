@@ -70,6 +70,32 @@ export function getTier(id: TierId): Tier | undefined {
  return TIERS.find((t) => t.id === id);
 }
 
+/**
+ * 0046 — Canonical model tier for a sellable product id.
+ *
+ * The /coaching page sells the ORIGINAL Starter ($20) / Elite ($40)
+ * products (owner decree: those are the PayPal-tied prices — «الأسعار
+ * اللي شيلتها هي الصحيحة»). Clients PAY the storefront price, but the
+ * SUBSCRIPTION rows are written under the canonical 3-tier membership
+ * model (premium / pro / coaching) so that:
+ *   - feature gates (tier-limits, EVO limits) apply uniformly,
+ *   - the 0045 DB guard `subscriptions_tier_model_guard`
+ *     (tier in premium/pro/coaching) never rejects a real payment,
+ *   - existing starter/elite rows (remapped by 0045) and new ones
+ *     resolve to the same successor tiers everywhere.
+ *
+ * Mapping (same as migration 0045 + the resolver belt-and-suspenders):
+ *   starter → premium, elite → pro, everything else passes through.
+ * Used by BOTH activation paths: PayPal capture (service role) and the
+ * admin manual-approval flow. Price validation stays on the ORIGINAL
+ * product id — Starter must charge exactly $20, never premium's $14.99.
+ */
+export function canonicalModelTier(productTier: string): string {
+ if (productTier === "starter") return "premium";
+ if (productTier === "elite") return "pro";
+ return productTier;
+}
+
 export function priceFor(id: TierId, duration: Duration): number | null {
  const tier = getTier(id);
  if (!tier) return null;

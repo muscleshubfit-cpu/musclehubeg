@@ -38,6 +38,7 @@ import {
   payPalOrderRefUuid,
   resolvePlanPrice,
 } from "@/lib/paypal";
+import { canonicalModelTier } from "@/lib/plans";
 import { supabaseAdmin, isSupabaseAdminConfigured } from "@/lib/supabase/admin";
 
 // Commission rate — same value as in src/lib/referral.ts (0.20 = 20%)
@@ -659,9 +660,16 @@ export async function POST(request: NextRequest) {
   try {
     // Server-side subscription extension (uses supabaseAdmin + extend_subscription RPC)
     // The RPC handles start_date and end_date computation atomically.
+    // 0046: the /coaching products Starter ($20) / Elite ($40) are sold at
+    // their original PayPal-tied prices, but the subscription row is written
+    // under the CANONICAL model tier (starter → premium, elite → pro) so the
+    // 0045 DB guard (tier in premium/pro/coaching) + feature gates apply.
+    // The M8 amount check above stayed on the ORIGINAL product id — Starter
+    // must charge exactly $20, never premium's $14.99.
+    const canonicalTier = canonicalModelTier(plan_tier);
     await serverUpsertSubscription(
       user_id,
-      plan_tier,
+      canonicalTier,
       duration_months,
     );
 

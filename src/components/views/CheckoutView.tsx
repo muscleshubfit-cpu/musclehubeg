@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { LanguageToggle } from "@/components/LanguageToggle";
 import { useNav } from "@/hooks/use-nav";
 import { useAuth } from "@/hooks/use-auth";
-import { type TierId, type Duration, type PaymentMethod } from "@/lib/plans";
+import { type TierId, type Duration, type PaymentMethod, getTier } from "@/lib/plans";
 import { MEMBERSHIPS, type MembershipTier } from "@/lib/memberships";
 import { submitSubscriptionRequest, uploadReceipt } from "@/lib/data";
 import { cn } from "@/lib/utils";
@@ -41,14 +41,24 @@ type PlanInfo = {
   monthlyEquivalent?: number;
 };
 
+// Display names for the legacy /coaching products (mirrors i18n tier.* keys)
+const LEGACY_PLAN_NAMES: Record<string, { ar: string; en: string }> = {
+  starter: { ar: "ستارتر", en: "Starter" },
+  elite: { ar: "إيليت", en: "Elite" },
+};
+
 function resolvePlan(tier: string, months: number, isAr: boolean): PlanInfo | null {
   const m = MEMBERSHIPS.find((x) => x.id === tier);
   // 0045: 'coaching' ($39.99 site product) is now BUYABLE — before this fix
   // it resolved to null and /checkout?tier=coaching rendered a dead-end
   // page with only a "back to memberships" link (owner complaint:
-  // «منتج كوتشينج لا تفعل شىء»). Legacy starter/elite tiers were retired:
-  // the checkout PAGE no longer accepts them (old links redirect to
-  // /memberships), so resolvePlan only ever sees model tiers.
+  // «منتج كوتشينج لا تفعل شىء»). 
+  // 0046 OWNER DECREE (price revert): the /coaching page products
+  // Starter ($20) / Elite ($40) are RESTORED — the owner kept their
+  // PayPal-tied prices — so resolvePlan prices them from the legacy
+  // plans.ts table again. At activation they are written under their
+  // canonical model tiers (starter → premium, elite → pro) — see
+  // canonicalModelTier() in plans.ts.
   if (m && (m.id === "premium" || m.id === "pro" || m.id === "coaching")) {
     const isYearly = months === 12;
     const price = isYearly && m.priceYearly ? m.priceYearly : m.priceMonthly || 0;
@@ -60,6 +70,23 @@ function resolvePlan(tier: string, months: number, isAr: boolean): PlanInfo | nu
       price,
       durationMonths: months,
       monthlyEquivalent: isYearly ? (m.priceYearly || 0) / 12 : undefined,
+    };
+  }
+
+  // 0046: legacy /coaching products — priced from plans.ts (PayPal-tied:
+  // Starter $20/mo · $200/yr, Elite $40/mo · $400/yr). The checkout page
+  // whitelist accepts these tiers again, so a Starter click now lands on
+  // a REAL checkout instead of the 0045 redirect to /memberships.
+  const legacy = getTier(tier as TierId);
+  if (legacy) {
+    const price = legacy.prices[months as 1 | 12] ?? legacy.prices[1];
+    return {
+      name: isAr
+        ? LEGACY_PLAN_NAMES[tier]?.ar ?? tier
+        : LEGACY_PLAN_NAMES[tier]?.en ?? tier.charAt(0).toUpperCase() + tier.slice(1),
+      sub: isAr ? "اشتراك" : "Subscription",
+      price,
+      durationMonths: months,
     };
   }
 

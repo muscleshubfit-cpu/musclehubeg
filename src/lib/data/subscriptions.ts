@@ -14,6 +14,7 @@ import {
  type Profile,
 } from "./helpers";
 import { createNotification, createAdminNotification } from "./notifications";
+import { canonicalModelTier } from "../plans";
 
 export async function listAllClients() {
  if (isSupabaseConfigured && supabase) {
@@ -128,7 +129,15 @@ export async function reviewSubscriptionRequest(id: string, action: "approve" | 
  end.setMonth(end.getMonth() + req.duration_months);
  // 0042 EVIDENCE GATE: pass the approved request id — the RPC consumes
  // it (consumed_at) so the activation is provably tied to a paid request.
- await upsertSubscription(req.user_id, req.plan_tier, req.duration_months, start.toISOString(), end.toISOString(), req.id);
+ // 0046 CANONICAL TIER: legacy /coaching products (Starter $20 / Elite
+ // $40 — owner-decreed PayPal-tied prices) are approved from their real
+ // request rows, but the subscription is written under the canonical
+ // model tier (starter → premium, elite → pro) so the 0045 DB guard
+ // (tier in premium/pro/coaching) never rejects a real approval. Safe
+ // here: the admin approval path is a trusted override in the RPC
+ // (0042) — no (client,tier,months) evidence match is required. The
+ // client notification below keeps the PRODUCT name they actually bought.
+ await upsertSubscription(req.user_id, canonicalModelTier(req.plan_tier), req.duration_months, start.toISOString(), end.toISOString(), req.id);
  // Notify the user
  await createNotification(req.user_id, "subscription_approved", "تم تفعيل اشتراكك!", `تم الموافقة على طلب اشتراكك (${req.plan_tier}) لمدة ${req.duration_months} أشهر.`, "/dashboard");
  // Award affiliate commission through the new engine (idempotent, transaction-level).

@@ -3310,3 +3310,21 @@ Work Log:
 Stage Summary:
 - Starter/Elite retired at every layer (UI sell, checkout accept, picker, DB guard); the $39.99 site-coaching product is now purchasable end-to-end; admin can mark test accounts and delete accounts safely.
 - Owner steps: run 0045 raw link (expect remapped_subscription_rows=6, tier_guard_added=true, admin_update_policy_present=true) → retest coaching purchase + accounts surface.
+
+---
+Task ID: 12-0046-coaching-price-revert
+Agent: Super Z (main)
+Task: Owner decree — «ده مكانش قصدى خلاص للاسعار انا كنت اقصد انت متعملش حاجه ، الاسعار الى شيلتها هى الصحيحه والمربوطة مع باى بال ، السعر الجديد ٣٩ هو الخطاء» — revert the 0045 /coaching pricing rewrite, restore Starter $20 / Elite $40.
+
+Work Log:
+- Interpretation locked: the 0045 DEAD-END fix (coaching $39.99 buyable on /memberships) was wanted; the 0045 /coaching PRICING rewrite (removing Starter/Elite, adding $39.99/$359 cards) was overreach. Restore the storefront, keep the plumbing fix.
+- /coaching page: cards restored verbatim from f677da1 (Starter $20/mo, Elite $40/mo, original Arabic/English feature lines, plain h3 — badge/note removed); goToCheckout(tier) → /checkout?tier=starter|elite&months=1 (kept the 0045 router.push upgrade). Diff vs f677da1 for this file is now ONLY the useRouter import + the 0046 comment block.
+- Checkout page: VALID_TIERS = premium, pro, coaching, starter, elite (string[]; MembershipTier cast dropped) — old starter/elite links work again instead of redirecting to /memberships.
+- CheckoutView.resolvePlan: restored the legacy getTier branch (prices from plans.ts: starter 20/200, elite 40/400) with proper display names (LEGACY_PLAN_NAMES mirrors i18n tier.* keys: ستارتر/إيليت) — layered AFTER the model-tier branch so premium/pro/coaching behavior is unchanged.
+- NEW LAW canonicalModelTier() in plans.ts: starter → premium, elite → pro, passthrough otherwise. Wired into BOTH activation writers: capture-order (service role — canonical tier into serverUpsertSubscription; M8 amount check intentionally stays on the ORIGINAL product id so Starter charges exactly $20) and reviewSubscriptionRequest admin approval (canonical tier into upsertSubscription; client notification keeps the bought product name; admin door of the 0042 RPC is a trusted override so no (client,tier,months) match breaks).
+- Guard interplay verified: with 0045's subscriptions_tier_model_guard present, a raw starter/elite write would 23514-fail AFTER PayPal capture; canonicalization prevents that class of "paid but not activated" incidents. With 0045 absent, behavior is identical to pre-0045 + working buttons.
+- Tests: new src/lib/__tests__/canonical-tier.test.ts (7 checks — mapping, model-containment, PayPal-tied price freeze 20/200 + 40/400, getTier availability, premium-not-in-legacy-plans isolation).
+- Docs: AGENTS.md TERMINOLOGY LAW new subsection (e) COACHING-PAGE PRICE REVERT; PROGRESS.md 0046 section + header line.
+
+Stage Summary:
+- Storefront = owner's PayPal-tied prices (Starter $20 / Elite $40 on /coaching; $39.99 coaching stays /memberships-only); subscriptions = canonical model tiers everywhere; 0045 migration stays valid either way. No DB migration needed for 0046.

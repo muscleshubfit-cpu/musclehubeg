@@ -96,14 +96,17 @@ export default function CoachingPage() {
     document.getElementById("coaching-pricing")?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
-  // 0045: this page now sells the ONE site-coaching product — $39.99/mo or
-  // $359/yr — through the real checkout (/checkout?tier=coaching). The
-  // legacy Starter ($20) / Elite ($40) cards are RETIRED: their
-  // subscriptions resolved as "free" in the membership system (paying
-  // clients got nothing — owner complaint «منتج كوتشينج لا تفعل شىء»),
-  // and migration 0045 remapped those rows: starter → premium, elite → pro.
-  const goToCheckout = (months: 1 | 12) => {
-    const checkoutUrl = `/checkout?tier=coaching&months=${months}`;
+  // 0046 OWNER DECREE — «الأسعار اللي شيلتها هي الصحيحة والمربوطة مع باي بال،
+  // والسعر الجديد 39 هو الغلط»: this page keeps selling the ORIGINAL
+  // Starter ($20/mo) / Elite ($40/mo) products — the PayPal-tied prices.
+  // The 0045 unified $39.99/$359 cards here were REVERTED. The real 0045
+  // fix (the /memberships coaching card dead-end) stays: /checkout accepts
+  // starter/elite AND coaching. At activation these legacy products are
+  // written under their canonical model tiers (starter → premium,
+  // elite → pro) via canonicalModelTier() so feature gates + the 0045 DB
+  // guard keep working — clients pay the exact price they clicked.
+  const goToCheckout = (tier: string) => {
+    const checkoutUrl = `/checkout?tier=${tier}&months=1`;
     if (profile) {
       router.push(checkoutUrl);
     } else {
@@ -405,55 +408,21 @@ export default function CoachingPage() {
             </Reveal>
             <Reveal delay={150}>
               <p className="mx-auto mt-4 max-w-xl text-center text-lg font-normal text-[#6e6e73] md:text-xl">
-                {isAr ? "كوتشينج الموقع كامل — بالشهر أو بالسنة." : "Full site coaching — monthly or yearly."}
+                {isAr ? "باقتين تناسب كل هدف." : "Two plans for every goal."}
               </p>
             </Reveal>
             <div className="mt-16 grid gap-5 md:grid-cols-2 md:gap-6">
               {[
-                {
-                  name: isAr ? "شهري" : "Monthly",
-                  price: "$39.99",
-                  period: isAr ? "/شهر" : "/mo",
-                  note: isAr ? "إلغاء في أي وقت" : "Cancel anytime",
-                  features: [
-                    isAr ? "خطط تغذية مخصصة من مدرب بشري" : "Personal nutrition plans from a human coach",
-                    isAr ? "برامج تمارين + متابعة شخصية" : "Workout programs + personal follow-up",
-                    isAr ? "EVO: محادثة غير محدودة" : "EVO: unlimited chat",
-                    isAr ? "تواصل مباشر مع المدرب" : "Direct contact with your coach",
-                  ],
-                  highlight: false,
-                  months: 1 as const,
-                },
-                {
-                  name: isAr ? "سنوي" : "Yearly",
-                  price: "$359",
-                  period: isAr ? "/سنة" : "/yr",
-                  note: isAr ? "وفّر 25% — شهرين تقريباً مجاناً" : "Save 25% — ~2 months free",
-                  features: [
-                    isAr ? "كل مزايا الباقة الشهرية" : "Everything in Monthly",
-                    isAr ? "سعر مخفض لسنة كاملة" : "Discounted full-year price",
-                    isAr ? "أولوية في الرد والمتابعة" : "Priority response & follow-up",
-                    isAr ? "ذاكرة دائمة + حفظ بيانات الجسم" : "Permanent memory + body-data saving",
-                  ],
-                  highlight: true,
-                  months: 12 as const,
-                },
+                { name: "Starter", price: "$20", period: isAr ? "/شهر" : "/mo", features: [isAr ? "2 تبديل يومي" : "2 daily swaps", isAr ? "خطة تغذية + تمارين" : "Nutrition + workout", isAr ? "مساعد EVO" : "EVO AI coach", isAr ? "تتبع تقدم" : "Progress tracking"], highlight: false },
+                { name: "Elite", price: "$40", period: isAr ? "/شهر" : "/mo", features: [isAr ? "تبديلات غير محدودة" : "Unlimited swaps", isAr ? "كوتشينج VIP" : "VIP coaching", isAr ? "استجابة فورية" : "Instant response", isAr ? "أقصى مساءلة" : "Max accountability"], highlight: true },
               ].map((p, i) => (
                 <Reveal key={i} delay={i * 150}>
                   <div className={`h-full rounded-3xl p-8 md:p-10 ${p.highlight ? "bg-black text-white" : "bg-[#f5f5f7] text-[#1d1d1f]"}`}>
-                    <div className="flex items-center justify-between">
-                      <h3 className="text-xl font-semibold tracking-tight md:text-2xl">{p.name}</h3>
-                      {p.highlight && (
-                        <span className="rounded-full bg-[#34c759] px-3 py-1 text-[10px] font-bold text-white">
-                          {isAr ? "-25%" : "-25%"}
-                        </span>
-                      )}
-                    </div>
+                    <h3 className="text-xl font-semibold tracking-tight md:text-2xl">{p.name}</h3>
                     <div className="mt-4 flex items-baseline gap-1">
                       <span className="text-4xl font-semibold tracking-tight md:text-5xl">{p.price}</span>
                       <span className="text-base font-normal opacity-60">{p.period}</span>
                     </div>
-                    <p className="mt-2 text-sm font-normal opacity-60">{p.note}</p>
                     <ul className="mt-8 space-y-3 text-base font-normal">
                       {p.features.map((f, j) => (
                         <li key={j} className="flex items-start gap-3">
@@ -463,7 +432,7 @@ export default function CoachingPage() {
                       ))}
                     </ul>
                     <button
-                      onClick={() => goToCheckout(p.months)}
+                      onClick={() => goToCheckout(p.name === "Starter" ? "starter" : "elite")}
                       className={`mt-8 w-full rounded-full px-6 py-3 text-base font-normal transition-opacity hover:opacity-90 ${p.highlight ? "bg-white text-black" : "bg-[#0071e3] text-white"}`}
                     >
                       {isAr ? "ابدأ الآن" : "Get Started"}

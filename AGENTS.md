@@ -978,6 +978,22 @@ Process:
                ledger rows, type mismatches), then subscription_type
                normalized to the tier. History is preserved — no
                destructive corrections.
+            e) COACHING-PAGE PRICE REVERT (owner decree 2026-08-30,
+               0046: «الأسعار اللى شيلتها هي الصحيحة والمربوطة مع باى
+               بال، والسعر الجديد ٣٩ هو الخطاء») — the /coaching page
+               keeps selling the ORIGINAL Starter ($20/mo) / Elite
+               ($40/mo) products; the 0045 unified $39.99/$359 cards on
+               that page were REVERTED. The $39.99 coaching product
+               stays ONLY on /memberships (law a). Invariant: clients
+               PAY the storefront price (plans.ts / memberships.ts —
+               never mix the two price systems), but subscription rows
+               are ALWAYS written under the canonical model tiers via
+               canonicalModelTier() (starter → premium, elite → pro) in
+               BOTH activation paths (PayPal capture-order service role
+               + admin approval). The 0045 DB guard
+               subscriptions_tier_model_guard therefore never rejects a
+               real payment, and price validation (M8) stays on the
+               ORIGINAL product id — Starter charges exactly $20.
 - **GLOBAL USD LAW (owner directive 2026-08-30: «التسعير يكون كله
   بالدولار لكامل الموقع لأن الموقع عالمى وغير محدد لمصر — احسب فرق سعر
   العملة، مثلا ٣٠٠ جنيه تصبح ٦ دولار») — fixed owner rate 50 EGP = $1:**

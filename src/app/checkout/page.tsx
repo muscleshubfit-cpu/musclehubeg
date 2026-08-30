@@ -5,18 +5,18 @@ import { Suspense, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/hooks/use-auth";
 import { CheckoutView } from "@/components/views/CheckoutView";
-import { type MembershipTier } from "@/lib/memberships";
 import { type Duration } from "@/lib/plans";
 
-// 0045 MODEL DECREE: only the three model tiers are sellable.
-//   - premium / pro  → platform memberships (B2C, admin-reviewed manual
-//     payments + PayPal instant)
-//   - coaching       → the $39.99 site-coaching product (B2C, admin)
-// The legacy Starter/Elite products were RETIRED (their subscriptions
-// resolved as "free" — paying clients got nothing; 0045 migrated the
-// existing rows: starter → premium, elite → pro). Old /checkout links
-// with those tiers now redirect to /memberships.
-const VALID_TIERS: MembershipTier[] = ["premium", "pro", "coaching"];
+// Sellable tiers (0046 OWNER DECREE — price revert):
+//   - premium / pro   → platform memberships (B2C, /memberships)
+//   - coaching        → the $39.99 site-coaching product (B2C, /memberships —
+//                       the 0045 dead-end fix stays)
+//   - starter / elite → the ORIGINAL /coaching page products ($20 / $40) —
+//                       the owner restored them («الأسعار اللي شيلتها هي
+//                       الصحيحة والمربوطة مع باي بال»). PayPal charges the
+//                       exact clicked price (plans.ts); activation writes the
+//                       canonical tier (starter → premium, elite → pro).
+const VALID_TIERS: string[] = ["premium", "pro", "coaching", "starter", "elite"];
 
 function CheckoutPageInner() {
   const { profile, loading } = useAuth();
@@ -28,7 +28,7 @@ function CheckoutPageInner() {
   const months = (monthsParam === 12 ? 12 : 1) as Duration;
 
   // Validate tier
-  const isValid = VALID_TIERS.includes(tierParam as MembershipTier);
+  const isValid = VALID_TIERS.includes(tierParam);
   // Always redirect unauthenticated users to login with next=checkout URL preserved
   const nextPath = `/checkout?tier=${encodeURIComponent(tierParam)}&months=${months}`;
   const authHref = `/auth?mode=login&next=${encodeURIComponent(nextPath)}`;
