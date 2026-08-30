@@ -39,41 +39,6 @@ function arg(name: string): string | undefined {
   return i > -1 ? process.argv[i + 1] : undefined;
 }
 
-// ⚠️ ONE-OFF TEMPORARY BLOCK (owner-requested test-account cleanup) —
-// runs BEFORE the queue worker and exits. REMOVED in the very next commit.
-const ONEOFF_DELETE_EMAIL = "qa2.intruder.20260830001245@mhtest.mh-qa.com";
-{
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL!.replace(/\/$/, "");
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-  const headers = { apikey: key, Authorization: `Bearer ${key}` };
-  const profRes = await fetch(
-    `${url}/rest/v1/profiles?email=eq.${encodeURIComponent(ONEOFF_DELETE_EMAIL)}&select=id,role,created_at`,
-    { headers },
-  );
-  const profiles = (await profRes.json()) as Array<{ id: string; role: string; created_at: string }>;
-  console.log(
-    `[oneoff] profiles matched: ${Array.isArray(profiles) ? profiles.length : JSON.stringify(profiles)}`,
-  );
-  if (Array.isArray(profiles) && profiles.length > 0) {
-    for (const p of profiles) {
-      const delRes = await fetch(`${url}/auth/v1/admin/users/${p.id}`, {
-        method: "DELETE",
-        headers,
-      });
-      console.log(`[oneoff] delete ${p.id} role=${p.role} -> HTTP ${delRes.status}`);
-    }
-  }
-  const after = (await fetch(
-    `${url}/rest/v1/profiles?email=eq.${encodeURIComponent(ONEOFF_DELETE_EMAIL)}&select=id`,
-    { headers },
-  ).then((r) => r.json())) as unknown[];
-  const remaining = Array.isArray(after) ? after.length : -1;
-  console.log(`[oneoff] remaining profiles with this email: ${remaining}`);
-  console.log(remaining === 0 ? "[oneoff] RESULT: DELETED_OK" : "[oneoff] RESULT: CHECK_LOGS");
-  process.exit(0); // one-off only — never drain the AI queue in this run
-}
-// ⚠️ END ONE-OFF TEMPORARY BLOCK
-
 const MAX_JOBS_PER_RUN = Math.max(1, Math.min(25, Number(arg("max")) || 10));
 /** Wall-clock guard for the whole run (GHA job also enforces timeout). */
 const RUN_DEADLINE_MS = Date.now() + 40 * 60_000;
