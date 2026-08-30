@@ -87,7 +87,9 @@ export default function AdminConsoleHome() {
       color: "text-[#0071e3]",
     },
     {
-      href: "/admin/coach-pages",
+      // Phase 54: points to the ONE coach-system button (hub) — the review
+      // queue lives inside it with its own live badge.
+      href: "/admin/coach-system",
       label: isAr ? "صفحات بانتظار المراجعة" : "Pages pending review",
       value: pendingPages,
       color: "text-[#ff9500]",
@@ -96,45 +98,20 @@ export default function AdminConsoleHome() {
 
   const sections: Section[] = [
     {
+      // Phase 54 (owner: «انقل كل ما يخص نظام المدربين فى زرار واحد كما
+      // طلبت منك سابقا») — ONE button; pages review / assignments /
+      // wallets / support inbox all live INSIDE the hub page.
       titleAr: "المدربون",
       titleEn: "Coaches",
       cards: [
         {
-          // Phase 51 hub leads the section — every coach tool lives inside it.
           href: "/admin/coach-system",
           emoji: "🎛️",
           title: isAr ? "إدارة نظام المدربين" : "Coach system",
           desc: isAr
-            ? "كل أدوات إدارة المدربين في صفحة واحدة — المراجعة والتعيين والمحافظ والدعم"
-            : "Every coach-management tool in one page — review, assignments, wallets, support",
+            ? "كل أدوات المدربين في صفحة واحدة — مراجعة الصفحات، التعيين، المحافظ، والدعم"
+            : "Every coach tool in one page — page review, assignments, wallets, support",
           badgeKey: "pendingPages",
-        },
-        {
-          href: "/admin/coach-pages",
-          emoji: "🗂️",
-          title: isAr ? "صفحات المدربين" : "Coach pages",
-          desc: isAr
-            ? "راجع محتوى صفحات المدربين — موافقة أو رفض بسبب"
-            : "Review coach-written pages — approve or reject with reason",
-          badgeKey: "pendingPages",
-        },
-        {
-          href: "/admin/assignments",
-          emoji: "🤝",
-          title: isAr ? "تعيين المدربين" : "Coach assignments",
-          desc: isAr ? "ربط العميل بمدربه (1 ↔ 1)" : "Assign clients to coaches (1 ↔ 1)",
-        },
-        {
-          href: "/admin/wallets",
-          emoji: "👛",
-          title: isAr ? "محافظ المدربين" : "Coach wallets",
-          desc: isAr ? "مراجعة الإيصالات وشحن المحافظ" : "Review receipts & top up wallets",
-        },
-        {
-          href: "/admin/coach-support",
-          emoji: "🛠️",
-          title: isAr ? "دعم المدربين" : "Coach support",
-          desc: isAr ? "رسائل دعم المدربين والرد عليها" : "Coach support inbox & replies",
         },
       ],
     },

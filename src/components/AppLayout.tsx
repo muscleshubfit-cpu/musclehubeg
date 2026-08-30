@@ -88,18 +88,11 @@ export function AppLayout({ children }: { children: ReactNode }) {
   // only from the header drawer — deep-audit fix (2026-08-28) puts it on par
   // with Tool Leads in the persistent sidebar.
   const coachExtraLinks = [
-    // Phase 51 (owner: «ضيف صفحة لادارة نظام المدربين … يجمع فيها كل
-    // الازرار الخاصة بادارة المدربين») — the coach-system HUB is the
-    // first entry; the individual surfaces below stay for direct access.
+    // Phase 54 (owner: «انقل كل ما يخص نظام المدربين فى زرار واحد كما
+    // طلبت منك سابقا») — the sidebar shows ONE coach-system button; the
+    // individual surfaces (pages review / assignments / wallets / support
+    // inbox) live INSIDE the hub page. Admin HOME mirrors the same rule.
     { href: "/admin/coach-system", label: isAr ? "إدارة نظام المدربين" : "Coach system", emoji: "🎛️" },
-    // 0046: coach-pages REVIEW QUEUE — moderation for coach-written
-    // public content (approve / reject with reason).
-    { href: "/admin/coach-pages", label: isAr ? "صفحات المدربين" : "Coach pages", emoji: "🗂️" },
-    // Phase 2B follow-up («مفيش لسة طريقة لتعيين المدربين»): the 1↔1
-    // client↔coach assignment got its OWN obvious admin surface.
-    { href: "/admin/assignments", label: isAr ? "تعيين المدربين" : "Coach assignments", emoji: "🤝" },
-    // 0035: receipt review + manual wallet credit (محافظ المدربين).
-    { href: "/admin/wallets", label: isAr ? "محافظ المدربين" : "Coach wallets", emoji: "👛" },
     // 0045 (owner request): mark TEST accounts + delete accounts, one surface.
     { href: "/admin/accounts", label: isAr ? "الحسابات" : "Accounts", emoji: "👥" },
     { href: "/admin/leads", label: isAr ? "Leads الأدوات" : "Tool Leads", emoji: "📨" },

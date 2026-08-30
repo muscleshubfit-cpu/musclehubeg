@@ -1037,15 +1037,33 @@ export function CoachView() {
               </thead>
               <tbody>
                 {pageRows.map((c) => {
+                  // Phase 54 (owner: «الضغط فى اى مكان فى الصف لكل عميل
+                  // لفتح ادارة العميل») — the WHOLE row opens the client
+                  // manager. In broadcast-selection mode the row toggles
+                  // the checkbox instead (navigating away mid-selection
+                  // would be hostile). Interactive children stopPropagation.
+                  const onRowClick = () => {
+                    if (broadcastTarget === "selected") toggleClientSelection(c.id);
+                    else navigate("coach-client", { clientId: c.id });
+                  };
                   return (
-                    <tr key={c.id} className={cn("border-b border-[#d2d2d7]/60 hover:bg-white/50", selectedClientIds.has(c.id) && "bg-[#0071e3]/5")}>
+                    <tr
+                      key={c.id}
+                      onClick={onRowClick}
+                      title={broadcastTarget === "selected" ? undefined : isAr ? "افتح إدارة العميل" : "Open client manager"}
+                      className={cn(
+                        "cursor-pointer border-b border-[#d2d2d7]/60 transition-colors hover:bg-[#f5f5f7]/70",
+                        selectedClientIds.has(c.id) && "bg-[#0071e3]/5",
+                      )}
+                    >
                       {broadcastTarget === "selected" && (
                         <td className="p-3">
                           <input
                             type="checkbox"
                             checked={selectedClientIds.has(c.id)}
                             onChange={() => toggleClientSelection(c.id)}
-                            className="h-4 w-4 rounded accent-[#0071e3]"
+                            onClick={(e) => e.stopPropagation()}
+                            className="h-4 w-4 cursor-pointer rounded accent-[#0071e3]"
                           />
                         </td>
                       )}
@@ -1148,8 +1166,9 @@ export function CoachView() {
                           <select
                             value={c.assigned_coach_id ?? ""}
                             disabled={reassigning === c.id || staff.length === 0}
+                            onClick={(e) => e.stopPropagation()}
                             onChange={(e) => reassignClient(c.id, e.target.value)}
-                            className="max-w-[11rem] rounded-lg border border-[#d2d2d7] bg-white px-2 py-1.5 text-xs outline-none focus:border-[#0071e3] disabled:opacity-50"
+                            className="max-w-[11rem] cursor-pointer rounded-lg border border-[#d2d2d7] bg-white px-2 py-1.5 text-xs outline-none focus:border-[#0071e3] disabled:opacity-50"
                           >
                             {staff.map((s) => (
                               <option key={s.id} value={s.id}>
@@ -1164,7 +1183,10 @@ export function CoachView() {
                       </td>
                       <td className="p-3">
                         <button
-                          onClick={() => navigate("coach-client", { clientId: c.id })}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate("coach-client", { clientId: c.id });
+                          }}
                           className="text-sm font-normal text-[#0071e3] transition-opacity hover:opacity-70"
                         >
                           {t("coach.manage")} ›
