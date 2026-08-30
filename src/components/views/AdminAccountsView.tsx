@@ -2,23 +2,33 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useI18n } from "@/lib/i18n";
-import { Search, Trash2, Loader2, FlaskConical, Users } from "lucide-react";
+import { Search, Trash2, Loader2, FlaskConical, Users, X } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 /**
- * ADMIN ACCOUNTS MANAGER (0045).
+ * ADMIN ACCOUNTS MANAGER (0045 + mobile bulk-delete round).
  * Owner request: «بالنسبة للحسابات التجريبية فقط ضيف فى داشبورد الادمن
  * طريقة للتعليم على الحسابات وزرار مسح»
+ * + «فى داشبورد الادمن صفحة الحسابات ازرار المسح لا تظهر على الموبايل،
+ *    مطلوب تحديد الحسابات وزر مسح كل المحدد»
  *
  * One simple admin surface that lists EVERY account with:
  *   - a test-account badge + one-click toggle (profiles.is_test_account,
  *     migration 0045 Part B) so QA/demo accounts are visibly marked
  *   - a delete button (confirm-guarded) that removes the auth user and
  *     cascade-deletes all his data (subscriptions, requests, plans, …)
+ *   - checkboxes + select-all + a floating «delete selected» bar that
+ *     works on mobile (DELETE { user_ids } batch — server still guards
+ *     self-delete and admin accounts per-id, skipping protected ones)
+ *   - MOBILE FIX: the old single wide <table> overflowed the phone
+ *     viewport inside an overflow-hidden wrapper, clipping the rightmost
+ *     Actions column — delete buttons were unreachable. Below md the list
+ *     now renders as stacked cards whose action row always fits.
  *
  * Guards live server-side (/api/admin/accounts): self-delete and
- * admin-account delete are refused (403/400) and the UI mirrors them.
+ * admin-account delete are refused/skipped and the UI mirrors them
+ * (admin rows: checkbox disabled + delete button disabled).
  */
 
 type Account = {
@@ -41,6 +51,10 @@ export function AdminAccountsView() {
   const [roleFilter, setRoleFilter] = useState<RoleFilter>("all");
   const [busyId, setBusyId] = useState<string | null>(null);
   const [confirmId, setConfirmId] = useState<string | null>(null);
+  // Bulk selection — ids of DELETABLE accounts (admins are never selectable).
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkConfirm, setBulkConfirm] = useState(false);
+  const [bulkBusy, setBulkBusy] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -75,6 +89,44 @@ export function AdminAccountsView() {
 
   const testCount = rows.filter((r) => r.is_test_account).length;
 
+  // Selection helpers — only non-admin rows are selectable (server skips
+  // admins anyway; mirroring the guard keeps the UI honest).
+  const selectableFiltered = useMemo(
+    () => filtered.filter((r) => r.role !== "admin"),
+    [filtered],
+  );
+  const allSelected =
+    selectableFiltered.length > 0 &&
+    selectableFiltered.every((r) => selected.has(r.id));
+
+  const toggleSelect = (id: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+    setBulkConfirm(false);
+  };
+
+  const toggleSelectAll = () => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (allSelected) {
+        selectableFiltered.forEach((r) => next.delete(r.id));
+      } else {
+        selectableFiltered.forEach((r) => next.add(r.id));
+      }
+      return next;
+    });
+    setBulkConfirm(false);
+  };
+
+  const clearSelection = () => {
+    setSelected(new Set());
+    setBulkConfirm(false);
+  };
+
   const toggleTest = async (acc: Account) => {
     setBusyId(acc.id);
     try {
@@ -105,24 +157,84 @@ export function AdminAccountsView() {
     }
   };
 
-  const deleteAccount = async (acc: Account) => {
-    setBusyId(acc.id);
+  /**
+   * Delete one account (legacy single shape) or a batch (user_ids).
+   * The server answers { ok, deleted[], skipped[], failed[] } — the UI
+   * removes what was actually deleted and reports skips/failures.
+   */
+  const deleteAccounts = async (ids: string[]) => {
+    if (ids.length === 0) return;
+    const isBulk = ids.length > 1;
+    if (isBulk) setBulkBusy(true);
+    else setBusyId(ids[0]);
     try {
       const res = await fetch("/api/admin/accounts", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ user_id: acc.id }),
+        body: JSON.stringify(isBulk ? { user_ids: ids } : { user_id: ids[0] }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || data.error || "failed");
-      setRows((prev) => prev.filter((r) => r.id !== acc.id));
-      toast.success(isAr ? "اتمسح الحساب وكل بياناته" : "Account and all its data deleted");
+
+      const deleted: string[] = data.deleted ?? [];
+      const skipped: Array<{ id: string; reason: string }> = data.skipped ?? [];
+      const failed: Array<{ id: string; error: string }> = data.failed ?? [];
+
+      setRows((prev) => prev.filter((r) => !deleted.includes(r.id)));
+      setSelected((prev) => {
+        const next = new Set(prev);
+        deleted.forEach((id) => next.delete(id));
+        // Protected accounts can never be deleted — drop them from the
+        // selection; genuinely failed ones stay so the owner can retry.
+        skipped.forEach((s) => next.delete(s.id));
+        return next;
+      });
+
+      if (isBulk) {
+        if (deleted.length > 0) {
+          toast.success(
+            isAr
+              ? `اتمسح ${deleted.length} ${deleted.length === 1 ? "حساب" : "حساب"} وكل بياناتهم`
+              : `${deleted.length} account(s) and all their data deleted`,
+          );
+        }
+        if (skipped.length > 0) {
+          toast.info(
+            isAr
+              ? `اتخطى ${skipped.length} ${skipped.length === 1 ? "حساب" : "حسابات"} (أدمن أو محمي)`
+              : `${skipped.length} account(s) skipped (admin or protected)`,
+          );
+        }
+        if (failed.length > 0) {
+          toast.error(
+            isAr
+              ? `فشل مسح ${failed.length} ${failed.length === 1 ? "حساب" : "حسابات"} — حاول تاني`
+              : `Failed to delete ${failed.length} account(s) — try again`,
+          );
+        }
+      } else {
+        if (deleted.length > 0) {
+          toast.success(isAr ? "اتمسح الحساب وكل بياناته" : "Account and all its data deleted");
+        } else if (skipped.length > 0) {
+          toast.info(
+            isAr ? "الحساب محمي (أدمن) — اتخطى" : "Account is protected (admin) — skipped",
+          );
+        } else if (failed.length > 0) {
+          toast.error(failed[0].error || (isAr ? "خطأ في المسح" : "Delete failed"));
+        }
+      }
     } catch (e: any) {
       toast.error(e.message || (isAr ? "خطأ في المسح" : "Delete failed"));
     } finally {
-      setBusyId(null);
+      if (isBulk) setBulkBusy(false);
+      else setBusyId(null);
       setConfirmId(null);
+      setBulkConfirm(false);
     }
+  };
+
+  const bulkDelete = async () => {
+    await deleteAccounts([...selected]);
   };
 
   const roleBadge = (role: string) => {
@@ -141,6 +253,91 @@ export function AdminAccountsView() {
     { key: "test", label: isAr ? `تجريبي (${testCount})` : `Test (${testCount})` },
   ];
 
+  const createdLabel = (ts: string) =>
+    ts ? new Date(ts).toLocaleDateString(isAr ? "ar-EG" : "en-US") : "—";
+
+  /** Test-mark toggle + two-step delete — shared by table row & mobile card. */
+  const renderActions = (acc: Account, compact: boolean = false) => {
+    const busy = busyId === acc.id;
+    return (
+      <>
+        {/* Toggle test mark */}
+        <button
+          onClick={() => toggleTest(acc)}
+          disabled={busy}
+          title={isAr ? "تعليم كحساب تجريبي" : "Toggle test mark"}
+          className={cn(
+            "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-50",
+            acc.is_test_account
+              ? "bg-[#ff9500]/10 text-[#ff9500] hover:bg-[#ff9500]/20"
+              : "bg-[#f5f5f7] text-[#1d1d1f] hover:bg-[#e8e8ed]",
+          )}
+        >
+          {busy ? (
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          ) : (
+            <FlaskConical className="h-3.5 w-3.5" />
+          )}
+          {acc.is_test_account
+            ? isAr ? "إلغاء التعليم" : "Unmark"
+            : isAr ? "تعليم تجريبي" : "Mark test"}
+        </button>
+
+        {/* Delete — two-step confirm (admins are protected) */}
+        {confirmId === acc.id ? (
+          <>
+            <button
+              onClick={() => deleteAccounts([acc.id])}
+              disabled={busy}
+              className="rounded-full bg-[#ff3b30] px-3 py-1.5 text-xs font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+            >
+              {busy
+                ? isAr ? "جاري المسح…" : "Deleting…"
+                : isAr ? "تأكيد المسح!" : "Confirm delete!"}
+            </button>
+            <button
+              onClick={() => setConfirmId(null)}
+              disabled={busy}
+              className="rounded-full px-2.5 py-1.5 text-xs text-[#6e6e73] hover:text-[#1d1d1f]"
+            >
+              {isAr ? "إلغاء" : "Cancel"}
+            </button>
+          </>
+        ) : (
+          <button
+            onClick={() => setConfirmId(acc.id)}
+            disabled={busy || acc.role === "admin"}
+            title={
+              acc.role === "admin"
+                ? isAr ? "حسابات الأدمن محمية" : "Admin accounts are protected"
+                : isAr ? "مسح الحساب نهائيًا" : "Delete account permanently"
+            }
+            className="inline-flex items-center gap-1.5 rounded-full bg-[#ff3b30]/10 px-3 py-1.5 text-xs font-medium text-[#ff3b30] transition-colors hover:bg-[#ff3b30]/20 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            <Trash2 className={compact ? "h-4 w-4" : "h-3.5 w-3.5"} />
+            {isAr ? "مسح" : "Delete"}
+          </button>
+        )}
+      </>
+    );
+  };
+
+  /** Row checkbox — shared by table row & mobile card. */
+  const renderCheckbox = (acc: Account) => (
+    <input
+      type="checkbox"
+      checked={selected.has(acc.id)}
+      disabled={acc.role === "admin"}
+      onChange={() => toggleSelect(acc.id)}
+      aria-label={
+        acc.role === "admin"
+          ? isAr ? "حسابات الأدمن محمية — مش ممكن تتحدد" : "Admin accounts are protected"
+          : isAr ? `تحديد حساب ${acc.full_name || acc.email || acc.id}` : `Select account ${acc.full_name || acc.email || acc.id}`
+      }
+      className="mt-0.5 h-4 w-4 shrink-0 cursor-pointer accent-[#0071e3] disabled:cursor-not-allowed disabled:opacity-30"
+    />
+  );
+
   return (
     <div className="space-y-8">
       <div>
@@ -149,8 +346,8 @@ export function AdminAccountsView() {
         </h1>
         <p className="mt-2 max-w-3xl text-base font-normal text-[#6e6e73] md:text-lg">
           {isAr
-            ? "علّم على أي حساب إنه تجريبي (يظهر بعلامة مميزة في كل لوحة الأدمن)، أو امسح الحساب نهائيًا بكل بياناته. حسابات الأدمن محمية من المسح."
-            : "Mark any account as a TEST account (visible badge) or permanently delete it with all its data. Admin accounts are protected from deletion."}
+            ? "علّم على أي حساب إنه تجريبي، أو حدد مجموعة حسابات وامسحهم دفعة واحدة، أو امسح حساب واحد نهائيًا بكل بياناته. حسابات الأدمن محمية من المسح."
+            : "Mark any account as TEST, select a group and bulk-delete it, or delete a single account permanently with all its data. Admin accounts are protected."}
         </p>
       </div>
 
@@ -183,6 +380,32 @@ export function AdminAccountsView() {
         </div>
       </div>
 
+      {/* Selection hint bar (mobile-friendly select-all lives here too) */}
+      {!loading && filtered.length > 0 && (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl bg-[#f5f5f7] px-4 py-2.5">
+          <span className="text-xs text-[#6e6e73]">
+            {selected.size > 0
+              ? isAr ? `محدد: ${selected.size}` : `${selected.size} selected`
+              : isAr ? "علّم على الحسابات اللي عايز تمسحها" : "Tick the accounts you want to delete"}
+          </span>
+          {selectableFiltered.length > 0 && (
+            <button
+              onClick={toggleSelectAll}
+              className={cn(
+                "rounded-full px-3 py-1.5 text-xs font-medium transition-colors",
+                allSelected
+                  ? "bg-[#1d1d1f] text-white"
+                  : "bg-white text-[#1d1d1f] hover:bg-[#e8e8ed]",
+              )}
+            >
+              {allSelected
+                ? isAr ? "إلغاء تحديد الكل" : "Deselect all"
+                : isAr ? "تحديد الكل" : "Select all"}
+            </button>
+          )}
+        </div>
+      )}
+
       {/* List */}
       {loading ? (
         <div className="flex items-center justify-center py-16">
@@ -196,23 +419,25 @@ export function AdminAccountsView() {
           </p>
         </div>
       ) : (
-        <div className="overflow-hidden rounded-3xl border border-[#d2d2d7]">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="bg-[#f5f5f7] text-start text-xs text-[#6e6e73]">
-                <th className="p-4 text-start font-medium">{isAr ? "الحساب" : "Account"}</th>
-                <th className="hidden p-4 text-start font-medium sm:table-cell">{isAr ? "النوع" : "Role"}</th>
-                <th className="hidden p-4 text-start font-medium md:table-cell">{isAr ? "تاريخ الإنشاء" : "Created"}</th>
-                <th className="p-4 text-end font-medium">{isAr ? "إجراءات" : "Actions"}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((acc) => {
-                const badge = roleBadge(acc.role);
-                const busy = busyId === acc.id;
-                return (
-                  <tr key={acc.id} className="border-t border-[#d2d2d7]/60">
-                    <td className="p-4">
+        <>
+          {/* ═══ MOBILE (below md): stacked cards — actions always visible.
+                  The old wide table clipped the Actions column here. ═══ */}
+          <div className="space-y-3 md:hidden">
+            {filtered.map((acc) => {
+              const badge = roleBadge(acc.role);
+              return (
+                <div
+                  key={acc.id}
+                  className={cn(
+                    "rounded-2xl border p-4 transition-colors",
+                    selected.has(acc.id)
+                      ? "border-[#0071e3]/50 bg-[#0071e3]/[0.04]"
+                      : "border-[#d2d2d7] bg-white",
+                  )}
+                >
+                  <div className="flex items-start gap-3">
+                    {renderCheckbox(acc)}
+                    <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
                         <span className="font-medium">{acc.full_name || "—"}</span>
                         {acc.is_test_account && (
@@ -221,96 +446,163 @@ export function AdminAccountsView() {
                             {isAr ? "تجريبي" : "TEST"}
                           </span>
                         )}
+                        <span className={cn("inline-block rounded-full px-2 py-0.5 text-[10px] font-medium", badge.cls)}>
+                          {badge.label}
+                        </span>
                       </div>
-                      <p className="mt-0.5 text-xs text-[#6e6e73]" dir="ltr">
+                      <p className="mt-0.5 break-all text-xs text-[#6e6e73]" dir="ltr">
                         {acc.email || acc.id}
                       </p>
-                      <span className={cn("mt-1 inline-block rounded-full px-2 py-0.5 text-[10px] font-medium sm:hidden", badge.cls)}>
-                        {badge.label}
-                      </span>
-                    </td>
-                    <td className="hidden p-4 sm:table-cell">
-                      <span className={cn("rounded-full px-2.5 py-1 text-xs font-medium", badge.cls)}>
-                        {badge.label}
-                      </span>
-                    </td>
-                    <td className="hidden p-4 text-xs text-[#6e6e73] md:table-cell">
-                      {acc.created_at ? new Date(acc.created_at).toLocaleDateString(isAr ? "ar-EG" : "en-US") : "—"}
-                    </td>
-                    <td className="p-4">
-                      <div className="flex items-center justify-end gap-2">
-                        {/* Toggle test mark */}
-                        <button
-                          onClick={() => toggleTest(acc)}
-                          disabled={busy}
-                          title={isAr ? "تعليم كحساب تجريبي" : "Toggle test mark"}
-                          className={cn(
-                            "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-50",
-                            acc.is_test_account
-                              ? "bg-[#ff9500]/10 text-[#ff9500] hover:bg-[#ff9500]/20"
-                              : "bg-[#f5f5f7] text-[#1d1d1f] hover:bg-[#e8e8ed]",
-                          )}
-                        >
-                          {busy ? (
-                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                          ) : (
-                            <FlaskConical className="h-3.5 w-3.5" />
-                          )}
-                          {acc.is_test_account
-                            ? isAr ? "إلغاء التعليم" : "Unmark"
-                            : isAr ? "تعليم تجريبي" : "Mark test"}
-                        </button>
+                      <p className="mt-0.5 text-[11px] text-[#86868b]">
+                        {isAr ? "إنشاء:" : "Created:"} {createdLabel(acc.created_at)}
+                      </p>
+                    </div>
+                  </div>
+                  {/* Action row — flex-wrap so buttons ALWAYS fit on screen */}
+                  <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-[#d2d2d7]/60 pt-3">
+                    {renderActions(acc, true)}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
 
-                        {/* Delete — two-step confirm */}
-                        {confirmId === acc.id ? (
-                          <>
-                            <button
-                              onClick={() => deleteAccount(acc)}
-                              disabled={busy}
-                              className="rounded-full bg-[#ff3b30] px-3 py-1.5 text-xs font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
-                            >
-                              {busy
-                                ? isAr ? "جاري المسح…" : "Deleting…"
-                                : isAr ? "تأكيد المسح!" : "Confirm delete!"}
-                            </button>
-                            <button
-                              onClick={() => setConfirmId(null)}
-                              disabled={busy}
-                              className="rounded-full px-2.5 py-1.5 text-xs text-[#6e6e73] hover:text-[#1d1d1f]"
-                            >
-                              {isAr ? "إلغاء" : "Cancel"}
-                            </button>
-                          </>
-                        ) : (
-                          <button
-                            onClick={() => setConfirmId(acc.id)}
-                            disabled={busy || acc.role === "admin"}
-                            title={
-                              acc.role === "admin"
-                                ? isAr ? "حسابات الأدمن محمية" : "Admin accounts are protected"
-                                : isAr ? "مسح الحساب نهائيًا" : "Delete account permanently"
-                            }
-                            className="inline-flex items-center gap-1.5 rounded-full bg-[#ff3b30]/10 px-3 py-1.5 text-xs font-medium text-[#ff3b30] transition-colors hover:bg-[#ff3b30]/20 disabled:cursor-not-allowed disabled:opacity-40"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                            {isAr ? "مسح" : "Delete"}
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+          {/* ═══ DESKTOP (md+): full table + selection column ═══ */}
+          <div className="hidden overflow-hidden rounded-3xl border border-[#d2d2d7] md:block">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-[#f5f5f7] text-start text-xs text-[#6e6e73]">
+                  <th className="w-10 p-4 text-start font-medium">
+                    <input
+                      type="checkbox"
+                      checked={allSelected}
+                      onChange={toggleSelectAll}
+                      disabled={selectableFiltered.length === 0}
+                      aria-label={isAr ? "تحديد الكل" : "Select all"}
+                      className="h-4 w-4 cursor-pointer accent-[#0071e3] disabled:cursor-not-allowed disabled:opacity-30"
+                    />
+                  </th>
+                  <th className="p-4 text-start font-medium">{isAr ? "الحساب" : "Account"}</th>
+                  <th className="hidden p-4 text-start font-medium sm:table-cell">{isAr ? "النوع" : "Role"}</th>
+                  <th className="hidden p-4 text-start font-medium md:table-cell">{isAr ? "تاريخ الإنشاء" : "Created"}</th>
+                  <th className="p-4 text-end font-medium">{isAr ? "إجراءات" : "Actions"}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((acc) => {
+                  const badge = roleBadge(acc.role);
+                  const busy = busyId === acc.id;
+                  return (
+                    <tr
+                      key={acc.id}
+                      className={cn(
+                        "border-t border-[#d2d2d7]/60 transition-colors",
+                        selected.has(acc.id) && "bg-[#0071e3]/[0.04]",
+                      )}
+                    >
+                      <td className="p-4">{renderCheckbox(acc)}</td>
+                      <td className="p-4">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="font-medium">{acc.full_name || "—"}</span>
+                          {acc.is_test_account && (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-[#ff9500]/10 px-2 py-0.5 text-[10px] font-bold text-[#ff9500]">
+                              <FlaskConical className="h-3 w-3" />
+                              {isAr ? "تجريبي" : "TEST"}
+                            </span>
+                          )}
+                        </div>
+                        <p className="mt-0.5 text-xs text-[#6e6e73]" dir="ltr">
+                          {acc.email || acc.id}
+                        </p>
+                      </td>
+                      <td className="hidden p-4 sm:table-cell">
+                        <span className={cn("rounded-full px-2.5 py-1 text-xs font-medium", badge.cls)}>
+                          {badge.label}
+                        </span>
+                      </td>
+                      <td className="hidden p-4 text-xs text-[#6e6e73] md:table-cell">
+                        {createdLabel(acc.created_at)}
+                      </td>
+                      <td className="p-4">
+                        <div className="flex items-center justify-end gap-2">
+                          {renderActions(acc)}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
 
       <p className="text-xs text-[#6e6e73]">
         {isAr
-          ? "ملاحظة: المسح نهائي — بيمسح حساب المستخدم واشتراكاته وطلباته وخططه وإشعاراته من قاعدة البيانات بالكامل."
-          : "Note: deletion is permanent — it removes the user's auth account plus all subscriptions, requests, plans and notifications via database cascades."}
+          ? "ملاحظة: المسح نهائي — بيمسح حساب المستخدم واشتراكاته وطلباته وخططه وإشعاراته من قاعدة البيانات بالكامل. حسابات الأدمن محمية حتى مع المسح الجماعي."
+          : "Note: deletion is permanent — it removes the user's auth account plus all subscriptions, requests, plans and notifications. Admin accounts stay protected even in bulk delete."}
       </p>
+
+      {/* ═══ FLOATING BULK BAR — appears whenever a selection exists.
+              Fixed above everything (mobile-friendly), two-step confirm. ═══ */}
+      {selected.size > 0 && (
+        <div className="pointer-events-none fixed inset-x-3 bottom-3 z-50 flex justify-center md:inset-x-0 md:bottom-6">
+          <div
+            className={cn(
+              "pointer-events-auto flex w-full max-w-xl flex-wrap items-center justify-center gap-2 rounded-full p-2 shadow-2xl shadow-black/20 transition-colors sm:flex-nowrap sm:gap-3",
+              bulkConfirm ? "bg-[#ff3b30] text-white" : "bg-[#1d1d1f] text-white",
+            )}
+          >
+            <span className="flex items-center gap-1.5 ps-2 text-xs font-semibold sm:text-sm">
+              <Users className="h-4 w-4" />
+              {isAr ? `محدد: ${selected.size}` : `${selected.size} selected`}
+            </span>
+
+            {bulkConfirm ? (
+              <>
+                <button
+                  onClick={bulkDelete}
+                  disabled={bulkBusy}
+                  className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-full bg-white px-4 py-2.5 text-sm font-bold text-[#ff3b30] transition-opacity hover:opacity-90 disabled:opacity-60 sm:flex-none"
+                >
+                  {bulkBusy ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Trash2 className="h-4 w-4" />
+                  )}
+                  {bulkBusy
+                    ? isAr ? "جاري المسح…" : "Deleting…"
+                    : isAr ? `تأكيد مسح ${selected.size} حساب نهائيًا!` : `Confirm delete ${selected.size}!`}
+                </button>
+                <button
+                  onClick={() => setBulkConfirm(false)}
+                  disabled={bulkBusy}
+                  className="rounded-full px-3 py-2.5 text-xs font-medium text-white/90 hover:text-white disabled:opacity-60"
+                >
+                  {isAr ? "رجوع" : "Back"}
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  onClick={() => setBulkConfirm(true)}
+                  className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-full bg-[#ff3b30] px-4 py-2.5 text-sm font-bold text-white transition-colors hover:bg-[#e0342b] sm:flex-none"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  {isAr ? "مسح كل المحدد" : "Delete selected"}
+                </button>
+                <button
+                  onClick={clearSelection}
+                  className="inline-flex items-center gap-1 rounded-full px-3 py-2.5 text-xs font-medium text-white/80 transition-colors hover:text-white"
+                >
+                  <X className="h-3.5 w-3.5" />
+                  {isAr ? "إلغاء التحديد" : "Clear"}
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -8,7 +8,12 @@ import { supabaseAdmin, isSupabaseAdminConfigured } from "@/lib/supabase/admin";
  *   - GET    → every profile (id, name, email, role, test flag, created)
  *   - PATCH  → toggle the test-account flag: { user_id, is_test_account }
  *              (writes profiles.is_test_account — migration 0045 Part B)
- *   - DELETE → permanently delete an account: { user_id }
+ *   - DELETE → permanently delete account(s):
+ *              { user_id }             single (legacy shape)
+ *              { user_ids: [ … ] }     batch — mobile bulk «delete selected»
+ *              Each id goes through the same guards; protected ones are
+ *              SKIPPED (not fatal) so one bad row never blocks the batch.
+ *              Response: { ok, deleted: [], skipped: [{id, reason}], failed: [{id, error}] }
  *
  * DELETE uses auth.admin.deleteUser (service role) — auth.users is the
  * cascade root: profiles.id → auth.users ON DELETE CASCADE, and every
@@ -93,54 +98,69 @@ export async function DELETE(request: NextRequest) {
   }
 
   const body = await request.json().catch(() => ({} as Record<string, unknown>));
-  const userId = String(body.user_id ?? "");
 
-  if (!userId) {
+  // Normalize input — single { user_id } or batch { user_ids: [...] }.
+  const rawIds: string[] = Array.isArray(body.user_ids)
+    ? (body.user_ids as unknown[]).map((v) => String(v ?? "")).filter(Boolean)
+    : [String(body.user_id ?? "")].filter(Boolean);
+
+  if (rawIds.length === 0) {
     return NextResponse.json(
       { error: "bad_request", message: "user_id مطلوب" },
       { status: 400 },
     );
   }
-
-  // GUARD 1 — never delete yourself (self-lockout would orphan the admin
-  // session and cascade-delete the admin's own profile data mid-flight).
-  if (adminId && userId === adminId) {
+  if (rawIds.length > 100) {
     return NextResponse.json(
-      { error: "self_delete", message: "لا يمكنك حذف حسابك بنفسك" },
+      { error: "bad_request", message: "الحد الأقصى 100 حساب في المرة الواحدة" },
       { status: 400 },
     );
   }
 
-  // GUARD 2 — admin accounts are protected (the owner promotes admins;
-  // demotion/removal is a deliberate console-level operation, not a
-  // one-click surface action).
-  const { data: target, error: targetErr } = await supabaseAdmin
-    .from("profiles")
-    .select("id, role, full_name")
-    .eq("id", userId)
-    .maybeSingle();
+  // Per-id result buckets — a protected/missing account is SKIPPED, not fatal,
+  // so one bad row never blocks the rest of the batch.
+  const deleted: string[] = [];
+  const skipped: Array<{ id: string; reason: string }> = [];
+  const failed: Array<{ id: string; error: string }> = [];
 
-  if (targetErr) {
-    return NextResponse.json({ error: targetErr.message }, { status: 500 });
-  }
-  if (!target) {
-    return NextResponse.json(
-      { error: "not_found", message: "الحساب غير موجود" },
-      { status: 404 },
-    );
-  }
-  if ((target as { role: string }).role === "admin") {
-    return NextResponse.json(
-      { error: "admin_protected", message: "حسابات الأدمن محمية — لا تُحذف من هنا" },
-      { status: 403 },
-    );
+  for (const userId of rawIds) {
+    // GUARD 1 — never delete yourself (self-lockout would orphan the admin
+    // session and cascade-delete the admin's own profile data mid-flight).
+    if (adminId && userId === adminId) {
+      skipped.push({ id: userId, reason: "self_delete" });
+      continue;
+    }
+
+    // GUARD 2 — admin accounts are protected (the owner promotes admins;
+    // demotion/removal is a deliberate console-level operation, not a
+    // one-click surface action).
+    const { data: target, error: targetErr } = await supabaseAdmin
+      .from("profiles")
+      .select("id, role")
+      .eq("id", userId)
+      .maybeSingle();
+
+    if (targetErr) {
+      failed.push({ id: userId, error: targetErr.message });
+      continue;
+    }
+    if (!target) {
+      skipped.push({ id: userId, reason: "not_found" });
+      continue;
+    }
+    if ((target as { role: string }).role === "admin") {
+      skipped.push({ id: userId, reason: "admin_protected" });
+      continue;
+    }
+
+    // Cascade root deletion (auth.users → profiles → client data).
+    const { error: delErr } = await supabaseAdmin.auth.admin.deleteUser(userId);
+    if (delErr) {
+      failed.push({ id: userId, error: delErr.message });
+    } else {
+      deleted.push(userId);
+    }
   }
 
-  // Cascade root deletion (auth.users → profiles → client data).
-  const { error: delErr } = await supabaseAdmin.auth.admin.deleteUser(userId);
-  if (delErr) {
-    return NextResponse.json({ error: delErr.message }, { status: 500 });
-  }
-
-  return NextResponse.json({ ok: true, deleted: userId });
+  return NextResponse.json({ ok: failed.length === 0, deleted, skipped, failed });
 }

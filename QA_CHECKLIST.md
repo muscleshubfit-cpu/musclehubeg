@@ -485,3 +485,35 @@ Method: 2 python scripts hit **37 production URLs** (all EN static pages + detai
 1. Homepage top → under the headline you now see «استكشف أقسام الموقع» with 11 round buttons — click any one, the page GLIDES to that section
 2. Scroll to the very bottom → page now ends with الأسئلة الشائعة then the footer (no more «ابدأ رحلتك الرياضية»)
 3. /coaching → hero buttons are «ابدأ تحوّلك» + «كيف يعمل الكوتشينج؟» (no EVO button); the EVO section headline is now «المدرب + EVO معاك 24/7.» with one small button
+
+## Admin Accounts — Mobile Delete Fix + Bulk «Delete Selected» (2026-08-30)
+
+### Owner feedback → fixes
+
+| # | Owner report | Root cause | Fix |
+|---|---|---|---|
+| 1 | «ازرار المسح لا تظهر على الموبايل» | Single wide <table> inside overflow-hidden wrapper overflowed the phone viewport → rightmost Actions column clipped off-screen | Below md the list renders as stacked CARDS with a flex-wrap action row — «تعليم تجريبي» + «مسح» always visible & tappable; md+ keeps the table |
+| 2 | «مطلوب تحديد الحسابات وزر مسح كل المحدد» | No multi-select existed | Checkbox per row (admins disabled), select-all (desktop header + mobile pill), floating bottom bar: «محدد: N» + red «مسح كل المحدد» → TWO-STEP confirm (bar turns solid red) + «إلغاء التحديد» |
+
+### API contract (DELETE /api/admin/accounts)
+
+| Shape | Behavior |
+|---|---|
+| `{ user_id }` (legacy single) | unchanged semantics, now returns the batch-style summary |
+| `{ user_ids: [...] }` (batch ≤100) | per-id guards: self_delete → skip · not_found → skip · admin_protected → skip; one protected row never blocks the batch |
+| Response | `{ ok, deleted[], skipped[{id,reason}], failed[{id,error}] }` — UI drops deleted+skipped from selection, keeps failed for retry, toasts a summary |
+
+### Verification evidence
+
+| Check | Result |
+|---|---|
+| tsc / eslint / vitest / build | 0 · 0 errors (3 pre-existing any-warnings) · 160/160 · OK |
+| Real-browser smoke @390×844 (stubbed-fetch dev page, removed pre-commit) | 6 cards ALL show visible Delete buttons; 2 checkboxes → floating bar; confirm state; bulk delete removed exactly the 2 selected; toast «2 account(s) and all their data deleted»; Test filter 2→1 |
+| Admin protection mirrored | admin row: checkbox disabled + Delete disabled (UI) + skipped server-side |
+| Desktop @1280 | table + header select-all + centered floating bar; selected rows highlight blue |
+
+### Post-deploy verification (owner)
+
+1. Open داشبورد الأدمن → الحسابات on your PHONE → every account card now shows زر «مسح» وزر «تعليم تجريبي» بوضوح
+2. علّم على أي حسابات → يظهر شريط أسفل الشاشة «محدد: N» + زر أحمر «مسح كل المحدد» → أول ضغطة تحويله لـ«تأكيد المسح!» وثاني ضغطة تمسحهم كلهم
+3. حسابات الأدمن: مربع التحديد وزر المسح مقفولين عليها (محمية حتى مع المسح الجماعي)

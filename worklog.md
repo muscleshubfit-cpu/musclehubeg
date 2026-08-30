@@ -3488,3 +3488,22 @@ Stage Summary:
 - PRINCIPLE now encoded: EVO = service inside subscriptions (never a CTA); homepage hero = section navigator
 - 2 files changed (LandingView.tsx, coaching/page.tsx) + 3 docs — minimal blast radius
 - Pending: commit/push + Vercel deploy + production verification
+
+---
+Task ID: 7
+Agent: Super Z (main)
+Task: ADMIN ACCOUNTS — mobile delete buttons invisible + add multi-select & «delete all selected» (owner: «فى داشبورد الادمن صفحة الحسابات ازرار المسح لا تظهر على الموبايل ، مطلوب تحديد الحسابات وزر مسح كل المحدد»)
+
+Work Log:
+- Root-caused the mobile bug: single wide <table> inside overflow-hidden wrapper overflowed the phone viewport → rightmost Actions column (delete) clipped off-screen
+- Rebuilt AdminAccountsView responsively: <md = stacked cards (checkbox + badges + email + date + flex-wrap action row, buttons always fit); ≥md = table + new selection column
+- Added selection system: per-row checkboxes (admin rows disabled), select-all (desktop header checkbox + mobile «تحديد الكل» pill), live-count hint bar, floating bottom bulk bar with TWO-STEP confirm («مسح كل المحدد» → solid-red «تأكيد مسح N حساب نهائيًا!») + clear-selection
+- Extended DELETE /api/admin/accounts: { user_ids: [...] } batch ≤100 alongside legacy { user_id }; per-id guards (self_delete/not_found/admin_protected → SKIP, never block the batch); response { ok, deleted[], skipped[], failed[] }; UI toasts summary and keeps failed ids selected for retry
+- §3.5 all green: tsc 0 · eslint 0 errors (3 pre-existing any-warnings) · vitest 160/160 · next build ✓
+- Real-browser smoke @390×844 via dev-only stubbed-fetch page (deleted before commit): delete buttons visible on all cards, selection → floating bar → confirm → exactly 2 accounts removed (toast verified), admin row locked; desktop @1280 table + select-all verified
+- Docs: PROGRESS.md Phase 48, QA_CHECKLIST.md (owner-feedback table + API contract + evidence)
+
+Stage Summary:
+- Mobile admin can now SEE and USE delete buttons; bulk delete selected works with server-side protection intact
+- Changed files: src/components/views/AdminAccountsView.tsx, src/app/api/admin/accounts/route.ts (+2 docs)
+- Next: commit+push, Vercel deploy, owner mobile verification
