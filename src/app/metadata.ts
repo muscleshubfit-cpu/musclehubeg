@@ -118,13 +118,24 @@ export const metadata: Metadata = {
   verification: {
     google: "v9YnsQ7PMp5EsTOxG9ysrAvWWoWNn0sjzDEJh6Lb7fs",
   },
-  alternates: {
-    canonical: "https://musclehubeg.vercel.app",
-    languages: {
-      "en-US": "https://musclehubeg.vercel.app",
-      "ar-EG": "https://musclehubeg.vercel.app/ar",
-    },
-  },
+  // FULL-SITE AUDIT FIX (2026-08-30): the previous alternates block
+  // (canonical: homepage + languages en-US/ar-EG) was inherited by EVERY
+  // page without its own metadata — /about, /contact, /meal-planner,
+  // /privacy, /terms all declared canonical = homepage, telling Google
+  // they were duplicates of "/" (deindexing risk). The inherited
+  // ar-EG→/ar hreflang also falsely claimed the AR HOMEPAGE was the AR
+  // twin of every such page. And the en-US/ar-EG codes conflicted with
+  // the en/ar codes every per-page layout declares (mixed codes make
+  // Google distrust the whole hreflang cluster).
+  //
+  // Rule now enforced site-wide: the ROOT metadata declares NO
+  // alternates. Each indexable page owns its canonical/hreflang:
+  //   - Homepage pair: src/app/(home)/layout.tsx
+  //   - Mirror pages:   per-page metadata (homepage AR mirror + Task 3)
+  //   - Bilingual one-URL pages (faq, for-coaches): self-canonical in
+  //     their own layouts/pages
+  //   - Noindex pages (auth, checkout, profile, (app), admin): need no
+  //     canonical at all
   category: "Health & Fitness",
 };
 

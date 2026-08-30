@@ -3395,3 +3395,29 @@ Stage Summary:
 - Follow-up (documented, not built): coach landing pages + exercises/foods detail pages in sitemap (needs DB roster/enumeration query)
 - Commit SHA: (this commit)
 - Push status: pushed
+
+---
+Task ID: 4
+Agent: Main Agent (Super Z)
+Task: «كمل فحص كل صفحات الموقع عربى وانجليزى بنفس المنهج السابق» — full-site page-by-page audit (EN + AR)
+
+Work Log:
+- Synced origin/main (f02e191 == HEAD), read prior worklog entries
+- Inventoried all 62 page routes (page.tsx) from src/app; classified public vs noindex-internal vs intentional patterns
+- Built 2 python audit scripts; hit 37 production URLs measuring: status, SSR visible chars, Arabic chars, title, description, canonical, robots, hreflang (camelCase-aware), h1, redirects
+- CLEAN: no redirect shells, all public pages 200 with real content, AR mirrors 336–5617 ar-chars, noindex pages correct, blog posts reciprocal, coach pages intentionally off-sitemap, faq/for-coaches intentionally one-bilingual-URL (code-documented)
+- DEFECT 1 (critical): root metadata.ts alternates {canonical: homepage, en-US/ar-EG} inherited by every page without own metadata → /about /contact /meal-planner /privacy /terms declared canonical = HOMEPAGE (self-duplicates → deindex risk) + false ar-EG→/ar twin claim
+- DEFECT 2: hreflang code split (root en-US/ar-EG vs per-page en/ar) + homepage missing x-default
+- DEFECT 3: /tools/water-tracker had no metadata → inherited /tools hub title AND canonical
+- DEFECT 4: 5 static pages carried generic root title/description
+- FIXES: root alternates removed (root declares no alternates — per-page ownership rule); new src/app/(home)/ route group (page.tsx moved unchanged, URL stays "/") with server layout owning homepage canonical + en/ar/x-default; per-page metadata for about/contact/privacy/terms; new meal-planner/layout.tsx + tools/water-tracker/layout.tsx (tool-page layout pattern); honest descriptions verified against real page features
+- Verified: tsc 0, eslint 0 (changed files), vitest 160/160 (14 files), next build OK
+- Local smoke (:3779): 10-page script ALL PASS (8 fixed + faq/calorie controls unchanged); homepage regression 3698 visible chars identical; /ar 4171 ar-chars
+- Docs same commit: PROGRESS.md Phase 43, QA_CHECKLIST.md full-site audit section
+- Note: caught & restored an accidentally-elided "## 6. الأرشيف (Archive)" heading during the PROGRESS.md append (same-class edit slip as the Phase 40 incident)
+
+Stage Summary:
+- Every indexable page now owns its canonical; hreflang uses consistent en/ar codes site-wide; no page declares itself a duplicate of the homepage anymore
+- Follow-up candidates: GSC re-submit + request indexing for the 5 re-identified static pages; consider AR mirrors for about/faq/for-coaches if AR SEO priority rises
+- Commit SHA: (this commit)
+- Push status: pushed

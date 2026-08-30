@@ -300,3 +300,45 @@ Blog Step 2a research is model-knowledge based (no live web grounding — that r
 1. `curl -s https://musclehubeg.vercel.app/ar/blog | grep -o 'rel="canonical" href="[^"]*"'` → `.../ar/blog` (not `/ar`).
 2. `curl -s https://musclehubeg.vercel.app/sitemap.xml | grep -c 'xhtml:link'` → >0 with AR mirror entries.
 3. Search Console → Sitemaps: resubmit; request indexing for the 4 new AR urls.
+
+## Full-Site Page-by-Page Audit — EN + AR (2026-08-30)
+
+Method: 2 python scripts hit **37 production URLs** (all EN static pages + detail samples + AR mirrors + noindex controls) and measured: HTTP status, SSR visible chars, Arabic chars, title, description, canonical, robots, hreflang set, h1 count, redirect chain. Same methodology as the homepage audit, extended site-wide.
+
+### Audit verdict table (abridged)
+
+| Check | Result |
+|---|---|
+| HTTP status / redirect shells | ✅ all 37 pages 200, zero redirect shells (the old /ar defect is gone) |
+| Thin content | ✅ public pages 540–12712 visible chars; auth/checkout/profile thin but correctly `noindex, nofollow` |
+| AR content | ✅ 6 AR pages 336–5617 Arabic chars, Arabic titles, RTL |
+| h1 | ✅ exactly 1 per page (0 on noindex pages) |
+| Blog EN↔AR posts | ✅ fully reciprocal hreflang + self canonicals both sides |
+| /faq, /for-coaches, /for-coaches/register | ✅ intentional one-bilingual-URL pattern (documented in code) — left as designed |
+
+### Defects found → fixed in this phase
+
+| # | Defect (production-verified) | Fix | Verify |
+|---|---|---|---|
+| 1 | **Root canonical leak**: root metadata declared `canonical: homepage` + `en-US/ar-EG` hreflang → inherited by every page without own metadata: /about /contact /meal-planner /privacy /terms all said "I am the homepage"; ar-EG→/ar falsely claimed the AR homepage as their twin | Root `alternates` block removed; each indexable page now owns its signals | Local smoke: all 5 pages return self canonicals |
+| 2 | **Hreflang code split**: root `en-US/ar-EG` vs per-page `en/ar` (mixed codes invalidate the cluster); homepage had no x-default | Homepage cluster now en/ar/x-default in new `src/app/(home)/layout.tsx` (route group — URL unchanged) | Local: `/` and `/ar` both report en→/, ar→/ar, x-default→/ |
+| 3 | **/tools/water-tracker no metadata**: inherited /tools title AND canonical (told Google it IS the tools hub) | New `tools/water-tracker/layout.tsx` with own title/description/canonical | Local: title "Water Tracker \| Musclehubeg", canonical /tools/water-tracker |
+| 4 | **5 static pages generic identity** (root default title/description) | Per-page metadata on about/contact/privacy/terms + meal-planner/layout.tsx | Local: distinct titles + canonicals |
+
+### Verification evidence
+
+| Check | Command | Result |
+|---|---|---|
+| tsc | `npx tsc --noEmit` | ✅ 0 errors |
+| eslint | changed files | ✅ 0 errors / 0 warnings |
+| vitest | `npx vitest run` | ✅ 160/160 (14 files) |
+| build | `npx next build` | ✅ OK |
+| Local smoke | 10-page script (8 fixed + faq/calorie controls) | ✅ ALL PASS |
+| Homepage regression | visible chars | ✅ 3698 (identical to production pre-change) |
+| /ar regression | Arabic chars | ✅ 4171 |
+
+### Post-deploy verification (owner)
+
+1. `curl -s https://musclehubeg.vercel.app/about | grep -o 'rel="canonical" href="[^"]*"'` → `.../about` (NOT the bare domain).
+2. `curl -s https://musclehubeg.vercel.app/tools/water-tracker | grep -o '<title>[^<]*</title>'` → "Water Tracker | ..." (not "Free Fitness Tools").
+3. `curl -s https://musclehubeg.vercel.app/ | grep -c 'x-default'` → 1.
