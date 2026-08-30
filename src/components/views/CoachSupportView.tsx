@@ -3,22 +3,35 @@
 import { useEffect, useState } from "react";
 import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
-import { listAllTickets, listTicketMessages, addTicketMessage, updateTicketStatus } from "@/lib/data";
-import { useAuth } from "@/hooks/use-auth";
+import {
+  listAllTickets,
+  listTicketMessagesStaff,
+  addTicketMessageStaff,
+  updateTicketStatusStaff,
+} from "@/lib/data";
 import { toast } from "sonner";
 
 export function CoachSupportView() {
   const { t } = useI18n();
-  const { profile } = useAuth();
   const [tickets, setTickets] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [active, setActive] = useState<any | null>(null);
 
+  // Phase 55: staff inbox reads through /api/support/tickets (service-side).
+  // Failures are now SHOWN instead of silently rendering an empty inbox.
   const load = async () => {
     setLoading(true);
-    const data = await listAllTickets();
-    setTickets(data);
-    setLoading(false);
+    try {
+      const data = await listAllTickets();
+      setTickets(data);
+      setError(null);
+    } catch (e: any) {
+      console.error("[CoachSupportView] load failed:", e?.message);
+      setError(e?.message || "تعذر تحميل التذاكر");
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -41,6 +54,17 @@ export function CoachSupportView() {
         <p className="mt-2 text-base font-normal text-[#6e6e73] md:text-lg">{t("coach.support.subtitle")}</p>
       </div>
 
+      {error && tickets.length === 0 ? (
+        <div className="rounded-2xl border border-[#ff3b30]/30 bg-[#ff3b30]/5 p-8 text-center">
+          <p className="text-base font-normal text-[#ff3b30]">تعذر تحميل صندوق الدعم: {error}</p>
+          <button
+            onClick={load}
+            className="mt-4 rounded-full bg-[#0071e3] px-5 py-2 text-sm font-normal text-white transition-opacity hover:opacity-90"
+          >
+            إعادة المحاولة
+          </button>
+        </div>
+      ) : (
       <div className="grid gap-4 md:grid-cols-[340px_1fr]">
         {/* List */}
         <div className={cn("space-y-2", active && "hidden md:block")}>
@@ -73,7 +97,7 @@ export function CoachSupportView() {
         {/* Detail */}
         <div className={cn("rounded-3xl bg-[#f5f5f7]", !active && "hidden md:block")}>
           {active ? (
-            <TicketDetail ticket={active} onClose={() => setActive(null)} onReplied={load} coachId={profile?.id || ""} onStatusChange={load} />
+            <TicketDetail ticket={active} onClose={() => setActive(null)} onReplied={load} onStatusChange={load} />
           ) : (
             <div className="grid h-[60vh] place-items-center text-base font-normal text-[#6e6e73]">
               {t("support.noTickets")}
@@ -81,6 +105,7 @@ export function CoachSupportView() {
           )}
         </div>
       </div>
+      )}
     </div>
   );
 }
@@ -99,7 +124,7 @@ function StatusPill({ status, t }: { status: string; t: (k: string) => string })
   );
 }
 
-function TicketDetail({ ticket, onClose, onReplied, coachId, onStatusChange }: { ticket: any; onClose: () => void; onReplied: () => void; coachId: string; onStatusChange: () => void }) {
+function TicketDetail({ ticket, onClose, onReplied, onStatusChange }: { ticket: any; onClose: () => void; onReplied: () => void; onStatusChange: () => void }) {
   const { t } = useI18n();
   const isAr = useI18n().lang === "ar";
   const [messages, setMessages] = useState<any[]>([]);
@@ -109,14 +134,18 @@ function TicketDetail({ ticket, onClose, onReplied, coachId, onStatusChange }: {
 
   useEffect(() => {
     (async () => {
-      const data = await listTicketMessages(ticket.id);
+      const data = await listTicketMessagesStaff(ticket.id);
       setMessages(data);
     })();
     // M20 fix: poll for new messages every 10s while the ticket is open
     // so the coach sees client replies in real-time.
     const interval = setInterval(async () => {
-      const data = await listTicketMessages(ticket.id);
-      setMessages(data);
+      try {
+        const data = await listTicketMessagesStaff(ticket.id);
+        setMessages(data);
+      } catch {
+        /* keep the last snapshot on transient failures */
+      }
     }, 10000);
     return () => clearInterval(interval);
   }, [ticket.id]);
@@ -129,9 +158,9 @@ function TicketDetail({ ticket, onClose, onReplied, coachId, onStatusChange }: {
     const text = input.trim();
     setInput("");
     try {
-      // Use the coach's own profile.id as sender_id — not the client's ID.
-      // RLS on ticket_messages requires sender_id = auth.uid() (C14 fix).
-      await addTicketMessage(ticket.id, coachId, text);
+      // Phase 55: staff replies run server-side — sender identity comes
+      // from the session on the server (same rule as admin replies).
+      await addTicketMessageStaff(ticket.id, text);
       onReplied();
     } catch (e: any) {
       toast.error(e.message || t("common.error"));
@@ -144,7 +173,7 @@ function TicketDetail({ ticket, onClose, onReplied, coachId, onStatusChange }: {
     setStatusLoading(true);
     try {
       const newStatus = ticket.status === "closed" ? "open" : "closed";
-      await updateTicketStatus(ticket.id, newStatus);
+      await updateTicketStatusStaff(ticket.id, newStatus);
       toast.success(isAr ? (newStatus === "closed" ? "تم إغلاق التذكرة" : "تم إعادة فتح التذكرة") : (newStatus === "closed" ? "Ticket closed" : "Ticket reopened"));
       onStatusChange();
     } catch (e: any) {

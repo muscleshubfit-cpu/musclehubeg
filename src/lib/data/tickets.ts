@@ -108,17 +108,72 @@ export async function updateTicketStatus(ticketId: string, status: "open" | "pen
  return null;
 }
 
-// ---------------------------------------------------------------------------
-// All Tickets (for coach support inbox)
-// ---------------------------------------------------------------------------
-
+/**
+ * All Tickets (for the STAFF support inbox: admin + coaches).
+ *
+ * Phase 55 fix: this used to query support_tickets straight from the
+ * browser (RLS + a named-FK embed). Any failure there returned [] with
+ * NO error — the owner saw notifications arrive while the inbox stayed
+ * empty. Now the staff inbox reads through /api/support/tickets
+ * (service-side, admin → all tickets, coach → his assigned clients).
+ * The old direct query stays only as a fallback if the route is down,
+ * and total failure now THROWS so the UI can show it instead of a
+ * silent "no tickets".
+ */
 export async function listAllTickets() {
  if (isSupabaseConfigured && supabase) {
- const { data } = await supabase
+ try {
+ const res = await fetch("/api/support/tickets");
+ const json = await res.json().catch(() => null);
+ if (res.ok && json) return (json.tickets ?? []) as any[];
+ console.error("[tickets] staff list route failed:", res.status, json?.error);
+ } catch (e: any) {
+ console.error("[tickets] staff list route unreachable:", e?.message);
+ }
+ // Legacy fallback — RLS-scoped direct read (assigned coach / admin).
+ const { data, error } = await supabase!
  .from("support_tickets")
  .select("*, profiles!support_tickets_client_id_fkey(full_name, email)")
  .order("created_at", { ascending: false });
+ if (error) throw new Error(error.message);
  return data ?? [];
  }
  return read<any[]>(LS_TICKETS, []);
+}
+
+// ---------------------------------------------------------------------------
+// Staff ticket actions (Phase 55) — replies/status changes from the ADMIN or
+// a COACH run through /api/support/tickets (service-side). The client-side
+// insert/update above works for the CLIENT (RLS: own rows), but staff rows
+// depended on RLS helper functions in the live DB; when those are missing
+// the action failed silently. The route never depends on them.
+// ---------------------------------------------------------------------------
+
+export async function listTicketMessagesStaff(ticketId: string) {
+ const res = await fetch(`/api/support/tickets?ticketId=${encodeURIComponent(ticketId)}`);
+ const json = await res.json().catch(() => null);
+ if (!res.ok || !json) throw new Error(json?.message || `HTTP ${res.status}`);
+ return (json.messages ?? []) as any[];
+}
+
+export async function addTicketMessageStaff(ticketId: string, body: string) {
+ const res = await fetch("/api/support/tickets", {
+ method: "POST",
+ headers: { "Content-Type": "application/json" },
+ body: JSON.stringify({ ticketId, body }),
+ });
+ const json = await res.json().catch(() => null);
+ if (!res.ok || !json?.ok) throw new Error(json?.message || `HTTP ${res.status}`);
+ return json;
+}
+
+export async function updateTicketStatusStaff(ticketId: string, status: "open" | "pending" | "closed") {
+ const res = await fetch("/api/support/tickets", {
+ method: "POST",
+ headers: { "Content-Type": "application/json" },
+ body: JSON.stringify({ ticketId, status }),
+ });
+ const json = await res.json().catch(() => null);
+ if (!res.ok || !json?.ok) throw new Error(json?.message || `HTTP ${res.status}`);
+ return json;
 }
