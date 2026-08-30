@@ -19,6 +19,13 @@ export const metadata: Metadata = {
   ],
   alternates: {
     canonical: "https://musclehubeg.vercel.app/foods",
+    // Homepage AR mirror follow-up (2026-08-30): declare the Arabic mirror
+    // (src/app/ar/foods/page.tsx declares the reciprocal pair).
+    languages: {
+      en: "https://musclehubeg.vercel.app/foods",
+      ar: "https://musclehubeg.vercel.app/ar/foods",
+      "x-default": "https://musclehubeg.vercel.app/foods",
+    },
   },
   openGraph: {
     title: "Food Database | Musclehubeg",

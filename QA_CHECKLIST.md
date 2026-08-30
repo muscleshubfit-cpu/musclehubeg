@@ -277,3 +277,26 @@ Blog Step 2a research is model-knowledge based (no live web grounding — that r
 2. `curl -s https://musclehubeg.vercel.app/ar | grep -o 'منصتك الرياضية الشاملة' | head -1` → Arabic SSR content present.
 3. `https://musclehubeg.vercel.app/sitemap.xml` contains both `/` and `/ar` with `xhtml:link` alternates.
 4. Google Search Console: request indexing for `/ar` (it was previously an empty redirect shell and may need a nudge).
+
+## AR Mirrors SEO Completion — Inner Pages (2026-08-30)
+
+**Task:** HOMEPAGE-AR-MIRROR-FOLLOWUP (owner: «كمل باقى الصفحات»)
+**Files:** `src/app/ar/{layout,page,blog/page,exercises/page,foods/page,memberships/page}.tsx(x)`, `src/app/blog/page.tsx`, `src/app/{exercises,foods,memberships}/layout.tsx`, `src/app/sitemap.ts`
+
+| Check | Command / Method | Result |
+|---|---|---|
+| TypeScript | `npx tsc --noEmit` | ✅ 0 errors |
+| ESLint (changed files) | `npx eslint <changed>` | ✅ 0 problems |
+| Tests | `npx vitest run` | ✅ 160/160 (14 files) |
+| Build | `npx next build` | ✅ exit 0 |
+| AR pages SSR (next start) | curl /ar/blog /ar/exercises /ar/foods /ar/memberships | ✅ HTTP 200, Arabic SSR content (336–1940 Arabic chars), per-page Arabic titles («المدونة الرياضية»، «مكتبة التمارين»، «قاعدة بيانات الأكلات»، «العضويات والباقات») |
+| Canonical per page | curl + parse `<link rel=canonical>` | ✅ /ar→/ar, /ar/blog→/ar/blog, /ar/exercises→/ar/exercises, /ar/foods→/ar/foods, /ar/memberships→/ar/memberships, /blog→/blog (was leaking "/"!), layout leak removed |
+| hreflang both sides | curl + parse `hrefLang` tags (Next 16 renders camelCase — functionally identical) | ✅ en/ar/x-default on every pair member, EN↔AR reciprocal |
+| Sitemap | curl /sitemap.xml | ✅ 9732 URLs incl. /ar, /ar/blog, /ar/exercises, /ar/foods, /ar/memberships with xhtml:link alternates |
+| Sync | `git fetch && rev-parse` | SYNCED (f8ceccd) before work |
+
+### Post-deploy verification (owner)
+
+1. `curl -s https://musclehubeg.vercel.app/ar/blog | grep -o 'rel="canonical" href="[^"]*"'` → `.../ar/blog` (not `/ar`).
+2. `curl -s https://musclehubeg.vercel.app/sitemap.xml | grep -c 'xhtml:link'` → >0 with AR mirror entries.
+3. Search Console → Sitemaps: resubmit; request indexing for the 4 new AR urls.

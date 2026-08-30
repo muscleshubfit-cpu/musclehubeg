@@ -22,6 +22,13 @@ export const metadata: Metadata = {
   },
   alternates: {
     canonical: "https://musclehubeg.vercel.app/memberships",
+    // Homepage AR mirror follow-up (2026-08-30): declare the Arabic mirror
+    // (src/app/ar/memberships/page.tsx declares the reciprocal pair).
+    languages: {
+      en: "https://musclehubeg.vercel.app/memberships",
+      ar: "https://musclehubeg.vercel.app/ar/memberships",
+      "x-default": "https://musclehubeg.vercel.app/memberships",
+    },
   },
 };
 

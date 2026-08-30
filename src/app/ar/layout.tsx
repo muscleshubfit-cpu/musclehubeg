@@ -36,16 +36,14 @@ export const metadata: Metadata = {
     description:
       "868+ تمرين، برامج تدريب، حاسبات مجانية، 8,830+ أكلة، مدونة رياضية، وكوتشينج أونلاين مع EVO AI.",
   },
-  alternates: {
-    // Homepage AR mirror fix (2026-08-30): /ar is now a real page —
-    // declare its own canonical so Google indexes the Arabic URL itself
-    // (previously /ar redirected to / and had no canonical at all).
-    canonical: "/ar",
-    languages: {
-      "en": "https://musclehubeg.vercel.app",
-      "ar": "https://musclehubeg.vercel.app/ar",
-    },
-  },
+  // NOTE: NO `alternates` here (homepage AR mirror follow-up, 2026-08-30).
+  // Next.js metadata inheritance is field-level: an `alternates` block in
+  // this nested layout is inherited verbatim by EVERY /ar/* child page,
+  // which made /ar/blog, /ar/exercises, /ar/foods and /ar/memberships
+  // declare the HOMEPAGE canonical + hreflang (telling Google they are
+  // duplicates of /ar). Each Arabic page now declares its own canonical +
+  // languages in its own `metadata` export (see the pages' files), same
+  // pattern as `src/app/ar/coaches/[slug]/page.tsx`.
 };
 
 export default function ArLayout({ children }: { children: React.ReactNode }) {

@@ -1,4 +1,7 @@
+import type { Metadata } from "next";
 import { LandingView } from "@/components/views/LandingView";
+
+const SITE_URL = "https://musclehubeg.vercel.app";
 
 /**
  * Arabic home page — REAL page (was: redirect("/")).
@@ -21,9 +24,23 @@ import { LandingView } from "@/components/views/LandingView";
  *       persists the choice in localStorage (MIRROR_ROUTES in
  *       `LanguageToggle.tsx`).
  *
- *   Metadata (Arabic title/description/OG/hreflang) comes from
- *   `src/app/ar/layout.tsx`.
+ *   Metadata: title/description/OG defaults come from
+ *   `src/app/ar/layout.tsx`; the alternates live HERE (not in the
+ *   layout) so only the homepage declares the homepage canonical —
+ *   sibling /ar/* pages declare their own (follow-up fix: the layout
+ *   block was leaking to every child page).
  */
+export const metadata: Metadata = {
+  alternates: {
+    canonical: "/ar",
+    languages: {
+      en: `${SITE_URL}/`,
+      ar: `${SITE_URL}/ar`,
+      "x-default": `${SITE_URL}/`,
+    },
+  },
+};
+
 export default function Page() {
   return <LandingView />;
 }

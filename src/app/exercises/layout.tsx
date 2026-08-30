@@ -20,6 +20,13 @@ export const metadata: Metadata = {
   ],
   alternates: {
     canonical: "https://musclehubeg.vercel.app/exercises",
+    // Homepage AR mirror follow-up (2026-08-30): declare the Arabic mirror
+    // (src/app/ar/exercises/page.tsx declares the reciprocal pair).
+    languages: {
+      en: "https://musclehubeg.vercel.app/exercises",
+      ar: "https://musclehubeg.vercel.app/ar/exercises",
+      "x-default": "https://musclehubeg.vercel.app/exercises",
+    },
   },
   openGraph: {
     title: "Exercise Library | Musclehubeg",

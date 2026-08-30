@@ -37,17 +37,88 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         languages: { en: baseUrl, ar: `${baseUrl}/ar` },
       },
     },
-    // Main platform sections (high priority — core content)
-    { url: `${baseUrl}/exercises`, lastModified, changeFrequency: "weekly", priority: 0.9 },
+    // Main platform sections (high priority — core content).
+    // Homepage AR mirror follow-up (2026-08-30): the 4 static mirror
+    // pairs now appear WITH hreflang alternates, and their /ar twins are
+    // listed too (/ar/coaches/[slug] + detail pages: follow-up, needs a
+    // DB roster query first).
+    {
+      url: `${baseUrl}/exercises`,
+      lastModified,
+      changeFrequency: "weekly",
+      priority: 0.9,
+      alternates: {
+        languages: { en: `${baseUrl}/exercises`, ar: `${baseUrl}/ar/exercises` },
+      },
+    },
+    {
+      url: `${baseUrl}/ar/exercises`,
+      lastModified,
+      changeFrequency: "weekly",
+      priority: 0.9,
+      alternates: {
+        languages: { en: `${baseUrl}/exercises`, ar: `${baseUrl}/ar/exercises` },
+      },
+    },
+    {
+      url: `${baseUrl}/foods`,
+      lastModified,
+      changeFrequency: "weekly",
+      priority: 0.9,
+      alternates: {
+        languages: { en: `${baseUrl}/foods`, ar: `${baseUrl}/ar/foods` },
+      },
+    },
+    {
+      url: `${baseUrl}/ar/foods`,
+      lastModified,
+      changeFrequency: "weekly",
+      priority: 0.9,
+      alternates: {
+        languages: { en: `${baseUrl}/foods`, ar: `${baseUrl}/ar/foods` },
+      },
+    },
     { url: `${baseUrl}/programs`, lastModified, changeFrequency: "weekly", priority: 0.9 },
-    { url: `${baseUrl}/foods`, lastModified, changeFrequency: "weekly", priority: 0.9 },
     { url: `${baseUrl}/tools`, lastModified, changeFrequency: "weekly", priority: 0.9 },
     { url: `${baseUrl}/evo`, lastModified, changeFrequency: "monthly", priority: 0.9 },
-    { url: `${baseUrl}/blog`, lastModified, changeFrequency: "weekly", priority: 0.8 },
-    { url: `${baseUrl}/ar/blog`, lastModified, changeFrequency: "weekly", priority: 0.8 },
+    {
+      url: `${baseUrl}/blog`,
+      lastModified,
+      changeFrequency: "weekly",
+      priority: 0.8,
+      alternates: {
+        languages: { en: `${baseUrl}/blog`, ar: `${baseUrl}/ar/blog` },
+      },
+    },
+    {
+      url: `${baseUrl}/ar/blog`,
+      lastModified,
+      changeFrequency: "weekly",
+      priority: 0.8,
+      alternates: {
+        languages: { en: `${baseUrl}/blog`, ar: `${baseUrl}/ar/blog` },
+      },
+    },
     // Coaching (secondary feature — one section of the platform)
     { url: `${baseUrl}/coaching`, lastModified, changeFrequency: "monthly", priority: 0.8 },
-    { url: `${baseUrl}/memberships`, lastModified, changeFrequency: "monthly", priority: 0.9 },
+    {
+      url: `${baseUrl}/memberships`,
+      lastModified,
+      changeFrequency: "monthly",
+      priority: 0.9,
+      alternates: {
+        languages: { en: `${baseUrl}/memberships`, ar: `${baseUrl}/ar/memberships` },
+      },
+    },
+    {
+      url: `${baseUrl}/ar/memberships`,
+      lastModified,
+      changeFrequency: "monthly",
+      priority: 0.9,
+      alternates: {
+        languages: { en: `${baseUrl}/memberships`, ar: `${baseUrl}/ar/memberships` },
+      },
+    },
     // FOR-COACHES — coach recruitment funnel (2026-08-29): bilingual
     // landing + instant self-registration page.
     { url: `${baseUrl}/for-coaches`, lastModified, changeFrequency: "weekly", priority: 0.9 },

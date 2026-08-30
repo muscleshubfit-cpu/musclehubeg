@@ -3373,3 +3373,25 @@ Stage Summary:
 - Known follow-up (not in scope): /ar/memberships, /ar/exercises, /ar/foods mirrors exist but are not in the sitemap; hreflang for inner pages not yet declared page-by-page
 - Commit SHA: (this commit)
 - Push status: pushed
+
+---
+Task ID: AR-MIRRORS-SEO-2026-08-30
+Agent: Implementation Agent (Super Z / GLM)
+Task: «كمل باقى الصفحات» — extend the Phase-41 homepage AR mirror fix to the 4 static mirror pairs (blog/exercises/foods/memberships) + kill the layout canonical leak.
+
+Work Log:
+- Audit: all 4 AR pages are REAL pages (shared components forced via lang="ar" prop — SSR-safe); /ar/coaches/[slug] already self-declares metadata (left untouched)
+- Found + fixed canonical leak: ar/layout.tsx alternates (canonical "/ar" + languages) were inherited field-level by every /ar/* child → removed from layout; ar/page.tsx now exports its own homepage alternates
+- Found + fixed: EN /blog list had no metadata → inherited root canonical "/" (declared itself a homepage duplicate) → new metadata export (title/desc/canonical /blog/hreflang pair)
+- EN /exercises,/foods,/memberships layouts: added languages (en/ar/x-default) next to existing canonicals
+- AR pages: own Arabic title + description + canonical + hreflang each
+- Sitemap: added /ar/exercises,/ar/foods,/ar/memberships (twins at same priority) + alternates on both sides of all 5 pairs
+- Verification §3.5: tsc 0 · eslint 0 (changed) · vitest 160/160 · build exit 0 · next-start smoke: AR SSR content (336–1940 ar-chars), per-page titles+canonicals, hrefLang on both sides, sitemap 9732 urls with 20 xhtml:link entries
+- Caught a false negative mid-verify: stale next-server on :3777 served the OLD build (EADDRINUSE in log) → killed PID, re-verified on :3778
+- Docs same commit: PROGRESS.md Phase 42, QA_CHECKLIST.md section
+
+Stage Summary:
+- All 5 static mirror pairs now self-declare consistent canonical + reciprocal hreflang, and both sides are in the sitemap
+- Follow-up (documented, not built): coach landing pages + exercises/foods detail pages in sitemap (needs DB roster/enumeration query)
+- Commit SHA: (this commit)
+- Push status: pushed
