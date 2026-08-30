@@ -74,12 +74,35 @@ export default async function Page({
       ])
     : null;
 
+  // GEO (2026-08-30): standalone NutritionInformation node — makes the
+  // per-100g facts directly machine-readable for AI answer engines
+  // ("calories in chicken breast" → parsed from here). Additive to the
+  // breadcrumb schema; no existing signals change.
+  const nutritionSchema = food
+    ? {
+        "@context": "https://schema.org",
+        "@type": "NutritionInformation",
+        name: `${food.nameEn} — Nutrition Facts (per 100 g)`,
+        servingSize: "100 g",
+        calories: `${food.per100g.calories} kcal`,
+        proteinContent: `${food.per100g.protein} g`,
+        carbohydrateContent: `${food.per100g.carbs} g`,
+        fatContent: `${food.per100g.fat} g`,
+      }
+    : null;
+
   return (
     <>
       {breadcrumbSchema && (
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
+        />
+      )}
+      {nutritionSchema && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(nutritionSchema) }}
         />
       )}
       <FoodDetailClient food={food ?? null} />

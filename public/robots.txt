@@ -5,11 +5,13 @@ User-agent: *
 Allow: /$
 Allow: /ar
 Allow: /about
+Allow: /ar/about
 Allow: /blog
 Allow: /blog/*
 Allow: /ar/blog
 Allow: /ar/blog/*
 Allow: /faq
+Allow: /ar/faq
 Allow: /contact
 Allow: /privacy
 Allow: /terms
@@ -17,15 +19,22 @@ Allow: /tools
 Allow: /tools/*
 Allow: /exercises
 Allow: /exercises/*
+Allow: /ar/exercises
 Allow: /programs
 Allow: /programs/*
 Allow: /foods
 Allow: /foods/*
+Allow: /ar/foods
+Allow: /memberships
+Allow: /ar/memberships
+Allow: /meal-planner
 Allow: /coaching
 Allow: /evo
 # FOR-COACHES — coach recruitment funnel (public, SEO-indexed)
 Allow: /for-coaches
 Allow: /for-coaches/register
+# GEO (2026-08-30): llms.txt — machine-readable site guide for AI engines
+Allow: /llms.txt
 
 # Block private/authenticated pages
 Disallow: /dashboard
@@ -48,10 +57,18 @@ Allow: /
 User-agent: ChatGPT-User
 Allow: /
 
+# OAI-SearchBot — OpenAI's SEARCH crawler (ChatGPT Search citations)
+User-agent: OAI-SearchBot
+Allow: /
+
 User-agent: Claude-Web
 Allow: /
 
 User-agent: anthropic-ai
+Allow: /
+
+# ClaudeBot — Anthropic's current crawler (Claude-Web is legacy)
+User-agent: ClaudeBot
 Allow: /
 
 User-agent: PerplexityBot
@@ -61,6 +78,24 @@ User-agent: Google-Extended
 Allow: /
 
 User-agent: Bingbot
+Allow: /
+
+# Applebot — Siri / Apple Intelligence
+User-agent: Applebot
+Allow: /
+
+User-agent: Applebot-Extended
+Allow: /
+
+# Meta-ExternalAgent — Meta AI
+User-agent: Meta-ExternalAgent
+Allow: /
+
+# Amazonbot — Alexa
+User-agent: Amazonbot
+Allow: /
+
+User-agent: YouBot
 Allow: /
 
 Sitemap: https://musclehubeg.vercel.app/sitemap.xml

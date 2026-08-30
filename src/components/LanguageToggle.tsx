@@ -18,11 +18,13 @@ import { getBlogPost, getLinkedPost } from "@/lib/blog";
  *   /exercises   <-> /ar/exercises
  *   /foods       <-> /ar/foods
  *   /memberships <-> /ar/memberships
+ *   /about       <-> /ar/about (AR expansion 2026-08-30)
+ *   /faq         <-> /ar/faq (AR expansion 2026-08-30)
  *   /coaches/[slug] <-> /ar/coaches/[slug] (same slug — multi-coach
  *                   public landing, migration 0032 i18n follow-up)
- *
- * Pages without Arabic mirrors (e.g. /coaching, /evo, /tools/*, /about,
- * /faq, /privacy, /terms, /contact, /meal-planner, /affiliate): just
+ * 
+ * Pages without Arabic mirrors (e.g. /coaching, /evo, /tools/*,
+ * /privacy, /terms, /contact, /meal-planner, /affiliate): just
  * toggle the UI language (the page content is already bilingual via
  * useI18n, so the user sees the new language without a URL change).
  */
@@ -75,6 +77,8 @@ export function LanguageToggle() {
  { en: "/exercises", ar: "/ar/exercises" },
  { en: "/foods", ar: "/ar/foods" },
  { en: "/memberships", ar: "/ar/memberships" },
+ { en: "/about", ar: "/ar/about" },
+ { en: "/faq", ar: "/ar/faq" },
  ];
 
  for (const route of MIRROR_ROUTES) {

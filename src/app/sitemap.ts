@@ -131,8 +131,45 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${baseUrl}/tools/water-tracker`, lastModified, changeFrequency: "monthly", priority: 0.8 },
     { url: `${baseUrl}/meal-planner`, lastModified, changeFrequency: "monthly", priority: 0.8 },
     // Other pages
-    { url: `${baseUrl}/about`, lastModified, changeFrequency: "monthly", priority: 0.6 },
-    { url: `${baseUrl}/faq`, lastModified, changeFrequency: "monthly", priority: 0.7 },
+    // AR EXPANSION (2026-08-30): /about and /faq now have real Arabic
+    // twins (/ar/about, /ar/faq) — declared with hreflang alternates
+    // on both sides.
+    {
+      url: `${baseUrl}/about`,
+      lastModified,
+      changeFrequency: "monthly",
+      priority: 0.6,
+      alternates: {
+        languages: { en: `${baseUrl}/about`, ar: `${baseUrl}/ar/about` },
+      },
+    },
+    {
+      url: `${baseUrl}/ar/about`,
+      lastModified,
+      changeFrequency: "monthly",
+      priority: 0.6,
+      alternates: {
+        languages: { en: `${baseUrl}/about`, ar: `${baseUrl}/ar/about` },
+      },
+    },
+    {
+      url: `${baseUrl}/faq`,
+      lastModified,
+      changeFrequency: "monthly",
+      priority: 0.7,
+      alternates: {
+        languages: { en: `${baseUrl}/faq`, ar: `${baseUrl}/ar/faq` },
+      },
+    },
+    {
+      url: `${baseUrl}/ar/faq`,
+      lastModified,
+      changeFrequency: "monthly",
+      priority: 0.7,
+      alternates: {
+        languages: { en: `${baseUrl}/faq`, ar: `${baseUrl}/ar/faq` },
+      },
+    },
     { url: `${baseUrl}/contact`, lastModified, changeFrequency: "yearly", priority: 0.5 },
     { url: `${baseUrl}/privacy`, lastModified, changeFrequency: "yearly", priority: 0.3 },
     { url: `${baseUrl}/terms`, lastModified, changeFrequency: "yearly", priority: 0.3 },

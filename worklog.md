@@ -3421,3 +3421,24 @@ Stage Summary:
 - Follow-up candidates: GSC re-submit + request indexing for the 5 re-identified static pages; consider AR mirrors for about/faq/for-coaches if AR SEO priority rises
 - Commit SHA: (this commit)
 - Push status: pushed
+
+---
+Task ID: 5
+Agent: Main Agent (Super Z)
+Task: «نفذ الاختيارين + فحص seo, geo وكل ما يلزم للظهور والانتشار بالكامل» — SEO/GEO full-stack + AR mirrors for about & FAQ
+
+Work Log:
+- Audited: robots.txt (legacy AI crawlers), llms.txt missing, schemas per page type, TTFB on 6 pages (0.15–0.23s — no fix needed), 22/22 homepage images alt'd, 404 correct
+- Built /ar/about + /ar/faq mirrors (StaticPageView Arabic content + URL-first i18n), Arabic-first metadata + canonical + reciprocal hreflang both sides
+- /faq self-referencing en/ar hreflang replaced with real twin pair; /about gained its pair; Q&A extracted to src/lib/faq-content.ts (shared schema source, AR-first on /ar/faq)
+- LanguageToggle MIRROR_ROUTES += /about<->/ar/about, /faq<->/ar/faq
+- GEO: public/llms.txt created (site guide for LLM citation); robots.txt + OAI-SearchBot/ClaudeBot/Applebot/Meta-ExternalAgent/Amazonbot/YouBot; NutritionInformation schema on foods/[slug]; OfferCatalog on memberships (storefront prices from memberships.ts)
+- Sitemap: 2 new AR urls + alternates on both sides (28 xhtml:link)
+- Verified: tsc 0, eslint 0 (9 files), vitest 160/160, build OK, local smoke 11 pages ALL PASS, home regression identical (3736 chars)
+- Docs: PROGRESS.md Phase 44, QA_CHECKLIST.md, worklog.md same commit
+
+Stage Summary:
+- 7 mirror pairs now fully reciprocal; site machine-readable for Google AND AI answer engines
+- Follow-up: GSC resubmit + indexing requests for /ar/about /ar/faq; monitor AI-crawler referrals in analytics
+- Commit SHA: (this commit)
+- Push status: pushed

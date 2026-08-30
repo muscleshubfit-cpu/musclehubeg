@@ -342,3 +342,48 @@ Method: 2 python scripts hit **37 production URLs** (all EN static pages + detai
 1. `curl -s https://musclehubeg.vercel.app/about | grep -o 'rel="canonical" href="[^"]*"'` → `.../about` (NOT the bare domain).
 2. `curl -s https://musclehubeg.vercel.app/tools/water-tracker | grep -o '<title>[^<]*</title>'` → "Water Tracker | ..." (not "Free Fitness Tools").
 3. `curl -s https://musclehubeg.vercel.app/ | grep -c 'x-default'` → 1.
+
+## SEO/GEO Full-Stack + About/FAQ AR Mirrors (2026-08-30)
+
+### Audit findings (production-verified before this commit)
+
+| Area | Finding | Action |
+|---|---|---|
+| Speed (TTFB, 6 key pages) | 0.15–0.23s — excellent, no CDN fix needed | none |
+| Image alt (homepage) | 22/22 meaningful alt | none |
+| 404 handling | correct 404 status | none |
+| robots.txt AI crawlers | legacy only (no OAI-SearchBot/ClaudeBot/Applebot) | ADDED 7 crawlers |
+| llms.txt | 404 (missing) | CREATED |
+| foods/[slug] schema | no nutrition markup | ADDED NutritionInformation |
+| memberships schema | no pricing markup | ADDED OfferCatalog |
+| /about + /faq AR mirrors | did not exist | BUILT |
+
+### New pages
+
+| Page | Verify (local) |
+|---|---|
+| /ar/about | canonical /ar/about · hreflang pair both sides · 2188 Arabic chars · 1×h1 · Arabic title «عن Musclehubeg» |
+| /ar/faq | canonical /ar/faq · hreflang pair both sides · 4186 Arabic chars · FAQPage JSON-LD 18 questions (AR-first) |
+
+### GEO deliverables
+
+- `public/llms.txt` — machine-readable site guide (sections, prices, key facts) for ChatGPT/Claude/Perplexity citation
+- `public/robots.txt` — OAI-SearchBot, ClaudeBot, Applebot(+Extended), Meta-ExternalAgent, Amazonbot, YouBot all `Allow: /`; new AR mirrors + llms.txt in Allow list
+- `foods/[slug]` — NutritionInformation schema (per-100g calories/protein/carbs/fat) → AI answer engines can cite
+- `/memberships` — OfferCatalog schema (Free/Premium/Pro/Coaching storefront prices, USD)
+
+### Verification evidence
+
+| Check | Result |
+|---|---|
+| tsc / eslint / vitest / build | 0 · 0 · 160/160 · OK (/ar/about + /ar/faq in route list) |
+| Local smoke (11 pages) | ALL PASS — hreflang reciprocal on 7 mirror pairs now |
+| Sitemap | 9734 urls, 28 xhtml:link alternates (was 20) |
+| Homepage regression | 3736 visible chars — identical |
+
+### Post-deploy verification (owner)
+
+1. `curl -s https://musclehubeg.vercel.app/llms.txt` → 200, starts with "# Musclehubeg"
+2. `curl -s https://musclehubeg.vercel.app/ar/faq | grep -c 'ar-EG'` → >0 (Arabic OG locale)
+3. `curl -s https://musclehubeg.vercel.app/foods/chicken-breast | grep -o NutritionInformation` → found
+4. Search Console → Sitemaps: resubmit; request indexing for /ar/about + /ar/faq

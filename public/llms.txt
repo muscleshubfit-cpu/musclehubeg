@@ -1,0 +1,30 @@
+# Musclehubeg
+
+> Musclehubeg is a bilingual (English/Arabic) fitness and nutrition platform built for the Egyptian and Arab market: an 868+ exercise library with instructions, ready-made workout programs, a food database with per-100g nutrition facts for 8,830+ foods, free fitness calculators, an AI meal planner, the EVO AI coach, and human online coaching.
+
+- Full platform URL: https://musclehubeg.vercel.app
+- Arabic homepage: https://musclehubeg.vercel.app/ar
+- Language model: every URL has an English canonical version; main sections have Arabic mirrors under `/ar/*` (the language follows the URL, server-rendered).
+
+## Main sections
+
+- [Exercise Library](https://musclehubeg.vercel.app/exercises): 868+ exercises with proper form and instructions; each has a detail page under /exercises/[slug]. Arabic: /ar/exercises
+- [Workout Programs](https://musclehubeg.vercel.app/programs): ready training programs (home & gym, beginner to advanced), each with a detail page under /programs/[slug]
+- [Food Database](https://musclehubeg.vercel.app/foods): 8,830+ foods with calories, protein, carbs, and fat per 100g; detail pages under /foods/[slug]. Arabic: /ar/foods
+- [Fitness Tools](https://musclehubeg.vercel.app/tools): free calculators — [Calorie/TDEE](https://musclehubeg.vercel.app/tools/calorie-calculator), [BMI](https://musclehubeg.vercel.app/tools/bmi-calculator), [Macro](https://musclehubeg.vercel.app/tools/macro-calculator), [Body Fat](https://musclehubeg.vercel.app/tools/body-fat-calculator), [Water Tracker](https://musclehubeg.vercel.app/tools/water-tracker), plus an [AI Meal Planner](https://musclehubeg.vercel.app/meal-planner)
+- [Workout Programs listing](https://musclehubeg.vercel.app/programs): curated training plans
+- [Fitness Blog](https://musclehubeg.vercel.app/blog): evidence-based training and nutrition articles; Arabic articles at /ar/blog
+- [Online Coaching](https://musclehubeg.vercel.app/coaching): human coaches and nutrition specialists
+- [EVO — AI Fitness Coach](https://musclehubeg.vercel.app/evo): the platform's AI performance engine (plan generation, progress analysis)
+- [Memberships](https://musclehubeg.vercel.app/memberships): Free, Premium ($14.99/mo or $119/yr), Pro ($29.99/mo or $239/yr), Coaching ($39.99/mo or $359/yr); Arabic: /ar/memberships
+- [About](https://musclehubeg.vercel.app/about): mission and story; Arabic: /ar/about
+- [FAQ](https://musclehubeg.vercel.app/faq): common questions incl. payment methods (PayPal, InstaPay, Vodafone Cash); Arabic: /ar/faq
+- [For Coaches](https://musclehubeg.vercel.app/for-coaches): coach recruitment — coaches keep 100% of their income, fixed monthly activation fee
+
+## Key facts
+
+- Payment methods: PayPal (automatic), InstaPay, Vodafone Cash (manual receipt review within 24h)
+- Platform ships as a PWA (installable on mobile), fully bilingual with RTL support
+- Free tier includes limited access; Premium adds unlimited EVO AI + monthly plans; Pro adds premium content and doubled plans; Coaching adds human 1-on-1 supervision
+- Typical results timeline: initial results 2–4 weeks, noticeable results 8–12 weeks with adherence
+- Content license: all content owned by Musclehubeg; citing facts with a link is welcome

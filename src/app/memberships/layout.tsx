@@ -37,5 +37,61 @@ export default function MembershipsLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return children;
+  // GEO (2026-08-30): OfferCatalog with the storefront prices (source of
+  // truth: src/lib/memberships.ts MEMBERSHIPS — matches what the page
+  // displays). Machine-readable pricing for Google rich results and AI
+  // answer engines ("how much is musclehubeg premium?").
+  const offerCatalogSchema = {
+    "@context": "https://schema.org",
+    "@type": "OfferCatalog",
+    name: "Musclehubeg Membership Plans",
+    url: "https://musclehubeg.vercel.app/memberships",
+    itemListElement: [
+      {
+        "@type": "Offer",
+        name: "Free",
+        description: "Limited access to the platform basics.",
+        price: "0",
+        priceCurrency: "USD",
+        url: "https://musclehubeg.vercel.app/memberships",
+      },
+      {
+        "@type": "Offer",
+        name: "Premium",
+        description:
+          "Unlimited EVO AI coach + monthly meal & workout plans. $14.99/month or $119/year.",
+        price: "14.99",
+        priceCurrency: "USD",
+        url: "https://musclehubeg.vercel.app/memberships",
+      },
+      {
+        "@type": "Offer",
+        name: "Pro",
+        description:
+          "Premium content + doubled plan limits. $29.99/month or $239/year.",
+        price: "29.99",
+        priceCurrency: "USD",
+        url: "https://musclehubeg.vercel.app/memberships",
+      },
+      {
+        "@type": "Offer",
+        name: "Coaching",
+        description:
+          "Human 1-on-1 coaching with a nutrition specialist. $39.99/month or $359/year.",
+        price: "39.99",
+        priceCurrency: "USD",
+        url: "https://musclehubeg.vercel.app/coaching",
+      },
+    ],
+  };
+
+  return (
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(offerCatalogSchema) }}
+      />
+      {children}
+    </>
+  );
 }
