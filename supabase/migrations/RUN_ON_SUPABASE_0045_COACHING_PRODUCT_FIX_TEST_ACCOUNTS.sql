@@ -42,6 +42,19 @@
 --       FK cascades) — no RLS policy can express that, by design.
 --
 -- IDEMPOTENT: safe to re-run (IF NOT EXISTS / conditional DO blocks).
+--
+-- V2 (2026-08-30) — fixes run #1 failure:
+--   ERROR 23505 duplicate key violates unique constraint
+--   subscriptions_client_id_tier_uidx — Key (client_id, tier)=
+--   (f2c8674d-55a5-47c7-8d4f-2aac4affa0bf, pro) already exists.
+--   CAUSE: that client has BOTH a legacy 'elite' row AND a 'pro' row, and
+--   the plain rename elite→pro collides with the unique (client_id, tier)
+--   index. RUN #1 APPLIED NOTHING (single transaction → full rollback), so
+--   re-running this fixed file is clean.
+--   FIX (A1 v2): clients holding BOTH rows get the legacy row FOLDED into
+--   the model row first (later end_date wins; an active legacy row
+--   re-activates the model row), then the duplicate is deleted. The plain
+--   remap afterwards can no longer collide. No prices touched.
 -- ============================================================================
 
 -- ─────────────────────────────────────────────────────────────────────────
@@ -59,8 +72,57 @@ do $$
 declare
   v_subs      bigint := 0;
   v_reqs      bigint := 0;
+  v_folded    bigint := 0;
   v_n         bigint;
 begin
+  -- ── v2: FOLD duplicate pairs first (client_id, legacy + model both exist) ──
+  -- Keep the MODEL row; preserve the better entitlement: the later end_date
+  -- wins, and a currently-active legacy row re-activates the model row.
+  -- Then delete the duplicate legacy row. Unique index stays satisfied.
+
+  -- (1) starter + premium pairs
+  update public.subscriptions p
+     set end_date = case
+           when coalesce(e.end_date, '-infinity'::timestamptz)
+                > coalesce(p.end_date, '-infinity'::timestamptz)
+           then e.end_date else p.end_date end,
+         status = case
+           when e.status = 'active' and e.end_date > now()
+           then 'active'::subscription_status
+           else p.status end
+    from public.subscriptions e
+   where e.client_id = p.client_id
+     and e.tier = 'starter' and p.tier = 'premium';
+  get diagnostics v_n = row_count; v_folded := v_folded + v_n;
+
+  delete from public.subscriptions e
+   using public.subscriptions p
+   where e.client_id = p.client_id
+     and e.tier = 'starter' and p.tier = 'premium';
+  get diagnostics v_n = row_count; v_folded := v_folded + v_n;
+
+  -- (2) elite + pro pairs (this is the pair that crashed run #1)
+  update public.subscriptions p
+     set end_date = case
+           when coalesce(e.end_date, '-infinity'::timestamptz)
+                > coalesce(p.end_date, '-infinity'::timestamptz)
+           then e.end_date else p.end_date end,
+         status = case
+           when e.status = 'active' and e.end_date > now()
+           then 'active'::subscription_status
+           else p.status end
+    from public.subscriptions e
+   where e.client_id = p.client_id
+     and e.tier = 'elite' and p.tier = 'pro';
+  get diagnostics v_n = row_count; v_folded := v_folded + v_n;
+
+  delete from public.subscriptions e
+   using public.subscriptions p
+   where e.client_id = p.client_id
+     and e.tier = 'elite' and p.tier = 'pro';
+  get diagnostics v_n = row_count; v_folded := v_folded + v_n;
+
+  -- ── plain remap — safe now, no (client_id, tier) collisions possible ──
   update public.subscriptions set tier = 'premium' where tier = 'starter';
   get diagnostics v_n = row_count; v_subs := v_subs + v_n;
 
@@ -75,7 +137,8 @@ begin
 
   insert into _mh0045_probe values
     ('remapped_subscription_rows', v_subs::text),
-    ('remapped_request_rows',      v_reqs::text);
+    ('remapped_request_rows',      v_reqs::text),
+    ('folded_duplicate_rows',      v_folded::text);
 end $$;
 
 -- ─────────────────────────────────────────────────────────────────────────
@@ -135,7 +198,8 @@ create policy profiles_update_admin
 
 -- ─────────────────────────────────────────────────────────────────────────
 -- FINAL GRID — the ONLY output the owner sees (single statement, one grid):
---   remapped_subscription_rows   → how many legacy subs were fixed (expect 6)
+--   remapped_subscription_rows   → how many legacy subs were renamed (expect 6 minus folded)
+--   folded_duplicate_rows        → rows merged away (clients who had BOTH legacy + model)
 --   remapped_request_rows        → legacy pending/approved requests fixed
 --   tier_values_now              → distinct subscription tiers after remap
 --   unexpected_tier_values       → must be NULL (else guard was skipped)
@@ -148,6 +212,8 @@ create policy profiles_update_admin
 select
   (select coalesce(v, '0') from _mh0045_probe
     where k = 'remapped_subscription_rows')                    as remapped_subscription_rows,
+  (select coalesce(v, '0') from _mh0045_probe
+    where k = 'folded_duplicate_rows')                         as folded_duplicate_rows,
   (select coalesce(v, '0') from _mh0045_probe
     where k = 'remapped_request_rows')                         as remapped_request_rows,
   (select string_agg(tier, ', ') from
