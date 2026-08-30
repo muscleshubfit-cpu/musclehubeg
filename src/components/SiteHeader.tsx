@@ -151,7 +151,10 @@ export function SiteHeader({ variant = "landing" }: { variant?: "landing" | "app
         {
           label: isAr ? "العضويات" : "Memberships",
           icon: Sparkles,
-          href: "/memberships",
+          // AR-aware (Phase 45 follow-up, owner-approved): /memberships has an
+          // Arabic mirror at /ar/memberships — send Arabic users there.
+          // /coaching and /evo have no AR mirrors, so they stay as-is.
+          href: isAr ? "/ar/memberships" : "/memberships",
         },
         {
           label: "EVO AI Coach",

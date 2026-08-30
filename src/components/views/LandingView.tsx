@@ -16,6 +16,7 @@ import { getFAQSchema } from "@/lib/seo";
 import Image from "next/image";
 import { ImageWithFallback } from "@/components/ui/image-with-fallback";
 import { openEvoFloatingChat } from "@/lib/evo-chat-context";
+import { Bot, Check, Dumbbell, LineChart, Salad } from "lucide-react";
 
 // ============================================================
 // Site palette — Gemini-card palette extended to all landing sections
@@ -630,6 +631,9 @@ export function LandingView() {
       )}
 
       {/* ===================== 9. COACHING PREVIEW ===================== */}
+      {/* Improved 2026-08-30 (owner feedback): the section was only a headline
+          + two buttons. Added a 4-feature grid showing WHAT you actually get
+          (nutrition plan / adaptive programs / follow-up / EVO AI). */}
       <section className="bg-white px-4 py-12 md:py-20">
         <div className="mx-auto max-w-4xl">
           <div className="text-center">
@@ -646,29 +650,61 @@ export function LandingView() {
             <Reveal delay={150}>
               <p className="mx-auto mt-4 max-w-md text-base font-normal md:text-lg" style={{ color: PALETTE.textSec }}>
                 {isAr
-                  ? "خطط تغذية مخصصة، برامج تمارين متكيفة، متابعة شخصية، و EVO AI متاح 24/7."
-                  : "Personalized nutrition plans, adaptive workouts, personal follow-up, and EVO AI available 24/7."}
+                  ? "كوتش حقيقي بيتابعك خطوة بخطوة، ومعاه EVO AI شغال 24/7."
+                  : "A real coach following you step by step, with EVO AI available 24/7."}
               </p>
             </Reveal>
-            <Reveal delay={200}>
-              <div className="mt-6 flex flex-wrap items-center justify-center gap-4">
-                <a
-                  href="/coaching"
-                  className="rounded-full px-6 py-2.5 text-sm font-medium text-white transition-opacity hover:opacity-90"
-                  style={{ backgroundColor: PALETTE.brand }}
-                >
-                  {isAr ? "اعرف أكثر ›" : "Learn more ›"}
-                </a>
-                <a
-                  href={isAr ? "/ar/memberships" : "/memberships"}
-                  className="rounded-full px-6 py-2.5 text-sm font-normal transition-opacity hover:opacity-90"
-                  style={{ backgroundColor: PALETTE.sectionGray, color: PALETTE.textPrim }}
-                >
-                  {isAr ? "الأسعار" : "Pricing"}
-                </a>
-              </div>
-            </Reveal>
           </div>
+          <Reveal delay={200}>
+            <div className="mx-auto mt-10 grid max-w-3xl grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {(isAr
+                ? [
+                    { icon: Salad, t: "خطط تغذية مخصصة", d: "مبنية على جسمك وهدفك" },
+                    { icon: Dumbbell, t: "برامج تمارين متكيفة", d: "بتتعدل مع تقدمك" },
+                    { icon: LineChart, t: "متابعة شخصية", d: "مراجعة وتعديل مستمر" },
+                    { icon: Bot, t: "EVO AI — 24/7", d: "إجابات فورية أي وقت" },
+                  ]
+                : [
+                    { icon: Salad, t: "Custom nutrition plans", d: "Built around your body & goal" },
+                    { icon: Dumbbell, t: "Adaptive workout programs", d: "They adjust as you progress" },
+                    { icon: LineChart, t: "Personal follow-up", d: "Continuous review & tweaks" },
+                    { icon: Bot, t: "EVO AI — 24/7", d: "Instant answers anytime" },
+                  ]
+              ).map((f) => {
+                const Icon = f.icon;
+                return (
+                  <div key={f.t} className="rounded-3xl p-5 text-center" style={{ backgroundColor: PALETTE.tint }}>
+                    <span
+                      className="mx-auto grid h-12 w-12 place-items-center rounded-2xl"
+                      style={{ backgroundColor: PALETTE.brandSoft, color: PALETTE.brandDeep }}
+                    >
+                      <Icon className="h-6 w-6" aria-hidden="true" />
+                    </span>
+                    <p className="mt-3 text-sm font-semibold" style={{ color: PALETTE.textPrim }}>{f.t}</p>
+                    <p className="mt-1 text-xs font-normal leading-relaxed" style={{ color: PALETTE.textSec }}>{f.d}</p>
+                  </div>
+                );
+              })}
+            </div>
+          </Reveal>
+          <Reveal delay={250}>
+            <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
+              <a
+                href="/coaching"
+                className="rounded-full px-6 py-2.5 text-sm font-medium text-white transition-opacity hover:opacity-90"
+                style={{ backgroundColor: PALETTE.brand }}
+              >
+                {isAr ? "اعرف أكثر ›" : "Learn more ›"}
+              </a>
+              <a
+                href={isAr ? "/ar/memberships" : "/memberships"}
+                className="rounded-full px-6 py-2.5 text-sm font-normal transition-opacity hover:opacity-90"
+                style={{ backgroundColor: PALETTE.sectionGray, color: PALETTE.textPrim }}
+              >
+                {isAr ? "الأسعار" : "Pricing"}
+              </a>
+            </div>
+          </Reveal>
         </div>
       </section>
 
@@ -809,15 +845,19 @@ export function LandingView() {
             </p>
           </Reveal>
 
-          {/* Two-tier preview cards — redesigned with solid surfaces + clear hierarchy */}
-          <div className="mt-10 grid grid-cols-1 gap-4 sm:grid-cols-2">
-            {/* Premium tier — standard card */}
-            <Reveal delay={200}>
+          {/* Two-tier cards — redesigned 2026-08-30 (owner feedback): Pro is
+              the visual hero (dark card + glow + big price), Premium the clean
+              standard. BOTH get real full-width CTA buttons — the Pro button
+              is the owner-requested standout: gradient + glow + arrow. */}
+          <div className="mt-10 grid grid-cols-1 items-stretch gap-5 sm:grid-cols-2 sm:gap-6">
+            {/* Premium tier — clean white card with checklist */}
+            <Reveal delay={200} className="h-full">
               <a
                 href={isAr ? "/ar/memberships" : "/memberships"}
-                className="group block rounded-3xl p-6 transition-all duration-300"
+                className="group flex h-full flex-col rounded-3xl p-7 transition-all duration-300"
                 style={{
                   backgroundColor: PALETTE.surface,
+                  border: `1px solid ${PALETTE.border}`,
                   boxShadow: "0 1px 2px rgba(29, 37, 46, 0.04)",
                 }}
                 onMouseEnter={(e) => {
@@ -829,81 +869,105 @@ export function LandingView() {
                   e.currentTarget.style.transform = "translateY(0)";
                 }}
               >
-                <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-semibold tracking-tight" style={{ color: PALETTE.textPrim }}>
+                <div className="flex items-center justify-between gap-3">
+                  <h3 className="text-xl font-semibold tracking-tight" style={{ color: PALETTE.textPrim }}>
                     {isAr ? "بريميوم" : "Premium"}
                   </h3>
-                  <span
-                    className="rounded-full px-3 py-1 text-xs font-semibold"
-                    style={{ backgroundColor: PALETTE.brandSoft, color: PALETTE.brandDeep }}
-                  >
-                    $14.99/{isAr ? "شهر" : "mo"}
-                  </span>
+                  <div className="flex items-end gap-1">
+                    <span className="text-2xl font-bold tracking-tight" style={{ color: PALETTE.textPrim }}>$14.99</span>
+                    <span className="pb-0.5 text-xs font-normal" style={{ color: PALETTE.textSec }}>/{isAr ? "شهر" : "mo"}</span>
+                  </div>
                 </div>
                 <p className="mt-3 text-sm font-normal leading-relaxed" style={{ color: PALETTE.textSec }}>
-                  {isAr
-                    ? "EVO غير محدود، 3 خطط تغذية/تمرين شهرياً، 50 نتيجة محفوظة، تحميل PDF."
-                    : "Unlimited EVO, 3 nutrition/workout plans/mo, 50 saved results, PDF export."}
+                  {isAr ? "كل الأساسيات اللي محتاجها لتبدأ صح." : "All the essentials you need to start right."}
                 </p>
-                <div
-                  className="mt-5 inline-flex items-center gap-1.5 text-sm font-semibold transition-opacity group-hover:opacity-80"
-                  style={{ color: PALETTE.brandDeep }}
-                >
-                  {isAr ? "اشترك الآن" : "Subscribe now"}
-                  <span className="rtl:rotate-180">›</span>
+                <ul className="mt-5 space-y-2.5 text-sm">
+                  {(isAr
+                    ? ["EVO غير محدود", "3 خطط تغذية/تمرين شهرياً", "50 نتيجة محفوظة", "تحميل الخطط PDF"]
+                    : ["Unlimited EVO", "3 nutrition/workout plans per month", "50 saved results", "PDF export"]
+                  ).map((f) => (
+                    <li key={f} className="flex items-start gap-2">
+                      <Check className="mt-0.5 h-4 w-4 shrink-0" style={{ color: PALETTE.brand }} aria-hidden="true" />
+                      <span style={{ color: PALETTE.textSec }}>{f}</span>
+                    </li>
+                  ))}
+                </ul>
+                <div className="mt-auto pt-7">
+                  <span
+                    className="flex w-full items-center justify-center gap-2 rounded-full px-6 py-3 text-sm font-semibold text-white transition-opacity group-hover:opacity-90"
+                    style={{ backgroundColor: PALETTE.brand }}
+                  >
+                    {isAr ? "اشترك الآن" : "Subscribe now"}
+                    <span className="rtl:rotate-180">›</span>
+                  </span>
                 </div>
               </a>
             </Reveal>
 
-            {/* Pro tier — featured card (deeper accent + brand border) */}
-            <Reveal delay={300}>
+            {/* Pro tier — featured dark card (the hero offer) */}
+            <Reveal delay={300} className="h-full">
               <a
                 href={isAr ? "/ar/memberships" : "/memberships"}
-                className="group block rounded-3xl p-6 transition-all duration-300"
+                className="group relative flex h-full flex-col overflow-hidden rounded-3xl p-7 transition-all duration-300"
                 style={{
-                  backgroundColor: PALETTE.surface,
-                  boxShadow: "0 4px 12px rgba(15, 91, 181, 0.08)",
-                  border: `2px solid ${PALETTE.brand}`,
+                  backgroundColor: PALETTE.sectionDark,
+                  boxShadow: "0 12px 32px rgba(29, 37, 46, 0.30)",
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.boxShadow = "0 8px 24px rgba(15, 91, 181, 0.18)";
-                  e.currentTarget.style.transform = "translateY(-1px)";
+                  e.currentTarget.style.boxShadow = "0 16px 40px rgba(0, 113, 227, 0.28)";
+                  e.currentTarget.style.transform = "translateY(-2px)";
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.boxShadow = "0 4px 12px rgba(15, 91, 181, 0.08)";
+                  e.currentTarget.style.boxShadow = "0 12px 32px rgba(29, 37, 46, 0.30)";
                   e.currentTarget.style.transform = "translateY(0)";
                 }}
               >
-                <div className="flex items-center justify-between">
+                {/* Decorative brand glow (top-end corner) */}
+                <div
+                  aria-hidden="true"
+                  className="pointer-events-none absolute -top-24 end-[-15%] h-64 w-64 rounded-full opacity-40 blur-3xl"
+                  style={{ background: "radial-gradient(circle, #0071e3 0%, transparent 70%)" }}
+                />
+                <div className="relative flex items-center justify-between gap-3">
                   <div className="flex items-center gap-2">
-                    <h3 className="text-lg font-semibold tracking-tight" style={{ color: PALETTE.textPrim }}>
-                      {isAr ? "برو" : "Pro"}
-                    </h3>
+                    <h3 className="text-xl font-semibold tracking-tight text-white">{isAr ? "برو" : "Pro"}</h3>
                     <span
-                      className="rounded-full px-2 py-0.5 text-[10px] font-bold text-white"
-                      style={{ backgroundColor: PALETTE.brand }}
+                      className="rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-white"
+                      style={{ background: "linear-gradient(135deg, #0071e3, #4F9CF9)" }}
                     >
-                      {isAr ? "الأكثر شعبية" : "POPULAR"}
+                      {isAr ? "الأكثر شعبية" : "Popular"}
                     </span>
                   </div>
-                  <span
-                    className="rounded-full px-3 py-1 text-xs font-bold text-white"
-                    style={{ backgroundColor: PALETTE.brand }}
-                  >
-                    $29.99/{isAr ? "شهر" : "mo"}
-                  </span>
+                  <div className="flex items-end gap-1">
+                    <span className="text-3xl font-bold tracking-tight text-white">$29.99</span>
+                    <span className="pb-1 text-xs font-normal text-[#a1a1a6]">/{isAr ? "شهر" : "mo"}</span>
+                  </div>
                 </div>
-                <p className="mt-3 text-sm font-normal leading-relaxed" style={{ color: PALETTE.textSec }}>
-                  {isAr
-                    ? "كل مميزات Premium + 6 خطط شهرياً، تحليل الأنماط، 200 نتيجة محفوظة، محتوى مميز."
-                    : "All Premium + 6 plans/mo, pattern analysis, 200 saved results, premium content."}
+                <p className="relative mt-3 text-sm font-normal leading-relaxed text-[#a1a1a6]">
+                  {isAr ? "للمتقدمين اللي عايزين أقصى استفادة من المنصة." : "For advanced users who want the most out of the platform."}
                 </p>
-                <div
-                  className="mt-5 inline-flex items-center gap-1.5 text-sm font-bold transition-opacity group-hover:opacity-80"
-                  style={{ color: PALETTE.brandDeep }}
-                >
-                  {isAr ? "اشترك الآن" : "Subscribe now"}
-                  <span className="rtl:rotate-180">›</span>
+                <ul className="relative mt-5 space-y-2.5 text-sm">
+                  {(isAr
+                    ? ["كل مميزات Premium", "6 خطط تغذية/تمرين شهرياً", "تحليل الأنماط والتقدم", "200 نتيجة محفوظة", "محتوى مميز بدون إعلانات"]
+                    : ["Everything in Premium", "6 nutrition/workout plans per month", "Pattern & progress analysis", "200 saved results", "Premium content, ad-free"]
+                  ).map((f) => (
+                    <li key={f} className="flex items-start gap-2">
+                      <Check className="mt-0.5 h-4 w-4 shrink-0" style={{ color: "#4F9CF9" }} aria-hidden="true" />
+                      <span className="text-[#d2d2d7]">{f}</span>
+                    </li>
+                  ))}
+                </ul>
+                <div className="relative mt-auto pt-7">
+                  <span
+                    className="flex w-full items-center justify-center gap-2 rounded-full px-6 py-3.5 text-base font-bold text-white transition-transform duration-300 group-hover:scale-[1.02]"
+                    style={{
+                      background: "linear-gradient(135deg, #0071e3 0%, #4F9CF9 100%)",
+                      boxShadow: "0 8px 24px rgba(0, 113, 227, 0.45)",
+                    }}
+                  >
+                    {isAr ? "اشترك الآن" : "Subscribe now"}
+                    <span className="rtl:rotate-180">›</span>
+                  </span>
                 </div>
               </a>
             </Reveal>
@@ -936,12 +1000,12 @@ export function LandingView() {
 
       {/* ===================== 11. AFFILIATE PROGRAM ===================== */}
       {/* Audit 2026-08-30: /affiliate had ZERO homepage presence (footer/header
-          only). Owner-approved addition. Hidden from platform staff per the
-          ROLE SURFACE LAW (same rule as the header drawer). Facts match
-          AffiliateProgramView: 20% subscription commission, 30-day cookie
-          window for one-time products, $10 minimum payout. */}
-      {!isCoach && (
-        <section className="bg-white px-4 py-12 md:py-20">
+          only) → section added. Owner directive 2026-08-30: visible to
+          EVERYONE — the old `{!isCoach}` gate hid it from admins/coaches too,
+          and the owner (admin role) reported the section as missing. Facts
+          match AffiliateProgramView: 20% subscription commission, 30-day
+          cookie window for one-time products, $10 minimum payout. */}
+      <section className="bg-white px-4 py-12 md:py-20">
           <div className="mx-auto max-w-4xl text-center">
             <Reveal>
               <span
@@ -995,8 +1059,7 @@ export function LandingView() {
               </div>
             </Reveal>
           </div>
-        </section>
-      )}
+      </section>
 
       {/* ===================== 12. FAQ ===================== */}
       <section className="bg-[#f5f5f7] px-4 py-12 md:py-20">
@@ -1053,26 +1116,9 @@ export function LandingView() {
       {/* ===================== FOOTER ===================== */}
       <footer className="border-t border-[#d2d2d7] bg-[#f5f5f7] px-4 py-10 text-[#6e6e73]">
         <div className="mx-auto max-w-6xl">
-          {/* Owner-approved (2026-08-30): «انضم كمدرب» CTA strip — the coach
-              funnel entry point lives at the very top of the footer. */}
-          <a
-            href="/for-coaches"
-            className="group mb-8 flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-[#1d1d1f] px-6 py-5 transition-opacity hover:opacity-95"
-          >
-            <span>
-              <span className="block text-base font-semibold text-white md:text-lg">
-                {isAr ? "أنت مدرب؟ انضم كمدرب على Musclehubeg" : "Are you a coach? Join Musclehubeg as a coach"}
-              </span>
-              <span className="mt-0.5 block text-xs font-normal text-[#a1a1a6]">
-                {isAr
-                  ? "أسعارك إيدك، عملاؤك معاك، وصفحة عامة باسمك — التسجيل بياخد دقيقة."
-                  : "Your prices, your clients, your own public page — signup takes a minute."}
-              </span>
-            </span>
-            <span className="rounded-full bg-[#0071e3] px-5 py-2.5 text-sm font-medium text-white transition-opacity group-hover:opacity-90">
-              {isAr ? "انضم كمدرب ›" : "Join as a coach ›"}
-            </span>
-          </a>
+          {/* Removed (owner feedback 2026-08-30): «أنت مدرب؟» footer CTA strip —
+              it duplicated section 9.7 (same headline + same /for-coaches
+              link). The rich dark section is the single coach funnel entry. */}
 
           <div className="grid gap-8 md:grid-cols-3 lg:grid-cols-5">
             {/* Brand */}

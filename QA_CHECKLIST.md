@@ -428,3 +428,32 @@ Method: 2 python scripts hit **37 production URLs** (all EN static pages + detai
 3. Switch to العربية → same tiles now link to /ar/... pages
 4. Scroll under Memberships → new «برنامج الأفلييت» section appears (not visible for staff accounts)
 5. Blog: no article appears twice across Latest + Featured
+
+## Homepage UI Polish Round 2 (2026-08-30)
+
+### Owner feedback → fixes
+
+| # | Owner report | Root cause | Fix |
+|---|---|---|---|
+| 1 | «قسم الافلييت مش ظاهر» | Phase-45 section was `{!isCoach && …}` — owner's account is ADMIN → isCoach=true → hidden from the owner himself (anon check in Phase 45 passed, so it looked fine) | Gate removed — section renders for everyone (/affiliate is a public marketing page; header drawer rules untouched) |
+| 2 | «قسم أنت مدرب؟ مكرر» | TWO entries: dark section 9.7 + footer CTA strip — same headline + same /for-coaches link | Footer strip removed; the rich dark section is the single coach entry |
+| 3 | «عضويات المميزة محتاج تعديل بصرى + زر اشترك الآن بارز» | Cards were flat; «اشترك الآن» was a bare text link | Pro = dark hero card (glow + gradient POPULAR badge + big price + 5-item checklist); Premium = white card with checklist; BOTH got full-width CTA buttons — Pro button: blue gradient + glow shadow + hover scale |
+| 4 | «قسم الكوتشينج محتاج يتحسن» | Section was headline + 2 buttons only | Added 4-feature icon grid (تغذية مخصصة / برامج متكيفة / متابعة شخصية / EVO AI 24/7) + clearer subline |
+| 5 | «نفذ الاقتراح» | SiteHeader Paid-Services memberships link was always EN | AR-aware → /ar/memberships on every page that uses the shared header |
+
+### Verification evidence
+
+| Check | Result |
+|---|---|
+| tsc / eslint / vitest / build | 0 · 0 errors (9 pre-existing warnings) · 160/160 · OK |
+| Local smoke EN (agent-browser) | affiliate section visible · «Subscribe now» buttons ×2 · «Are you a coach» ×1 (dedup ✓) · footer /for-coaches strip gone |
+| Local smoke AR (agent-browser) | same ×4 + /ar/memberships ×8 · RTL rendering of dark Pro card + gradient CTA verified in screenshots |
+| Full-page screenshots | EN + AR memberships/coaching/affiliate bands captured & reviewed |
+
+### Post-deploy verification (owner)
+
+1. Log in with the ADMIN account → scroll under Memberships → «برنامج الأفلييت» section now VISIBLE (this was the bug)
+2. Search the page for «أنت مدرب؟» → appears ONCE (the dark section), not again in the footer
+3. Memberships section → Pro card is dark with a glowing gradient «اشترك الآن» button; Premium has its own blue button
+4. Coaching section → 4 small feature cards under the headline
+5. Arabic mode → sidebar «الخدمات المدفوعة ← العضويات» opens /ar/memberships
