@@ -457,3 +457,31 @@ Method: 2 python scripts hit **37 production URLs** (all EN static pages + detai
 3. Memberships section → Pro card is dark with a glowing gradient «اشترك الآن» button; Premium has its own blue button
 4. Coaching section → 4 small feature cards under the headline
 5. Arabic mode → sidebar «الخدمات المدفوعة ← العضويات» opens /ar/memberships
+
+## Homepage CTA Hygiene — Hero Section Navigator + Final-CTA Removal + Coaching De-EVO (2026-08-30)
+
+### Owner feedback → fixes
+
+| # | Owner report | Root cause | Fix |
+|---|---|---|---|
+| 1 | «قسم ابدأ رحلتك الرياضية يعتبر تكرار بدون داعى» | Old section 13 repeated the hero + memberships CTAs at the very bottom | Section deleted — FAQ is now the closing section before the footer |
+| 2 | «شات ايفو بيتم الاعلان عنه فى كل مكان وهو مش CTA هو مجرد خدمة داخل الاشتراكات» | Hero button «جرّب EVO» + coaching-page hero button + coaching EVO section twin buttons + coaching final-CTA link all pushed EVO as a destination | PRINCIPLE: EVO is included-service info, not a CTA. Homepage: EVO = one equal nav chip. Coaching page: EVO hero button → «كيف يعمل الكوتشينج؟» anchor; EVO section reframed «المدرب + EVO معاك 24/7» + «جزء من باقة الكوتشينج، مش اشتراك منفصل» + single quiet outline link; final-CTA EVO link removed |
+| 3 | «عدل ازرار الهيرو بحيث تكون ازرار تنقل للاقسام كلها بشكل جميل» | Hero had only 3 product CTAs | «استكشف أقسام الموقع» chip navigator: 11 pills, each with colored icon (Crown/Calculator/Dumbbell/ClipboardList/Salad/BookOpen/Users/Briefcase/Bot/Megaphone/CircleHelp); Memberships = single filled primary; smooth-scroll to new section ids with scroll-mt-20 |
+
+### Verification evidence
+
+| Check | Result |
+|---|---|
+| tsc / eslint / vitest / build | 0 · 0 errors (743 pre-existing warnings) · 160/160 · OK |
+| Section anchors (server HTML) | id=evo/tools/exercises/programs/foods/blog/coaching/for-coaches/memberships/affiliate/faq all present on / and /ar |
+| Chip ↔ section pairing | 11 chips EN+AR; blog chip auto-hides when the blog section hides (demo mode: 10 chips, 0 dangling hrefs) |
+| Real-browser scroll test | Click «Memberships» chip → smooth-scrolls, section h2 lands exactly 80px below viewport top (sticky-header clearance) |
+| Final CTA gone | «Start your fitness journey» / «ابدأ رحلتك الرياضية» — 0 matches in served HTML |
+| Coaching page DOM | hero = [Start your transformation / How coaching works]; EVO chat button 0; «Learn more about EVO» ×1 (quiet outline); final CTA single primary |
+| Screenshots | EN hero chips · AR hero chips (RTL) · memberships scroll landing · coaching EVO section · homepage bottom (FAQ → footer directly) |
+
+### Post-deploy verification (owner)
+
+1. Homepage top → under the headline you now see «استكشف أقسام الموقع» with 11 round buttons — click any one, the page GLIDES to that section
+2. Scroll to the very bottom → page now ends with الأسئلة الشائعة then the footer (no more «ابدأ رحلتك الرياضية»)
+3. /coaching → hero buttons are «ابدأ تحوّلك» + «كيف يعمل الكوتشينج؟» (no EVO button); the EVO section headline is now «المدرب + EVO معاك 24/7.» with one small button

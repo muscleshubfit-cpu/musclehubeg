@@ -16,7 +16,22 @@ import { getFAQSchema } from "@/lib/seo";
 import Image from "next/image";
 import { ImageWithFallback } from "@/components/ui/image-with-fallback";
 import { openEvoFloatingChat } from "@/lib/evo-chat-context";
-import { Bot, Check, Dumbbell, LineChart, Salad } from "lucide-react";
+import {
+  Bot,
+  BookOpen,
+  Briefcase,
+  Calculator,
+  Check,
+  CircleHelp,
+  ClipboardList,
+  Crown,
+  Dumbbell,
+  LineChart,
+  Megaphone,
+  Salad,
+  Users,
+} from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 
 // ============================================================
 // Site palette — Gemini-card palette extended to all landing sections
@@ -51,6 +66,43 @@ const PALETTE = {
 
 // Backward-compat alias (existing components reference CARD.*)
 const CARD = PALETTE;
+
+// ============================================================
+// HERO quick-nav — owner directive 2026-08-30: the hero buttons
+// should be section navigation for the WHOLE homepage ("ازرار تنقل
+// للأقسام كلها بشكل جميل"), not product CTAs. Rationale: EVO is a
+// service INSIDE the subscriptions, not a destination — advertising
+// it as a hero CTA (and in the old final-CTA section) felt like
+// repetition. Memberships keeps the single filled "primary" chip so
+// the business CTA stays visible. Anchors target the section ids
+// added below; scroll-mt-20 clears the sticky header, and
+// globals.css already provides smooth scrolling.
+// ============================================================
+type HeroNavItem = {
+  id: string;
+  labelEn: string;
+  labelAr: string;
+  titleEn: string;
+  titleAr: string;
+  icon: LucideIcon;
+  color: string;
+  primary?: boolean;
+  needsPosts?: boolean; // blog section only renders when posts exist
+};
+
+const HERO_NAV: HeroNavItem[] = [
+  { id: "memberships", labelEn: "Memberships", labelAr: "العضويات", titleEn: "Musclehubeg Premium memberships", titleAr: "عضويات Musclehubeg المميزة", icon: Crown, color: "#0071e3", primary: true },
+  { id: "tools", labelEn: "Free Tools", labelAr: "أدوات مجانية", titleEn: "6 free fitness & nutrition calculators", titleAr: "6 حاسبات مجانية بدون تسجيل", icon: Calculator, color: "#ff9500" },
+  { id: "exercises", labelEn: "Exercises", labelAr: "التمارين", titleEn: "868+ exercise library", titleAr: "مكتبة 868+ تمرين", icon: Dumbbell, color: "#34c759" },
+  { id: "programs", labelEn: "Programs", labelAr: "البرامج", titleEn: "Ready-made workout programs", titleAr: "برامج تدريب جاهزة", icon: ClipboardList, color: "#5856d6" },
+  { id: "foods", labelEn: "Foods", labelAr: "الأكلات", titleEn: "8,830+ foods with calories & macros", titleAr: "8,830+ أكلة بالسعرات والماكروز", icon: Salad, color: "#ff2d55" },
+  { id: "blog", labelEn: "Blog", labelAr: "المدونة", titleEn: "Scientific fitness articles", titleAr: "مقالات رياضية علمية", icon: BookOpen, color: "#00b8d9", needsPosts: true },
+  { id: "coaching", labelEn: "Coaching", labelAr: "الكوتشينج", titleEn: "Online coaching with real coaches", titleAr: "كوتشينج أونلاين مع مدربين حقيقيين", icon: Users, color: "#af52de" },
+  { id: "for-coaches", labelEn: "For Coaches", labelAr: "كن مدرباً", titleEn: "Run your coaching business on Musclehubeg", titleAr: "اعمل شغلك كله من مكان واحد", icon: Briefcase, color: "#1d1d1f" },
+  { id: "evo", labelEn: "EVO", labelAr: "EVO", titleEn: "Smart performance engine — included in memberships", titleAr: "محرك أداء ذكي — داخل الاشتراكات", icon: Bot, color: "#0071e3" },
+  { id: "affiliate", labelEn: "Affiliate", labelAr: "الأفلييت", titleEn: "Earn 20% commission as an affiliate", titleAr: "اكسب عمولة 20% كأفلييت", icon: Megaphone, color: "#ff9500" },
+  { id: "faq", labelEn: "FAQ", labelAr: "أسئلة شائعة", titleEn: "Frequently asked questions", titleAr: "أسئلة شائعة", icon: CircleHelp, color: "#8e8e93" },
+];
 
 // Disabled Reveal — animations were causing jarring "shake" effects
 // during scroll. Now just renders children directly without any
@@ -315,29 +367,68 @@ export function LandingView() {
                 ? "تمارين، برامج تدريب، حاسبات، أكلات، ومدونة — في مكان واحد."
                 : "Exercises, programs, calculators, foods, and blog — all in one place."}
             </p>
-            <div className="mt-8 flex flex-wrap items-center justify-center gap-3 md:justify-start md:gap-5">
-              <a
-                href={isAr ? "/ar/memberships" : "/memberships"}
-                className="rounded-full px-7 py-3.5 font-medium text-white transition-opacity hover:opacity-90 md:text-base"
-                style={{ backgroundColor: PALETTE.brand }}
-              >
-                {isAr ? "ابدأ مجاناً" : "Start for free"}
-              </a>
-              <a
-                href="/evo"
-                className="rounded-full px-7 py-3.5 font-normal transition-opacity hover:opacity-90 md:text-base"
-                style={{ backgroundColor: PALETTE.sectionGray, color: PALETTE.textPrim }}
-              >
-                {isAr ? "جرّب EVO" : "Try EVO"} →
-              </a>
-              <a
-                href="/coaching"
-                className="text-sm font-normal transition-opacity hover:opacity-70 md:text-base"
-                style={{ color: PALETTE.brandDeep }}
-              >
-                {isAr ? "الكوتشينج ›" : "Coaching ›"}
-              </a>
-            </div>
+            {/* Owner directive 2026-08-30: hero buttons = section navigation
+                for the WHOLE homepage (beautiful chips). EVO is a service
+                inside subscriptions — not a hero CTA — so it's just one chip
+                among all sections. Memberships keeps the single filled
+                primary chip; all chips smooth-scroll to their section id. */}
+            <nav aria-label={isAr ? "التنقل بين أقسام الصفحة" : "Jump to a section"} className="mt-8">
+              <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: PALETTE.textMuted }}>
+                {isAr ? "استكشف أقسام الموقع" : "Explore the site"}
+              </p>
+              <div className="mt-3 flex flex-wrap items-center justify-center gap-2 md:justify-start">
+                {HERO_NAV.filter((s) => !s.needsPosts || latestPosts.length > 0).map((s) => {
+                  const Icon = s.icon;
+                  const isPrimary = !!s.primary;
+                  return (
+                    <a
+                      key={s.id}
+                      href={`#${s.id}`}
+                      title={isAr ? s.titleAr : s.titleEn}
+                      className="inline-flex items-center gap-1.5 rounded-full px-3.5 py-2 text-sm font-medium transition-all duration-300"
+                      style={
+                        isPrimary
+                          ? {
+                              backgroundColor: PALETTE.brand,
+                              color: "#FFFFFF",
+                              boxShadow: "0 4px 14px rgba(0, 113, 227, 0.35)",
+                            }
+                          : {
+                              backgroundColor: PALETTE.surface,
+                              color: PALETTE.textPrim,
+                              border: `1px solid ${PALETTE.border}`,
+                            }
+                      }
+                      onMouseEnter={(e) => {
+                        if (isPrimary) {
+                          e.currentTarget.style.boxShadow = "0 6px 18px rgba(0, 113, 227, 0.5)";
+                        } else {
+                          e.currentTarget.style.backgroundColor = PALETTE.halo;
+                          e.currentTarget.style.borderColor = PALETTE.blueDeep;
+                        }
+                        e.currentTarget.style.transform = "translateY(-1px)";
+                      }}
+                      onMouseLeave={(e) => {
+                        if (isPrimary) {
+                          e.currentTarget.style.boxShadow = "0 4px 14px rgba(0, 113, 227, 0.35)";
+                        } else {
+                          e.currentTarget.style.backgroundColor = PALETTE.surface;
+                          e.currentTarget.style.borderColor = PALETTE.border;
+                        }
+                        e.currentTarget.style.transform = "translateY(0)";
+                      }}
+                    >
+                      <Icon
+                        className="h-4 w-4 shrink-0"
+                        style={isPrimary ? { color: "#FFFFFF" } : { color: s.color }}
+                        aria-hidden="true"
+                      />
+                      {isAr ? s.labelAr : s.labelEn}
+                    </a>
+                  );
+                })}
+              </div>
+            </nav>
           </div>
           {/* Image — visible on ALL screen sizes (mobile + desktop).
               On mobile: full-width below text. On desktop: right column. */}
@@ -383,7 +474,7 @@ export function LandingView() {
       </CenteredSection>
 
       {/* ===================== 3. EVO PREVIEW ===================== */}
-      <section className="px-4 py-16 md:py-24" style={{ backgroundColor: PALETTE.sectionGray, color: PALETTE.textPrim }}>
+      <section id="evo" className="scroll-mt-20 px-4 py-16 md:py-24" style={{ backgroundColor: PALETTE.sectionGray, color: PALETTE.textPrim }}>
         <div className="mx-auto max-w-5xl">
           {/* Text */}
           <div className="text-center">
@@ -428,7 +519,7 @@ export function LandingView() {
       {/* (removed: GradientFade gray→gray — audit 2026-08-30, purely dead strip) */}
 
       {/* ===================== 4. FREE TOOLS ===================== */}
-      <section className="bg-[#f5f5f7] px-4 py-12 md:py-20">
+      <section id="tools" className="scroll-mt-20 bg-[#f5f5f7] px-4 py-12 md:py-20">
         <div className="mx-auto max-w-4xl">
           <div className="text-center">
             <Reveal>
@@ -466,7 +557,7 @@ export function LandingView() {
 
       <GradientFade from="bg-[#f5f5f7]" to="bg-white" />
       {/* ===================== 5. EXERCISE LIBRARY ===================== */}
-      <section className="bg-white px-4 py-12 md:py-20">
+      <section id="exercises" className="scroll-mt-20 bg-white px-4 py-12 md:py-20">
         <div className="mx-auto max-w-4xl">
           <div className="text-center">
             <Reveal>
@@ -522,7 +613,7 @@ export function LandingView() {
       <GradientFade from="bg-white" to="bg-[#f5f5f7]" />
 
       {/* ===================== 6. WORKOUT PROGRAMS ===================== */}
-      <section className="bg-[#f5f5f7] px-4 py-12 md:py-20">
+      <section id="programs" className="scroll-mt-20 bg-[#f5f5f7] px-4 py-12 md:py-20">
         <div className="mx-auto max-w-5xl">
           <div className="text-center">
             <Reveal>
@@ -557,7 +648,7 @@ export function LandingView() {
       <GradientFade from="bg-[#f5f5f7]" to="bg-white" />
 
       {/* ===================== 7. FOOD LIBRARY ===================== */}
-      <section className="bg-white px-4 py-12 md:py-20">
+      <section id="foods" className="scroll-mt-20 bg-white px-4 py-12 md:py-20">
         <div className="mx-auto max-w-5xl">
           <div className="text-center">
             <Reveal>
@@ -595,7 +686,7 @@ export function LandingView() {
       {latestPosts.length > 0 && (
         <>
         <GradientFade from="bg-white" to="bg-[#f5f5f7]" />
-        <section className="bg-[#f5f5f7] px-4 py-12 md:py-20">
+        <section id="blog" className="scroll-mt-20 bg-[#f5f5f7] px-4 py-12 md:py-20">
           <div className="mx-auto max-w-6xl">
             {/* Latest Posts — carousel with light cards */}
             <div>
@@ -634,7 +725,7 @@ export function LandingView() {
       {/* Improved 2026-08-30 (owner feedback): the section was only a headline
           + two buttons. Added a 4-feature grid showing WHAT you actually get
           (nutrition plan / adaptive programs / follow-up / EVO AI). */}
-      <section className="bg-white px-4 py-12 md:py-20">
+      <section id="coaching" className="scroll-mt-20 bg-white px-4 py-12 md:py-20">
         <div className="mx-auto max-w-4xl">
           <div className="text-center">
             <Reveal>
@@ -767,7 +858,7 @@ export function LandingView() {
       )}
 
       {/* ===================== 9.7 JOIN AS A COACH (owner-approved homepage block) ===================== */}
-      <section className="px-4 py-12 md:py-20" style={{ backgroundColor: PALETTE.sectionDark }}>
+      <section id="for-coaches" className="scroll-mt-20 px-4 py-12 md:py-20" style={{ backgroundColor: PALETTE.sectionDark }}>
         <div className="mx-auto max-w-4xl text-center">
           <Reveal>
             <span
@@ -830,7 +921,7 @@ export function LandingView() {
       </section>
 
       {/* ===================== 10. Premium Memberships ===================== */}
-      <section className="px-4 py-12 md:py-20" style={{ backgroundColor: PALETTE.sectionGray }}>
+      <section id="memberships" className="scroll-mt-20 px-4 py-12 md:py-20" style={{ backgroundColor: PALETTE.sectionGray }}>
         <div className="mx-auto max-w-5xl">
           <Reveal>
             <h2 className="text-center text-3xl font-semibold tracking-tight md:text-5xl" style={{ color: PALETTE.textPrim }}>
@@ -1005,7 +1096,7 @@ export function LandingView() {
           and the owner (admin role) reported the section as missing. Facts
           match AffiliateProgramView: 20% subscription commission, 30-day
           cookie window for one-time products, $10 minimum payout. */}
-      <section className="bg-white px-4 py-12 md:py-20">
+      <section id="affiliate" className="scroll-mt-20 bg-white px-4 py-12 md:py-20">
           <div className="mx-auto max-w-4xl text-center">
             <Reveal>
               <span
@@ -1061,8 +1152,11 @@ export function LandingView() {
           </div>
       </section>
 
-      {/* ===================== 12. FAQ ===================== */}
-      <section className="bg-[#f5f5f7] px-4 py-12 md:py-20">
+      {/* ===================== 12. FAQ (now the closing section — the old
+          "13. FINAL CTA / ابدأ رحلتك الرياضية" was removed 2026-08-30 per
+          owner: it repeated the hero + memberships CTAs and pushed EVO,
+          which is a service inside subscriptions, not a standalone CTA) ==== */}
+      <section id="faq" className="scroll-mt-20 bg-[#f5f5f7] px-4 py-12 md:py-20">
         <div className="mx-auto max-w-3xl">
           <Reveal>
             <h2 className="text-center text-3xl font-semibold tracking-tight md:text-5xl">
@@ -1084,33 +1178,6 @@ export function LandingView() {
             </Accordion>
           </Reveal>
         </div>
-      </section>
-
-      {/* ===================== 13. FINAL CTA ===================== */}
-      <section className="px-4 py-12 text-center md:py-20" style={{ backgroundColor: PALETTE.sectionWhite }}>
-        <Reveal>
-          <h2 className="mx-auto max-w-3xl text-4xl font-semibold leading-[1.05] tracking-tight md:text-6xl lg:text-7xl" style={{ color: PALETTE.textPrim }}>
-            {isAr ? "ابدأ رحلتك الرياضية." : "Start your fitness journey."}
-          </h2>
-        </Reveal>
-        <Reveal delay={200}>
-          <div className="mt-8 flex flex-wrap items-center justify-center gap-4 md:gap-6">
-            <a
-              href={isAr ? "/ar/memberships" : "/memberships"}
-              className="rounded-full px-7 py-3 text-base font-medium text-white transition-opacity hover:opacity-90"
-              style={{ backgroundColor: PALETTE.brand }}
-            >
-              {isAr ? "ابدأ مجاناً" : "Start for free"}
-            </a>
-            <a
-              href="/coaching"
-              className="font-normal transition-opacity hover:opacity-70"
-              style={{ color: PALETTE.brandDeep }}
-            >
-              {isAr ? "اعرف عن الكوتشينج ›" : "Learn about coaching ›"}
-            </a>
-          </div>
-        </Reveal>
       </section>
 
       {/* ===================== FOOTER ===================== */}

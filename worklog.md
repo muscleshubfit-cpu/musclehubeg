@@ -3467,3 +3467,24 @@ Stage Summary:
 - 6/6 إصلاحات من الخطة المعتمدة منفذة في commit واحد على LandingView.tsx فقط (ملف واحد = أقل سطح تماس)
 - كل بوابات §3.5 خضراء + فحص متصفح محلي EN/AR أخضر
 - بانتظار: push + نشر Vercel + تحقق إنتاجي (شملًا عدم التكرار على قاعدة البيانات الحقيقية)
+
+---
+
+Task ID: 6
+Agent: Super Z (main)
+Task: Owner directive — «قسم ابدأ رحلتك الرياضية يعتبر تكرار بدون داعى ، شات ايفو بيتم الاعلان عنه فى كل مكان وهو فى الواقع مش CTA هو مجرد خدمة داخل الموقع وداخل الاشتراكات (مثلا صفحة الكوتشينج كلها اعلان لايفو) ، عدل ازرار الهيرو بحيث تكون ازرار تنقل للاقسام كلها فى الصفحة الرئيسيه بشكل جميل»
+
+Work Log:
+- Session environment was reset (project dir wiped) → re-cloned repo from origin/main; Phases 45-46 found already committed & synced
+- LandingView.tsx: removed section 13 FINAL CTA («ابدأ رحلتك الرياضية») — FAQ now the closing section
+- LandingView.tsx: replaced the 3 hero product-CTA buttons with a labelled 11-chip section navigator (HERO_NAV const + LucideIcon type); Memberships chip = single filled primary; blog chip conditional on posts
+- LandingView.tsx: added id + scroll-mt-20 to all 11 homepage sections (evo/tools/exercises/programs/foods/blog/coaching/for-coaches/memberships/affiliate/faq) — sticky-header-aware anchors
+- coaching/page.tsx: hero «اعرف عن EVO» → «كيف يعمل الكوتشينج؟» (#how-it-works + scroll-mt); EVO section h2 → «المدرب + EVO معاك 24/7.» + «جزء من باقة الكوتشينج» copy; twin promo buttons → one quiet outline link; removed openEvoFloatingChat import; final-CTA EVO link removed
+- §3.5: tsc 0 (after next build regenerated next-env.d.ts — fresh-clone artifact) · eslint 0 errors · vitest 160/160 · next build ✓
+- Local smoke :3779 (next start, demo mode): server HTML has 11 ids EN+AR, chips match sections, old CTA 0 matches; agent-browser: chip click smooth-scrolls to -80px offset; screenshots EN hero/AR hero/memberships landing/coaching EVO/home bottom
+- Docs: PROGRESS.md Phase 47 + QA_CHECKLIST.md new section + this worklog
+
+Stage Summary:
+- PRINCIPLE now encoded: EVO = service inside subscriptions (never a CTA); homepage hero = section navigator
+- 2 files changed (LandingView.tsx, coaching/page.tsx) + 3 docs — minimal blast radius
+- Pending: commit/push + Vercel deploy + production verification

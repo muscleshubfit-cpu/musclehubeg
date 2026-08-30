@@ -14,7 +14,6 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Marquee } from "@/components/ui/3d-testimonials";
-import { openEvoFloatingChat } from "@/lib/evo-chat-context";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
 import { listBlogPosts, getCategoryLabel, type BlogPost } from "@/lib/blog";
@@ -199,17 +198,17 @@ export default function CoachingPage() {
                 {isAr ? "ابدأ تحوّلك" : "Start your transformation"}
               </button>
               <a
-                href="/evo"
+                href="#how-it-works"
                 className="rounded-full bg-[#f5f5f7] px-7 py-3 text-base font-normal text-[#1d1d1f] transition-opacity hover:opacity-90"
               >
-                {isAr ? "اعرف عن EVO" : "Learn about EVO"}
+                {isAr ? "كيف يعمل الكوتشينج؟" : "How coaching works"}
               </a>
             </div>
           </div>
         </section>
 
         {/* ===================== HOW IT WORKS ===================== */}
-        <section className="bg-white px-4 py-16 md:py-24">
+        <section id="how-it-works" className="scroll-mt-20 bg-white px-4 py-16 md:py-24">
           <div className="mx-auto max-w-4xl">
             <Reveal>
               <h2 className="text-center text-3xl font-semibold tracking-tight md:text-5xl">
@@ -286,28 +285,26 @@ export default function CoachingPage() {
         <section className="bg-[#f5f5f7] px-4 py-16 text-[#1d1d1f] md:py-24">
           <div className="mx-auto max-w-4xl text-center">
             <h2 className="text-3xl font-semibold tracking-tight md:text-5xl">
-              EVO
+              {isAr ? "المدرب + EVO معاك 24/7." : "Your coach + EVO, 24/7."}
             </h2>
             <p className="mx-auto mt-3 max-w-md text-lg font-normal text-[#6e6e73] md:text-xl">
               {isAr
-                ? "مش مجرد شات بوت. محرك أداء ذكي بيحلل بياناتك، يتنبأ بنتائجك، ويحدّث خططك تلقائياً."
-                : "Not just a chatbot. A smart engine that analyzes your data, predicts outcomes, and updates your plans automatically."}
+                ? "مش مجرد شات بوت. محرك أداء ذكي بيحلل بياناتك، يتنبأ بنتائجك، ويحدّث خططك تلقائياً — وهو جزء من باقة الكوتشينج، مش اشتراك منفصل عنها."
+                : "Not just a chatbot. A smart engine that analyzes your data, predicts outcomes, and updates your plans automatically — included in your coaching plan, not a separate subscription."}
             </p>
-            <div className="mt-6 flex flex-wrap items-center justify-center gap-4">
+            {/* Owner directive 2026-08-30: EVO is a service inside the
+                subscriptions, NOT a CTA. The old twin promo buttons
+                ("Learn more about EVO" + "Start chatting") are demoted to a
+                single quiet informational link. */}
+            <div className="mt-6">
               <a
                 href="/evo"
-                className="inline-flex items-center gap-2 rounded-full bg-[#0071e3] px-7 py-3.5 text-base font-medium text-white transition-opacity hover:opacity-90"
+                className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-2.5 text-sm font-normal text-[#1d1d1f] transition-opacity hover:opacity-90"
+                style={{ border: "1px solid #d2d2d7" }}
               >
                 {isAr ? "اعرف أكثر عن EVO" : "Learn more about EVO"}
                 <ArrowRight className="h-4 w-4 rtl:rotate-180" />
               </a>
-              <button
-                type="button"
-                onClick={openEvoFloatingChat}
-                className="inline-flex cursor-pointer items-center gap-2 rounded-full bg-[#1d1d1f] px-7 py-3.5 text-base font-medium text-white transition-opacity hover:opacity-90"
-              >
-                {isAr ? "ابدأ المحادثة" : "Start chatting"}
-              </button>
             </div>
           </div>
         </section>
@@ -498,12 +495,8 @@ export default function CoachingPage() {
               >
                 {isAr ? "ابدأ تحوّلي" : "Start my transformation"}
               </button>
-              <a
-                href="/evo"
-                className="font-normal text-[#0071e3] transition-opacity hover:opacity-70"
-              >
-                {isAr ? "اعرف عن EVO ›" : "Learn about EVO ›"}
-              </a>
+              {/* Owner 2026-08-30: removed the old "اعرف عن EVO ›" link —
+                  EVO is part of the subscription, not a destination CTA. */}
             </div>
           </Reveal>
         </section>
