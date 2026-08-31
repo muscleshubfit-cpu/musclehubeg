@@ -143,15 +143,17 @@ export function hashKey(s: string): number {
 }
 
 /**
- * SCENE DIVERSITY → RESULT ROTATION (v3): pick a deterministic index
- * inside the search results for a given variationKey. Without a key the
- * first (most relevant) result is used. Keeps every (article, position)
- * slot stable while guaranteeing different slots differ.
+ * SCENE DIVERSITY → RESULT ROTATION (v3 → v4, PHASE 62):
+ * - No variationKey → first (most relevant) result (unchanged law).
+ * - With a variationKey → RANDOM index inside the (now 15-result) pool.
+ *   The old deterministic `hash % 6` kept landing on the SAME photos for
+ *   similar topics — the exact owner complaint («الصور مكررة»). Session
+ *   swap flows stay repeat-free via their excludeUrls reject list.
  */
 export function pickResultIndex(total: number, variationKey?: string): number {
   if (total <= 0) return 0;
   if (!variationKey) return 0;
-  return hashKey(variationKey) % total;
+  return Math.floor(Math.random() * total);
 }
 
 /**

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
   fetchFeaturedImage,
+  getRecentFeaturedImageUrls,
   type SourcedImage,
 } from "@/lib/blog-images";
 import { sanitizeImageQuery } from "@/lib/image-safety";
@@ -29,6 +30,19 @@ export const maxDuration = 60;
 const MIN_IMAGES = 3;
 const MAX_IMAGES = 5;
 
+// PHASE 62 VARIETY: rotating fallback queries — the single hardcoded
+// "fitness equipment gym" was a repeat magnet whenever a slot ran dry.
+const FALLBACK_QUERIES = [
+  "dumbbell rack gym",
+  "healthy meal bowl",
+  "kettlebell wooden floor",
+  "running shoes gym floor",
+  "protein shake blender",
+  "yoga mat home gym",
+  "barbell plates close up",
+  "fresh vegetables kitchen",
+];
+
 async function sourceImages(
   plan: ImagePlanItem[],
   coverHint: string,
@@ -40,6 +54,9 @@ async function sourceImages(
   // normal people ALLOWED, NSFW screened. Every position carries its own
   // variationKey = `${queueId}-${slot}` which rotates the picked result
   // inside each search — no two slots repeat the same photo.
+  // PHASE 62 VARIETY: every fetch also excludes the last 30 published
+  // featured images so new posts stop recycling recent cover photos.
+  const excludeUrls = await getRecentFeaturedImageUrls(30);
   const coverKey = `${queueId}-cover`;
   const queries: string[] = [sanitizeImageQuery(coverHint).query];
   for (const p of plan.slice(0, MAX_IMAGES - 1)) {
@@ -48,7 +65,7 @@ async function sourceImages(
 
   const keys = [coverKey, ...plan.slice(0, MAX_IMAGES - 1).map((_, i) => `${queueId}-${i + 1}`)];
   const settled = await Promise.allSettled(
-    queries.map((q, i) => fetchFeaturedImage(q, { variationKey: keys[i] })),
+    queries.map((q, i) => fetchFeaturedImage(q, { variationKey: keys[i], excludeUrls })),
   );
   const okImages = settled
     .filter((s): s is PromiseFulfilledResult<SourcedImage> => s.status === "fulfilled")
@@ -58,10 +75,13 @@ async function sourceImages(
   // Never fewer than MIN images while there are queries left untried.
   for (let i = queries.length; okImages.length < MIN_IMAGES && i < MAX_IMAGES; i++) {
     try {
-      const extra = await fetchFeaturedImage(
-        queries[i % Math.max(queries.length, 1)] || sanitizeImageQuery("fitness equipment gym").query,
-        { variationKey: `${queueId}-extra-${i}` },
-      );
+      const fallbackQuery =
+        queries[i % Math.max(queries.length, 1)] ||
+        FALLBACK_QUERIES[Math.floor(Math.random() * FALLBACK_QUERIES.length)];
+      const extra = await fetchFeaturedImage(fallbackQuery, {
+        variationKey: `${queueId}-extra-${i}`,
+        excludeUrls: [...excludeUrls, ...okImages.map((im) => im!.url)],
+      });
       if (extra) okImages.push(extra);
     } catch {
       break;

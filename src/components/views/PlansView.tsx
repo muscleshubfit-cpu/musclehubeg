@@ -193,11 +193,24 @@ export function PlansView() {
  const plan = plans.find((p) => p.id === planId);
  if (!plan?.content?.meals?.[mealIndex]) throw new Error("Meal not found");
  const mealItem = plan.content.meals[mealIndex];
+ // PHASE 62 VARIETY: pass the OTHER meals' item names from the same plan
+ // so the regenerated meal doesn't duplicate them (allergies/dislikes in
+ // the questionnaire aren't available client-side here, but the queue
+ // sanitizer keeps the list server-safe).
+ const avoidNames: string[] = (plan.content.meals || [])
+   .flatMap((m: any, i: number) =>
+     i === mealIndex
+       ? []
+       : [String(m?.name || ""), ...((m?.items || []).map((it: any) => String(it?.food || "")))],
+   )
+   .filter((n: string) => n.trim().length > 1)
+   .slice(0, 40);
  // OWNER DIRECTIVE 2026-08-27: generation runs on GitHub Actions — this
  // click only enqueues the job (tier limit is enforced server-side now).
  const jobId = await enqueueAiJobClient("meal_regenerate", {
  meal: mealItem,
  clientContext: { name: profile?.full_name },
+ avoid_names: avoidNames,
  });
  const pendingEntry: PendingSwap = {
  id: jobId,

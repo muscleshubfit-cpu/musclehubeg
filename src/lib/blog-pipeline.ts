@@ -40,6 +40,10 @@ export type OutlinePlan = {
   sections: string[]; // 5–7 H2 headings
   lsiKeywords: string[];
   imagePlan: ImagePlanItem[];
+  /** PHASE 62 VARIETY: the article type/angle chosen for this run —
+   *  shapes the outline + writing instructions so consecutive articles
+   *  stop sharing one structural mold. */
+  angle?: string;
 };
 
 export type ReviewReport = {
@@ -61,6 +65,92 @@ function researchDigest(r: LanguageResearch): string {
   const kws = r.keywords.map((k) => `${k.keyword} (${k.searchVolume || "?"})`).join("; ");
   const faqs = r.faqs.map((f) => `Q: ${f.question}`).join(" | ");
   return `KEYWORDS: ${kws}\nCOMMON QUESTIONS: ${faqs}`;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PHASE 62 VARIETY — ARTICLE-TYPE ROTATION (owner: «مفروض يكون فى تنوع
+// كبير وتدوير لنوع المقالات»). Path A previously forced EVERY article
+// through one generic 5-7 H2 teaching skeleton + the same closing CTA.
+// Each run now draws a random angle and the outline/writing/review
+// prompts genuinely shape themselves around it.
+// ═══════════════════════════════════════════════════════════════
+type ArticleAngle = { id: string; en: string; ar: string; shapeEn: string; shapeAr: string };
+
+export const ARTICLE_ANGLES: ArticleAngle[] = [
+  {
+    id: "guide",
+    en: "a practical step-by-step how-to guide",
+    ar: "دليل عملي خطوة بخطوة",
+    shapeEn: "numbered step sections, each with concrete actions and a common-pitfall note",
+    shapeAr: "أقسام خطوات مرقّمة، كل خطوة بإجراءات ملموسة وتحذير من خطأ شائع",
+  },
+  {
+    id: "myths",
+    en: "a myth-busting article (claim → what science actually says → what to do instead)",
+    ar: "مقال دحض خرافات (الادعاء ← ماذا يقول العلم فعلاً ← البديل الصحيح)",
+    shapeEn: "one section per myth, each opening with the popular claim then the correction",
+    shapeAr: "قسم لكل خرافة، يبدأ بالادعاء الشائع ثم تصحيحه العلمي",
+  },
+  {
+    id: "comparison",
+    en: "a head-to-head comparison (X vs Y)",
+    ar: "مقال مقارنة مباشرة (س مقابل ص)",
+    shapeEn: "criteria-based sections (effectiveness, cost, time, who it suits) ending with a verdict",
+    shapeAr: "أقسام حسب معايير (الفعالية، التكلفة، الوقت، لمن يناسب) وتنتهي بحكم نهائي",
+  },
+  {
+    id: "mistakes",
+    en: "a mistakes-and-fixes article",
+    ar: "مقال أخطاء وحلولها",
+    shapeEn: "numbered mistakes, each with the signs you are doing it + the exact fix",
+    shapeAr: "أخطاء مرقّمة، كل خطأ بعلامات تعرفه + الحل الدقيق",
+  },
+  {
+    id: "science",
+    en: "a science deep-dive explained simply",
+    ar: "تحليل علمي مبسط",
+    shapeEn: "mechanism → evidence → practical application sections, jargon-free",
+    shapeAr: "أقسام: الآلية ← الأدلة ← التطبيق العملي، بلغة بسيطة بلا مصطلحات معقدة",
+  },
+  {
+    id: "checklist",
+    en: "a checklist / cheat-sheet article",
+    ar: "مقال قائمة مرجعية (تشيك ليست)",
+    shapeEn: "short focused sections of scannable checklists the reader can apply today",
+    shapeAr: "أقسام قصيرة بقوائم قابلة للتطبيق اليوم",
+  },
+  {
+    id: "faq",
+    en: "a question-driven article answering real reader questions",
+    ar: "مقال أسئلة وأجوبة لأكثر ما يسأل الناس",
+    shapeEn: "each H2 is a real question phrased the way people search, answered directly",
+    shapeAr: "كل عنوان رئيسي سؤال حقيقي بصيغة البحث الشائع، مع إجابة مباشرة",
+  },
+  {
+    id: "plan",
+    en: "a ready-to-use plan/template article (7-day sample, prep template…)",
+    ar: "مقال خطة/قالب جاهز للتطبيق (أسبوع نموذجي، قالب تحضير وجبات…)",
+    shapeEn: "template sections the reader can copy, with adaptation notes for different levels",
+    shapeAr: "أقسام قوالب جاهزة للنسخ مع ملاحظات تكييف لكل مستوى",
+  },
+  {
+    id: "beginner-path",
+    en: "a beginner-focused pathway article (zero to competent in X weeks)",
+    ar: "مقال مسار للمبتدئين (من الصفر إلى الإتقان خلال أسابيع)",
+    shapeEn: "week-by-week progression sections with milestones and self-tests",
+    shapeAr: "أقسام أسبوع بأسبوع مع محطات قياس تقدم واختبارات ذاتية",
+  },
+  {
+    id: "food-focus",
+    en: "a food/kitchen-focused practical article (shopping, prep, recipes structure)",
+    ar: "مقال عملي مركز على المطبخ (تسوق، تحضير، هيكل وصفات)",
+    shapeEn: "kitchen-actionable sections: what to buy, how to prep, how to combine",
+    shapeAr: "أقسام قابلة للتنفيذ في المطبخ: ماذا تشتري، كيف تحضّر، كيف تجمع",
+  },
+];
+
+export function pickArticleAngle(): ArticleAngle {
+  return ARTICLE_ANGLES[Math.floor(Math.random() * ARTICLE_ANGLES.length)];
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -102,10 +192,16 @@ export async function buildOutline(
   topic: string,
   research: LanguageResearch,
 ): Promise<{ outline: OutlinePlan; source: string }> {
+  const angle = pickArticleAngle();
+  const angleLine = lang === "ar"
+    ? `نوع المقال المطلوب: ${angle.ar} — صمّم أقسام H2 بحيث تناسب هذا النوع فعلاً (${angle.shapeAr})؛ ممنوع إعادة استخدام هيكل عام موحّد لكل المقالات.`
+    : `ARTICLE TYPE: ${angle.en} — shape the H2 sections to genuinely fit this type (${angle.shapeEn}); do NOT reuse a generic one-size-fits-all skeleton.`;
   const prompt = `You are an expert SEO content planner for a fitness & nutrition blog.
 ${LANG_RULE[lang]}
 
 CHOSEN TOPIC: "${topic}"
+
+${angleLine}
 
 ${researchDigest(research)}
 
@@ -115,7 +211,7 @@ Create the detailed article blueprint. Return STRICT JSON only:
   "subtitle": "one engaging supporting line",
   "metaDescription": "140-155 chars including the main keyword",
   "slugBase": "short-url-slug-in-lowercase-english-even-for-arabic",
-  "sections": ["H2 heading 1", "..."],            // exactly 5-7 H2s, logical teaching order from intro to conclusion
+  "sections": ["H2 heading 1", "..."],            // exactly 5-7 H2s shaped for the article type above
   "lsiKeywords": ["...", "..."],                   // 8-12 LSI/sub-keywords to weave in naturally
   "imagePlan": [ {"subject": "exact visual subject", "type": "photo|infographic|diagram"} ] // 3-5 items matching the sections. IMAGE LAW: subjects MUST be ENGLISH physical OBJECTS or SCENES ONLY (equipment, food, interiors) — NEVER any person, body part, people word, or clothing wording
 }`;
@@ -146,7 +242,7 @@ Create the detailed article blueprint. Return STRICT JSON only:
     ? parsed.lsiKeywords.filter((k: unknown): k is string => typeof k === "string").slice(0, 12)
     : [];
 
-  console.log(`[blog-pipeline] P1 ${lang} done (${provider}:${model})`);
+  console.log(`[blog-pipeline] P1 ${lang} done (${provider}:${model}, angle: ${angle.id})`);
   return {
     outline: {
       title: String(parsed.title),
@@ -158,6 +254,7 @@ Create the detailed article blueprint. Return STRICT JSON only:
       sections: parsed.sections.filter((s: unknown): s is string => typeof s === "string").slice(0, 8),
       lsiKeywords: lsi,
       imagePlan,
+      angle: angle.id,
     },
     source: `${provider}:${model}`,
   };
@@ -176,6 +273,13 @@ export async function generateFullArticle(
     .map((f) => `- ${f.question}`)
     .join("\n");
 
+  // PHASE 62 VARIETY: honor the angle chosen in P1 (flows through the
+  // queue bundle). Unknown/legacy outlines fall back to a random angle.
+  const angle = ARTICLE_ANGLES.find((a) => a.id === outline.angle) ?? pickArticleAngle();
+  const angleLine = lang === "ar"
+    ? `اكتب المقال كـ${angle.ar}: ${angle.shapeAr}. اجعل الافتتاحية تناسب هذا النوع (مثلاً: مشهد واقعي أو خرافة شائعة أو سؤال حقيقي) وليس تعريفاً عاماً.`
+    : `Write this as ${angle.en}: ${angle.shapeEn}. Open with a hook that fits this article type (a real scenario, a popular claim, or a striking question) — never a generic definition.`;
+
   const prompt = `You are an elite fitness/nutrition copywriter. Write the FULL article.
 ${LANG_RULE[lang]}
 
@@ -183,6 +287,8 @@ TITLE: ${outline.title}
 SUBTITLE: ${outline.subtitle}
 MAIN KEYWORDS TO COVER NATURALLY: ${research.keywords.slice(0, 6).map((k) => k.keyword).join("; ")}
 LSI KEYWORDS: ${outline.lsiKeywords.join("; ")}
+
+${angleLine}
 
 EXACT OUTLINE — follow it section by section:
 - Introduction (hook + what the reader will learn)
@@ -275,6 +381,28 @@ export async function reviewAndEnhance(
       ? internalCandidates.slice(0, 15).map((c) => `- /blog/${c.slug} → ${c.title}`).join("\n")
       : "(no previous posts yet)";
 
+  // PHASE 62 VARIETY — CTA ROTATION: the identical closing paragraph on
+  // every article was one of the strongest "same article reworded"
+  // signals. Each run draws one of five closing CTA directives.
+  const CTA_VARIANTS: Record<"en" | "ar", string[]> = {
+    en: [
+      "Append a closing Call-to-Action paragraph inviting the reader to explore Musclehubeg's personalized online coaching with coach Ahmed Zake.",
+      "Append a closing Call-to-Action paragraph inviting the reader to try Musclehubeg's free tools (calorie calculator, meal planner) before considering coaching.",
+      "Append a closing Call-to-Action paragraph inviting the reader to join the Musclehubeg coaching program and get a plan built around their goal, schedule, and food preferences.",
+      "Append a closing Call-to-Action paragraph inviting the reader to follow Musclehubeg for weekly evidence-based fitness & nutrition guides.",
+      "Append a closing Call-to-Action paragraph inviting the reader to take the next step with Musclehubeg — whether reading a related guide or starting a tailored plan.",
+    ],
+    ar: [
+      "أضف فقرة ختامية تدعو القارئ لتجربة الكوتشينج أونلاين المخصص من Musclehubeg مع الكابتن أحمد زكي.",
+      "أضف فقرة ختامية تدعو القارئ لتجربة الأدوات المجانية على Musclehubeg (حاسبة السعرات، مخطط الوجبات) قبل التفكير في الكوتشينج.",
+      "أضف فقرة ختامية تدعو القارئ للانضمام لبرنامج الكوتشينج في Musclehubeg للحصول على خطة مبنية على هدفه وجدوله وأكله المفضل.",
+      "أضف فقرة ختامية تدعو القارئ لمتابعة Musclehubeg لكل أسبوع أدلة جديدة في اللياقة والتغذية مبنية على العلم.",
+      "أضف فقرة ختامية تدعو القارئ لاتخاذ الخطوة التالية مع Musclehubeg — إما قراءة دليل ذي صلة أو بدء خطة مخصصة له.",
+    ],
+  };
+  const ctaInstruction =
+    CTA_VARIANTS[lang][Math.floor(Math.random() * CTA_VARIANTS[lang].length)];
+
   const prompt = `You are a senior editor doing FINAL QUALITY REVIEW of a fitness blog article.
 ${LANG_RULE[lang]}
 
@@ -295,7 +423,7 @@ DO ALL OF THE FOLLOWING:
 3. Fact-guard: remove or soften any specific citation that looks invented (paper names/authors/URLs that may not exist). Keep generic phrasing like "research shows".
 4. Add EXACTLY 2-4 internal links using [anchor](/blog/slug) format on fitting anchor text from the list above (only real slugs).
 5. Add at most 2 external links ONLY to well-known authoritative domains you are certain exist (who.int, ncbi.nlm.nih.gov, cdc.gov, mayoclinic.org) in [anchor](https://...) format.
-6. Append a closing Call-to-Action paragraph inviting the reader to join Musclehubeg coaching / explore the site.
+6. ${ctaInstruction}
 7. Keep all "## " section structure; output the COMPLETE final article.
 
 Return STRICT JSON only:

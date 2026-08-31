@@ -17,7 +17,12 @@
  * model fails (never blocks the run).
  */
 import { callFreeAIFallbackChain } from "./ai-provider";
-import { getRecentPosts, pickRotationCategory } from "./blog-topics";
+import {
+  getRecentPostsByLanguage,
+  getRecentGeneratedTopics,
+  pickRotationCategory,
+  isDuplicateTopic,
+} from "./blog-topics";
 
 export type ResearchKeyword = { keyword: string; searchVolume: string };
 export type ResearchFaq = { question: string; answer: string };
@@ -90,8 +95,26 @@ function normalizeResearch(raw: any): LanguageResearch {
   return { keywords, faqs, topics: asStringArray(raw?.topics, 5) };
 }
 
-/** Deterministic curated fallback (pipeline never dies on provider outage). */
-export function fallbackResearch(lang: "en" | "ar"): LanguageResearch {
+/**
+ * Deterministic curated fallback (pipeline never dies on provider outage).
+ * VARIETY FIX (Phase 62): topics now ROTATE per run (random offset) and
+ * non-duplicate topics against the provided recent titles are preferred,
+ * so even the outage path no longer serves the same 5 ideas every time.
+ */
+export function fallbackResearch(lang: "en" | "ar", recentTitles: string[] = []): LanguageResearch {
+  const rotate = (topics: string[]): string[] => {
+    if (topics.length < 2) return topics;
+    const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9\s\u0600-\u06FF]/g, " ").replace(/\s+/g, " ").trim();
+    const recentNorm = recentTitles.map(norm);
+    const fresh = (t: string) => {
+      const tNorm = norm(t);
+      const words = tNorm.split(" ").filter((w) => w.length > 2);
+      return !recentNorm.some((r) => r.includes(tNorm) || (words.length >= 2 && words.filter((w) => r.includes(w)).length / words.length >= 0.7));
+    };
+    const offset = Math.floor(Math.random() * topics.length);
+    const rotated = topics.slice(offset).concat(topics.slice(0, offset));
+    return [...rotated].sort((a, b) => Number(fresh(b)) - Number(fresh(a)));
+  };
   if (lang === "ar") {
     return {
       keywords: [
@@ -111,13 +134,13 @@ export function fallbackResearch(lang: "en" | "ar"): LanguageResearch {
         { question: "هل الكارديو يحرق العضلات؟", answer: "الكارديو المعتدل لا يحرق العضلات إذا كانت سعراتك كافية." },
         { question: "ما أفضل وقت للتمرين؟", answer: "أي وقت يناسب جدولك باستمرار هو الأفضل." },
       ],
-      topics: [
+      topics: rotate([
         "الدليل الكامل لبناء العضلات للمبتدئين",
         "كيف تحسب سعراتك اليومية بدقة",
         "أخطاء شائعة تمنعك من حرق الدهون",
         "أفكار وجبات صحية سريعة لصحة أفضل",
         "الاستشفاء والنوم: المفتاح المنسي لنتائج أسرع",
-      ],
+      ]),
     };
   }
   return {
@@ -138,13 +161,13 @@ export function fallbackResearch(lang: "en" | "ar"): LanguageResearch {
       { question: "Does cardio burn muscle?", answer: "Moderate cardio does not burn muscle if calories and protein are adequate." },
       { question: "What is the best time to work out?", answer: "Any time you can train consistently is the best time." },
     ],
-    topics: [
+    topics: rotate([
       "The Complete Beginner's Guide to Building Muscle",
       "How to Calculate Your Daily Calories Accurately",
       "Common Mistakes That Block Fat Loss",
       "Quick Healthy Meal Ideas for Busy People",
       "Recovery and Sleep: The Forgotten Key to Faster Results",
-    ],
+    ]),
   };
 }
 
@@ -159,20 +182,35 @@ async function researchLanguage(lang: "en" | "ar"): Promise<{ data: LanguageRese
     ? 'Respond in ARABIC. All keywords, questions, answers and topic titles MUST be in natural Arabic (Egyptian/Gulf friendly MSA).'
     : 'Respond in ENGLISH.';
 
+  // PHASE 62 VARIETY FIX: P0 previously had ZERO memory of published
+  // content — the same trending suggestions regenerated every run. Feed
+  // recent published + generated titles into the research prompt so the
+  // 5 suggestions are forced onto UNCOVERED angles.
+  const [recentPosts, recentJobs] = await Promise.all([
+    getRecentPostsByLanguage(lang, 30),
+    getRecentGeneratedTopics(lang, 15),
+  ]);
+  const recentTitles = [...recentPosts, ...recentJobs].map((p) => p.title).filter(Boolean);
+  const recentBlock = recentTitles.length
+    ? `THE BLOG HAS ALREADY PUBLISHED / GENERATED THESE RECENT TITLES (your 5 topic suggestions MUST cover NEW subjects or genuinely NEW angles — rewording any of these is a FAILURE):
+${recentTitles.slice(0, 35).map((t, i) => `${i + 1}. ${t}`).join("\n")}`
+    : "";
+
   const prompt = `You are an SEO research analyst. Niche: ${niche}.
 ${outLang}
 Produce REALISTIC SEO research for a fitness/nutrition blog (use your training knowledge of what people search in this niche; volume labels are estimates like "high/medium/low").
+${recentBlock}
 Return STRICT JSON only, no markdown fences:
 {
   "keywords": [ {"keyword": "...", "searchVolume": "high|medium|low"} ],   // exactly 10 items
   "faqs":     [ {"question": "...", "answer": "1-2 sentence direct answer"} ], // exactly 10 items
-  "topics":   [ "..." ]   // exactly 5 specific, non-generic article topic suggestions not covered by generic listicles; each targets at least one keyword above
+  "topics":   [ "..." ]   // exactly 5 specific, non-generic article topic suggestions NOT overlapping with the recent titles above (different subject or clearly different angle); each targets at least one keyword above; VARY the article types across the 5 (guide / myth-busting / comparison / step-by-step plan / science deep-dive)
 }`;
 
   try {
     const { text, model, provider } = await callFreeAIFallbackChain(prompt, {
       tag: "blog:research",
-      temperature: 0.6,
+      temperature: 0.7,
       maxTokens: 2_500,
       jsonMode: true,
       // Native GHA budget override gives us room; still self-clamped by ai-provider.
@@ -189,7 +227,7 @@ Return STRICT JSON only, no markdown fences:
   } catch (e: any) {
     console.error(`[blog-research] P0 ${lang} chain failed: ${e?.message || e}`);
   }
-  return { data: fallbackResearch(lang), source: "curated-fallback" };
+  return { data: fallbackResearch(lang, recentTitles), source: "curated-fallback" };
 }
 
 /**
@@ -201,10 +239,30 @@ export async function runPhase0Research(
   lang: "en" | "ar",
 ): Promise<Phase0Result> {
   const r = await researchLanguage(lang);
-  const recent = await getRecentPosts(100);
+  // PHASE 62 BUGFIX: was getRecentPosts(100) which hard-codes language=en —
+  // the AR pipeline's pillar rotation was blind to ALL AR history. Each
+  // language now rotates against its OWN recent posts + generated jobs.
+  const [recentOwn, recentJobs] = await Promise.all([
+    getRecentPostsByLanguage(lang, 100),
+    getRecentGeneratedTopics(lang, 20),
+  ]);
+  const recent = [...recentOwn, ...recentJobs];
+  // Prefer topics that survived the dup-guard when ranking categories is
+  // not applicable here — keep rotation semantics identical, but ALSO
+  // pre-flag duplicate topics so P1's guard sees fewer all-dup sets.
+  const research = {
+    ...r.data,
+    topics: r.data.topics.filter(
+      (t) => !recent.some((p) => isDuplicateTopic(t, t, [p]).duplicate),
+    ).length >= 2
+      ? r.data.topics.filter(
+          (t) => !recent.some((p) => isDuplicateTopic(t, t, [p]).duplicate),
+        )
+      : r.data.topics,
+  };
   return {
     lang,
-    research: r.data,
+    research,
     category: pickRotationCategory(recent),
     source: `p0-${lang}:${r.source}`,
   };

@@ -128,6 +128,8 @@ const num = (v: any): number | undefined => {
 
 function pickClientContext(cc: any) {
   // Same shape CoachClientView builds today — nothing else survives.
+  // PHASE 62: recent_plan_names = foods/exercises from the client's
+  // previous plans, injected into prompts as an avoid-repeat list.
   if (!cc || typeof cc !== "object") return undefined;
   return {
     name: str(cc.name, 80),
@@ -135,6 +137,9 @@ function pickClientContext(cc: any) {
     fitness: cc.fitness && typeof cc.fitness === "object" ? cc.fitness : null,
     recent_measurements: Array.isArray(cc.recent_measurements)
       ? cc.recent_measurements.slice(0, 5)
+      : [],
+    recent_plan_names: Array.isArray(cc.recent_plan_names)
+      ? cc.recent_plan_names.filter((n: any) => typeof n === "string").map((n: string) => str(n, 60)).slice(0, 60)
       : [],
   };
 }
@@ -174,6 +179,11 @@ export function sanitizeJobPayload(type: AiJobType, raw: any): Record<string, an
         targetCalories: num(p.targetCalories),
         clientContext: pickClientContext(p.clientContext),
         reason: str(p.reason ?? p.note, 400),
+        // PHASE 62 VARIETY: other meals' item names from the same plan —
+        // the regenerated meal must not duplicate them.
+        avoid_names: Array.isArray(p.avoid_names)
+          ? p.avoid_names.filter((n: any) => typeof n === "string").map((n: string) => str(n, 60)).slice(0, 40)
+          : [],
       };
     }
     case "exercise_regenerate": {

@@ -27,6 +27,7 @@ import {
   pickResultIndex,
   isExcludedImageUrl,
 } from "@/lib/image-safety";
+import { supabaseAdmin, isSupabaseAdminConfigured } from "@/lib/supabase/admin";
 
 /**
  * v3.1 RESULT SCREENING — combined modesty gate for alt-texts:
@@ -53,8 +54,28 @@ export type ImageSourceOptions = {
   excludeUrls?: string[];
 };
 
-/** Results fetched per search — rotation pool size. */
-const RESULTS_PER_SEARCH = 6;
+/** Results fetched per search — rotation pool size (v4: 6 → 15, PHASE 62
+ *  variety fix: a 6-photo pool made similar topics share the same photos). */
+const RESULTS_PER_SEARCH = 15;
+
+/**
+ * PHASE 62 VARIETY: URLs of the most recent articles' featured images —
+ * used as a cross-article exclusion list so new posts stop reusing the
+ * same cover photos. Never throws (empty list = no exclusion).
+ */
+export async function getRecentFeaturedImageUrls(limit = 30): Promise<string[]> {
+  try {
+    if (!isSupabaseAdminConfigured || !supabaseAdmin) return [];
+    const { data } = await supabaseAdmin
+      .from("blog_posts" as any)
+      .select("featured_image")
+      .order("created_at", { ascending: false })
+      .limit(limit);
+    return (data as any[] | null)?.map((p) => String(p?.featured_image || "")).filter(Boolean) ?? [];
+  } catch {
+    return [];
+  }
+}
 
 /**
  * Search Pexels for a photo matching the query. PRIMARY source.

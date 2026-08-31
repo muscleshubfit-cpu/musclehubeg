@@ -617,6 +617,36 @@ export function CoachClientView({ clientId }: { clientId: string }) {
  { id: "progress", label: t("coach.clientProgress") },
  ] as const;
 
+ // PHASE 62 VARIETY: collect food/exercise names from the client's
+ // existing plans so the AI avoids repeating the same meals/lifts.
+ const buildRecentPlanNames = (): string[] => {
+   try {
+     const names: string[] = [];
+     for (const p of plans.slice(0, 4)) {
+       let c: any = p?.content;
+       if (typeof c === "string") {
+         try { c = JSON.parse(c); } catch { continue; }
+       }
+       if (!c) continue;
+       if (p.type === "nutrition" && Array.isArray(c.meals)) {
+         for (const m of c.meals) {
+           if (m?.name) names.push(String(m.name));
+           if (Array.isArray(m?.items)) for (const it of m.items) { if (it?.food) names.push(String(it.food)); }
+           if (Array.isArray(m?.meal_alternatives)) for (const alt of m.meal_alternatives) { if (alt?.name) names.push(String(alt.name)); }
+         }
+       }
+       if (p.type === "workout" && Array.isArray(c.days)) {
+         for (const d of c.days) {
+           if (Array.isArray(d?.exercises)) for (const ex of d.exercises) { if (ex?.name) names.push(String(ex.name)); }
+         }
+       }
+     }
+     return Array.from(new Set(names)).slice(0, 60);
+   } catch {
+     return [];
+   }
+ };
+
  const generateAIPlan = async (planType: "workout" | "nutrition", overrides?: any) => {
  // Build client context from questionnaires + profile + progress
  const clientContext = {
@@ -628,6 +658,7 @@ export function CoachClientView({ clientId }: { clientId: string }) {
  waist: p.waist,
  date: p.created_at,
  })),
+ recent_plan_names: buildRecentPlanNames(),
  };
 
  // T-4PILLAR-COMPLETE: enqueue + resilient registry watcher instead of a
@@ -663,6 +694,7 @@ export function CoachClientView({ clientId }: { clientId: string }) {
  waist: p.waist,
  date: p.created_at,
  })),
+ recent_plan_names: buildRecentPlanNames(),
  };
  const planType = plan.type === "workout" ? "workout" : "nutrition";
  await queuePlanJob(planType, clientContext, undefined, plan);

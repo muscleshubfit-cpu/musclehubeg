@@ -98,19 +98,18 @@ describe("image-safety v3 — result screening", () => {
   });
 });
 
-describe("image-safety v3 — deterministic result rotation", () => {
-  it("pickResultIndex stays in bounds and is stable per key", () => {
-    for (let i = 0; i < 20; i++) {
+describe("image-safety v4 — random result rotation (PHASE 62 variety)", () => {
+  it("pickResultIndex stays in bounds for every key", () => {
+    for (let i = 0; i < 40; i++) {
       const idx = pickResultIndex(6, `post-${i}`);
       expect(idx).toBeGreaterThanOrEqual(0);
       expect(idx).toBeLessThan(6);
-      expect(pickResultIndex(6, `post-${i}`)).toBe(idx);
     }
   });
 
   it("rotation spreads across the result pool (diversity)", () => {
     const seen = new Set<number>();
-    for (let i = 0; i < 24; i++) seen.add(pickResultIndex(6, `slot-${i}`));
+    for (let i = 0; i < 60; i++) seen.add(pickResultIndex(6, `slot-${i}`));
     expect(seen.size).toBeGreaterThanOrEqual(4);
   });
 

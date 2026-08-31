@@ -27,6 +27,7 @@ import { resolveSlug, sanitizeModelSlug } from "@/lib/slug";
 import {
   fetchFeaturedImage,
   embedBodyImages,
+  getRecentFeaturedImageUrls,
   type SourcedImage,
 } from "@/lib/blog-images";
 import { sanitizeImageQuery } from "@/lib/image-safety";
@@ -101,10 +102,13 @@ async function enrichArticleImages(
     .filter(Boolean)
     .slice(0, 5);
   if (safe.length === 0) return [];
+  // PHASE 62 VARIETY: exclude the last 30 published featured images so
+  // coach-generated drafts stop recycling the same cover photos.
+  const excludeUrls = await getRecentFeaturedImageUrls(30);
   try {
     const settled = await Promise.allSettled(
       safe.map((q, i) =>
-        fetchFeaturedImage(q, { variationKey: `${variationSeed}-${i}` }),
+        fetchFeaturedImage(q, { variationKey: `${variationSeed}-${i}`, excludeUrls }),
       ),
     );
     return settled
@@ -124,6 +128,9 @@ function pickClientContext(raw: any): ClientContext {
     fitness: cc.fitness || {},
     recent_measurements: Array.isArray(cc.recent_measurements)
       ? cc.recent_measurements
+      : [],
+    recent_plan_names: Array.isArray(cc.recent_plan_names)
+      ? cc.recent_plan_names.filter((n: any) => typeof n === "string")
       : [],
   };
 }
@@ -420,6 +427,7 @@ async function runMealRegenerate(payload: any) {
     payload.targetCalories,
     ctx,
     payload.reason,
+    Array.isArray(payload.avoid_names) ? payload.avoid_names : [],
   );
   return {
     replacement: out.meal,

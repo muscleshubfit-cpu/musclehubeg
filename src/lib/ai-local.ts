@@ -16,6 +16,9 @@ export type ClientContext = {
  fitness?: any;
  recent_measurements?: any[];
  current_plans?: any[];
+ /** PHASE 62 VARIETY: names of foods/exercises used in this client's
+  *  previous plans — injected as an avoid-repeat list into AI prompts. */
+ recent_plan_names?: string[];
 };
 
 type WorkoutContent = {

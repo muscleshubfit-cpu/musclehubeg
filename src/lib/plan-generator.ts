@@ -128,6 +128,47 @@ export type GeneratePlanResult = {
   source: string; // which model served the request
 };
 
+/* ─────────────────── PHASE 62 VARIETY ENGINE ───────────────────
+ * The old "استخدم تنويع N" seed sentence was too weak: free models
+ * weight the structured JSON contract far above it, and the anchored
+ * few-shot examples pulled every plan toward the same foods/lifts.
+ * Each generation now carries: (1) a ROTATED explicit direction
+ * (cuisine emphasis for nutrition, training emphasis for workout),
+ * (2) a hard no-copy law for the examples, and (3) an avoid-list of
+ * names already used in the client's previous plans.
+ * ───────────────────────────────────────────────────────────── */
+const NUTRITION_CUISINE_ROTATIONS = [
+  "اتجاه بحري (سمك، جمبري، تونا، سلمون) كأساس للبروتين",
+  "اتجاه شرقي بالفرن (دجاج/لحم بالفرن مع خضار مشكلة)",
+  "اتجاه نباتي جزئي (عدس، حمص، فاصوليا مع ألبان قليلة الدسم)",
+  "اتجاه مصري شعبي خفيف (مشويات، شوربات، محشيات صحية)",
+  "اتجاه متوسطي (زيت زيتون، جبن أبيض، زيتون، خضار مشوية)",
+  "اتجاه وجبات سريعة صحية (شكشوكة، سلطة تونا، راب دجاج، بول)",
+];
+const WORKOUT_EMPHASIS_ROTATIONS = [
+  "ابدأ الأسبوع بتركيز أعلى على الجزء العلوي واختم بالسفلي",
+  "ابدأ الأسبوع بتركيز أعلى على الجزء السفلي واختم بالعلوي",
+  "ركّز على المعدات الحرة (بار/دمبل) أكثر من الأجهزة",
+  "ركّز على الأجهزة والكابل ووزن الجسم أكثر من البار",
+  "أضف لمسة قوة (مجموعات أقل وتكرارات أقل وأوزان أعلى) للأيام الرئيسية",
+  "أضف لمسة تحمّل (تكرارات أعلى وراحات أقصر) للأيام الرئيسية",
+];
+
+export function buildVarietyBlock(
+  kind: "nutrition" | "workout",
+  seed: number,
+  avoidNames: string[],
+): string {
+  const list = kind === "nutrition" ? NUTRITION_CUISINE_ROTATIONS : WORKOUT_EMPHASIS_ROTATIONS;
+  const direction = list[Math.abs(seed) % list.length];
+  const clean = avoidNames.filter((n) => typeof n === "string" && n.trim().length > 1);
+  const avoidBlock =
+    clean.length > 0
+      ? `\n\n⚠ أصناف/تمارين استُخدمت في خطط سابقة لنفس العميل — اختر بدائل مختلفة عنها قدر الإمكان:\n${clean.slice(0, 60).map((n) => `- ${n}`).join("\n")}`
+      : "";
+  return `\n\n⚠ تعليمات تنويع إلزامية لهذا التوليد (#${Math.abs(seed)}):\n- الاتجاه المطلوب هذه المرة: ${direction}\n- كل وجبة/يوم يجب أن يختلف في أصنافه وترتيبه عن باقي الوجبات/الأيام.\n- ممنوع نسخ أمثلة التعليمات الحرفية — اختر أصنافاً/تمارين جديدة مناسبة لبيانات العميل.${avoidBlock}`;
+}
+
 /**
  * OWNER DIRECTIVE #2 (2026-08-27): every meal ships with TWO complete
  * alternative meals (same calorie share / macros share). Structured
@@ -157,9 +198,7 @@ export async function generateNutritionPlanAI(
   // Add a randomization seed to the prompt so each generation produces
   // different meal/exercise choices even for the same client.
   const seed = Math.floor(Math.random() * 1000000);
-  const prompt = `${buildNutritionPrompt(ctx, name, overrides, targets)}
-
-ملاحظة: كل توليد يجب أن ينتج خطة مختلفة. استخدم تنويع ${seed} لاختيار أصناف جديدة.`;
+  const prompt = `${buildNutritionPrompt(ctx, name, overrides, targets)}${buildVarietyBlock("nutrition", seed, ctx.recent_plan_names ?? [])}`;
 
   try {
     // Use callFreeAIFallbackChain — OpenRouter + Groq interleaved (owner
@@ -211,9 +250,7 @@ export async function generateWorkoutPlanAI(
   const name = ctx.name || "العميل";
   // Randomization seed for variety
   const seed = Math.floor(Math.random() * 1000000);
-  const prompt = `${buildWorkoutPrompt(ctx, name, overrides)}
-
-ملاحظة: كل توليد يجب أن ينتج برنامج مختلف. استخدم تنويع ${seed} لاختيار تمارين جديدة.`;
+  const prompt = `${buildWorkoutPrompt(ctx, name, overrides)}${buildVarietyBlock("workout", seed, ctx.recent_plan_names ?? [])}`;
 
   try {
     // OpenRouter + Groq only (owner directive) — clamped ≤ 52s.
@@ -268,13 +305,20 @@ export async function regenerateMeal(
   targetCalories?: number,
   clientContext?: ClientContext,
   coachNote?: string,
+  avoidNames: string[] = [],
 ): Promise<{ meal: any; suggestions: any[]; source: string }> {
   const totalCals =
     targetCalories ||
     (meal.items || []).reduce((s, i) => s + (i.calories || 0), 0);
 
-  const prompt = `أنت أخصائي تغذية محترف. أعد توليد وجبة بديلة بنفس السعرات (${totalCals} سعرة) ونفس نسب الماكروز قدر الإمكان.
+  const avoidBlock =
+    Array.isArray(avoidNames) && avoidNames.length > 0
+      ? `\nأصناف أخرى في نفس الخطة (تجنب تكرارها في الوجبة الجديدة والاقتراحات):
+${avoidNames.slice(0, 40).join("، ")}\n`
+      : "";
 
+  const prompt = `أنت أخصائي تغذية محترف. أعد توليد وجبة بديلة بنفس السعرات (${totalCals} سعرة) ونفس نسب الماكروز قدر الإمكان.
+${avoidBlock}
 ${
   clientContext
     ? `بيانات العميل (راعِ الحساسية والأطعمة غير المحببة):
@@ -494,6 +538,13 @@ const NUTRITION_SYSTEM_PROMPT = `أنت أخصائي تغذية رياضية م�
 - لكل وجبة: أضف حقل "meal_alternatives" يحتوي بالضبط على وجبتين بديلتين كاملتين (كل بديل بحصة سعرات مكافئة ±10%).
 - احسب المجموع الكلي للسعرات والبروتين لكل وجبة.
 
+⚠ قانون التنويع الإلزامي (PHASE 62):
+- النموذج التوضيحي أدناه يشرح "الشكل" فقط — ممنوع منعاً باتاً نسخ أصنافه (بيض مسلوق، خبز بلدي، فول، شوفان، جبن قريش…) إلا إذا كان مناسبين فعلاً لبيانات العميل المحددة.
+- نوّع مصادر البروتين عبر الوجبات والأيام (سمك، دجاج، لحم قليل الدهن، تونا، جمبري، بيض، بقوليات، ألبان قليلة الدسم…).
+- نوّع مصادر الكارب (رز، بطاطس، بطاطا، مكرونة، بلغر، كسكسي، ذرة، خبز أسمر…) ولا تكرر نفس الكارب في كل وجبة.
+- نوّع الخضار والفواكه والمكسرات والزيوت بين الوجبات.
+- إذا توفرت قائمة "أصناف استُخدمت سابقاً" في التعليمات فاختر أصنافاً مختلفة عنها قدر الإمكان.
+
 تنسيق JSON المطلوب:
 {
  "overview": "نظرة عامة على الخطة والهدف",
@@ -647,6 +698,12 @@ const WORKOUT_SYSTEM_PROMPT = `أنت مدرب لياقة محترف يعمل ف
 - اجعل البرنامج متنوعاً — لا تكرر نفس التمارين في كل مرة.
 - استخدم أسماء تمارين مطابقة لمكتبة التمارين لدينا بالإنجليزية (Bench Press, Squat, Deadlift, etc.) لتظهر صورها تلقائياً.
 - لا تضع حقل image — الصور تُولّد تلقائياً من اسم التمرين.
+
+⚠ قانون التنويع الإلزامي (PHASE 62):
+- النموذج التوضيحي أدناه يشرح "الشكل" فقط — ممنوع نسخ نفس التمارين في كل خطة.
+- لكل مجموعة عضلية استخدم تنويعات مختلفة عبر الأيام والخطط (بنش بريس / بنش دمبل / بنش مائل / ضغط / جهاز كتّل، سكوات / ليج بريس / رومانيان / لونجز…).
+- غيّر ترتيب التمارين وأسلوب التنفيذ (دمبل مقابل بار مقابل جهاز مقابل وزن الجسم) بين خطة وأخرى.
+- إذا توفرت قائمة "تمارين استُخدمت سابقاً" في التعليمات فاختر بدائل مختلفة عنها قدر الإمكان مع الحفاظ على نفس الوظيفة العضلية.
 
 تنسيق JSON:
 {
@@ -1257,10 +1314,19 @@ function buildCandidatePool(input: SubstituteExerciseInput): any[] {
     for (const eq of okEquipment) {
       const hit = candidates.find((c) => c.level === lvl && c.equipment === eq && !picked.includes(c));
       if (hit) picked.push(hit);
-      if (picked.length >= 10) return picked;
+      if (picked.length >= 10) break;
     }
+    if (picked.length >= 10) break;
   }
-  return picked.length > 0 ? picked : candidates.slice(0, 8);
+  const base = picked.length > 0 ? picked : candidates.slice(0, 8);
+  // PHASE 62 VARIETY: shuffle the final ordering. The old deterministic
+  // level×equipment loop always presented the SAME first candidates, and
+  // the model (temp 0.4) re-picked the same #1 every time.
+  for (let i = base.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [base[i], base[j]] = [base[j], base[i]];
+  }
+  return base;
 }
 
 export async function substituteExercise(
@@ -1291,15 +1357,21 @@ export async function substituteExercise(
 
   // Deterministic safety net — always available.
   const deterministic = () => {
-    const best = pool[0];
-    if (!best) throw new Error("لا يوجد بديل آمن مطابق في مكتبة التمارين.");
-    const alts = pool.slice(1, 4).map((c) => ({
-      name: c.nameEn,
-      why: `نفس العضلة المستهدفة (${CATEGORY_LABELS[c.category]?.ar || c.category}) ومستوى مناسب`,
-      sets: fallbackSets,
-      reps: fallbackReps,
-      rest: fallbackRest,
-    }));
+    if (pool.length === 0) throw new Error("لا يوجد بديل آمن مطابق في مكتبة التمارين.");
+    // PHASE 62 VARIETY: random pick instead of always pool[0] — repeated
+    // swaps on the same exercise now surface different safe options.
+    const best = pool[Math.floor(Math.random() * pool.length)];
+    const alts = pool
+      .filter((c) => c !== best)
+      .sort(() => Math.random() - 0.5)
+      .slice(0, 3)
+      .map((c) => ({
+        name: c.nameEn,
+        why: `نفس العضلة المستهدفة (${CATEGORY_LABELS[c.category]?.ar || c.category}) ومستوى مناسب`,
+        sets: fallbackSets,
+        reps: fallbackReps,
+        rest: fallbackRest,
+      }));
     return {
       replacement: shapeOne(best),
       alternatives: alts,
