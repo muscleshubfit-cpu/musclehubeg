@@ -3605,3 +3605,17 @@ Work Log:
 
 Stage Summary:
 - Committed + pushed; owner step: run 0049 via raw link (how-to in QA_CHECKLIST) — before that, site fully works and the section simply stays hidden (soft-roll law, zero disruption)
+
+---
+Task ID: 14-b
+Agent: Super Z (main)
+Task: Phase 57 — production verification (post-deploy)
+
+Work Log:
+- Vercel deploy live: site 200; raw 0049 link 200 with correct content (END OF SCRIPT 0049 marker verified in served raw file)
+- anon REST check: coach-mohamed-ahmed = is_published:true + review_status:pending → public not-found page is the EXPECTED 0046 gate state (owner approval step from Phase 56 still pending), NOT a regression
+- REAL browser E2E on production as the Phase 56 test coach: login OK → /coach/landing shows «Your certificates (optional)» → uploaded test JPEG (thumbnail rendered) → typed name «ISSA Certified Personal Trainer» → Update published → success state (pending-review banner), DB updated_at fresh, review_status pending (0046 law), no console errors, no failed requests
+- Reload persistence check pre-migration: all other fields intact, certificates empty (expected soft-roll: column not created yet → certificates dropped on save, zero errors) — section goes live once owner runs 0049
+
+Stage Summary:
+- Feature verified working end-to-end on production within soft-roll limits; certificates section activates after the owner runs migration 0049 (raw link + how-to in QA_CHECKLIST Phase 57)
