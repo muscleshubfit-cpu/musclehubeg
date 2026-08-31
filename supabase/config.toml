@@ -1,0 +1,4 @@
+# Supabase CLI project configuration
+# Required by the Supabase GitHub integration (Deployments) to recognize
+# this repository as a Supabase project. No local development use yet.
+project_id = "musclehubeg"
