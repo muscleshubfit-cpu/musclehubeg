@@ -244,8 +244,8 @@ export default function ForCoachesPage() {
           </h2>
           <p className="mt-3 max-w-3xl text-base leading-relaxed text-gray-300">
             {isAr
-              ? "وزي أي حد على المنصة، تقدر تشترك في عضوية Premium أو Pro وتاخد كل مميزات الموقع لنفسك: شات EVO بلا حدود، مخطط الوجبات الذكي، حفظ وتصدير نتائج الحاسبات، والمحتوى المميز — كل ده جنب شغلك مع عملائك."
-              : "Like anyone on the platform, you can subscribe to Premium or Pro and unlock the full site for yourself: unlimited EVO chat, the smart meal planner, saved and exportable calculator results, and premium content — all alongside your work with your own clients."}
+              ? "وزي أي حد على المنصة، تقدر تشترك في عضوية Premium أو Pro وتاخد كل مميزات الموقع لنفسك: شات EVO بلا حدود، مخطط الوجبات الذكي، حفظ وتصدير نتائج الحاسبات — كل ده جنب شغلك مع عملائك."
+              : "Like anyone on the platform, you can subscribe to Premium or Pro and unlock the full site for yourself: unlimited EVO chat, the smart meal planner, and saved, exportable calculator results — all alongside your work with your own clients."}
           </p>
           <div className="mt-6">
             <Link

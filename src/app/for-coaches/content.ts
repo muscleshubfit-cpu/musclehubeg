@@ -37,7 +37,7 @@ export const COACH_FAQ_AR: Array<{ q: string; a: string }> = [
   },
   {
     q: "أقدر أشترك في مميزات الموقع كمدرب؟",
-    a: "أكيد. زي أي عضو، تقدر تشترك في عضوية Premium أو Pro وتاخد مميزات المنصة كاملة: شات EVO بلا حدود، مخطط الوجبات، والمحتوى المميز.",
+    a: "أكيد. زي أي عضو، تقدر تشترك في عضوية Premium أو Pro وتاخد مميزات المنصة كاملة: شات EVO بلا حدود، مخطط الوجبات، وحفظ وتصدير نتائجك.",
   },
 ];
 
@@ -68,6 +68,6 @@ export const COACH_FAQ_EN: Array<{ q: string; a: string }> = [
   },
   {
     q: "Can I subscribe to the site's features as a coach?",
-    a: "Absolutely. Like any member, you can subscribe to Premium or Pro and unlock everything: unlimited EVO chat, the meal planner, and premium content.",
+    a: "Absolutely. Like any member, you can subscribe to Premium or Pro and unlock everything: unlimited EVO chat, the meal planner, and exportable saved results.",
   },
 ];

@@ -5,7 +5,7 @@
  * Lemon Squeezy 5%+$0.50 payment fees + profit margin):
  *   - Free:     basic access, limited EVO, 1 meal plan save
  *   - Premium:  $14.99/mo or $119/yr — full EVO chat, limited plan gen
- *   - Pro:      $29.99/mo or $239/yr — full features, premium content
+ *   - Pro:      $29.99/mo or $239/yr — full features, no ads
  *   - Coaching: $39.99/mo or $359/yr — human coach, NOT linked to Pro
  *
  * Limits reset monthly for all tiers.

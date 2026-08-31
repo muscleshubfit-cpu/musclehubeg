@@ -8,7 +8,9 @@ import { getLimits, type MembershipTier } from "@/lib/memberships";
  *
  * Saves a meal plan from the Meal Planner tool.
  * Enforces membership limits:
- *   Free: 1 plan, Premium: 10, Pro: 50, Coaching: unlimited
+ *   Free: 1 plan, Premium: 10, Pro: 50, Coaching: 10
+ * Staff (coach/admin) are UNLIMITED — owner decree 2026-09-01:
+ * «الادمن بلا حدود في كل وظائف الموقع».
  *
  * Body:
  *   {
@@ -49,8 +51,10 @@ export async function POST(request: NextRequest) {
   const limits = getLimits(tier);
   const maxMeals = limits.mealPlannerMaxMeals;
   const maxSaved = limits.mealPlannerMaxSaved;
+  // Phase 71 — staff bypass: admins/coaches never hit the caps.
+  const unlimited = auth.is_staff === true;
 
-  if (maxMeals !== null && plan_data.meals.length > maxMeals) {
+  if (!unlimited && maxMeals !== null && plan_data.meals.length > maxMeals) {
     return NextResponse.json(
       {
         error: "Too many meals",
@@ -91,7 +95,7 @@ export async function POST(request: NextRequest) {
     .select("*", { count: "exact", head: true })
     .eq("user_id", auth.id);
 
-  if (maxSaved !== null && (count || 0) >= maxSaved) {
+  if (!unlimited && maxSaved !== null && (count || 0) >= maxSaved) {
     return NextResponse.json(
       {
         error: "Limit reached",
@@ -133,6 +137,6 @@ export async function POST(request: NextRequest) {
       carbs: totalCarbs,
       fat: totalFat,
     },
-    remaining: maxSaved !== null ? maxSaved - ((count || 0) + 1) : null,
+    remaining: !unlimited && maxSaved !== null ? maxSaved - ((count || 0) + 1) : null,
   });
 }

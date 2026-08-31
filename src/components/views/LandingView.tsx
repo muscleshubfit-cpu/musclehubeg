@@ -974,8 +974,8 @@ export function LandingView() {
                 </p>
                 <ul className="mt-5 space-y-2.5 text-sm">
                   {(isAr
-                    ? ["EVO غير محدود", "3 خطط تغذية/تمرين شهرياً", "50 نتيجة محفوظة", "تحميل الخطط PDF"]
-                    : ["Unlimited EVO", "3 nutrition/workout plans per month", "50 saved results", "PDF export"]
+                    ? ["EVO غير محدود", "3 خطط تغذية/تمرين شهرياً", "50 نتيجة محفوظة", "تصدير مخطط الوجبات والنتائج"]
+                    : ["Unlimited EVO", "3 nutrition/workout plans per month", "50 saved results", "Meal-plan & results export"]
                   ).map((f) => (
                     <li key={f} className="flex items-start gap-2">
                       <Check className="mt-0.5 h-4 w-4 shrink-0" style={{ color: PALETTE.brand }} aria-hidden="true" />
@@ -1039,8 +1039,8 @@ export function LandingView() {
                 </p>
                 <ul className="relative mt-5 space-y-2.5 text-sm">
                   {(isAr
-                    ? ["كل مميزات Premium", "6 خطط تغذية/تمرين شهرياً", "تحليل الأنماط والتقدم", "200 نتيجة محفوظة", "محتوى مميز بدون إعلانات"]
-                    : ["Everything in Premium", "6 nutrition/workout plans per month", "Pattern & progress analysis", "200 saved results", "Premium content, ad-free"]
+                    ? ["كل مميزات Premium", "6 خطط تغذية/تمرين شهرياً", "6 تبديلات أسبوعياً", "200 نتيجة محفوظة", "بدون إعلانات"]
+                    : ["Everything in Premium", "6 nutrition/workout plans per month", "6 swaps per week", "200 saved results", "No ads"]
                   ).map((f) => (
                     <li key={f} className="flex items-start gap-2">
                       <Check className="mt-0.5 h-4 w-4 shrink-0" style={{ color: "#4F9CF9" }} aria-hidden="true" />

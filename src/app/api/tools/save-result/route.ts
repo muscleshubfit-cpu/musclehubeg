@@ -8,6 +8,8 @@ import { getLimits, type MembershipTier } from "@/lib/memberships";
  *
  * Saves a tool result to the saved_results table.
  * Enforces membership limits (Free: 3, Premium: 50, Pro: 200).
+ * Staff (coach/admin) are UNLIMITED — owner decree 2026-09-01:
+ * «الادمن بلا حدود في كل وظائف الموقع».
  *
  * Body:
  *   { tool_slug: string, title?: string, result_data: object }
@@ -55,8 +57,10 @@ export async function POST(request: NextRequest) {
   const tier: MembershipTier = auth.membership_tier;
   const limits = getLimits(tier);
   const maxSaved = limits.savedResultsLimit;
+  // Phase 71 — staff bypass: admins/coaches never hit the cap.
+  const unlimited = auth.is_staff === true;
 
-  if (maxSaved !== null && (count || 0) >= maxSaved) {
+  if (!unlimited && maxSaved !== null && (count || 0) >= maxSaved) {
     return NextResponse.json(
       {
         error: "Limit reached",
@@ -89,6 +93,6 @@ export async function POST(request: NextRequest) {
     ok: true,
     id: data?.id,
     created_at: data?.created_at,
-    remaining: maxSaved !== null ? maxSaved - ((count || 0) + 1) : null,
+    remaining: !unlimited && maxSaved !== null ? maxSaved - ((count || 0) + 1) : null,
   });
 }

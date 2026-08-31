@@ -1225,6 +1225,47 @@ export type Database = {
         };
         Relationships: [];
       };
+      external_plans: {
+        Row: {
+          id: string;
+          person_name: string;
+          person_contact: string | null;
+          plan_type: "workout" | "meal";
+          title: string;
+          notes: string | null;
+          content: Json;
+          status: "draft" | "final";
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          person_name: string;
+          person_contact?: string | null;
+          plan_type: "workout" | "meal";
+          title: string;
+          notes?: string | null;
+          content?: Json;
+          status?: "draft" | "final";
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          person_name?: string;
+          person_contact?: string | null;
+          plan_type?: "workout" | "meal";
+          title?: string;
+          notes?: string | null;
+          content?: Json;
+          status?: "draft" | "final";
+          updated_at?: string;
+        };
+        Relationships: [
+          { foreignKeyName: "external_plans_created_by_fkey"; columns: ["created_by"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] },
+        ];
+      };
     };
     Views: {};
     Functions: {

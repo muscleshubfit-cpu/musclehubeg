@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "Memberships | Musclehubeg — Premium & Pro Plans",
   description:
-    "Choose your Musclehubeg membership: Free, Premium ($14.99/mo or $119/yr), or Pro ($29.99/mo or $239/yr). Unlock unlimited EVO AI, meal planner, workout plan generation, and premium content.",
+    "Choose your Musclehubeg membership: Free, Premium ($14.99/mo or $119/yr), or Pro ($29.99/mo or $239/yr). Unlock unlimited EVO AI, meal planner, workout plan generation, and higher limits.",
   keywords: [
     "membership",
     "premium",
@@ -68,7 +68,7 @@ export default function MembershipsLayout({
         "@type": "Offer",
         name: "Pro",
         description:
-          "Premium content + doubled plan limits. $29.99/month or $239/year.",
+          "No ads + doubled plan limits. $29.99/month or $239/year.",
         price: "29.99",
         priceCurrency: "USD",
         url: "https://musclehubeg.vercel.app/memberships",

@@ -289,8 +289,8 @@ export default function CoachingPage() {
             </h2>
             <p className="mx-auto mt-3 max-w-md text-lg font-normal text-[#6e6e73] md:text-xl">
               {isAr
-                ? "مش مجرد شات بوت. محرك أداء ذكي بيحلل بياناتك، يتنبأ بنتائجك، ويحدّث خططك تلقائياً — وهو جزء من باقة الكوتشينج، مش اشتراك منفصل عنها."
-                : "Not just a chatbot. A smart engine that analyzes your data, predicts outcomes, and updates your plans automatically — included in your coaching plan, not a separate subscription."}
+                ? "مش مجرد شات بوت. محرك أداء ذكي بيقرأ بياناتك وهدفك، ويبني لك خطط مخصصة، ويقترح تبديلات ذكية — وهو جزء من باقة الكوتشينج، مش اشتراك منفصل عنها."
+                : "Not just a chatbot. A smart engine that reads your data and goal, builds personalized plans, and suggests smart swaps — included in your coaching plan, not a separate subscription."}
             </p>
             {/* Owner directive 2026-08-30: EVO is a service inside the
                 subscriptions, NOT a CTA. The old twin promo buttons

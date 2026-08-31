@@ -7,7 +7,7 @@ import { getEVOApplicationSchema } from "@/lib/seo";
 export const metadata: Metadata = {
   title: "EVO — AI Fitness Coach | Musclehubeg",
   description:
-    "EVO is an intelligent performance engine — not just a chatbot. It analyzes your health data, predicts results, updates plans automatically, and provides 24/7 fitness and nutrition consulting via AI. Free for everyone.",
+    "EVO is an intelligent performance engine — not just a chatbot. It reads your health data and goal, builds personalized nutrition and workout plans, suggests smart meal and exercise swaps, and provides 24/7 fitness and nutrition consulting via AI. Free for everyone.",
   keywords: [
     "EVO AI coach",
     "AI fitness coach",
@@ -20,7 +20,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "EVO — AI Fitness Coach | Musclehubeg",
     description:
-      "An intelligent engine that analyzes your data and updates plans automatically. Free for everyone.",
+      "An intelligent engine that builds personalized plans from your data and suggests smart swaps. Free for everyone.",
     type: "website",
     locale: "en_US",
     url: "https://musclehubeg.vercel.app/evo",

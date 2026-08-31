@@ -57,13 +57,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Anti-spam cap: EVO-sourced plans per kind per month
-    const used = await countThisMonthPlanUsage(auth.id, kind);
-    if (used >= EVO_SAVE_MONTHLY_CAP) {
-      return NextResponse.json(
-        { error: "quota_exceeded", message: "وصلت الحد الأقصى للخطط المحفوظة هذا الشهر" },
-        { status: 429 },
-      );
+    // Anti-spam cap: EVO-sourced plans per kind per month.
+    // Phase 71 — staff bypass (owner decree: admin unlimited everywhere).
+    if (auth.is_staff !== true) {
+      const used = await countThisMonthPlanUsage(auth.id, kind);
+      if (used >= EVO_SAVE_MONTHLY_CAP) {
+        return NextResponse.json(
+          { error: "quota_exceeded", message: "وصلت الحد الأقصى للخطط المحفوظة هذا الشهر" },
+          { status: 429 },
+        );
+      }
     }
 
     const planType = kind === "nutrition" ? "meal" : "workout";

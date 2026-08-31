@@ -151,6 +151,15 @@ export default function AdminConsoleHome() {
           title: isAr ? "المدونة" : "Blog",
           desc: isAr ? "إدارة المقالات المنشورة والمسودات" : "Manage published posts & drafts",
         },
+        {
+          // Phase 71 (owner request): manual plan generation for NON-members
+          href: "/admin/external-plans",
+          emoji: "📋",
+          title: isAr ? "خطط لغير الأعضاء" : "External plans",
+          desc: isAr
+            ? "توليد خطط تدريب وتغذية يدويًا لأشخاص خارج الموقع — بلا حدود"
+            : "Hand-write training & nutrition plans for non-members — unlimited",
+        },
       ],
     },
     {

@@ -66,7 +66,7 @@ export function AdSenseAd({
 }) {
   const adRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname() || "";
-  const { profile } = useAuth();
+  const { profile, isAdmin } = useAuth();
   const { tier } = useMembershipTier(profile);
 
   // Publisher ID from env var — falls back to hardcoded value if env
@@ -79,8 +79,11 @@ export function AdSenseAd({
     pathname.startsWith(prefix),
   );
   const limits = getLimits(tier);
+  // Phase 71 — owner decree «الادمن بلا حدود»: the admin NEVER sees ads,
+  // even on public pages (adsEnabled for his coaching tier is ignored).
   const shouldRenderAd =
     !isAdFreeRoute &&
+    !isAdmin &&
     limits.adsEnabled &&
     Boolean(process.env.NEXT_PUBLIC_ADSENSE_CLIENT);
 
