@@ -56,6 +56,22 @@ const nextConfig: NextConfig = {
       { source: "/chat", destination: "/evo", permanent: true },
     ];
   },
+  // COACH PUBLIC PHOTOS (Phase 56): CoachLandingEditor stores the
+  // coach-public photo as a SAME-ORIGIN RELATIVE path
+  // (/storage/v1/object/public/coach-public/<uid>/…) but nothing served
+  // that path, so every coach-uploaded photo 404'd on the public page
+  // (real-test finding, 2026-08-31). Proxy it to Supabase Storage —
+  // guarded on the env being present at build time.
+  async rewrites() {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    if (!supabaseUrl) return [];
+    return [
+      {
+        source: "/storage/v1/object/public/coach-public/:path*",
+        destination: `${supabaseUrl}/storage/v1/object/public/coach-public/:path*`,
+      },
+    ];
+  },
   // Enable experimental features for better performance
   experimental: {
     optimizePackageImports: ["lucide-react", "framer-motion"],
