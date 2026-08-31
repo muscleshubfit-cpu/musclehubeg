@@ -125,6 +125,13 @@ function monthStartUtc(): string {
  * Count this month's plan generations for a user, from the SAME tamper-proof
  * ledger as chat usage — plan requests are recorded with source
  * `plan_nutrition` / `plan_workout` BEFORE dispatch (burst-safe).
+ *
+ * 2026-09-01 (owner: «توليد الخطط بيتحسب من الرصيد سواء عن طريق المدرب
+ * او عن طريق ايفو») — this counts ONLY the EVO-self surface; the COACH
+ * surface is added by countThisMonthCoachPlanJobs() and the two are
+ * combined in countClientPlanUsage()/checkEvoPlanQuota() so the member's
+ * advertised monthly plan balance is ONE pool regardless of who triggered
+ * the generation.
  */
 export async function countThisMonthPlanUsage(
   userId: string,
@@ -145,9 +152,61 @@ export async function countThisMonthPlanUsage(
 }
 
 /**
+ * Count this month's COMPLETED coach-side AI plan generations for a client
+ * (ai_jobs: job_type = plan_nutrition | plan_workout, status = 'done',
+ * payload->>'clientId' = this client, any requester — coach or admin).
+ *
+ * Owner decree 2026-09-01: coach-triggered generation burns the CLIENT's
+ * monthly plan balance exactly like EVO-self generation. Done-only keeps
+ * the existing "failed generations never burn quota" convention for the
+ * async job path (the EVO path records before dispatch — interactive).
+ */
+export async function countThisMonthCoachPlanJobs(
+  clientId: string,
+  kind: EvoPlanKind,
+): Promise<number> {
+  if (!isSupabaseAdminConfigured || !supabaseAdmin) return 0;
+  const { count, error } = await supabaseAdmin
+    .from("ai_jobs" as any)
+    .select("*", { count: "exact", head: true })
+    .eq("job_type", `plan_${kind}`)
+    .eq("status", "done")
+    .eq("payload->>clientId", clientId)
+    .gte("created_at", monthStartUtc());
+  if (error) {
+    console.error("[tier-limits] countThisMonthCoachPlanJobs error:", error.message);
+    return 0; // fail open — same soft-quota convention as above
+  }
+  return count ?? 0;
+}
+
+/**
+ * THE client's monthly plan balance for one kind — EVO-self generations
+ * (evo_chat_usage) + coach/admin AI generations for this client (ai_jobs).
+ * Single source of truth for the check (chat + coach enqueue) AND the
+ * display (/api/ai/quota widget + /api/coach/ai-usage readout), so the
+ * meter the member sees always matches what enforcement deducts from.
+ */
+export async function countClientPlanUsage(
+  clientId: string,
+  kind: EvoPlanKind,
+): Promise<number> {
+  const [evoUsed, coachUsed] = await Promise.all([
+    countThisMonthPlanUsage(clientId, kind),
+    countThisMonthCoachPlanJobs(clientId, kind),
+  ]);
+  return evoUsed + coachUsed;
+}
+
+/**
  * Check the MONTHLY plan-generation quota (D4 fix).
- * The only member-reachable "EVO builds me a plan" surface is this chat,
- * so this is where the advertised per-month numbers become real.
+ *
+ * 2026-09-01 (owner: «توليد الخطط بيتحسب من الرصيد سواء عن طريق المدرب
+ * او عن طريق ايفو»): the advertised per-month numbers are now ONE pool
+ * per client — `used` combines EVO-self dispatches (evo_chat_usage) with
+ * coach/admin AI generations for this client (done ai_jobs). The chat
+ * passes the member's own id; the coach enqueue path uses
+ * checkClientPlanQuota() below with the SAME combined counter.
  *
  * STAFF QUOTA SEMANTICS (2026-08-29): staffHint=true (role coach|admin)
  * bypasses the quota entirely — platform staff are never limited by
@@ -170,8 +229,38 @@ export async function checkEvoPlanQuota(
   if (limit === 0) {
     return { allowed: false, used: 0, limit: 0, unlimited: false };
   }
-  const used = await countThisMonthPlanUsage(userId, kind);
+  const used = await countClientPlanUsage(userId, kind);
   return { allowed: used < limit, used, limit, unlimited: false };
+}
+
+/**
+ * Coach-enqueue-side check of the CLIENT's plan balance (owner decree
+ * 2026-09-01). Mirrors checkEvoPlanQuota but ALWAYS resolves the tier
+ * from the DB for the CLIENT (never the requesting coach) and never
+ * staff-bypasses — the caller (api/ai/jobs) already scopes this block to
+ * authRole === "coach", so admins keep their staff semantics upstream.
+ * `used` is the SAME combined pool the member's widget displays.
+ */
+export async function checkClientPlanQuota(
+  clientId: string,
+  kind: EvoPlanKind,
+): Promise<{
+  allowed: boolean;
+  used: number;
+  limit: number | null;
+  unlimited: boolean;
+  tier: MembershipTier;
+}> {
+  const tier = await resolveTierFromDb(clientId);
+  const limit = planQuotaFor(tier, kind);
+  if (limit === null) {
+    return { allowed: true, used: 0, limit: null, unlimited: true, tier };
+  }
+  if (limit === 0) {
+    return { allowed: false, used: 0, limit: 0, unlimited: false, tier };
+  }
+  const used = await countClientPlanUsage(clientId, kind);
+  return { allowed: used < limit, used, limit, unlimited: false, tier };
 }
 
 /* ------------------- Anonymous traffic ledger (D3 fix) -------------------

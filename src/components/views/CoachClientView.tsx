@@ -136,7 +136,10 @@ export function CoachClientView({ clientId }: { clientId: string }) {
  const [approving, setApproving] = useState<string | null>(null);
  const [viewingPlan, setViewingPlan] = useState<any | null>(null);
  // 0034: per-client AI quota readout (4 nutrition + 4 workout per client)
- type AiUsage = { unlimited: boolean; limit: number; nutrition: { used: number; limit: number }; workout: { used: number; limit: number } };
+ // 2026-09-01: + clientBalance — the client's monthly plan pool fed by BOTH
+ // the coach's generate button AND the member's own EVO chat (owner:
+ // «توليد الخطط بيتحسب من الرصيد سواء عن طريق المدرب او عن طريق ايفو»).
+ type AiUsage = { unlimited: boolean; limit: number; nutrition: { used: number; limit: number }; workout: { used: number; limit: number }; clientBalance?: { tier: string; nutrition: { used: number; limit: number; unlimited: boolean }; workout: { used: number; limit: number; unlimited: boolean } } };
  const [aiUsage, setAiUsage] = useState<AiUsage | null>(null);
 
  // ── OWNER DECREE (2026-08-30): «المدرب قدر يولد خطط للعميل بدون ما يدفع
@@ -2670,17 +2673,32 @@ function CoachAIPlanGenerator({
  generating: string | null;
  onGenerate: (planType: "workout" | "nutrition", overrides?: any) => Promise<void>;
  t: (key: string) => string;
- quota: { unlimited: boolean; limit: number; nutrition: { used: number; limit: number }; workout: { used: number; limit: number } } | null;
+ quota: { unlimited: boolean; limit: number; nutrition: { used: number; limit: number }; workout: { used: number; limit: number }; clientBalance?: { tier: string; nutrition: { used: number; limit: number; unlimited: boolean }; workout: { used: number; limit: number; unlimited: boolean } } } | null;
  lang: "ar" | "en";
 }) {
  const isAr = lang === "ar";
- const atCap = (k: "nutrition" | "workout") =>
- !!quota && !quota.unlimited && quota[k].used >= quota[k].limit;
+ // Generation is blocked when EITHER cap is reached: the coach's own
+ // 4/4 per-client cap OR the client's monthly plan balance (shared pool
+ // with the member's EVO chat — 2026-09-01 owner decree).
+ const atCap = (k: "nutrition" | "workout") => {
+ if (quota?.unlimited) return false;
+ if (quota && quota[k].used >= quota[k].limit) return true;
+ const cb = quota?.clientBalance?.[k];
+ return !!cb && !cb.unlimited && cb.used >= cb.limit;
+ };
  const usageLine = (k: "nutrition" | "workout") => {
  if (!quota || quota.unlimited) return null;
+ const cb = quota.clientBalance?.[k];
  return (
  <div className="mt-0.5 text-[11px] font-medium text-muted-foreground">
- {quota[k].used}/{quota[k].limit} {isAr ? "مستخدمة" : "used"}
+ <span>{quota[k].used}/{quota[k].limit} {isAr ? "مستخدمة" : "used"}</span>
+ {cb && !cb.unlimited ? (
+ <span className="block text-[11px]">
+ {isAr
+ ? `رصيد العميل الشهري (توليدك + ايفو): ${cb.used}/${cb.limit}`
+ : `Client's monthly balance (your + EVO generations): ${cb.used}/${cb.limit}`}
+ </span>
+ ) : null}
  </div>
  );
  };
@@ -2780,8 +2798,8 @@ function CoachAIPlanGenerator({
  {(atCap("nutrition") || atCap("workout")) && (
  <p className="mt-3 rounded-xl border border-amber-500/30 bg-amber-500/5 px-3 py-2 text-xs font-medium text-amber-600">
  {isAr
- ? "وصلت الحد الأقصى للتوليد بالذكاء الاصطناعي عند العميل ده — التعديل على الخطط والرفع اليدوي متاح بدون حدود."
- : "AI generation cap reached for this client — editing plans and manual uploads stay unlimited."}
+ ? "وصلت حدود التوليد بالذكاء الاصطناعي عند العميل ده — التوليد منك أو من ايفو بيخصم من نفس رصيده الشهري. التعديل على الخطط والرفع اليدوي متاح بدون حدود."
+ : "AI generation caps reached for this client — your generations and the member's EVO ones draw from the same monthly balance. Editing plans and manual uploads stay unlimited."}
  </p>
  )}
 

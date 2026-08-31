@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireUser, requireCoach, isAuthConfigured } from "@/lib/auth-server";
-import { checkAndRecordSwap } from "@/lib/tier-limits";
+import { checkAndRecordSwap, checkClientPlanQuota, type EvoPlanKind } from "@/lib/tier-limits";
 import { COACH_AI_PLAN_LIMIT, coachAiMonthStartISO } from "@/lib/coach-limits";
 import {
   isAiJobType,
@@ -172,6 +172,30 @@ export async function POST(request: NextRequest) {
             code: "client_not_activated",
           },
           { status: 402 },
+        );
+      }
+      // ── OWNER DECREE (2026-09-01): «توليد الخطط بيتحسب من الرصيد سواء
+      // عن طريق المدرب او عن طريق ايفو» — the coach's generation burns the
+      // CLIENT's monthly plan balance (same pool the member's EVO widget
+      // shows: evo_chat_usage + done ai_jobs for this client). The client's
+      // TIER decides the limit (premium 3/3 · pro 6/6 · coaching 3/3).
+      // Soft-quota convention: completed EVO dispatches + done jobs count;
+      // pending jobs can race past by a 1-off (same documented parity as
+      // the weekly swaps).
+      const clientKind: EvoPlanKind =
+        type === "plan_nutrition" ? "nutrition" : "workout";
+      const clientQuota = await checkClientPlanQuota(clientId, clientKind);
+      if (!clientQuota.unlimited && !clientQuota.allowed) {
+        const kindAr = type === "plan_nutrition" ? "تغذية" : "تمارين";
+        return NextResponse.json(
+          {
+            error: `رصيد الخطط الشهري للعميل خلص (${clientQuota.used}/${clientQuota.limit} خطط ${kindAr}). التوليد — منك أو من ايفو عند العميل — بيخصم من نفس الرصيد، وبيتصفّر أول الشهر. تقدر تعدّل الخطة الحالية أو ترفع خطة يدوي من غير حدود.`,
+            code: "client_plan_quota_exhausted",
+            rateLimited: true,
+            used: clientQuota.used,
+            limit: clientQuota.limit,
+          },
+          { status: 429, headers: { "Retry-After": "86400" } },
         );
       }
       const { count, error: cntErr } = await supabaseAdmin

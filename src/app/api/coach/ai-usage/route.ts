@@ -2,21 +2,26 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireUser } from "@/lib/auth-server";
 import { supabaseAdmin, isSupabaseAdminConfigured } from "@/lib/supabase/admin";
 import { COACH_AI_PLAN_LIMIT, coachAiMonthStartISO } from "@/lib/coach-limits";
+import { checkClientPlanQuota, type EvoPlanKind } from "@/lib/tier-limits";
 
 /**
  * COACH AI QUOTA READOUT (0034) — GET /api/coach/ai-usage?clientId=<uuid>
  *
  * Owner rule: AI plan generation is capped PER CLIENT —
  *   4 nutrition + 4 workout plans (COACH_AI_PLAN_LIMIT).
- * Editing plans and manual uploads are unlimited; site clients keep
- * their own tier limits unchanged.
+ * Editing plans and manual uploads are unlimited.
  *
- * Counting source = ai_jobs rows (requested_by = this coach, job_type =
- * plan_nutrition | plan_workout, status = 'done', payload->>'clientId'
- * = this client). Done-only means failed generations never burn the
- * coach's quota.
+ * 2026-09-01 (owner: «توليد الخطط بيتحسب من الرصيد سواء عن طريق المدرب
+ * او عن طريق ايفو»): the response ALSO carries `clientBalance` — the
+ * client's monthly plan pool (tier-decided limit) counting BOTH sources:
+ * the member's own EVO generations (evo_chat_usage) + coach/admin done
+ * ai_jobs for this client. Enforced identically in /api/ai/jobs (coach)
+ * and /api/ai/chat (member), displayed identically in the member's EVO
+ * widget (/api/ai/quota).
  *
- * Admins are UNLIMITED (staff quota semantics) — unlimited: true.
+ * Coach counting source = ai_jobs rows (requested_by = this coach, done,
+ * payload->>'clientId' = this client) — failed generations never burn the
+ * coach's own 4/4 cap. Admins are UNLIMITED (staff semantics).
  */
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -83,9 +88,11 @@ export async function GET(request: NextRequest) {
   }
 
   const unlimited = auth.role === "admin";
-  const [nutrition, workout] = await Promise.all([
+  const [nutrition, workout, clientNutrition, clientWorkout] = await Promise.all([
     countCompleted(auth.id, "plan_nutrition", clientId),
     countCompleted(auth.id, "plan_workout", clientId),
+    checkClientPlanQuota(clientId, "nutrition" as EvoPlanKind),
+    checkClientPlanQuota(clientId, "workout" as EvoPlanKind),
   ]);
 
   return NextResponse.json({
@@ -93,5 +100,21 @@ export async function GET(request: NextRequest) {
     limit: COACH_AI_PLAN_LIMIT,
     nutrition: { used: nutrition, limit: COACH_AI_PLAN_LIMIT },
     workout: { used: workout, limit: COACH_AI_PLAN_LIMIT },
+    // 2026-09-01 owner decree: the CLIENT's monthly plan balance — one
+    // pool fed by BOTH the coach's generation button and the member's EVO
+    // chat. `used` here mirrors /api/ai/quota exactly.
+    clientBalance: {
+      tier: clientNutrition.tier,
+      nutrition: {
+        used: clientNutrition.used,
+        limit: clientNutrition.limit,
+        unlimited: clientNutrition.unlimited,
+      },
+      workout: {
+        used: clientWorkout.used,
+        limit: clientWorkout.limit,
+        unlimited: clientWorkout.unlimited,
+      },
+    },
   });
 }

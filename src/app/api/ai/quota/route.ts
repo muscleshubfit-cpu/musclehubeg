@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/auth-server";
 import {
   countTodayChatUsage,
-  countThisMonthPlanUsage,
+  countClientPlanUsage,
   planQuotaFor,
   evoChatLimitFor,
   type EvoPlanKind,
@@ -19,7 +19,11 @@ import {
  *   - workout:   this month's workout-plan generations vs monthly quota
  *
  * Counting reads the SAME tamper-proof ledgers the enforcement writes
- * (evo_chat_usage / plan_swaps) so display always matches enforcement.
+ * (evo_chat_usage + done ai_jobs) so display always matches enforcement.
+ * 2026-09-01 (owner): «توليد الخطط بيتحسب من الرصيد سواء عن طريق المدرب
+ * او عن طريق ايفو» — plan `used` is the COMBINED pool (member's own EVO
+ * generations + coach/admin AI generations for this member), identical
+ * to what the chat check and the coach-enqueue check deduct from.
  * Read-only — nothing is recorded here.
  */
 export async function GET(request: NextRequest) {
@@ -53,7 +57,7 @@ export async function GET(request: NextRequest) {
   const plans: Record<string, { used: number; limit: number | null; unlimited: boolean }> = {};
   for (const kind of kinds) {
     const limit = planQuotaFor(tier, kind);
-    const used = limit === null ? 0 : await countThisMonthPlanUsage(auth.id, kind);
+    const used = limit === null ? 0 : await countClientPlanUsage(auth.id, kind);
     plans[kind] = {
       used,
       limit,
