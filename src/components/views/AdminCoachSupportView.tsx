@@ -21,6 +21,7 @@ type Thread = {
   subject: string;
   body: string;
   status: string;
+  priority?: string | null;
   created_at: string;
   messages: Msg[];
 };
@@ -121,7 +122,15 @@ export function AdminCoachSupportView() {
             <div key={th.id} className="rounded-3xl border border-[#d2d2d7] p-6">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div>
-                  <p className="text-sm font-semibold">{th.subject}</p>
+                  <p className="text-sm font-semibold">
+                    {th.subject}
+                    {/* PHASE 68 — priority support (coaching tier → high) */}
+                    {th.priority === "high" && (
+                      <span className="ms-2 rounded-full bg-[#ff3b30]/10 px-2 py-0.5 text-[10px] font-semibold text-[#ff3b30]">
+                        {isAr ? "أولوية" : "PRIORITY"}
+                      </span>
+                    )}
+                  </p>
                   <p className="text-xs font-normal text-[#6e6e73]">
                     {th.coach_name || th.coach_id.slice(0, 8)} {th.coach_email ? `· ${th.coach_email}` : ""} · {fmt(th.created_at)}
                   </p>

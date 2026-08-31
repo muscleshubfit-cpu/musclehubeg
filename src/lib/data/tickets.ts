@@ -26,6 +26,23 @@ export async function listTickets(clientId: string) {
 
 export async function createTicket(clientId: string, subject: string, body: string) {
  if (isSupabaseConfigured && supabase) {
+ // PHASE 68 — priority support (owner-approved): creation now goes through
+ // /api/support/tickets (server) so the priority decision is made
+ // SERVER-SIDE from the caller's ACTIVE coaching subscription
+ // (coaching → 'high', else 'normal') and cannot be client-forged.
+ try {
+ const res = await fetch("/api/support/tickets", {
+ method: "POST",
+ headers: { "Content-Type": "application/json" },
+ body: JSON.stringify({ subject, body }),
+ });
+ const json = await res.json().catch(() => null);
+ if (res.ok && json?.ok) return json.ticket;
+ console.error("[tickets] create route failed:", res.status, json?.error ?? json?.message);
+ } catch (e: any) {
+ console.error("[tickets] create route unreachable:", e?.message);
+ }
+ // Legacy fallback — direct client insert (RLS: own rows), normal priority.
  const { data: ticket, error } = await supabase
  .from("support_tickets")
  .insert({ client_id: clientId, subject, status: "open", priority: "normal" })

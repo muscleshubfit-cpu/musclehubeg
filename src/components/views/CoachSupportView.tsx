@@ -12,7 +12,7 @@ import {
 import { toast } from "sonner";
 
 export function CoachSupportView() {
-  const { t } = useI18n();
+  const { t, lang: uiLang } = useI18n();
   const [tickets, setTickets] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -88,6 +88,12 @@ export function CoachSupportView() {
                   </span>
                   <span className="block truncate text-xs font-normal text-[#6e6e73]">{tk.subject}</span>
                 </span>
+                {/* PHASE 68 — priority support (coaching tier → high) */}
+                {tk.priority === "high" && (
+                  <span className="shrink-0 rounded-full bg-[#ff3b30]/10 px-2 py-0.5 text-[10px] font-semibold text-[#ff3b30]">
+                    {uiLang === "ar" ? "أولوية" : "PRIORITY"}
+                  </span>
+                )}
                 <StatusPill status={tk.status} t={t} />
               </button>
             ))

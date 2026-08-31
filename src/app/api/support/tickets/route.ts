@@ -153,6 +153,17 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const rawBody = await request.json().catch(() => ({} as Record<string, unknown>));
+
+  // ── PHASE 68 — MEMBER TICKET CREATION (owner-approved priority support).
+  // { subject, body } without ticketId = a member opening a NEW ticket.
+  // Runs SERVER-SIDE so the priority decision is not client-forged:
+  // an ACTIVE coaching subscription → priority='high', else 'normal'.
+  const subject = String(rawBody.subject ?? "").trim();
+  if (!rawBody.ticketId && subject) {
+    return memberCreateTicket(request, subject, String(rawBody.body ?? "").trim());
+  }
+
   const auth = await requireStaff(request);
   if (auth instanceof Response) return auth;
 
@@ -160,7 +171,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Server not configured" }, { status: 500 });
   }
 
-  const body = await request.json().catch(() => ({} as Record<string, unknown>));
+  const body = rawBody;
   const ticketId = String(body.ticketId ?? "").trim();
   const text = String(body.body ?? "").trim().slice(0, MAX_BODY);
   const status = String(body.status ?? "").trim();
@@ -241,4 +252,74 @@ export async function POST(request: NextRequest) {
   }
 
   return NextResponse.json({ ok: true });
+}
+
+/**
+ * PHASE 68 — member ticket creation with server-decided priority.
+ * Coaching-tier members (active coaching subscription, end_date > now)
+ * get priority='high'; everyone else 'normal'. Mirrors the legacy
+ * client-side insert (ticket + first message + staff bell) with the
+ * service role.
+ */
+async function memberCreateTicket(
+  request: NextRequest,
+  subject: string,
+  text: string,
+): Promise<Response> {
+  const auth = await requireUser(request);
+  if (auth instanceof Response) return auth;
+
+  if (!isSupabaseAdminConfigured || !supabaseAdmin) {
+    return NextResponse.json({ error: "Server not configured" }, { status: 500 });
+  }
+
+  if (subject.length < 3 || subject.length > 200 || text.length === 0) {
+    return NextResponse.json(
+      { error: "bad_request", message: "اكتب موضوعًا ونصًا للرسالة" },
+      { status: 400 },
+    );
+  }
+
+  // Priority rule: active PAID coaching subscription → high
+  const { data: coachingSub } = await supabaseAdmin
+    .from("subscriptions")
+    .select("id")
+    .eq("client_id", auth.id)
+    .eq("tier", "coaching")
+    .eq("status", "active")
+    .gt("end_date", new Date().toISOString())
+    .limit(1)
+    .maybeSingle();
+  const priority = coachingSub ? "high" : "normal";
+
+  const { data: ticket, error: ticketErr } = await supabaseAdmin
+    .from("support_tickets")
+    .insert({ client_id: auth.id, subject: subject.slice(0, 200), status: "open", priority })
+    .select()
+    .single();
+  if (ticketErr || !ticket) {
+    return NextResponse.json(
+      { error: "insert_failed", message: ticketErr?.message ?? "تعذر إنشاء التذكرة" },
+      { status: 500 },
+    );
+  }
+
+  await supabaseAdmin
+    .from("ticket_messages")
+    .insert({ ticket_id: (ticket as { id: string }).id, sender_id: auth.id, body: text.slice(0, MAX_BODY) });
+
+  // Staff bell (same wording/routing as the legacy client-side path)
+  await supabaseAdmin
+    .from("admin_notifications")
+    .insert({
+      type: "new_ticket",
+      title: "تذكرة دعم جديدة ",
+      body: `موضوع: ${subject.slice(0, 200)}${priority === "high" ? " — أولوية (عضوية كوتشينج)" : ""}`,
+      link: "coach-support",
+      target_coach_id: auth.id,
+      read: false,
+    })
+    .then(undefined, () => {});
+
+  return NextResponse.json({ ok: true, ticket, priority });
 }

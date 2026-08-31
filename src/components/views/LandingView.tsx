@@ -931,8 +931,8 @@ export function LandingView() {
           <Reveal delay={150}>
             <p className="mx-auto mt-4 max-w-md text-base font-normal md:text-lg" style={{ color: PALETTE.textSec }}>
               {isAr
-                ? "افتح القوة الكاملة للذكاء الاصطناعي والمحتوى المميز بعضوية Premium أو Pro."
-                : "Unlock the full power of AI and premium content with a Premium or Pro membership."}
+                ? "افتح القوة الكاملة للذكاء الاصطناعي بعضوية Premium أو Pro."
+                : "Unlock the full power of AI with a Premium or Pro membership."}
             </p>
           </Reveal>
 

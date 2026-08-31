@@ -47,6 +47,12 @@ export default function ProfilePage() {
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // PHASE 68 — subscription management (owner-approved cancel flow).
+  // The FAQ promises «ألغِ في أي وقت» — this is the backing UI.
+  const [subEndDate, setSubEndDate] = useState<string | null>(null);
+  const [cancelRequested, setCancelRequested] = useState(false);
+  const [cancelBusy, setCancelBusy] = useState(false);
+
   // Determine membership tier via the useMembershipTier hook
   // (queries subscriptions table — NOT the missing profile.membership_tier field)
   const { tier } = useMembershipTier(profile);
@@ -60,6 +66,62 @@ export default function ProfilePage() {
       setAvatarUrl(profile.avatar_url);
     }
   }, [profile]);
+
+  // PHASE 68 — read the active subscription's end date + cancel state
+  // (client SELECT own rows is allowed by 0041 subs_select_owner_or_coach)
+  useEffect(() => {
+    if (!profile || isCoach || isAdmin || !supabase) return;
+    const nowIso = new Date().toISOString();
+    supabase
+      .from("subscriptions")
+      .select("end_date, cancel_requested_at")
+      .eq("client_id", profile.id)
+      .eq("status", "active")
+      .gt("end_date", nowIso)
+      .order("end_date", { ascending: false })
+      .limit(1)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data) {
+          setSubEndDate(data.end_date);
+          setCancelRequested(!!data.cancel_requested_at);
+        } else {
+          setSubEndDate(null);
+          setCancelRequested(false);
+        }
+      });
+  }, [profile, isCoach, isAdmin]);
+
+  const requestCancelSubscription = async () => {
+    const confirmed = confirm(
+      isAr
+        ? "تأكيد طلب إلغاء الاشتراك؟ باقتك هتفضل شغالة لآخر مدة دفعتها، ومفيش أي خصم تلقائي بعدها."
+        : "Confirm cancellation request? Your plan stays active until the end of the period you paid for, and nothing renews automatically.",
+    );
+    if (!confirmed) return;
+    setCancelBusy(true);
+    try {
+      const res = await fetch("/api/subscription/cancel", { method: "POST" });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body?.message || "Request failed");
+      }
+      setCancelRequested(true);
+      toast.success(
+        isAr
+          ? "تم تسجيل طلب الإلغاء — باقتك شغالة لآخر مدة مدفوعة"
+          : "Cancellation recorded — your plan stays active until the period ends",
+      );
+    } catch (e) {
+      toast.error(
+        e instanceof Error && e.message
+          ? e.message
+          : isAr ? "حصل خطأ — جرب تاني" : "Something went wrong",
+      );
+    } finally {
+      setCancelBusy(false);
+    }
+  };
 
   // Redirect to auth if not logged in
   useEffect(() => {
@@ -276,6 +338,37 @@ export default function ProfilePage() {
             );
           })}
         </div>
+
+        {/* PHASE 68 — subscription management (cancel request, owner-approved).
+            Members only; staff resolve to the coaching tier by default. */}
+        {!isCoach && !isAdmin && tier !== "free" && (
+          <div className="mt-4 rounded-3xl bg-white p-6 md:p-8">
+            <h2 className="text-lg font-semibold tracking-tight">
+              {isAr ? "إدارة الاشتراك" : "Subscription"}
+            </h2>
+            <p className="mt-2 text-sm font-normal text-[#6e6e73]">
+              {isAr
+                ? `باقتك الحالية: ${membership?.nameAr ?? tier}${subEndDate ? ` — شغالة حتى ${new Date(subEndDate).toLocaleDateString(isAr ? "ar-EG" : "en-US")}` : ""}. مفيش أي خصم تلقائي في الموقع — اشتراكك بينتهي لوحده لو ما جدّدتش.`
+                : `Current plan: ${membership?.nameEn ?? tier}${subEndDate ? ` — active until ${new Date(subEndDate).toLocaleDateString(isAr ? "ar-EG" : "en-US")}` : ""}. Nothing renews automatically — your plan simply ends if you don't pay again.`}
+            </p>
+            {cancelRequested ? (
+              <p className="mt-4 inline-flex items-center gap-2 rounded-full bg-[#ff9500]/10 px-4 py-2 text-xs font-medium text-[#ff9500]">
+                {isAr
+                  ? "طلب الإلغاء مسجل — باقتك شغالة لآخر مدة مدفوعة"
+                  : "Cancellation recorded — your plan stays active until the period ends"}
+              </p>
+            ) : (
+              <button
+                onClick={requestCancelSubscription}
+                disabled={cancelBusy || !subEndDate}
+                className="mt-4 inline-flex items-center gap-2 rounded-full border border-[#d2d2d7] px-5 py-2.5 text-sm font-medium text-[#1d1d1f] transition-opacity hover:opacity-80 disabled:opacity-50"
+              >
+                {cancelBusy && <Loader2 className="h-4 w-4 animate-spin" />}
+                {isAr ? "إلغاء الاشتراك" : "Cancel subscription"}
+              </button>
+            )}
+          </div>
+        )}
 
         {/* Edit profile */}
         <div className="mt-4 rounded-3xl bg-white p-6 md:p-8">

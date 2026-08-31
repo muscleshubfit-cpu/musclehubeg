@@ -327,8 +327,8 @@ export default function MembershipsPage({ lang: langProp }: { lang?: Lang } = {}
               {
                 q: isAr ? "هل أقدر ألغي في أي وقت؟" : "Can I cancel anytime?",
                 a: isAr
-                  ? "نعم، تقدر تلغي اشتراكك في أي وقت من صفحة حسابك."
-                  : "Yes, you can cancel your subscription anytime from your account page.",
+                  ? "نعم، من صفحة حسابك اضغط «إلغاء الاشتراك». مفيش خصم تلقائي — باقتك هتفضل شغالة لآخر مدة دفعتها وبعدها تخلص لو ما جدّدتش."
+                  : "Yes — on your account page press “Cancel subscription”. Nothing auto-renews: your plan stays active until the period you paid for ends, then simply stops unless you pay again.",
               },
               {
                 q: isAr ? "هل فيه سياسة استرداد؟" : "Is there a refund policy?",

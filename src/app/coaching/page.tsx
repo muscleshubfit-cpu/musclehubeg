@@ -405,38 +405,52 @@ export default function CoachingPage() {
             </Reveal>
             <Reveal delay={150}>
               <p className="mx-auto mt-4 max-w-xl text-center text-lg font-normal text-[#6e6e73] md:text-xl">
-                {isAr ? "باقتين تناسب كل هدف." : "Two plans for every goal."}
+                {isAr ? "باقة كوتشينج واحدة بكل حاجة." : "One coaching plan with everything."}
               </p>
             </Reveal>
-            <div className="mt-16 grid gap-5 md:grid-cols-2 md:gap-6">
-              {[
-                { name: "Starter", price: "$20", period: isAr ? "/شهر" : "/mo", features: [isAr ? "2 تبديل يومي" : "2 daily swaps", isAr ? "خطة تغذية + تمارين" : "Nutrition + workout", isAr ? "مساعد EVO" : "EVO AI coach", isAr ? "تتبع تقدم" : "Progress tracking"], highlight: false },
-                { name: "Elite", price: "$40", period: isAr ? "/شهر" : "/mo", features: [isAr ? "تبديلات غير محدودة" : "Unlimited swaps", isAr ? "كوتشينج VIP" : "VIP coaching", isAr ? "استجابة فورية" : "Instant response", isAr ? "أقصى مساءلة" : "Max accountability"], highlight: true },
-              ].map((p, i) => (
-                <Reveal key={i} delay={i * 150}>
-                  <div className={`h-full rounded-3xl p-8 md:p-10 ${p.highlight ? "bg-black text-white" : "bg-[#f5f5f7] text-[#1d1d1f]"}`}>
-                    <h3 className="text-xl font-semibold tracking-tight md:text-2xl">{p.name}</h3>
-                    <div className="mt-4 flex items-baseline gap-1">
-                      <span className="text-4xl font-semibold tracking-tight md:text-5xl">{p.price}</span>
-                      <span className="text-base font-normal opacity-60">{p.period}</span>
-                    </div>
-                    <ul className="mt-8 space-y-3 text-base font-normal">
-                      {p.features.map((f, j) => (
-                        <li key={j} className="flex items-start gap-3">
-                          <Check className="mt-0.5 h-5 w-5 shrink-0 opacity-60" />
-                          <span>{f}</span>
-                        </li>
-                      ))}
-                    </ul>
-                    <button
-                      onClick={() => goToCheckout(p.name === "Starter" ? "starter" : "elite")}
-                      className={`mt-8 w-full rounded-full px-6 py-3 text-base font-normal transition-opacity hover:opacity-90 ${p.highlight ? "bg-white text-black" : "bg-[#0071e3] text-white"}`}
-                    >
-                      {isAr ? "ابدأ الآن" : "Get Started"}
-                    </button>
+            {/* PHASE 68 (owner-approved): the legacy Starter $20 / Elite $40
+                cards are REMOVED from display — they silently remapped to
+                premium/pro at activation and confused pricing. The canonical
+                Coaching membership (memberships.ts) is the single offer.
+                Old checkout links (?tier=starter/elite) stay valid. */}
+            <div className="mx-auto mt-16 max-w-xl">
+              <Reveal>
+                <div className="h-full rounded-3xl bg-black p-8 text-white md:p-10">
+                  <h3 className="text-xl font-semibold tracking-tight md:text-2xl">
+                    {isAr ? "كوتشينج" : "Coaching"}
+                  </h3>
+                  <div className="mt-4 flex items-baseline gap-1">
+                    <span className="text-4xl font-semibold tracking-tight md:text-5xl">$39.99</span>
+                    <span className="text-base font-normal opacity-60">{isAr ? "/شهر" : "/mo"}</span>
                   </div>
-                </Reveal>
-              ))}
+                  <p className="mt-1 text-sm font-normal opacity-60">{isAr ? "أو $359 سنويًا" : "or $359/yr"}</p>
+                  <ul className="mt-8 space-y-3 text-base font-normal">
+                    {[isAr ? "خطط تغذية وتمارين من مدرب بشري" : "Nutrition + workout plans from a human coach",
+                      isAr ? "EVO: محادثة غير محدودة وذاكرة دائمة" : "EVO: unlimited chat + cross-session memory",
+                      isAr ? "متابعة أسبوعية بتذكير تلقائي" : "Weekly check-in reminders",
+                      isAr ? "تبديلات يدوية من المدرب" : "Manual swaps by the coach",
+                      isAr ? "تذاكر دعم أولوية" : "Priority support tickets",
+                      isAr ? "تواصل مباشر مع المدرب" : "Direct contact with the coach"].map((f, j) => (
+                      <li key={j} className="flex items-start gap-3">
+                        <Check className="mt-0.5 h-5 w-5 shrink-0 opacity-60" />
+                        <span>{f}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <button
+                    onClick={() => goToCheckout("coaching")}
+                    className="mt-8 w-full rounded-full bg-[#0071e3] px-6 py-3 text-base font-normal text-white transition-opacity hover:opacity-90"
+                  >
+                    {isAr ? "ابدأ الآن" : "Get Started"}
+                  </button>
+                  <a
+                    href={isAr ? "/ar/memberships" : "/memberships"}
+                    className="mt-4 block text-center text-sm font-normal opacity-60 transition-opacity hover:opacity-90"
+                  >
+                    {isAr ? "مقارنة كل الباقات ›" : "Compare all memberships ›"}
+                  </a>
+                </div>
+              </Reveal>
             </div>
             <Reveal delay={400}>
               <div className="mt-12 text-center">
@@ -460,8 +474,8 @@ export default function CoachingPage() {
               <Accordion type="single" collapsible className="mt-12">
                 {[
                   { q: isAr ? "ما هو الكوتشينج في Musclehubeg؟" : "What is Musclehubeg coaching?", a: isAr ? "كوتشينج أونلاين مع مدربين وأخصائيين تغذية محترفين. خطط مخصصة + EVO AI + متابعة شخصية." : "Online coaching with professional coaches and nutrition specialists. Personalized plans + EVO AI + personal follow-up." },
-                  { q: isAr ? "من هو EVO؟" : "Who is EVO?", a: isAr ? "محرك الأداء الذكي. مش شات بوت — بيحلل بياناتك ويحدّث خططك تلقائياً." : "The intelligent performance engine. Not a chatbot — it analyzes your data and updates plans automatically." },
-                  { q: isAr ? "هل الخطط مخصصة؟" : "Are plans personalized?", a: isAr ? "نعم، كل خطة تُبنى من استبياناتك وتتحدث أسبوعياً." : "Yes, built from your questionnaires, updated weekly." },
+                  { q: isAr ? "من هو EVO؟" : "Who is EVO?", a: isAr ? "محرك الأداء الذكي. مش شات بوت — بيرد على أسئلتك، يبني لك خطط، ويقدر يحفظها في لوحة خططك مع إمكانية استبدال الوجبات والتمارين." : "The intelligent performance engine. Not a chatbot — it answers your questions, builds plans, and can save them to your plans dashboard with meal/exercise swaps." },
+                  { q: isAr ? "هل الخطط مخصصة؟" : "Are plans personalized?", a: isAr ? "نعم، كل خطة بتتبني من استبياناتك على يد مدرب بشري، وتقدر تطلب استبدالات من خطتك في أي وقت." : "Yes, every plan is built from your questionnaires by a human coach, and you can request swaps anytime." },
                   { q: isAr ? "هل المدربين حقيقيين؟" : "Are the coaches real?", a: isAr ? "نعم، المدربين حقيقيين ويراجعون خططك بنفسهم." : "Yes, real coaches review your plans personally." },
                   { q: isAr ? "طرق الدفع؟" : "Payment methods?", a: isAr ? "PayPal (الطريقة الرئيسية)، InstaPay، و Vodafone Cash." : "PayPal (primary), InstaPay, and Vodafone Cash." },
                   { q: isAr ? "بياناتي آمنة؟" : "Is my data secure?", a: isAr ? "نعم، مشفرة على Supabase مع RLS." : "Yes, encrypted on Supabase with RLS." },
