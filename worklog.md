@@ -3619,3 +3619,12 @@ Work Log:
 
 Stage Summary:
 - Feature verified working end-to-end on production within soft-roll limits; certificates section activates after the owner runs migration 0049 (raw link + how-to in QA_CHECKLIST Phase 57)
+
+## Phases 65-69 (2026-09-01) — Affiliate engine + honest copy + cancel + priority + EVO
+- 0057 auto-applied: engine tables + signup-referral trigger (SECURITY DEFINER) + coach_client_activation + cancel_requested_at
+- Phase 66: server-side engine (processSubscriptionInitialPaymentServer / processCoachClientActivationServer / reversal) shared by PayPal capture + manual approval (/api/affiliate/commission) + coach activation hook; referral_code travels in signup metadata (client + /api/coach/register cookie read)
+- Phase 67: /coach/affiliate + /api/affiliate/referred-coaches + ReferralView «مدربين دعّيتهم» + AdminReferralsView coach panel + coach nav
+- Phase 68: dead advertised features removed (premium content, pattern analysis/prediction, save body data, weekly auto-updates, Starter/Elite display) + /api/subscription/cancel + profile subscription card + server-decided ticket priority (coaching→high) + staff badges
+- Phase 69: /api/ai/quota meter in widget + save-evo plans (/api/plans/member-edit) + swap persistence + meal-planner export gate + cross-session memory gated to paid
+- Gates every phase: tsc 0 / eslint 0-new / vitest 164/164 / build ✓ / :3779 bilingual smoke / production verified (tables exist, guards 401, /coaching clean)
+- Commits: f1322e3 (0057 alone) → c0ce65a (66) → 7abb5f5 (67) → eed4c7d (68) → 72c2f7c (69)
