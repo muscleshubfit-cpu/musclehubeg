@@ -78,7 +78,24 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         languages: { en: `${baseUrl}/foods`, ar: `${baseUrl}/ar/foods` },
       },
     },
-    { url: `${baseUrl}/programs`, lastModified, changeFrequency: "weekly", priority: 0.9 },
+    {
+      url: `${baseUrl}/programs`,
+      lastModified,
+      changeFrequency: "weekly",
+      priority: 0.9,
+      alternates: {
+        languages: { en: `${baseUrl}/programs`, ar: `${baseUrl}/ar/programs` },
+      },
+    },
+    {
+      url: `${baseUrl}/ar/programs`,
+      lastModified,
+      changeFrequency: "weekly",
+      priority: 0.9,
+      alternates: {
+        languages: { en: `${baseUrl}/programs`, ar: `${baseUrl}/ar/programs` },
+      },
+    },
     { url: `${baseUrl}/tools`, lastModified, changeFrequency: "weekly", priority: 0.9 },
     { url: `${baseUrl}/evo`, lastModified, changeFrequency: "monthly", priority: 0.9 },
     {
@@ -223,13 +240,31 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     });
   }
 
-  // Add all program detail pages
+  // Add all program detail pages (+ AR mirrors)
   for (const prog of WORKOUT_PROGRAMS) {
     staticUrls.push({
       url: `${baseUrl}/programs/${prog.slug}`,
       lastModified,
       changeFrequency: "monthly",
       priority: 0.6,
+      alternates: {
+        languages: {
+          en: `${baseUrl}/programs/${prog.slug}`,
+          ar: `${baseUrl}/ar/programs/${prog.slug}`,
+        },
+      },
+    });
+    staticUrls.push({
+      url: `${baseUrl}/ar/programs/${prog.slug}`,
+      lastModified,
+      changeFrequency: "monthly",
+      priority: 0.6,
+      alternates: {
+        languages: {
+          en: `${baseUrl}/programs/${prog.slug}`,
+          ar: `${baseUrl}/ar/programs/${prog.slug}`,
+        },
+      },
     });
   }
 

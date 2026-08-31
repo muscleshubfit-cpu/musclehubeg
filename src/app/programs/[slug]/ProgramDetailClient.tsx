@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useI18n } from "@/lib/i18n";
+import { useI18n, type Lang } from "@/lib/i18n";
 import { SiteHeader } from "@/components/SiteHeader";
 import { ShareButtons } from "@/components/ShareButtons";
 import {
@@ -21,9 +21,18 @@ import { ImageWithFallback } from "@/components/ui/image-with-fallback";
  * Client component for program detail page.
  * Receives the program as a prop from the server component
  * (which generates metadata + JSON-LD schemas server-side).
+ * Accepts an optional `lang` prop — the /ar/programs/[slug] mirror
+ * passes lang="ar" to force Arabic rendering (ExercisesPage pattern).
  */
-export default function ProgramDetailClient({ program }: { program: WorkoutProgram | null }) {
-  const { lang } = useI18n();
+export default function ProgramDetailClient({
+  program,
+  lang: langProp,
+}: {
+  program: WorkoutProgram | null;
+  lang?: Lang;
+}) {
+  const { lang: ctxLang } = useI18n();
+  const lang = langProp ?? ctxLang;
   const isAr = lang === "ar";
   const [activeDay, setActiveDay] = useState(0);
 

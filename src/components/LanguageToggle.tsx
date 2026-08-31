@@ -16,6 +16,8 @@ import { getBlogPost, getLinkedPost } from "@/lib/blog";
  *   /blog        <-> /ar/blog
  *   /blog/[slug] <-> /ar/blog/[slug] (via linked_post_id)
  *   /exercises   <-> /ar/exercises
+ *   /programs    <-> /ar/programs (AR mirror 2026-08-31 — full-training
+ *                   audit follow-up; detail pages mirror the same way)
  *   /foods       <-> /ar/foods
  *   /memberships <-> /ar/memberships
  *   /about       <-> /ar/about (AR expansion 2026-08-30)
@@ -75,6 +77,7 @@ export function LanguageToggle() {
  { en: "/", ar: "/ar" },
  { en: "/blog", ar: "/ar/blog" },
  { en: "/exercises", ar: "/ar/exercises" },
+ { en: "/programs", ar: "/ar/programs" },
  { en: "/foods", ar: "/ar/foods" },
  { en: "/memberships", ar: "/ar/memberships" },
  { en: "/about", ar: "/ar/about" },

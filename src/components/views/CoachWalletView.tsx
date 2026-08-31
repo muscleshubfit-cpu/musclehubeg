@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { Upload, Copy, ExternalLink, Wallet, Loader2, Zap } from "lucide-react";
 import {
   COACH_TOPUP_METHODS,
+  COACH_CLIENT_PACKAGES,
   SITE_PAYMENT_CONTACTS,
   PAYPAL_TOPUP_MIN_USD,
   coachTopupMethodLabel,
@@ -334,9 +335,17 @@ export function CoachWalletView() {
               </span>
             </div>
             <p className="mt-3 text-sm font-normal text-white/60">
-              {isAr
-                ? `رسوم العميل الشهرية: ${fmt(data?.fee_per_client ?? 0)}$ — باقة ٣ شهور = ${fmt(16)}$ (سعر ثابت)، وأي مدة أخرى = الرسوم الشهرية × الشهور.`
-                : `Per-client monthly fee: ${fmt(data?.fee_per_client ?? 0)}$ — 3-month package = ${fmt(16)}$ (fixed price), any other duration = monthly fee × months.`}
+              {/* Effective monthly rate: the coach's admin-set fee if one
+                  exists, otherwise the $6 package rate (same fallback
+                  coachActivationCostUsd uses for non-package durations —
+                  the display must NEVER say 0$ while activation debits 6$). */}
+              {((): string => {
+                const set = Number(data?.fee_per_client ?? 0);
+                const eff = set > 0 ? set : COACH_CLIENT_PACKAGES[0].priceUsd;
+                return isAr
+                  ? `رسوم العميل الشهرية: ${fmt(eff)}$ — باقة ٣ شهور = ${fmt(16)}$ (سعر ثابت)، وأي مدة أخرى = ${fmt(eff)}$ × الشهور.`
+                  : `Per-client monthly fee: ${fmt(eff)}$ — 3-month package = ${fmt(16)}$ (fixed price), any other duration = ${fmt(eff)}$ × months.`;
+              })()}
             </p>
           </div>
 

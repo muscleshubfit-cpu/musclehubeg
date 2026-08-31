@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { useI18n } from "@/lib/i18n";
+import { useI18n, type Lang } from "@/lib/i18n";
 import { SiteHeader } from "@/components/SiteHeader";
 import {
   WORKOUT_PROGRAMS,
@@ -15,8 +15,15 @@ import {
 } from "@/lib/workout-programs";
 import Image from "next/image";
 
-export default function ProgramsPage() {
-  const { lang } = useI18n();
+/**
+ * Workout programs grid — /programs (canonical EN) + /ar/programs mirror.
+ * Accepts an optional `lang` prop: the /ar mirror passes lang="ar" to
+ * force Arabic rendering (same pattern as ExercisesPage), otherwise the
+ * page follows the user's toggle preference.
+ */
+export default function ProgramsPage({ lang: langProp }: { lang?: Lang } = {}) {
+  const { lang: ctxLang } = useI18n();
+  const lang = langProp ?? ctxLang;
   const isAr = lang === "ar";
 
   const [location, setLocation] = useState<ProgramLocation | "all">("all");
