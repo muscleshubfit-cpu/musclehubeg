@@ -12,6 +12,15 @@ import {
   type ReferralPayout,
 } from "@/lib/referral";
 import { toast } from "sonner";
+import { supabase, isSupabaseConfigured } from "@/lib/supabase/client";
+
+/** Phase 67 — recent coach-activation commission row (admin overview). */
+type CoachActivationRow = {
+  id: string;
+  amount: number;
+  created_at: string;
+  payer_name: string;
+};
 
 export function AdminReferralsView() {
   const { t, lang } = useI18n();
@@ -19,6 +28,8 @@ export function AdminReferralsView() {
   const [referrals, setReferrals] = useState<Referral[]>([]);
   const [payouts, setPayouts] = useState<ReferralPayout[]>([]);
   const [overview, setOverview] = useState<any>(null);
+  const [coachActivations, setCoachActivations] = useState<CoachActivationRow[]>([]);
+  const [coachTotals, setCoachTotals] = useState({ count: 0, total: 0, referredCoaches: 0 });
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<"referrals" | "payouts">("payouts");
 
@@ -32,6 +43,74 @@ export function AdminReferralsView() {
     setReferrals(refs);
     setPayouts(pays);
     setOverview(ov);
+    // PHASE 67 — coach-activation commissions (owner decree 2026-09-01:
+    // referred coaches are part of the affiliate system). Admin SELECT
+    // policies created by 0057; payer names resolved from profiles.
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const { data: commRows } = await supabase
+          .from("affiliate_commissions")
+          .select("id, amount, created_at, transaction_id")
+          .eq("commission_type", "coach_client_activation")
+          .order("created_at", { ascending: false })
+          .limit(50);
+        const list = (commRows ?? []) as {
+          id: string;
+          amount: number;
+          created_at: string;
+          transaction_id: string;
+        }[];
+        const txnIds = list.map((c) => c.transaction_id);
+        const payerById = new Map<string, string>();
+        if (txnIds.length > 0) {
+          const { data: txns } = await supabase
+            .from("affiliate_transactions")
+            .select("id, user_id")
+            .in("id", txnIds);
+          const userIds = ((txns ?? []) as { id: string; user_id: string }[])
+            .map((t) => t.user_id)
+            .filter(Boolean);
+          if (userIds.length > 0) {
+            const { data: profiles } = await supabase
+              .from("profiles")
+              .select("id, full_name, email")
+              .in("id", userIds);
+            const pById = new Map(
+              ((profiles ?? []) as { id: string; full_name: string | null; email: string | null }[]).map(
+                (p) => [p.id, p.full_name || p.email || "—"],
+              ),
+            );
+            for (const t of ((txns ?? []) as { id: string; user_id: string }[])) {
+              payerById.set(t.id, pById.get(t.user_id) ?? "—");
+            }
+          }
+        }
+        setCoachActivations(
+          list.map((c) => ({
+            id: c.id,
+            amount: Number(c.amount),
+            created_at: c.created_at,
+            payer_name: payerById.get(c.transaction_id) ?? "—",
+          })),
+        );
+        // Referred coaches WITH activations = distinct payers of
+        // coach_client_activation transactions (the KPI that pays)
+        const { data: txnRows } = await supabase
+          .from("affiliate_transactions")
+          .select("user_id")
+          .eq("transaction_type", "coach_client_activation");
+        const distinctPayers = new Set(
+          ((txnRows ?? []) as { user_id: string }[]).map((t) => t.user_id),
+        );
+        setCoachTotals({
+          count: list.length,
+          total: list.reduce((s, c) => s + Number(c.amount), 0),
+          referredCoaches: distinctPayers.size,
+        });
+      } catch (e) {
+        console.error("[AdminReferralsView] coach-activation load failed:", e);
+      }
+    }
     setLoading(false);
   };
 
@@ -99,6 +178,56 @@ export function AdminReferralsView() {
           </div>
         </div>
       )}
+
+      {/* PHASE 67 — coach-invite affiliate program (owner decree 2026-09-01) */}
+      <div className="rounded-3xl bg-[#f5f5f7] p-8">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="text-xl font-semibold tracking-tight">
+            {isAr ? "🤝 دعوات انضمام المدربين" : "🤝 Coach Join Invitations"}
+          </h2>
+          <div className="grid grid-cols-3 gap-3 text-center">
+            <div className="rounded-2xl bg-white px-4 py-3">
+              <p className="text-xl font-semibold tracking-tight">{coachTotals.referredCoaches}</p>
+              <p className="text-xs font-normal text-[#6e6e73]">{isAr ? "مدربين مدعوين" : "Referred coaches"}</p>
+            </div>
+            <div className="rounded-2xl bg-white px-4 py-3">
+              <p className="text-xl font-semibold tracking-tight">{coachTotals.count}</p>
+              <p className="text-xs font-normal text-[#6e6e73]">{isAr ? "عمولات تفعيل" : "Activation commissions"}</p>
+            </div>
+            <div className="rounded-2xl bg-white px-4 py-3">
+              <p className="text-xl font-semibold tracking-tight text-[#0071e3]">
+                ${coachTotals.total.toFixed(2)}
+              </p>
+              <p className="text-xs font-normal text-[#6e6e73]">{isAr ? "إجمالي العمولات" : "Total paid out"}</p>
+            </div>
+          </div>
+        </div>
+        <p className="mt-3 text-xs font-normal text-[#6e6e73]">
+          {isAr
+            ? "المدرب اللي سجل برابط أفيليت وبيفعّل عملائه بيولد 20% عمولة للي دعاه من كل تفعيل (6$ → 1.20$ / 16$ → 3.20$)."
+            : "A coach who signed up via an affiliate link earns his inviter 20% of every client activation fee ($6 → $1.20 / $16 → $3.20)."}
+        </p>
+        {coachActivations.length > 0 && (
+          <div className="mt-6 space-y-2">
+            {coachActivations.slice(0, 10).map((row) => (
+              <div
+                key={row.id}
+                className="flex items-center justify-between rounded-2xl bg-white p-4"
+              >
+                <div>
+                  <p className="text-sm font-medium">{row.payer_name}</p>
+                  <p className="mt-1 text-xs font-normal text-[#6e6e73]">
+                    {new Date(row.created_at).toLocaleDateString()}
+                  </p>
+                </div>
+                <span className="rounded-full bg-[#0071e3]/10 px-3 py-1 text-xs font-medium text-[#0071e3]">
+                  +${row.amount.toFixed(2)}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
 
       {/* Tabs */}
       <div className="inline-flex rounded-full bg-[#f5f5f7] p-1">

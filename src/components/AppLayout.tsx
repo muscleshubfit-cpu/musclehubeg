@@ -66,6 +66,10 @@ export function AppLayout({ children }: { children: ReactNode }) {
     // per client from this balance — top-up via InstaPay / Vodafone
     // Cash / PayPal + receipt → admin review. Activation debits it.
     { to: "coach-wallet", label: isAr ? "محفظتي" : "My Wallet", emoji: "👛" },
+    // PHASE 67 (owner decree 2026-09-01): a referred COACH is part of the
+    // affiliate system — every client activation he pays for earns his
+    // inviter 20%. This is HIS earnings mirror (staff version of /referral).
+    { to: "coach-affiliate", label: isAr ? "أفيليت المدربين" : "Coach Affiliate", emoji: "🤝" },
     // «أعلن معنا» (0037): fixed-duration ad packages — the featured card
     // runs on the homepage «مدربون مميزون» strip. Wallet debited.
     { to: "coach-ads", label: isAr ? "أعلن معنا" : "Advertise", emoji: "📣" },

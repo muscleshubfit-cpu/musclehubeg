@@ -24,11 +24,23 @@ import {
   Link2,
   TrendingUp,
   Users,
+  UserCheck,
   Coins,
   Wallet,
   FileText,
   LayoutGrid,
 } from "lucide-react";
+
+/** One referred coach, from GET /api/affiliate/referred-coaches (Phase 67). */
+type CoachReferralRow = {
+  coachId: string;
+  name: string;
+  emailMasked: string | null;
+  joinedAt: string;
+  referralStatus: string;
+  activations: number;
+  earned: number;
+};
 
 export function ReferralView() {
   const { t, lang } = useI18n();
@@ -36,6 +48,7 @@ export function ReferralView() {
   const isAr = lang === "ar";
   const [stats, setStats] = useState<ReferralStats | null>(null);
   const [affiliateStats, setAffiliateStats] = useState<AffiliateStats | null>(null);
+  const [coachReferrals, setCoachReferrals] = useState<CoachReferralRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [showPayoutModal, setShowPayoutModal] = useState(false);
 
@@ -50,12 +63,19 @@ export function ReferralView() {
     if (!profile) return;
     setLoading(true);
     try {
-      const [s, affS] = await Promise.all([
+      const [s, affS, coachRows] = await Promise.all([
         getReferralStats(profile.id),
         getAffiliateStats(profile.id),
+        // PHASE 67: «مدربين دعّيتهم» — server resolves the coach side
+        // (referrer usually can't read referred profiles through RLS).
+        fetch("/api/affiliate/referred-coaches")
+          .then((r) => (r.ok ? r.json() : { coaches: [] }))
+          .then((d) => (d?.coaches ?? []) as CoachReferralRow[])
+          .catch(() => [] as CoachReferralRow[]),
       ]);
       setStats(s);
       setAffiliateStats(affS);
+      setCoachReferrals(coachRows);
     } catch (e: any) {
       console.error("[ReferralView] load failed:", e?.message);
     } finally {
@@ -334,7 +354,7 @@ export function ReferralView() {
       </div>
 
       {/* Commission breakdown (affiliate engine) */}
-      {affiliateStats && (affiliateStats.initialCommissions > 0 || affiliateStats.renewalCommissions > 0 || affiliateStats.productCommissions > 0) && (
+      {affiliateStats && (affiliateStats.initialCommissions > 0 || affiliateStats.renewalCommissions > 0 || affiliateStats.productCommissions > 0 || affiliateStats.coachActivations > 0) && (
         <div className="rounded-3xl bg-[#f5f5f7] p-8">
           <h2 className="text-xl font-semibold tracking-tight">
             {isAr ? "تفصيل العمولات" : "Commission Breakdown"}
@@ -357,6 +377,21 @@ export function ReferralView() {
               <p className="mt-1 text-xs font-normal text-[#6e6e73]">{isAr ? "مرتجع" : "Reversed"}</p>
             </div>
           </div>
+          {/* PHASE 67 — owner decree: referred coaches' activation commissions */}
+          {affiliateStats.coachActivations > 0 && (
+            <div className="mt-4 rounded-2xl bg-[#0071e3]/5 p-4">
+              <p className="text-sm font-medium text-[#0071e3]">
+                {isAr
+                  ? `🤝 عمولات تفعيلات المدربين: ${affiliateStats.coachActivations} تفعيل — $${affiliateStats.coachActivationEarnings.toFixed(2)}`
+                  : `🤝 Coach activation commissions: ${affiliateStats.coachActivations} activations — $${affiliateStats.coachActivationEarnings.toFixed(2)}`}
+              </p>
+              <p className="mt-1 text-xs font-normal text-[#6e6e73]">
+                {isAr
+                  ? "كل تفعيل عميل بيدفعه مدرب دعوته بيولد لك 20% من رسوم الموقع."
+                  : "Every client activation a coach you invited pays earns you 20% of the site fee."}
+              </p>
+            </div>
+          )}
         </div>
       )}
 
@@ -406,6 +441,50 @@ export function ReferralView() {
             ))}
           </div>
         </div>
+      )}
+
+      {/* ── Section: REFERRED COACHES (Phase 67 — owner decree 2026-09-01) ── */}
+      {coachReferrals.length > 0 && (
+        <>
+          <SectionHeader
+            id="sec-coaches"
+            icon={<UserCheck className="h-4 w-4" aria-hidden="true" />}
+            title={isAr ? "مدربين دعّيتهم" : "COACHES YOU INVITED"}
+          />
+          <div className="rounded-3xl bg-[#f5f5f7] p-8">
+            <p className="text-sm font-normal text-[#6e6e73]">
+              {isAr
+                ? `كل تفعيل عميل بيدفعه المدرب للموقع بيولد لك ${(COMMISSION_RATE * 100).toFixed(0)}% عمولة تلقائيًا.`
+                : `Every client activation a referred coach pays the site earns you ${(COMMISSION_RATE * 100).toFixed(0)}% commission automatically.`}
+            </p>
+            <div className="mt-6 space-y-3">
+              {coachReferrals.map((c) => (
+                <div
+                  key={c.coachId}
+                  className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-white p-4"
+                >
+                  <div>
+                    <p className="text-sm font-medium">{c.name}</p>
+                    <p className="mt-1 text-xs font-normal text-[#6e6e73]">
+                      {new Date(c.joinedAt).toLocaleDateString()}
+                      {c.emailMasked ? ` · ${c.emailMasked}` : ""}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="rounded-full bg-[#f5f5f7] px-2.5 py-0.5 text-xs font-normal text-[#6e6e73]">
+                      {isAr
+                        ? `${c.activations} تفعيل`
+                        : `${c.activations} activation${c.activations === 1 ? "" : "s"}`}
+                    </span>
+                    <span className="text-sm font-medium text-[#0071e3]">
+                      ${c.earned.toFixed(2)}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </>
       )}
 
       {/* ── Section: COMMISSIONS ── */}
