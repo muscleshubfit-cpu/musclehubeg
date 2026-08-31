@@ -2,3 +2,5 @@
 # Required by the Supabase GitHub integration (Deployments) to recognize
 # this repository as a Supabase project. No local development use yet.
 project_id = "musclehubeg"
+
+# Trigger commit 2026-08-31: ledger repaired — first clean deployment attempt (Phase 61)
