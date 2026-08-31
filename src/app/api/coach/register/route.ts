@@ -145,6 +145,15 @@ export async function POST(request: NextRequest) {
   }
 
   // ---------- Create the auth user SERVER-SIDE (instant confirm) ----------
+  // PHASE 66 — AFFILIATE ATTRIBUTION: the referral cookie (mhe_ref, set by
+  // ?ref=CODE via ReferralCookieChecker) is read SERVER-SIDE and carried in
+  // the signup metadata — the 0057 profiles-INSERT trigger records the
+  // referral with SECURITY DEFINER. This closes the owner-approved coach
+  // invite feature: a coach who signs up through an affiliate link is
+  // attributed to the inviter for his client-activation commissions.
+  const refCode =
+    request.cookies.get("mhe_ref")?.value?.trim().slice(0, 40) || "";
+
   const { data: created, error: createErr } =
     await supabaseAdmin.auth.admin.createUser({
       email,
@@ -156,6 +165,7 @@ export async function POST(request: NextRequest) {
         // Deliberately NO role here — role is granted below with the
         // service role (and 0036 makes the trigger ignore it anyway).
         signup_source: "coach_landing",
+        ...(refCode ? { referral_code: refCode } : {}),
       },
     });
 

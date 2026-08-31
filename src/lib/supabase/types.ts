@@ -60,6 +60,8 @@ export type Database = {
           end_date: string | null;
           status: "active" | "expired" | "pending";
           subscription_type: string | null;
+          // Added by migration 0057 (affiliate foundation — cancel flow):
+          cancel_requested_at: string | null;
           created_at: string;
         };
         Insert: {
@@ -71,6 +73,7 @@ export type Database = {
           end_date?: string | null;
           status?: "active" | "expired" | "pending";
           subscription_type?: string | null;
+          cancel_requested_at?: string | null;
           created_at?: string;
         };
         Update: {
@@ -80,6 +83,7 @@ export type Database = {
           end_date?: string | null;
           status?: "active" | "expired" | "pending";
           subscription_type?: string | null;
+          cancel_requested_at?: string | null;
         };
         Relationships: [
           { foreignKeyName: "subscriptions_client_id_fkey"; columns: ["client_id"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] },
@@ -838,6 +842,7 @@ export type Database = {
             | "subscription_renewal"
             | "one_time_product"
             | "one_time_service"
+            | "coach_client_activation"
             | null;
         };
         Insert: {
@@ -857,6 +862,7 @@ export type Database = {
             | "subscription_renewal"
             | "one_time_product"
             | "one_time_service"
+            | "coach_client_activation"
             | null;
         };
         Update: {
@@ -873,6 +879,7 @@ export type Database = {
             | "subscription_renewal"
             | "one_time_product"
             | "one_time_service"
+            | "coach_client_activation"
             | null;
         };
         Relationships: [
@@ -890,7 +897,8 @@ export type Database = {
             | "subscription_initial"
             | "subscription_renewal"
             | "one_time_product"
-            | "one_time_service";
+            | "one_time_service"
+            | "coach_client_activation";
           amount: number;
           currency: string;
           external_reference: string | null;
@@ -909,7 +917,8 @@ export type Database = {
             | "subscription_initial"
             | "subscription_renewal"
             | "one_time_product"
-            | "one_time_service";
+            | "one_time_service"
+            | "coach_client_activation";
           amount: number;
           currency?: string;
           external_reference?: string | null;
@@ -927,7 +936,8 @@ export type Database = {
             | "subscription_initial"
             | "subscription_renewal"
             | "one_time_product"
-            | "one_time_service";
+            | "one_time_service"
+            | "coach_client_activation";
           amount?: number;
           currency?: string;
           external_reference?: string | null;
@@ -952,7 +962,8 @@ export type Database = {
             | "subscription_initial"
             | "subscription_renewal"
             | "one_time_product"
-            | "one_time_service";
+            | "one_time_service"
+            | "coach_client_activation";
           amount: number;
           rate: number;
           status: "pending" | "available" | "requested" | "paid" | "reversed";
@@ -971,7 +982,8 @@ export type Database = {
             | "subscription_initial"
             | "subscription_renewal"
             | "one_time_product"
-            | "one_time_service";
+            | "one_time_service"
+            | "coach_client_activation";
           amount: number;
           rate?: number;
           status?: "pending" | "available" | "requested" | "paid" | "reversed";
@@ -989,7 +1001,8 @@ export type Database = {
             | "subscription_initial"
             | "subscription_renewal"
             | "one_time_product"
-            | "one_time_service";
+            | "one_time_service"
+            | "coach_client_activation";
           amount?: number;
           rate?: number;
           status?: "pending" | "available" | "requested" | "paid" | "reversed";

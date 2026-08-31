@@ -6,15 +6,17 @@
 import { supabase, isSupabaseConfigured } from "@/lib/supabase/client";
 import type { Profile } from "@/lib/supabase/types";
 import { swapLimitFor } from "@/lib/plans";
-import { trackReferral, awardCommission } from "@/lib/referral";
-import { processSubscriptionInitialPayment } from "@/lib/affiliate-engine";
+// PHASE 66: trackReferral / awardCommission / processSubscriptionInitialPayment
+// removed from the browser layer — referral tracking now happens SERVER-SIDE
+// (0057 trigger + signup metadata) and commissions run in
+// src/lib/affiliate-engine-server.ts behind /api/affiliate/commission.
 import { getReferralCookie, clearReferralCookie } from "@/lib/referral-cookie";
 
 // Re-export shared dependencies so consumers of "@/lib/data" can still
 // access them, and so domain modules can import everything from "./helpers".
 export { supabase, isSupabaseConfigured };
 export type { Profile };
-export { swapLimitFor, trackReferral, awardCommission, processSubscriptionInitialPayment, getReferralCookie, clearReferralCookie };
+export { swapLimitFor, getReferralCookie, clearReferralCookie };
 
 /* -------------------------------------------------------------------------- */
 /* Upload validation helper (M7 fix) */

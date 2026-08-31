@@ -84,10 +84,16 @@ export type ReferralStats = {
 
 // ---------- Constants ----------
 
-export const COMMISSION_RATE = 0.20; // 20%
-export const MINIMUM_PAYOUT = 10; // $10
-export const COOKIE_DURATION_DAYS = 30;
-export const REFERRAL_COOKIE_NAME = "mhe_ref";
+// Phase 66: constants moved to src/lib/affiliate-constants.ts (dependency-free
+// so the server engine can share them). Imported for local use + re-exported
+// for every existing importer.
+import {
+  COMMISSION_RATE,
+  MINIMUM_PAYOUT,
+  COOKIE_DURATION_DAYS,
+  REFERRAL_COOKIE_NAME,
+} from "@/lib/affiliate-constants";
+export { COMMISSION_RATE, MINIMUM_PAYOUT, COOKIE_DURATION_DAYS, REFERRAL_COOKIE_NAME };
 
 // ---------- Referral Code ----------
 

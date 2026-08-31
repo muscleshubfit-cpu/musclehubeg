@@ -5,7 +5,6 @@ import {
  isSupabaseConfigured,
  type Profile,
  getReferralCookie,
- trackReferral,
  clearReferralCookie,
  read,
  write,
@@ -44,6 +43,14 @@ export async function signUpEmail(
  // metadata — the rebuilt auto-assign trigger assigns this client to
  // that coach INSTEAD of the admin. No slug → site client → admin.
  const resolvedCoachSlug = coachSlug || getCoachSlugCookie() || undefined;
+ // PHASE 66 — AFFILIATE ATTRIBUTION (owner-approved): the referral code
+ // travels in the signup metadata and the 0057 profiles-INSERT trigger
+ // (track_referral_on_signup, SECURITY DEFINER) records the referral
+ // SERVER-SIDE. The old browser trackReferral() call was silently
+ // blocked by the referrals INSERT policy (referrer_id ≠ session user)
+ // since the 0030C hardening — 0 referrals rows in production. Fixed
+ // for BOTH instant-signup and needs-confirmation flows at once.
+ const refCode = getReferralCookie() || "";
  const { data, error } = await supabase.auth.signUp({
  email,
  password,
@@ -53,6 +60,7 @@ export async function signUpEmail(
    phone,
    role: "client",
    ...(resolvedCoachSlug ? { coach_slug: resolvedCoachSlug } : {}),
+   ...(refCode ? { referral_code: refCode } : {}),
   },
  },
  });
@@ -68,15 +76,7 @@ export async function signUpEmail(
  if (!data.session) {
  // Attribution done at insert time — the cookie's job is over.
  clearCoachSlugCookie();
- // Track referral before returning — the cookie may expire by the
- // time the user confirms their email.
- try {
- const refCode = getReferralCookie();
- if (refCode) {
- await trackReferral(refCode, data.user.id, email);
  clearReferralCookie();
- }
- } catch {}
  // Notify the ASSIGNED coach about new pending client (multi-coach routing)
  await createAdminNotification(
  "new_client",
@@ -107,14 +107,7 @@ export async function signUpEmail(
  data.user.id,
  ).catch(() => {});
  clearCoachSlugCookie();
- // Track referral if cookie exists
- try {
- const refCode = getReferralCookie();
- if (refCode) {
- await trackReferral(refCode, data.user.id, email);
  clearReferralCookie();
- }
- } catch {}
  return { error: null, profile };
  }
  return { error: null, profile: null };

@@ -7,6 +7,7 @@ import {
   isCoachPaymentMethod,
   type CoachPaymentMethod,
 } from "@/lib/coach-limits";
+import { processCoachClientActivationServer } from "@/lib/affiliate-engine-server";
 
 /**
  * COACH ACTIVATES A CLIENT'S SUBSCRIPTION AFTER OFFLINE PAYMENT (0034)
@@ -277,6 +278,35 @@ export async function POST(request: NextRequest) {
   if (payErr) {
     // Subscription is ACTIVE — never fail the coach over ledger trouble.
     console.error("[api/coach/subscriptions/activate] ledger insert failed:", payErr.message);
+  }
+
+  // ── PHASE 66 — OWNER DECREE (2026-09-01): «لو مدرب جديد اشترك عن طريق
+  // رابط افيليت ودفع للموقع اشتراك عن عملاءه يتم احتساب عمولة للداعى».
+  // A COACH who joined via an affiliate link pays the site for every
+  // client activation — his inviter earns 20% of that site fee. Fired
+  // AFTER the successful wallet debit (the real revenue moment), keyed on
+  // paymentId so retries can never double-pay. Skipped for admins
+  // (walletCost = 0 — no site revenue) and for coaches who joined without
+  // a referral. Best-effort: never blocks the activation.
+  if (auth.role === "coach" && walletCost > 0) {
+    try {
+      const commission = await processCoachClientActivationServer(
+        auth.id,
+        walletCost,
+        paymentId,
+        { clientId, tier, months },
+      );
+      if (commission) {
+        console.log(
+          `[api/coach/subscriptions/activate] affiliate commission $${commission.amount} → ${commission.affiliate_user_id} (coach activation ${paymentId})`,
+        );
+      }
+    } catch (commissionError) {
+      console.error(
+        "[api/coach/subscriptions/activate] affiliate commission error (non-blocking):",
+        commissionError,
+      );
+    }
   }
 
   // Tell the client his subscription is live.

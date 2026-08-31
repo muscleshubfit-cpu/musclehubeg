@@ -18,16 +18,17 @@
  *   - Rejects unsigned/invalid webhooks with 401
  *   - No user auth required (PayPal sends the webhook, not a user)
  *
- * EVENTS HANDLED (logged only, no action):
- *   - PAYMENT.CAPTURE.COMPLETED  → log success
+ * EVENTS HANDLED:
+ *   - PAYMENT.CAPTURE.COMPLETED  → log success (credit handled by capture-order)
  *   - PAYMENT.CAPTURE.DENIED      → log denial
- *   - PAYMENT.CAPTURE.REFUNDED    → log refund (future: reverse commission)
+ *   - PAYMENT.CAPTURE.REFUNDED    → REVERSE affiliate commissions (Phase 66)
  *   - CHECKOUT.ORDER.APPROVED     → log approval
  *   - *                           → log unknown events
  */
 
 import { NextRequest, NextResponse } from "next/server";
 import { getPayPalAccessToken, isPaypalConfigured } from "@/lib/paypal";
+import { reverseCommissionByReferenceServer } from "@/lib/affiliate-engine-server";
 
 export const runtime = "nodejs";
 
@@ -186,12 +187,28 @@ export async function POST(request: NextRequest) {
       );
       break;
 
-    case "PAYMENT.CAPTURE.REFUNDED":
-      console.log(
-        `[paypal/webhook] Capture refunded: ${resourceId}. ` +
-        "Future: implement commission reversal via reverseCommission().",
-      );
+    case "PAYMENT.CAPTURE.REFUNDED": {
+      // PHASE 66 (owner-approved): commissions are now REVERSED on refunds.
+      // The capture-order path stores external_reference = PayPal ORDER id;
+      // refund events carry the capture id, so resolve the order id from
+      // supplementary_data (fallback: the resource id itself). Reversal is
+      // audit-preserving (status flips, clawback earning when already paid)
+      // and idempotent (already-refunded transactions are skipped).
+      const relatedOrderId =
+        event?.resource?.supplementary_data?.related_ids?.order_id || resourceId;
+      try {
+        const reversed = await reverseCommissionByReferenceServer(
+          relatedOrderId,
+          `PayPal refund (capture ${resourceId})`,
+        );
+        console.log(
+          `[paypal/webhook] Refund ${resourceId} → order ${relatedOrderId}: ${reversed} commission(s) reversed.`,
+        );
+      } catch (e) {
+        console.error("[paypal/webhook] Commission reversal error (non-blocking):", e);
+      }
       break;
+    }
 
     case "CHECKOUT.ORDER.APPROVED":
       console.log(

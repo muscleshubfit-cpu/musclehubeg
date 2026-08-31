@@ -4,7 +4,6 @@ import {
  supabase,
  isSupabaseConfigured,
  validateUploadFile,
- processSubscriptionInitialPayment,
  read,
  write,
  uid,
@@ -214,50 +213,27 @@ export async function reviewSubscriptionRequest(id: string, action: "approve" | 
  await upsertSubscription(req.user_id, canonicalModelTier(req.plan_tier), req.duration_months, start.toISOString(), end.toISOString(), req.id);
  // Notify the user
  await createNotification(req.user_id, "subscription_approved", "تم تفعيل اشتراكك!", `تم الموافقة على طلب اشتراكك (${req.plan_tier}) لمدة ${req.duration_months} أشهر.`, "/dashboard");
- // Award affiliate commission through the new engine (idempotent, transaction-level).
- // This replaces the legacy awardCommission() call with a generic, idempotent engine.
- // Engine flow:
- //   processSubscriptionInitialPayment()
- //     → createAffiliateTransaction (type: subscription_initial)
- //     → processCommission()
- //         → look up affiliate from referrals (first-click, permanent)
- //         → idempotency check (unique index on affiliate_commissions.transaction_id)
- //         → insert affiliate_commissions row
- //         → insert referral_earnings row (links to payout system)
- //         → update referrals.status → 'completed'
- //         → notify the affiliate
- // If anything fails inside the engine, the try/catch swallows the error
- // so the subscription approval itself is not blocked.
+ // PHASE 66 (owner-approved): award the affiliate commission from the
+ // SERVER (POST /api/affiliate/commission) instead of the browser.
+ // The Phase 64 study proved the old browser engine call failed
+ // silently (RLS blocked tracking inserts; the engine tables never
+ // existed in production). The route runs the shared server engine
+ // (coach-clients decree gate included) — idempotent on the request id.
+ // Best-effort: a commission failure never blocks the approval.
  try {
- // OWNER DECREE (2026-08-30) — «عميل المدرب لا يُحسب فى نظام الأفيليت»:
- // a client who CHOSE A COACH (coach_assignments row — via the coach's
- // landing page, an invite, or an admin assignment) can subscribe to any
- // site plan, but his payment must NEVER generate affiliate commission.
- // The gate lives at the money moment (commission time) so it covers
- // every attribution order (ref cookie first / coach first / OAuth claim).
- // RLS makes the row visible exactly to the actors who can review here:
- // admin (is_admin) and the client's own coach (coach_id = auth.uid()).
- const { data: coachRow } = await supabase
- .from("coach_assignments")
- .select("coach_id")
- .eq("client_id", req.user_id)
- .maybeSingle();
- if (coachRow) {
- console.info(
- "[reviewSubscriptionRequest] Affiliate commission SKIPPED — client has a coach (owner decree: coach clients are outside the affiliate system):",
- req.user_id,
- );
- } else {
- const paymentAmount = req.price_usd ? Number(req.price_usd) : 10; // already USD
- await processSubscriptionInitialPayment(
-   req.user_id,
-   paymentAmount,
-   req.id,
-   req.plan_tier,
- );
- }
+  const paymentAmount = req.price_usd ? Number(req.price_usd) : 10; // already USD
+  await fetch("/api/affiliate/commission", {
+   method: "POST",
+   headers: { "Content-Type": "application/json" },
+   body: JSON.stringify({
+    userId: req.user_id,
+    amount: paymentAmount,
+    reference: req.id,
+    productId: req.plan_tier,
+   }),
+  });
  } catch (e) {
- console.error("[reviewSubscriptionRequest] Affiliate commission error:", e);
+  console.error("[reviewSubscriptionRequest] Affiliate commission error:", e);
  }
  } else {
  // M55 fix: include rejection reason in the notification if provided

@@ -40,11 +40,10 @@ import {
 } from "@/lib/paypal";
 import { canonicalModelTier } from "@/lib/plans";
 import { supabaseAdmin, isSupabaseAdminConfigured } from "@/lib/supabase/admin";
+import { processSubscriptionInitialPaymentServer } from "@/lib/affiliate-engine-server";
 
-// Commission rate — same value as in src/lib/referral.ts (0.20 = 20%)
-// Defined here directly to avoid importing referral.ts which pulls in
-// the client-side Supabase browser client (not usable on server).
-const COMMISSION_RATE = 0.20;
+// PHASE 66: the commission engine moved to src/lib/affiliate-engine-server.ts
+// (rate defined there — 0.20, shared with src/lib/referral.ts).
 
 export const runtime = "nodejs";
 
@@ -186,18 +185,11 @@ async function serverCreatePayPalPaymentRecord(
 }
 
 /**
- * Server-side affiliate commission processing.
- * Replicates the core of processSubscriptionInitialPayment() from
- * affiliate-engine.ts but uses supabaseAdmin instead of the browser client.
- *
- * Steps:
- * 1. Look up the affiliate (referrer) from the referrals table
- * 2. Create an affiliate_transaction (idempotent via external_reference)
- * 3. Check idempotency — if commission already exists, skip
- * 4. Create affiliate_commissions record (unique on transaction_id)
- * 5. Create referral_earnings record (links to payout system)
- * 6. Update referrals.status → 'completed'
- * 7. Send notification to the affiliate
+ * Server-side affiliate commission processing — PHASE 66: the inline
+ * implementation was replaced by the SHARED server engine
+ * (src/lib/affiliate-engine-server.ts) so the PayPal path and the manual
+ * receipt path can never diverge. The coach-clients owner decree
+ * (2026-08-30) gate lives inside the engine. Idempotent on the order id.
  */
 async function serverProcessAffiliateCommission(
   userId: string,
@@ -207,154 +199,7 @@ async function serverProcessAffiliateCommission(
 ) {
   if (!isSupabaseAdminConfigured || !supabaseAdmin) return;
   if (paymentAmount <= 0) return;
-
-  // OWNER DECREE (2026-08-30) — «عميل المدرب لا يُحسب فى نظام الأفيليت»:
-  // a client who CHOSE A COACH (coach_assignments row) can pay for any site
-  // plan via PayPal, but his payment must NEVER generate affiliate
-  // commission. Service-role read → no RLS ambiguity. This is the mirror
-  // of the gate in reviewSubscriptionRequest() so BOTH payment paths
-  // (manual receipt approval + automated PayPal capture) enforce it.
-  const { data: coachRow } = await supabaseAdmin
-    .from("coach_assignments")
-    .select("coach_id")
-    .eq("client_id", userId)
-    .maybeSingle();
-  if (coachRow) {
-    console.log(
-      "[paypal/capture-order] Affiliate commission SKIPPED — client has a coach (owner decree: coach clients are outside the affiliate system):",
-      userId,
-    );
-    return;
-  }
-
-  // 1. Look up the affiliate for this user
-  const { data: referral } = await supabaseAdmin
-    .from("referrals")
-    .select("id, referrer_id, status")
-    .eq("referred_id", userId)
-    .order("created_at", { ascending: true })
-    .limit(1)
-    .maybeSingle();
-
-  if (!referral || !referral.referrer_id) {
-    return; // No affiliate — nothing to process
-  }
-
-  // For subscription_initial: only proceed if referral is pending
-  if (referral.status !== "pending") {
-    return;
-  }
-
-  // 2. Create affiliate_transaction (idempotent — unique on external_reference + transaction_type)
-  const { data: txn, error: txnError } = await supabaseAdmin
-    .from("affiliate_transactions")
-    .insert({
-      user_id: userId,
-      affiliate_user_id: referral.referrer_id,
-      transaction_type: "subscription_initial",
-      amount: Math.round(paymentAmount * 100) / 100,
-      currency: "USD",
-      external_reference: orderId,
-      product_id: planTier,
-      affiliate_eligible: true,
-      status: "completed",
-    })
-    .select()
-    .single();
-
-  if (txnError) {
-    // If duplicate (23505 = unique constraint violation), the transaction
-    // already exists — this is idempotent behavior, not an error
-    if (txnError.code === "23505") {
-      console.log("[paypal/capture-order] Affiliate transaction already exists for order:", orderId);
-      return;
-    }
-    console.error("[paypal/capture-order] Affiliate transaction error:", txnError.message);
-    return;
-  }
-
-  if (!txn) return;
-
-  // 3. Check idempotency — look for existing commission
-  const { data: existingCommission } = await supabaseAdmin
-    .from("affiliate_commissions")
-    .select("id")
-    .eq("transaction_id", txn.id)
-    .maybeSingle();
-
-  if (existingCommission) {
-    console.log("[paypal/capture-order] Commission already exists for transaction:", txn.id);
-    return;
-  }
-
-  // 4. Create commission record
-  const commissionAmount = Math.round(paymentAmount * COMMISSION_RATE * 100) / 100;
-
-  const { data: commission, error: commError } = await supabaseAdmin
-    .from("affiliate_commissions")
-    .insert({
-      affiliate_user_id: referral.referrer_id,
-      transaction_id: txn.id,
-      referral_id: referral.id,
-      commission_type: "subscription_initial",
-      amount: commissionAmount,
-      rate: COMMISSION_RATE,
-      status: "available",
-    })
-    .select()
-    .single();
-
-  if (commError) {
-    if (commError.code === "23505") return; // Already exists — idempotent
-    console.error("[paypal/capture-order] Commission insert error:", commError.message);
-    return;
-  }
-
-  // 5. Create referral_earning (links to payout system)
-  if (commission) {
-    const { data: earning } = await supabaseAdmin
-      .from("referral_earnings")
-      .insert({
-        user_id: referral.referrer_id,
-        referral_id: referral.id,
-        amount: commissionAmount,
-        status: "available",
-        affiliate_commission_id: commission.id,
-        transaction_type: "subscription_initial",
-      })
-      .select()
-      .single();
-
-    // 6. Link earning back to commission
-    if (earning) {
-      await supabaseAdmin
-        .from("affiliate_commissions")
-        .update({ earning_id: earning.id })
-        .eq("id", commission.id);
-    }
-  }
-
-  // 7. Update referrals table (backward compat)
-  await supabaseAdmin
-    .from("referrals")
-    .update({
-      status: "completed",
-      commission_amount: commissionAmount,
-      completed_at: new Date().toISOString(),
-      subscription_request_id: orderId,
-    })
-    .eq("id", referral.id);
-
-  // 8. Notify the affiliate
-  await serverCreateNotification(
-    referral.referrer_id,
-    "referral_commission",
-    "عمولة جديدة! 🎉",
-    `ربحت $${commissionAmount} عمولة من اشتراك جديد.`,
-    "/referral",
-  );
-
-  console.log(`[paypal/capture-order] Commission created: $${commissionAmount} for affiliate ${referral.referrer_id}`);
+  return processSubscriptionInitialPaymentServer(userId, paymentAmount, orderId, planTier);
 }
 
 /**
