@@ -13,6 +13,7 @@ import {
   buildPersistBody,
   parsePersistedBody,
 } from "@/lib/evo-chat-links";
+import { classifyEvoIntent } from "@/lib/evo-intent";
 import { useAuth } from "@/hooks/use-auth";
 import { useMembershipTier } from "@/hooks/use-membership-tier";
 import { getLimits } from "@/lib/memberships";
@@ -67,6 +68,12 @@ export type ChatMessage = {
     label: string;
     url: string;
   }>;
+  /** PHASE 69 — set on the assistant reply that FOLLOWS a plan-creation
+   * request (client-side classification mirrors the server's intent
+   * detector). Powers the «احفظ كخطة» button in the widget. */
+  planKind?: "nutrition" | "workout";
+  /** The plan-creation request that triggered this reply (save title). */
+  planRequest?: string;
 };
 
 export type ChatState = {
@@ -95,10 +102,20 @@ type EvoChatContextType = {
   /** True when the resolved tier is premium/pro/coaching. Server-side
    * limits remain the authority; this only shapes the client UI. */
   isPaidTier: boolean;
+  /** PHASE 69 — live quota meter (chat/day + plans/month). Null until
+   * the first fetch resolves; refreshQuota() re-reads after each send. */
+  quota: QuotaSnapshot | null;
+  refreshQuota: () => void;
   openChat: () => void;
   closeChat: () => void;
   toggleChat: () => void;
   sendMessage: (content: string) => Promise<void>;
+};
+
+export type QuotaSnapshot = {
+  chat: { used: number; limit: number | null; unlimited: boolean };
+  nutrition: { used: number; limit: number | null; unlimited: boolean };
+  workout: { used: number; limit: number | null; unlimited: boolean };
 };
 
 const EvoChatContext = createContext<EvoChatContextType | null>(null);
@@ -174,13 +191,29 @@ export function EvoChatProvider({ children }: { children: ReactNode }) {
   // and wiped the seed, and for authenticated users it clobbered the
   // local cache while the async session check was still in flight.
   const [hydrated, setHydrated] = useState(false);
+  // PHASE 69 — quota meter state + read-only refresh
+  const [quota, setQuota] = useState<QuotaSnapshot | null>(null);
+  const refreshQuota = useCallback(() => {
+    if (!isPaidTier) return; // free/anon — the 429/upsell UI covers it
+    fetch("/api/ai/quota")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (d) setQuota(d as QuotaSnapshot);
+      })
+      .catch(() => {});
+  }, [isPaidTier]);
 
-  // Load from Supabase (authenticated) or localStorage (anonymous) on mount
+  // PHASE 69 — CROSS-SESSION MEMORY GATING (owner-approved fix).
+  // The copy sells memory as a PAID feature and the /evo comparison table
+  // says Free = "—" — but this restore + the writes below ran for EVERY
+  // logged-in user. The chat_messages restore now requires isPaidTier;
+  // the effect re-runs when the tier resolves (async) so paid users still
+  // get their history, and free users keep in-session messages only.
   useEffect(() => {
     let cancelled = false;
     (async () => {
       let restored: ChatState | null = null;
-      if (isSupabaseConfigured && supabase) {
+      if (isPaidTier && isSupabaseConfigured && supabase) {
         try {
           const { data: { user } } = await supabase.auth.getUser();
           if (user) {
@@ -198,13 +231,13 @@ export function EvoChatProvider({ children }: { children: ReactNode }) {
         } catch { /* fall through to localStorage */ }
       }
       if (cancelled) return;
-      // Anonymous, no Supabase, or no stored rows: load from localStorage
+      // Anonymous, free tier, no Supabase, or no stored rows: localStorage
       if (!restored) restored = loadLocalState();
       setState(restored);
       setHydrated(true); // persistence writes may start only NOW
     })();
     return () => { cancelled = true; };
-  }, []);
+  }, [isPaidTier, profile?.id]);
 
   // Save to localStorage on every change (for offline/cache) — ONLY after
   // the initial hydration finished, so a mount-time write can never wipe
@@ -280,8 +313,9 @@ export function EvoChatProvider({ children }: { children: ReactNode }) {
         dailyCount: prev.dailyCount + 1,
       }));
 
-      // Persist user message to Supabase (fire-and-forget)
-      if (isSupabaseConfigured && supabase) {
+      // Persist user message to Supabase (fire-and-forget) — PAID ONLY
+      // (Phase 69 memory gating: memory is an advertised paid feature)
+      if (isPaidTier && isSupabaseConfigured && supabase) {
         (async () => {
           try {
             const { data: { user } } = await supabase.auth.getUser();
@@ -342,12 +376,19 @@ export function EvoChatProvider({ children }: { children: ReactNode }) {
           throw new Error(data?.error || `HTTP ${response.status}`);
         }
 
+        // PHASE 69 — tag the reply that answers a plan-creation request so
+        // the widget can offer «احفظ كخطة». Classification mirrors the
+        // server's evo-intent detector (same library, client-safe).
+        const intent = classifyEvoIntent(content);
         const assistantMessage: ChatMessage = {
           id: `msg-${Date.now()}-assistant`,
           role: "assistant",
           content: data.response || "عذراً، لم أتمكن من الرد. حاول مرة أخرى.",
           timestamp: Date.now(),
           links: data.links || [],
+          ...(intent.isPlanCreation
+            ? { planKind: intent.planDomain, planRequest: content.trim() }
+            : {}),
         };
 
         setState((prev) => ({
@@ -356,8 +397,9 @@ export function EvoChatProvider({ children }: { children: ReactNode }) {
           isTyping: false,
         }));
 
-        // Persist assistant message to Supabase (fire-and-forget)
-        if (isSupabaseConfigured && supabase) {
+        // Persist assistant message to Supabase (fire-and-forget) — PAID ONLY
+        // (Phase 69 memory gating)
+        if (isPaidTier && isSupabaseConfigured && supabase) {
           (async () => {
             try {
               const { data: { user } } = await supabase.auth.getUser();
@@ -381,10 +423,18 @@ export function EvoChatProvider({ children }: { children: ReactNode }) {
           timestamp: Date.now(),
         };
         setState((prev) => ({ ...prev, messages: [...prev.messages, errorMessage], isTyping: false }));
+      } finally {
+        // PHASE 69 — keep the quota meter honest after every send
+        refreshQuota();
       }
     },
-    [state.messages, dailyLimitReached, dailyLimit],
+    [state.messages, dailyLimitReached, dailyLimit, isPaidTier, refreshQuota],
   );
+
+  // PHASE 69 — initial quota fetch once the tier resolves
+  useEffect(() => {
+    refreshQuota();
+  }, [refreshQuota]);
 
   return (
     <EvoChatContext.Provider
@@ -396,6 +446,8 @@ export function EvoChatProvider({ children }: { children: ReactNode }) {
         dailyLimit,
         dailyLimitReached,
         isPaidTier,
+        quota,
+        refreshQuota,
         openChat,
         closeChat,
         toggleChat,

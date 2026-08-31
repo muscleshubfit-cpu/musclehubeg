@@ -70,6 +70,30 @@ export function PlansView() {
  const [swapLoading, setSwapLoading] = useState<string | null>(null);
  const [swapUsage, setSwapUsage] = useState<any>({ meal: { used: 0, limit: 2, remaining: 2 }, exercise: { used: 0, limit: 2, remaining: 2 } });
  const activeWatchers = useRef<Set<string>>(new Set());
+ // PHASE 69 — latest plans snapshot so the swap persists the EXACT mutated
+ // content via /api/plans/member-edit (plans RLS is coach-write-only for
+ // browser updates — the member persist runs server-side).
+ const plansRef = useRef<Array<{ id: string; content: unknown }>>([]);
+ useEffect(() => {
+ // ESLint (react-compiler): refs must not be written during render —
+ // sync after commit instead. Events always run after the effect flush,
+ // so applySwapToPlans still reads the latest snapshot.
+ plansRef.current = plans;
+ }, [plans]);
+ const persistSwap = useCallback(async (planId: string, content: unknown) => {
+ if (!planId || !content) return;
+ try {
+ const res = await fetch("/api/plans/member-edit", {
+ method: "POST",
+ headers: { "Content-Type": "application/json" },
+ body: JSON.stringify({ mode: "swap", planId, content }),
+ });
+ if (!res.ok) throw new Error(`HTTP ${res.status}`);
+ } catch (e) {
+ console.error("[PlansView] swap persist failed (state kept):", e);
+ toast.error("الاستبدال ظاهر حالياً لكن تعذر حفظه — هتحتاج تعمله تاني لو حدّثت الصفحة.");
+ }
+ }, []);
 
  const refreshUsage = useCallback(async () => {
  if (!profile) return;
@@ -85,7 +109,8 @@ export function PlansView() {
  writePendingSwaps(readPendingSwaps().filter((e) => e.id !== id));
  }, []);
 
- /** Applies a finished job's replacement to local plan state. */
+ /** Applies a finished job's replacement to local plan state AND persists
+ * it (PHASE 69 — previously local-only: a reload reverted the swap). */
  const applySwapToPlans = useCallback(
  (entry: PendingSwap, replacement: any) => {
  const mutate = (content: any): any => {
@@ -101,14 +126,20 @@ export function PlansView() {
  days[entry.i1] = day;
  return { ...content, days };
  };
- setPlans((prev) => prev.map((p) => (p.id === entry.planId ? { ...p, content: mutate(p.content) } : p)));
+ // Compute the new content ONCE from the latest snapshot (plansRef is
+ // render-synced) so the persisted payload always matches the UI.
+ const target = plansRef.current.find((p) => p.id === entry.planId);
+ if (!target) return;
+ const newContent = mutate(target.content);
+ setPlans((prev) => prev.map((p) => (p.id === entry.planId ? { ...p, content: newContent } : p)));
  setActive((prevActive) =>
  prevActive && prevActive.id === entry.planId
- ? { ...prevActive, content: mutate(prevActive.content) }
+ ? { ...prevActive, content: newContent }
  : prevActive,
  );
+ void persistSwap(entry.planId, newContent);
  },
- [],
+ [persistSwap],
  );
 
  /** Polls one job every 20s up to ~26 min, then applies/cleans. */
@@ -599,7 +630,12 @@ function PlanDetailModal({
  <WorkoutContent content={content} onSwap={onSwapExercise} swapLoading={swapLoading} planId={plan.id} />
  ) : (
  <div className="text-sm text-muted-foreground">
- {plan.notes || "—"}
+ {/* PHASE 69 — EVO-saved plans render their text content */}
+ {content?.text ? (
+ <p className="whitespace-pre-wrap leading-relaxed">{content.text}</p>
+ ) : (
+ plan.notes || "—"
+ )}
  {plan.file_url && (
  <a href="#" onClick={(e) => { e.preventDefault(); onOpenFile(plan.file_url); }} className="mt-3 flex items-center gap-1 text-primary hover:underline">
  <Download className="h-4 w-4" /> {t("common.download")}

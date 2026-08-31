@@ -3,8 +3,10 @@
 import { useState, useRef, useEffect } from "react";
 import { useEvoChat } from "@/lib/evo-chat-context";
 import { useI18n } from "@/lib/i18n";
-import { Send, X, ExternalLink, Loader2, Sparkles } from "lucide-react";
+import { Send, X, ExternalLink, Loader2, Sparkles, Bookmark, Check } from "lucide-react";
 import { VoiceMicButton } from "@/components/VoiceMicButton";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { useCallback } from "react";
 
 /**
@@ -75,6 +77,7 @@ function MessageText({ content }: { content: string }) {
 export function EvoFloatingWidget() {
   const { lang } = useI18n();
   const isAr = lang === "ar";
+  const router = useRouter();
   const {
     isOpen,
     isTyping,
@@ -83,11 +86,56 @@ export function EvoFloatingWidget() {
     dailyLimit,
     dailyLimitReached,
     isPaidTier,
+    quota,
     openChat,
     closeChat,
     toggleChat,
     sendMessage,
   } = useEvoChat();
+
+  // PHASE 69 — «احفظ كخطة»: persists the EVO plan text as a REAL plan row
+  // via /api/plans/member-edit (plans RLS is coach-write-only, so the
+  // member path runs server-side with ownership checks).
+  const [savingPlanId, setSavingPlanId] = useState<string | null>(null);
+  const [savedPlanIds, setSavedPlanIds] = useState<Set<string>>(new Set());
+  const savePlan = useCallback(
+    async (msg: { id: string; content: string; planKind?: string; planRequest?: string }) => {
+      if (!msg.planKind || savingPlanId) return;
+      setSavingPlanId(msg.id);
+      try {
+        const res = await fetch("/api/plans/member-edit", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            mode: "save-evo",
+            kind: msg.planKind,
+            title:
+              msg.planRequest?.slice(0, 80) ||
+              (isAr ? "خطة من EVO" : "Plan from EVO"),
+            text: msg.content,
+          }),
+        });
+        const json = await res.json().catch(() => null);
+        if (!res.ok || !json?.ok) {
+          throw new Error(json?.message || "save failed");
+        }
+        setSavedPlanIds((prev) => new Set(prev).add(msg.id));
+        toast.success(
+          isAr ? "تم حفظ الخطة في صفحة خططي ✓" : "Plan saved to your plans page ✓",
+          { action: { label: isAr ? "افتح" : "Open", onClick: () => router.push("/plans") } },
+        );
+      } catch (e) {
+        toast.error(
+          e instanceof Error && e.message !== "save failed"
+            ? e.message
+            : isAr ? "تعذر حفظ الخطة — جرب تاني" : "Could not save the plan",
+        );
+      } finally {
+        setSavingPlanId(null);
+      }
+    },
+    [isAr, savingPlanId, router],
+  );
 
   const [input, setInput] = useState("");
  // OWNER DIRECTIVE #1: voice questions (Web Speech API) — Arabic or English.
@@ -243,6 +291,16 @@ export function EvoFloatingWidget() {
               </div>
             </div>
 
+            {/* PHASE 69 — QUOTA METER: the advertised 3/6 plans per month
+                are now VISIBLE (same tamper-proof ledger the server counts) */}
+            {isSubscriber && quota && (
+              <div className="border-b border-[#d2d2d7] bg-white px-4 py-1.5 text-center text-[10px] font-normal text-[#6e6e73]">
+                {isAr
+                  ? `الخطط الشهرية: تغذية ${quota.nutrition.used}/${quota.nutrition.unlimited ? "∞" : quota.nutrition.limit} · تمرين ${quota.workout.used}/${quota.workout.unlimited ? "∞" : quota.workout.limit}`
+                  : `Monthly plans: nutrition ${quota.nutrition.used}/${quota.nutrition.unlimited ? "∞" : quota.nutrition.limit} · workout ${quota.workout.used}/${quota.workout.unlimited ? "∞" : quota.workout.limit}`}
+              </div>
+            )}
+
             {/* Messages area */}
             <div ref={scrollBodyRef} className="flex-1 overflow-y-auto bg-[#f5f5f7] p-4">
               {showWelcome ? (
@@ -310,6 +368,31 @@ export function EvoFloatingWidget() {
                           </p>
                         ) : (
                           <MessageText content={msg.content} />
+                        )}
+                        {/* PHASE 69 — «احفظ كخطة» on the reply that answered a
+                            plan-creation request (paid tiers) */}
+                        {msg.role === "assistant" && isSubscriber && msg.planKind && (
+                          <div className="mt-2 border-t border-black/10 pt-2">
+                            {savedPlanIds.has(msg.id) ? (
+                              <span className="inline-flex items-center gap-1 text-xs font-medium text-[#34c759]">
+                                <Check className="h-3 w-3" />
+                                {isAr ? "محفوظة في خططي" : "Saved to my plans"}
+                              </span>
+                            ) : (
+                              <button
+                                onClick={() => savePlan(msg)}
+                                disabled={savingPlanId === msg.id}
+                                className="inline-flex items-center gap-1.5 rounded-full bg-[#1d1d1f] px-3 py-1.5 text-xs font-medium text-white transition-opacity hover:opacity-85 disabled:opacity-50"
+                              >
+                                {savingPlanId === msg.id ? (
+                                  <Loader2 className="h-3 w-3 animate-spin" />
+                                ) : (
+                                  <Bookmark className="h-3 w-3" />
+                                )}
+                                {isAr ? "احفظ كخطة" : "Save as plan"}
+                              </button>
+                            )}
+                          </div>
                         )}
                         {/* Links */}
                         {msg.links && msg.links.length > 0 && (

@@ -286,6 +286,18 @@ export default function MealPlannerPage() {
   };
 
   const handleDownloadJson = () => {
+    // PHASE 69 — GATE: JSON export is a PREMIUM+ feature (mealPlannerExport)
+    // and the refund policy counts exports as paid usage. The ungated button
+    // contradicted both. Free users get the upgrade prompt instead.
+    if (!limits.mealPlannerExport) {
+      toast.error(
+        isAr
+          ? "التصدير متاح لباقات Premium و Pro — طوّق باقتك للمتابعة."
+          : "Export is available on Premium and Pro — upgrade to continue.",
+      );
+      navigate("memberships");
+      return;
+    }
     const exportData = {
       tool: "meal-planner",
       title: planTitle || (isAr ? "خطة وجبات" : "Meal Plan"),
