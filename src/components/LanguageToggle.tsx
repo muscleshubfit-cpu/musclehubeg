@@ -72,6 +72,18 @@ export function LanguageToggle() {
  return;
  }
 
+ // Program detail: /programs/[slug] <-> /ar/programs/[slug].
+ // Same slug serves both languages (static data), so the mirror is a pure
+ // prefix swap — AR expansion 2026-08-31 (Phase 59 audit follow-up).
+ const progEnMatch = pathname.match(/^\/programs\/([^/]+)$/);
+ const progArMatch = pathname.match(/^\/ar\/programs\/([^/]+)$/);
+ if (progEnMatch || progArMatch) {
+ const slug = (progEnMatch || progArMatch)![1];
+ setLang(nextLang);
+ router.push(nextLang === "ar" ? `/ar/programs/${slug}` : `/programs/${slug}`);
+ return;
+ }
+
  // M31 fix: routes with known Arabic mirrors — navigate to the mirror URL.
  const MIRROR_ROUTES = [
  { en: "/", ar: "/ar" },
