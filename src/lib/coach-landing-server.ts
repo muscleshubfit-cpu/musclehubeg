@@ -39,6 +39,13 @@ export type CoachSocialLinks = {
 export type CoachLandingData = {
   slug: string;
   is_published: boolean;
+  /** 0046 review state — public fetch guarantees "approved"; the STAFF
+   * PREVIEW fetch (Phase 58) returns the raw state so the preview banner
+   * can say whether the page is pending/rejected/unpublished. */
+  review_status?: string | null;
+  /** Owning coach's profile id — the /preview route compares it with the
+   * logged-in user to let a coach preview ONLY his own page. */
+  coach_id?: string;
   coach_name: string;
   coach_avatar: string | null;
   /** 0037 — coach-uploaded personal photo (public bucket), beats avatar */
@@ -90,18 +97,25 @@ export function parseCertificates(raw: unknown): CoachCertificate[] {
     .filter((x): x is CoachCertificate => x !== null);
 }
 
-export async function fetchCoachLanding(
+/**
+ * Internal: load a coach_pages row by slug (service role, RLS-independent)
+ * and shape it into CoachLandingData. NO publish/review gates here — the
+ * two callers decide who may see non-approved content:
+ *   fetchCoachLanding        → PUBLIC (gates: published + approved)
+ *   fetchCoachLandingForPreview → STAFF PREVIEW (no gates; caller
+ *                               authorizes admin-or-owning-coach).
+ */
+async function fetchCoachLandingRow(
   slug: string,
 ): Promise<CoachLandingData | null> {
   if (!isSupabaseAdminConfigured || !supabaseAdmin) return null;
 
-  // 0046 REVIEW GATE — the public page renders ONLY approved content.
   // review_status is read defensively: before migration 0046 runs, the
   // column doesn't exist (42703) → fall back to the legacy select and
   // treat every row as approved (pre-0046 behaviour preserved).
   // NOTE: certificates are NOT part of this select — they're fetched
-  // separately below so a missing 0049 column can NEVER touch the
-  // review gate (pending/rejected pages must stay hidden regardless).
+  // separately below so a missing 0049 column can NEVER break the load
+  // (pending/rejected pages must stay hidden from the public regardless).
   const { data: page, error: pageErr } = (await supabaseAdmin
     .from("coach_pages" as any)
     .select(
@@ -130,13 +144,11 @@ export async function fetchCoachLanding(
     pageRow = legacy.data ? { ...legacy.data, review_status: "approved" } : null;
   }
 
-  if (!pageRow || !pageRow.is_published) return null;
-  // 0046 — not approved (pending re-review / rejected) → hidden from public.
-  if ((pageRow.review_status ?? "approved") !== "approved") return null;
+  if (!pageRow) return null;
 
   // 0049 — certificates fetch is a SEPARATE lightweight query: if the
   // column is missing (0049 not run yet) the error is swallowed and the
-  // section stays empty/hidden — the review gate above is untouched.
+  // section stays empty/hidden — nothing else is affected.
   const { data: certRow } = (await supabaseAdmin
     .from("coach_pages" as any)
     .select("certificates")
@@ -155,6 +167,8 @@ export async function fetchCoachLanding(
   return {
     slug: pageRow.slug,
     is_published: pageRow.is_published,
+    review_status: pageRow.review_status ?? "approved",
+    coach_id: pageRow.coach_id,
     coach_name: prof.full_name || "",
     coach_avatar: prof.avatar_url || null,
     photo_url: pageRow.photo_url || null,
@@ -178,6 +192,36 @@ export async function fetchCoachLanding(
       specialties: splitSpecialties(pageRow.specialties_en),
     },
   };
+}
+
+export async function fetchCoachLanding(
+  slug: string,
+): Promise<CoachLandingData | null> {
+  const data = await fetchCoachLandingRow(slug);
+  if (!data) return null;
+
+  // 0046 REVIEW GATE — the public page renders ONLY approved content.
+  if (!data.is_published) return null;
+  if ((data.review_status ?? "approved") !== "approved") return null;
+
+  return data;
+}
+
+/**
+ * PHASE 58 — STAFF-ONLY preview loader. Same data as the public page but
+ * WITHOUT the publish/review gates: the admin review console and the
+ * coach's own landing editor need to see PENDING / REJECTED / UNPUBLISHED
+ * pages before approval (the public mirrors 404 those on purpose — that
+ * is the 0046/0048 protection working as designed).
+ *
+ * AUTHORIZATION IS THE CALLER'S JOB: the /preview/coach/[slug] route
+ * allows the admin (any page) and the owning coach (his own row only);
+ * everyone else gets a 404. Never expose this fetch on a public route.
+ */
+export async function fetchCoachLandingForPreview(
+  slug: string,
+): Promise<CoachLandingData | null> {
+  return fetchCoachLandingRow(slug);
 }
 
 /**

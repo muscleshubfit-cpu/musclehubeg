@@ -18,9 +18,15 @@ import { LanguageToggle } from "@/components/LanguageToggle";
 export function CoachLandingContent({
   data,
   lang,
+  preview = false,
 }: {
   data: CoachLandingData;
   lang: "en" | "ar";
+  /** PHASE 58 — true on /preview/coach/[slug] only: swaps the floating
+   * language toggle (it would navigate to the PUBLIC mirrors, which 404
+   * non-approved pages) for a fixed preview banner that switches the
+   * language via ?lang= instead. */
+  preview?: boolean;
 }) {
   const isAr = lang === "ar";
   const copy = resolveLandingCopy(data, lang);
@@ -40,20 +46,29 @@ export function CoachLandingContent({
   // trigger reads coach_slug from metadata and assigns this client to
   // THIS coach (not the admin). Google signups fall back to the 30-day
   // cookie + /api/coach/claim.
-  const signupHref = `/auth?mode=signup&coach=${encodeURIComponent(
-    data.slug,
-  )}&next=${encodeURIComponent(
-    isAr ? `/ar/coaches/${data.slug}` : `/coaches/${data.slug}`,
-  )}`;
+  // PHASE 58 LOOP FIX: `next` used to point back at THIS page, so any
+  // ALREADY logged-in visitor (admin checking the page, a member poking
+  // around) was bounced /auth → straight back here — the «start
+  // following» button looked dead. Without `next`: logged-out visitors
+  // get the signup form (attribution still rides on ?coach=), logged-in
+  // users land on their own console (dashboard / coach / admin).
+  const signupHref = `/auth?mode=signup&coach=${encodeURIComponent(data.slug)}`;
 
   return (
-    <main dir={isAr ? "rtl" : "ltr"} lang={lang} className="min-h-screen bg-white text-[#1d1d1f]">
-      {/* Floating language switch — navigates between the EN canonical
-          (/coaches/{slug}) and the AR mirror (/ar/coaches/{slug}) via
-          LanguageToggle's coach-mirror case (URL follows the language). */}
-      <div className={`fixed top-4 z-50 ${isAr ? "left-4" : "right-4"}`}>
-        <LanguageToggle />
-      </div>
+    <main
+      dir={isAr ? "rtl" : "ltr"}
+      lang={lang}
+      className={`min-h-screen bg-white text-[#1d1d1f] ${preview ? "pb-16" : ""}`}
+    >
+      {/* Floating language switch — PUBLIC pages only: navigates between
+          the EN canonical (/coaches/{slug}) and the AR mirror. In PREVIEW
+          mode the mirrors would 404 non-approved pages, so the banner
+          below handles the language switch instead (?lang=). */}
+      {!preview && (
+        <div className={`fixed top-4 z-50 ${isAr ? "left-4" : "right-4"}`}>
+          <LanguageToggle />
+        </div>
+      )}
 
       {/* Hero */}
       <section className="mx-auto flex max-w-3xl flex-col items-center px-6 pb-16 pt-20 text-center">
@@ -201,6 +216,52 @@ export function CoachLandingContent({
             </div>
           </div>
         </section>
+      )}
+
+      {/* PHASE 58 — STAFF PREVIEW banner (never renders on public pages):
+          tells the reviewing admin / the owning coach that what he sees is
+          NOT live yet, and why. Language switch rides on ?lang= because
+          the public mirrors stay 404 for non-approved pages. */}
+      {preview && (
+        <div className="fixed inset-x-0 bottom-0 z-50 border-t border-[#ff9500]/30 bg-[#ff9500]/95 px-4 py-3 text-center text-sm font-medium text-white shadow-lg">
+          {isAr ? (
+            <>
+              وضع المعاينة —{' '}
+              {data.is_published
+                ? (data.review_status ?? "approved") === "pending"
+                  ? "التعديلات الجديدة في انتظار موافقة الأدمن والصفحة القديمة هي المعروضة للعامة"
+                  : (data.review_status ?? "approved") === "rejected"
+                    ? "الصفحة مرفوضة وغير ظاهرة للعامة"
+                    : "الصفحة معتمدة لكن غير منشورة للعامة"
+                : "الصفحة غير ظاهرة للعامة"}
+              {' · '}
+              <a
+                href={`?lang=${isAr ? "en" : "ar"}`}
+                className="underline underline-offset-2 hover:opacity-80"
+              >
+                {isAr ? "View in English" : "عرض بالعربية"}
+              </a>
+            </>
+          ) : (
+            <>
+              Preview mode —{' '}
+              {data.is_published
+                ? (data.review_status ?? "approved") === "pending"
+                  ? "the new edits await admin approval; the live page still shows the old content"
+                  : (data.review_status ?? "approved") === "rejected"
+                    ? "this page is rejected and hidden from the public"
+                    : "this page is approved but not published"
+                : "this page is not visible to the public"}
+              {' · '}
+              <a
+                href={`?lang=${isAr ? "en" : "ar"}`}
+                className="underline underline-offset-2 hover:opacity-80"
+              >
+                {isAr ? "View in English" : "عرض بالعربية"}
+              </a>
+            </>
+          )}
+        </div>
       )}
 
       {/* Branding footer */}

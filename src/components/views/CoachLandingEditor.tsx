@@ -380,8 +380,10 @@ export function CoachLandingEditor() {
           </button>
           {publicUrl && (
             <>
+              {/* PHASE 58 — staff preview: works BEFORE approval too (the
+                  public mirrors 404 pending/rejected pages by design). */}
               <a
-                href={`/coaches/${slug}`}
+                href={`/preview/coach/${slug}`}
                 target="_blank"
                 rel="noreferrer"
                 className="rounded-full border border-[#d2d2d7] bg-white px-5 py-2.5 text-sm font-normal transition-opacity hover:opacity-70"
@@ -389,7 +391,7 @@ export function CoachLandingEditor() {
                 {isAr ? "معاينة (EN) ↗" : "Preview (EN) ↗"}
               </a>
               <a
-                href={`/ar/coaches/${slug}`}
+                href={`/preview/coach/${slug}?lang=ar`}
                 target="_blank"
                 rel="noreferrer"
                 className="rounded-full border border-[#d2d2d7] bg-white px-5 py-2.5 text-sm font-normal transition-opacity hover:opacity-70"
