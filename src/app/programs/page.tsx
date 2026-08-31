@@ -39,6 +39,9 @@ export default function ProgramsPage({ lang: langProp }: { lang?: Lang } = {}) {
   const locations: (ProgramLocation | "all")[] = ["all", "home", "home-equipment", "gym"];
   const levels: (ProgramLevel | "all")[] = ["all", "beginner", "intermediate", "advanced"];
   const goals: (ProgramGoal | "all")[] = ["all", "general", "strength", "hypertrophy", "fat-loss", "endurance"];
+  // Card links stay inside the current language's URL space (AR mirror keeps
+  // users on /ar/programs/[slug] instead of bouncing to the EN canonical).
+  const base = isAr ? "/ar/programs" : "/programs";
 
   return (
     <div className="min-h-screen bg-white text-[#1d1d1f]">
@@ -158,7 +161,7 @@ export default function ProgramsPage({ lang: langProp }: { lang?: Lang } = {}) {
             {filtered.map((program) => (
               <a
                 key={program.slug}
-                href={`/programs/${program.slug}`}
+                href={`${base}/${program.slug}`}
                 className="group overflow-hidden rounded-3xl bg-[#f5f5f7] transition-opacity hover:opacity-90"
               >
                 {/* Image */}

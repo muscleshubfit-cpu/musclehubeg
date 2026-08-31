@@ -34,6 +34,9 @@ export default function ProgramDetailClient({
   const { lang: ctxLang } = useI18n();
   const lang = langProp ?? ctxLang;
   const isAr = lang === "ar";
+  // Internal links stay inside the current language's URL space so the AR
+  // mirror never bounces Arabic users back to the EN canonical route.
+  const base = isAr ? "/ar/programs" : "/programs";
   const [activeDay, setActiveDay] = useState(0);
 
   if (!program) {
@@ -45,7 +48,7 @@ export default function ProgramDetailClient({
             {isAr ? "البرنامج غير موجود" : "Program not found"}
           </h1>
           <a
-            href="/programs"
+            href={base}
             className="mt-6 inline-block rounded-full bg-[#0071e3] px-6 py-2.5 text-sm font-normal text-white"
           >
             {isAr ? "العودة للبرامج" : "Back to programs"}
@@ -71,7 +74,7 @@ export default function ProgramDetailClient({
         <nav aria-label="breadcrumb" className="mb-6 flex items-center gap-1.5 text-sm text-[#6e6e73]">
           <a href="/" className="hover:text-[#0071e3]">{isAr ? "الرئيسية" : "Home"}</a>
           <span className="text-[#d2d2d7]">›</span>
-          <a href="/programs" className="hover:text-[#0071e3]">{isAr ? "البرامج" : "Programs"}</a>
+          <a href={base} className="hover:text-[#0071e3]">{isAr ? "البرامج" : "Programs"}</a>
           <span className="text-[#d2d2d7]">›</span>
           <span className="font-medium text-[#1d1d1f]">{isAr ? program.nameAr : program.nameEn}</span>
         </nav>
@@ -286,7 +289,7 @@ export default function ProgramDetailClient({
               {related.map((rel) => (
                 <a
                   key={rel.slug}
-                  href={`/programs/${rel.slug}`}
+                  href={`${base}/${rel.slug}`}
                   className="group overflow-hidden rounded-2xl bg-[#f5f5f7] transition-opacity hover:opacity-90"
                 >
                   <div className="relative aspect-video w-full overflow-hidden">
