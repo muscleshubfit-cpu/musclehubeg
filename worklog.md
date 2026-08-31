@@ -3586,3 +3586,22 @@ Work Log:
 
 Stage Summary:
 - Committed + pushed; owner step: run 0047 in Supabase SQL Editor (raw link provided) — before that, production auto-runs the legacy path with no breakage
+
+---
+Task ID: 14
+Agent: Super Z (main)
+Task: Phase 57 — optional coach certificates section on the public coach page + migration 0049 (owner: «ضيف قسم رفع شهادات المدرب اختيارى الى الصفحة العامة للمدربين ثم اعطينى رابط الهجرة raw»)
+
+Work Log:
+- Sandbox reset; repo re-cloned fresh from origin (6a41f63) and deps installed with bun
+- Migration 0049 (RUN_ON_SUPABASE_0049_COACH_CERTIFICATES.sql): coach_pages.certificates jsonb not null default '[]' — array of {url,title} max 8; NO new tables, NO RLS changes (0031/0048 policies cover the row); 0046 review law untouched; notify pgrst; raw link delivered to owner
+- coach-landing-server.ts: CoachCertificate type + parseCertificates (defensive: non-array→[], url required, title≤120, cap 8; exported for tests); certificates fetched via a SEPARATE lightweight select so a missing 0049 column can never touch the 0046 review gate (pending/rejected stay hidden); legacy fallbacks keep 42703/PGRST204 handling
+- /api/coach/landing PUT: safeCertificates (safeMediaUrl per url + trimmed title≤120, max 8) + soft-roll retry — first upsert includes certificates; PGRST204/42703 → retry ONCE without certificates so pre-migration deploys never break coach saves; 42703 hint message updated to list 0032/0037/0046/0049
+- CoachLandingEditor: LandingPage.certificates + state/load/save + MAX_CERTIFICATES=8 + handleCertsUpload (multi-upload to coach-public/{uid}/cert-*, guardImage enforced, busy "certs") + optional UI section «شهاداتك واعتماداتك (اختياري)» after results photos (title input per cert, delete, upload button hides at cap)
+- CoachLandingContent: public section «شهادات المدرب / Coach certificates» after results gallery — 4:3 grid, title captions, loading=lazy, hidden entirely while empty
+- NEW test coach-certificates.test.ts (4): malformed input→[], urlless rows dropped, title capped at 120, 8-cap
+- Docs: PROGRESS.md Phase 57 entry (top), QA_CHECKLIST.md Phase 57 owner steps (run-0049 how-to + post-migration coach→admin→public verification + soft-roll note)
+- §3.5: tsc 0 · eslint 0 errors (760 warnings = pre-existing baseline) · vitest 164/164 · next build ✓ (both coaches mirrors registered) · :3779 smoke / + /coaches/unknown + /ar/coaches/unknown + /coach/landing (soft-404 = documented Phase 56 finding, out of scope)
+
+Stage Summary:
+- Committed + pushed; owner step: run 0049 via raw link (how-to in QA_CHECKLIST) — before that, site fully works and the section simply stays hidden (soft-roll law, zero disruption)

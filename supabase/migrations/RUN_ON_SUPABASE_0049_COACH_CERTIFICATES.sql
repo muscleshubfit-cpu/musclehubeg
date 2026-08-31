@@ -1,0 +1,64 @@
+-- =====================================================================
+-- RUN_ON_SUPABASE_0049_COACH_CERTIFICATES.sql   (ONE-SHOT SCRIPT)
+-- =====================================================================
+-- COACH CERTIFICATES (owner request 2026-08-31): «ضيف قسم رفع شهادات
+-- المدرب اختيارى الى الصفحة العامة للمدربين».
+--
+-- WHAT: coach_pages gains ONE new column:
+--   certificates jsonb — array of {url, title}, max 8:
+--     url   → public "coach-public" bucket path (/storage/v1/object/
+--             public/coach-public/<uid>/cert-…) or https:// — the SAME
+--             shapes the 0037 photos already accept (server re-validates)
+--     title → certificate name (e.g. "ISSA Certified Personal Trainer")
+-- OPTIONAL by design: the column defaults to '[]' and the public page
+-- simply hides the certificates section when the array is empty —
+-- existing pages keep rendering exactly as today with ZERO changes.
+--
+-- REVIEW LAW (0046) is untouched: certificates travel inside the SAME
+-- coach_pages row, so every coach save still re-enters admin moderation
+-- (pending → approved/rejected) exactly like headline/bio/photos.
+--
+-- RLS: NO policy changes — coach_pages policies from 0031/0048 already
+-- cover every column of the row (owner + admin write; public reads
+-- published+approved rows through the server route).
+--
+-- PREREQ: 0031 applied (coach_pages exists). No new tables, no policies,
+-- no ALTER TYPE → safe as a single paste. Idempotent: safe to re-run.
+--
+-- HOW TO PASTE: open the RAW url -> Ctrl+A, Ctrl+C -> Supabase SQL
+-- Editor -> NEW empty query -> paste -> Ctrl+End -> you MUST see the
+-- "END OF SCRIPT 0049" marker at the bottom -> Run -> expected:
+-- "Success. No rows returned".
+--
+-- RAW: https://raw.githubusercontent.com/muscleshubfit-cpu/musclehubeg/main/supabase/migrations/RUN_ON_SUPABASE_0049_COACH_CERTIFICATES.sql
+-- =====================================================================
+
+-- ============================================================
+-- PART 1 — certificates column on coach_pages
+-- ============================================================
+alter table public.coach_pages
+  add column if not exists certificates jsonb not null default '[]'::jsonb;
+
+-- ============================================================
+-- PART 2 — PostgREST schema reload
+-- ============================================================
+notify pgrst, 'reload schema';
+
+-- =====================================================================
+-- ===== END OF SCRIPT 0049 — if you can see this line (Ctrl+End), the
+-- ===== paste is complete. Expected result: "Success. No rows returned"
+-- =====================================================================
+--
+-- =====================================================================
+-- VERIFY (SQL Editor — no login session needed):
+--   select column_name, data_type, column_default
+--     from information_schema.columns
+--    where table_schema = 'public' and table_name = 'coach_pages'
+--      and column_name = 'certificates';
+--   -- expected ONE row: certificates | jsonb | '[]'::jsonb
+--   --
+--   -- then in the APP: coach -> صفحتي العامة -> قسم «شهادات المدرب»
+--   -- -> ارفع صورة شهادة + اكتب اسمها -> نشر -> بعد موافقة الأدمن
+--   -- افتح /coaches/{slug} في نافذة خاصة -> قسم الشهادات ظاهر.
+--   -- المدرب اللي ما رفعش شهادات -> قسم الشهادات مخفي تمامًا.
+-- =====================================================================

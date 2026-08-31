@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/lib/supabase/client";
-import type { CoachResultPhoto } from "@/lib/coach-landing-server";
+import type { CoachResultPhoto, CoachCertificate } from "@/lib/coach-landing-server";
 
 /**
  * MULTI-COACH PHASE 2B — coach public landing page editor.
@@ -31,6 +31,8 @@ type LandingPage = {
   is_published: boolean;
   photo_url?: string;
   results_photos?: CoachResultPhoto[];
+  // 0049 — coach certificates (OPTIONAL, migration RUN_ON_SUPABASE_0049)
+  certificates?: CoachCertificate[];
   instagram_url?: string;
   facebook_url?: string;
   tiktok_url?: string;
@@ -41,6 +43,7 @@ type LandingPage = {
 } | null;
 
 const MAX_RESULTS_PHOTOS = 6;
+const MAX_CERTIFICATES = 8;
 const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024; // matches the bucket limit (0037)
 
@@ -52,7 +55,7 @@ const MAX_IMAGE_BYTES = 5 * 1024 * 1024; // matches the bucket limit (0037)
 async function uploadCoachImage(
   file: File,
   coachId: string,
-  kind: "photo" | "result",
+  kind: "photo" | "result" | "cert",
 ): Promise<string> {
   if (!supabase) {
     throw new Error("Supabase client unavailable");
@@ -96,13 +99,15 @@ export function CoachLandingEditor() {
   // 0037 — public profile enrichment state
   const [photoUrl, setPhotoUrl] = useState("");
   const [resultsPhotos, setResultsPhotos] = useState<CoachResultPhoto[]>([]);
+  // 0049 — coach certificates (OPTIONAL section)
+  const [certificates, setCertificates] = useState<CoachCertificate[]>([]);
   const [instagram, setInstagram] = useState("");
   const [facebook, setFacebook] = useState("");
   const [tiktok, setTiktok] = useState("");
   const [youtube, setYoutube] = useState("");
   // 0037 — the coach's own WhatsApp number (shown to his activated clients)
   const [whatsapp, setWhatsapp] = useState("");
-  const [busyUpload, setBusyUpload] = useState<"photo" | "results" | null>(null);
+  const [busyUpload, setBusyUpload] = useState<"photo" | "results" | "certs" | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ kind: "ok" | "err"; text: string } | null>(null);
@@ -127,6 +132,7 @@ export function CoachLandingEditor() {
           setReviewNote(json.page?.review_note ?? "");
           setPhotoUrl(json.page?.photo_url ?? "");
           setResultsPhotos(Array.isArray(json.page?.results_photos) ? json.page.results_photos : []);
+          setCertificates(Array.isArray(json.page?.certificates) ? json.page.certificates : []);
           setInstagram(json.page?.instagram_url ?? "");
           setFacebook(json.page?.facebook_url ?? "");
           setTiktok(json.page?.tiktok_url ?? "");
@@ -178,6 +184,7 @@ export function CoachLandingEditor() {
           is_published: publish,
           photo_url: photoUrl,
           results_photos: resultsPhotos,
+          certificates,
           instagram_url: instagram.trim(),
           facebook_url: facebook.trim(),
           tiktok_url: tiktok.trim(),
@@ -291,6 +298,43 @@ export function CoachLandingEditor() {
         text: isAr
           ? `تعذر رفع الصور — لو الخطأ تكرر شغّل هجرة 0037 (${e?.message || "upload failed"})`
           : `Upload failed — if it repeats, run migration 0037 (${e?.message || "upload failed"})`,
+      });
+    } finally {
+      setBusyUpload(null);
+    }
+  }
+
+  // 0049 — coach certificates upload (OPTIONAL section, max 8)
+  async function handleCertsUpload(files: FileList) {
+    const room = MAX_CERTIFICATES - certificates.length;
+    if (room <= 0) {
+      setMessage({ kind: "err", text: isAr ? `الحد الأقصى ${MAX_CERTIFICATES} شهادات` : `Max ${MAX_CERTIFICATES} certificates` });
+      return;
+    }
+    const list = Array.from(files).slice(0, room);
+    for (const f of list) {
+      const err = guardImage(f);
+      if (err) {
+        setMessage({ kind: "err", text: err });
+        return;
+      }
+    }
+    setBusyUpload("certs");
+    setMessage(null);
+    try {
+      const uploaded: CoachCertificate[] = [];
+      for (const f of list) {
+        const url = await uploadCoachImage(f, coachId, "cert");
+        uploaded.push({ url, title: "" });
+      }
+      setCertificates((prev) => [...prev, ...uploaded].slice(0, MAX_CERTIFICATES));
+      setMessage({ kind: "ok", text: isAr ? `تم رفع ${uploaded.length} شهادة — اكتب اسم كل شهادة ثم اضغط نشر` : `Uploaded ${uploaded.length} certificate(s) — type each name then press publish` });
+    } catch (e: any) {
+      setMessage({
+        kind: "err",
+        text: isAr
+          ? `تعذر رفع الشهادات — لو الخطأ تكرر شغّل هجرات 0037 و 0049 (${e?.message || "upload failed"})`
+          : `Upload failed — if it repeats, run migrations 0037 & 0049 (${e?.message || "upload failed"})`,
       });
     } finally {
       setBusyUpload(null);
@@ -567,6 +611,61 @@ export function CoachLandingEditor() {
                 }}
               />
               {busyUpload === "results" ? (isAr ? "جارٍ الرفع…" : "Uploading…") : isAr ? "+ إضافة صور نتائج" : "+ Add result photos"}
+            </label>
+          )}
+        </div>
+
+        {/* 0049 — coach certificates (OPTIONAL section) */}
+        <div className="rounded-2xl border border-[#d2d2d7] bg-white p-5">
+          <label className="mb-1 block text-sm font-medium">
+            {isAr ? "شهاداتك واعتماداتك (اختياري)" : "Your certificates (optional)"}
+          </label>
+          <p className="mb-4 text-xs font-normal text-[#6e6e73]">
+            {isAr
+              ? `ارفع صور شهاداتك واعتماداتك (حتى ${MAX_CERTIFICATES} شهادة) واكتب اسم كل شهادة. لو سيبت القسم فاضي مش هيظهر على صفحتك العامة.`
+              : `Upload photos of your certificates (up to ${MAX_CERTIFICATES}) and type each name. Leave empty to skip — the section stays hidden on your public page.`}
+          </p>
+          {certificates.length > 0 && (
+            <div className="mb-4 grid grid-cols-2 gap-4 sm:grid-cols-3">
+              {certificates.map((cert, i) => (
+                <div key={`${cert.url}-${i}`} className="rounded-2xl border border-[#e5e5ea] p-2">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={cert.url} alt={cert.title || `${i + 1}`} className="aspect-[4/3] w-full rounded-xl object-cover" />
+                  <input
+                    value={cert.title}
+                    onChange={(e) =>
+                      setCertificates((prev) =>
+                        prev.map((c, j) => (j === i ? { ...c, title: e.target.value.slice(0, 120) } : c)),
+                      )
+                    }
+                    maxLength={120}
+                    placeholder={isAr ? "اسم الشهادة (مثال: مدرب لياقة معتمد)" : "Certificate name"}
+                    className="mt-2 w-full rounded-lg border border-[#d2d2d7] px-2.5 py-1.5 text-xs outline-none focus:border-[#0071e3]"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setCertificates((prev) => prev.filter((_, j) => j !== i))}
+                    className="mt-1.5 w-full rounded-lg px-2 py-1 text-xs font-medium text-[#ff3b30] transition-colors hover:bg-[#ff3b30]/10"
+                  >
+                    {isAr ? "حذف" : "Remove"}
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+          {certificates.length < MAX_CERTIFICATES && (
+            <label className={`inline-block cursor-pointer rounded-full border border-[#d2d2d7] bg-white px-5 py-2.5 text-sm font-normal transition-opacity hover:opacity-70 ${busyUpload === "certs" ? "pointer-events-none opacity-60" : ""}`}>
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                multiple
+                className="sr-only"
+                onChange={(e) => {
+                  if (e.target.files?.length) void handleCertsUpload(e.target.files);
+                  e.currentTarget.value = "";
+                }}
+              />
+              {busyUpload === "certs" ? (isAr ? "جارٍ الرفع…" : "Uploading…") : isAr ? "+ إضافة شهادة" : "+ Add certificate"}
             </label>
           )}
         </div>

@@ -60,6 +60,25 @@ function safeResultsPhotos(raw: unknown): Array<{ url: string; caption: string }
 }
 
 /**
+ * 0049 — coach certificates: [{url, title}] max 8. Same URL law as the
+ * 0037 photos (same-origin public bucket path or https://); the title is
+ * the certificate NAME the coach typed (≤120 chars). Empty array =
+ * optional section skipped — the public page hides it.
+ */
+function safeCertificates(raw: unknown): Array<{ url: string; title: string }> {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .slice(0, 8)
+    .map((item) => {
+      const rec = (item ?? {}) as Record<string, unknown>;
+      const url = safeMediaUrl(rec.url);
+      const title = String(rec.title ?? "").trim().slice(0, 120);
+      return url ? { url, title } : null;
+    })
+    .filter((x): x is { url: string; title: string } => x !== null);
+}
+
+/**
  * 0037 — coach's own WhatsApp number → NORMALIZED INTERNATIONAL DIGITS
  * (wa.me shape, e.g. 2010XXXXXXXX from 010XXXXXXXX / +20 10… / 20…).
  * Accepts any country: only Egyptian-style local 01XXXXXXXXX is
@@ -147,6 +166,7 @@ export async function PUT(request: NextRequest) {
   // 0037 — public profile enrichment
   const photoUrl = safeMediaUrl(body.photo_url);
   const resultsPhotos = safeResultsPhotos(body.results_photos);
+  const certificates = safeCertificates(body.certificates);
   const instagramUrl = safeSocialUrl(body.instagram_url);
   const facebookUrl = safeSocialUrl(body.facebook_url);
   const tiktokUrl = safeSocialUrl(body.tiktok_url);
@@ -180,32 +200,45 @@ export async function PUT(request: NextRequest) {
     reviewed_at: isAdminSave ? new Date().toISOString() : null,
   };
 
-  const { data, error } = (await (supabaseAdmin.from("coach_pages") as any)
-    .upsert(
-      {
-        coach_id: user.id,
-        slug,
-        headline,
-        bio,
-        specialties,
-        headline_en: headlineEn,
-        bio_en: bioEn,
-        specialties_en: specialtiesEn,
-        is_published: isPublished,
-        photo_url: photoUrl,
-        results_photos: resultsPhotos,
-        instagram_url: instagramUrl,
-        facebook_url: facebookUrl,
-        tiktok_url: tiktokUrl,
-        youtube_url: youtubeUrl,
-        whatsapp_phone: whatsappPhone,
-        updated_at: new Date().toISOString(),
-        ...reviewFields,
-      },
-      { onConflict: "coach_id" },
-    )
+  // 0049 SOFT-ROLL LAW: the certificates column may not exist yet (owner
+  // hasn't run migration 0049). First attempt includes it; on a
+  // missing-column failure (PostgREST PGRST204 / Postgres 42703) retry
+  // ONCE without certificates — every other field saves exactly as
+  // before, certificates are simply not persisted until the migration
+  // runs. Zero disruption between deploy and migration.
+  const basePayload: Record<string, unknown> = {
+    coach_id: user.id,
+    slug,
+    headline,
+    bio,
+    specialties,
+    headline_en: headlineEn,
+    bio_en: bioEn,
+    specialties_en: specialtiesEn,
+    is_published: isPublished,
+    photo_url: photoUrl,
+    results_photos: resultsPhotos,
+    instagram_url: instagramUrl,
+    facebook_url: facebookUrl,
+    tiktok_url: tiktokUrl,
+    youtube_url: youtubeUrl,
+    whatsapp_phone: whatsappPhone,
+    updated_at: new Date().toISOString(),
+    ...reviewFields,
+  };
+
+  let { data, error } = (await (supabaseAdmin.from("coach_pages") as any)
+    .upsert({ ...basePayload, certificates }, { onConflict: "coach_id" })
     .select()
     .maybeSingle()) as { data: any; error: any };
+
+  const firstCode = (error as { code?: string } | null)?.code;
+  if (error && (firstCode === "PGRST204" || firstCode === "42703")) {
+    ({ data, error } = (await (supabaseAdmin.from("coach_pages") as any)
+      .upsert(basePayload, { onConflict: "coach_id" })
+      .select()
+      .maybeSingle())) as { data: any; error: any };
+  }
 
   if (error) {
     const code = (error as { code?: string }).code;
@@ -225,7 +258,7 @@ export async function PUT(request: NextRequest) {
       // Undefined column → 0032 EN columns, 0037 enrichment or 0046 review
       // columns missing.
       return NextResponse.json(
-        { error: "migration_missing", message: "أعمدة الصفحة غير موجودة — شغّل هجرات 0032 و 0037 و 0046 في Supabase أولًا (raw links في المحادثة)" },
+        { error: "migration_missing", message: "أعمدة الصفحة غير موجودة — شغّل هجرات 0032 و 0037 و 0046 و 0049 في Supabase أولًا (raw links في المحادثة)" },
         { status: 503 },
       );
     }

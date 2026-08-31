@@ -25,6 +25,9 @@ export type CoachLandingCopy = {
 /** One client-result photo (0037) — public URL + optional caption. */
 export type CoachResultPhoto = { url: string; caption: string };
 
+/** One coach certificate (0049) — public URL + certificate name. */
+export type CoachCertificate = { url: string; title: string };
+
 /** Social links (0037) — empty string = not set. */
 export type CoachSocialLinks = {
   instagram: string;
@@ -42,6 +45,8 @@ export type CoachLandingData = {
   photo_url: string | null;
   /** 0037 — client results photos gallery */
   results_photos: CoachResultPhoto[];
+  /** 0049 — coach certificates gallery (OPTIONAL — empty hides the section) */
+  certificates: CoachCertificate[];
   /** 0037 — social profile links */
   social: CoachSocialLinks;
   /** Arabic content (0031 columns) */
@@ -68,6 +73,23 @@ function parseResultsPhotos(raw: unknown): CoachResultPhoto[] {
     .filter((x): x is CoachResultPhoto => x !== null);
 }
 
+/**
+ * 0049 — defensive jsonb parse of the certificates array.
+ * Exported for unit tests. Max 8; url required; title optional (≤120).
+ */
+export function parseCertificates(raw: unknown): CoachCertificate[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .slice(0, 8)
+    .map((item) => {
+      const rec = (item ?? {}) as Record<string, unknown>;
+      const url = typeof rec.url === "string" ? rec.url : "";
+      const title = typeof rec.title === "string" ? rec.title.slice(0, 120) : "";
+      return url ? { url, title } : null;
+    })
+    .filter((x): x is CoachCertificate => x !== null);
+}
+
 export async function fetchCoachLanding(
   slug: string,
 ): Promise<CoachLandingData | null> {
@@ -77,6 +99,9 @@ export async function fetchCoachLanding(
   // review_status is read defensively: before migration 0046 runs, the
   // column doesn't exist (42703) → fall back to the legacy select and
   // treat every row as approved (pre-0046 behaviour preserved).
+  // NOTE: certificates are NOT part of this select — they're fetched
+  // separately below so a missing 0049 column can NEVER touch the
+  // review gate (pending/rejected pages must stay hidden regardless).
   const { data: page, error: pageErr } = (await supabaseAdmin
     .from("coach_pages" as any)
     .select(
@@ -86,7 +111,15 @@ export async function fetchCoachLanding(
     .maybeSingle()) as { data: any; error: any };
 
   let pageRow = page;
-  if (pageErr && (pageErr as { code?: string }).code === "42703") {
+  // PGRST204 (schema-cache miss) or 42703 (undefined column) → the
+  // review columns don't exist yet (0046 not run). Fall back to the
+  // legacy select WITHOUT them and treat every row as approved
+  // (pre-0046 behaviour preserved).
+  if (
+    pageErr &&
+    ((pageErr as { code?: string }).code === "42703" ||
+      (pageErr as { code?: string }).code === "PGRST204")
+  ) {
     const legacy = (await supabaseAdmin
       .from("coach_pages" as any)
       .select(
@@ -100,6 +133,16 @@ export async function fetchCoachLanding(
   if (!pageRow || !pageRow.is_published) return null;
   // 0046 — not approved (pending re-review / rejected) → hidden from public.
   if ((pageRow.review_status ?? "approved") !== "approved") return null;
+
+  // 0049 — certificates fetch is a SEPARATE lightweight query: if the
+  // column is missing (0049 not run yet) the error is swallowed and the
+  // section stays empty/hidden — the review gate above is untouched.
+  const { data: certRow } = (await supabaseAdmin
+    .from("coach_pages" as any)
+    .select("certificates")
+    .eq("slug", slug)
+    .maybeSingle()) as { data: any; error: any };
+  const certRaw = certRow && Array.isArray(certRow.certificates) ? certRow.certificates : [];
 
   const { data: prof } = await supabaseAdmin
     .from("profiles")
@@ -116,6 +159,8 @@ export async function fetchCoachLanding(
     coach_avatar: prof.avatar_url || null,
     photo_url: pageRow.photo_url || null,
     results_photos: parseResultsPhotos(pageRow.results_photos),
+    // 0049 — empty before the migration runs → public section hides itself.
+    certificates: parseCertificates(certRaw),
     social: {
       instagram: pageRow.instagram_url || "",
       facebook: pageRow.facebook_url || "",

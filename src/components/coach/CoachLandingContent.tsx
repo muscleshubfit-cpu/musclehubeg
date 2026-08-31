@@ -169,6 +169,40 @@ export function CoachLandingContent({
         </section>
       )}
 
+      {/* 0049 — coach certificates (OPTIONAL — hidden while empty) */}
+      {data.certificates.length > 0 && (
+        <section className="mx-auto max-w-3xl px-6 pb-16">
+          <div className="rounded-3xl bg-[#f5f5f7] p-8 md:p-10">
+            <h2 className="mb-2 text-xl font-semibold tracking-tight">
+              {isAr ? "شهادات المدرب" : "Coach certificates"}
+            </h2>
+            <p className="text-sm font-normal text-[#6e6e73]">
+              {isAr
+                ? "شهادات واعتمادات شاركها المدرب للتعريف بمؤهلاته."
+                : "Certificates and credentials shared by the coach to show his qualifications."}
+            </p>
+            <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3">
+              {data.certificates.map((cert, i) => (
+                <figure key={cert.url} className="group">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={cert.url}
+                    alt={cert.title || `${isAr ? "شهادة مدرب" : "Coach certificate"} ${i + 1}`}
+                    loading="lazy"
+                    className="aspect-[4/3] w-full rounded-2xl bg-white object-cover shadow-sm transition-shadow group-hover:shadow-md"
+                  />
+                  {cert.title && (
+                    <figcaption className="mt-2 text-center text-xs font-normal text-[#6e6e73]">
+                      {cert.title}
+                    </figcaption>
+                  )}
+                </figure>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* Branding footer */}
       <footer className="border-t border-[#d2d2d7] py-10 text-center">
         <p className="text-sm font-semibold tracking-tight text-[#1d1d1f]">Musclehubeg</p>
