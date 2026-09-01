@@ -6,7 +6,16 @@
 
 ---
 
-## Latest Verification — 2026-09-02 (Phase 81 — NEW plan-generation limit law (1+1 weekly / 4+4 monthly) + b2b/b2c audit + deferred-tasks closure check)
+## Latest Verification — 2026-09-02 (Phase 85 — blog cadence docs parity + stale cron-flow fix + landing hero `sizes` perf fix)
+
+| Check | Result | How verified |
+|---|---|---|
+| Article cadence documented — no wrong number anywhere | ✅ PASS | Repo-wide audit: AGENTS.md «3 articles/day per language» ✓ · worklog Task 83 «TOTAL 6 articles/day» ✓ · archive Phase 16 «3/لكل لغة = 6/يوم» ✓ — NOW ALSO explicit in README (Blog cadence line), PROGRESS (Blog CMS line) and this file. Cadence: 6/day = 3 EN (12/16/22 UTC) + 3 AR (05/11/18 UTC); one run = one article; dispatch-pipelines tops up only, never exceeds 3+3 |
+| DEVELOPER_GUIDE cron-flow section un-staled | ✅ FIXED | «التدفق الآلي (Cron)» no longer describes the RETIRED step1-pick/step2-generate/step3-publish flow — now shows the two language workflows + p0-research→p5-publish steps + row statuses + dispatcher top-up law; perf table rows renamed step2b/2c/2d → blog p2-content / blog-generate |
+| Landing hero image `sizes` warning | ✅ FIXED | Phase 83 live console warned hero-athlete.jpg "fill but missing sizes" — added `sizes="(max-width: 768px) 100vw, 50vw"` (2-col grid column) to hero and `sizes="(max-width: 1024px) 100vw, 1024px"` (max-w-5xl centered) to evo-1.jpg in LandingView.tsx → proper srcset + smaller mobile download |
+| Gates | ✅ PASS | `tsc --noEmit` 0 · eslint 0 errors on LandingView.tsx · `vitest run` 191/191 |
+
+## Previous Verification — 2026-09-02 (Phase 81 — NEW plan-generation limit law (1+1 weekly / 4+4 monthly) + b2b/b2c audit + deferred-tasks closure check)
 
 | Check | Result | How verified |
 |---|---|---|

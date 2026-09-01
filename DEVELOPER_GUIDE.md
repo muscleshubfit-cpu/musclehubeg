@@ -423,12 +423,21 @@ Coach → /admin/blog/new → "Generate with AI" button
 ### التدفق الآلي (Cron)
 
 ```
-GitHub Actions (3x daily: 06/14/22 UTC + retry loops)
-  → Step 1: /api/cron/blog/step1-pick (pick EN + AR topics)
-  → Step 2: /api/cron/blog/step2-generate (generate article)
-  → Step 3: /api/cron/blog/step3-publish (publish)
-  → Each step uses CRON_SECRET for auth
-  → State tracked in blog_generation_queue table
+GitHub Actions — TWO language workflows (ONE run == ONE article in ONE language):
+  blog-post-en.yml  12:00/16:00/22:00 UTC  = 3 EN articles/day
+  blog-post-ar.yml  05:00/11:00/18:00 UTC  = 3 AR articles/day
+  → TOTAL 6 articles/day
+
+Each run drives that language's queue row through the pipeline steps
+  (all CRON_SECRET-authed):
+  p0-research → p1-outline → p2-content → p3-images → p4-review → p5-publish
+  Row statuses: researched→outlined→writing→written→images_done→reviewed→published
+
+Vercel cron /api/cron/dispatch-pipelines (daily 21:00 UTC) TOPS UP any
+  missed slots only (counts successful runs today vs expected-through-now;
+  failure/cancelled runs don't count) — it never exceeds the 3+3 quota.
+
+State tracked in blog_generation_queue table (one row per language).
 ```
 
 ---
@@ -802,9 +811,9 @@ maxModels افتراضي = 2 (يمكن تمريره عبر options.maxModels)
 | المسار | maxModels | timeoutMs | Worst case |
 |---|---|---|---|
 | EVO chat | 3 | 16s | ~48s |
-| Article EN (step2b) | 2 | 26s | ~52s |
-| Article AR (step2c) | 2 | 26s | ~52s |
-| Links/social (step2d) | 2 | 22s | ~44s |
+| Article EN (blog p2-content) | 2 | 26s | ~52s |
+| Article AR (blog p2-content) | 2 | 26s | ~52s |
+| Links/social (blog-generate) | 2 | 22s | ~44s |
 | Topic pick | 2 | 22s | ~44s |
 | Research (LLM-based) | 2 | 26s | ~52s |
 | Plan nutrition/workout | 2 | 26s | ~52s |

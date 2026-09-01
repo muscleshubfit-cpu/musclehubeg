@@ -438,6 +438,7 @@ export function LandingView() {
               src="/images/hero/hero-athlete.jpg"
               alt={isAr ? "رياضي يعمل تمرين بايسبس" : "Athlete performing bicep curls"}
               fill
+              sizes="(max-width: 768px) 100vw, 50vw"
               className="object-cover"
               loading="eager"
             />
@@ -511,6 +512,7 @@ export function LandingView() {
               src="/images/hero/evo-1.jpg"
               alt={isAr ? "EVO — واجهة ذكاء اصطناعي" : "EVO — AI interface"}
               fill
+              sizes="(max-width: 1024px) 100vw, 1024px"
               className="object-cover"
               loading="lazy"
             />

@@ -291,3 +291,22 @@ Stage Summary:
 - No wrong article number anywhere in docs — the only stated figures (3/lang = 6/day) are correct; README/PROGRESS/QA lack an explicit count (optional polish), DEVELOPER_GUIDE cron-flow section is the one stale spot (step1-3 → should say p0-p5)
 - All three SEO-command items PROVEN treated and live in production (Phase 74)
 - Awaiting owner decision on the optional docs polish (README/PROGRESS explicit 6/day + DEVELOPER_GUIDE flow fix)
+
+---
+Task ID: 85
+Agent: Super Z (main)
+Task: Phase 85 — owner order «نفذ ملاحظاتك + اقتراحك»: explicit 6/day cadence in docs + stale cron-flow fix + hero `sizes` perf fix
+
+Work Log:
+- README: cron line sharpened (dispatch-pipelines tops up + rescues) + NEW «Blog cadence» line — 6 articles/day = 3 EN (blog-post-en.yml 12/16/22 UTC) + 3 AR (blog-post-ar.yml 05/11/18 UTC), one run == one article, dispatcher never exceeds 3+3
+- PROGRESS: «آخر تحديث» → المرحلة 85 + new Phase-85 section + Blog CMS line now carries the explicit 6/day cadence with slots
+- DEVELOPER_GUIDE: «التدفق الآلي (Cron)» rewritten — was describing the RETIRED step1-pick/step2-generate/step3-publish flow; now documents the two language workflows (slots), p0-research→p5-publish CRON_SECRET chain, row statuses, dispatcher top-up law, blog_generation_queue state; perf table rows step2b/2c/2d → blog p2-content / blog-generate
+- QA_CHECKLIST: new «Latest Verification — Phase 85» evidence table (cadence parity, un-stale fix, sizes fix, gates); Phase 81 section reheaded to «Previous»
+- LandingView.tsx (the ONLY code change): hero-athlete.jpg + evo-1.jpg were `fill` without `sizes` (next/image warning seen live in Phase 83 console) — added sizes="(max-width: 768px) 100vw, 50vw" (hero = 2-col grid column, max-w-6xl) and sizes="(max-width: 1024px) 100vw, 1024px" (EVO = centered max-w-5xl) → correct srcset + smaller mobile download
+- Fresh-clone env note: node_modules + gitignored next-env.d.ts regenerated (bun install 708 pkgs; standard next-env.d.ts content — untracked by design); sandbox had been reset since Phase 84
+- Gates: tsc --noEmit 0 · eslint LandingView 0 errors (4 pre-existing `any` warnings at L1286-1401, untouched by this change) · vitest 191/191 · dev homepage 200 with hero served via /_next/image optimizer
+
+Stage Summary:
+- Docs now state the 6/day article cadence EXPLICITLY in every main file (README/PROGRESS/QA_CHECKLIST) — zero wrong numbers repo-wide
+- DEVELOPER_GUIDE cron-flow section matches the real p0-p5 pipeline (last stale spot from the Phase-82 audit closed)
+- Landing perf warning eliminated; only functional-code touch is the two `sizes` props — no behavior change

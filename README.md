@@ -121,7 +121,8 @@ The app is configured for Vercel with (see [`vercel.json`](./vercel.json)):
 - **Build command:** `next build` (production — vercel.json override)
 - **Security headers:** HSTS, X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy
 - **Caching:** 1-year immutable for `/_next/static` and `/images/*`
-- **Cron jobs (2):** weekly progress reminder (Sunday 07:00 UTC) + daily `dispatch-pipelines` (21:00 UTC — blog pipeline + AI jobs queue + notifications)
+- **Cron jobs (2):** weekly progress reminder (Sunday 07:00 UTC) + daily `dispatch-pipelines` (21:00 UTC — tops up missed blog slots + rescues the AI-jobs worker)
+- **Blog cadence:** 6 articles/day — 3 EN (`blog-post-en.yml` at 12/16/22 UTC) + 3 AR (`blog-post-ar.yml` at 05/11/18 UTC); ONE workflow run == ONE article in ONE language, and the dispatcher only tops up missed slots (never exceeds 3+3)
 
 ---
 
