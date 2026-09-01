@@ -68,6 +68,12 @@ const emailRequests = new Map<string, number[]>();
 const DAILY_WINDOW = 24 * 60 * 60 * 1000;
 const DAILY_EMAIL_LIMIT = 100;
 
+/**
+ * Site link used inside the emails (owner: live domain = musclehubeg.vercel.app).
+ * Set NEXT_PUBLIC_SITE_URL on Vercel to switch every email link at once.
+ */
+const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || "https://musclehubeg.vercel.app").replace(/\/$/, "");
+
 function checkEmailLimit(email: string): boolean {
   const now = Date.now();
   const recent = (emailRequests.get(email) ?? []).filter((t) => now - t < EMAIL_WINDOW);
@@ -347,7 +353,7 @@ function buildEmailHtml(
       <ul style="margin:0;padding:0 20px 0 0;list-style:disc;" dir="${dir}">${tipsHtml(tool, isAr)}</ul>
 
       <div style="text-align:center;margin:32px 0 8px;">
-        <a href="https://musclehubeg.com"
+        <a href="${SITE_URL}"
           style="display:inline-block;background:#0071e3;color:#ffffff;text-decoration:none;
           padding:14px 36px;border-radius:999px;font-weight:600;font-size:15px;">
           ${isAr ? "ابدأ رحلتك مع Musclehubeg" : "Start your journey at Musclehubeg"}
@@ -387,7 +393,7 @@ function buildEmailText(
     isAr ? `نتائجك من ${TOOL_NAMES[tool].ar}:` : `Your ${TOOL_NAMES[tool].en} results:`,
     ...lines,
     "",
-    "https://musclehubeg.com",
+    SITE_URL,
   ].join("\n");
 }
 
