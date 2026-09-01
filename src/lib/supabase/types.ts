@@ -301,7 +301,7 @@ export type Database = {
       tool_leads: {
         Row: {
           id: string;
-          tool_slug: "calorie-calculator" | "bmi-calculator" | "macro-calculator" | "body-fat-calculator" | "water-tracker" | "meal-planner" | "newsletter";
+          tool_slug: "calorie-calculator" | "bmi-calculator" | "macro-calculator" | "body-fat-calculator" | "water-tracker" | "meal-planner" | "newsletter" | "signup";
           email: string | null;
           name: string | null;
           whatsapp: string | null;
@@ -316,7 +316,7 @@ export type Database = {
         };
         Insert: {
           id?: string;
-          tool_slug: "calorie-calculator" | "bmi-calculator" | "macro-calculator" | "body-fat-calculator" | "water-tracker" | "meal-planner" | "newsletter";
+          tool_slug: "calorie-calculator" | "bmi-calculator" | "macro-calculator" | "body-fat-calculator" | "water-tracker" | "meal-planner" | "newsletter" | "signup";
           email?: string | null;
           name?: string | null;
           whatsapp?: string | null;

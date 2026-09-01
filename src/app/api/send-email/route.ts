@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import nodemailer from "nodemailer";
 import { createClient } from "@supabase/supabase-js";
+import { validateEmailStrict, validateNameStrict } from "@/lib/email-validation";
 
 /**
  * POST /api/send-email — Phase 72 (owner request)
@@ -56,6 +57,16 @@ function checkIpLimit(ip: string): boolean {
 const EMAIL_WINDOW = 60 * 60 * 1000;
 const EMAIL_MAX = 3;
 const emailRequests = new Map<string, number[]>();
+
+/**
+ * DAILY LIMIT (Phase 73 — owner request):
+ * «حد أقصى 100 رسالة في اليوم» — counted from the `tool_leads` rows created
+ * by the email flow (type='tool') in the last 24 hours, checked BEFORE the
+ * lead is saved and the email is sent. Reaching the cap → HTTP 429, the
+ * Gmail/SMTP account is NOT touched (protects it from suspension).
+ */
+const DAILY_WINDOW = 24 * 60 * 60 * 1000;
+const DAILY_EMAIL_LIMIT = 100;
 
 function checkEmailLimit(email: string): boolean {
   const now = Date.now();
@@ -408,28 +419,75 @@ export async function POST(request: NextRequest) {
     if (!ALLOWED_TOOLS.includes(tool_slug as ToolSlug)) {
       return NextResponse.json({ error: "Invalid tool_slug" }, { status: 400 });
     }
-    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    // Phase 73: STRICT email filtering (same rules as the client-side form)
+    const emailCheck = validateEmailStrict(email);
+    if (!emailCheck.ok) {
       return NextResponse.json({ error: "Valid email is required" }, { status: 400 });
+    }
+    // Phase 73: name is optional — but when present, no weird symbols
+    const nameIssue = validateNameStrict(name, lang === "ar");
+    if (nameIssue) {
+      return NextResponse.json({ error: "Invalid name", message: nameIssue }, { status: 400 });
     }
     if (!result_json || typeof result_json !== "object") {
       return NextResponse.json({ error: "Missing results" }, { status: 400 });
     }
+
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    const dbKey = serviceKey ?? supabaseAnonKey;
+    const supabase =
+      supabaseUrl && dbKey
+        ? createClient(supabaseUrl, dbKey, { auth: { persistSession: false, autoRefreshToken: false } })
+        : null;
+
+    /* ---- 1) DAILY LIMIT — max 100 emails / 24h (owner request) ---- */
+    if (supabase) {
+      const sinceIso = new Date(Date.now() - DAILY_WINDOW).toISOString();
+      let used: number | null = null;
+
+      const typed = await supabase
+        .from("tool_leads")
+        .select("id", { count: "exact", head: true })
+        .gte("created_at", sinceIso)
+        .eq("type", "tool");
+
+      if (typed.error) {
+        // `type` column may not exist yet (0060 not applied) — plain count fallback
+        const plain = await supabase
+          .from("tool_leads")
+          .select("id", { count: "exact", head: true })
+          .gte("created_at", sinceIso);
+        if (!plain.error) used = plain.count ?? 0;
+        else console.error("[api/send-email] daily count query failed:", plain.error.message);
+      } else {
+        used = typed.count ?? 0;
+      }
+
+      if (used !== null && used >= DAILY_EMAIL_LIMIT) {
+        console.error(
+          `[api/send-email] DAILY LIMIT REACHED: ${used}/${DAILY_EMAIL_LIMIT} emails in the last 24h — email NOT sent to ${email}`,
+        );
+        return NextResponse.json(
+          {
+            error: "Daily email limit reached. Please try again tomorrow.",
+            message: "وصلنا الحد الأقصى لعدد الرسائل النهارده (100) — جرب تاني بكرة وان شاء الله هنكمل",
+          },
+          { status: 429, headers: { "Retry-After": "3600" } },
+        );
+      }
+    }
+
     if (!checkEmailLimit(email)) {
       return NextResponse.json({ error: "Too many emails for this address. Try later." }, { status: 429 });
     }
 
-    /* ---- 1) Save the lead FIRST (owner directive: save before send) ---- */
+    /* ---- 2) Save the lead FIRST (owner directive: save before send) ---- */
     let leadSaved = false;
     let leadId: string | null = null;
 
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-    if (supabaseUrl && supabaseAnonKey) {
-      const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-      const supabase = serviceKey
-        ? createClient(supabaseUrl, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } })
-        : createClient(supabaseUrl, supabaseAnonKey, { auth: { persistSession: false, autoRefreshToken: false } });
-
+    if (supabase) {
       const { data, error } = await supabase
         .from("tool_leads")
         .insert({
@@ -456,7 +514,7 @@ export async function POST(request: NextRequest) {
       console.warn("[api/send-email] Supabase env missing — lead not saved (demo mode)");
     }
 
-    /* ---- 2) Send the email ---- */
+    /* ---- 3) Send the email ---- */
     const host = process.env.EMAIL_SERVER_HOST;
     const port = Number(process.env.EMAIL_SERVER_PORT ?? "587");
     const user = process.env.EMAIL_SERVER_USER;

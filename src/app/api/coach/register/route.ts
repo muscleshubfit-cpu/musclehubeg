@@ -237,6 +237,41 @@ export async function POST(request: NextRequest) {
     }
   }
 
+  // ---------- Customer DB (Phase 73 — owner request) ----------
+  // «اضافة كل اعضاء الموقع المسجلين (اعضاء او مدربين) لقاعدة العملاء»:
+  // the 0060 DB trigger saved him as type='member' when the auth row was
+  // created (role is granted AFTER insert); upgrade his lead to 'coach'
+  // now that the promotion succeeded. If the trigger row is missing
+  // (rare) insert the lead directly — any failure here is logged and
+  // NEVER blocks the registration.
+  {
+    const { data: signupLead } = await supabaseAdmin
+      .from("tool_leads")
+      .select("id")
+      .eq("email", email)
+      .eq("tool_slug", "signup")
+      .maybeSingle();
+
+    if (signupLead) {
+      await supabaseAdmin
+        .from("tool_leads")
+        .update({ type: "coach" })
+        .eq("id", signupLead.id);
+    } else {
+      const { error: leadErr } = await supabaseAdmin.from("tool_leads").insert({
+        tool_slug: "signup",
+        email,
+        name: fullName || null,
+        type: "coach",
+        lang: "ar",
+        consent: true,
+      });
+      if (leadErr) {
+        console.error("[coach/register] customer-DB lead error:", leadErr.message);
+      }
+    }
+  }
+
   // ---------- Coach bell (staff console) — Phase 51 rework ----------
   // FIX: this used to insert into `notifications` (the MEMBER bell) — but
   // coaches read `admin_notifications` (AdminNotificationBell), so the

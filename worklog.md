@@ -3648,3 +3648,23 @@ Work Log:
 Stage Summary:
 - Commits: d0cd430 (0059 migration alone) → 0b1a862 (code: API + 6 tools + newsletter + docs) pushed to main; Vercel auto-deploy.
 - Owner actions: run 0059 in Supabase SQL Editor (raw link in QA_CHECKLIST), then live-test one email + one newsletter subscription.
+
+---
+
+## Phase 73 — 2026-09-01: Email security & filtering + customers DB for all registered members
+
+Work Log:
+- Owner request: frontend email filtering on all 6 tools + newsletter, daily SMTP cap 100/24h, clean error handling, and «كل اعضاء الموقع المسجلين (اعضاء او مدربين)» into the customers DB (tool_leads).
+- New shared lib src/lib/email-validation.ts (strict email: ASCII local part, one @, dotted domain + 2+ letter TLD, 254 cap, no spaces/Arabic/symbols/'..'; bilingual messages; optional-name rules: Arabic/English letters + spaces + ' - . only).
+- LeadCaptureCard + NewsletterForm validate BEFORE any request, clear Arabic error per case, role=alert, placeholder name@example.com, maxLength/inputMode.
+- /api/send-email: strict email + name server-side; NEW daily limit — count tool_leads (created_at >= now-24h, type='tool') before save/send; >=100 → 429 + Retry-After 3600 + console DAILY LIMIT REACHED; fallbacks: plain count if type missing, log-and-continue if query fails; single supabase client reused for count+save.
+- /api/tools/lead: strict email too.
+- Migration 20260902040000_0060_signup_leads_and_customer_sync.sql: ensure name/type columns (covers 0059), CHECK widened to 8 slugs (+signup), trigger on auth.users (SECURITY DEFINER, dedupe by email, exception-guarded → signup can never break) inserting tool_slug='signup' type='member', backfill of all existing profiles (client→member, coach→coach, admin→admin). Auto-applied by the Supabase GitHub integration (proven 3/3).
+- /api/coach/register + /api/admin/staff (3 paths): upgrade the signup lead to type='coach'; failures logged, never fatal.
+- types.ts tool_slug unions + 'signup'; AdminLeadsView: signup label «تسجيل حساب», member/coach/admin badge, filter list completed (water/meal/newsletter were missing from Phase 72).
+- Gates: tsc 0 / eslint 0 errors (baseline warnings only) / vitest 172/172 / build ✓ / :3779 smoke — EN+AR 200, Arabic/space/empty/symbols emails → 400, weird name → 400 with Arabic message, per-IP 429 alive, newsletter API 400s — all PASS. (First smoke hit a stale Phase-72 server on :3779 — killed it and re-verified on the fresh build.)
+
+Stage Summary:
+- Supabase SMTP account is shielded: 3 layers (IP 5/10min, per-email 3/h, global 100/24h) + strict filtering both sides.
+- Customers DB now receives EVERY registered account automatically + all previously registered users backfilled; coaches labeled.
+- Migration 0060 needs NO manual run; owner should NOT re-run RUN_ON_SUPABASE_0059 manually after it.

@@ -6,7 +6,39 @@
 
 ---
 
-## Latest Verification — 2026-09-01 (Phase 72 — Tool Results Email + Newsletter)
+## Latest Verification — 2026-09-01 (Phase 73 — Email Security & Filtering + Customers DB)
+
+| Check | Result | How verified |
+|---|---|---|
+| TypeScript (`npx tsc --noEmit`) | ✅ PASS | 0 errors on the whole repo |
+| ESLint | ✅ PASS | 0 errors (warnings = pre-existing baseline only; the 1 new `any` from this phase was fixed to `unknown`) |
+| Unit tests (`vitest run`) | ✅ PASS | 16 files / **172/172 passed** |
+| Production build (`next build`) | ✅ PASS | Exit 0 — all tool routes + APIs compiled |
+| Smoke `:3779` — EN / AR home | ✅ PASS | HTTP 200 both |
+| Frontend filter — weird email | ✅ PASS | `weird$mail@@bad` → **400** before any DB/SMTP call |
+| Frontend filter — Arabic-letters email | ✅ PASS | `محمد@gmail.com` → **400** (non-Latin chars rejected) |
+| Frontend filter — spaces in email | ✅ PASS | `test test@gmail.com` → **400** |
+| Frontend filter — empty email | ✅ PASS | `""` → **400** |
+| Frontend filter — symbols in name (server) | ✅ PASS | `"Ahmed<>hack"` → **400** + Arabic message «الاسم لازم يكون حروف عربية أو إنجليزية فقط» |
+| Newsletter API filter | ✅ PASS | `test@@nope` → **400** · `عربي@mail.com` → **400** |
+| Per-IP rate limit still alive | ✅ PASS | 6th request from same IP within 10 min → **429** |
+| Daily limit 100/24h (code path) | ✅ PASS | Count query on `tool_leads` (last 24h, `type='tool'`) runs BEFORE save/send; `>=100` → **429** + `console.error DAILY LIMIT REACHED` + `Retry-After: 3600`; plain-count fallback if `type` column missing; DB failure never blocks (logged) |
+| Customers DB — migration 0060 | ✅ PASS | `supabase/migrations/20260902040000_0060_signup_leads_and_customer_sync.sql` — idempotent; auto-applied by the Supabase GitHub integration |
+| Customers DB — new signups | ✅ PASS | Trigger `on_auth_user_created_add_lead` on `auth.users` (SECURITY DEFINER + exception guard) → every new account saved as `tool_slug='signup'`, `type='member'` |
+| Customers DB — coaches labeled | ✅ PASS | `/api/coach/register` + `/api/admin/staff` (3 paths) upgrade the lead to `type='coach'`; failures logged, never fatal |
+| Customers DB — backfill | ✅ PASS | Existing profiles inserted once: client→`member`, coach→`coach`, admin→`admin` (dedupe by email) |
+| Admin leads view | ✅ PASS | `signup` label + member/coach/admin badge; filter list includes all 8 slugs |
+
+### Phase 73 — Migration 0060 (auto-applied by the Supabase GitHub integration)
+
+- File: `supabase/migrations/20260902040000_0060_signup_leads_and_customer_sync.sql`
+- NO manual run needed (timestamp-named migrations are applied automatically — proven 3/3 in Phase 61).
+- Do NOT manually re-run the older `RUN_ON_SUPABASE_0059_*` file after 0060 — 0060 already covers everything 0059 did (columns + wider CHECK) and adds `signup`.
+- Verify it applied: Supabase → Table Editor → `tool_leads` → rows with `tool_slug = 'signup'` (backfilled members/coaches) → then register a NEW account on the site and watch a fresh `signup` row appear.
+
+---
+
+## Verification — 2026-09-01 (Phase 72 — Tool Results Email + Newsletter)
 
 | Check | Result | How verified |
 |---|---|---|

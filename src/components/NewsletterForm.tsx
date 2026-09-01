@@ -3,6 +3,10 @@
 import { useState } from "react";
 import { Mail, Send, CheckCircle2, Loader2 } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
+import {
+  validateEmailStrict,
+  emailErrorMessage,
+} from "@/lib/email-validation";
 
 /**
  * NewsletterForm — Phase 72 (owner request)
@@ -26,16 +30,15 @@ export function NewsletterForm({ variant = "footer" }: { variant?: "footer" | "h
   const submit = async () => {
     setError(null);
 
-    const cleanEmail = email.trim().toLowerCase();
+    // Phase 73: strict client-side filtering — nothing is sent before the
+    // email passes the format/characters rules.
+    const emailCheck = validateEmailStrict(email);
+    if (!emailCheck.ok) {
+      setError(emailErrorMessage(emailCheck.issue, isAr));
+      return;
+    }
 
-    if (!cleanEmail) {
-      setError(isAr ? "اكتب بريدك الإلكتروني" : "Enter your email");
-      return;
-    }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
-      setError(isAr ? "البريد الإلكتروني غير صحيح" : "Invalid email");
-      return;
-    }
+    const cleanEmail = emailCheck.email;
 
     setSubmitting(true);
     try {
@@ -124,8 +127,10 @@ export function NewsletterForm({ variant = "footer" }: { variant?: "footer" | "h
           type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          placeholder={isAr ? "بريدك الإلكتروني" : "Your email"}
+          placeholder={isAr ? "بريدك الإلكتروني — مثال: name@example.com" : "Your email — e.g. name@example.com"}
           dir="ltr"
+          maxLength={254}
+          inputMode="email"
           className={inputClasses}
           onKeyDown={(e) => {
             if (e.key === "Enter") {
@@ -159,7 +164,7 @@ export function NewsletterForm({ variant = "footer" }: { variant?: "footer" | "h
       </div>
 
       {error && (
-        <p className={`mt-2 text-sm font-normal text-[#ff3b30] ${variant === "home" ? "text-center" : ""}`}>
+        <p role="alert" className={`mt-2 text-sm font-normal text-[#ff3b30] ${variant === "home" ? "text-center" : ""}`}>
           {error}
         </p>
       )}

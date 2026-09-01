@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { validateEmailStrict } from "@/lib/email-validation";
 
 /**
  * #2 fix: simple in-memory rate limiting for public endpoint.
@@ -98,16 +99,11 @@ export async function POST(request: NextRequest) {
 
     const cleanEmail = typeof email === "string" ? email.trim().toLowerCase() : "";
 
-    if (!cleanEmail) {
+    // Phase 73: STRICT email filtering (same rules as the client-side form)
+    const emailCheck = validateEmailStrict(cleanEmail);
+    if (!emailCheck.ok) {
       return NextResponse.json(
-        { error: "Email is required" },
-        { status: 400 },
-      );
-    }
-
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
-      return NextResponse.json(
-        { error: "Invalid email format" },
+        { error: "Valid email is required" },
         { status: 400 },
       );
     }

@@ -43,6 +43,41 @@ async function allowlistCoach(email: string) {
     .upsert({ email: email.toLowerCase() }, { onConflict: "email" });
 }
 
+/**
+ * Customer DB (Phase 73 — owner request «كل اعضاء الموقع المسجلين
+ * (اعضاء او مدربين) في قاعدة العملاء»): the 0060 trigger files every new
+ * account as type='member'; when the account is a COACH the label is
+ * upgraded here. Failures are logged and NEVER block the admin action.
+ */
+async function markSignupLeadCoach(email: string) {
+  try {
+    const db = supabaseAdmin!;
+    const mail = email.toLowerCase();
+    const { data: lead } = await db
+      .from("tool_leads")
+      .select("id")
+      .eq("email", mail)
+      .eq("tool_slug", "signup")
+      .maybeSingle();
+    if (lead) {
+      await db.from("tool_leads").update({ type: "coach" }).eq("id", lead.id);
+      return;
+    }
+    const { error } = await db.from("tool_leads").insert({
+      tool_slug: "signup",
+      email: mail,
+      type: "coach",
+      lang: "ar",
+      consent: true,
+    });
+    if (error) {
+      console.error("[admin/staff] customer-DB lead error:", error.message);
+    }
+  } catch (e) {
+    console.error("[admin/staff] customer-DB lead exception:", e instanceof Error ? e.message : e);
+  }
+}
+
 /** Local mirror of isAuthConfigured (same expression as auth-server). */
 function isAuthConfiguredSafe(): boolean {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
@@ -101,6 +136,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
     await allowlistCoach(email);
+    await markSignupLeadCoach(email);
     return NextResponse.json({ ok: true, action: "promoted", email });
   }
 
@@ -129,6 +165,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: error.message }, { status: 500 });
       }
       await allowlistCoach(email);
+      await markSignupLeadCoach(email);
       return NextResponse.json({ ok: true, action: "promoted", email });
     }
     const registered =
@@ -177,6 +214,7 @@ export async function POST(request: NextRequest) {
   }
 
   await allowlistCoach(email);
+  await markSignupLeadCoach(email);
   return NextResponse.json({ ok: true, action: "invited", email });
 }
 

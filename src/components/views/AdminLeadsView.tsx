@@ -11,6 +11,10 @@ const TOOL_LABELS: Record<string, { ar: string; en: string; emoji: string }> = {
   "bmi-calculator": { ar: "حاسبة BMI", en: "BMI Calculator", emoji: "⚖️" },
   "macro-calculator": { ar: "حاسبة الماكروز", en: "Macro Calculator", emoji: "🥩" },
   "body-fat-calculator": { ar: "حاسبة الدهون", en: "Body Fat Calculator", emoji: "📊" },
+  "water-tracker": { ar: "متتبع الماء", en: "Water Tracker", emoji: "💧" },
+  "meal-planner": { ar: "مخطط الوجبات", en: "Meal Planner", emoji: "🥗" },
+  "newsletter": { ar: "النشرة البريدية", en: "Newsletter", emoji: "📬" },
+  "signup": { ar: "تسجيل حساب", en: "Account signup", emoji: "👤" },
 };
 
 export function AdminLeadsView() {
@@ -273,6 +277,24 @@ export function AdminLeadsView() {
                           <span className="font-medium">
                             {isAr ? tool?.ar : tool?.en}
                           </span>
+                          {/* Phase 73: member / coach badge for signup rows */}
+                          {lead.tool_slug === "signup" && (
+                            <span
+                              className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${
+                                lead.type === "coach"
+                                  ? "bg-[#0071e3]/10 text-[#0071e3]"
+                                  : lead.type === "admin"
+                                    ? "bg-[#1d1d1f]/10 text-[#1d1d1f]"
+                                    : "bg-[#34c759]/10 text-[#1d8a3c]"
+                              }`}
+                            >
+                              {lead.type === "coach"
+                                ? isAr ? "مدرب" : "Coach"
+                                : lead.type === "admin"
+                                  ? isAr ? "إدارة" : "Admin"
+                                  : isAr ? "عضو" : "Member"}
+                            </span>
+                          )}
                         </span>
                       </td>
                       <td className="p-3">

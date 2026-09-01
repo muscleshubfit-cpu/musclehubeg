@@ -3,6 +3,11 @@
 import { useState } from "react";
 import { Mail, Send, CheckCircle2, Loader2 } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
+import {
+  validateEmailStrict,
+  emailErrorMessage,
+  validateNameStrict,
+} from "@/lib/email-validation";
 
 type ToolSlug =
   | "calorie-calculator"
@@ -43,16 +48,20 @@ export function LeadCaptureCard({ toolSlug, resultSummary, resultJson }: Props) 
   const submit = async () => {
     setError(null);
 
-    const cleanEmail = email.trim().toLowerCase();
+    // Phase 73: strict client-side filtering — nothing is sent before the
+    // email and the name pass the format/characters rules.
+    const emailCheck = validateEmailStrict(email);
+    if (!emailCheck.ok) {
+      setError(emailErrorMessage(emailCheck.issue, isAr));
+      return;
+    }
+    const nameError = validateNameStrict(name, isAr);
+    if (nameError) {
+      setError(nameError);
+      return;
+    }
 
-    if (!cleanEmail) {
-      setError(isAr ? "اكتب بريدك الإلكتروني" : "Enter your email");
-      return;
-    }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
-      setError(isAr ? "البريد الإلكتروني غير صحيح" : "Invalid email");
-      return;
-    }
+    const cleanEmail = emailCheck.email;
 
     setSubmitting(true);
     try {
@@ -145,8 +154,10 @@ export function LeadCaptureCard({ toolSlug, resultSummary, resultJson }: Props) 
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            placeholder="you@example.com"
+            placeholder="name@example.com"
             dir="ltr"
+            maxLength={254}
+            inputMode="email"
             className="w-full rounded-xl border border-[#d2d2d7] bg-white ps-11 pe-4 py-3 text-base font-normal outline-none focus:border-[#0071e3]"
           />
         </div>
@@ -154,7 +165,7 @@ export function LeadCaptureCard({ toolSlug, resultSummary, resultJson }: Props) 
 
       {/* Error */}
       {error && (
-        <p className="mt-3 text-sm font-normal text-[#ff3b30]">{error}</p>
+        <p role="alert" className="mt-3 text-sm font-normal text-[#ff3b30]">{error}</p>
       )}
 
       {/* Submit */}
