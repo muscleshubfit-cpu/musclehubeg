@@ -1451,3 +1451,6 @@ export type Referral = Database["public"]["Tables"]["referrals"]["Row"];
 export type ReferralEarning = Database["public"]["Tables"]["referral_earnings"]["Row"];
 export type ReferralPayout = Database["public"]["Tables"]["referral_payouts"]["Row"];
 export type CoachPage = Database["public"]["Tables"]["coach_pages"]["Row"];
+export type NutritionQuestionnaire = Database["public"]["Tables"]["nutrition_questionnaires"]["Row"];
+export type FitnessQuestionnaire = Database["public"]["Tables"]["fitness_questionnaires"]["Row"];
+export type ProgressPhoto = Database["public"]["Tables"]["progress_photos"]["Row"];

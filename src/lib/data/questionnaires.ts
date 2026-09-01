@@ -10,8 +10,12 @@ import {
  LS_FIT_Q,
 } from "./helpers";
 import { createNotification, createAdminNotification } from "./notifications";
+import type { Json, NutritionQuestionnaire, FitnessQuestionnaire } from "@/lib/supabase/types";
 
-export async function getQuestionnaire(clientId: string, type: "nutrition" | "fitness") {
+/** Row shape shared by nutrition/fitness questionnaires (identical columns). */
+export type QuestionnaireRow = NutritionQuestionnaire | FitnessQuestionnaire;
+
+export async function getQuestionnaire(clientId: string, type: "nutrition" | "fitness"): Promise<QuestionnaireRow | null> {
  if (isSupabaseConfigured && supabase) {
  const table = type === "nutrition" ? "nutrition_questionnaires" : "fitness_questionnaires";
  const { data } = await supabase
@@ -23,14 +27,14 @@ export async function getQuestionnaire(clientId: string, type: "nutrition" | "fi
  .maybeSingle();
  return data;
  }
- const store = read<Record<string, any>>(type === "nutrition" ? LS_NUTRI_Q : LS_FIT_Q, {});
+ const store = read<Record<string, NutritionQuestionnaire | FitnessQuestionnaire>>(type === "nutrition" ? LS_NUTRI_Q : LS_FIT_Q, {});
  return store[clientId] ?? null;
 }
 
 export async function upsertQuestionnaire(
  clientId: string,
  type: "nutrition" | "fitness",
- data: any,
+ data: Json,
  status: "draft" | "submitted" | "approved" | "needs_info",
 ) {
  if (isSupabaseConfigured && supabase) {
@@ -58,7 +62,7 @@ export async function upsertQuestionnaire(
  return row;
  }
  const key = type === "nutrition" ? LS_NUTRI_Q : LS_FIT_Q;
- const store = read<Record<string, any>>(key, {});
+ const store = read<Record<string, NutritionQuestionnaire | FitnessQuestionnaire>>(key, {});
  store[clientId] = {
  id: store[clientId]?.id ?? uid(),
  client_id: clientId,
@@ -95,7 +99,7 @@ export async function setQuestionnaireStatus(
  return data;
  }
  const key = type === "nutrition" ? LS_NUTRI_Q : LS_FIT_Q;
- const store = read<Record<string, any>>(key, {});
+ const store = read<Record<string, NutritionQuestionnaire | FitnessQuestionnaire>>(key, {});
  if (store[clientId]) {
  store[clientId].status = status;
  store[clientId].updated_at = new Date().toISOString();

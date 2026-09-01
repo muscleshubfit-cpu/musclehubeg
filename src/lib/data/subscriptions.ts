@@ -14,6 +14,13 @@ import {
 } from "./helpers";
 import { createNotification, createAdminNotification } from "./notifications";
 import { canonicalModelTier } from "../plans";
+import type { Subscription, SubscriptionRequest } from "@/lib/supabase/types";
+
+/** Input accepted by submitSubscriptionRequest — mirrors the subscription_requests Insert shape (payment_method union == lib/plans PaymentMethod). */
+export type SubscriptionRequestInput = Pick<
+ SubscriptionRequest,
+ "user_id" | "full_name" | "whatsapp" | "plan_tier" | "duration_months" | "price_usd" | "payment_method" | "receipt_path"
+>;
 
 export async function listAllClients() {
  if (isSupabaseConfigured && supabase) {
@@ -135,17 +142,17 @@ export async function getCoachClientStats(): Promise<CoachClientStats | null> {
 // Subscription Requests (for coach payments page)
 // ---------------------------------------------------------------------------
 
-export async function listSubscriptionRequests(status?: string) {
+export async function listSubscriptionRequests(status?: string): Promise<SubscriptionRequest[]> {
  if (isSupabaseConfigured && supabase) {
  let q = supabase.from("subscription_requests").select("*").order("created_at", { ascending: false });
  if (status && status !== "all") q = q.eq("status", status as "pending" | "approved" | "rejected");
  const { data } = await q;
  return data ?? [];
  }
- return read<any[]>(LS_PREFIX + "subreqs", []);
+ return read<SubscriptionRequest[]>(LS_PREFIX + "subreqs", []);
 }
 
-export async function submitSubscriptionRequest(req: any) {
+export async function submitSubscriptionRequest(req: SubscriptionRequestInput): Promise<SubscriptionRequest> {
  if (isSupabaseConfigured && supabase) {
  // M9 fix: check for existing pending request from the same user for the
  // same plan tier to prevent spamming the coach's payment review queue.
@@ -173,14 +180,20 @@ export async function submitSubscriptionRequest(req: any) {
  ).catch(() => {});
  return data;
  }
- const all = read<any[]>(LS_PREFIX + "subreqs", []);
- const row = { id: uid(), ...req, status: "pending", created_at: new Date().toISOString() };
+ const all = read<SubscriptionRequest[]>(LS_PREFIX + "subreqs", []);
+ const row: SubscriptionRequest = {
+ id: uid(),
+ ...req,
+ status: "pending",
+ reviewed_at: null,
+ created_at: new Date().toISOString(),
+ };
  all.push(row);
  write(LS_PREFIX + "subreqs", all);
  return row;
 }
 
-export async function reviewSubscriptionRequest(id: string, action: "approve" | "reject", adminNote?: string) {
+export async function reviewSubscriptionRequest(id: string, action: "approve" | "reject", adminNote?: string): Promise<SubscriptionRequest> {
  if (isSupabaseConfigured && supabase) {
  // M10 fix: only update if status is still "pending" — prevents re-approving
  // or re-rejecting an already-processed request (double-commission, etc.)
@@ -242,7 +255,7 @@ export async function reviewSubscriptionRequest(id: string, action: "approve" | 
  }
  return data;
  }
- const all = read<any[]>(LS_PREFIX + "subreqs", []);
+ const all = read<SubscriptionRequest[]>(LS_PREFIX + "subreqs", []);
  const idx = all.findIndex((r) => r.id === id);
  if (idx >= 0) all[idx].status = action === "approve" ? "approved" : "rejected";
  write(LS_PREFIX + "subreqs", all);
@@ -293,12 +306,12 @@ export async function getPlanFileUrl(bucket: string, filePath: string): Promise<
  return "";
 }
 
-export async function listAllSubscriptions() {
+export async function listAllSubscriptions(): Promise<Subscription[]> {
  if (isSupabaseConfigured && supabase) {
  const { data } = await supabase.from("subscriptions").select("*");
  return data ?? [];
  }
- return read<any[]>(LS_SUBS, []);
+ return read<Subscription[]>(LS_SUBS, []);
 }
 
 /**
@@ -308,7 +321,7 @@ export async function listAllSubscriptions() {
  * coach-only views. RLS also enforces this server-side, but defense in
  * depth: never trust the body's userId, and never fetch more than needed.
  */
-export async function getSubscriptionForClient(clientId: string) {
+export async function getSubscriptionForClient(clientId: string): Promise<Subscription | null> {
  if (isSupabaseConfigured && supabase) {
  // T-AI-DEEP-AUDIT-V2 (D5 fix): filter status='active' + end_date>now —
  // mirrors auth-server.ts getAuthUser(). Previously the newest row won
@@ -327,8 +340,8 @@ export async function getSubscriptionForClient(clientId: string) {
  if (arr.length === 0) return null;
  // Separate coaching from memberships — pick best MEMBERSHIP tier
  // (pro > premium). If only coaching, return coaching.
- const hasCoaching = arr.some((s: any) => s.tier === "coaching");
- const membershipSubs = arr.filter((s: any) => ["premium", "pro"].includes(s.tier));
+ const hasCoaching = arr.some((s) => s.tier === "coaching");
+ const membershipSubs = arr.filter((s) => ["premium", "pro"].includes(s.tier));
  if (membershipSubs.length > 0) {
  const priority = (tier: string) => {
  if (tier === "pro") return 3;
@@ -338,24 +351,24 @@ export async function getSubscriptionForClient(clientId: string) {
  membershipSubs.sort((a, b) => priority(b.tier) - priority(a.tier));
  return membershipSubs[0];
  } else if (hasCoaching) {
- return arr.find((s: any) => s.tier === "coaching");
+ return arr.find((s) => s.tier === "coaching") ?? null;
  }
  return arr[0];
  }
  // Local fallback mirrors the same active + expiry filter.
  const now = new Date().toISOString();
- const all = read<any[]>(LS_SUBS, []).filter(
- (s) => s.client_id === clientId && s.status === "active" && s.end_date > now,
+ const all = read<Subscription[]>(LS_SUBS, []).filter(
+ (s) => s.client_id === clientId && s.status === "active" && s.end_date !== null && s.end_date > now,
  );
  if (all.length === 0) return null;
- const hasCoaching = all.some((s: any) => s.tier === "coaching");
- const membershipSubs = all.filter((s: any) => ["premium", "pro"].includes(s.tier));
+ const hasCoaching = all.some((s) => s.tier === "coaching");
+ const membershipSubs = all.filter((s) => ["premium", "pro"].includes(s.tier));
  if (membershipSubs.length > 0) {
  const priority = (tier: string) => (tier === "pro" ? 3 : tier === "premium" ? 2 : 0);
  membershipSubs.sort((a, b) => priority(b.tier) - priority(a.tier));
  return membershipSubs[0];
  }
- return all.find((s: any) => s.tier === "coaching") ?? all[0];
+ return all.find((s) => s.tier === "coaching") ?? all[0];
 }
 
 /**
@@ -363,7 +376,7 @@ export async function getSubscriptionForClient(clientId: string) {
  * Used by the coach client view to show multiple subscriptions
  * (e.g. Coaching + Premium coexisting).
  */
-export async function listSubscriptionsForClient(clientId: string) {
+export async function listSubscriptionsForClient(clientId: string): Promise<Subscription[]> {
  if (isSupabaseConfigured && supabase) {
  const { data } = await supabase
  .from("subscriptions")
@@ -372,7 +385,7 @@ export async function listSubscriptionsForClient(clientId: string) {
  .order("created_at", { ascending: false });
  return data ?? [];
  }
- return read<any[]>(LS_SUBS, []).filter((s) => s.client_id === clientId);
+ return read<Subscription[]>(LS_SUBS, []).filter((s) => s.client_id === clientId);
 }
 
 export async function upsertSubscription(clientId: string, tier: string, months: number, startDate?: string, endDate?: string, requestId?: string | null) {
@@ -395,16 +408,18 @@ export async function upsertSubscription(clientId: string, tier: string, months:
  if (error) throw new Error(error.message);
  return data;
  }
- const all = read<any[]>(LS_SUBS, []);
+ const all = read<Subscription[]>(LS_SUBS, []);
  const idx = all.findIndex((s) => s.client_id === clientId);
- const row = {
+ const row: Subscription = {
  id: idx >= 0 ? all[idx].id : uid(),
  client_id: clientId,
  tier,
  months,
- start_date: startDate,
- end_date: endDate,
+ start_date: startDate ?? null,
+ end_date: endDate ?? null,
  status: "active" as const,
+ subscription_type: tier === "coaching" ? "coaching" : "membership",
+ cancel_requested_at: null,
  created_at: idx >= 0 ? all[idx].created_at : new Date().toISOString(),
  };
  if (idx >= 0) all[idx] = row;

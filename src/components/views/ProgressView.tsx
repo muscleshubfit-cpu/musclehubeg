@@ -19,7 +19,8 @@ import {
  DialogTitle,
  DialogFooter,
 } from "@/components/ui/dialog";
-import { listProgress, addProgress, listPhotos, uploadPhoto, deletePhoto } from "@/lib/data";
+import { listProgress, addProgress, listPhotos, uploadPhoto, deletePhoto, type ProgressEntryInsert } from "@/lib/data";
+import type { ProgressEntry, ProgressPhoto } from "@/lib/supabase/types";
 import { toast } from "sonner";
 
 // Lazy-load the chart component so recharts (~600KB) is only fetched
@@ -33,8 +34,8 @@ export function ProgressView() {
  const { t, lang } = useI18n();
  const isAr = lang === "ar";
  const { profile } = useAuth();
- const [entries, setEntries] = useState<any[]>([]);
- const [photos, setPhotos] = useState<any[]>([]);
+ const [entries, setEntries] = useState<ProgressEntry[]>([]);
+ const [photos, setPhotos] = useState<Array<ProgressPhoto & { url: string }>>([]);
  const [loading, setLoading] = useState(true);
  const [open, setOpen] = useState(false);
  const [saving, setSaving] = useState(false);
@@ -57,8 +58,8 @@ export function ProgressView() {
  ]);
  setEntries(p);
  setPhotos(ph);
- } catch (e: any) {
- console.error("[ProgressView] load failed:", e?.message);
+ } catch (e) {
+ console.error("[ProgressView] load failed:", e instanceof Error ? e.message : e);
  } finally {
  setLoading(false);
  }
@@ -72,7 +73,7 @@ export function ProgressView() {
  if (!profile) return;
  setSaving(true);
  try {
- const entry: any = { client_id: profile.id };
+ const entry: ProgressEntryInsert = { client_id: profile.id };
  // M46 fix: allow back-dating entries (default = today, max = today)
  if (form.entry_date) entry.created_at = form.entry_date;
  for (const k of ["weight", "waist", "chest", "hips", "arm", "neck", "energy", "adherence"]) {
@@ -103,8 +104,8 @@ export function ProgressView() {
  setForm({});
  setOpen(false);
  toast.success(t("prog.entrySaved"));
- } catch (e: any) {
- toast.error(e.message || t("common.error"));
+ } catch (e) {
+ toast.error((e instanceof Error ? e.message : "") || t("common.error"));
  } finally {
  setSaving(false);
  }
@@ -120,8 +121,8 @@ export function ProgressView() {
  setPhotoNote("");
  setPhotoOpen(false);
  toast.success(t("prog.photoUploaded"));
- } catch (e: any) {
- toast.error(e.message || t("common.error"));
+ } catch (e) {
+ toast.error((e instanceof Error ? e.message : "") || t("common.error"));
  } finally {
  setUploadingPhoto(false);
  }
@@ -133,13 +134,13 @@ export function ProgressView() {
  await deletePhoto(id, filePath);
  await load();
  toast.success(t("common.delete"));
- } catch (e: any) {
- toast.error(e.message || t("common.error"));
+ } catch (e) {
+ toast.error((e instanceof Error ? e.message : "") || t("common.error"));
  }
  };
 
  const chartData = entries
- .filter((e) => e.weight != null)
+ .filter((e): e is ProgressEntry & { weight: number } => e.weight != null)
  .map((e) => ({
  date: new Date(e.created_at).toLocaleDateString(lang === "ar" ? "ar-EG" : "en-US", { month: "short", day: "numeric" }),
  weight: e.weight,

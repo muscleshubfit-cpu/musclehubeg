@@ -10,12 +10,16 @@ import {
  LS_PROGRESS,
  LS_PREFIX,
 } from "./helpers";
+import type { Database, ProgressEntry, ProgressPhoto } from "@/lib/supabase/types";
+
+/** Input shape for addProgress (progress_entries Insert — client_id required). */
+export type ProgressEntryInsert = Database["public"]["Tables"]["progress_entries"]["Insert"];
 
 /* -------------------------------------------------------------------------- */
 /* Generic data access (works with Supabase OR local store) */
 /* -------------------------------------------------------------------------- */
 
-export async function listProgress(clientId: string) {
+export async function listProgress(clientId: string): Promise<ProgressEntry[]> {
  if (isSupabaseConfigured && supabase) {
  const { data } = await supabase
  .from("progress_entries")
@@ -24,17 +28,31 @@ export async function listProgress(clientId: string) {
  .order("created_at", { ascending: true });
  return data ?? [];
  }
- return read<any[]>(LS_PROGRESS, []).filter((p) => p.client_id === clientId);
+ return read<ProgressEntry[]>(LS_PROGRESS, []).filter((p) => p.client_id === clientId);
 }
 
-export async function addProgress(entry: any) {
+export async function addProgress(entry: ProgressEntryInsert): Promise<ProgressEntry> {
  if (isSupabaseConfigured && supabase) {
  const { data, error } = await supabase.from("progress_entries").insert(entry).select().single();
  if (error) throw new Error(error.message);
  return data;
  }
- const all = read<any[]>(LS_PROGRESS, []);
- const newRow = { ...entry, id: uid(), created_at: new Date().toISOString() };
+ const all = read<ProgressEntry[]>(LS_PROGRESS, []);
+ // Explicit Row build: Insert fields are optional, Row requires every column.
+ const newRow: ProgressEntry = {
+ id: uid(),
+ client_id: entry.client_id,
+ weight: entry.weight ?? null,
+ waist: entry.waist ?? null,
+ chest: entry.chest ?? null,
+ hips: entry.hips ?? null,
+ arm: entry.arm ?? null,
+ neck: entry.neck ?? null,
+ energy: entry.energy ?? null,
+ adherence: entry.adherence ?? null,
+ notes: entry.notes ?? null,
+ created_at: entry.created_at ?? new Date().toISOString(),
+ };
  all.push(newRow);
  write(LS_PROGRESS, all);
  return newRow;
@@ -44,7 +62,7 @@ export async function addProgress(entry: any) {
 // Progress Photos
 // ---------------------------------------------------------------------------
 
-export async function listPhotos(userId: string) {
+export async function listPhotos(userId: string): Promise<Array<ProgressPhoto & { url: string }>> {
  if (isSupabaseConfigured && supabase) {
  const { data } = await supabase
  .from("progress_photos")
@@ -54,7 +72,7 @@ export async function listPhotos(userId: string) {
  if (!data) return [];
  // Generate signed URLs for each photo
  const withUrls = await Promise.all(
- data.map(async (p: any) => {
+ data.map(async (p) => {
  const { data: signed } = await supabase!.storage
  .from("progress-photos")
  .createSignedUrl(p.file_path, 3600);
@@ -63,7 +81,9 @@ export async function listPhotos(userId: string) {
  );
  return withUrls;
  }
- return read<any[]>(LS_PREFIX + "photos", []).filter((p) => p.user_id === userId);
+ return read<ProgressPhoto[]>(LS_PREFIX + "photos", [])
+ .filter((p) => p.user_id === userId)
+ .map((p) => ({ ...p, url: "" }));
 }
 
 export async function uploadPhoto(userId: string, file: File, date: string, note: string) {
@@ -83,8 +103,8 @@ export async function uploadPhoto(userId: string, file: File, date: string, note
  return data;
  }
  // Local fallback
- const all = read<any[]>(LS_PREFIX + "photos", []);
- const row = { id: uid(), user_id: userId, file_path: "", taken_on: date, note, created_at: new Date().toISOString(), url: URL.createObjectURL(file) };
+ const all = read<ProgressPhoto[]>(LS_PREFIX + "photos", []);
+ const row: ProgressPhoto & { url: string } = { id: uid(), user_id: userId, file_path: "", taken_on: date, note, created_at: new Date().toISOString(), url: URL.createObjectURL(file) };
  all.push(row);
  write(LS_PREFIX + "photos", all);
  return row;
@@ -96,6 +116,6 @@ export async function deletePhoto(id: string, filePath?: string) {
  await supabase.from("progress_photos").delete().eq("id", id);
  return;
  }
- const all = read<any[]>(LS_PREFIX + "photos", []);
+ const all = read<ProgressPhoto[]>(LS_PREFIX + "photos", []);
  write(LS_PREFIX + "photos", all.filter((p) => p.id !== id));
 }
