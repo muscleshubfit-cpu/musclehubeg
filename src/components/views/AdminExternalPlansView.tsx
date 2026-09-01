@@ -17,10 +17,30 @@ import {
   Infinity as InfinityIcon,
   Loader2,
   Sparkles,
+  RotateCcw,
+  RefreshCcw,
+  Repeat,
 } from "lucide-react";
 
 type ExternalPlanRow = Database["public"]["Tables"]["external_plans"]["Row"];
-type ExternalPlan = Omit<ExternalPlanRow, "content"> & { text: string };
+
+/** AI provenance stored in content.ai — powers «إعادة توليد» with the same brief. */
+type AIPlanMeta = {
+  source?: string;
+  generated_at?: string;
+  engine?: string;
+  params?: Record<string, unknown> | null;
+  regenerations?: number;
+  last_action?: string;
+  last_source?: string;
+  last_at?: string;
+};
+
+type ExternalPlan = Omit<ExternalPlanRow, "content"> & {
+  text: string;
+  plan?: Record<string, any> | null;
+  ai?: AIPlanMeta | null;
+};
 
 /* ── Owner Phase 78: AI generation brief — same model as client plans ── */
 
@@ -105,6 +125,7 @@ export function AdminExternalPlansView() {
   const [aiForm, setAIForm] = useState(emptyAIForm);
   const [editForm, setEditForm] = useState(emptyEditForm);
   const [formMode, setFormMode] = useState<null | "ai" | "edit">(null);
+  const [busyKey, setBusyKey] = useState<string | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -271,6 +292,65 @@ export function AdminExternalPlansView() {
       toast.error(msg || (isAr ? "فشل الحذف" : "Delete failed"));
     }
   };
+
+  /* ── Regeneration actions (owner Phase 78: «اعادة توليد») ── */
+  const runAction = async (
+    payload: Record<string, unknown>,
+    key: string,
+    confirmMsg?: string,
+  ) => {
+    if (busyKey) return;
+    if (confirmMsg && !confirm(confirmMsg)) return;
+    setBusyKey(key);
+    try {
+      const res = await fetch("/api/admin/external-plans", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast.error(data.message || data.error || (isAr ? "فشلت العملية" : "Action failed"));
+        return;
+      }
+      toast.success(
+        data.ai?.last_source
+          ? `${isAr ? "تم إعادة التوليد" : "Regenerated"} — ${data.ai.last_source}`
+          : isAr
+            ? "تم إعادة التوليد"
+            : "Regenerated",
+      );
+      await load();
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "";
+      toast.error(msg || (isAr ? "فشلت العملية" : "Action failed"));
+    } finally {
+      setBusyKey(null);
+    }
+  };
+
+  const regenPlan = (plan: ExternalPlan) =>
+    runAction(
+      { action: "regenerate_plan", id: plan.id },
+      `${plan.id}:plan`,
+      isAr
+        ? "هتتولد نسخة جديدة بنفس المواصفات وتستبدل الحالية — موافق؟"
+        : "A fresh version with the same brief will REPLACE the current one — continue?",
+    );
+  const regenMeal = (plan: ExternalPlan, mi: number) =>
+    runAction({ action: "regenerate_meal", id: plan.id, meal_index: mi }, `${plan.id}:meal:${mi}`);
+  const regenItem = (plan: ExternalPlan, mi: number, ii: number) =>
+    runAction(
+      { action: "regenerate_item", id: plan.id, meal_index: mi, item_index: ii },
+      `${plan.id}:item:${mi}:${ii}`,
+    );
+  const regenDay = (plan: ExternalPlan, di: number) =>
+    runAction({ action: "regenerate_day", id: plan.id, day_index: di }, `${plan.id}:day:${di}`);
+  const regenExercise = (plan: ExternalPlan, di: number, ei: number) =>
+    runAction(
+      { action: "regenerate_exercise", id: plan.id, day_index: di, exercise_index: ei },
+      `${plan.id}:exercise:${di}:${ei}`,
+    );
 
   const composeText = (plan: ExternalPlan) => {
     const lines = [
@@ -835,6 +915,11 @@ export function AdminExternalPlansView() {
                         {isAr ? "مسودة" : "Draft"}
                       </span>
                     )}
+                    {plan.ai && (
+                      <span className="rounded-full bg-[#af52de]/10 px-2 py-0.5 text-[10px] font-bold text-[#af52de]">
+                        AI{typeof plan.ai.regenerations === "number" && plan.ai.regenerations > 0 ? ` ↺${plan.ai.regenerations}` : ""}
+                      </span>
+                    )}
                     <span className="text-[11px] text-[#86868b]">{fmtDate(plan.created_at)}</span>
                   </div>
                   <h3 className="mt-1.5 truncate font-semibold">{plan.title}</h3>
@@ -844,6 +929,16 @@ export function AdminExternalPlansView() {
                   </p>
                 </div>
                 <div className="flex shrink-0 items-center gap-1">
+                  {plan.ai?.params && (
+                    <button
+                      onClick={() => regenPlan(plan)}
+                      title={isAr ? "إعادة توليد الخطة كاملة بنفس المواصفات" : "Regenerate whole plan with the same brief"}
+                      disabled={busyKey !== null}
+                      className="rounded-full p-2 text-[#6e6e73] transition-colors hover:bg-[#0071e3]/10 hover:text-[#0071e3] disabled:opacity-40"
+                    >
+                      {busyKey === `${plan.id}:plan` ? <Loader2 className="h-4 w-4 animate-spin" /> : <RotateCcw className="h-4 w-4" />}
+                    </button>
+                  )}
                   <button
                     onClick={() => copyPlan(plan)}
                     title={isAr ? "نسخ كنص" : "Copy as text"}
@@ -875,9 +970,133 @@ export function AdminExternalPlansView() {
                 </div>
               </div>
               {plan.notes && <p className="mt-2 text-xs text-[#86868b]">{isAr ? "ملاحظات: " : "Notes: "}{plan.notes}</p>}
-              <pre className="mt-3 max-h-40 overflow-y-auto whitespace-pre-wrap rounded-2xl bg-[#f5f5f7] p-3 text-xs leading-relaxed text-[#1d1d1f]" dir="auto">
-                {plan.text}
-              </pre>
+              {plan.plan_type === "meal" && plan.plan && Array.isArray(plan.plan.meals) ? (
+                /* ── Structured meal plan — per-meal / per-item regen ── */
+                <div className="mt-3 max-h-[460px] space-y-2.5 overflow-y-auto rounded-2xl bg-[#f5f5f7] p-3">
+                  {typeof plan.plan.daily_calories === "number" && plan.plan.daily_calories > 0 && (
+                    <p className="text-xs font-semibold text-[#1d1d1f]" dir="auto">
+                      {isAr ? "السعرات اليومية" : "Daily calories"}: {plan.plan.daily_calories}
+                      {plan.plan.macros && (
+                        <span className="font-normal text-[#6e6e73]">
+                          {"  •  "}{isAr ? "بروتين" : "P"} {plan.plan.macros.protein_g}{isAr ? "جم" : "g"} / {isAr ? "كارب" : "C"} {plan.plan.macros.carbs_g}{isAr ? "جم" : "g"} / {isAr ? "دهون" : "F"} {plan.plan.macros.fat_g}{isAr ? "جم" : "g"}
+                        </span>
+                      )}
+                    </p>
+                  )}
+                  {plan.plan.meals.map((meal: Record<string, any>, mi: number) => (
+                    <div key={mi} className="rounded-xl bg-white p-3">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="min-w-0 truncate text-sm font-semibold text-[#1d1d1f]" dir="auto">
+                          {String(meal.name ?? "")}
+                          {meal.time ? <span className="font-normal text-[#6e6e73]"> ({String(meal.time)})</span> : null}
+                          {typeof meal.total_calories === "number" && meal.total_calories > 0 && (
+                            <span className="ms-2 text-[11px] font-normal text-[#86868b]">≈ {meal.total_calories} {isAr ? "سعرة" : "kcal"}</span>
+                          )}
+                        </p>
+                        <button
+                          onClick={() => regenMeal(plan, mi)}
+                          title={isAr ? "إعادة توليد الوجبة كاملة" : "Regenerate whole meal"}
+                          disabled={busyKey !== null}
+                          className="shrink-0 rounded-full p-1.5 text-[#6e6e73] transition-colors hover:bg-[#0071e3]/10 hover:text-[#0071e3] disabled:opacity-40"
+                        >
+                          {busyKey === `${plan.id}:meal:${mi}` ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCcw className="h-3.5 w-3.5" />}
+                        </button>
+                      </div>
+                      <div className="mt-1.5 space-y-0.5">
+                        {((meal.items || []) as Record<string, any>[]).map((item, ii) => (
+                          <div key={ii} className="flex items-center justify-between gap-2 rounded-lg px-1 py-0.5 hover:bg-[#f5f5f7]">
+                            <p className="min-w-0 flex-1 text-xs leading-relaxed text-[#1d1d1f]" dir="auto">
+                              <span className="font-medium">{String(item.food ?? "")}</span>
+                              <span className="text-[#6e6e73]"> — {String(item.amount ?? "")}</span>
+                              {item.alternatives ? <span className="block text-[10px] text-[#86868b]" dir="auto">{isAr ? "بديل: " : "Alt: "}{String(item.alternatives)}</span> : null}
+                            </p>
+                            <span className="flex shrink-0 items-center gap-1">
+                              <span className="text-[11px] font-semibold text-[#6e6e73]">{Number(item.calories) || 0}</span>
+                              <button
+                                onClick={() => regenItem(plan, mi, ii)}
+                                title={isAr ? "إعادة توليد الصنف فقط" : "Regenerate this item only"}
+                                disabled={busyKey !== null}
+                                className="rounded-full p-1 text-[#86868b] transition-colors hover:bg-[#ff9500]/10 hover:text-[#c47700] disabled:opacity-40"
+                              >
+                                {busyKey === `${plan.id}:item:${mi}:${ii}` ? <Loader2 className="h-3 w-3 animate-spin" /> : <Repeat className="h-3 w-3" />}
+                              </button>
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                      {Array.isArray(meal.meal_alternatives) && meal.meal_alternatives.length > 0 && (
+                        <p className="mt-1 text-[10px] text-[#86868b]" dir="auto">
+                          {isAr ? "بدائل كاملة: " : "Full alternatives: "}
+                          {meal.meal_alternatives.map((a: Record<string, unknown>) => String(a?.name ?? "")).filter(Boolean).join(" • ")}
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                  {Array.isArray(plan.plan.supplements) && plan.plan.supplements.length > 0 && (
+                    <div className="rounded-xl bg-white p-3">
+                      <p className="text-xs font-semibold text-[#1d1d1f]" dir="auto">{isAr ? "مكملات مقترحة" : "Suggested supplements"}</p>
+                      {(plan.plan.supplements as Record<string, unknown>[]).map((s, i) => (
+                        <p key={i} className="mt-0.5 text-[11px] leading-relaxed text-[#6e6e73]" dir="auto">
+                          • {String(s?.name ?? "")} — {String(s?.dose ?? "")} — {String(s?.timing ?? "")}
+                        </p>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ) : plan.plan_type === "workout" && plan.plan && Array.isArray(plan.plan.days) ? (
+                /* ── Structured workout plan — per-day / per-exercise regen ── */
+                <div className="mt-3 max-h-[460px] space-y-2.5 overflow-y-auto rounded-2xl bg-[#f5f5f7] p-3">
+                  {plan.plan.overview ? (
+                    <p className="text-xs leading-relaxed text-[#1d1d1f]" dir="auto">{String(plan.plan.overview)}</p>
+                  ) : null}
+                  {(plan.plan.days as Record<string, any>[]).map((day, di) => (
+                    <div key={di} className="rounded-xl bg-white p-3">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="min-w-0 truncate text-sm font-semibold text-[#1d1d1f]" dir="auto">
+                          {String(day.day ?? "")}
+                          {day.focus ? <span className="font-normal text-[#6e6e73]"> — {String(day.focus)}</span> : null}
+                        </p>
+                        {!day.isRest && (
+                          <button
+                            onClick={() => regenDay(plan, di)}
+                            title={isAr ? "إعادة توليد اليوم كامل بنفس التركيز" : "Regenerate whole day (same focus)"}
+                            disabled={busyKey !== null}
+                            className="shrink-0 rounded-full p-1.5 text-[#6e6e73] transition-colors hover:bg-[#0071e3]/10 hover:text-[#0071e3] disabled:opacity-40"
+                          >
+                            {busyKey === `${plan.id}:day:${di}` ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCcw className="h-3.5 w-3.5" />}
+                          </button>
+                        )}
+                      </div>
+                      {!day.isRest && (
+                        <div className="mt-1.5 space-y-0.5">
+                          {((day.exercises || []) as Record<string, any>[]).map((ex, ei) => (
+                            <div key={ei} className="flex items-center justify-between gap-2 rounded-lg px-1 py-0.5 hover:bg-[#f5f5f7]">
+                              <p className="min-w-0 flex-1 text-xs leading-relaxed text-[#1d1d1f]" dir="auto">
+                                <span className="font-medium">{String(ex.name ?? "")}</span>
+                                <span className="text-[#6e6e73]"> — {Number(ex.sets) || 0} × {String(ex.reps ?? "")}</span>
+                                {ex.rest ? <span className="text-[#86868b]"> ({String(ex.rest)})</span> : null}
+                                {ex.notes ? <span className="block text-[10px] text-[#86868b]" dir="auto">{String(ex.notes)}</span> : null}
+                              </p>
+                              <button
+                                onClick={() => regenExercise(plan, di, ei)}
+                                title={isAr ? "استبدال التمرين ببديل آمن" : "Swap this exercise"}
+                                disabled={busyKey !== null}
+                                className="shrink-0 rounded-full p-1 text-[#86868b] transition-colors hover:bg-[#ff9500]/10 hover:text-[#c47700] disabled:opacity-40"
+                              >
+                                {busyKey === `${plan.id}:exercise:${di}:${ei}` ? <Loader2 className="h-3 w-3 animate-spin" /> : <Repeat className="h-3 w-3" />}
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <pre className="mt-3 max-h-40 overflow-y-auto whitespace-pre-wrap rounded-2xl bg-[#f5f5f7] p-3 text-xs leading-relaxed text-[#1d1d1f]" dir="auto">
+                  {plan.text}
+                </pre>
+              )}
             </div>
           ))}
         </div>

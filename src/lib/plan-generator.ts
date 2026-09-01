@@ -1479,3 +1479,156 @@ ${candidateList}
     return deterministic();
   }
 }
+
+/* ───────────────── Phase 78 — EXTERNAL PLAN PARTIAL REGEN (owner) ─────────────────
+ * Owner request: «اعادة توليد للخطة وكذلك اعادة توليد وجبة واحده او صنف واحد،
+ *  كذلك لخطط التمرين» — the admin external-plans console can now regenerate:
+ *   - the whole plan (same stored brief → generateXPlanAI, variety seed re-rolls)
+ *   - ONE meal (regenerateMeal — existing)
+ *   - ONE food item (regenerateFoodItem — new, focused single-item prompt)
+ *   - ONE workout day (regenerateWorkoutDay — new, same focus, avoid other days)
+ *   - ONE exercise (substituteExercise — existing, library-ranked)
+ */
+
+/**
+ * Regenerate a SINGLE food item — same calories (±15%) and same nutritional
+ * role as the original, steered by the person context + avoid-list.
+ * Throws on AI failure so the caller keeps the original item untouched.
+ */
+export async function regenerateFoodItem(
+  item: { food: string; amount: string; calories: number; alternatives?: string },
+  clientContext?: ClientContext,
+  avoidNames: string[] = [],
+  coachNote?: string,
+): Promise<{ item: { food: string; amount: string; calories: number; alternatives?: string }; source: string }> {
+  const targetCals = Math.max(10, Math.round(item.calories || 0));
+  const avoid =
+    avoidNames.filter((n) => typeof n === "string" && n.trim().length > 1).slice(0, 40);
+  const ctx = clientContext ? JSON.stringify({ ...clientContext, name: undefined }, null, 2) : "";
+
+  const prompt = `أنت أخصائي تغذية محترف. استبدل صنفًا واحدًا فقط بصنف بديل مكافئ.
+
+الصنف الحالي: ${item.food} — الكمية: ${item.amount} — السعرات: ${targetCals} سعرة
+${ctx ? `بيانات الشخص (راعِ الحساسية والأطعمة غير المحببة):\n${ctx}\n` : ""}${
+    avoid.length > 0
+      ? `أصناف ممنوع اقتراحها (موجودة في باقي الخطة — ممنوع التكرار):\n${avoid.join("، ")}\n`
+      : ""
+  }${coachNote ? `تعليمات إضافية: ${coachNote}\n` : ""}
+قواعد إلزامية:
+- البديل لنفس الدور الغذائي (بروتين↔بروتين، كارب↔كارب، دهون↔دهون، خضار↔خضار، فاكهة↔فاكهة، ألبان↔ألبان).
+- السعرات ${Math.round(targetCals * 0.85)}–${Math.round(targetCals * 1.15)} سعرة (±15%).
+- كميات واقعية بالجرام/الوحدات بنفس أسلوب «${item.amount}».
+- اذكر بديل ثانٍ داخل حقل alternatives بنفس أسلوب «أو ...».
+- استخدم أصناف عربية/مصرية متوفرة.
+
+أعد JSON فقط (بدون أسوار markdown):
+{ "food": "اسم الصنف البديل", "amount": "الكمية", "calories": ${targetCals}, "alternatives": "أو بديل ثانٍ بالكمية" }`;
+
+  const { text, model, provider } = await callFreeAIFallbackChain(prompt, {
+    tag: "plan:item-regen",
+    systemPrompt:
+      "أنت أخصائي تغذية. تعيد JSON صالحاً فقط — صنف واحد بديل مكافئ دون أي نص إضافي.",
+    temperature: 0.7,
+    maxTokens: 400,
+    jsonMode: true,
+    timeoutMs: 30_000,
+    maxModels: 3,
+  });
+  const parsed = parseJSON<any>(text);
+  const food = String(parsed?.food ?? "").trim();
+  if (!food) throw new Error("تعذّر إعادة توليد الصنف. حاول مرة أخرى.");
+  const cals = Number(parsed?.calories);
+  return {
+    item: {
+      food,
+      amount: String(parsed?.amount ?? item.amount).trim() || item.amount,
+      calories: Number.isFinite(cals) && cals > 0 ? Math.round(cals) : targetCals,
+      alternatives: typeof parsed?.alternatives === "string" && parsed.alternatives.trim()
+        ? parsed.alternatives.trim().slice(0, 200)
+        : item.alternatives,
+    },
+    source: `${provider}:${model}`,
+  };
+}
+
+/**
+ * Regenerate a SINGLE workout day — same weekly slot + same focus
+ * (target muscles), 4-6 exercises, avoiding every exercise used in the
+ * other days of the same plan. Names are matched to the exercise library
+ * (same law as normalizeWorkoutPlan) so images/slugs keep working.
+ * Throws on AI failure so the caller keeps the original day untouched.
+ */
+export async function regenerateWorkoutDay(
+  day: {
+    day: string;
+    focus: string;
+    exercises: Array<{ name: string; sets: number; reps: string; rest: string; notes: string }>;
+  },
+  clientContext?: ClientContext,
+  avoidNames: string[] = [],
+  coachNote?: string,
+): Promise<{
+  day: { day: string; focus: string; isRest: false; exercises: Array<{ name: string; sets: number; reps: string; rest: string; notes: string; image?: string; exerciseSlug?: string }> };
+  source: string;
+}> {
+  const fitness = clientContext?.fitness || {};
+  const isHome = String(fitness.location || "").includes("منزل") || String(fitness.location || "").toLowerCase().includes("home");
+  const currentList = (day.exercises || []).map((e) => e.name).join("، ") || "لا يوجد";
+  const avoid = avoidNames.filter((n) => typeof n === "string" && n.trim().length > 1).slice(0, 60);
+
+  const prompt = `أنت مدرب لياقة محترف في منصة Musclehubeg. أعد توليد يوم تدريبي واحد فقط.
+
+اليوم الحالي: ${day.day} — التركيز: ${day.focus}
+التمارين الحالية (لا تكررها): ${currentList}
+${avoid.length > 0 ? `تمارين باقي أيام الخطة (ممنوع تكرارها في هذا اليوم):\n${avoid.join("، ")}\n` : ""}${
+    clientContext
+      ? `بيانات المتدرب: الهدف ${fitness.goal || "لياقة عامة"} • المستوى ${fitness.experience || "متوسط"} • المكان ${fitness.location || "جيم"}${fitness.injuries ? ` • إصابات: ${fitness.injuries}` : ""}\n`
+      : ""
+  }${isHome ? "⚠ المكان منزل — تمارين بوزن الجسم أو دمبل أو مقاومة فقط، بدون أجهزة جيم.\n" : ""}${coachNote ? `تعليمات إضافية: ${coachNote}\n` : ""}
+قواعد إلزامية:
+- نفس يوم الأسبوع «${day.day}» ونفس التركيز العضلي «${day.focus}».
+- 4-6 تمارين مختلفة تماماً عن الحالية وعن باقي الأيام.
+- لكل تمرين: sets (رقم)، reps، rest، و notes نصيحة قصيرة بالعربية.
+- استخدم أسماء تمارين إنجليزية مطابقة لمكتبتنا (Bench Press, Squat, Lat Pulldown, Dumbbell Row…) لتظهر صورها تلقائياً.
+
+أعد JSON فقط (بدون أسوار markdown):
+{ "focus": "${day.focus}", "exercises": [ { "name": "Bench Press", "sets": 4, "reps": "6-8", "rest": "90 ثانية", "notes": "نصيحة بالعربية" } ] }`;
+
+  const { text, model, provider } = await callFreeAIFallbackChain(prompt, {
+    tag: "plan:day-regen",
+    systemPrompt:
+      "أنت مدرب لياقة محترف. تعيد JSON صالحاً فقط — يوم تدريبي واحد بدون أي نص إضافي.",
+    temperature: 0.7,
+    maxTokens: 1200,
+    jsonMode: true,
+    timeoutMs: 45_000,
+    maxModels: 3,
+  });
+  const parsed = parseJSON<any>(text);
+  const exercises = Array.isArray(parsed?.exercises) ? parsed.exercises : [];
+  if (exercises.length === 0) throw new Error("تعذّر إعادة توليد اليوم. حاول مرة أخرى.");
+
+  const shaped = exercises.slice(0, 8).map((ex: any) => {
+    const name = String(ex?.name ?? "");
+    const matched = findExerciseInLibrary(name);
+    return {
+      name: matched ? matched.nameEn : name,
+      sets: typeof ex?.sets === "number" ? ex.sets : parseInt(ex?.sets) || 3,
+      reps: String(ex?.reps ?? "10-12"),
+      rest: String(ex?.rest ?? "90 ثانية"),
+      notes: String(ex?.notes ?? ""),
+      image: matched ? getExerciseImageFromLibrary(matched) : undefined,
+      exerciseSlug: matched ? matched.slug : undefined,
+    };
+  });
+
+  return {
+    day: {
+      day: day.day,
+      focus: String(parsed?.focus ?? day.focus).slice(0, 120) || day.focus,
+      isRest: false,
+      exercises: shaped,
+    },
+    source: `${provider}:${model}`,
+  };
+}

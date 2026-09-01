@@ -5,6 +5,10 @@ import type { Database } from "@/lib/supabase/types";
 import {
   generateNutritionPlanAI,
   generateWorkoutPlanAI,
+  regenerateMeal,
+  regenerateFoodItem,
+  regenerateWorkoutDay,
+  substituteExercise,
 } from "@/lib/plan-generator";
 import {
   renderMealPlanText,
@@ -50,6 +54,12 @@ import {
  *          meal:    { meals_count, calories?, diet_type, details?,
  *                     person_data?: { weight?, height?, age?, gender? } },
  *          workout: { days_per_week, goal, level, location?, details? } }
+ * POST   (regeneration actions — owner Phase 78 «اعادة توليد»)
+ *        { action: "regenerate_plan", id } — same stored brief, fresh roll
+ *        { action: "regenerate_meal", id, meal_index }
+ *        { action: "regenerate_item", id, meal_index, item_index }
+ *        { action: "regenerate_day", id, day_index }
+ *        { action: "regenerate_exercise", id, day_index, exercise_index }
  *        (legacy manual) { person_name, ..., text, notes? }
  * PATCH  { id, person_name?, person_contact?, plan_type?, title?, text?,
  *          notes?, status? }
@@ -226,7 +236,17 @@ export async function GET(request: NextRequest) {
 
   const plans = (data || []).map((row) => {
     const r = row as Record<string, unknown>;
-    return { ...r, text: extractText(r.content) };
+    const content =
+      r.content && typeof r.content === "object"
+        ? (r.content as Record<string, unknown>)
+        : null;
+    return {
+      ...r,
+      text: extractText(r.content),
+      // Phase 78: structured plan + AI provenance for per-element regen UI
+      plan: content?.plan ?? null,
+      ai: content?.ai ?? null,
+    };
   });
 
   return NextResponse.json({
@@ -239,6 +259,338 @@ export async function GET(request: NextRequest) {
   });
 }
 
+/* ───────────── Partial regeneration actions (owner Phase 78) ───────────── */
+
+function mealCtxFromParams(params: Record<string, unknown>): Record<string, unknown> {
+  const mealCfg = (params.meal && typeof params.meal === "object"
+    ? params.meal
+    : {}) as Record<string, unknown>;
+  const pd = (mealCfg.person_data && typeof mealCfg.person_data === "object"
+    ? mealCfg.person_data
+    : {}) as Record<string, unknown>;
+  return {
+    name: String(params.person_name ?? "").trim() || "الشخص",
+    nutrition: {
+      weight: pd.weight ? numOr(pd.weight, 80) : undefined,
+      height: pd.height ? numOr(pd.height, 175) : undefined,
+      age: pd.age ? numOr(pd.age, 25) : undefined,
+      gender: String(pd.gender ?? "male") || "male",
+      diet: String(mealCfg.diet_type ?? "متوازن") || "متوازن",
+    },
+    fitness: { goal: dietGoalHint(String(mealCfg.diet_type ?? "")) },
+    recent_plan_names: [],
+  };
+}
+
+function workoutCtxFromParams(params: Record<string, unknown>): Record<string, unknown> {
+  const woCfg = (params.workout && typeof params.workout === "object"
+    ? params.workout
+    : {}) as Record<string, unknown>;
+  const details = String(params.details ?? "").trim();
+  return {
+    name: String(params.person_name ?? "").trim() || "الشخص",
+    nutrition: {},
+    fitness: {
+      goal: String(woCfg.goal ?? "لياقة عامة") || "لياقة عامة",
+      days: String(woCfg.days_per_week ?? 4),
+      experience: String(woCfg.level ?? "متوسط") || "متوسط",
+      location: String(woCfg.location ?? "جيم") || "جيم",
+      ...(details ? { injuries: details } : {}),
+    },
+    recent_plan_names: [],
+  };
+}
+
+async function handleRegenerationAction(
+  action: string,
+  body: Record<string, unknown>,
+): Promise<NextResponse> {
+  const id = String(body.id ?? "").trim();
+  if (!id) return bad("id مطلوب");
+
+  const { data: row, error: fetchErr } = await supabaseAdmin!
+    .from("external_plans")
+    .select("*")
+    .eq("id", id)
+    .single();
+  if (fetchErr || !row) return bad("الخطة غير موجودة", 404);
+
+  const r = row as Record<string, unknown>;
+  const content = (r.content && typeof r.content === "object"
+    ? r.content
+    : {}) as Record<string, unknown>;
+  const structured = content.plan as ExternalMealPlan | ExternalWorkoutPlan | undefined;
+  const aiMeta = (content.ai && typeof content.ai === "object"
+    ? content.ai
+    : {}) as Record<string, unknown>;
+  const params = (aiMeta.params && typeof aiMeta.params === "object"
+    ? aiMeta.params
+    : {}) as Record<string, unknown>;
+  const planType = String(r.plan_type ?? "");
+  const details = String(params.details ?? "").trim();
+
+  const save = async (newContent: Record<string, unknown>) => {
+    const { data, error } = await supabaseAdmin!
+      .from("external_plans")
+      .update({
+        content: newContent as unknown as Database["public"]["Tables"]["external_plans"]["Update"]["content"],
+      })
+      .eq("id", id)
+      .select("*")
+      .single();
+    if (error) {
+      console.error(`[api/admin/external-plans] ${action} failed:`, error.message);
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+    const updated = data as Record<string, unknown>;
+    const c = updated.content as Record<string, unknown> | null;
+    return NextResponse.json({
+      ok: true,
+      plan: { ...updated, text: extractText(updated.content) },
+      ai: c?.ai ?? null,
+    });
+  };
+
+  const metaPatch = (extra: Record<string, unknown>) => ({
+    ...aiMeta,
+    ...extra,
+    last_action: action,
+    last_at: new Date().toISOString(),
+  });
+
+  /* 1) Whole plan — same stored brief, fresh variety roll */
+  if (action === "regenerate_plan") {
+    if (!params || Object.keys(params).length === 0) {
+      return bad("مفيش مواصفات توليد محفوظة للخطة دي — اعمل خطة جديدة بالذكاء الاصطناعي");
+    }
+    const gen = await generateExternalPlanAI(params);
+    if (!gen.ok) return bad(gen.message, 502);
+    return save({
+      text: gen.text,
+      plan: gen.structured,
+      ai: metaPatch({
+        source: gen.source,
+        generated_at: new Date().toISOString(),
+        regenerations: Number(aiMeta.regenerations ?? 0) + 1,
+      }),
+    });
+  }
+
+  /* 2) ONE meal — regenerateMeal with other meals' foods as avoid-list */
+  if (action === "regenerate_meal") {
+    if (planType !== "meal" || !structured || !Array.isArray((structured as ExternalMealPlan).meals)) {
+      return bad("الخطة دي مش خطة تغذية مولدة بالذكاء الاصطناعي");
+    }
+    const mp = structured as ExternalMealPlan;
+    const mealIndex = Math.round(numOr(body.meal_index, -1));
+    const meal = mp.meals[mealIndex];
+    if (!meal) return bad("رقم الوجبة غير صالح");
+    const target =
+      meal.total_calories ||
+      Math.round((mp.daily_calories || 0) / Math.max(1, mp.meals.length));
+    const avoidNames = mp.meals
+      .filter((_, i) => i !== mealIndex)
+      .flatMap((m) => (m.items || []).map((it) => it.food));
+    try {
+      const out = await regenerateMeal(
+        { name: meal.name, items: meal.items, notes: meal.notes },
+        target,
+        mealCtxFromParams(params) as never,
+        details || undefined,
+        avoidNames,
+      );
+      const items = (out.meal.items || []).map((it: Record<string, unknown>) => ({
+        food: String(it?.food ?? ""),
+        amount: String(it?.amount ?? ""),
+        calories: typeof it?.calories === "number" ? it.calories : 0,
+        protein_g: it?.protein_g,
+        alternatives: it?.alternatives,
+      }));
+      const mealAlternatives = (out.suggestions || [])
+        .slice(0, 2)
+        .map((s: Record<string, unknown>) => {
+          const altItems = (Array.isArray(s?.items) ? s.items : []).slice(0, 12)
+            .map((it: Record<string, unknown>) => ({
+              food: String(it?.food ?? ""),
+              amount: String(it?.amount ?? ""),
+              calories: typeof it?.calories === "number" ? it.calories : 0,
+            }));
+          return {
+            name: String(s?.name ?? "بديل"),
+            items: altItems,
+            total_calories:
+              typeof s?.total_calories === "number"
+                ? s.total_calories
+                : altItems.reduce((sum, it) => sum + it.calories, 0),
+          };
+        })
+        .filter((alt) => alt.items.length > 0);
+      const newMeal = {
+        name: String(out.meal.name ?? meal.name),
+        time: ((out.meal as Record<string, unknown>).time as string | undefined) ?? meal.time,
+        items,
+        total_calories: items.reduce((sum, it) => sum + (it.calories || 0), 0),
+        total_protein_g: items.reduce((sum, it) => sum + (Number(it.protein_g) || 0), 0),
+        notes: ((out.meal as Record<string, unknown>).notes as string | undefined) ?? meal.notes,
+        ...(mealAlternatives.length > 0 ? { meal_alternatives: mealAlternatives } : {}),
+      };
+      const newPlan: ExternalMealPlan = {
+        ...mp,
+        meals: mp.meals.map((m, i) => (i === mealIndex ? newMeal : m)),
+      };
+      return save({
+        text: renderMealPlanText(newPlan),
+        plan: newPlan,
+        ai: metaPatch({ last_source: out.source }),
+      });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "فشل إعادة توليد الوجبة";
+      return bad(msg, 502);
+    }
+  }
+
+  /* 3) ONE food item — focused single-item swap, same calories ±15% */
+  if (action === "regenerate_item") {
+    if (planType !== "meal" || !structured || !Array.isArray((structured as ExternalMealPlan).meals)) {
+      return bad("الخطة دي مش خطة تغذية مولدة بالذكاء الاصطناعي");
+    }
+    const mp = structured as ExternalMealPlan;
+    const mealIndex = Math.round(numOr(body.meal_index, -1));
+    const itemIndex = Math.round(numOr(body.item_index, -1));
+    const meal = mp.meals[mealIndex];
+    const item = meal?.items?.[itemIndex];
+    if (!meal || !item) return bad("رقم الوجبة أو الصنف غير صالح");
+    const avoidNames = mp.meals.flatMap((m, mi) =>
+      (m.items || [])
+        .filter((_, ii) => mi !== mealIndex || ii !== itemIndex)
+        .map((it) => it.food),
+    );
+    try {
+      const out = await regenerateFoodItem(
+        item,
+        mealCtxFromParams(params) as never,
+        avoidNames,
+        details || undefined,
+      );
+      const newPlan: ExternalMealPlan = {
+        ...mp,
+        meals: mp.meals.map((m, mi) =>
+          mi !== mealIndex
+            ? m
+            : {
+                ...m,
+                items: m.items.map((it, ii) => (ii === itemIndex ? out.item : it)),
+              },
+        ),
+      };
+      return save({
+        text: renderMealPlanText(newPlan),
+        plan: newPlan,
+        ai: metaPatch({ last_source: out.source }),
+      });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "فشل إعادة توليد الصنف";
+      return bad(msg, 502);
+    }
+  }
+
+  /* 4) ONE workout day — same focus, avoid other days' exercises */
+  if (action === "regenerate_day") {
+    if (planType !== "workout" || !structured || !Array.isArray((structured as ExternalWorkoutPlan).days)) {
+      return bad("الخطة دي مش خطة تمارين مولدة بالذكاء الاصطناعي");
+    }
+    const wp = structured as ExternalWorkoutPlan;
+    const dayIndex = Math.round(numOr(body.day_index, -1));
+    const day = wp.days[dayIndex];
+    if (!day || day.isRest) return bad("رقم اليوم غير صالح");
+    const avoidNames = wp.days
+      .filter((_, i) => i !== dayIndex)
+      .flatMap((d) => (d.exercises || []).map((ex) => ex.name));
+    try {
+      const out = await regenerateWorkoutDay(
+        { day: day.day, focus: day.focus, exercises: day.exercises },
+        workoutCtxFromParams(params) as never,
+        avoidNames,
+        details || undefined,
+      );
+      const newPlan: ExternalWorkoutPlan = {
+        ...wp,
+        days: wp.days.map((d, i) => (i === dayIndex ? out.day : d)),
+      };
+      return save({
+        text: renderWorkoutPlanText(newPlan),
+        plan: newPlan,
+        ai: metaPatch({ last_source: out.source }),
+      });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "فشل إعادة توليد اليوم";
+      return bad(msg, 502);
+    }
+  }
+
+  /* 5) ONE exercise — library-ranked substitute (existing engine) */
+  if (action === "regenerate_exercise") {
+    if (planType !== "workout" || !structured || !Array.isArray((structured as ExternalWorkoutPlan).days)) {
+      return bad("الخطة دي مش خطة تمارين مولدة بالذكاء الاصطناعي");
+    }
+    const wp = structured as ExternalWorkoutPlan;
+    const dayIndex = Math.round(numOr(body.day_index, -1));
+    const exerciseIndex = Math.round(numOr(body.exercise_index, -1));
+    const day = wp.days[dayIndex];
+    const exercise = day?.exercises?.[exerciseIndex];
+    if (!day || !exercise) return bad("رقم اليوم أو التمرين غير صالح");
+    try {
+      const woCtx = workoutCtxFromParams(params) as {
+        fitness?: Record<string, unknown>;
+      };
+      const out = await substituteExercise({
+        exercise: {
+          name: exercise.name,
+          sets: exercise.sets,
+          reps: exercise.reps,
+          rest: exercise.rest,
+          focus: day.focus,
+        },
+        reason: String(body.reason ?? "التنويع"),
+        location: String(woCtx.fitness?.location ?? "جيم"),
+        clientContext: woCtx as never,
+      });
+      const newPlan: ExternalWorkoutPlan = {
+        ...wp,
+        days: wp.days.map((d, di) =>
+          di !== dayIndex
+            ? d
+            : {
+                ...d,
+                exercises: d.exercises.map((ex, ei) =>
+                  ei === exerciseIndex
+                    ? {
+                        name: out.replacement.name,
+                        sets: Number(out.replacement.sets) || exercise.sets,
+                        reps: out.replacement.reps || exercise.reps,
+                        rest: out.replacement.rest || exercise.rest,
+                        notes: out.replacement.notes || exercise.notes,
+                        exerciseSlug: out.replacement.exerciseSlug || undefined,
+                      }
+                    : ex,
+                ),
+              },
+        ),
+      };
+      return save({
+        text: renderWorkoutPlanText(newPlan),
+        plan: newPlan,
+        ai: metaPatch({ last_source: out.source }),
+      });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "فشل استبدال التمرين";
+      return bad(msg, 502);
+    }
+  }
+
+  return bad("action غير معروف");
+}
+
 export async function POST(request: NextRequest) {
   const auth = await requireAdmin(request);
   if (auth instanceof Response) return auth;
@@ -248,6 +600,13 @@ export async function POST(request: NextRequest) {
   }
 
   const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
+
+  /* ── Regeneration actions (owner Phase 78 «اعادة توليد») — dispatched
+     before create validation: these operate on an EXISTING plan row. ── */
+  const action = String(body.action ?? "").trim();
+  if (action) {
+    return await handleRegenerationAction(action, body);
+  }
 
   const personName = String(body.person_name ?? "").trim();
   const personContact = String(body.person_contact ?? "").trim().slice(0, MAX_SHORT) || null;
@@ -280,13 +639,21 @@ export async function POST(request: NextRequest) {
         notes,
         content: {
           text: gen.text,
-          plan: gen.structured as unknown as Database["public"]["Tables"]["external_plans"]["Insert"]["content"],
+          plan: gen.structured,
           ai: {
             source: gen.source,
             generated_at: new Date().toISOString(),
             engine: "plan-generator (same as member plans)",
+            // Stored brief → powers «إعادة توليد» with the SAME inputs
+            params: {
+              person_name: personName,
+              plan_type: planType,
+              meal: body.meal ?? null,
+              workout: body.workout ?? null,
+              details: String(body.details ?? "").trim().slice(0, 4000) || null,
+            },
           },
-        },
+        } as unknown as Database["public"]["Tables"]["external_plans"]["Insert"]["content"],
         status,
         created_by: auth.id,
       })
