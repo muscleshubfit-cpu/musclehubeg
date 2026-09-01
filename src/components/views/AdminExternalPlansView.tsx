@@ -16,12 +16,67 @@ import {
   X,
   Infinity as InfinityIcon,
   Loader2,
+  Sparkles,
 } from "lucide-react";
 
 type ExternalPlanRow = Database["public"]["Tables"]["external_plans"]["Row"];
 type ExternalPlan = Omit<ExternalPlanRow, "content"> & { text: string };
 
-const emptyForm = {
+/* ── Owner Phase 78: AI generation brief — same model as client plans ── */
+
+const DIET_TYPES: { value: string; en: string }[] = [
+  { value: "متوازن", en: "Balanced" },
+  { value: "تنشيف (خسارة دهون)", en: "Cut (fat loss)" },
+  { value: "تضخيم (بناء عضلات)", en: "Bulk (muscle gain)" },
+  { value: "نباتي", en: "Vegetarian" },
+  { value: "كيتو (منخفض الكارب الحاد)", en: "Keto" },
+  { value: "منخفض الكارب", en: "Low carb" },
+  { value: "متوسطي", en: "Mediterranean" },
+  { value: "بحري (تركيز على الأسماك)", en: "Seafood-based" },
+];
+
+const WO_GOALS: { value: string; en: string }[] = [
+  { value: "خسارة دهون", en: "Fat loss" },
+  { value: "بناء عضلات", en: "Muscle gain" },
+  { value: "لياقة عامة", en: "General fitness" },
+];
+
+const WO_LEVELS: { value: string; en: string }[] = [
+  { value: "مبتدئ", en: "Beginner" },
+  { value: "متوسط", en: "Intermediate" },
+  { value: "متقدم", en: "Advanced" },
+];
+
+const WO_LOCATIONS: { value: string; en: string }[] = [
+  { value: "جيم", en: "Gym" },
+  { value: "منزل", en: "Home" },
+];
+
+const emptyAIForm = {
+  person_name: "",
+  person_contact: "",
+  plan_type: "workout" as "workout" | "meal",
+  status: "final" as "draft" | "final",
+  title: "", // optional — auto-titled when empty
+  notes: "",
+  details: "",
+  // meal brief
+  meals_count: 4,
+  calories: "",
+  diet_type: DIET_TYPES[0].value,
+  weight: "",
+  height: "",
+  age: "",
+  gender: "male",
+  // workout brief
+  days_per_week: 4,
+  goal: WO_GOALS[0].value,
+  level: WO_LEVELS[1].value,
+  location: WO_LOCATIONS[0].value,
+};
+
+const emptyEditForm = {
+  id: "",
   person_name: "",
   person_contact: "",
   plan_type: "workout" as "workout" | "meal",
@@ -31,6 +86,10 @@ const emptyForm = {
   status: "final" as "draft" | "final",
 };
 
+const inputCls =
+  "mt-1 w-full rounded-xl border border-[#d2d2d7] px-3 py-2 text-sm outline-none focus:border-[#0071e3]";
+const labelCls = "text-xs font-semibold text-[#6e6e73]";
+
 export function AdminExternalPlansView() {
   const { lang } = useI18n();
   const isAr = lang === "ar";
@@ -38,13 +97,14 @@ export function AdminExternalPlansView() {
   const [plans, setPlans] = useState<ExternalPlan[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  const [generating, setGenerating] = useState(false);
+  const [savingEdit, setSavingEdit] = useState(false);
   const [typeFilter, setTypeFilter] = useState<"all" | "workout" | "meal">("all");
   const [statusFilter, setStatusFilter] = useState<"all" | "draft" | "final">("all");
   const [search, setSearch] = useState("");
-  const [form, setForm] = useState(emptyForm);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [formOpen, setFormOpen] = useState(false);
+  const [aiForm, setAIForm] = useState(emptyAIForm);
+  const [editForm, setEditForm] = useState(emptyEditForm);
+  const [formMode, setFormMode] = useState<null | "ai" | "edit">(null);
 
   const load = async () => {
     setLoading(true);
@@ -77,14 +137,14 @@ export function AdminExternalPlansView() {
   }, [typeFilter, statusFilter]);
 
   const openCreate = () => {
-    setForm(emptyForm);
-    setEditingId(null);
-    setFormOpen(true);
+    setAIForm(emptyAIForm);
+    setFormMode("ai");
     if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const openEdit = (plan: ExternalPlan) => {
-    setForm({
+    setEditForm({
+      id: plan.id,
       person_name: plan.person_name,
       person_contact: plan.person_contact || "",
       plan_type: plan.plan_type,
@@ -93,19 +153,89 @@ export function AdminExternalPlansView() {
       notes: plan.notes || "",
       status: plan.status,
     });
-    setEditingId(plan.id);
-    setFormOpen(true);
+    setFormMode("edit");
     if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  const submit = async () => {
-    if (saving) return;
-    setSaving(true);
+  /* ── AI generation submit (owner Phase 78) ── */
+  const generate = async () => {
+    if (generating) return;
+    if (aiForm.person_name.trim().length < 2) {
+      toast.error(isAr ? "اكتب اسم الشخص الأول" : "Write the person's name first");
+      return;
+    }
+    setGenerating(true);
     try {
+      const mealCfg =
+        aiForm.plan_type === "meal"
+          ? {
+              meals_count: aiForm.meals_count,
+              calories: aiForm.calories ? Number(aiForm.calories) : 0,
+              diet_type: aiForm.diet_type,
+              person_data: {
+                ...(aiForm.weight ? { weight: Number(aiForm.weight) } : {}),
+                ...(aiForm.height ? { height: Number(aiForm.height) } : {}),
+                ...(aiForm.age ? { age: Number(aiForm.age) } : {}),
+                gender: aiForm.gender,
+              },
+            }
+          : undefined;
+      const woCfg =
+        aiForm.plan_type === "workout"
+          ? {
+              days_per_week: aiForm.days_per_week,
+              goal: aiForm.goal,
+              level: aiForm.level,
+              location: aiForm.location,
+            }
+          : undefined;
+
       const res = await fetch("/api/admin/external-plans", {
-        method: editingId ? "PATCH" : "POST",
+        method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(editingId ? { id: editingId, ...form } : form),
+        body: JSON.stringify({
+          ai: true,
+          person_name: aiForm.person_name,
+          person_contact: aiForm.person_contact,
+          plan_type: aiForm.plan_type,
+          title: aiForm.title,
+          status: aiForm.status,
+          notes: aiForm.notes,
+          details: aiForm.details,
+          meal: mealCfg,
+          workout: woCfg,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast.error(data.message || (isAr ? "فشل التوليد" : "Generation failed"));
+        return;
+      }
+      toast.success(
+        isAr
+          ? `تم التوليد بالذكاء الاصطناعي${data.ai_source ? ` — ${data.ai_source}` : ""}`
+          : `Generated by AI${data.ai_source ? ` — ${data.ai_source}` : ""}`,
+      );
+      setAIForm(emptyAIForm);
+      setFormMode(null);
+      await load();
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "";
+      toast.error(msg || (isAr ? "فشل التوليد" : "Generation failed"));
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const submitEdit = async () => {
+    if (savingEdit) return;
+    setSavingEdit(true);
+    try {
+      const { id, ...rest } = editForm;
+      const res = await fetch("/api/admin/external-plans", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, ...rest }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -113,15 +243,14 @@ export function AdminExternalPlansView() {
         return;
       }
       toast.success(isAr ? "تم الحفظ" : "Saved");
-      setForm(emptyForm);
-      setEditingId(null);
-      setFormOpen(false);
+      setFormMode(null);
+      setEditForm(emptyEditForm);
       await load();
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : "";
       toast.error(msg || (isAr ? "فشل الحفظ" : "Save failed"));
     } finally {
-      setSaving(false);
+      setSavingEdit(false);
     }
   };
 
@@ -194,33 +323,348 @@ export function AdminExternalPlansView() {
           </h1>
           <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[#6e6e73] md:text-base">
             {isAr
-              ? "اكتب خطط تدريب وتغذية يدويًا لأشخاص من خارج أعضاء الموقع — اكتب كل التفاصيل بنفسك، انسخها أو حمّلها وابعتها للشخص. مش محتاج يكون عنده حساب، ومفيش أي حد على عدد الخطط."
-              : "Hand-write training and nutrition plans for people who are NOT members — write every detail yourself, then copy or download and send it to them. They don't need an account, and there is no cap on plans."}
+              ? "ولّد خطط تدريب وتغذية بالذكاء الاصطناعي لأشخاص من خارج أعضاء الموقع — نفس محرك توليد الخطط للعملاء: حدد عدد الوجبات والسعرات ونوع النظام الغذائي وأضف تفاصيلك، أو حدد أيام التدريب والهدف والمستوى لخطط التمرين. الخطة تتولد كاملة، تنسخها أو تحمّلها وتبعتها للشخص — مش محتاج يكون عنده حساب، ومفيش أي حد."
+              : "Generate AI-powered training and nutrition plans for people who are NOT members — the same engine used for client plans: set meal count, calories, diet type and extra details, or set training days, goal and level for workout plans. Copy or download and send — no account needed, no cap."}
           </p>
         </div>
-        {!formOpen && (
+        {!formMode && (
           <button
             onClick={openCreate}
             className="inline-flex items-center gap-2 rounded-full bg-[#0071e3] px-5 py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90"
           >
-            <Plus className="h-4 w-4" />
-            {isAr ? "خطة جديدة" : "New plan"}
+            <Sparkles className="h-4 w-4" />
+            {isAr ? "توليد خطة بالذكاء الاصطناعي" : "AI-generate a plan"}
           </button>
         )}
       </div>
 
-      {/* Form */}
-      {formOpen && (
+      {/* ── AI Generation Form ── */}
+      {formMode === "ai" && (
         <div className="rounded-3xl border border-[#d2d2d7] bg-white p-5 md:p-6">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold">
-              {editingId ? (isAr ? "تعديل الخطة" : "Edit plan") : isAr ? "خطة جديدة لشخص خارج الموقع" : "New plan for a non-member"}
+            <h2 className="flex items-center gap-2 text-lg font-semibold">
+              <Sparkles className="h-5 w-5 text-[#0071e3]" />
+              {isAr ? "توليد خطة بالذكاء الاصطناعي لشخص خارج الموقع" : "AI-generate a plan for a non-member"}
             </h2>
             <button
               onClick={() => {
-                setFormOpen(false);
-                setForm(emptyForm);
-                setEditingId(null);
+                setFormMode(null);
+                setAIForm(emptyAIForm);
+              }}
+              className="rounded-full p-2 text-[#6e6e73] transition-colors hover:bg-[#f5f5f7]"
+              aria-label={isAr ? "إغلاق" : "Close"}
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+
+          {/* Person + contact */}
+          <div className="mt-4 grid gap-4 md:grid-cols-2">
+            <div>
+              <label className={labelCls}>{isAr ? "اسم الشخص *" : "Person name *"}</label>
+              <input
+                value={aiForm.person_name}
+                onChange={(e) => setAIForm({ ...aiForm, person_name: e.target.value })}
+                placeholder={isAr ? "مثال: أحمد محمد" : "e.g. Ahmed Mohamed"}
+                className={inputCls}
+              />
+            </div>
+            <div>
+              <label className={labelCls}>{isAr ? "وسيلة تواصل (اختياري)" : "Contact (optional)"}</label>
+              <input
+                value={aiForm.person_contact}
+                onChange={(e) => setAIForm({ ...aiForm, person_contact: e.target.value })}
+                placeholder={isAr ? "واتساب / تليفون / إيميل" : "WhatsApp / phone / email"}
+                className={inputCls}
+              />
+            </div>
+          </div>
+
+          {/* Plan type + status */}
+          <div className="mt-4 flex flex-wrap items-center gap-2">
+            <span className="text-xs font-semibold text-[#6e6e73]">{isAr ? "نوع الخطة *:" : "Plan type *:"}</span>
+            <button
+              onClick={() => setAIForm({ ...aiForm, plan_type: "workout" })}
+              className={`inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-semibold transition-colors ${aiForm.plan_type === "workout" ? "bg-[#0071e3] text-white" : "bg-[#f5f5f7] text-[#1d1d1f]"}`}
+            >
+              <Dumbbell className="h-3.5 w-3.5" />
+              {isAr ? "تدريب" : "Workout"}
+            </button>
+            <button
+              onClick={() => setAIForm({ ...aiForm, plan_type: "meal" })}
+              className={`inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-semibold transition-colors ${aiForm.plan_type === "meal" ? "bg-[#34c759] text-white" : "bg-[#f5f5f7] text-[#1d1d1f]"}`}
+            >
+              <Apple className="h-3.5 w-3.5" />
+              {isAr ? "تغذية" : "Meal"}
+            </button>
+            <span className="mx-2 hidden h-5 w-px bg-[#d2d2d7] sm:block" />
+            <button
+              onClick={() => setAIForm({ ...aiForm, status: aiForm.status === "final" ? "draft" : "final" })}
+              className={`rounded-full px-4 py-1.5 text-xs font-semibold transition-colors ${aiForm.status === "final" ? "bg-[#f5f5f7] text-[#1d1d1f]" : "bg-[#ff9500]/15 text-[#c47700]"}`}
+            >
+              {aiForm.status === "final" ? (isAr ? "نهائية" : "Final") : isAr ? "مسودة" : "Draft"}
+            </button>
+          </div>
+
+          {/* ── Meal brief ── */}
+          {aiForm.plan_type === "meal" && (
+            <>
+              <div className="mt-5 grid gap-4 sm:grid-cols-3">
+                <div>
+                  <label className={labelCls}>{isAr ? "عدد الوجبات يومياً" : "Meals per day"}</label>
+                  <select
+                    value={aiForm.meals_count}
+                    onChange={(e) => setAIForm({ ...aiForm, meals_count: Number(e.target.value) })}
+                    className={inputCls}
+                  >
+                    {[3, 4, 5, 6].map((n) => (
+                      <option key={n} value={n}>
+                        {isAr ? `${n} وجبات` : `${n} meals`}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className={labelCls}>
+                    {isAr ? "السعرات المستهدفة (اختياري)" : "Target calories (optional)"}
+                  </label>
+                  <input
+                    type="number"
+                    min={800}
+                    max={6000}
+                    value={aiForm.calories}
+                    onChange={(e) => setAIForm({ ...aiForm, calories: e.target.value })}
+                    placeholder={isAr ? "سيبها فاضية ليحسبها النظام" : "Leave empty to auto-compute"}
+                    className={inputCls}
+                  />
+                </div>
+                <div>
+                  <label className={labelCls}>{isAr ? "نوع النظام الغذائي" : "Diet type"}</label>
+                  <select
+                    value={aiForm.diet_type}
+                    onChange={(e) => setAIForm({ ...aiForm, diet_type: e.target.value })}
+                    className={inputCls}
+                  >
+                    {DIET_TYPES.map((d) => (
+                      <option key={d.value} value={d.value}>
+                        {isAr ? d.value : d.en}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <p className="mt-4 text-xs font-semibold text-[#6e6e73]">
+                {isAr
+                  ? "بيانات الشخص (اختياري — لدقة حساب السعرات والماكروز زي نموذج العملاء):"
+                  : "Person data (optional — accurate calorie/macro math, same as client plans):"}
+              </p>
+              <div className="mt-2 grid gap-4 sm:grid-cols-4">
+                <div>
+                  <label className={labelCls}>{isAr ? "الوزن (كجم)" : "Weight (kg)"}</label>
+                  <input
+                    type="number"
+                    value={aiForm.weight}
+                    onChange={(e) => setAIForm({ ...aiForm, weight: e.target.value })}
+                    placeholder="80"
+                    className={inputCls}
+                  />
+                </div>
+                <div>
+                  <label className={labelCls}>{isAr ? "الطول (سم)" : "Height (cm)"}</label>
+                  <input
+                    type="number"
+                    value={aiForm.height}
+                    onChange={(e) => setAIForm({ ...aiForm, height: e.target.value })}
+                    placeholder="175"
+                    className={inputCls}
+                  />
+                </div>
+                <div>
+                  <label className={labelCls}>{isAr ? "العمر" : "Age"}</label>
+                  <input
+                    type="number"
+                    value={aiForm.age}
+                    onChange={(e) => setAIForm({ ...aiForm, age: e.target.value })}
+                    placeholder="25"
+                    className={inputCls}
+                  />
+                </div>
+                <div>
+                  <label className={labelCls}>{isAr ? "الجنس" : "Gender"}</label>
+                  <select
+                    value={aiForm.gender}
+                    onChange={(e) => setAIForm({ ...aiForm, gender: e.target.value })}
+                    className={inputCls}
+                  >
+                    <option value="male">{isAr ? "ذكر" : "Male"}</option>
+                    <option value="female">{isAr ? "أنثى" : "Female"}</option>
+                  </select>
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* ── Workout brief ── */}
+          {aiForm.plan_type === "workout" && (
+            <div className="mt-5 grid gap-4 sm:grid-cols-4">
+              <div>
+                <label className={labelCls}>{isAr ? "أيام التدريب أسبوعياً" : "Training days / week"}</label>
+                <select
+                  value={aiForm.days_per_week}
+                  onChange={(e) => setAIForm({ ...aiForm, days_per_week: Number(e.target.value) })}
+                  className={inputCls}
+                >
+                  {[2, 3, 4, 5, 6].map((n) => (
+                    <option key={n} value={n}>
+                      {isAr ? `${n} أيام` : `${n} days`}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className={labelCls}>{isAr ? "الهدف" : "Goal"}</label>
+                <select
+                  value={aiForm.goal}
+                  onChange={(e) => setAIForm({ ...aiForm, goal: e.target.value })}
+                  className={inputCls}
+                >
+                  {WO_GOALS.map((g) => (
+                    <option key={g.value} value={g.value}>
+                      {isAr ? g.value : g.en}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className={labelCls}>{isAr ? "المستوى" : "Level"}</label>
+                <select
+                  value={aiForm.level}
+                  onChange={(e) => setAIForm({ ...aiForm, level: e.target.value })}
+                  className={inputCls}
+                >
+                  {WO_LEVELS.map((l) => (
+                    <option key={l.value} value={l.value}>
+                      {isAr ? l.value : l.en}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className={labelCls}>{isAr ? "مكان التدريب" : "Location"}</label>
+                <select
+                  value={aiForm.location}
+                  onChange={(e) => setAIForm({ ...aiForm, location: e.target.value })}
+                  className={inputCls}
+                >
+                  {WO_LOCATIONS.map((l) => (
+                    <option key={l.value} value={l.value}>
+                      {isAr ? l.value : l.en}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          )}
+
+          {/* Details */}
+          <div className="mt-4">
+            <label className={labelCls}>
+              {aiForm.plan_type === "meal"
+                ? isAr
+                  ? "تفاصيل إضافية (اختياري) — حساسية، أطعمة مفضلة أو غير مرغوبة، أي ملاحظات"
+                  : "Extra details (optional) — allergies, preferred/avoided foods, notes"
+                : isAr
+                  ? "تفاصيل إضافية (اختياري) — إصابات، معدات متاحة، أي ملاحظات"
+                  : "Extra details (optional) — injuries, available equipment, notes"}
+            </label>
+            <textarea
+              value={aiForm.details}
+              onChange={(e) => setAIForm({ ...aiForm, details: e.target.value })}
+              rows={4}
+              placeholder={
+                aiForm.plan_type === "meal"
+                  ? isAr
+                    ? "مثال: حساسية من المكسرات، بيحب الدجاج والسمك، مش بيأكل البيض..."
+                    : "e.g. nut allergy, likes chicken and fish, no eggs..."
+                  : isAr
+                    ? "مثال: مشكلة بسيطة في الركبة اليمين، متاح بار ودمبل..."
+                    : "e.g. mild right knee issue, barbell and dumbbells available..."
+              }
+              className={`${inputCls} leading-relaxed`}
+            />
+          </div>
+
+          {/* Title + notes */}
+          <div className="mt-4 grid gap-4 md:grid-cols-2">
+            <div>
+              <label className={labelCls}>
+                {isAr ? "عنوان الخطة (اختياري — يتولد تلقائياً)" : "Plan title (optional — auto-generated)"}
+              </label>
+              <input
+                value={aiForm.title}
+                onChange={(e) => setAIForm({ ...aiForm, title: e.target.value })}
+                placeholder={isAr ? "مثال: برنامج تضخم 4 أيام" : "e.g. 4-day bulking program"}
+                className={inputCls}
+              />
+            </div>
+            <div>
+              <label className={labelCls}>{isAr ? "ملاحظات (اختياري)" : "Notes (optional)"}</label>
+              <input
+                value={aiForm.notes}
+                onChange={(e) => setAIForm({ ...aiForm, notes: e.target.value })}
+                className={inputCls}
+              />
+            </div>
+          </div>
+
+          <div className="mt-5 flex flex-wrap items-center gap-3">
+            <button
+              onClick={generate}
+              disabled={generating}
+              className="inline-flex items-center gap-2 rounded-full bg-[#0071e3] px-6 py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+            >
+              {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+              {generating
+                ? isAr
+                  ? "جاري التوليد بالذكاء الاصطناعي…"
+                  : "Generating with AI…"
+                : isAr
+                  ? "توليد الخطة"
+                  : "Generate plan"}
+            </button>
+            <button
+              onClick={() => {
+                setFormMode(null);
+                setAIForm(emptyAIForm);
+              }}
+              className="rounded-full px-5 py-2.5 text-sm font-semibold text-[#6e6e73] transition-colors hover:bg-[#f5f5f7]"
+            >
+              {isAr ? "إلغاء" : "Cancel"}
+            </button>
+            <span className="text-xs text-[#86868b]">
+              {isAr
+                ? "التوليد بنفس محرك خطط العملاء — ممكن ياخد حتى دقيقة."
+                : "Same engine as client plans — may take up to a minute."}
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* ── Manual edit form (refine generated text) ── */}
+      {formMode === "edit" && (
+        <div className="rounded-3xl border border-[#d2d2d7] bg-white p-5 md:p-6">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold">
+              {isAr ? "تعديل الخطة" : "Edit plan"}
+              <span className="ms-2 text-xs font-normal text-[#6e6e73]">
+                {isAr ? "تعديل حر على النص المولّد" : "free edit of the generated text"}
+              </span>
+            </h2>
+            <button
+              onClick={() => {
+                setFormMode(null);
+                setEditForm(emptyEditForm);
               }}
               className="rounded-full p-2 text-[#6e6e73] transition-colors hover:bg-[#f5f5f7]"
               aria-label={isAr ? "إغلاق" : "Close"}
@@ -231,96 +675,71 @@ export function AdminExternalPlansView() {
 
           <div className="mt-4 grid gap-4 md:grid-cols-2">
             <div>
-              <label className="text-xs font-semibold text-[#6e6e73]">{isAr ? "اسم الشخص *" : "Person name *"}</label>
+              <label className={labelCls}>{isAr ? "اسم الشخص" : "Person name"}</label>
               <input
-                value={form.person_name}
-                onChange={(e) => setForm({ ...form, person_name: e.target.value })}
-                placeholder={isAr ? "مثال: أحمد محمد" : "e.g. Ahmed Mohamed"}
-                className="mt-1 w-full rounded-xl border border-[#d2d2d7] px-3 py-2 text-sm outline-none focus:border-[#0071e3]"
+                value={editForm.person_name}
+                onChange={(e) => setEditForm({ ...editForm, person_name: e.target.value })}
+                className={inputCls}
               />
             </div>
             <div>
-              <label className="text-xs font-semibold text-[#6e6e73]">{isAr ? "وسيلة تواصل (اختياري)" : "Contact (optional)"}</label>
+              <label className={labelCls}>{isAr ? "وسيلة تواصل" : "Contact"}</label>
               <input
-                value={form.person_contact}
-                onChange={(e) => setForm({ ...form, person_contact: e.target.value })}
-                placeholder={isAr ? "واتساب / تليفون / إيميل" : "WhatsApp / phone / email"}
-                className="mt-1 w-full rounded-xl border border-[#d2d2d7] px-3 py-2 text-sm outline-none focus:border-[#0071e3]"
+                value={editForm.person_contact}
+                onChange={(e) => setEditForm({ ...editForm, person_contact: e.target.value })}
+                className={inputCls}
               />
             </div>
           </div>
 
-          <div className="mt-4 flex flex-wrap items-center gap-2">
-            <span className="text-xs font-semibold text-[#6e6e73]">{isAr ? "نوع الخطة *:" : "Plan type *:"}</span>
-            <button
-              onClick={() => setForm({ ...form, plan_type: "workout" })}
-              className={`inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-semibold transition-colors ${form.plan_type === "workout" ? "bg-[#0071e3] text-white" : "bg-[#f5f5f7] text-[#1d1d1f]"}`}
-            >
-              <Dumbbell className="h-3.5 w-3.5" />
-              {isAr ? "تدريب" : "Workout"}
-            </button>
-            <button
-              onClick={() => setForm({ ...form, plan_type: "meal" })}
-              className={`inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-semibold transition-colors ${form.plan_type === "meal" ? "bg-[#34c759] text-white" : "bg-[#f5f5f7] text-[#1d1d1f]"}`}
-            >
-              <Apple className="h-3.5 w-3.5" />
-              {isAr ? "تغذية" : "Meal"}
-            </button>
-            <span className="mx-2 hidden h-5 w-px bg-[#d2d2d7] sm:block" />
-            <button
-              onClick={() => setForm({ ...form, status: form.status === "final" ? "draft" : "final" })}
-              className={`rounded-full px-4 py-1.5 text-xs font-semibold transition-colors ${form.status === "final" ? "bg-[#f5f5f7] text-[#1d1d1f]" : "bg-[#ff9500]/15 text-[#c47700]"}`}
-            >
-              {form.status === "final" ? (isAr ? "نهائية" : "Final") : isAr ? "مسودة" : "Draft"}
-            </button>
-          </div>
-
           <div className="mt-4">
-            <label className="text-xs font-semibold text-[#6e6e73]">{isAr ? "عنوان الخطة *" : "Plan title *"}</label>
+            <label className={labelCls}>{isAr ? "عنوان الخطة" : "Plan title"}</label>
             <input
-              value={form.title}
-              onChange={(e) => setForm({ ...form, title: e.target.value })}
-              placeholder={isAr ? "مثال: برنامج تضخم 4 أيام للأسبوعين الأولين" : "e.g. 4-day bulking program, first two weeks"}
-              className="mt-1 w-full rounded-xl border border-[#d2d2d7] px-3 py-2 text-sm outline-none focus:border-[#0071e3]"
+              value={editForm.title}
+              onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
+              className={inputCls}
             />
           </div>
 
           <div className="mt-4">
-            <label className="text-xs font-semibold text-[#6e6e73]">
-              {isAr ? "تفاصيل الخطة (اكتبها يدويًا) *" : "Plan details (write manually) *"}
-            </label>
+            <label className={labelCls}>{isAr ? "تفاصيل الخطة" : "Plan details"}</label>
             <textarea
-              value={form.text}
-              onChange={(e) => setForm({ ...form, text: e.target.value })}
+              value={editForm.text}
+              onChange={(e) => setEditForm({ ...editForm, text: e.target.value })}
               rows={14}
-              placeholder={isAr ? "اكتب كل التفاصيل هنا — التمارين والأوزان والتكرارات أو الوجبات والكميات... اللي يناسبك." : "Write all the details here — exercises, weights, reps, or meals and amounts... whatever fits."}
-              className="mt-1 w-full rounded-xl border border-[#d2d2d7] px-3 py-2 text-sm leading-relaxed outline-none focus:border-[#0071e3]"
+              className={`${inputCls} leading-relaxed`}
+              dir="auto"
             />
           </div>
 
-          <div className="mt-4">
-            <label className="text-xs font-semibold text-[#6e6e73]">{isAr ? "ملاحظات (اختياري)" : "Notes (optional)"}</label>
+          <div className="mt-4 flex flex-wrap items-center gap-2">
+            <button
+              onClick={() => setEditForm({ ...editForm, status: editForm.status === "final" ? "draft" : "final" })}
+              className={`rounded-full px-4 py-1.5 text-xs font-semibold transition-colors ${editForm.status === "final" ? "bg-[#f5f5f7] text-[#1d1d1f]" : "bg-[#ff9500]/15 text-[#c47700]"}`}
+            >
+              {editForm.status === "final" ? (isAr ? "نهائية" : "Final") : isAr ? "مسودة" : "Draft"}
+            </button>
             <input
-              value={form.notes}
-              onChange={(e) => setForm({ ...form, notes: e.target.value })}
-              className="mt-1 w-full rounded-xl border border-[#d2d2d7] px-3 py-2 text-sm outline-none focus:border-[#0071e3]"
+              value={editForm.notes}
+              onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })}
+              placeholder={isAr ? "ملاحظات (اختياري)" : "Notes (optional)"}
+              className="min-w-[200px] flex-1 rounded-xl border border-[#d2d2d7] px-3 py-2 text-sm outline-none focus:border-[#0071e3]"
             />
           </div>
 
           <div className="mt-5 flex items-center gap-3">
             <button
-              onClick={submit}
-              disabled={saving}
+              onClick={submitEdit}
+              disabled={savingEdit}
               className="inline-flex items-center gap-2 rounded-full bg-[#0071e3] px-6 py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
             >
-              {saving && <Loader2 className="h-4 w-4 animate-spin" />}
-              {editingId ? (isAr ? "حفظ التعديل" : "Save changes") : isAr ? "حفظ الخطة" : "Save plan"}
+              {savingEdit && <Loader2 className="h-4 w-4 animate-spin" />}
+              {isAr ? "حفظ التعديل" : "Save changes"}
             </button>
             <button
               onClick={() => {
-                setFormOpen(false);
-                setForm(emptyForm);
-                setEditingId(null);
+                setFormMode(null);
+                setEditForm(emptyEditForm);
               }}
               className="rounded-full px-5 py-2.5 text-sm font-semibold text-[#6e6e73] transition-colors hover:bg-[#f5f5f7]"
             >
@@ -386,15 +805,15 @@ export function AdminExternalPlansView() {
       ) : plans.length === 0 ? (
         <div className="rounded-3xl border border-dashed border-[#d2d2d7] py-16 text-center">
           <p className="text-sm text-[#6e6e73]">
-            {isAr ? "مفيش خطط لسه — ابدأ بأول خطة لشخص خارج الموقع." : "No plans yet — start with the first external plan."}
+            {isAr ? "مفيش خطط لسه — ابدأ بأول خطة بالذكاء الاصطناعي لشخص خارج الموقع." : "No plans yet — start with the first AI-generated external plan."}
           </p>
-          {!formOpen && (
+          {!formMode && (
             <button
               onClick={openCreate}
               className="mt-4 inline-flex items-center gap-2 rounded-full bg-[#0071e3] px-5 py-2.5 text-sm font-semibold text-white"
             >
-              <Plus className="h-4 w-4" />
-              {isAr ? "خطة جديدة" : "New plan"}
+              <Sparkles className="h-4 w-4" />
+              {isAr ? "توليد خطة بالذكاء الاصطناعي" : "AI-generate a plan"}
             </button>
           )}
         </div>
