@@ -280,14 +280,17 @@ export function AffiliateProgramView() {
                 <p className="mt-6 text-sm font-medium text-[#1d1d1f]">
                   {c.commission.subs.examplesTitle}
                 </p>
-                <div className="mt-3 grid grid-cols-2 gap-3">
+                <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
                   {c.commission.subs.examples.map((ex, i) => (
                     <div
                       key={i}
                       className="rounded-2xl bg-[#f5f5f7] p-4 text-center"
                     >
-                      <p className="text-xs font-normal text-[#6e6e73]">
-                        {isAr ? "اشتراك" : "Subscription"} {ex.price}
+                      <p className="text-xs font-medium text-[#1d1d1f]">
+                        {ex.label}
+                      </p>
+                      <p className="mt-0.5 text-[11px] font-normal text-[#6e6e73]">
+                        {ex.price}
                       </p>
                       <p className="mt-1 text-xl font-semibold tracking-tight text-[#0071e3]">
                         {ex.earn}
@@ -549,9 +552,9 @@ type Copy = {
       rateSuffix: string;
       body: string;
       renewalNote: string;
-      /** Phase 75 (owner): concrete $6 → $1.20 / $16 → $3.20 examples */
+      /** Owner: concrete commission examples on real Musclehubeg plans (Premium/Pro/Coaching) */
       examplesTitle: string;
-      examples: { price: string; earn: string }[];
+      examples: { label: string; price: string; earn: string }[];
     };
     prods: {
       badge: string;
@@ -639,8 +642,9 @@ function getCopy(isAr: boolean): Copy {
             "لما تكون في عمليات تجديد اشتراك حقيقية متكررة (recurring payments)، الإحالات المؤهلة للاشتراك بتفضل محفوظة على السيرفر عشان العمولات المستقبلية من عمليات التجديد المؤهلة.",
           examplesTitle: "أمثلة حقيقية على عمولتك:",
           examples: [
-            { price: "$6", earn: "$1.20" },
-            { price: "$16", earn: "$3.20" },
+            { label: "عضوية بريميوم", price: "14.99$ شهرياً", earn: "$3.00" },
+            { label: "عضوية برو", price: "29.99$ شهرياً", earn: "$6.00" },
+            { label: "اشتراك كوتشينج بشري", price: "39.99$ شهرياً", earn: "$8.00" },
           ],
         },
         prods: {
@@ -683,7 +687,7 @@ function getCopy(isAr: boolean): Copy {
           {
             title: "تكسب 20% فورًا",
             body:
-              "بيتكسب 1.20$ عمولة من اشتراك 6$، و3.20$ من اشتراك 16$ — وكل عمولة بتظهر في لوحة أرباحك لحظة بلحظة.",
+              "بيتكسب 3.00$ عمولة من عضوية بريميوم (14.99$)، و6.00$ من عضوية برو (29.99$)، و8.00$ من اشتراك الكوتشينج البشري (39.99$) — وكل عمولة بتظهر في لوحة أرباحك لحظة بلحظة.",
           },
           {
             title: "اطلب صرف أرباحك",
@@ -786,8 +790,9 @@ function getCopy(isAr: boolean): Copy {
           "When real recurring subscription renewals exist, qualifying subscription referrals are retained server-side so future qualifying renewals can generate additional commissions. We do not imply that automatic renewals currently exist.",
         examplesTitle: "What your commission looks like:",
         examples: [
-          { price: "$6", earn: "$1.20" },
-          { price: "$16", earn: "$3.20" },
+          { label: "Premium membership", price: "$14.99/mo", earn: "$3.00" },
+          { label: "Pro membership", price: "$29.99/mo", earn: "$6.00" },
+          { label: "Human coaching", price: "$39.99/mo", earn: "$8.00" },
         ],
       },
       prods: {
@@ -831,7 +836,7 @@ function getCopy(isAr: boolean): Copy {
         {
           title: "You earn 20% instantly",
           body:
-            "That's $1.20 from a $6 subscription, and $3.20 from a $16 subscription — every commission appears in your dashboard in real time.",
+            "That's $3.00 from a $14.99 Premium membership, $6.00 from a $29.99 Pro membership, and $8.00 from a $39.99 Human Coaching subscription — every commission appears in your dashboard in real time.",
         },
         {
           title: "Request your payout",
