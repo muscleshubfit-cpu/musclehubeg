@@ -10,11 +10,15 @@
  *    tops up via InstaPay / Vodafone Cash / PayPal, uploads the receipt,
  *    the admin reviews it and manually credits the wallet. Activation
  *    DEBITS the wallet — no balance, no activation (admins exempt).
- *  - Coach AI plan generation is capped PER CLIENT PER CALENDAR MONTH:
- *    4 nutrition + 4 workout plans (completed ai_jobs counted
- *    server-side, window = current UTC month). EDITING plans
- *    (per-meal/per-exercise regenerate, content edits) and MANUAL plan
- *    uploads are UNLIMITED by owner decree.
+ *  - Coach AI plan generation draws from the CLIENT's ONE plan balance
+ *    (owner decrees 2026-09-01 + 2026-09-02): weekly cap 1+1 (Pro 2+2,
+ *    Monday-anchored UTC) + monthly total 4+4 (Pro 8+8, resets on the
+ *    1st) — the same pool the member's EVO chat spends from. The old
+ *    separate coach-side 4/4 cap (COACH_AI_PLAN_LIMIT, 0034) was REMOVED
+ *    — it double-capped the same pool and contradicted the one-balance
+ *    law for Pro clients. EDITING plans (per-meal/per-exercise
+ *    regenerate, content edits) and MANUAL plan uploads are UNLIMITED by
+ *    owner decree.
  *  - Site clients keep the exact same tier limits as before — nothing
  *    changes on the client side.
  *  - CURRENCY (owner decree 2026-08-30: «التسعير يكون كله بالدولار
@@ -26,9 +30,6 @@
  *    stored currency values to 'USD' and converts existing EGP amounts
  *    at ÷50 once.)
  */
-
-/** Completed AI plan generations allowed per client, per kind, per month. */
-export const COACH_AI_PLAN_LIMIT = 4;
 
 /* ------------------------------------------------------------------ */
 /* OWNER PRICING (2026-08-30 decrees:                                  */

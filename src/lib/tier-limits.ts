@@ -100,10 +100,11 @@ export function swapLimitForTier(tier: MembershipTier): number | null {
 }
 
 /**
- * Monthly plan-generation quota for a tier (T-AI-DEEP-AUDIT-V2, D4 fix).
+ * MONTHLY plan-generation quota for a tier (T-AI-DEEP-AUDIT-V2, D4 fix).
  * Reads evoNutritionPlanLimit / evoWorkoutPlanLimit straight from
  * memberships.ts so the advertised numbers ARE the enforced numbers.
- *   free: 0/0 · premium: 3/3 · pro: 6/6 · coaching: 3/3
+ *   free: 0/0 · premium: 4/4 · pro: 8/8 · coaching: 4/4
+ * (owner decree 2026-09-02: 1+1 weekly, total 4+4 monthly — pro 2×)
  * Returns null = unlimited.
  */
 export function planQuotaFor(tier: MembershipTier, kind: EvoPlanKind): number | null {
@@ -113,12 +114,41 @@ export function planQuotaFor(tier: MembershipTier, kind: EvoPlanKind): number | 
     : limits.evoWorkoutPlanLimit;
 }
 
+/**
+ * WEEKLY plan-generation cap for a tier (owner decree 2026-09-02:
+ * «١+١ أسبوعية اجمالى ٤+٤ شهريا») — the monthly total no longer burns
+ * all at once: at most 1 nutrition + 1 workout plan per week (Pro 2+2,
+ * preserving the advertised 2× Premium ladder).
+ * Returns null = unlimited.
+ */
+export function planWeeklyQuotaFor(tier: MembershipTier, kind: EvoPlanKind): number | null {
+  const limits = getLimits(tier);
+  return kind === "nutrition"
+    ? limits.evoNutritionPlanWeeklyLimit
+    : limits.evoWorkoutPlanWeeklyLimit;
+}
+
 /** UTC month start — "resets monthly" = resets on the 1st, UTC. */
-function monthStartUtc(): string {
+export function monthStartUtc(): string {
   const now = new Date();
   return new Date(
     Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1),
   ).toISOString();
+}
+
+/**
+ * UTC week start — Monday 00:00 UTC (owner decree 2026-09-02 weekly plan
+ * cap). Same Monday-anchored convention as the weekly swaps reset
+ * («الرصيد يتصفّر يوم الاثنين»), so both weekly windows agree.
+ */
+export function weekStartUtc(now: Date = new Date()): string {
+  const d = new Date(
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
+  );
+  const dow = d.getUTCDay(); // 0=Sun … 6=Sat
+  const mondayOffset = dow === 0 ? 6 : dow - 1;
+  d.setUTCDate(d.getUTCDate() - mondayOffset);
+  return d.toISOString();
 }
 
 /**
@@ -137,15 +167,24 @@ export async function countThisMonthPlanUsage(
   userId: string,
   kind: EvoPlanKind,
 ): Promise<number> {
+  return countEvoPlanRowsSince(userId, kind, monthStartUtc());
+}
+
+/** EVO-self ledger rows since an arbitrary instant (shared by month/week). */
+async function countEvoPlanRowsSince(
+  userId: string,
+  kind: EvoPlanKind,
+  sinceIso: string,
+): Promise<number> {
   if (!isSupabaseAdminConfigured || !supabaseAdmin) return 0;
   const { count, error } = await supabaseAdmin
     .from("evo_chat_usage" as any)
     .select("*", { count: "exact", head: true })
     .eq("user_id", userId)
     .eq("source", `plan_${kind}`)
-    .gte("created_at", monthStartUtc());
+    .gte("created_at", sinceIso);
   if (error) {
-    console.error("[tier-limits] countThisMonthPlanUsage error:", error.message);
+    console.error("[tier-limits] countEvoPlanRowsSince error:", error.message);
     return 0; // fail open on counting errors — soft quota, same as chat
   }
   return count ?? 0;
@@ -165,6 +204,15 @@ export async function countThisMonthCoachPlanJobs(
   clientId: string,
   kind: EvoPlanKind,
 ): Promise<number> {
+  return countCoachPlanJobsSince(clientId, kind, monthStartUtc());
+}
+
+/** Coach/admin done ai_jobs for this client since an arbitrary instant. */
+async function countCoachPlanJobsSince(
+  clientId: string,
+  kind: EvoPlanKind,
+  sinceIso: string,
+): Promise<number> {
   if (!isSupabaseAdminConfigured || !supabaseAdmin) return 0;
   const { count, error } = await supabaseAdmin
     .from("ai_jobs" as any)
@@ -172,9 +220,9 @@ export async function countThisMonthCoachPlanJobs(
     .eq("job_type", `plan_${kind}`)
     .eq("status", "done")
     .eq("payload->>clientId", clientId)
-    .gte("created_at", monthStartUtc());
+    .gte("created_at", sinceIso);
   if (error) {
-    console.error("[tier-limits] countThisMonthCoachPlanJobs error:", error.message);
+    console.error("[tier-limits] countCoachPlanJobsSince error:", error.message);
     return 0; // fail open — same soft-quota convention as above
   }
   return count ?? 0;
@@ -191,22 +239,45 @@ export async function countClientPlanUsage(
   clientId: string,
   kind: EvoPlanKind,
 ): Promise<number> {
+  return countClientPlanUsageSince(clientId, kind, monthStartUtc());
+}
+
+/** Combined pool since an arbitrary instant (month → monthly total, week → weekly cap). */
+export async function countClientPlanUsageSince(
+  clientId: string,
+  kind: EvoPlanKind,
+  sinceIso: string,
+): Promise<number> {
   const [evoUsed, coachUsed] = await Promise.all([
-    countThisMonthPlanUsage(clientId, kind),
-    countThisMonthCoachPlanJobs(clientId, kind),
+    countEvoPlanRowsSince(clientId, kind, sinceIso),
+    countCoachPlanJobsSince(clientId, kind, sinceIso),
   ]);
   return evoUsed + coachUsed;
 }
 
+/** This week's combined plan usage (owner decree 2026-09-02 weekly cap). */
+export async function countClientWeeklyPlanUsage(
+  clientId: string,
+  kind: EvoPlanKind,
+): Promise<number> {
+  return countClientPlanUsageSince(clientId, kind, weekStartUtc());
+}
+
 /**
- * Check the MONTHLY plan-generation quota (D4 fix).
+ * Check the WEEKLY + MONTHLY plan-generation quota (D4 fix + owner
+ * decree 2026-09-02: «١+١ أسبوعية اجمالى ٤+٤ شهريا بدلا من ٣+٣ شهريا»).
  *
  * 2026-09-01 (owner: «توليد الخطط بيتحسب من الرصيد سواء عن طريق المدرب
- * او عن طريق ايفو»): the advertised per-month numbers are now ONE pool
+ * او عن طريق ايفو»): the advertised per-month numbers are ONE pool
  * per client — `used` combines EVO-self dispatches (evo_chat_usage) with
  * coach/admin AI generations for this client (done ai_jobs). The chat
  * passes the member's own id; the coach enqueue path uses
  * checkClientPlanQuota() below with the SAME combined counter.
+ *
+ * 2026-09-02: the monthly total alone no longer governs — a WEEKLY cap
+ * (1+1, Pro 2+2, Monday-anchored UTC) must ALSO pass. `used`/`limit`
+ * stay the MONTHLY pair (display compatibility); when the weekly cap is
+ * the one that blocks, `blockedBy: "week"` + `weekly` carry the details.
  *
  * STAFF QUOTA SEMANTICS (2026-08-29): staffHint=true (role coach|admin)
  * bypasses the quota entirely — platform staff are never limited by
@@ -217,20 +288,72 @@ export async function checkEvoPlanQuota(
   kind: EvoPlanKind,
   tierHint?: string | null,
   staffHint?: boolean,
-): Promise<{ allowed: boolean; used: number; limit: number | null; unlimited: boolean }> {
+): Promise<PlanQuotaVerdict> {
   if (staffHint) {
-    return { allowed: true, used: 0, limit: null, unlimited: true };
+    return {
+      allowed: true, used: 0, limit: null, unlimited: true,
+      blockedBy: null, weekly: { used: 0, limit: null },
+    };
   }
   const tier = sanitizeTier(tierHint) ?? (await resolveTierFromDb(userId));
+  return enforcePlanQuota(userId, kind, tier);
+}
+
+/** Verdict shape shared by the chat path and the coach-enqueue path. */
+export type PlanQuotaVerdict = {
+  allowed: boolean;
+  used: number; // monthly combined usage
+  limit: number | null; // monthly total
+  unlimited: boolean;
+  blockedBy: "week" | "month" | null;
+  weekly: { used: number; limit: number | null };
+  tier?: MembershipTier;
+};
+
+/**
+ * Core two-window enforcement: the MONTHLY total and the WEEKLY cap must
+ * BOTH pass. Monthly is checked first so a fully-exhausted month reports
+ * "month" even when the weekly numbers are also over.
+ */
+async function enforcePlanQuota(
+  clientId: string,
+  kind: EvoPlanKind,
+  tier: MembershipTier,
+): Promise<PlanQuotaVerdict> {
   const limit = planQuotaFor(tier, kind);
-  if (limit === null) {
-    return { allowed: true, used: 0, limit: null, unlimited: true };
+  const weeklyLimit = planWeeklyQuotaFor(tier, kind);
+  if (limit === null && weeklyLimit === null) {
+    return {
+      allowed: true, used: 0, limit: null, unlimited: true,
+      blockedBy: null, weekly: { used: 0, limit: null }, tier,
+    };
   }
-  if (limit === 0) {
-    return { allowed: false, used: 0, limit: 0, unlimited: false };
+  if (limit === 0 || weeklyLimit === 0) {
+    // free tier — no plan generation at all
+    return {
+      allowed: false, used: 0, limit: limit ?? 0, unlimited: false,
+      blockedBy: "month", weekly: { used: 0, limit: weeklyLimit ?? 0 }, tier,
+    };
   }
-  const used = await countClientPlanUsage(userId, kind);
-  return { allowed: used < limit, used, limit, unlimited: false };
+  const [used, weeklyUsed] = await Promise.all([
+    limit === null ? Promise.resolve(0) : countClientPlanUsage(clientId, kind),
+    weeklyLimit === null ? Promise.resolve(0) : countClientWeeklyPlanUsage(clientId, kind),
+  ]);
+  const blockedBy: "week" | "month" | null =
+    limit !== null && used >= limit
+      ? "month"
+      : weeklyLimit !== null && weeklyUsed >= weeklyLimit
+        ? "week"
+        : null;
+  return {
+    allowed: blockedBy === null,
+    used,
+    limit,
+    unlimited: false,
+    blockedBy,
+    weekly: { used: weeklyUsed, limit: weeklyLimit },
+    tier,
+  };
 }
 
 /**
@@ -240,27 +363,15 @@ export async function checkEvoPlanQuota(
  * staff-bypasses — the caller (api/ai/jobs) already scopes this block to
  * authRole === "coach", so admins keep their staff semantics upstream.
  * `used` is the SAME combined pool the member's widget displays.
+ * 2026-09-02: the weekly cap (1+1 / Pro 2+2) is enforced here too.
  */
 export async function checkClientPlanQuota(
   clientId: string,
   kind: EvoPlanKind,
-): Promise<{
-  allowed: boolean;
-  used: number;
-  limit: number | null;
-  unlimited: boolean;
-  tier: MembershipTier;
-}> {
+): Promise<PlanQuotaVerdict & { tier: MembershipTier }> {
   const tier = await resolveTierFromDb(clientId);
-  const limit = planQuotaFor(tier, kind);
-  if (limit === null) {
-    return { allowed: true, used: 0, limit: null, unlimited: true, tier };
-  }
-  if (limit === 0) {
-    return { allowed: false, used: 0, limit: 0, unlimited: false, tier };
-  }
-  const used = await countClientPlanUsage(clientId, kind);
-  return { allowed: used < limit, used, limit, unlimited: false, tier };
+  const verdict = await enforcePlanQuota(clientId, kind, tier);
+  return { ...verdict, tier };
 }
 
 /* ------------------- Anonymous traffic ledger (D3 fix) -------------------

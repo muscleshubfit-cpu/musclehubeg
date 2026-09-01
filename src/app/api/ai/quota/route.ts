@@ -3,7 +3,9 @@ import { getAuthUser } from "@/lib/auth-server";
 import {
   countTodayChatUsage,
   countClientPlanUsage,
+  countClientWeeklyPlanUsage,
   planQuotaFor,
+  planWeeklyQuotaFor,
   evoChatLimitFor,
   type EvoPlanKind,
 } from "@/lib/tier-limits";
@@ -11,19 +13,21 @@ import {
 /**
  * GET /api/ai/quota — Phase 69 (owner-approved): the EVO QUOTA METER.
  *
- * The study (Phase 64) found the advertised "3/6 plans per month" was
- * invisible until the member hit the 429 bubble. This read-only endpoint
- * powers the in-widget counters:
+ * The study (Phase 64) found the advertised plan quotas were invisible
+ * until the member hit the 429 bubble. This read-only endpoint powers
+ * the in-widget counters:
  *   - chat:      today's messages used vs daily limit (null = unlimited)
- *   - nutrition: this month's meal-plan generations vs monthly quota
- *   - workout:   this month's workout-plan generations vs monthly quota
+ *   - nutrition: plan generations vs WEEKLY cap + MONTHLY total
+ *   - workout:   plan generations vs WEEKLY cap + MONTHLY total
  *
  * Counting reads the SAME tamper-proof ledgers the enforcement writes
  * (evo_chat_usage + done ai_jobs) so display always matches enforcement.
  * 2026-09-01 (owner): «توليد الخطط بيتحسب من الرصيد سواء عن طريق المدرب
  * او عن طريق ايفو» — plan `used` is the COMBINED pool (member's own EVO
- * generations + coach/admin AI generations for this member), identical
- * to what the chat check and the coach-enqueue check deduct from.
+ * generations + coach/admin AI generations for this member).
+ * 2026-09-02: WEEKLY cap (1+1 · Pro 2+2, Monday-anchored UTC) added on
+ * top of the MONTHLY total (4+4 · Pro 8+8) — `weeklyUsed`/`weeklyLimit`
+ * mirror what checkEvoPlanQuota/checkClientPlanQuota enforce.
  * Read-only — nothing is recorded here.
  */
 export async function GET(request: NextRequest) {
@@ -32,8 +36,8 @@ export async function GET(request: NextRequest) {
     // Anonymous visitors: free-tier chat limit (10/day), no plan generation
     return NextResponse.json({
       chat: { used: 0, limit: evoChatLimitFor("free"), unlimited: false },
-      nutrition: { used: 0, limit: 0, unlimited: false },
-      workout: { used: 0, limit: 0, unlimited: false },
+      nutrition: { used: 0, limit: 0, unlimited: false, weeklyUsed: 0, weeklyLimit: 0 },
+      workout: { used: 0, limit: 0, unlimited: false, weeklyUsed: 0, weeklyLimit: 0 },
     });
   }
 
@@ -54,14 +58,20 @@ export async function GET(request: NextRequest) {
   const chatUsed = chatLimit === null ? 0 : await countTodayChatUsage(auth.id);
 
   const kinds: EvoPlanKind[] = ["nutrition", "workout"];
-  const plans: Record<string, { used: number; limit: number | null; unlimited: boolean }> = {};
+  const plans: Record<string, { used: number; limit: number | null; unlimited: boolean; weeklyUsed: number; weeklyLimit: number | null }> = {};
   for (const kind of kinds) {
     const limit = planQuotaFor(tier, kind);
-    const used = limit === null ? 0 : await countClientPlanUsage(auth.id, kind);
+    const weeklyLimit = planWeeklyQuotaFor(tier, kind);
+    const [used, weeklyUsed] = await Promise.all([
+      limit === null ? Promise.resolve(0) : countClientPlanUsage(auth.id, kind),
+      weeklyLimit === null ? Promise.resolve(0) : countClientWeeklyPlanUsage(auth.id, kind),
+    ]);
     plans[kind] = {
       used,
       limit,
-      unlimited: limit === null,
+      unlimited: limit === null && weeklyLimit === null,
+      weeklyUsed,
+      weeklyLimit,
     };
   }
 

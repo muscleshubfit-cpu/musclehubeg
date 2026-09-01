@@ -197,10 +197,11 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // 1.6 D4 — MONTHLY plan-generation quota (paid tiers only; free users
-    // were already blocked by the subscriber gate above). Plan-creation
-    // intents count per domain against evoNutritionPlanLimit /
-    // evoWorkoutPlanLimit. Swap intents intentionally NOT counted here —
+    // 1.6 D4 — WEEKLY + MONTHLY plan-generation quota (paid tiers only;
+    // free users were already blocked by the subscriber gate above).
+    // Plan-creation intents count per domain against the tier's WEEKLY cap
+    // (1+1 — Pro 2+2, owner decree 2026-09-02) AND the MONTHLY total
+    // (4+4 — Pro 8+8). Swap intents intentionally NOT counted here —
     // they ride the weekly /api/ai/jobs quota (no double-billing).
     if (intent.isPlanCreation && isPaidTier && userId) {
       const quota = await checkEvoPlanQuota(
@@ -215,10 +216,14 @@ export async function POST(request: NextRequest) {
         const upgradeHint =
           authTier === "pro"
             ? ""
-            : "\n\nUpgrade to Pro for 6 plans per month.";
+            : "\n\nUpgrade to Pro for 8 plans per month (2 per week).";
+        const responseText =
+          quota.blockedBy === "week"
+            ? `⏰ You've hit the weekly cap: ${quota.weekly.used}/${quota.weekly.limit} ${domainLabel} plans this week. The weekly cap resets on Monday — your monthly total (${quota.used}/${quota.limit}) is still available.${upgradeHint}`
+            : `⏰ You've used ${quota.used}/${quota.limit} ${domainLabel} plans this month. Your quota resets on the 1st of each month.${upgradeHint}`;
         return NextResponse.json(
           {
-            response: `⏰ You've used ${quota.used}/${quota.limit} ${domainLabel} plans this month. Your quota resets on the 1st of each month.${upgradeHint}`,
+            response: responseText,
             links: [{ label: "View membership plans →", url: "/memberships" }],
             source: "rate-limit",
             rateLimited: true,

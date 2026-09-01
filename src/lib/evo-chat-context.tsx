@@ -114,8 +114,21 @@ type EvoChatContextType = {
 
 export type QuotaSnapshot = {
   chat: { used: number; limit: number | null; unlimited: boolean };
-  nutrition: { used: number; limit: number | null; unlimited: boolean };
-  workout: { used: number; limit: number | null; unlimited: boolean };
+  nutrition: {
+    used: number;
+    limit: number | null;
+    unlimited: boolean;
+    /** 2026-09-02 weekly cap (1+1 · Pro 2+2) — optional for older caches. */
+    weeklyUsed?: number;
+    weeklyLimit?: number | null;
+  };
+  workout: {
+    used: number;
+    limit: number | null;
+    unlimited: boolean;
+    weeklyUsed?: number;
+    weeklyLimit?: number | null;
+  };
 };
 
 const EvoChatContext = createContext<EvoChatContextType | null>(null);

@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireUser, requireCoach, isAuthConfigured } from "@/lib/auth-server";
 import { checkAndRecordSwap, checkClientPlanQuota, type EvoPlanKind } from "@/lib/tier-limits";
-import { COACH_AI_PLAN_LIMIT, coachAiMonthStartISO } from "@/lib/coach-limits";
 import {
   isAiJobType,
   JOB_GATE,
@@ -85,8 +84,8 @@ export async function POST(request: NextRequest) {
       // (coach | admin) crafting client plans use meal/exercise swaps as
       // an EDITING tool, not as client self-service — quota-bypass them.
       // The weekly C16 limit stays exactly as-is for clients (free 0 ·
-      // premium 3 · pro 6 · coaching 3), and EVO-chat plan-creation
-      // quotas (Phase 20 D4) are untouched.
+      // premium 3 · pro 6 · coaching 3), and the EVO-chat plan-creation
+      // quotas (weekly cap + monthly total, 2026-09-02) are untouched.
     } else {
       // user_swap_meal | user_swap_exercise → enforce C16 weekly tier limit.
       // Record-at-enqueue mirrors the previous swap system exactly: quota
@@ -112,13 +111,15 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // ── 0034: COACH PER-CLIENT AI QUOTA (4 nutrition + 4 workout) ─────
-    // Owner model: plan_* generation is capped PER CLIENT for coaches —
-    // counting COMPLETED jobs of the same kind (failed generations never
-    // burn quota). Editing tools (meal/exercise regenerate — handled
-    // above with staff bypass) and manual uploads stay UNLIMITED.
-    // Admins remain unlimited (staff quota semantics). A coach may also
-    // only generate for his OWN clients — ownership verified below.
+    // ── 0034: COACH PER-CLIENT AI QUOTA (SUPERSEDED 2026-09-02) ───────
+    // The old 4 nutrition + 4 workout coach-side cap is GONE — the ONE
+    // client plan balance (weekly cap 1+1 / Pro 2+2 + monthly total 4+4 /
+    // Pro 8+8, both fed by coach AND EVO generations) is the only quota
+    // (owner decrees 2026-09-01 + 2026-09-02). Editing tools (meal/
+    // exercise regenerate — staff-bypassed above) and manual uploads stay
+    // UNLIMITED. Admins remain unlimited (staff quota semantics). A coach
+    // may also only generate for his OWN clients — ownership verified
+    // below.
     if (
       isAuthConfigured &&
       (type === "plan_nutrition" || type === "plan_workout") &&
@@ -174,48 +175,34 @@ export async function POST(request: NextRequest) {
           { status: 402 },
         );
       }
-      // ── OWNER DECREE (2026-09-01): «توليد الخطط بيتحسب من الرصيد سواء
-      // عن طريق المدرب او عن طريق ايفو» — the coach's generation burns the
-      // CLIENT's monthly plan balance (same pool the member's EVO widget
-      // shows: evo_chat_usage + done ai_jobs for this client). The client's
-      // TIER decides the limit (premium 3/3 · pro 6/6 · coaching 3/3).
-      // Soft-quota convention: completed EVO dispatches + done jobs count;
-      // pending jobs can race past by a 1-off (same documented parity as
-      // the weekly swaps).
+      // ── OWNER DECREE (2026-09-01 + 2026-09-02): «توليد الخطط بيتحسب من
+      // الرصيد سواء عن طريق المدرب او عن طريق ايفو» + «١+١ أسبوعية اجمالى
+      // ٤+٤ شهريا بدلا من ٣+٣ شهريا» — the coach's generation burns the
+      // CLIENT's plan balance (same pool the member's EVO widget shows:
+      // evo_chat_usage + done ai_jobs for this client). The client's TIER
+      // decides BOTH windows: weekly cap 1+1 (Pro 2+2, Monday-anchored UTC)
+      // AND monthly total 4+4 (Pro 8+8, resets on the 1st).
+      // The legacy coach-side 4/4 cap (0034) was REMOVED 2026-09-02 — it
+      // double-capped the same pool and contradicted the one-balance law
+      // for Pro clients. Soft-quota convention: completed EVO dispatches +
+      // done jobs count; pending jobs can race past by a 1-off (same
+      // documented parity as the weekly swaps).
       const clientKind: EvoPlanKind =
         type === "plan_nutrition" ? "nutrition" : "workout";
       const clientQuota = await checkClientPlanQuota(clientId, clientKind);
       if (!clientQuota.unlimited && !clientQuota.allowed) {
         const kindAr = type === "plan_nutrition" ? "تغذية" : "تمارين";
+        const message =
+          clientQuota.blockedBy === "week"
+            ? `وصلت للحد الأسبوعي: ${clientQuota.weekly.used}/${clientQuota.weekly.limit} خطط ${kindAr} للعميل ده الأسبوع ده. الحد الأسبوعي بيتصفّر يوم الاثنين، والرصيد الشهري (${clientQuota.used}/${clientQuota.limit}) لسه شايل. التوليد — منك أو من ايفو عند العميل — بيخصم من نفس الرصيد.`
+            : `رصيد الخطط الشهري للعميل خلص (${clientQuota.used}/${clientQuota.limit} خطط ${kindAr}). التوليد — منك أو من ايفو عند العميل — بيخصم من نفس الرصيد، وبيتصفّر أول الشهر. تقدر تعدّل الخطة الحالية أو ترفع خطة يدوي من غير حدود.`;
         return NextResponse.json(
           {
-            error: `رصيد الخطط الشهري للعميل خلص (${clientQuota.used}/${clientQuota.limit} خطط ${kindAr}). التوليد — منك أو من ايفو عند العميل — بيخصم من نفس الرصيد، وبيتصفّر أول الشهر. تقدر تعدّل الخطة الحالية أو ترفع خطة يدوي من غير حدود.`,
+            error: message,
             code: "client_plan_quota_exhausted",
             rateLimited: true,
             used: clientQuota.used,
             limit: clientQuota.limit,
-          },
-          { status: 429, headers: { "Retry-After": "86400" } },
-        );
-      }
-      const { count, error: cntErr } = await supabaseAdmin
-        .from("ai_jobs" as any)
-        .select("*", { count: "exact", head: true })
-        .eq("requested_by", userId!)
-        .eq("job_type", type)
-        .eq("status", "done")
-        .eq("payload->>clientId", clientId)
-        // 0034 → 0035 (owner: «العداد شهرى») — only THIS calendar month's
-        // completed generations burn the quota; it resets on the 1st.
-        .gte("created_at", coachAiMonthStartISO());
-      if (!cntErr && (count ?? 0) >= COACH_AI_PLAN_LIMIT) {
-        const kindAr = type === "plan_nutrition" ? "تغذية" : "تمارين";
-        return NextResponse.json(
-          {
-            error: `وصلت للحد الأقصى: ${COACH_AI_PLAN_LIMIT} خطط ${kindAr} بالذكاء الاصطناعي للعميل ده (${count}/${COACH_AI_PLAN_LIMIT}). تقدر تعدّل الخطة الحالية بحرية أو ترفع خطة يدوي — من غير حدود.`,
-            rateLimited: true,
-            used: count ?? 0,
-            limit: COACH_AI_PLAN_LIMIT,
           },
           { status: 429, headers: { "Retry-After": "86400" } },
         );

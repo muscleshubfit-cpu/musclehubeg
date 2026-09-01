@@ -3797,3 +3797,24 @@ Work Log:
 Stage Summary:
 - Committed + pushed; owner verification: read PROGRESS Phase 80 section — the coach-gating answer is definitive (redirect + 403 + clean sidebar)
 - GitHub token used ONLY in git commands — owner should revoke it now that work is done
+
+---
+Task ID: 81
+Agent: Super Z (main)
+Task: Phase 81 (owner request) — NEW plan-generation limit law «١+١ أسبوعية اجمالى ٤+٤ شهريا بدلا من ٣+٣ شهريا» + b2b/b2c limits audit + deferred-tasks closure check + copy/docs parity
+
+Work Log:
+- Deferred tasks audit (owner: «تاكد انها لم تتم تنفيذها اولا ثم نفذ ما لم يتم بعد»): ALL already executed in Phases 72-76 — email suite (tool emails+newsletter+security 100/24h+customers DB), SEO trio (dynamic lang/dir + Arabic 404 + long-tail blog wired to GHA), affiliate 7-step + 20% + 5 notifications, Starter/Elite removal, admin unlimited, earnings-page cleanup, cron 21:00 UTC, PayPal automation (capture-order/webhook + coach wallet top-up), 7-day conditional refund + payout hold honoring refunds. Queue EMPTY.
+- b2b/b2c audit: B2C (EVO → checkEvoPlanQuota on the ONE combined pool; swaps weekly on plan_swaps) + B2B (ownership via coach_assignments, activation-required 402, same pool via checkClientPlanQuota) both sound. ONE CONFLICT FOUND + FIXED: legacy coach-side 4/4 cap (0034 COACH_AI_PLAN_LIMIT) double-capped the coach surface (Pro clients capped at 4 by the coach path while EVO allowed more) → REMOVED; the one client balance is the only quota.
+- NEW LAW implemented: memberships.ts evoNutritionPlanWeeklyLimit/evoWorkoutPlanWeeklyLimit added — premium/coaching 1+1 weekly cap + 4+4 monthly total (was 3+3), pro 2+2 / 8+8 (2× Premium ladder preserved), free 0; features + COMPARISON_ROWS + CELL_TRANSLATIONS updated AR/EN.
+- tier-limits.ts: weekStartUtc (Monday-anchored UTC, same convention as swaps reset) + window-aware counters (countEvoPlanRowsSince/countCoachPlanJobsSince/countClientPlanUsageSince/countClientWeeklyPlanUsage) + planWeeklyQuotaFor + enforcePlanQuota (two-window: monthly AND weekly; blockedBy "week"|"month") wired into checkEvoPlanQuota + checkClientPlanQuota (PlanQuotaVerdict).
+- Routes: /api/ai/chat 429 message distinguishes weekly vs monthly (+Pro hint 8/mo 2/wk); /api/ai/jobs coach-path Arabic message weekly/monthly variants + legacy 4/4 gate deleted; /api/ai/quota adds weeklyUsed/weeklyLimit; /api/coach/ai-usage → clientBalance (both windows) + coachOwn informational, COACH_AI_PLAN_LIMIT dropped.
+- UI: CoachClientView AiUsage type + atCap/usageLine (weekly + monthly lines, resets Monday note); EvoFloatingWidget meter adds «هذا الأسبوع» line; coach-limits.ts dead constant removed.
+- Copy: LandingView FAQ + Premium/Pro cards (AR+EN), for-coaches content.ts FAQ (AR+EN) + page.tsx AI-plans card — all show weekly cap + monthly total.
+- Tests: client-plan-quota.test.ts rewritten with a WINDOW-AWARE fake builder (gte("created_at", since) distinguishes monthStartUtc/weekStartUtc) — monthly-full, weekly-full-while-month-open, pro 8/8+2/2, coaching allowed, coach-path weekly block, staff bypass, free-0, Monday-anchor helper. tsc 0 · eslint 0 errors on touched files · vitest 191/191.
+- Docs parity: AGENTS.md §(d) rewritten as PLAN-BALANCE QUOTA (two windows + legacy cap removal), PROGRESS.md Phase 81 section + header, QA_CHECKLIST.md Phase 81 evidence table (Phase 80 → Previous), DEVELOPER_GUIDE.md lib lines, this worklog.
+
+Stage Summary:
+- The advertised numbers ARE the enforced numbers: premium/coaching 1+1 weekly (Monday reset) · 4+4 monthly; pro 2+2 · 8+8 — one pool fed by coach AND EVO surfaces, legacy double-cap gone.
+- Owner note: pro scaled 2× (8+8 monthly / 2+2 weekly) to preserve the advertised ladder — owner can pin different numbers anytime.
+- Reminder: revoke the GitHub token after this push.

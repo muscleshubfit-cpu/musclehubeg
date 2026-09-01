@@ -755,15 +755,23 @@ Process:
         amount/method/note; the ledger powers «سجل تفعيلات المدربين»
         on /admin/assignments and the «مفعّلة بواسطة مدربك» receipt
         line on the client dashboard (DashboardView).
-    (d) COACH AI QUOTA: plan generation is capped PER CLIENT at
-        COACH_AI_PLAN_LIMIT=4 nutrition + 4 workout (coach-limits.ts) —
-        enforced in POST /api/ai/jobs for role='coach' (ownership check
-        vs coach_assignments + count of ai_jobs status='done' per
-        payload->>'clientId'; failed jobs never burn quota) and shown
-        as used/limit chips via GET /api/coach/ai-usage. EDITING
-        (meal/exercise regenerate, content edits) and MANUAL plan
-        uploads are UNLIMITED; admins unlimited; CLIENT tier limits
-        unchanged (owner: «حدود استخدام العملاء مفيهاش تغيير»).
+    (d) PLAN-BALANCE QUOTA (owner decrees 2026-09-01 + 2026-09-02):
+        plan generation draws from the CLIENT'S ONE balance — the same
+        pool the member's EVO chat spends from (evo_chat_usage +
+        done ai_jobs for this client). The client's TIER decides BOTH
+        windows: WEEKLY cap 1 nutrition + 1 workout (Pro 2+2,
+        Monday-anchored UTC — tier-limits.ts planWeeklyQuotaFor) AND
+        MONTHLY total 4 nutrition + 4 workout (Pro 8+8, resets on the
+        1st — planQuotaFor). Enforced in POST /api/ai/jobs for
+        role='coach' (ownership check vs coach_assignments +
+        checkClientPlanQuota; failed jobs never burn quota), in
+        /api/ai/chat for the member (checkEvoPlanQuota), and displayed
+        by GET /api/ai/quota + GET /api/coach/ai-usage (clientBalance).
+        The legacy separate coach-side 4/4 cap (0034
+        COACH_AI_PLAN_LIMIT) was REMOVED 2026-09-02 — it double-capped
+        the same pool and contradicted the one-balance law for Pro
+        clients. EDITING (meal/exercise regenerate, content edits) and
+        MANUAL plan uploads are UNLIMITED; admins unlimited.
 - **COACH WALLET + RECEIPT REVIEW + MONTHLY QUOTA (owner model
   2026-08-29, migration 0035 — «اقتراحاتك موافق عليها لكن paymob و فورى
   لاحقاً»: the coach pays THE SITE a monthly fixed fee per client from

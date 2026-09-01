@@ -72,7 +72,6 @@ import {
 import { NotificationForm } from "@/components/NotificationForm";
 import { isSupabaseConfigured } from "@/lib/data/helpers";
 import {
- COACH_AI_PLAN_LIMIT,
  COACH_CLIENT_PACKAGES,
  COACH_PAYMENT_METHODS,
  coachPaymentMethodLabel,
@@ -135,11 +134,18 @@ export function CoachClientView({ clientId }: { clientId: string }) {
  const [generating, setGenerating] = useState<"workout" | "nutrition" | null>(null);
  const [approving, setApproving] = useState<string | null>(null);
  const [viewingPlan, setViewingPlan] = useState<any | null>(null);
- // 0034: per-client AI quota readout (4 nutrition + 4 workout per client)
- // 2026-09-01: + clientBalance — the client's monthly plan pool fed by BOTH
- // the coach's generate button AND the member's own EVO chat (owner:
- // «توليد الخطط بيتحسب من الرصيد سواء عن طريق المدرب او عن طريق ايفو»).
- type AiUsage = { unlimited: boolean; limit: number; nutrition: { used: number; limit: number }; workout: { used: number; limit: number }; clientBalance?: { tier: string; nutrition: { used: number; limit: number; unlimited: boolean }; workout: { used: number; limit: number; unlimited: boolean } } };
+ // 0034: per-client AI quota readout — SUPERSEDED by the ONE client plan
+ // balance (2026-09-01 one-pool + 2026-09-02 weekly cap 1+1 / Pro 2+2 +
+ // monthly total 4+4 / Pro 8+8; the old coach-side 4/4 cap was removed).
+ type AiUsage = {
+   unlimited: boolean;
+   coachOwn?: { nutrition: { used: number }; workout: { used: number } };
+   clientBalance?: {
+     tier: string;
+     nutrition: { used: number; limit: number; unlimited: boolean; weeklyUsed?: number; weeklyLimit?: number };
+     workout: { used: number; limit: number; unlimited: boolean; weeklyUsed?: number; weeklyLimit?: number };
+   };
+ };
  const [aiUsage, setAiUsage] = useState<AiUsage | null>(null);
 
  // ── OWNER DECREE (2026-08-30): «المدرب قدر يولد خطط للعميل بدون ما يدفع
@@ -263,8 +269,9 @@ export function CoachClientView({ clientId }: { clientId: string }) {
  void scanRecoverableJobs();
  }, [scanRecoverableJobs]);
 
- // 0034: live AI-quota readout for THIS client (4 nutrition + 4 workout
- // per client; failed generations never burn quota; admins unlimited).
+ // 0034: live AI-quota readout for THIS client — the ONE client plan
+ // balance (weekly cap + monthly total; failed generations never burn
+ // quota; admins unlimited).
  const refreshAiUsage = useCallback(async () => {
  if (!isSupabaseConfigured) return;
  try {
@@ -2800,30 +2807,42 @@ function CoachAIPlanGenerator({
  generating: string | null;
  onGenerate: (planType: "workout" | "nutrition", overrides?: any) => Promise<void>;
  t: (key: string) => string;
- quota: { unlimited: boolean; limit: number; nutrition: { used: number; limit: number }; workout: { used: number; limit: number }; clientBalance?: { tier: string; nutrition: { used: number; limit: number; unlimited: boolean }; workout: { used: number; limit: number; unlimited: boolean } } } | null;
+ quota: { unlimited: boolean; clientBalance?: { tier: string; nutrition: { used: number; limit: number; unlimited: boolean; weeklyUsed?: number; weeklyLimit?: number }; workout: { used: number; limit: number; unlimited: boolean; weeklyUsed?: number; weeklyLimit?: number } } } | null;
  lang: "ar" | "en";
 }) {
  const isAr = lang === "ar";
- // Generation is blocked when EITHER cap is reached: the coach's own
- // 4/4 per-client cap OR the client's monthly plan balance (shared pool
- // with the member's EVO chat — 2026-09-01 owner decree).
+ // Generation is blocked by the ONE client plan balance: the WEEKLY cap
+ // (1+1 · Pro 2+2, resets Monday) OR the MONTHLY total (4+4 · Pro 8+8,
+ // resets on the 1st) — the same pool the member's EVO chat spends from
+ // (owner decrees 2026-09-01 + 2026-09-02).
  const atCap = (k: "nutrition" | "workout") => {
  if (quota?.unlimited) return false;
- if (quota && quota[k].used >= quota[k].limit) return true;
  const cb = quota?.clientBalance?.[k];
- return !!cb && !cb.unlimited && cb.used >= cb.limit;
+ if (!cb || cb.unlimited) return false;
+ if (cb.used >= cb.limit) return true;
+ return (
+ typeof cb.weeklyLimit === "number" &&
+ (cb.weeklyUsed ?? 0) >= cb.weeklyLimit
+ );
  };
  const usageLine = (k: "nutrition" | "workout") => {
  if (!quota || quota.unlimited) return null;
  const cb = quota.clientBalance?.[k];
+ if (!cb || cb.unlimited) return null;
+ const kindAr = k === "nutrition" ? "تغذية" : "تمارين";
+ const kindEn = k === "nutrition" ? "nutrition" : "workout";
  return (
  <div className="mt-0.5 text-[11px] font-medium text-muted-foreground">
- <span>{quota[k].used}/{quota[k].limit} {isAr ? "مستخدمة" : "used"}</span>
- {cb && !cb.unlimited ? (
+ <span>
+ {isAr
+ ? `رصيد ${kindAr} العميل (توليدك + ايفو): ${cb.used}/${cb.limit} شهرياً`
+ : `Client's ${kindEn} balance (your + EVO generations): ${cb.used}/${cb.limit} monthly`}
+ </span>
+ {typeof cb.weeklyLimit === "number" ? (
  <span className="block text-[11px]">
  {isAr
- ? `رصيد العميل الشهري (توليدك + ايفو): ${cb.used}/${cb.limit}`
- : `Client's monthly balance (your + EVO generations): ${cb.used}/${cb.limit}`}
+ ? `هذا الأسبوع: ${cb.weeklyUsed ?? 0}/${cb.weeklyLimit} — بيتصفّر يوم الاثنين`
+ : `This week: ${cb.weeklyUsed ?? 0}/${cb.weeklyLimit} — resets Monday`}
  </span>
  ) : null}
  </div>

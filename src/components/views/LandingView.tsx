@@ -336,7 +336,7 @@ export function LandingView() {
   // FAQ schema for SEO
   const faqs = [
     { q: isAr ? "هل أحتاج اشتراك لاستخدام الأدوات؟" : "Do I need a subscription to use the tools?", a: isAr ? "لا، كل الأدوات الستة (حاسبة سعرات، BMI، ماكروز، دهون، متتبع ماء، مخطط وجبات) مجانية تماماً بدون تسجيل." : "No, all six tools (calorie, BMI, macro, body fat, water tracker, meal planner) are completely free without signup." },
-    { q: isAr ? "ما الفرق بين Premium و Pro؟" : "What's the difference between Premium and Pro?", a: isAr ? "Premium ($14.99/شهر): EVO غير محدود، 3 خطط/شهر، 50 نتيجة محفوظة. Pro ($29.99/شهر): 6 خطط/شهر، 200 نتيجة، تحليل أنماط، بدون إعلانات." : "Premium ($14.99/mo): unlimited EVO, 3 plans/mo, 50 saved results. Pro ($29.99/mo): 6 plans/mo, 200 results, pattern analysis, ad-free." },
+    { q: isAr ? "ما الفرق بين Premium و Pro؟" : "What's the difference between Premium and Pro?", a: isAr ? "Premium ($14.99/شهر): EVO غير محدود، 4 خطط/شهر (بحد أسبوعي 1+1)، 50 نتيجة محفوظة. Pro ($29.99/شهر): 8 خطط/شهر (بحد أسبوعي 2+2)، 200 نتيجة، تحليل أنماط، بدون إعلانات." : "Premium ($14.99/mo): unlimited EVO, 4 plans/mo (weekly cap 1+1), 50 saved results. Pro ($29.99/mo): 8 plans/mo (weekly cap 2+2), 200 results, pattern analysis, ad-free." },
     { q: isAr ? "هل يدعم PayPal؟" : "Does it support PayPal?", a: isAr ? "نعم، PayPal هو طريقة الدفع الرئيسية. متاح أيضاً الدفع اليدوي عبر InstaPay و Vodafone Cash." : "Yes, PayPal is the primary payment method. Manual payment via InstaPay and Vodafone Cash is also available." },
     { q: isAr ? "كم عدد التمارين والأكلات؟" : "How many exercises and foods are there?", a: isAr ? "مكتبة 868 تمرين بصور وتعليمات ثنائية اللغة، و 8,830 أكلة بالسعرات والماكروز لكل 100 جرام." : "868 exercises with bilingual instructions and images, plus 8,830 foods with calories and macros per 100g." },
     { q: isAr ? "هل الموقع يدعم العربية؟" : "Does the site support Arabic?", a: isAr ? "نعم، الموقع ثنائي اللغة (عربي/إنجليزي) مع دعم كامل لـ RTL، صفحات عربية mirror، ومدونة بمحتوى مستقل لكل لغة." : "Yes, fully bilingual (Arabic/English) with complete RTL support, Arabic mirror pages, and a blog with independent content per language." },
@@ -975,8 +975,8 @@ export function LandingView() {
                 </p>
                 <ul className="mt-5 space-y-2.5 text-sm">
                   {(isAr
-                    ? ["EVO غير محدود", "3 خطط تغذية/تمرين شهرياً", "50 نتيجة محفوظة", "تصدير مخطط الوجبات والنتائج"]
-                    : ["Unlimited EVO", "3 nutrition/workout plans per month", "50 saved results", "Meal-plan & results export"]
+                    ? ["EVO غير محدود", "4 خطط تغذية/تمرين شهرياً (بحد أسبوعي 1+1)", "50 نتيجة محفوظة", "تصدير مخطط الوجبات والنتائج"]
+                    : ["Unlimited EVO", "4 nutrition/workout plans per month (weekly cap 1+1)", "50 saved results", "Meal-plan & results export"]
                   ).map((f) => (
                     <li key={f} className="flex items-start gap-2">
                       <Check className="mt-0.5 h-4 w-4 shrink-0" style={{ color: PALETTE.brand }} aria-hidden="true" />
@@ -1040,8 +1040,8 @@ export function LandingView() {
                 </p>
                 <ul className="relative mt-5 space-y-2.5 text-sm">
                   {(isAr
-                    ? ["كل مميزات Premium", "6 خطط تغذية/تمرين شهرياً", "6 تبديلات أسبوعياً", "200 نتيجة محفوظة", "بدون إعلانات"]
-                    : ["Everything in Premium", "6 nutrition/workout plans per month", "6 swaps per week", "200 saved results", "No ads"]
+                    ? ["كل مميزات Premium", "8 خطط تغذية/تمرين شهرياً (بحد أسبوعي 2+2)", "6 تبديلات أسبوعياً", "200 نتيجة محفوظة", "بدون إعلانات"]
+                    : ["Everything in Premium", "8 nutrition/workout plans per month (weekly cap 2+2)", "6 swaps per week", "200 saved results", "No ads"]
                   ).map((f) => (
                     <li key={f} className="flex items-start gap-2">
                       <Check className="mt-0.5 h-4 w-4 shrink-0" style={{ color: "#4F9CF9" }} aria-hidden="true" />
