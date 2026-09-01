@@ -9,6 +9,12 @@
  *   plan_workout         coach asks a weekly workout program (4-8 weeks framing)
  *   meal_regenerate      swap one meal (tier-limited weekly, like old C16)
  *   exercise_regenerate  swap one exercise (library-filtered, injury-safe)
+ *   food_item_regenerate swap ONE food item (±15% kcal, same role) — staff
+ *                        editing tool (Phase 79: same features as the admin
+ *                        external-plans console, owner «الكوتشينج يستفيدوا
+ *                        من نفس الخصائص»)
+ *   day_regenerate       regenerate ONE workout day (same focus, avoid the
+ *                        other days) — staff editing tool, same Phase 79 law
  *   article_tool         paraphrase | summarize | proofread | seo_pack |
  *                        subheadings (+ legacy editor tool aliases)
  *   article_generate     coach asks a COMPLETE new article draft (title +
@@ -41,6 +47,8 @@ export const AI_JOB_TYPES = [
   "plan_workout",
   "meal_regenerate",
   "exercise_regenerate",
+  "food_item_regenerate",
+  "day_regenerate",
   "article_tool",
   "article_generate",
   "social_post",
@@ -91,6 +99,11 @@ export const JOB_GATE: Record<AiJobType, JobGate> = {
   social_post: "coach",
   meal_regenerate: "user_swap_meal",
   exercise_regenerate: "user_swap_exercise",
+  // PHASE 79: item/day swaps are STAFF EDITING TOOLS (coach | admin) —
+  // the same unlimited-editing semantics as meal/exercise swaps get for
+  // staff (T-4PILLAR quota bypass). Clients never enqueue them.
+  food_item_regenerate: "coach",
+  day_regenerate: "coach",
 };
 
 /** UI labels (kept here so client + runner never drift apart). */
@@ -99,6 +112,8 @@ export const JOB_LABELS: Record<AiJobType, { ar: string; en: string }> = {
   plan_workout: { ar: "توليد برنامج تمارين", en: "Generate workout program" },
   meal_regenerate: { ar: "استبدال وجبة", en: "Swap meal" },
   exercise_regenerate: { ar: "استبدال تمرين", en: "Swap exercise" },
+  food_item_regenerate: { ar: "استبدال صنف غذائي", en: "Swap food item" },
+  day_regenerate: { ar: "إعادة توليد يوم تدريبي", en: "Regenerate workout day" },
   article_tool: { ar: "أداة تحسين المقال", en: "Article tool" },
   article_generate: { ar: "توليد مقال كامل", en: "Generate article" },
   social_post: { ar: "منشور سوشيال ميديا", en: "Social post" },
@@ -199,6 +214,49 @@ export function sanitizeJobPayload(type: AiJobType, raw: any): Record<string, an
         location: str(p.location, 60), // gym | home | …
         clientContext: pickClientContext(p.clientContext),
         reason: str(p.reason ?? p.note, 400), // e.g. knee injury / no machine
+      };
+    }
+    case "food_item_regenerate": {
+      // PHASE 79: ONE food item — same nutritional role, calories ±15%.
+      // Mirrors the admin external-plans regenerate_item contract.
+      const it = p.item && typeof p.item === "object" ? p.item : {};
+      return {
+        item: {
+          food: str(it.food, 120),
+          amount: str(it.amount, 80),
+          calories: num(it.calories) ?? 0,
+          alternatives: str(it.alternatives, 200),
+        },
+        meal_name: str(p.meal_name, 120),
+        clientContext: pickClientContext(p.clientContext),
+        note: str(p.note ?? p.reason, 400),
+        avoid_names: Array.isArray(p.avoid_names)
+          ? p.avoid_names.filter((n: any) => typeof n === "string").map((n: string) => str(n, 60)).slice(0, 40)
+          : [],
+      };
+    }
+    case "day_regenerate": {
+      // PHASE 79: ONE workout day — same weekly slot + same muscle focus,
+      // 4-6 fresh exercises that avoid the other days' exercises.
+      const d = p.day && typeof p.day === "object" ? p.day : {};
+      const exs = Array.isArray(d.exercises) ? d.exercises.slice(0, 10) : [];
+      return {
+        day: {
+          day: str(d.day, 80),
+          focus: str(d.focus, 120),
+          exercises: exs.map((e: any) => ({
+            name: str(e?.name, 120),
+            sets: num(e?.sets),
+            reps: str(e?.reps, 40),
+            rest: str(e?.rest, 40),
+            notes: str(e?.notes, 200),
+          })),
+        },
+        clientContext: pickClientContext(p.clientContext),
+        note: str(p.note ?? p.reason, 400),
+        avoid_names: Array.isArray(p.avoid_names)
+          ? p.avoid_names.filter((n: any) => typeof n === "string").map((n: string) => str(n, 60)).slice(0, 60)
+          : [],
       };
     }
     case "article_generate": {

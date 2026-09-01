@@ -60,6 +60,10 @@ import {
  *        { action: "regenerate_item", id, meal_index, item_index }
  *        { action: "regenerate_day", id, day_index }
  *        { action: "regenerate_exercise", id, day_index, exercise_index }
+ *        Phase 79 (owner «للادمن حفظ للخطط المولدة»): EVERY regeneration
+ *        action first snapshots the previous version into content.history
+ *        (last 5) and { action: "restore_version", id, version_index }
+ *        brings any saved version back — nothing generated is ever lost.
  *        (legacy manual) { person_name, ..., text, notes? }
  * PATCH  { id, person_name?, person_contact?, plan_type?, title?, text?,
  *          notes?, status? }
@@ -240,12 +244,19 @@ export async function GET(request: NextRequest) {
       r.content && typeof r.content === "object"
         ? (r.content as Record<string, unknown>)
         : null;
+    // Phase 79: history SUMMARIES only (at + action) — the full snapshot
+    // lives server-side and restore_version reads it from the DB, so the
+    // list response stays lean even with 5 versions per plan.
+    const hist = Array.isArray(content?.history)
+      ? (content.history as Array<Record<string, unknown>>)
+      : [];
     return {
       ...r,
       text: extractText(r.content),
       // Phase 78: structured plan + AI provenance for per-element regen UI
       plan: content?.plan ?? null,
       ai: content?.ai ?? null,
+      history: hist.map((h) => ({ at: String(h?.at ?? ""), action: String(h?.action ?? "") })),
     };
   });
 
@@ -329,11 +340,38 @@ async function handleRegenerationAction(
   const planType = String(r.plan_type ?? "");
   const details = String(params.details ?? "").trim();
 
-  const save = async (newContent: Record<string, unknown>) => {
+  /* ── VERSION HISTORY LAW (Phase 79, owner «للادمن حفظ للخطط المولدة») ──
+   * Every regeneration action FIRST snapshots the previous version (text +
+   * structured plan) into content.history — capped at the last 5 — so a
+   * regenerate can never destroy a generated plan irreversibly, and any
+   * saved version can be brought back with action=restore_version. */
+  const HISTORY_CAP = 5;
+  type HistoryEntry = { at: string; action: string; text: string; plan: unknown };
+  const prevHistory: HistoryEntry[] = Array.isArray(content.history)
+    ? (content.history as HistoryEntry[]).filter(
+        (h) => h && typeof h === "object" && typeof h.at === "string",
+      )
+    : [];
+  const snapshot = (label: string): HistoryEntry[] =>
+    [
+      ...prevHistory,
+      {
+        at: new Date().toISOString(),
+        action: label,
+        text: typeof content.text === "string" ? content.text : "",
+        plan: content.plan ?? null,
+      },
+    ].slice(-HISTORY_CAP);
+
+  const save = async (
+    newContent: Record<string, unknown>,
+    opts?: { history?: HistoryEntry[] },
+  ) => {
+    const payload = { ...newContent, history: opts?.history ?? snapshot(action) };
     const { data, error } = await supabaseAdmin!
       .from("external_plans")
       .update({
-        content: newContent as unknown as Database["public"]["Tables"]["external_plans"]["Update"]["content"],
+        content: payload as unknown as Database["public"]["Tables"]["external_plans"]["Update"]["content"],
       })
       .eq("id", id)
       .select("*")
@@ -357,6 +395,35 @@ async function handleRegenerationAction(
     last_action: action,
     last_at: new Date().toISOString(),
   });
+
+  /* 0) Restore a saved version — Phase 79 «حفظ للخطط المولدة» */
+  if (action === "restore_version") {
+    if (prevHistory.length === 0) {
+      return bad("مفيش نسخ محفوظة للخطة دي — إعادة التوليد هي اللي بتحفظ نسخ تلقائياً");
+    }
+    const idx = Math.round(numOr(body.version_index, -1));
+    const version = prevHistory[idx];
+    if (!version) return bad("رقم النسخة غير صالح");
+    // The CURRENT state goes into history first — restore is reversible.
+    const nextHistory: HistoryEntry[] = [
+      ...prevHistory.filter((_, i) => i !== idx),
+      {
+        at: new Date().toISOString(),
+        action: "restore_backup",
+        text: typeof content.text === "string" ? content.text : "",
+        plan: content.plan ?? null,
+      },
+    ].slice(-HISTORY_CAP);
+    if (!version.text && !version.plan) return bad("النسخة المحفوظة فاضية — مش قادر أسترجعها");
+    return save(
+      {
+        text: String(version.text ?? ""),
+        ...(version.plan ? { plan: version.plan } : {}),
+        ai: metaPatch({ last_source: "restore" }),
+      },
+      { history: nextHistory },
+    );
+  }
 
   /* 1) Whole plan — same stored brief, fresh variety roll */
   if (action === "regenerate_plan") {

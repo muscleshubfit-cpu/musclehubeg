@@ -20,6 +20,8 @@ import {
   RotateCcw,
   RefreshCcw,
   Repeat,
+  History,
+  ChevronDown,
 } from "lucide-react";
 
 type ExternalPlanRow = Database["public"]["Tables"]["external_plans"]["Row"];
@@ -40,6 +42,18 @@ type ExternalPlan = Omit<ExternalPlanRow, "content"> & {
   text: string;
   plan?: Record<string, any> | null;
   ai?: AIPlanMeta | null;
+  /** Phase 79: saved-version summaries (full snapshots live server-side). */
+  history?: { at: string; action: string }[];
+};
+
+/** Arabic label for the action that produced a saved version. */
+const HISTORY_LABELS: Record<string, { ar: string; en: string }> = {
+  regenerate_plan: { ar: "نسخة قبل إعادة توليد الخطة كاملة", en: "Before full plan regeneration" },
+  regenerate_meal: { ar: "نسخة قبل إعادة توليد وجبة", en: "Before meal regeneration" },
+  regenerate_item: { ar: "نسخة قبل استبدال صنف", en: "Before item swap" },
+  regenerate_day: { ar: "نسخة قبل إعادة توليد يوم", en: "Before day regeneration" },
+  regenerate_exercise: { ar: "نسخة قبل استبدال تمرين", en: "Before exercise swap" },
+  restore_backup: { ar: "الحالة الحالية قبل الاسترجاع", en: "State before restore" },
 };
 
 /* ── Owner Phase 78: AI generation brief — same model as client plans ── */
@@ -314,11 +328,15 @@ export function AdminExternalPlansView() {
         return;
       }
       toast.success(
-        data.ai?.last_source
-          ? `${isAr ? "تم إعادة التوليد" : "Regenerated"} — ${data.ai.last_source}`
-          : isAr
-            ? "تم إعادة التوليد"
-            : "Regenerated",
+        payload.action === "restore_version"
+          ? isAr
+            ? "تم استرجاع النسخة المحفوظة ✅"
+            : "Version restored ✅"
+          : data.ai?.last_source
+            ? `${isAr ? "تم إعادة التوليد" : "Regenerated"} — ${data.ai.last_source}`
+            : isAr
+              ? "تم إعادة التوليد"
+              : "Regenerated",
       );
       await load();
     } catch (e: unknown) {
@@ -351,6 +369,29 @@ export function AdminExternalPlansView() {
       { action: "regenerate_exercise", id: plan.id, day_index: di, exercise_index: ei },
       `${plan.id}:exercise:${di}:${ei}`,
     );
+
+  /* ── Phase 79: saved versions (حفظ للخطط المولدة) ── */
+  const [histOpenId, setHistOpenId] = useState<string | null>(null);
+  const restoreVersion = (plan: ExternalPlan, vi: number) =>
+    runAction(
+      { action: "restore_version", id: plan.id, version_index: vi },
+      `${plan.id}:restore:${vi}`,
+      isAr
+        ? "هتسترجع النسخة المحفوظة دي وتستبدل الحالية (الحالية هتتحفظ هي كمان) — موافق؟"
+        : "This saved version will REPLACE the current one (which is saved too) — continue?",
+    );
+  const histLabel = (action: string) => {
+    const hit = HISTORY_LABELS[action];
+    if (!hit) return action;
+    return isAr ? hit.ar : hit.en;
+  };
+  const fmtDateTime = (iso: string) =>
+    new Date(iso).toLocaleString(isAr ? "ar-EG" : "en-US", {
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
 
   const composeText = (plan: ExternalPlan) => {
     const lines = [
@@ -1096,6 +1137,46 @@ export function AdminExternalPlansView() {
                 <pre className="mt-3 max-h-40 overflow-y-auto whitespace-pre-wrap rounded-2xl bg-[#f5f5f7] p-3 text-xs leading-relaxed text-[#1d1d1f]" dir="auto">
                   {plan.text}
                 </pre>
+              )}
+              {/* ── Phase 79: saved versions (حفظ للخطط المولدة) — every
+                  regeneration keeps the previous version; restore any time ── */}
+              {Array.isArray(plan.history) && plan.history.length > 0 && (
+                <div className="mt-3">
+                  <button
+                    onClick={() => setHistOpenId(histOpenId === plan.id ? null : plan.id)}
+                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#6e6e73] transition-colors hover:text-[#0071e3]"
+                  >
+                    <History className="h-3.5 w-3.5" />
+                    {isAr ? `نسخ محفوظة (${plan.history.length})` : `Saved versions (${plan.history.length})`}
+                    <ChevronDown className={`h-3.5 w-3.5 transition-transform ${histOpenId === plan.id ? "rotate-180" : ""}`} />
+                  </button>
+                  {histOpenId === plan.id && (
+                    <div className="mt-2 space-y-1">
+                      {plan.history.map((h, vi) => (
+                        <div
+                          key={vi}
+                          className="flex items-center justify-between gap-2 rounded-lg bg-[#f5f5f7] px-3 py-1.5"
+                        >
+                          <span className="min-w-0 truncate text-[11px] text-[#1d1d1f]">
+                            {histLabel(h.action)}
+                            <span className="text-[#86868b]"> — {fmtDateTime(h.at)}</span>
+                          </span>
+                          <button
+                            onClick={() => restoreVersion(plan, vi)}
+                            disabled={busyKey !== null}
+                            className="shrink-0 text-[11px] font-semibold text-[#0071e3] transition-opacity hover:underline disabled:opacity-40"
+                          >
+                            {busyKey === `${plan.id}:restore:${vi}` ? (
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                            ) : (
+                              isAr ? "استرجاع" : "Restore"
+                            )}
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               )}
             </div>
           ))}

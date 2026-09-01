@@ -285,6 +285,11 @@ export function CoachClientView({ clientId }: { clientId: string }) {
  async (entry: PendingPlanJob, result: any) => {
  const { title, content } = (result ?? {}) as { title: string; content: any };
  if (!title || !content) throw new Error("نتيجة التوليد غير مكتملة");
+ // PLAN MATERIALIZATION LAW (Phase 79, owner «حفظ للخطط المولدة»): the
+ // GitHub Actions runner now inserts the draft plans row ITSELF — the
+ // browser only refreshes. Legacy jobs (pre-deploy) still fall back to
+ // the browser-side insert below.
+ if (!result?.materialized || !result?.plan_id) {
  await addPlan({
  client_id: entry.clientId,
  type: entry.kind === "workout" ? "workout" : "meal",
@@ -295,6 +300,7 @@ export function CoachClientView({ clientId }: { clientId: string }) {
  status: "draft",
  is_current: false,
  });
+ }
  addSavedPlanJobId(entry.id);
  removePendingPlanJob(entry.id);
  setPendingPlanJobs(readPendingPlanJobs());
@@ -1956,6 +1962,86 @@ function PlanViewerModal({ plan, onClose, onRegenerate }: { plan: any; onClose: 
  return newContent;
  };
 
+ // ── Phase 79 (owner «الكوتشينج يستفيدوا من نفس الخصائص»): the two
+ // granular regeneration tools the admin console has, now inside the
+ // coach plan editor — ONE food item and ONE workout day, via the same
+ // GitHub Actions queue (staff editing tools — no client quota burned).
+ const [regeneratingElKey, setRegeneratingElKey] = useState<string | null>(null);
+
+ const regenerateSingleItem = async (mealIdx: number, itemIdx: number) => {
+ const meal = content?.meals?.[mealIdx];
+ const item = meal?.items?.[itemIdx];
+ if (!meal || !item) return;
+ if (!String(item.food || "").trim()) {
+ toast.error("الصنف فاضي — اكتب اسم الصنف الأول أو احذفه.");
+ return;
+ }
+ const key = `item:${mealIdx}:${itemIdx}`;
+ setRegeneratingElKey(key);
+ try {
+ // Avoid-list: every OTHER item in the whole plan (same meal + other
+ // meals) so the AI cannot propose something that already exists.
+ const avoidNames: string[] = [];
+ (content.meals || []).forEach((m: any, mi: number) => {
+ (m.items || []).forEach((it: any, ii: number) => {
+ if ((mi !== mealIdx || ii !== itemIdx) && it?.food) avoidNames.push(String(it.food));
+ });
+ });
+ const { result } = await runAiJob("food_item_regenerate", {
+ item: { food: item.food, amount: item.amount, calories: item.calories, alternatives: item.alternatives },
+ meal_name: meal.name,
+ avoid_names: avoidNames.slice(0, 40),
+ });
+ const rep = result?.replacement;
+ if (!rep?.food) throw new Error("لم يتم إرجاع بديل صالح من الذكاء الاصطناعي");
+ const newContent = { ...content };
+ newContent.meals = [...newContent.meals];
+ newContent.meals[mealIdx] = { ...newContent.meals[mealIdx] };
+ newContent.meals[mealIdx].items = [...newContent.meals[mealIdx].items];
+ newContent.meals[mealIdx].items[itemIdx] = { ...newContent.meals[mealIdx].items[itemIdx], ...rep };
+ recomputeTotals(newContent);
+ setContent(newContent);
+ toast.success("تم استبدال الصنف ✅ — اضغط \"حفظ\" لتثبيت التعديل.");
+ } catch (e: any) {
+ toast.error(e.message || "فشل استبدال الصنف");
+ } finally {
+ setRegeneratingElKey(null);
+ }
+ };
+
+ const regenerateSingleDay = async (dayIdx: number) => {
+ const d = content?.days?.[dayIdx];
+ if (!d || d.isRest) return;
+ const key = `day:${dayIdx}`;
+ setRegeneratingElKey(key);
+ try {
+ // Avoid-list: every exercise used in the OTHER days of the same plan.
+ const avoidNames: string[] = [];
+ (content.days || []).forEach((day: any, di: number) => {
+ if (di === dayIdx) return;
+ (day.exercises || []).forEach((ex: any) => {
+ if (ex?.name) avoidNames.push(String(ex.name));
+ });
+ });
+ const { result } = await runAiJob("day_regenerate", {
+ day: { day: d.day, focus: d.focus, exercises: d.exercises || [] },
+ avoid_names: avoidNames.slice(0, 60),
+ });
+ const rep = result?.replacement;
+ if (!rep?.exercises?.length) throw new Error("لم يتم إرجاع يوم صالح من الذكاء الاصطناعي");
+ const newContent = { ...content };
+ newContent.days = [...newContent.days];
+ // Same weekly slot label; fresh focus + exercises from the engine.
+ newContent.days[dayIdx] = { ...d, ...rep, day: d.day };
+ setContent(newContent);
+ toast.success("تم إعادة توليد اليوم ✅ — اضغط \"حفظ\" لتثبيت التعديل.");
+ } catch (e: any) {
+ toast.error(e.message || "فشل إعادة توليد اليوم");
+ } finally {
+ setRegeneratingElKey(null);
+ }
+ };
+
  const addMealItem = (mealIdx: number) => {
  const newContent = { ...content };
  newContent.meals = [...newContent.meals];
@@ -2390,6 +2476,8 @@ function PlanViewerModal({ plan, onClose, onRegenerate }: { plan: any; onClose: 
  <th className="p-2 text-start font-medium text-muted-foreground">الكمية</th>
  <th className="p-2 text-start font-medium text-muted-foreground">السعرات</th>
  <th className="p-2 text-start font-medium text-muted-foreground hidden md:table-cell">البدائل</th>
+ {/* Phase 79: per-item AI swap — same tool the admin console has */}
+ {!editMode && <th className="p-2 w-8"></th>}
  {editMode && <th className="p-2 w-8"></th>}
  </tr>
  </thead>
@@ -2424,6 +2512,18 @@ function PlanViewerModal({ plan, onClose, onRegenerate }: { plan: any; onClose: 
  </button>
  </td>
  )}
+ {!editMode && (
+ <td className="p-2">
+ <button
+ onClick={() => regenerateSingleItem(mealIdx, itemIdx)}
+ disabled={regeneratingElKey !== null}
+ title="استبدال الصنف ببديل مكافئ بالذكاء الاصطناعي"
+ className="text-muted-foreground transition-colors hover:text-primary disabled:opacity-40"
+ >
+ {regeneratingElKey === `item:${mealIdx}:${itemIdx}` ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Wand2 className="h-3.5 w-3.5" />}
+ </button>
+ </td>
+ )}
  </tr>
  ))}
  </tbody>
@@ -2437,7 +2537,7 @@ function PlanViewerModal({ plan, onClose, onRegenerate }: { plan: any; onClose: 
  <td className="p-2 font-semibold text-success">
  {typeof m.total_protein_g === "number" ? m.total_protein_g : ""} {m.total_protein_g ? "جم بروتين" : ""}
  </td>
- <td colSpan={editMode ? 2 : 1} className="p-2"></td>
+ <td colSpan={2} className="p-2"></td>
  </tr>
  </tfoot>
  )}
@@ -2535,6 +2635,18 @@ function PlanViewerModal({ plan, onClose, onRegenerate }: { plan: any; onClose: 
  )}
  </>
  )}
+ {/* Phase 79: per-day AI regeneration — same tool the admin console has */}
+ {!editMode && !d.isRest && (
+ <button
+ onClick={() => regenerateSingleDay(dayIdx)}
+ disabled={regeneratingElKey !== null}
+ title="إعادة توليد اليوم كامل بنفس التركيز العضلي"
+ className="flex shrink-0 items-center gap-1 rounded-full border border-primary/30 px-2.5 py-1 text-[11px] font-semibold text-primary transition-colors hover:bg-primary/10 disabled:opacity-40"
+ >
+ {regeneratingElKey === `day:${dayIdx}` ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}
+ <span className="hidden sm:inline">إعادة توليد اليوم</span>
+ </button>
+ )}
  </div>
  {d.isRest ? (
  <div className="p-6 text-center text-sm text-muted-foreground">
@@ -2549,6 +2661,7 @@ function PlanViewerModal({ plan, onClose, onRegenerate }: { plan: any; onClose: 
  <th className="p-2 text-start font-medium text-muted-foreground">مجموعات</th>
  <th className="p-2 text-start font-medium text-muted-foreground">تكرارات</th>
  <th className="p-2 text-start font-medium text-muted-foreground">راحة</th>
+ {!editMode && <th className="p-2 w-8"></th>}
  {editMode && <th className="p-2 w-8"></th>}
  </tr>
  </thead>
@@ -2618,6 +2731,20 @@ function PlanViewerModal({ plan, onClose, onRegenerate }: { plan: any; onClose: 
  <Trash2 className="h-3.5 w-3.5" />
  </button>
  </div>
+ </td>
+ )}
+ {!editMode && (
+ <td className="p-2">
+ {/* Phase 79: AI exercise swap now visible in VIEW mode too — same
+ feature the admin console shows without entering edit mode */}
+ <button
+ onClick={() => swapExerciseAI(dayIdx, exIdx, d.focus)}
+ disabled={regeneratingExKey !== null}
+ title="استبدال بديل آمن بالذكاء الاصطناعي"
+ className="text-muted-foreground transition-colors hover:text-primary disabled:opacity-40"
+ >
+ {regeneratingExKey === `${dayIdx}-${exIdx}` ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Wand2 className="h-3.5 w-3.5" />}
+ </button>
  </td>
  )}
  </tr>
