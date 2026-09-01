@@ -3668,3 +3668,17 @@ Stage Summary:
 - Supabase SMTP account is shielded: 3 layers (IP 5/10min, per-email 3/h, global 100/24h) + strict filtering both sides.
 - Customers DB now receives EVERY registered account automatically + all previously registered users backfilled; coaches labeled.
 - Migration 0060 needs NO manual run; owner should NOT re-run RUN_ON_SUPABASE_0059 manually after it.
+
+---
+
+## Phase 73 hotfix — 2026-09-01: email CTA links to live domain + live verification
+
+Work Log:
+- Owner fixed EMAIL_SERVER_* on Vercel; live send on ab39ed9 → 200 {ok:true, leadSaved:true, id} — SMTP OK at that moment, migration 0060 columns proven live.
+- Owner confirmed live domain = musclehubeg.vercel.app → hotfix 0381a49: SITE_URL const (NEXT_PUBLIC_SITE_URL fallback https://musclehubeg.vercel.app) replaces the dead https://musclehubeg.com in both email HTML CTA and text version.
+- Post-deploy live sends → 500 ×3 (same JSON catch path); code change is template-only → env snapshot / Gmail throttling suspicion; owner action: read [api/send-email] Exception line in Vercel logs, verify 4 EMAIL_SERVER_* on Production, Redeploy.
+- Live filter checks pass: bad email → 400 on production.
+
+Stage Summary:
+- tsc 0, push ab39ed9..0381a49, deploy verified via /api/build-info (0381a49 live).
+- Test rows (live-check*/final-check*) in tool_leads can be deleted from /admin/leads.
