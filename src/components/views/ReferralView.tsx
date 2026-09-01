@@ -198,8 +198,8 @@ export function ReferralView() {
         </h1>
         <p className="mt-2 text-base font-normal text-[#6e6e73] md:text-lg">
           {isAr
-            ? `اكسب ${(COMMISSION_RATE * 100).toFixed(0)}% عمولة من كل صديق يشترك. العمولة بتتضاف لرصيدك لما الدفع يتأكد.`
-            : `Earn ${(COMMISSION_RATE * 100).toFixed(0)}% commission for each friend who subscribes. Commission is added when payment is confirmed.`}
+            ? `اكسب ${(COMMISSION_RATE * 100).toFixed(0)}% عمولة من كل صديق يشترك. العمولة بتتضاف لرصيدك لما الدفع يتأكد، وبتتاح للسحب بعد فترة أمان 7 أيام (احتمال إلغاء الاشتراك واسترداد المبلغ).`
+            : `Earn ${(COMMISSION_RATE * 100).toFixed(0)}% commission for each friend who subscribes. Commission is added when payment is confirmed, and becomes withdrawable after the 7-day safety window (in case the subscription is cancelled/refunded).`}
         </p>
       </div>
 
@@ -211,6 +211,16 @@ export function ReferralView() {
         <p className="mt-3 text-5xl font-semibold tracking-tight md:text-6xl">
           ${stats?.availableBalance.toFixed(2) || "0.00"}
         </p>
+        {/* PHASE 76 — refund-window hold (owner: «فى سحب الارباح من
+            الافيليت لازم نراعى نقطة الغاء الاشتراكات»): commissions from
+            subscription payments unlock for withdrawal after 7 days. */}
+        {(stats?.onHoldBalance || 0) > 0 && (
+          <p className="mt-3 inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-xs font-normal text-gray-300">
+            {isAr
+              ? `قيد فترة الأمان (7 أيام): $${stats?.onHoldBalance.toFixed(2)} — بتتاح للسحب بعد مرور مدة استرداد اشتراك صاحبك`
+              : `On hold (7-day window): $${stats?.onHoldBalance.toFixed(2)} — unlocks after your referral's refund window passes`}
+          </p>
+        )}
         <div className="mt-6 flex flex-wrap gap-4">
           <button
             onClick={() => setShowPayoutModal(true)}
@@ -500,6 +510,13 @@ export function ReferralView() {
             </h2>
             <p className="mt-2 text-sm font-normal text-[#6e6e73]">
               {isAr ? `رصيدك المتاح: $${stats?.availableBalance.toFixed(2)}` : `Available: $${stats?.availableBalance.toFixed(2)}`}
+              {(stats?.onHoldBalance || 0) > 0 && (
+                <span className="mt-1 block text-xs text-[#ff9500]">
+                  {isAr
+                    ? `مبلغ $${stats?.onHoldBalance.toFixed(2)} قيد فترة الأمان (7 أيام) ولن يتاح للسحب إلا بعد مرورها`
+                    : `$${stats?.onHoldBalance.toFixed(2)} is on hold (7-day window) and unlocks after it passes`}
+                </span>
+              )}
             </p>
 
             <div className="mt-6 space-y-4">

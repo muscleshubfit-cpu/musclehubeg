@@ -6,6 +6,23 @@
 
 ---
 
+## Latest Verification — 2026-09-01 (Phase 76 — 7-day refund (no-features-used condition) + affiliate payout hold honoring subscription cancellations)
+
+| Check | Result | How verified |
+|---|---|---|
+| TypeScript (`npx tsc --noEmit`) | ✅ PASS | 0 errors on the whole repo |
+| ESLint (whole repo vs baseline) | ✅ PASS | 0 errors; 788 warnings vs 784 baseline — +4 same pre-existing `any` style in new server code |
+| Unit tests (`vitest run`) | ✅ PASS | 18 files / **188/188 passed** (6 new: refund window helpers + activation anchor + Arabic reason messages) |
+| Production build (`next build`) | ✅ PASS | ✓ Compiled successfully — **1,882 static pages**; new routes `ƒ /api/refund/request` + `ƒ /api/admin/refunds` registered |
+| Smoke `:3779` — pages | ✅ PASS | `/` + `/ar` 200; `/profile` 200 (refund card renders inside subscription card); `/referral` 200 (hold tile conditional) |
+| Smoke `:3779` — auth guards | ✅ PASS | GET/POST `/api/refund/request` unauth → **401**; GET `/api/admin/refunds` unauth → **401** (requireUser / requireAdmin) |
+| Condition enforcement is server-side | ✅ (code review) | Eligibility computed ONLY in `src/lib/refund.ts` from tamper-proof ledgers (evo_chat_usage / plan_swaps / ai_jobs done / saved_results) — client cannot fake zero usage; usage_snapshot stored at request time |
+| Affiliate payout hold | ✅ (code review) | Earnings from subscription_initial/renewal created with available_at=+7d (engine + legacy awardCommission hardened); getReferralStats + createPayoutRequest FIFO exclude held rows; unlock is live-read (no cron) |
+| Refund → commission clawback | ✅ (code review) | Admin approve → reverseCommissionByReferenceServer (idempotent, PayPal-webhook-shared) + user-based sweep fallback; all queries exclude status=refunded → no double clawback |
+| Migration 0062 law | ✅ (code review) | refund_requests FK → public.profiles (matches 0004 law — admin JOIN works); RLS select-own only; writes service-role; available_at backfill: subscription commissions <7d held until created_at+7d |
+
+---
+
 ## Latest Verification — 2026-09-01 (Phase 75 — postponed tasks completed: 7-step affiliate + concrete commissions + earnings-page cleanup (4 sections removed) + toolkit relocation + affiliate notification suite)
 
 | Check | Result | How verified |

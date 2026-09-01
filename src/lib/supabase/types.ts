@@ -850,6 +850,8 @@ export type Database = {
             | "one_time_service"
             | "coach_client_activation"
             | null;
+          // Added by migration 0062 (7-day refund safety hold):
+          available_at: string;
         };
         Insert: {
           id?: string;
@@ -870,6 +872,7 @@ export type Database = {
             | "one_time_service"
             | "coach_client_activation"
             | null;
+          available_at?: string;
         };
         Update: {
           referral_id?: string | null;
@@ -887,6 +890,7 @@ export type Database = {
             | "one_time_service"
             | "coach_client_activation"
             | null;
+          available_at?: string;
         };
         Relationships: [
           { foreignKeyName: "referral_earnings_user_id_fkey"; columns: ["user_id"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] },
@@ -1060,6 +1064,54 @@ export type Database = {
         };
         Relationships: [
           { foreignKeyName: "referral_payouts_user_id_fkey"; columns: ["user_id"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] },
+        ];
+      };
+      refund_requests: {
+        Row: {
+          id: string;
+          user_id: string;
+          subscription_id: string | null;
+          tier: string;
+          months: number | null;
+          amount_usd: number | null;
+          payment_reference: string | null;
+          payment_source: string | null;
+          status: "pending" | "approved" | "rejected";
+          admin_note: string | null;
+          usage_snapshot: Json | null;
+          created_at: string;
+          processed_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          subscription_id?: string | null;
+          tier: string;
+          months?: number | null;
+          amount_usd?: number | null;
+          payment_reference?: string | null;
+          payment_source?: string | null;
+          status?: "pending" | "approved" | "rejected";
+          admin_note?: string | null;
+          usage_snapshot?: Json | null;
+          created_at?: string;
+          processed_at?: string | null;
+        };
+        Update: {
+          subscription_id?: string | null;
+          tier?: string;
+          months?: number | null;
+          amount_usd?: number | null;
+          payment_reference?: string | null;
+          payment_source?: string | null;
+          status?: "pending" | "approved" | "rejected";
+          admin_note?: string | null;
+          usage_snapshot?: Json | null;
+          processed_at?: string | null;
+        };
+        Relationships: [
+          { foreignKeyName: "refund_requests_user_id_fkey"; columns: ["user_id"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] },
+          { foreignKeyName: "refund_requests_subscription_id_fkey"; columns: ["subscription_id"]; isOneToOne: false; referencedRelation: "subscriptions"; referencedColumns: ["id"] },
         ];
       };
       saved_results: {

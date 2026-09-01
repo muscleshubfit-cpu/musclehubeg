@@ -3721,3 +3721,20 @@ Work Log:
 
 Stage Summary:
 - رفع main → Vercel نشر تلقائي. المطلوب من المالك: جولة تحقق حية (الأفيليت 7 خطوات + لوحة أرباح نظيفة + انتظار تطبيق 0061 تلقائياً) — لا خطوات SQL يدوية.
+
+## Phase 76 — 2026-09-01: 7-day refund system (no-features-used condition) + affiliate payout hold honoring subscription cancellations
+
+Work Log:
+- Owner request: «فى نقطة الغاء الاشتراكات واسترجاع الفلوس خلال ٧ ايام يكون فى شرط عدم استخدام المميزات، وكذلك فى سحب الارباح من الافيليت لازم نراعى نقطة الغاء الاشتراكات». The /memberships promise existed with NO backing system — Phase 76 built it end-to-end.
+- Migration 0062 (20260902110000): refund_requests table (FK → public.profiles per 0004 law; usage_snapshot jsonb; status pending|approved|rejected; RLS select-own; writes service-role only) + referral_earnings.available_at (default now; backfill: subscription commissions <7d held until created_at+7d).
+- src/lib/refund.ts (server-only): 7-day window anchored on subscriptions.start_date + no-features-used condition measured from tamper-proof ledgers (evo_chat_usage chats+plans, plan_swaps, ai_jobs done coach plans, saved_results); payment resolution via affiliate_transactions → subscription_requests fallback (coach-client payers have no txn rows by design).
+- POST/GET /api/refund/request: server-side eligibility, idempotent pending return, usage snapshot insert, admin bell (daily dedup); GET returns live verdict (daysLeft + reason) for the profile card.
+- GET/POST /api/admin/refunds (requireAdmin): approve = lock request (pending-only) + end subscription NOW (status=expired, end_date=now) + reverse linked affiliate commissions via reverseCommissionByReferenceServer (webhook-shared, idempotent) + user-based sweep fallback + member notification; reject = + reason to member. Money transfer stays manual (InstaPay/Vodafone/PayPal).
+- Affiliate hold: engine creates subscription_initial/renewal earnings with available_at=+7d (coach activations/one-time unheld); legacy awardCommission hardened defensively; getReferralStats adds onHoldBalance and excludes held from availableBalance; createPayoutRequest FIFO selects only unlocked rows (.or available_at) with Arabic hold-aware error messages; unlock is a live read — no cron.
+- ReferralView: «قيد فترة الأمان (7 أيام)» tile on the balance card + hold note inside the payout modal + updated program description; AdminPaymentsView: new refund-requests section showing the usage snapshot chips (zero at request time) + approve button labeled «قبول + إيقاف الاشتراك + عكس العمولات»; profile page: refund card (window left, condition text, request state, disabled when ineligible).
+- Gates: tsc 0 / eslint 0 errors (788 vs 784 baseline warnings, same any-style) / vitest 188/188 (6 new refund-helper tests) / build ✓ 1,882 pages with ƒ /api/refund/request + ƒ /api/admin/refunds / smoke :3779: EN+AR+profile+referral 200, unauth refund & admin-refunds → 401.
+- Docs: PROGRESS.md (المرحلة 76) + QA_CHECKLIST.md latest-verification table.
+
+Stage Summary:
+- Push to main → Vercel auto-deploy. Migration 0062 auto-applies via the Supabase GitHub integration (proven 3/3) — NO manual SQL for the owner.
+- Owner verification path: (1) member: profile → «استرداد كامل خلال 7 أيام» card inside subscription card; (2) affiliate: /referral hold tile after a referred subscription payment; (3) admin: /admin/payments → refund requests section.

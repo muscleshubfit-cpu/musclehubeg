@@ -53,6 +53,20 @@ export default function ProfilePage() {
   const [cancelRequested, setCancelRequested] = useState(false);
   const [cancelBusy, setCancelBusy] = useState(false);
 
+  // PHASE 76 — 7-day refund request (owner: «استرجاع الفلوس خلال ٧ ايام
+  // بشرط عدم استخدام المميزات»). Server computes the verdict; we display it.
+  type RefundEligibility = {
+    eligible: boolean;
+    reason: string | null;
+    daysLeft: number;
+    windowDays: number;
+    message: string | null;
+  };
+  const [refundInfo, setRefundInfo] = useState<RefundEligibility | null>(null);
+  const [refundStatus, setRefundStatus] = useState<"pending" | "approved" | "rejected" | null>(null);
+  const [refundNote, setRefundNote] = useState<string | null>(null);
+  const [refundBusy, setRefundBusy] = useState(false);
+
   // Determine membership tier via the useMembershipTier hook
   // (queries subscriptions table — NOT the missing profile.membership_tier field)
   const { tier } = useMembershipTier(profile);
@@ -91,6 +105,47 @@ export default function ProfilePage() {
         }
       });
   }, [profile, isCoach, isAdmin]);
+
+  // PHASE 76 — read the refund eligibility + latest request state
+  useEffect(() => {
+    if (!profile || isCoach || isAdmin) return;
+    fetch("/api/refund/request")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((body) => {
+        if (!body) return;
+        setRefundInfo(body.eligibility ?? null);
+        if (body.latest) {
+          setRefundStatus(body.latest.status);
+          setRefundNote(body.latest.admin_note ?? null);
+        }
+      })
+      .catch(() => {});
+  }, [profile, isCoach, isAdmin]);
+
+  const requestRefund = async () => {
+    const confirmed = confirm(
+      isAr
+        ? "تأكيد طلب استرداد المبلغ؟ هيتابع الدعم الاشتراك ويتم إيقافه عند الموافقة، بشرط إنك مستخدمتش أي مميزة مدفوعة."
+        : "Confirm refund request? The subscription will be reviewed and stopped upon approval, provided you haven't used any paid features.",
+    );
+    if (!confirmed) return;
+    setRefundBusy(true);
+    try {
+      const res = await fetch("/api/refund/request", { method: "POST" });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(body?.message || (isAr ? "غير مؤهل لطلب الاسترداد" : "Not eligible for a refund"));
+      }
+      setRefundStatus("pending");
+      toast.success(body?.message || (isAr ? "تم إرسال طلب الاسترداد" : "Refund request sent"));
+    } catch (e) {
+      toast.error(
+        e instanceof Error && e.message ? e.message : isAr ? "حصل خطأ — جرب تاني" : "Something went wrong",
+      );
+    } finally {
+      setRefundBusy(false);
+    }
+  };
 
   const requestCancelSubscription = async () => {
     const confirmed = confirm(
@@ -367,6 +422,60 @@ export default function ProfilePage() {
                 {isAr ? "إلغاء الاشتراك" : "Cancel subscription"}
               </button>
             )}
+
+            {/* PHASE 76 — 7-day money-back (owner request): استرداد خلال
+                7 أيام بشرط عدم استخدام المميزات المدفوعة. The verdict is
+                computed server-side from the usage ledgers. Inside this
+                block tier is already a paid tier (outer guard). */}
+            <div className="mt-5 rounded-2xl border border-[#f2f2f7] bg-[#f5f5f7]/60 p-4">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium">
+                      {isAr ? "استرداد كامل خلال 7 أيام من التفعيل" : "Full refund within 7 days of activation"}
+                    </p>
+                    <p className="mt-1 text-xs font-normal text-[#6e6e73]">
+                      {isAr
+                        ? "الشرط: عدم استخدام أي ميزة مدفوعة (محادثات إيفو، توليد الخطط، التبديلات، حفظ النتائج)."
+                        : "Condition: no paid feature used (EVO chats, plan generation, swaps, saved results)."}
+                      {refundInfo?.eligible && refundInfo.daysLeft > 0
+                        ? isAr
+                          ? ` — باقي ${refundInfo.daysLeft} يوم من مدة الاسترداد`
+                          : ` — ${refundInfo.daysLeft} day(s) left in the window`
+                        : ""}
+                    </p>
+                    {refundInfo && !refundInfo.eligible && refundStatus === null && refundInfo.message && (
+                      <p className="mt-1 text-xs font-normal text-[#ff3b30]">{refundInfo.message}</p>
+                    )}
+                    {refundStatus === "pending" && (
+                      <p className="mt-2 inline-flex rounded-full bg-[#ff9500]/10 px-3 py-1.5 text-xs font-medium text-[#ff9500]">
+                        {isAr ? "طلب الاسترداد قيد المراجعة — هنرد عليك قريب" : "Refund request under review"}
+                      </p>
+                    )}
+                    {refundStatus === "approved" && (
+                      <p className="mt-2 inline-flex rounded-full bg-[#34c759]/10 px-3 py-1.5 text-xs font-medium text-[#34c759]">
+                        {isAr ? "تم قبول الاسترداد — سيتم تحويل المبلغ" : "Refund approved — money on its way"}
+                      </p>
+                    )}
+                    {refundStatus === "rejected" && (
+                      <p className="mt-2 inline-flex rounded-full bg-[#ff3b30]/10 px-3 py-1.5 text-xs font-medium text-[#ff3b30]">
+                        {isAr
+                          ? `تم رفض طلب الاسترداد${refundNote ? ` — السبب: ${refundNote}` : ""}`
+                          : `Refund rejected${refundNote ? ` — ${refundNote}` : ""}`}
+                      </p>
+                    )}
+                  </div>
+                  {refundStatus === null && (
+                    <button
+                      onClick={requestRefund}
+                      disabled={refundBusy || (refundInfo !== null && !refundInfo.eligible)}
+                      className="inline-flex items-center gap-2 rounded-full border border-[#d2d2d7] bg-white px-5 py-2.5 text-sm font-medium text-[#1d1d1f] transition-opacity hover:opacity-80 disabled:opacity-50"
+                    >
+                      {refundBusy && <Loader2 className="h-4 w-4 animate-spin" />}
+                      {isAr ? "طلب استرداد المبلغ" : "Request refund"}
+                    </button>
+                  )}
+                </div>
+            </div>
           </div>
         )}
 

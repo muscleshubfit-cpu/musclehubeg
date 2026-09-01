@@ -194,6 +194,24 @@ async function processCommission(
   const commissionId = (commission as { id: string }).id;
 
   // Payout-system earning (referral_earnings powers /referral + payouts)
+  //
+  // PHASE 76 — SAFETY HOLD (owner request: «فى سحب الارباح من الافيليت
+  // لازم نراعى نقطة الغاء الاشتراكات»): commissions earned from
+  // SUBSCRIPTION payments are held for the 7-day refund window (0062
+  // available_at). If the referred member cancels + is refunded inside
+  // the window, reverseCommissionServer flips the held earning to
+  // 'pending' BEFORE it was ever withdrawable. Non-subscription money
+  // (coach activations, one-time products) has no refund flow → no hold.
+  const HOLD_TYPES: ServerTransactionType[] = [
+    "subscription_initial",
+    "subscription_renewal",
+  ];
+  const holdMs =
+    HOLD_TYPES.includes(transaction.transaction_type)
+      ? 7 * 86_400_000
+      : 0;
+  const availableAt = new Date(Date.now() + holdMs).toISOString();
+
   const { data: earning } = await db
     .from("referral_earnings")
     .insert({
@@ -203,6 +221,7 @@ async function processCommission(
       status: "available",
       affiliate_commission_id: commissionId,
       transaction_type: transaction.transaction_type,
+      available_at: availableAt,
     })
     .select("id")
     .single();

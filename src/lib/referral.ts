@@ -49,6 +49,10 @@ export type ReferralEarning = {
   paid_at: string | null;
   payout_method: string | null;
   payout_details: string | null;
+  // Added by migration 0062 (Phase 76 — 7-day refund safety hold):
+  // subscription commissions stay NON-withdrawable until this moment
+  // so a cancellation/refund inside the window can claw them back.
+  available_at: string | null;
 };
 
 export type ReferralPayout = {
@@ -74,6 +78,8 @@ export type ReferralStats = {
   rejected: number;
   totalEarnings: number;
   availableBalance: number;
+  /** Phase 76 — commissions inside the 7-day refund window (not withdrawable yet). */
+  onHoldBalance: number;
   pendingEarnings: number;
   paidOut: number;
   referralCode: string;
@@ -251,6 +257,10 @@ export async function awardCommission(
       referral_id: referral.id,
       amount: commission,
       status: "available",
+      // PHASE 76 defense-in-depth: this is a subscription commission —
+      // keep the 7-day refund hold even though the legacy path has no
+      // callers anymore (the live path is affiliate-engine-server).
+      available_at: new Date(Date.now() + 7 * 86_400_000).toISOString(),
     })
     .select()
     .single();
@@ -312,9 +322,20 @@ export async function getReferralStats(userId: string): Promise<ReferralStats> {
     const pending = (referrals || []).filter((r: any) => r.status === "pending");
     const rejected = (referrals || []).filter((r: any) => r.status === "rejected");
 
+    // PHASE 76 — the withdrawable balance EXCLUDES commissions still
+    // inside the 7-day refund window (available_at in the future):
+    // «فى سحب الارباح من الافيليت لازم نراعى نقطة الغاء الاشتراكات».
+    // Those sit in onHoldBalance and unlock themselves when the window
+    // passes (checked live on every read — no cron needed).
+    const nowIso = new Date().toISOString();
+    const isUnlocked = (e: any) => !e.available_at || e.available_at <= nowIso;
+
     const totalEarnings = (earnings || []).reduce((sum: number, e: any) => sum + Number(e.amount), 0);
     const availableBalance = (earnings || [])
-      .filter((e: any) => e.status === "available")
+      .filter((e: any) => e.status === "available" && isUnlocked(e))
+      .reduce((sum: number, e: any) => sum + Number(e.amount), 0);
+    const onHoldBalance = (earnings || [])
+      .filter((e: any) => e.status === "available" && !isUnlocked(e))
       .reduce((sum: number, e: any) => sum + Number(e.amount), 0);
     const pendingEarnings = (earnings || [])
       .filter((e: any) => e.status === "pending")
@@ -330,6 +351,7 @@ export async function getReferralStats(userId: string): Promise<ReferralStats> {
       rejected: rejected.length,
       totalEarnings,
       availableBalance,
+      onHoldBalance,
       pendingEarnings,
       paidOut,
       referralCode,
@@ -350,6 +372,7 @@ export async function getReferralStats(userId: string): Promise<ReferralStats> {
     rejected: 0,
     totalEarnings: 0,
     availableBalance: 0,
+    onHoldBalance: 0,
     pendingEarnings: 0,
     paidOut: 0,
     referralCode: generateReferralCode(),
@@ -383,21 +406,30 @@ export async function createPayoutRequest(
   }
 
   if (isSupabaseConfigured && supabase) {
-    // Mark earnings as "requested" (FIFO — oldest first)
+    // Mark earnings as "requested" (FIFO — oldest first).
+    // PHASE 76: only earnings whose 7-day refund window has passed are
+    // selectable — held subscription commissions can't be withdrawn:
+    // «فى سحب الارباح من الافيليت لازم نراعى نقطة الغاء الاشتراكات».
+    const nowIso = new Date().toISOString();
     const { data: earnings } = await supabase
       .from("referral_earnings")
-      .select("id, amount, referral_id")
+      .select("id, amount, referral_id, available_at")
       .eq("user_id", userId)
       .eq("status", "available")
+      .or(`available_at.is.null,available_at.lte.${nowIso}`)
       .order("created_at", { ascending: true });
 
     if (!earnings || earnings.length === 0) {
-      throw new Error("No available earnings to withdraw");
+      throw new Error(
+        "مفيش أرباح قابلة للسحب حاليًا — أرباح اشتراكات آخر 7 أيام محجوزة كفترة أمان (احتمال إلغاء الاشتراك واسترداد المبلغ)",
+      );
     }
 
     const totalAvailable = earnings.reduce((sum: number, e: any) => sum + Number(e.amount), 0);
     if (amount > totalAvailable) {
-      throw new Error(`Requested amount exceeds available balance ($${totalAvailable})`);
+      throw new Error(
+        `المبلغ المطلوب أكبر من رصيدك القابل للسحب ($${totalAvailable.toFixed(2)}). ملاحظة: أرباح اشتراكات آخر 7 أيام محجوزة كفترة أمان ولن تُتاح إلا بعد مرور مدة الاسترداد`,
+      );
     }
 
     // Mark earnings as requested (FIFO) until the requested amount is covered.
