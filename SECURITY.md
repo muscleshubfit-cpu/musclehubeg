@@ -544,3 +544,52 @@ _None recorded to date._
 (When an incident happens, add a section here with: date, summary,
 impact, root cause, fix, lessons learned. Keep it factual — no blame,
 no marketing spin.)
+
+---
+
+## 15. Security-Relevant Additions (2026-09-01 / 2026-09-02)
+
+Features shipped in Phases 72-81 with direct security relevance —
+recorded here so the policy stays the single reference:
+
+### 15.1 Queued AI Jobs — Staff Gates (JOB_GATE)
+
+- `src/lib/ai-jobs.ts` classifies every job type; **staff-gated** types
+  (admin/coach privileged work, e.g. `food_item_regenerate`,
+  `day_regenerate`) are refused with **403** for plain clients at
+  enqueue time (`/api/ai/jobs`) and again at processing time (GHA
+  runner re-checks).
+- Coach-path plan generation re-verifies **ownership** against
+  `coach_assignments` before spending the client's quota — a coach can
+  never bill another coach's client.
+
+### 15.2 Admin-Only Non-Member Plans (external_plans)
+
+- `external_plans` (migration 0058) carries **RLS: `is_admin()` only**
+  for every operation (insert/select/update/delete).
+- `/api/admin/external-plans` is wrapped in `requireAdmin` — a coach
+  session receives **403 "Forbidden — admin only"** (verified live,
+  Phase 80), and `/admin/external-plans` UI redirects coaches to
+  `/coach` via AdminGate.
+
+### 15.3 Email Hardening (Phases 72-73)
+
+- `src/lib/email-validation.ts` — strict syntax + domain validation on
+  **both** the client form and the `/api/send-email` server path.
+- `/api/send-email` enforces a **daily cap of 100 messages / rolling
+  24h** per instance (in-memory ledger) to contain SMTP abuse; the
+  cron-secret-protected paths are the only bulk senders.
+
+### 15.4 Refunds + Payout Safety (Phase 76)
+
+- Refund eligibility ("no features used") is computed **server-side
+  from tamper-proof ledgers** (evo chats/plans/swaps/coach
+  plans/saved results) — never from client-supplied state
+  (`src/lib/refund.ts`, `refund_requests` migration 0062, RLS:
+  admin-all + owner-read).
+- Approving a refund **ends the subscription** and **reverses
+  pending affiliate commissions** automatically.
+- Affiliate subscription commissions are held for **7 days**
+  (`referral_earnings.available_at`): balances exclude held amounts
+  and FIFO payout unlocking honors cancellations/refunds — a refunded
+  payment can never be paid out as commission.

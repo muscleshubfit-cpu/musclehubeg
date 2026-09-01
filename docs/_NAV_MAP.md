@@ -1,5 +1,9 @@
 # Navigation Map — MuscleHubEG
 
+> ⚠️ **HISTORICAL SNAPSHOT (2026-08-25)** — point-in-time audit; some ⚠️ items
+> listed here have since been FIXED (see PROGRESS.md Phases 71-81).
+> Kept for reference; not a statement of current status.
+
 > **Task ID:** #5 — Part A
 > **Date:** 2026-08-25
 > **Source of truth:** `origin/main` HEAD `0b596d0`

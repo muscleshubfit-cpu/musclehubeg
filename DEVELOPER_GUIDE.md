@@ -171,7 +171,9 @@ src/
 │   └── use-toast.ts              # Toast notifications
 ├── lib/
 │   ├── memberships.ts           # تعريف العضويات + الأسعار + الحدود
-│   ├── data.ts                  # طبقة البيانات (كل CRUD operations)
+│   ├── data/                    # طبقة البيانات (13 وحدة: auth, blog, chat, coach, plans,
+│   │                            #   progress, questionnaires, referrals, subscriptions,
+│   │                            #   tickets, notifications + helpers + index re-export)
 │   ├── auth-server.ts           # مصادقة الخادم (requireUser, requireCoach)
 │   ├── ai-provider.ts           # موفر AI موحد (OpenRouter + fallbacks)
 │   ├── exercises.ts             # 868 تمرين
@@ -227,7 +229,7 @@ src/
 │  (useAuth, useNav, useMembershipTier)             │
 ├──────────────────────────────────────────────────┤
 │             Data Layer                           │
-│  (src/lib/data.ts — Supabase CRUD + localStorage)│
+│  (src/lib/data/ — Supabase CRUD + localStorage)  │
 ├──────────────────────────────────────────────────┤
 │             Supabase                             │
 │  (Postgres + Auth + Storage + RLS)               │
@@ -236,11 +238,11 @@ src/
 
 ### أنماط التصميم الرئيسية:
 
-1. **Dual-mode data layer**: `data.ts` يعمل مع Supabase أو localStorage (demo mode)
+1. **Dual-mode data layer**: `src/lib/data/` يعمل مع Supabase أو localStorage (demo mode)
 2. **Server-side auth**: `auth-server.ts` يقرأ session من cookies + يحلل الـ tier
 3. **Client-side tier resolution**: `useMembershipTier` hook يجلب الـ tier من `subscriptions` table
 4. **Navigation adapter**: `useNav` يحوّل `navigate("view")` إلى URL حقيقي
-5. **AI fallback chain**: `callFreeOpenRouter` يجرب 6 نماذج free بالترتيب
+5. **AI fallback chain**: `callAIWithFallback` يجرب سلسلة النماذج بالترتيب (OpenRouter + Groq)
 6. **PDF export without libraries**: Canvas 2D → JPEG → minimal PDF 1.4
 
 ---
@@ -254,7 +256,7 @@ src/
 > - **22 tables** are formally defined via `CREATE TABLE` in
 >   migrations `0001` → `0016`.
 > - **3 additional tables** (`plan_swaps`, `progress_photos`,
->   `coach_presence`) are referenced in `src/lib/data.ts` and were
+>   `coach_presence`) are referenced in `src/lib/data/` and were
 >   created ad-hoc on the production database during Phase 5 via
 >   Supabase SQL Editor. They are NOT in any migration file — this
 >   is technical debt that should be back-filled as migrations.
@@ -413,7 +415,7 @@ maxModels × timeoutMs ≤ 52 ثانية داخلياً في `ai-provider.ts`.
 Coach → /admin/blog/new → "Generate with AI" button
   → /api/ai/generate-article (coach-only)
   → generateArticleBundle() in blog-generate.ts
-  → callFreeOpenRouter() with ARTICLE_SYSTEM_PROMPT
+  → callAIWithFallback() with ARTICLE_SYSTEM_PROMPT
   → Returns: SEO data + EN article + AR article + FAQ + image prompts + social posts
   → Coach reviews → saves draft → publishes
 ```
@@ -433,51 +435,83 @@ GitHub Actions (3x daily: 06/14/22 UTC + retry loops)
 
 ## 8. API Routes Reference
 
-> **Phase 7 correction (2026-08-19, re-verified 2026-08-25):** The
-> previous doc listed 22 → 28 API routes. The actual count (verified
-> by `find src/app/api -name "route.ts*"`) is **36 routes**. The table
-> below has been updated to include all 36.
+> **Phase 82 parity fix (2026-09-02):** The previous table listed
+> 36 routes (many of them retired). The verified count is
+> **67 endpoints** (66 `route.ts` + 1 `route.tsx` for the OG image).
+> Verified by `find src/app/api -name "route.ts*" | wc -l` and by
+> per-file extraction of exported handlers + auth guards.
 
 | Route | Method | Auth | الوظيفة |
 |---|---|---|---|
-| `/api/ai/blog-tool` | POST | Coach | Blog editor AI tools (SEO title, FAQ, CTA, social posts) — routes to `callGemini` |
-| `/api/ai/chat` | POST | Optional | EVO AI chat (anonymous allowed) |
-| `/api/ai/generate-article` | POST | Coach | Manual blog article generation |
-| `/api/ai/generate-image` | POST | Coach | Generate image for blog article |
-| `/api/ai/plan` | POST | Coach | Generate nutrition/workout plan |
-| `/api/ai/pick-topic` | POST | Coach | Pick blog topic |
-| `/api/ai/regenerate-meal` | POST | User | Regenerate meal in plan |
-| `/api/ai/research-topic` | POST | Coach | Research blog topic |
-| `/api/ai/swap` | POST | User | Swap meal/exercise in plan |
-| `/api/admin/blog/cleanup` | POST | Coach/Cron | Fix garbled text in articles |
-| `/api/admin/leads` | GET/PATCH | Coach | View + update tool leads |
-| `/api/admin/saved-results` | GET | Coach | View all saved results |
-| `/api/blog/fetch-images` | POST | Coach | Fetch images for blog article |
-| `/api/cron/blog/step1-pick` | GET | Cron | Pick blog topic (current pipeline) |
-| `/api/cron/blog/step2a-research` | GET | Cron | External research (Gemini Flash + Google Search grounding) |
-| `/api/cron/blog/step2b-en-article` | POST | Cron | Generate EN article (separated pipeline) |
-| `/api/cron/blog/step2c-ar-article` | POST | Cron | Generate AR article (separated pipeline) |
-| `/api/cron/blog/step2d-links` | POST | Cron | Generate links + image prompts + social posts |
-| `/api/cron/blog/step2-generate` | GET | Cron | Legacy single-step blog generation (calls `generateArticleBundle` internally) |
-| `/api/cron/blog/step3-publish` | GET | Cron | Publish article (EN + AR rows) |
-| `/api/cron/generate-blog-post` | GET | Cron | Legacy single-step blog generation (kept for backward compat) |
-| `/api/cron/progress-reminder` | GET | Cron | Weekly progress reminder (Vercel Cron — Sun 07:00 UTC) |
-| `/api/exercise-image` | GET | Public | Proxy exercise images |
-| `/api/food-search` | GET | Public | Search foods (local + Open Food Facts) |
-| `/api/notifications/admin` | POST | User | Create admin notification (service_role bypass) |
-| `/api/notifications/broadcast` | POST | Coach | Broadcast notification to multiple users |
-| `/api/og-image/[slug]` | GET | Public | Dynamic OG image (edge runtime) |
-| `/api/paypal/capture-order` | POST | User | Capture PayPal Order server-side (authoritative payment confirmation) — see `SECURITY.md` §12 |
-| `/api/paypal/create-order` | POST | User | Create PayPal Order server-side (price resolved server-side) — see `SECURITY.md` §12 |
-| `/api/paypal/webhook` | POST | PayPal (signature-verified) | PayPal webhook events (audit trail only) — see `SECURITY.md` §12 |
-| `/api/plans/normalize` | POST | Coach | Normalize coach-pasted plan text → structured JSON |
-| `/api/tools/lead` | POST | Public | Capture lead from tool |
-| `/api/tools/save-meal-plan` | POST | User | Save meal plan |
-| `/api/tools/save-result` | POST | User | Save tool result |
-| `/api/tools/saved-meal-plans` | GET/DELETE | User | List/delete meal plans |
-| `/api/tools/saved-results` | GET/DELETE | User | List/delete saved results |
+| `/api/admin/accounts` | GET/PATCH/DELETE | Admin | تعليم حسابات الاختبار + حذف متسلسل |
+| `/api/admin/assignments` | GET/PATCH | Admin | تعيين العملاء للمدربين + سجل التفعيلات |
+| `/api/admin/blog/cleanup` | POST | Admin/Cron | إصلاح النصوص المشوهة في المقالات |
+| `/api/admin/coach-fees` | GET/PATCH | Admin | رسوم نظام المدربين الشهرية لكل عميل |
+| `/api/admin/coach-pages` | GET/PATCH | Admin | مراجعة صفحات المدربين (نشر/رفض) |
+| `/api/admin/coach-pages/notify` | POST | Admin | إشعار مدرب بقرار مراجعة صفحته |
+| `/api/admin/coach-payments` | GET | Admin | سجل تفعيلات المدربين (coach_payments) |
+| `/api/admin/coach-support` | GET/POST | Admin | صندوق دعم المدربين (رد الأدمن) |
+| `/api/admin/external-plans` | POST/GET/PATCH/DELETE | Admin (RLS: is_admin) | خطط AI لغير الأعضاء + إعادة توليد (خطة/وجبة/صنف/يوم/تمرين) + سجل نسخ (5) + استرجاع |
+| `/api/admin/leads` | GET/PATCH/DELETE | Admin | قاعدة العملاء (leads من الأدوات + التسجيلات) |
+| `/api/admin/refunds` | GET/POST | Admin | طلبات الاسترداد 7 أيام + قرار الإدارة (إنهاء الاشتراك + عكس العمولة) |
+| `/api/admin/saved-results` | GET | Admin | كل النتائج المحفوظة لكل المستخدمين |
+| `/api/admin/staff` | POST/PATCH | Admin | إدارة حسابات الموظفين |
+| `/api/admin/wallets` | GET | Admin | محافظ المدربين (أرصدة + حركات) |
+| `/api/admin/wallets/adjust` | POST | Admin | تعديل يدوي لمحفظة مدرب (مُدقَّق) |
+| `/api/admin/wallets/topups` | PATCH | Admin | مراجعة طلبات الشحن (إيصال → اعتماد/رفض) |
+| `/api/affiliate/commission` | POST | Admin | تسجيل/تسوية عمولة أفيليت (20%) |
+| `/api/affiliate/payout-notify` | POST | User | إشعار الأدمن بطلب سحب أفيليت |
+| `/api/affiliate/referred-coaches` | GET | User | المدربون المسجلون عبر رابط الإحالة |
+| `/api/ai/chat` | POST | User (اختياري للمجهول) | محادثة EVO — توليد الخطة يخصم من الرصيد الموحد (429 يميز أسبوعي/شهري) |
+| `/api/ai/jobs` | POST/GET | User/Coach + JOB_GATE | طابور مهام AI (توليد/استبدال/إعادة توليد) — فحص ملكية + رصيد العميل، مهام الموظفين محجوبة عن العملاء |
+| `/api/ai/queue-health` | GET/DELETE | Admin | صحة الطابور + تنظيف المهام العالقة |
+| `/api/ai/quota` | GET | User session | عدادات الرصيد الموحد (أسبوعي + شهري + التبديلات) |
+| `/api/blog/fetch-images` | POST | Admin | جلب صور مقترحة للمقال |
+| `/api/blog/suggest-image` | POST | Admin | اقتراح وصف صورة للمقال بـ AI |
+| `/api/build-info` | GET | Public | معلومات البناء (commit الحالي) |
+| `/api/coach/ads` | GET/POST | Coach | إعلانات المدرب على صفحته |
+| `/api/coach/ai-usage` | GET | User (coach/admin) | استهلاك رصيد عميل (النافذتان الأسبوعية والشهرية) |
+| `/api/coach/claim` | POST | User | مطالبة مدرب بعميل عبر كود |
+| `/api/coach/clients/invite` | POST | Coach | دعوة عميل جديد للمدرب |
+| `/api/coach/landing` | GET/PUT | Coach | صفحة المدرب العامة (slug + محتوى) |
+| `/api/coach/register` | POST | Public (hardened) | تسجيل مدرب — rate-limit 3/10min + honeypot + role server-side |
+| `/api/coach/subscriptions/activate` | POST | User (staff) | تفعيل اشتراك عميل — خصم المحفظة أولاً (402 نقص) + ledger |
+| `/api/coach/support` | GET/POST | Coach | تذاكر دعم المدرب من جهته |
+| `/api/coach/wallet` | GET | User (coach) | محفظة المدرب + الحركات |
+| `/api/coach/wallet/topup` | POST | User (staff) | طلب شحن محفظة (إيصال إلزامي) |
+| `/api/coaches/featured` | GET | Public | المدربون المميزون (صفحات عامة) |
+| `/api/cron/blog/p0-research` | GET | Cron (CRON_SECRET) | بحث الموضوع (مرحلة 0) |
+| `/api/cron/blog/p1-outline` | GET | Cron (CRON_SECRET) | مخطط المقال (مرحلة 1) |
+| `/api/cron/blog/p2-content` | GET | Cron (CRON_SECRET) | كتابة المحتوى AR+EN (مرحلة 2) |
+| `/api/cron/blog/p3-images` | GET | Cron (CRON_SECRET) | الصور (مرحلة 3) |
+| `/api/cron/blog/p4-review` | GET | Cron (CRON_SECRET) | المراجعة (مرحلة 4) |
+| `/api/cron/blog/p5-publish` | GET | Cron (CRON_SECRET) | النشر (مرحلة 5) |
+| `/api/cron/dispatch-pipelines` | GET | Cron (CRON_SECRET) | الموزع اليومي 21:00 UTC (مدونة + مهام AI + إشعارات) |
+| `/api/cron/progress-reminder` | GET | Cron (CRON_SECRET) | تذكير التقدم الأسبوعي (الأحد 07:00 UTC) |
+| `/api/exercise-image` | GET | Public | بروكسي صور التمارين |
+| `/api/file` | GET | User | قراءة ملف من التخزين للمستخدم المصرّح |
+| `/api/food-search` | GET | Public | بحث الأكلات (محلي + Open Food Facts) |
+| `/api/my/coach-whatsapp` | GET | User | رقم واتساب مدرب العميل |
+| `/api/notifications/admin` | POST | User | إنشاء إشعار أدمن (service_role) |
+| `/api/notifications/broadcast` | POST | Coach/Admin | بث إشعارات لمجموعة مستخدمين |
+| `/api/og-image/[slug]` | GET | Public (edge) | صورة OG ديناميكية للمقالات (route.tsx) |
+| `/api/paypal/capture-order` | POST | User | تأكيد دفع PayPal (مصدر الحقيقة للسعر والتفعيل) |
+| `/api/paypal/create-order` | POST | User | إنشاء طلب PayPal (السعر يُحسم خادمياً) |
+| `/api/paypal/webhook` | POST | PayPal (توقيع) | أحداث PayPal (سجل تدقيق) |
+| `/api/plans/member-edit` | POST | User | تعديل العضو لخطته (تتبع التعديلات اليدوية — غير محدودة) |
+| `/api/plans/normalize` | POST | Coach/Admin | تطبيع نص خطة يدوية إلى بنية مهيكلة |
+| `/api/refund/request` | GET/POST | User | طلب استرداد العضو + فحص الأهلية (7 أيام + عدم استخدام المميزات من الدفاتر المحمية) |
+| `/api/send-email` | POST | Server (service-role) | إرسال بريد nodemailer + تحقق صارم + حد 100/24h |
+| `/api/subscription/cancel` | POST | User | إلغاء اشتراك (يمنح أهلية استرداد + عكس عمولات معلّقة) |
+| `/api/support/tickets` | GET/POST | User | تذاكر الدعم بين العميل والمدرب |
+| `/api/tools/lead` | POST | Public (rate-limited) | التقاط عميل محتمل من الأدوات الست |
+| `/api/tools/save-meal-plan` | POST | User | حفظ خطة وجبات |
+| `/api/tools/save-result` | POST | User | حفظ نتيجة أداة |
+| `/api/tools/saved-meal-plans` | GET/DELETE | User | إدارة خطط الوجبات المحفوظة |
+| `/api/tools/saved-results` | GET/DELETE | User | إدارة النتائج المحفوظة |
+| `/api/upload` | POST | User | رفع ملف للتخزين (حدود + تعقيم) |
 
-**Total: 36 routes** (verified via `find src/app/api -name "route.ts*" | wc -l`).
+**Total: 67 endpoints** (66 `route.ts` + 1 `route.tsx`) — verified 2026-09-02.
 
 ---
 
@@ -573,7 +607,7 @@ GitHub Actions (3x daily: 06/14/22 UTC + retry loops)
 
 | النوع | الحالة |
 |---|---|
-| Unit tests | ❌ غير موجود |
+| Unit tests (vitest) | ✅ 18 ملف اختبار / 191 حالة — `npx vitest run` (منقح 2026-09-02) |
 | Integration tests | ❌ غير موجود |
 | E2E tests | ❌ غير موجود |
 | Type checking | ✅ مُفعّل (0 errors — `tsc --noEmit` clean, `@ts-nocheck` removed, `ignoreBuildErrors` NOT in `next.config.ts`) |
@@ -650,7 +684,7 @@ bun run build
 
 ### الـ AI Model Selection
 
-مبدأ موحد في كل الموقع: `callFreeOpenRouter` يجرب النماذج بالترتيب من الأكبر للأصغر:
+مبدأ موحد في كل الموقع: `callAIWithFallback` يجرب النماذج بالترتيب من الأكبر للأصغر:
 1. nvidia/nemotron-3-ultra-550b (الأضخم)
 2. → fallback إلى 5 نماذج أصغر
 
@@ -665,15 +699,17 @@ bun run build
 
 ### الـ AI Provider Pattern (Phase 6 — 2026-08-19)
 
-يوجد **دالتان** لاستدعاء OpenRouter، كل واحدة لها حالة استخدام:
+طبقة AI موحدة (`callAI` هي المدخل العام) — أهم الدوال وحالات استخدامها (منقح 2026-09-02):
 
 | الدالة | متى تستخدمها | السلوك |
 |---|---|---|
-| `callFreeOpenRouter(prompt, options)` | **Plans, Articles, Research** — محتاج جودة عالية وانتظار مقبول | Sequential — يجرب النموذج الأكبر الأول، ثم ينتقل للتالي عند الفشل |
-| `callFreeOpenRouterRace(prompt, options, raceCount=3)` | **EVO chat, Swap** — محتاج سرعة فائقة | Parallel — يستدعي 3 نماذج بالتوازي ويرجع أول رد ناجح |
+| `callAI(prompt, options)` | المدخل العام الموحد | يوجّه لمزود OpenRouter/Groq بحسب الإعدادات |
+| `callAIWithFallback(prompt, options)` | **Plans, Articles, Research** — جودة عالية | Sequential — يجرب النموذج الأكبر الأول ثم ينتقل للتالي عند الفشل |
+| `callFreeOpenRouterRace(prompt, options, raceCount)` | **EVO chat, Swap** — سرعة فائقة | Parallel — يستدعي نماذج بالتوازي ويرجع أول رد ناجح |
+| `callFreeAIFallbackChain()` | Local fallback | مولّد محلي حتمي عند فشل كل المزودات |
 
 ```typescript
-import { callFreeOpenRouter, callFreeOpenRouterRace } from "@/lib/ai-provider";
+import { callAIWithFallback, callFreeOpenRouterRace } from "@/lib/ai-provider";
 
 // للسرعة (chat, swap):
 const { text, model } = await callFreeOpenRouterRace(prompt, {
@@ -683,11 +719,11 @@ const { text, model } = await callFreeOpenRouterRace(prompt, {
 }, 3);  // race count
 
 // للجودة (plans, articles):
-const { text, model } = await callFreeOpenRouter(prompt, {
+const { text, model } = await callAIWithFallback(prompt, {
   temperature: 0.7,
   maxTokens: 4000,
   jsonMode: true,
-  timeoutMs: 60_000,  // حد Vercel Hobby
+  timeoutMs: 52_000,  // clamp ≤52s
 });
 ```
 
