@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useI18n } from "@/lib/i18n";
+import { useI18n, type Lang } from "@/lib/i18n";
 import { SiteHeader } from "@/components/SiteHeader";
 import { ShareButtons } from "@/components/ShareButtons";
 import {
@@ -17,10 +17,24 @@ import { ArrowLeft, Calculator, Target } from "lucide-react";
  * Client component for food detail page.
  * Receives the food as a prop from the server component
  * (which generates metadata + JSON-LD schemas server-side).
+ * Accepts an optional `lang` prop — the /ar/foods/[slug] mirror passes
+ * lang="ar" to force Arabic rendering (ProgramDetailClient pattern).
+ * Internal links stay inside the current language's URL space so the
+ * AR mirror never bounces Arabic users (or crawlers) back to the EN
+ * canonical route — and so every Arabic detail page has crawlable
+ * Arabic internal links (SEO 404 fix, 2026-09-01).
  */
-export default function FoodDetailClient({ food }: { food: Food | null }) {
-  const { lang } = useI18n();
+export default function FoodDetailClient({
+  food,
+  lang: langProp,
+}: {
+  food: Food | null;
+  lang?: Lang;
+}) {
+  const { lang: ctxLang } = useI18n();
+  const lang = langProp ?? ctxLang;
   const isAr = lang === "ar";
+  const base = isAr ? "/ar/foods" : "/foods";
 
   // Default grams = the food's default serving
   const [grams, setGrams] = useState<number>(food?.defaultGrams || 100);
@@ -44,7 +58,7 @@ export default function FoodDetailClient({ food }: { food: Food | null }) {
             {isAr ? "الأكلة غير موجودة" : "Food not found"}
           </h1>
           <a
-            href="/foods"
+            href={base}
             className="mt-6 inline-block rounded-full bg-[#0071e3] px-6 py-2.5 text-sm font-normal text-white"
           >
             {isAr ? "العودة للمكتبة" : "Back to library"}
@@ -70,9 +84,9 @@ export default function FoodDetailClient({ food }: { food: Food | null }) {
       <main className="mx-auto max-w-4xl px-4 py-8 md:py-12">
         {/* #17 fix: visible breadcrumb trail */}
         <nav aria-label="breadcrumb" className="mb-6 flex items-center gap-1.5 text-sm text-[#6e6e73]">
-          <a href="/" className="hover:text-[#0071e3]">{isAr ? "الرئيسية" : "Home"}</a>
+          <a href={isAr ? "/ar" : "/"} className="hover:text-[#0071e3]">{isAr ? "الرئيسية" : "Home"}</a>
           <span className="text-[#d2d2d7]">›</span>
-          <a href="/foods" className="hover:text-[#0071e3]">{isAr ? "الأكلات" : "Foods"}</a>
+          <a href={base} className="hover:text-[#0071e3]">{isAr ? "الأكلات" : "Foods"}</a>
           <span className="text-[#d2d2d7]">›</span>
           <span className="font-medium text-[#1d1d1f]">{isAr ? food.nameAr : food.nameEn}</span>
         </nav>
@@ -353,7 +367,7 @@ export default function FoodDetailClient({ food }: { food: Food | null }) {
               : "Want a personalized meal plan with the right macros for your goal?"}
           </p>
           <a
-            href="/memberships"
+            href={isAr ? "/ar/memberships" : "/memberships"}
             className="mt-3 inline-block rounded-full bg-[#0071e3] px-5 py-2 text-xs font-normal text-white hover:opacity-90"
           >
             {isAr ? "احصل على خطة مخصصة ›" : "Get a personalized plan ›"}
@@ -370,7 +384,7 @@ export default function FoodDetailClient({ food }: { food: Food | null }) {
               {related.map((rel) => (
                 <a
                   key={rel.slug}
-                  href={`/foods/${rel.slug}`}
+                  href={`${base}/${rel.slug}`}
                   className="group rounded-2xl bg-[#f5f5f7] p-4 transition-opacity hover:opacity-90"
                 >
                   <p className="text-sm font-semibold">{isAr ? rel.nameAr : rel.nameEn}</p>

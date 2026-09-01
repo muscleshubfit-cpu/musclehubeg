@@ -39,6 +39,13 @@ export async function generateMetadata({
     description,
     alternates: {
       canonical: url,
+      // hreflang pair (2026-09-01): reciprocal declaration with the AR
+      // mirror /ar/exercises/[slug] (which declares the same pair).
+      languages: {
+        en: url,
+        ar: `https://musclehubeg.vercel.app/ar/exercises/${exercise.slug}`,
+        "x-default": url,
+      },
     },
     openGraph: {
       type: "article",

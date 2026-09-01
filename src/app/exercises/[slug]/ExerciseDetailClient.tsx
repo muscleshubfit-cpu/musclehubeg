@@ -1,6 +1,6 @@
 "use client";
 
-import { useI18n } from "@/lib/i18n";
+import { useI18n, type Lang } from "@/lib/i18n";
 import { SiteHeader } from "@/components/SiteHeader";
 import { ShareButtons } from "@/components/ShareButtons";
 import { getExerciseImages, getFallbackSVG } from "@/lib/exercise-images";
@@ -19,16 +19,26 @@ import { ImageWithFallback } from "@/components/ui/image-with-fallback";
  * Client component for exercise detail page.
  * Receives the exercise + slug as props from the server component
  * (which generates metadata + JSON-LD schemas server-side).
+ * Accepts an optional `lang` prop — the /ar/exercises/[slug] mirror
+ * passes lang="ar" to force Arabic rendering (ProgramDetailClient
+ * pattern). Internal links stay inside the current language's URL
+ * space so the AR mirror never bounces Arabic users (or crawlers)
+ * back to the EN canonical route — and so every Arabic detail page
+ * has crawlable Arabic internal links (SEO 404 fix, 2026-09-01).
  */
 export default function ExerciseDetailClient({
   exercise,
   slug,
+  lang: langProp,
 }: {
   exercise: Exercise | null;
   slug: string;
+  lang?: Lang;
 }) {
-  const { lang } = useI18n();
+  const { lang: ctxLang } = useI18n();
+  const lang = langProp ?? ctxLang;
   const isAr = lang === "ar";
+  const base = isAr ? "/ar/exercises" : "/exercises";
 
   if (!exercise) {
     return (
@@ -39,7 +49,7 @@ export default function ExerciseDetailClient({
             {isAr ? "التمرين غير موجود" : "Exercise not found"}
           </h1>
           <a
-            href="/exercises"
+            href={base}
             className="mt-6 inline-block rounded-full bg-[#0071e3] px-6 py-2.5 text-sm font-normal text-white"
           >
             {isAr ? "العودة للمكتبة" : "Back to library"}
@@ -63,9 +73,9 @@ export default function ExerciseDetailClient({
       <main className="mx-auto max-w-4xl px-4 py-8 md:py-12">
         {/* #17 fix: visible breadcrumb trail */}
         <nav aria-label="breadcrumb" className="mb-6 flex items-center gap-1.5 text-sm text-[#6e6e73]">
-          <a href="/" className="hover:text-[#0071e3]">{isAr ? "الرئيسية" : "Home"}</a>
+          <a href={isAr ? "/ar" : "/"} className="hover:text-[#0071e3]">{isAr ? "الرئيسية" : "Home"}</a>
           <span className="text-[#d2d2d7]">›</span>
-          <a href="/exercises" className="hover:text-[#0071e3]">{isAr ? "التمارين" : "Exercises"}</a>
+          <a href={base} className="hover:text-[#0071e3]">{isAr ? "التمارين" : "Exercises"}</a>
           <span className="text-[#d2d2d7]">›</span>
           <span className="font-medium text-[#1d1d1f]">{isAr ? exercise.nameAr : exercise.nameEn}</span>
         </nav>
@@ -167,7 +177,7 @@ export default function ExerciseDetailClient({
                   : "Want a personalized workout plan based on your level and goals?"}
               </p>
               <a
-                href="/memberships"
+                href={isAr ? "/ar/memberships" : "/memberships"}
                 className="mt-3 inline-block rounded-full bg-[#0071e3] px-5 py-2 text-xs font-normal text-white hover:opacity-90"
               >
                 {isAr ? "احصل على خطة مخصصة ›" : "Get a personalized plan ›"}
@@ -234,7 +244,7 @@ export default function ExerciseDetailClient({
                 return (
                   <a
                     key={rel.slug}
-                    href={`/exercises/${rel.slug}`}
+                    href={`${base}/${rel.slug}`}
                     className="group overflow-hidden rounded-2xl bg-[#f5f5f7] transition-opacity hover:opacity-90"
                   >
                     <div className="relative aspect-square w-full bg-white">

@@ -18,6 +18,16 @@ import { createServerClient } from "@supabase/ssr";
  *
  * This middleware also refreshes expired sessions on every request.
  */
+/**
+ * SEO locale law (2026-09-01): shared predicate — Arabic ONLY means
+ * exactly `/ar` or the `/ar/…` subtree (same rule as the root layout's
+ * `isArabicPath` in src/app/layout.tsx). A loose startsWith("/ar") would
+ * misclassify future routes like /archive as Arabic.
+ */
+function isArabicPath(pathname: string): boolean {
+  return pathname === "/ar" || pathname.startsWith("/ar/");
+}
+
 export async function middleware(request: NextRequest) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -38,7 +48,11 @@ export async function middleware(request: NextRequest) {
   //   - English requests get `mhe:locale=en` (resets any stale `ar` cookie)
   // ──────────────────────────────────────────────────────────────────
   const pathname = request.nextUrl.pathname;
-  const isArabic = pathname.startsWith("/ar");
+  // Route locale — DYNAMIC, derived from the URL itself: `/ar/*` routes are
+  // Arabic, every other route is English. This drives the Content-Language
+  // header, the `x-pathname` header (read by the root layout to render
+  // `<html lang dir>`) and the `mhe:locale` cookie.
+  const isArabic = isArabicPath(pathname);
 
   let response = NextResponse.next({
     request: {
@@ -87,7 +101,7 @@ export async function middleware(request: NextRequest) {
         // (the `setAll` callback creates a new `NextResponse` that
         // replaces the original, so we must re-set our locale headers
         // on it to avoid losing them).
-        const isAr = pathname.startsWith("/ar");
+        const isAr = isArabicPath(pathname);
         response.headers.set("Content-Language", isAr ? "ar-EG" : "en-US");
         response.headers.set("x-pathname", pathname);
         response.cookies.set("mhe:locale", isAr ? "ar" : "en", {

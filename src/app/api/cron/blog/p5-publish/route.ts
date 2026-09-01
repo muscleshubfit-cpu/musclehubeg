@@ -3,6 +3,7 @@ import { supabaseAdmin, isSupabaseAdminConfigured } from "@/lib/supabase/admin";
 import { normalizeCategory } from "@/lib/blog-server";
 import { countWords, type OutlinePlan } from "@/lib/blog-pipeline";
 import { embedBodyImages } from "@/lib/blog-images";
+import { insertToolLinks } from "@/lib/blog-tool-links";
 import { slugifyAscii } from "@/lib/slug";
 import {
   getQueueIdParam,
@@ -125,6 +126,15 @@ export async function GET(request: NextRequest) {
     );
     const featured = images[0]?.url ?? null;
 
+    // AUTOMATIC FREE-TOOL INTERNAL LINKING (owner SEO directive,
+    // 2026-09-01): deterministic pass — wraps natural mentions (calories,
+    // macros, meal plans, water, body fat, BMI…) with links to the
+    // matching FREE TOOL on the site. Language-aware (EN/AR triggers),
+    // idempotent, max 3 links/article, never inside existing markdown
+    // links. Runs AFTER the P4 review (so the review model cannot strip
+    // these links) and BEFORE image embedding.
+    const toolLinkPass = insertToolLinks(review.markdown, lang);
+
     const row = {
       language: lang,
       title,
@@ -133,7 +143,7 @@ export async function GET(request: NextRequest) {
       // BODY IMAGE EMBEDDING LAW: images[0] = featured/og cover; images[1..N]
       // are inserted into the article markdown at section boundaries (was:
       // dropped entirely → every post was a wall of text).
-      content: embedBodyImages(review.markdown, images),
+      content: embedBodyImages(toolLinkPass.md, images),
       meta_title: `${outline.title}`.slice(0, 60),
       meta_description: outline.metaDescription,
       focus_keyword: qi.focus_keyword,
@@ -174,6 +184,7 @@ export async function GET(request: NextRequest) {
       sitemap: "auto (dynamic sitemap.ts)",
       title: row.title,
       slug,
+      toolLinksInserted: toolLinkPass.inserted.length,
     });
   } catch (e: any) {
     console.error("[blog/p5-publish] Error:", e?.message || e);

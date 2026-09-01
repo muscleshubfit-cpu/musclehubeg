@@ -230,13 +230,33 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${baseUrl}/terms`, lastModified, changeFrequency: "yearly", priority: 0.3 },
   ];
 
-  // Add all exercise detail pages
+  // Add all exercise detail pages (EN + AR mirrors — SEO 404 fix
+  // 2026-09-01: /ar/exercises/[slug] is now a real page, declared WITH
+  // hreflang alternates so Google indexes both language versions).
   for (const ex of EXERCISES) {
     staticUrls.push({
       url: `${baseUrl}/exercises/${ex.slug}`,
       lastModified,
       changeFrequency: "monthly",
       priority: 0.6,
+      alternates: {
+        languages: {
+          en: `${baseUrl}/exercises/${ex.slug}`,
+          ar: `${baseUrl}/ar/exercises/${ex.slug}`,
+        },
+      },
+    });
+    staticUrls.push({
+      url: `${baseUrl}/ar/exercises/${ex.slug}`,
+      lastModified,
+      changeFrequency: "monthly",
+      priority: 0.6,
+      alternates: {
+        languages: {
+          en: `${baseUrl}/exercises/${ex.slug}`,
+          ar: `${baseUrl}/ar/exercises/${ex.slug}`,
+        },
+      },
     });
   }
 
@@ -268,13 +288,33 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     });
   }
 
-  // Add all food detail pages
+  // Add all food detail pages (EN + AR mirrors — SEO 404 fix
+  // 2026-09-01: /ar/foods/[slug] is now a real page, declared WITH
+  // hreflang alternates).
   for (const food of FOODS) {
     staticUrls.push({
       url: `${baseUrl}/foods/${food.slug}`,
       lastModified,
       changeFrequency: "monthly",
       priority: 0.6,
+      alternates: {
+        languages: {
+          en: `${baseUrl}/foods/${food.slug}`,
+          ar: `${baseUrl}/ar/foods/${food.slug}`,
+        },
+      },
+    });
+    staticUrls.push({
+      url: `${baseUrl}/ar/foods/${food.slug}`,
+      lastModified,
+      changeFrequency: "monthly",
+      priority: 0.6,
+      alternates: {
+        languages: {
+          en: `${baseUrl}/foods/${food.slug}`,
+          ar: `${baseUrl}/ar/foods/${food.slug}`,
+        },
+      },
     });
   }
 

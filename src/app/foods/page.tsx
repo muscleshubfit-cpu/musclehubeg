@@ -257,7 +257,7 @@ export default function FoodsPage({ lang: langProp }: { lang?: Lang } = {}) {
               {visibleFoods.map((food) => (
                 <a
                   key={food.slug}
-                  href={`/foods/${food.slug}`}
+                  href={`${isAr ? "/ar/foods" : "/foods"}/${food.slug}`}
                   className="card-hover group rounded-3xl bg-[#f5f5f7]"
                 >
                   {/* Content */}

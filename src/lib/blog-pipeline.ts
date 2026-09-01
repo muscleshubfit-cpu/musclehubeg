@@ -203,16 +203,22 @@ CHOSEN TOPIC: "${topic}"
 
 ${angleLine}
 
+LONG-TAIL SEO LAW (owner directive 2026-09-01): the title, at least TWO H2
+headings, and at least 5 of the LSI keywords must mirror REAL long-tail
+search phrasing — the exact question-style / how-to / "best X for Y" phrasings
+people type into Google and AI assistants (e.g. "how many calories to eat to
+lose weight" beats "calories"). Broad head-term titles are a FAILURE.
+
 ${researchDigest(research)}
 
 Create the detailed article blueprint. Return STRICT JSON only:
 {
-  "title": "SEO headline 50-65 chars, contains the main keyword naturally",
+  "title": "SEO headline 50-65 chars containing the LONG-TAIL keyword naturally, phrased like a real search query",
   "subtitle": "one engaging supporting line",
-  "metaDescription": "140-155 chars including the main keyword",
+  "metaDescription": "140-155 chars including the long-tail keyword",
   "slugBase": "short-url-slug-in-lowercase-english-even-for-arabic",
-  "sections": ["H2 heading 1", "..."],            // exactly 5-7 H2s shaped for the article type above
-  "lsiKeywords": ["...", "..."],                   // 8-12 LSI/sub-keywords to weave in naturally
+  "sections": ["H2 heading 1", "..."],            // exactly 5-7 H2s shaped for the article type above; at least TWO phrased as real long-tail search questions
+  "lsiKeywords": ["...", "..."],                   // 8-12 sub-keywords to weave in naturally; at least 5 must be 3+ word long-tail phrases
   "imagePlan": [ {"subject": "exact visual subject", "type": "photo|infographic|diagram"} ] // 3-5 items matching the sections. IMAGE LAW: subjects MUST be ENGLISH physical OBJECTS or SCENES ONLY (equipment, food, interiors) — NEVER any person, body part, people word, or clothing wording
 }`;
   const { text, model, provider } = await callFreeAIFallbackChain(prompt, {
@@ -287,6 +293,10 @@ TITLE: ${outline.title}
 SUBTITLE: ${outline.subtitle}
 MAIN KEYWORDS TO COVER NATURALLY: ${research.keywords.slice(0, 6).map((k) => k.keyword).join("; ")}
 LSI KEYWORDS: ${outline.lsiKeywords.join("; ")}
+
+LONG-TAIL RULE: the keywords above are LONG-TAIL search phrases — include
+them VERBATIM (or near-verbatim) inside H2 headings and paragraph text where
+it reads naturally. These exact phrasings are what the article must rank for.
 
 ${angleLine}
 
@@ -422,9 +432,16 @@ DO ALL OF THE FOLLOWING:
 2. Verify every main keyword & LSI term appears naturally at least once; add a sentence where missing.
 3. Fact-guard: remove or soften any specific citation that looks invented (paper names/authors/URLs that may not exist). Keep generic phrasing like "research shows".
 4. Add EXACTLY 2-4 internal links using [anchor](/blog/slug) format on fitting anchor text from the list above (only real slugs).
-5. Add at most 2 external links ONLY to well-known authoritative domains you are certain exist (who.int, ncbi.nlm.nih.gov, cdc.gov, mayoclinic.org) in [anchor](https://...) format.
-6. ${ctaInstruction}
-7. Keep all "## " section structure; output the COMPLETE final article.
+5. FREE-TOOL LINKS (owner directive 2026-09-01): wherever the text naturally mentions calories, macros/protein targets, body fat, BMI, water intake, or meal plans, link that phrase to the matching FREE tool in [anchor](url) format — ONLY these URLs, max 3 total, each used at most once:
+   - calories → [anchor](/tools/calorie-calculator)
+   - macros/protein needs → [anchor](/tools/macro-calculator)
+   - body fat → [anchor](/tools/body-fat-calculator)
+   - BMI → [anchor](/tools/bmi-calculator)
+   - water intake/hydration → [anchor](/tools/water-tracker)
+   - meal plan/meal prep → [anchor](/meal-planner)
+6. Add at most 2 external links ONLY to well-known authoritative domains you are certain exist (who.int, ncbi.nlm.nih.gov, cdc.gov, mayoclinic.org) in [anchor](https://...) format.
+7. ${ctaInstruction}
+8. Keep all "## " section structure; output the COMPLETE final article.
 
 Return STRICT JSON only:
 {

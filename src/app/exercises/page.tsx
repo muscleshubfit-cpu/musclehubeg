@@ -210,7 +210,7 @@ export default function ExercisesPage({ lang: langProp }: { lang?: Lang } = {}) 
                 return (
                   <a
                     key={exercise.slug}
-                    href={`/exercises/${exercise.slug}`}
+                    href={`${isAr ? "/ar/exercises" : "/exercises"}/${exercise.slug}`}
                     className="card-hover group overflow-hidden rounded-3xl bg-[#f5f5f7]"
                   >
                     {/* Images — show both side by side */}

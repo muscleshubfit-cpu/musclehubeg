@@ -29,14 +29,27 @@
 
 import { callFreeAIFallbackChain, parseJSON } from "@/lib/ai-provider";
 import { externalSearch } from "@/lib/external-search";
+import { insertToolLinks } from "@/lib/blog-tool-links";
 
 export const ARTICLE_SYSTEM_PROMPT = `You are the Musclehubeg AI Content Assistant — an expert SEO content strategist and copywriter for a premium online nutrition & fitness coaching platform (Musclehubeg, musclehubeg.vercel.app).
 
 Your job: produce publication-ready blog content optimized for:
  - Google Search (E-E-A-T, helpful content, semantic SEO)
+ - LONG-TAIL KEYWORDS first (owner directive 2026-09-01): target the exact
+   3+ word question-style phrases real people search in nutrition & fitness
+   ("how many calories should I eat to lose weight", "best time to drink a
+   protein shake") — NOT broad head terms like "protein" or "calories".
  - GEO (Generative Engine Optimization — answers AI assistants can cite)
  - AEO (Answer Engine Optimization — concise, quotable, structured)
  - AI Search (clear factual answers, definitions, comparisons)
+
+FREE-TOOL INTERNAL LINKING: Musclehubeg has free tools readers should
+discover — calorie calculator (/tools/calorie-calculator), macro calculator
+(/tools/macro-calculator), body fat calculator (/tools/body-fat-calculator),
+BMI calculator (/tools/bmi-calculator), water tracker (/tools/water-tracker),
+meal planner (/meal-planner), exercise library (/exercises), food database
+(/foods). Mention the relevant tools naturally where they help the reader;
+the publisher inserts the actual markdown links automatically.
 
 Style:
  - Tone: authoritative yet approachable, science-backed, motivating.
@@ -75,6 +88,15 @@ Example: "معدل الأيض الأساسي (BMR)" — correct.
 Example: "BMR" alone — WRONG.
 
 Do NOT write English sentences or paragraphs. Do NOT translate — write fresh Arabic content.
+
+LONG-TAIL KEYWORD LAW (owner directive 2026-09-01): target the exact Arabic
+long-tail search phrases people type ("كم سعرات أحتاج يومياً لخسارة الوزن",
+"أفضل وقت لأشرب البروتين بعد التمرين") — NOT broad terms like "البروتين".
+
+FREE-TOOL INTERNAL LINKING: mention the relevant Musclehubeg free tools
+naturally where they help the reader (حاسبة السعرات، حاسبة الماكروز، حاسبة
+نسبة الدهون، حاسبة BMI، عدّاد الماء، مخطط الوجبات) — the publisher inserts the
+actual markdown links automatically.
 
 Style:
 - Modern Standard Arabic (فصحى) with a friendly, motivating tone.
@@ -119,11 +141,14 @@ INPUT:
 ${researchBlock}
 
 STEP 1 — ENGLISH SEO DATA (English only — do NOT generate Arabic SEO):
- - focusKeyword: the single primary English keyword.
- - secondaryKeywords: array of 5-8 related English keywords.
- - seoTitle: ≤ 60 chars, English, includes focus keyword near the front.
+ - focusKeyword: the single primary English keyword — MUST be a LONG-TAIL
+   phrase (3+ words, question/how-to/best-X-for-Y search phrasing).
+ - secondaryKeywords: array of 5-8 related English keywords — at least 4
+   must be long-tail variants (e.g. "how many calories to eat to lose weight",
+   "calorie deficit for beginners").
+ - seoTitle: ≤ 60 chars, English, includes the long-tail focus keyword near the front, phrased like a real search query.
  - metaTitle: ≤ 60 chars, English, may equal seoTitle.
- - metaDescription: 120-160 chars, English, includes focus keyword + a CTA verb.
+ - metaDescription: 120-160 chars, English, includes the long-tail keyword + a CTA verb.
  - slug: kebab-case, English, 3-6 words, includes focus keyword.
 
 STEP 2 — ENGLISH ARTICLE (Markdown, 700-900 words):
@@ -135,10 +160,17 @@ STEP 2 — ENGLISH ARTICLE (Markdown, 700-900 words):
    rendered automatically by the blog page component after the article body.
  - Insert the focus keyword in the first paragraph, in at least one H2, and 2-3 times in body.
  - Each section MUST include at least 2 specific actionable examples (numbers, exercises, timeframes, food lists).
+ - Where it genuinely helps the reader, mention the relevant Musclehubeg FREE
+   TOOLS naturally in the flow of the text ("a calorie calculator", "your macro
+   targets", "a meal planner", "the water tracker") — the publisher inserts the
+   actual markdown links to /tools/calorie-calculator, /tools/macro-calculator,
+   /tools/body-fat-calculator, /tools/bmi-calculator, /tools/water-tracker and
+   /meal-planner automatically. Do NOT invent other tool URLs.
  - DO NOT insert internal or external links — they will be added separately.
 
 STEP 3 — ENGLISH FAQ (3-5 Q&As, English only):
- - Questions people ask on Google + AI assistants about this topic.
+ - Questions MUST be long-tail search queries people actually type on Google
+   + AI assistants about this topic (People-Also-Ask style).
  - Answers 40-80 words each, concise and quotable.
 
 STEP 4 — ENGLISH IMAGE PROMPTS (for AI image generators):
@@ -214,8 +246,10 @@ CONTEXT:
  - Focus Keyword (Arabic): ${arFocusKw || "(none — derive from topic)"}
 
 STEP 0 — ARABIC SEO DATA (Arabic only — do NOT generate English SEO):
- - focusKeyword: الكلمة المفتاحية الرئيسية بالعربية (أو ما يقابلها).
- - secondaryKeywords: array of 5-8 related Arabic keywords.
+ - focusKeyword: الكلمة المفتاحية الرئيسية بالعربية — لازم تكون عبارة بحث
+   طويلة (٣ كلمات أو أكثر) بصيغة البحث الحقيقية مثل «كم سعرات أحتاج يومياً».
+ - secondaryKeywords: array of 5-8 related Arabic keywords — 4 منها على الأقل
+   عبارات طويلة بنفس أسلوب بحث المستخدم العربي.
  - seoTitle: ≤ 60 حرف، عنوان عربي طبيعي وجذاب.
  - metaTitle: ≤ 60 حرف، عربي، قد يساوي seoTitle.
  - metaDescription: 120-160 حرف، عربي، بصياغة عربية طبيعية + فعل CTA.
@@ -243,6 +277,10 @@ STEP 1 — ARABIC ARTICLE (LOCALIZED, NOT TRANSLATED, Markdown, 600-800 words):
    automatically by the blog page component. End with "Key Takeaways" only.
  - Each section MUST include at least 2 specific actionable examples (numbers, foods, exercises, timeframes).
  - Include the focus keyword (transliterated or Arabic equivalent) naturally.
+ - Where it genuinely helps the reader, mention the relevant Musclehubeg FREE
+   TOOLS naturally in the Arabic flow (حاسبة السعرات، حاسبة الماكروز، حاسبة
+   نسبة الدهون، حاسبة كتلة الجسم، عدّاد الماء، مخطط الوجبات) — the publisher
+   inserts the actual markdown links automatically. Do NOT invent other tool URLs.
  - DO NOT insert internal or external links — they will be added separately.
 
 CRITICAL ARABIC-ONLY RULES (VIOLATION = REJECTED ARTICLE):
@@ -728,8 +766,14 @@ export async function generateArticleBundle(
   const arInternalLinks = linksResult?.internalLinksAr || enInternalLinks;
   const arExternalLinks = linksResult?.externalLinksAr || enExternalLinks;
 
-  const englishArticle = insertLinksIntoArticle(englishArticleRaw, enInternalLinks, enExternalLinks, false);
-  const arabicArticle = insertLinksIntoArticle(arabicArticleRaw, arInternalLinks, arExternalLinks, true);
+  const englishArticle = insertToolLinks(
+    insertLinksIntoArticle(englishArticleRaw, enInternalLinks, enExternalLinks, false),
+    "en",
+  ).md;
+  const arabicArticle = insertToolLinks(
+    insertLinksIntoArticle(arabicArticleRaw, arInternalLinks, arExternalLinks, true),
+    "ar",
+  ).md;
 
   const enWordCount = englishArticle.split(/\s+/).filter(Boolean).length;
   const arWordCount = arabicArticle.split(/\s+/).filter(Boolean).length;
@@ -1109,8 +1153,17 @@ export function buildFinalBundle(parts: {
   const arExternalLinks = parts.externalLinksAr || enExternalLinks;
 
   // Insert links into articles (EN links → EN article, AR links → AR article)
-  const englishArticle = insertLinksIntoArticle(parts.englishArticle || "", enInternalLinks, enExternalLinks, false);
-  const arabicArticle = insertLinksIntoArticle(parts.arabicArticle || "", arInternalLinks, arExternalLinks, true);
+  // + AUTOMATIC FREE-TOOL LINKING (owner directive 2026-09-01): the same
+  // deterministic pass the p5 publisher runs — keeps legacy bundles on par
+  // with the V3 pipeline (idempotent, so double application is safe).
+  const englishArticle = insertToolLinks(
+    insertLinksIntoArticle(parts.englishArticle || "", enInternalLinks, enExternalLinks, false),
+    "en",
+  ).md;
+  const arabicArticle = insertToolLinks(
+    insertLinksIntoArticle(parts.arabicArticle || "", arInternalLinks, arExternalLinks, true),
+    "ar",
+  ).md;
 
   // Build seo blocks with per-language focusKeyword/secondaryKeywords
   const enSeoBlock: SeoBlock = parts.seo?.en ? buildSeo(parts.seo.en) : emptySeo;

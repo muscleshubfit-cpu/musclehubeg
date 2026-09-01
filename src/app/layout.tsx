@@ -25,7 +25,25 @@ const organizationSchema = getOrganizationSchema();
 const websiteSchema = getWebSiteSchema();
 
 /**
+ * SEO locale law (2026-09-01): a URL is Arabic ONLY when it is exactly
+ * `/ar` or inside the `/ar/` route subtree. A loose `startsWith("/ar")`
+ * would misclassify any future route whose path merely BEGINS with the
+ * letters "ar" (e.g. /archive, /articles) as Arabic — rendering
+ * `lang="ar" dir="rtl"` markup on an English page. Both the middleware
+ * (`src/middleware.ts`) and this resolver share the same predicate so
+ * the `<html lang dir>` attributes, the `Content-Language` header and
+ * the `mhe:locale` cookie can never disagree about the current route.
+ */
+function isArabicPath(pathname: string): boolean {
+  return pathname === "/ar" || pathname.startsWith("/ar/");
+}
+
+/**
  * Resolve the locale for the root <html lang dir> attributes.
+ *
+ * DYNAMIC — derived from the CURRENT route's locale (the `/ar/*` URL
+ * prefix), never hardcoded: Googlebot always sees `lang="ar" dir="rtl"
+ * on Arabic routes and `lang="en" dir="ltr"` on English ones.
  *
  * Precedence (enforced here, NOT in middleware):
  *   1. URL pathname — `/ar/...` → `ar` (cookie can NOT override this)
@@ -56,10 +74,11 @@ const websiteSchema = getWebSiteSchema();
  */
 async function resolveLocale(): Promise<{ lang: "en" | "ar"; dir: "ltr" | "rtl" }> {
   // 1. Pathname — read from the `x-pathname` header set by middleware.
-  //    This is the most reliable signal: `/ar/*` ALWAYS wins.
+  //    This is the most reliable signal: the route's own locale ALWAYS
+  //    wins (`/ar/*` → ar, everything else → en).
   const h = await headers();
   const pathname = h.get("x-pathname") || "";
-  if (pathname.startsWith("/ar")) {
+  if (isArabicPath(pathname)) {
     return { lang: "ar", dir: "rtl" };
   }
 
@@ -74,6 +93,8 @@ async function resolveLocale(): Promise<{ lang: "en" | "ar"; dir: "ltr" | "rtl" 
       return { lang: "ar", dir: "rtl" };
     }
   }
+  // (cookie fallback only runs when middleware didn't execute — for every
+  //  normal request the route pathname above decides the language)
 
   // 3. Default
   return { lang: "en", dir: "ltr" };

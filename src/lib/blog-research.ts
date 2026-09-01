@@ -118,55 +118,57 @@ export function fallbackResearch(lang: "en" | "ar", recentTitles: string[] = [])
   if (lang === "ar") {
     return {
       keywords: [
-        { keyword: "تمارين زيادة العضلات", searchVolume: "عالي" },
-        { keyword: "جدول تغذية لبناء العضلات", searchVolume: "عالي" },
-        { keyword: "أفضل تمارين حرق الدهون", searchVolume: "عالي" },
-        { keyword: "بروتين واي منافع وأضرار", searchVolume: "متوسط" },
-        { keyword: "تمارين المبتدئين في الجيم", searchVolume: "عالي" },
-        { keyword: "حساب السعرات اليومية", searchVolume: "متوسط" },
-        { keyword: "أكل قبل وبعد التمرين", searchVolume: "متوسط" },
-        { keyword: "تنشيف وحرق دهون البطن", searchVolume: "عالي" },
-        { keyword: "أفضل مكملات زيادة الوزن", searchVolume: "متوسط" },
-        { keyword: "النوم وبناء العضلات", searchVolume: "منخفض" },
+        { keyword: "كم سعرة أحتاج يومياً لخسارة الوزن", searchVolume: "عالي" },
+        { keyword: "جدول تغذية لبناء العضلات للمبتدئين", searchVolume: "عالي" },
+        { keyword: "أفضل تمارين حرق دهون البطن في المنزل", searchVolume: "عالي" },
+        { keyword: "كم جرام بروتين يحتاج الجسم يومياً لبناء العضلات", searchVolume: "عالي" },
+        { keyword: "بروتين واي منافع وأضرار ومتى أشربه", searchVolume: "متوسط" },
+        { keyword: "أفضل وقت للتمرين لبناء العضلات صباحاً أم مساءً", searchVolume: "متوسط" },
+        { keyword: "أكل قبل وبعد التمرين بكمية وكام ساعة", searchVolume: "متوسط" },
+        { keyword: "كيف أنشف بطني بدون فقدان عضلات", searchVolume: "عالي" },
+        { keyword: "أفضل مكملات زيادة الوزن للنحاف", searchVolume: "متوسط" },
+        { keyword: "النوم وبناء العضلات كم ساعة أحتاج", searchVolume: "منخفض" },
       ],
       faqs: [
         { question: "كم مرة أتدرب في الأسبوع لبناء العضلات؟", answer: "3-5 أيام أسبوعيًا تكفي مع تدرج في الأوزان." },
         { question: "هل الكارديو يحرق العضلات؟", answer: "الكارديو المعتدل لا يحرق العضلات إذا كانت سعراتك كافية." },
         { question: "ما أفضل وقت للتمرين؟", answer: "أي وقت يناسب جدولك باستمرار هو الأفضل." },
+        { question: "كم سعرة أحتاج يومياً لخسارة الوزن؟", answer: "يعتمد على وزنك ونشاطك — احسبها بحاسبة السعرات ثم اطرح 300-500 سعرة." },
       ],
       topics: rotate([
-        "الدليل الكامل لبناء العضلات للمبتدئين",
-        "كيف تحسب سعراتك اليومية بدقة",
-        "أخطاء شائعة تمنعك من حرق الدهون",
-        "أفكار وجبات صحية سريعة لصحة أفضل",
-        "الاستشفاء والنوم: المفتاح المنسي لنتائج أسرع",
+        "الدليل الكامل لبناء العضلات للمبتدئين: من أين تبدأ خطوة بخطوة",
+        "كيف تحسب سعراتك اليومية بدقة لخسارة الوزن أو التضخيم",
+        "أخطاء شائعة تمنعك من حرق الدهون رغم التمرين اليومي",
+        "أفكار وجبات صحية سريعة عالية البروتين للموظفين",
+        "الاستشفاء والنوم: المفتاح المنسي لنتائج أسرع في الجيم",
       ]),
     };
   }
   return {
     keywords: [
-      { keyword: "beginner workout plan", searchVolume: "high" },
-      { keyword: "muscle building meal plan", searchVolume: "high" },
-      { keyword: "best fat burning exercises", searchVolume: "high" },
-      { keyword: "whey protein benefits", searchVolume: "medium" },
-      { keyword: "how many calories should i eat", searchVolume: "high" },
-      { keyword: "push pull legs routine", searchVolume: "medium" },
-      { keyword: "pre workout nutrition", searchVolume: "medium" },
-      { keyword: "belly fat loss tips", searchVolume: "high" },
-      { keyword: "best supplements for muscle gain", searchVolume: "medium" },
-      { keyword: "recovery and sleep for athletes", searchVolume: "low" },
+      { keyword: "how many calories should i eat to lose weight", searchVolume: "high" },
+      { keyword: "beginner workout plan at home no equipment", searchVolume: "high" },
+      { keyword: "muscle building meal plan on a budget", searchVolume: "high" },
+      { keyword: "best fat burning exercises for belly fat", searchVolume: "high" },
+      { keyword: "how much protein do i need to build muscle per day", searchVolume: "high" },
+      { keyword: "whey protein benefits and side effects", searchVolume: "medium" },
+      { keyword: "pre workout nutrition what to eat and when", searchVolume: "medium" },
+      { keyword: "push pull legs routine for beginners", searchVolume: "medium" },
+      { keyword: "how to lose belly fat without losing muscle", searchVolume: "high" },
+      { keyword: "best supplements for muscle gain for beginners", searchVolume: "medium" },
     ],
     faqs: [
       { question: "How many days a week should I train to build muscle?", answer: "3–5 sessions per week with progressive overload is enough." },
       { question: "Does cardio burn muscle?", answer: "Moderate cardio does not burn muscle if calories and protein are adequate." },
       { question: "What is the best time to work out?", answer: "Any time you can train consistently is the best time." },
+      { question: "How many calories should I eat to lose weight?", answer: "Estimate your maintenance with a calorie calculator, then subtract 300–500 kcal." },
     ],
     topics: rotate([
-      "The Complete Beginner's Guide to Building Muscle",
-      "How to Calculate Your Daily Calories Accurately",
-      "Common Mistakes That Block Fat Loss",
-      "Quick Healthy Meal Ideas for Busy People",
-      "Recovery and Sleep: The Forgotten Key to Faster Results",
+      "The Complete Beginner's Guide to Building Muscle: Where to Start Step by Step",
+      "How to Calculate Your Daily Calories Accurately for Fat Loss or Bulking",
+      "Common Mistakes That Block Fat Loss Despite Daily Workouts",
+      "Quick High-Protein Meal Ideas for Busy Professionals",
+      "Recovery and Sleep: The Forgotten Key to Faster Gym Results",
     ]),
   };
 }
@@ -200,11 +202,16 @@ ${recentTitles.slice(0, 35).map((t, i) => `${i + 1}. ${t}`).join("\n")}`
 ${outLang}
 Produce REALISTIC SEO research for a fitness/nutrition blog (use your training knowledge of what people search in this niche; volume labels are estimates like "high/medium/low").
 ${recentBlock}
+
+LONG-TAIL KEYWORD LAW (owner directive 2026-09-01):
+- At least 6 of the 10 keywords MUST be LONG-TAIL keywords: 3+ word phrases phrased the way real people search (question format, "how to…", "best … for …", "… vs …", or a very specific intent), NOT broad one/two-word head terms.
+- Every FAQ question must be a REAL most-searched question in the fitness/nutrition niche (People-Also-Ask style, phrased exactly as users type it).
+- Each of the 5 topic suggestions must target at least one LONG-TAIL keyword (a broad "protein guide" topic is a FAILURE; "how much protein do you really need per day to build muscle" is a WIN).
 Return STRICT JSON only, no markdown fences:
 {
-  "keywords": [ {"keyword": "...", "searchVolume": "high|medium|low"} ],   // exactly 10 items
-  "faqs":     [ {"question": "...", "answer": "1-2 sentence direct answer"} ], // exactly 10 items
-  "topics":   [ "..." ]   // exactly 5 specific, non-generic article topic suggestions NOT overlapping with the recent titles above (different subject or clearly different angle); each targets at least one keyword above; VARY the article types across the 5 (guide / myth-busting / comparison / step-by-step plan / science deep-dive)
+  "keywords": [ {"keyword": "...", "searchVolume": "high|medium|low"} ],   // exactly 10 items — ≥6 long-tail (3+ words, real search phrasing)
+  "faqs":     [ {"question": "...", "answer": "1-2 sentence direct answer"} ], // exactly 10 items — most-searched questions (People-Also-Ask style)
+  "topics":   [ "..." ]   // exactly 5 specific, non-generic article topic suggestions NOT overlapping with the recent titles above; EACH must target a long-tail keyword above; VARY the article types across the 5 (guide / myth-busting / comparison / step-by-step plan / science deep-dive)
 }`;
 
   try {
