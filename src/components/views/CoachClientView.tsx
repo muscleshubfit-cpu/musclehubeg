@@ -52,7 +52,7 @@ import {
  getQuestionnaire,
  fetchProfile,
 } from "@/lib/data";
-import { getTier, type Duration } from "@/lib/plans";
+import { getTier, type Duration, type TierId } from "@/lib/plans";
 import { MEMBERSHIPS } from "@/lib/memberships";
 import { resolveExerciseImage, getExerciseImage, getExerciseImages, getFallbackSVG } from "@/lib/exercise-images";
 import { EXERCISES } from "@/lib/exercises";
@@ -68,9 +68,25 @@ import {
  selectRecoverablePlanJobs,
  planJobTypeToKind,
  type PendingPlanJob,
+ type RecoverableJobInput,
 } from "@/lib/plan-jobs";
+import type { AiJobRow } from "@/lib/ai-jobs";
+import type { Profile, Subscription, ProgressEntry, Plan } from "@/lib/supabase/types";
+// Type-only imports (erased at build): PlanContent family comes from the
+// server generator; the client only needs their shapes for the editor.
+import type { NutritionPlanContent, WorkoutPlanContent, PlanOverrides } from "@/lib/plan-generator";
+import type { PlanContent } from "@/lib/data/plans";
+
+/** Result payload of a finished plan_* ai_job (getAiJob → job.result). */
+type PlanJobResult = { title?: string; content?: PlanContent | null; materialized?: boolean; plan_id?: string };
+
+/** Narrow questionnaire `data: Json` into a plain editable record. */
+const asForm = (v: Json | undefined | null): Record<string, Json> =>
+ v && typeof v === "object" && !Array.isArray(v) ? (v as Record<string, Json>) : {};
 import { NotificationForm } from "@/components/NotificationForm";
 import { isSupabaseConfigured } from "@/lib/data/helpers";
+import type { Json } from "@/lib/supabase/types";
+import type { QuestionnaireRow } from "@/lib/data/questionnaires";
 import {
  COACH_CLIENT_PACKAGES,
  COACH_PAYMENT_METHODS,
@@ -99,13 +115,13 @@ export function CoachClientView({ clientId }: { clientId: string }) {
  // OWNER BOUNDARY (2026-08-30): admins manage everything; coaches must
  // NEVER see site memberships (premium/pro) — only their coaching product.
  const { isAdmin } = useAuth();
- const [client, setClient] = useState<any | null>(null);
- const [sub, setSub] = useState<any | null>(null);
- const [allSubs, setAllSubs] = useState<any[]>([]);
- const [progress, setProgress] = useState<any[]>([]);
- const [plans, setPlans] = useState<any[]>([]);
- const [nutriQ, setNutriQ] = useState<any | null>(null);
- const [fitQ, setFitQ] = useState<any | null>(null);
+ const [client, setClient] = useState<Profile | null>(null);
+ const [sub, setSub] = useState<Subscription | null>(null);
+ const [allSubs, setAllSubs] = useState<Subscription[]>([]);
+ const [progress, setProgress] = useState<ProgressEntry[]>([]);
+ const [plans, setPlans] = useState<Plan[]>([]);
+ const [nutriQ, setNutriQ] = useState<QuestionnaireRow | null>(null);
+ const [fitQ, setFitQ] = useState<QuestionnaireRow | null>(null);
  const [loading, setLoading] = useState(true);
  const [tab, setTab] = useState<"overview" | "subscription" | "plans" | "ai-plans" | "questionnaires" | "progress" | "notifications">("overview");
 
@@ -133,7 +149,7 @@ export function CoachClientView({ clientId }: { clientId: string }) {
  // AI plan generation
  const [generating, setGenerating] = useState<"workout" | "nutrition" | null>(null);
  const [approving, setApproving] = useState<string | null>(null);
- const [viewingPlan, setViewingPlan] = useState<any | null>(null);
+ const [viewingPlan, setViewingPlan] = useState<Plan | null>(null);
  // 0034: per-client AI quota readout — SUPERSEDED by the ONE client plan
  // balance (2026-09-01 one-pool + 2026-09-02 weekly cap 1+1 / Pro 2+2 +
  // monthly total 4+4 / Pro 8+8; the old coach-side 4/4 cap was removed).
@@ -156,7 +172,7 @@ export function CoachClientView({ clientId }: { clientId: string }) {
  const hasActiveCoaching = useMemo(
  () =>
  allSubs.some(
- (s: any) =>
+ (s) =>
  s.tier === "coaching" &&
  s.status === "active" &&
  (!s.end_date || new Date(s.end_date).getTime() > Date.now()),
@@ -174,7 +190,7 @@ export function CoachClientView({ clientId }: { clientId: string }) {
  // swap watcher: a localStorage registry re-attaches watchers on every
  // mount, and finished-but-unsaved jobs surface in a recovery card.
  const [pendingPlanJobs, setPendingPlanJobs] = useState<PendingPlanJob[]>([]);
- const [recoverableJobs, setRecoverableJobs] = useState<any[]>([]);
+ const [recoverableJobs, setRecoverableJobs] = useState<RecoverableJobInput[]>([]);
  const [recoveringId, setRecoveringId] = useState<string | null>(null);
  const activePlanWatchers = useRef<Set<string>>(new Set());
 
@@ -209,15 +225,15 @@ export function CoachClientView({ clientId }: { clientId: string }) {
  // OWNER BOUNDARY (2026-08-30): the coach sees ONLY the coaching-tier
  // subscription — site memberships (premium/pro) are the site's business,
  // never his. Admins keep the full picture.
- const visibleSubs: any[] = isAdmin
+ const visibleSubs: Subscription[] = isAdmin
  ? clientSubs
- : clientSubs.filter((x: any) => x.tier === "coaching");
+ : clientSubs.filter((x) => x.tier === "coaching");
  setAllSubs(visibleSubs);
  // Set the primary sub — separate coaching from memberships
  // Pick best MEMBERSHIP tier (pro > premium). If only coaching, pick coaching.
- const hasCoaching = visibleSubs.some((s: any) => s.tier === "coaching");
- const membershipSubs = visibleSubs.filter((s: any) => ["premium", "pro"].includes(s.tier));
- let s: any = null;
+ const hasCoaching = visibleSubs.some((s) => s.tier === "coaching");
+ const membershipSubs = visibleSubs.filter((s) => ["premium", "pro"].includes(s.tier));
+ let s: Subscription | null = null;
  if (membershipSubs.length > 0) {
  const priority = (tier: string) => {
  if (tier === "pro") return 3;
@@ -227,7 +243,7 @@ export function CoachClientView({ clientId }: { clientId: string }) {
  const sorted = [...membershipSubs].sort((a, b) => priority(b.tier) - priority(a.tier));
  s = sorted[0];
  } else if (hasCoaching) {
- s = clientSubs.find((sub: any) => sub.tier === "coaching");
+ s = clientSubs.find((sub) => sub.tier === "coaching") ?? null;
  }
  setSub(s);
  setProgress(p);
@@ -236,7 +252,7 @@ export function CoachClientView({ clientId }: { clientId: string }) {
  setFitQ(f);
  if (s) {
  setTier(s.tier);
- setMonths(s.months);
+ setMonths(s.months as Duration); // DB stores any int; the form offers the standard durations
  // 0043: no manual date prefill — dates are computed/previewed only.
  }
  setLoading(false);
@@ -289,8 +305,8 @@ export function CoachClientView({ clientId }: { clientId: string }) {
  }, [refreshAiUsage]);
 
  const materializePlanDraft = useCallback(
- async (entry: PendingPlanJob, result: any) => {
- const { title, content } = (result ?? {}) as { title: string; content: any };
+ async (entry: PendingPlanJob, result: PlanJobResult) => {
+ const { title, content } = result ?? {};
  if (!title || !content) throw new Error("نتيجة التوليد غير مكتملة");
  // PLAN MATERIALIZATION LAW (Phase 79, owner «حفظ للخطط المولدة»): the
  // GitHub Actions runner now inserts the draft plans row ITSELF — the
@@ -316,7 +332,7 @@ export function CoachClientView({ clientId }: { clientId: string }) {
  if (entry.replacePlanId) {
  try {
  const fresh = await listAllClientPlans(entry.clientId);
- const old = fresh.find((p: any) => p.id === entry.replacePlanId);
+ const old = fresh.find((p) => p.id === entry.replacePlanId);
  if (old && old.status === "draft") await deletePlan(old.id);
  } catch {
  /* old draft cleanup is best-effort */
@@ -339,7 +355,7 @@ export function CoachClientView({ clientId }: { clientId: string }) {
  const deadline = Date.now() + 26 * 60_000;
  while (Date.now() < deadline) {
  await new Promise((r) => setTimeout(r, 20_000));
- let job: any = null;
+ let job: AiJobRow | null = null;
  try {
  job = await getAiJob(entry.id);
  } catch {
@@ -353,8 +369,8 @@ export function CoachClientView({ clientId }: { clientId: string }) {
  ? "وصل برنامج التمارين وتم حفظه كمسودة ✅ راجعه ثم وافق عليه لإرساله للعميل."
  : "وصلت خطة التغذية وتم حفظها كمسودة ✅ راجعها ثم وافق عليها لإرسالها للعميل.",
  );
- } catch (e: any) {
- toast.error(e?.message || "وصلت الخطة لكن فشل حفظ المسودة — استخدم بطاقة الاسترجاع.");
+ } catch (e) {
+ toast.error((e instanceof Error ? e.message : "") || "وصلت الخطة لكن فشل حفظ المسودة — استخدم بطاقة الاسترجاع.");
  }
  return;
  }
@@ -382,22 +398,22 @@ export function CoachClientView({ clientId }: { clientId: string }) {
  pending.forEach((entry) => void watchPlanJob(entry));
  }, [watchPlanJob]);
 
- const recoverPlanJob = async (job: any) => {
+ const recoverPlanJob = async (job: RecoverableJobInput) => {
  setRecoveringId(job.id);
  try {
  const full = await getAiJob(job.id); // single GET carries result
- if (full?.status !== "done" || !full?.result?.title || !full?.result?.content) {
+ if (full?.status !== "done" || !full?.result?.title || !full?.result?.content || !job.payload?.clientId) {
  throw new Error("النتيجة غير متاحة لهذه المهمة");
  }
  const kind = planJobTypeToKind(job.job_type);
  if (!kind) throw new Error("نوع مهمة غير معروف");
  await materializePlanDraft(
- { id: job.id, clientId: job.payload?.clientId, kind, createdAt: Date.now() },
+ { id: job.id, clientId: job.payload.clientId, kind, createdAt: Date.now() },
  full.result,
  );
  toast.success("تم استرجاع الخطة وحفظها كمسودة ✅");
- } catch (e: any) {
- toast.error(e?.message || "فشل الاسترجاع");
+ } catch (e) {
+ toast.error((e instanceof Error ? e.message : "") || "فشل الاسترجاع");
  } finally {
  setRecoveringId(null);
  }
@@ -406,9 +422,9 @@ export function CoachClientView({ clientId }: { clientId: string }) {
  /** Enqueue a plan job and register a resilient watcher for it. */
  const queuePlanJob = async (
  planType: "workout" | "nutrition",
- clientContext: any,
- overrides?: any,
- replacePlan?: any,
+ clientContext: Record<string, unknown>,
+ overrides?: PlanOverrides,
+ replacePlan?: Plan | null,
  ) => {
  if (!planGateOpen) {
  toast.error(planGateMessage);
@@ -435,8 +451,8 @@ export function CoachClientView({ clientId }: { clientId: string }) {
  ? "تم إرسال طلب التوليد 🚀 البرنامج هيوصل خلال ~10 دقائق ويتم حفظه كمسودة تلقائيًا حتى لو قفلت الصفحة."
  : "تم إرسال طلب التوليد 🚀 الخطة هتوصل خلال ~10 دقائق ويتم حفظها كمسودة تلقائيًا حتى لو قفلت الصفحة.",
  );
- } catch (e: any) {
- toast.error(e.message || t("coach.genFailed"));
+ } catch (e) {
+ toast.error((e instanceof Error ? e.message : "") || t("coach.genFailed"));
  } finally {
  setGenerating(null);
  }
@@ -482,14 +498,14 @@ export function CoachClientView({ clientId }: { clientId: string }) {
  const updatedSubs = await listSubscriptionsForClient(clientId);
  // OWNER BOUNDARY: same visibility rule as the loader — coach sees only
  // his coaching product; admins see everything.
- const visibleUpdated: any[] = isAdmin
+ const visibleUpdated: Subscription[] = isAdmin
  ? updatedSubs
- : updatedSubs.filter((x: any) => x.tier === "coaching");
+ : updatedSubs.filter((x) => x.tier === "coaching");
  setAllSubs(visibleUpdated);
  // Update primary sub — separate coaching from memberships
- const hasCoaching = visibleUpdated.some((s: any) => s.tier === "coaching");
- const membershipSubs = visibleUpdated.filter((s: any) => ["premium", "pro"].includes(s.tier));
- let s: any = null;
+ const hasCoaching = visibleUpdated.some((s) => s.tier === "coaching");
+ const membershipSubs = visibleUpdated.filter((s) => ["premium", "pro"].includes(s.tier));
+ let s: Subscription | null = null;
  if (membershipSubs.length > 0) {
  const priority = (t: string) => {
  if (t === "pro") return 3;
@@ -499,11 +515,11 @@ export function CoachClientView({ clientId }: { clientId: string }) {
  const sorted = [...membershipSubs].sort((a, b) => priority(b.tier) - priority(a.tier));
  s = sorted[0];
  } else if (hasCoaching) {
- s = updatedSubs.find((sub: any) => sub.tier === "coaching");
+ s = updatedSubs.find((sub) => sub.tier === "coaching") ?? null;
  }
  setSub(s);
- } catch (e: any) {
- toast.error(e.message || t("common.error"));
+ } catch (e) {
+ toast.error((e instanceof Error ? e.message : "") || t("common.error"));
  } finally {
  setSavingSub(false);
  }
@@ -530,8 +546,8 @@ export function CoachClientView({ clientId }: { clientId: string }) {
  const data = await listPlans(clientId);
  setPlans(data);
  toast.success(t("coach.planUploaded"));
- } catch (e: any) {
- toast.error(e.message || t("common.error"));
+ } catch (e) {
+ toast.error((e instanceof Error ? e.message : "") || t("common.error"));
  } finally {
  setUploading(false);
  }
@@ -576,8 +592,8 @@ export function CoachClientView({ clientId }: { clientId: string }) {
  const data = await listPlans(clientId);
  setPlans(data);
  toast.success(`تم تنسيق الخطة وإضافتها! (${source})`);
- } catch (e: any) {
- toast.error(e.message || "فشل التنسيق");
+ } catch (e) {
+ toast.error((e instanceof Error ? e.message : "") || "فشل التنسيق");
  } finally {
  setNormalizing(false);
  }
@@ -617,7 +633,7 @@ export function CoachClientView({ clientId }: { clientId: string }) {
  }
 
  const chartData = progress
- .filter((e) => e.weight != null)
+ .filter((e): e is ProgressEntry & { weight: number } => e.weight != null)
  .map((e) => ({
  date: new Date(e.created_at).toLocaleDateString(lang === "ar" ? "ar-EG" : "en-US", { month: "short", day: "numeric" }),
  weight: e.weight,
@@ -639,21 +655,33 @@ export function CoachClientView({ clientId }: { clientId: string }) {
    try {
      const names: string[] = [];
      for (const p of plans.slice(0, 4)) {
-       let c: any = p?.content;
+       let c: unknown = p?.content;
        if (typeof c === "string") {
          try { c = JSON.parse(c); } catch { continue; }
        }
-       if (!c) continue;
-       if (p.type === "nutrition" && Array.isArray(c.meals)) {
-         for (const m of c.meals) {
-           if (m?.name) names.push(String(m.name));
-           if (Array.isArray(m?.items)) for (const it of m.items) { if (it?.food) names.push(String(it.food)); }
-           if (Array.isArray(m?.meal_alternatives)) for (const alt of m.meal_alternatives) { if (alt?.name) names.push(String(alt.name)); }
+       if (!c || typeof c !== "object") continue;
+       // DB enum is meal|workout; legacy localStorage rows may say "nutrition"
+       // (the old comparison only matched that legacy value — kept + extended
+       // so today's "meal" rows feed the variety list too).
+       const kind = p.type as string;
+       if ((kind === "meal" || kind === "nutrition") && "meals" in c) {
+         const meals = (c as { meals?: unknown }).meals;
+         if (Array.isArray(meals)) {
+           for (const m of meals) {
+             const meal = m as { name?: unknown; items?: Array<{ food?: unknown }>; meal_alternatives?: Array<{ name?: unknown }> };
+             if (meal?.name) names.push(String(meal.name));
+             if (Array.isArray(meal?.items)) for (const it of meal.items) { if (it?.food) names.push(String(it.food)); }
+             if (Array.isArray(meal?.meal_alternatives)) for (const alt of meal.meal_alternatives) { if (alt?.name) names.push(String(alt.name)); }
+           }
          }
        }
-       if (p.type === "workout" && Array.isArray(c.days)) {
-         for (const d of c.days) {
-           if (Array.isArray(d?.exercises)) for (const ex of d.exercises) { if (ex?.name) names.push(String(ex.name)); }
+       if (kind === "workout" && "days" in c) {
+         const days = (c as { days?: unknown }).days;
+         if (Array.isArray(days)) {
+           for (const d of days) {
+             const day = d as { exercises?: Array<{ name?: unknown }> };
+             if (Array.isArray(day?.exercises)) for (const ex of day.exercises) { if (ex?.name) names.push(String(ex.name)); }
+           }
          }
        }
      }
@@ -663,7 +691,7 @@ export function CoachClientView({ clientId }: { clientId: string }) {
    }
  };
 
- const generateAIPlan = async (planType: "workout" | "nutrition", overrides?: any) => {
+ const generateAIPlan = async (planType: "workout" | "nutrition", overrides?: PlanOverrides) => {
  // Build client context from questionnaires + profile + progress
  const clientContext = {
  name: client?.full_name || "العميل",
@@ -689,8 +717,8 @@ export function CoachClientView({ clientId }: { clientId: string }) {
  const refreshed = await listAllClientPlans(clientId);
  setPlans(refreshed);
  toast.success("تمت الموافقة على الخطة وإرسالها للعميل! ");
- } catch (e: any) {
- toast.error(e.message || t("common.error"));
+ } catch (e) {
+ toast.error((e instanceof Error ? e.message : "") || t("common.error"));
  } finally {
  setApproving(null);
  }
@@ -698,7 +726,7 @@ export function CoachClientView({ clientId }: { clientId: string }) {
 
  // Regenerate a plan — queue the replacement, delete the old draft only
  // AFTER the new plan arrives (and only if it was never approved meanwhile).
- const handleRegeneratePlan = async (plan: any) => {
+ const handleRegeneratePlan = async (plan: Plan) => {
  if (!confirm("هل تريد إعادة توليد هذه الخطة؟ سيتم توليد واحدة جديدة وستحل محل المسودة الحالية عند وصولها.")) return;
  setViewingPlan(null);
  const clientContext = {
@@ -761,7 +789,7 @@ export function CoachClientView({ clientId }: { clientId: string }) {
  {(() => {
  const m = MEMBERSHIPS.find((x) => x.id === sub.tier);
  if (m) return lang === "ar" ? m.nameAr : m.nameEn;
- const legacy = getTier(sub.tier as any);
+ const legacy = getTier(sub.tier as TierId); // legacy tier ids (starter/elite) — returns undefined for model tiers
  if (legacy) return t(legacy.nameKey);
  return sub.tier || "—";
  })()}
@@ -813,7 +841,7 @@ export function CoachClientView({ clientId }: { clientId: string }) {
  {/* Apple Health-style metrics dashboard */}
  <HealthMetricsDashboard
  progress={progress}
- questionnaire={nutriQ?.data}
+ questionnaire={(nutriQ?.data ?? null) as Record<string, unknown> | null}
  />
  </div>
  )}
@@ -949,13 +977,13 @@ export function CoachClientView({ clientId }: { clientId: string }) {
  <p className="font-medium text-[#1d1d1f]" dir="ltr">
  {(() => {
  const activeSameTier = allSubs.find(
- (x: any) =>
+ (x) =>
  x.tier === tier &&
  x.status === "active" &&
  x.end_date &&
  new Date(x.end_date).getTime() > Date.now(),
  );
- const base = activeSameTier ? new Date(activeSameTier.end_date) : new Date();
+ const base = activeSameTier?.end_date ? new Date(activeSameTier.end_date) : new Date();
  const end = new Date(base);
  end.setMonth(end.getMonth() + months);
  const endStr = end.toLocaleDateString(isAr ? "ar-EG" : "en-US");
@@ -1196,7 +1224,7 @@ export function CoachClientView({ clientId }: { clientId: string }) {
  {planJobTypeToKind(j.job_type) === "workout" ? <Dumbbell className="h-4 w-4 text-primary" /> : <Salad className="h-4 w-4 text-primary" />}
  <span>{planJobTypeToKind(j.job_type) === "workout" ? "برنامج تمارين" : "خطة تغذية"}</span>
  <span className="text-xs text-muted-foreground">
- وصلت {new Date(j.finished_at || j.created_at).toLocaleString(isAr ? "ar-EG" : "en-US", { hour: "2-digit", minute: "2-digit", day: "numeric", month: "short" })}
+ وصلت {new Date(j.finished_at ?? j.created_at ?? Date.now()).toLocaleString(isAr ? "ar-EG" : "en-US", { hour: "2-digit", minute: "2-digit", day: "numeric", month: "short" })}
  </span>
  </div>
  <Button
@@ -1364,19 +1392,20 @@ function QuestionnaireCard({
 }: {
  title: string;
  type: "nutrition" | "fitness";
- data: any;
+ data: QuestionnaireRow | null;
  clientId: string;
  t: (k: string) => string;
- onChanged: (row: any) => void;
+ onChanged: (row: QuestionnaireRow) => void;
 }) {
- const status = data?.status as string | undefined;
+ const status = data?.status;
+ const qData = asForm(data?.data);
  const [editMode, setEditMode] = useState(false);
- const [form, setForm] = useState<Record<string, any>>(data?.data || {});
+ const [form, setForm] = useState<Record<string, Json>>(qData);
  const [saving, setSaving] = useState(false);
 
  // Sync form when data changes externally
  useEffect(() => {
- setForm(data?.data || {});
+ setForm(asForm(data?.data));
  }, [data]);
 
  const handleSave = async () => {
@@ -1388,8 +1417,8 @@ function QuestionnaireCard({
  onChanged(row);
  setEditMode(false);
  toast.success("تم حفظ التعديلات!");
- } catch (e: any) {
- toast.error(e.message || "فشل الحفظ");
+ } catch (e) {
+ toast.error((e instanceof Error ? e.message : "") || "فشل الحفظ");
  } finally {
  setSaving(false);
  }
@@ -1450,7 +1479,7 @@ function QuestionnaireCard({
  <Button size="sm" className="gap-1.5 h-7" onClick={handleSave} disabled={saving}>
  {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />} حفظ
  </Button>
- <Button size="sm" variant="ghost" className="h-7" onClick={() => { setEditMode(false); setForm(data?.data || {}); }}>
+ <Button size="sm" variant="ghost" className="h-7" onClick={() => { setEditMode(false); setForm(asForm(data?.data)); }}>
  إلغاء
  </Button>
  </>
@@ -1486,7 +1515,7 @@ function QuestionnaireCard({
  <div key={f.key} className="sm:col-span-2">
  <Label className="text-xs text-muted-foreground">{f.label}</Label>
  <select
- value={form[f.key] ?? ""}
+ value={form[f.key] == null ? "" : String(form[f.key])}
  onChange={(e) => setForm((p) => ({ ...p, [f.key]: e.target.value }))}
  className="mt-1 w-full rounded-lg border border-border bg-card px-2 py-1.5 text-sm h-8"
  >
@@ -1503,7 +1532,7 @@ function QuestionnaireCard({
  <Label className="text-xs text-muted-foreground">{f.label}</Label>
  <Input
  type={f.type === "number" ? "number" : "text"}
- value={form[f.key] ?? ""}
+ value={form[f.key] == null ? "" : String(form[f.key])}
  onChange={(e) => setForm((p) => ({ ...p, [f.key]: e.target.value }))}
  className="mt-1 h-8 text-sm"
  />
@@ -1513,19 +1542,19 @@ function QuestionnaireCard({
  <div className="sm:col-span-2">
  <Label className="text-xs text-muted-foreground">ملاحظات</Label>
  <Textarea
- value={form.notes ?? ""}
+ value={form.notes == null ? "" : String(form.notes)}
  onChange={(e) => setForm((p) => ({ ...p, notes: e.target.value }))}
  className="mt-1 min-h-[60px] text-sm"
  />
  </div>
  {/* Show photos (read-only — coach can view but not upload from here) */}
- {isNutrition && form.photos?.length > 0 && (
+ {isNutrition && Array.isArray(form.photos) && form.photos.length > 0 && (
  <div className="sm:col-span-2">
  <Label className="text-xs text-muted-foreground">صور العميل</Label>
  <div className="mt-1 grid grid-cols-3 gap-2">
- {form.photos.map((url: string, i: number) => (
- <a key={i} href={url} target="_blank" rel="noreferrer" className="relative aspect-square overflow-hidden rounded-lg border border-border">
- <Image src={url} alt={`صورة ${i + 1}`} fill className="object-cover" />
+ {(form.photos as Json[]).map((url, i) => (
+ <a key={i} href={String(url)} target="_blank" rel="noreferrer" className="relative aspect-square overflow-hidden rounded-lg border border-border">
+ <Image src={String(url)} alt={`صورة ${i + 1}`} fill className="object-cover" />
  </a>
  ))}
  </div>
@@ -1534,7 +1563,7 @@ function QuestionnaireCard({
  </div>
  ) : (
  <div className="space-y-2 text-sm">
- {Object.entries(data?.data || {}).filter(([k]) => k !== "photos").map(([k, v]: [string, any]) => {
+ {Object.entries(qData).filter(([k]) => k !== "photos").map(([k, v]) => {
  // Friendlier labels for known keys
  const labelMap: Record<string, string> = {
  gender: "الجنس", age: "العمر", height: "الطول", weight: "الوزن",
@@ -1545,8 +1574,8 @@ function QuestionnaireCard({
  location: "المكان", experience: "الخبرة", injuries: "إصابات",
  preferred: "التدريب المفضل", equipment: "المعدات", sleep: "النوم",
  };
- const displayValue = k === "gender" ? (v === "male" ? "ذكر" : v === "female" ? "أنثى" : v)
- : k === "activity" ? (activityLabels[v] || v)
+ const displayValue = k === "gender" ? (v === "male" ? "ذكر" : v === "female" ? "أنثى" : String(v))
+ : k === "activity" ? (activityLabels[String(v)] || String(v))
  : String(v) || "—";
  return (
  <div key={k} className="flex justify-between gap-3 border-b border-border/60 pb-1.5">
@@ -1556,13 +1585,13 @@ function QuestionnaireCard({
  );
  })}
  {/* Show photos */}
- {isNutrition && data?.data?.photos?.length > 0 && (
+ {isNutrition && Array.isArray(qData.photos) && qData.photos.length > 0 && (
  <div className="pt-2">
  <span className="text-muted-foreground">صور العميل:</span>
  <div className="mt-2 grid grid-cols-3 gap-2">
- {data.data.photos.map((url: string, i: number) => (
- <a key={i} href={url} target="_blank" rel="noreferrer" className="relative aspect-square overflow-hidden rounded-lg border border-border">
- <Image src={url} alt={`صورة ${i + 1}`} fill className="object-cover" />
+ {(qData.photos as Json[]).map((url, i) => (
+ <a key={i} href={String(url)} target="_blank" rel="noreferrer" className="relative aspect-square overflow-hidden rounded-lg border border-border">
+ <Image src={String(url)} alt={`صورة ${i + 1}`} fill className="object-cover" />
  </a>
  ))}
  </div>
@@ -1575,12 +1604,13 @@ function QuestionnaireCard({
 }
 
 
-function PlanViewerModal({ plan, onClose, onRegenerate }: { plan: any; onClose: () => void; onRegenerate?: () => void }) {
+function PlanViewerModal({ plan, onClose, onRegenerate }: { plan: Plan; onClose: () => void; onRegenerate?: () => void }) {
  const { t } = useI18n();
  const [editMode, setEditMode] = useState(false);
  const [title, setTitle] = useState(plan.title);
  const [notes, setNotes] = useState(plan.notes || "");
- const [content, setContent] = useState<any>(plan.content ? JSON.parse(JSON.stringify(plan.content)) : null);
+ // Deep clone keeps the editor's mutations off the source row object.
+ const [content, setContent] = useState<PlanContent | null>(plan.content ? JSON.parse(JSON.stringify(plan.content)) as PlanContent : null);
  const [saving, setSaving] = useState(false);
  const isWorkout = plan.type === "workout";
 
@@ -1589,7 +1619,8 @@ function PlanViewerModal({ plan, onClose, onRegenerate }: { plan: any; onClose: 
  // through runAiJob (blocking is fine here: the modal is the destination).
  const [regeneratingExKey, setRegeneratingExKey] = useState<string | null>(null);
  const swapExerciseAI = async (dayIdx: number, exIdx: number, focus?: string) => {
- const ex = content?.days?.[dayIdx]?.exercises?.[exIdx];
+ if (!content || !("days" in content)) return;
+ const ex = content.days[dayIdx]?.exercises?.[exIdx];
  if (!ex) return;
  setRegeneratingExKey(`${dayIdx}-${exIdx}`);
  try {
@@ -1607,8 +1638,8 @@ function PlanViewerModal({ plan, onClose, onRegenerate }: { plan: any; onClose: 
  newContent.days[dayIdx].exercises[exIdx] = { ...newContent.days[dayIdx].exercises[exIdx], ...rep };
  setContent(newContent);
  toast.success("تم استبدال التمرين ببديل آمن ✅ — اضغط \"حفظ\" لتثبيت التعديل.");
- } catch (e: any) {
- toast.error(e.message || "فشل استبدال التمرين");
+ } catch (e) {
+ toast.error((e instanceof Error ? e.message : "") || "فشل استبدال التمرين");
  } finally {
  setRegeneratingExKey(null);
  }
@@ -1625,8 +1656,8 @@ function PlanViewerModal({ plan, onClose, onRegenerate }: { plan: any; onClose: 
  Object.assign(plan, updated);
  toast.success("تم حفظ التعديلات بنجاح!");
  setEditMode(false);
- } catch (e: any) {
- toast.error(e.message || "فشل الحفظ");
+ } catch (e) {
+ toast.error((e instanceof Error ? e.message : "") || "فشل الحفظ");
  } finally {
  setSaving(false);
  }
@@ -1692,7 +1723,7 @@ function PlanViewerModal({ plan, onClose, onRegenerate }: { plan: any; onClose: 
  html += `<p style="white-space:pre-line">${c.overview}</p>`;
  }
 
- if (!isWorkout && c) {
+ if (!isWorkout && c && "meals" in c) {
  // Data analysis
  if (c.data_analysis) {
  const da = c.data_analysis;
@@ -1723,9 +1754,9 @@ function PlanViewerModal({ plan, onClose, onRegenerate }: { plan: any; onClose: 
  }
 
  // Supplements
- if (c.supplements?.length > 0) {
+ if ((c.supplements?.length ?? 0) > 0) {
  html += `<h2> المكملات والتوصيات الصحية</h2>`;
- for (const s of c.supplements) {
+ for (const s of c.supplements ?? []) {
  html += `<div class="supplement"><div class="supplement-name">${s.name}</div>`;
  if (s.dose) html += `<div>الجرعة: ${s.dose}</div>`;
  if (s.timing) html += `<div>الموعد: ${s.timing}</div>`;
@@ -1735,9 +1766,9 @@ function PlanViewerModal({ plan, onClose, onRegenerate }: { plan: any; onClose: 
  }
 
  // Health notes
- if (c.health_notes?.length > 0) {
+ if ((c.health_notes?.length ?? 0) > 0) {
  html += `<h2> توصيات صحية خاصة</h2>`;
- for (const n of c.health_notes) {
+ for (const n of c.health_notes ?? []) {
  html += `<div class="health-note">${n}</div>`;
  }
  }
@@ -1748,22 +1779,22 @@ function PlanViewerModal({ plan, onClose, onRegenerate }: { plan: any; onClose: 
  }
 
  // Meals
- if (c.meals?.length > 0) {
+ if (!isWorkout && c && "meals" in c && c.meals?.length > 0) {
  html += `<h2> النظام الغذائي</h2>`;
  for (const m of c.meals) {
  html += `<h3>${m.name}${m.time ? ` <span style="font-size:11px;color:#666;font-weight:400">${m.time}</span>` : ""}</h3>`;
  html += `<table><tr><th style="width:30px">#</th><th>المكون</th><th>الكمية</th><th>السعرات</th><th>البدائل</th></tr>`;
- (m.items || []).forEach((it: any, i: number) => {
+ (m.items || []).forEach((it, i) => {
  html += `<tr><td>${i + 1}</td><td>${it.food}</td><td>${it.amount}</td><td>${it.calories}</td><td style="font-size:11px;color:#666">${it.alternatives || "—"}</td></tr>`;
  });
  if (m.total_calories || m.total_protein_g) {
- html += `<tr class="meal-total"><td colspan="3">إجمالي الوجبة: ~${m.total_calories || (m.items || []).reduce((s: number, i: any) => s + (i.calories || 0), 0)} سعرة</td><td>${m.total_protein_g || ""} ${m.total_protein_g ? "جم بروتين" : ""}</td><td></td></tr>`;
+ html += `<tr class="meal-total"><td colspan="3">إجمالي الوجبة: ~${m.total_calories || (m.items || []).reduce((s, i) => s + (i.calories || 0), 0)} سعرة</td><td>${m.total_protein_g || ""} ${m.total_protein_g ? "جم بروتين" : ""}</td><td></td></tr>`;
  }
  html += `</table>`;
  if (m.notes) html += `<p style="font-size:12px;color:#666"> ${m.notes}</p>`;
  }
  }
- } else if (isWorkout && c?.days) {
+ } else if (isWorkout && c && "days" in c) {
  // Workout volume + progression
  if (c.weekly_volume || c.progression) {
  html += `<h2> الحجم والتقدم</h2>`;
@@ -1778,7 +1809,7 @@ function PlanViewerModal({ plan, onClose, onRegenerate }: { plan: any; onClose: 
  } else {
  html += `<h3>${d.day} — ${d.focus || ""}</h3>`;
  html += `<table><tr><th style="width:30px">#</th><th>التمرين</th><th>مجموعات</th><th>تكرارات</th><th>راحة</th></tr>`;
- (d.exercises || []).forEach((ex: any, i: number) => {
+ (d.exercises || []).forEach((ex, i) => {
  // Find exercise in library for images
  const exLib = EXERCISES.find((e) => e.slug === ex.exerciseSlug || e.nameEn === ex.name || e.nameEn?.toLowerCase() === ex.name?.toLowerCase());
  const exImages = exLib ? getExerciseImages(exLib.imageKey) : [];
@@ -1811,14 +1842,17 @@ function PlanViewerModal({ plan, onClose, onRegenerate }: { plan: any; onClose: 
  };
 
 
- // Helper to update nested content fields
- const updateField = (path: string, value: any) => {
- const newContent = { ...content };
+ // Helper to update nested content fields (dynamic path — kept honest
+ // with an explicit clone + unknown tree instead of `any`).
+ const updateField = (path: string, value: Json) => {
+ if (!content) return;
+ const newContent = JSON.parse(JSON.stringify(content)) as PlanContent;
  const keys = path.split(".");
- let obj = newContent;
+ let obj = newContent as unknown as Record<string, unknown>;
  for (let i = 0; i < keys.length - 1; i++) {
- obj[keys[i]] = { ...obj[keys[i]] };
- obj = obj[keys[i]];
+ const next = obj[keys[i]];
+ obj[keys[i]] = next && typeof next === "object" ? { ...(next as Record<string, unknown>) } : {};
+ obj = obj[keys[i]] as Record<string, unknown>;
  }
  obj[keys[keys.length - 1]] = value;
  setContent(newContent);
@@ -1827,31 +1861,35 @@ function PlanViewerModal({ plan, onClose, onRegenerate }: { plan: any; onClose: 
  // Update meal item — auto-calculates calories from the food database when
  // the coach edits the food name or amount. This keeps totals consistent
  // with the system even for manual edits.
- const updateMealItem = async (mealIdx: number, itemIdx: number, field: string, value: string) => {
- const newContent = { ...content };
+ const updateMealItem = async (mealIdx: number, itemIdx: number, field: "food" | "amount" | "calories" | "alternatives", value: string) => {
+ if (!content || !("meals" in content) || !content.meals[mealIdx]) return;
+ const newContent: NutritionPlanContent = { ...content };
  newContent.meals = [...newContent.meals];
  newContent.meals[mealIdx] = { ...newContent.meals[mealIdx] };
  newContent.meals[mealIdx].items = [...newContent.meals[mealIdx].items];
  newContent.meals[mealIdx].items[itemIdx] = { ...newContent.meals[mealIdx].items[itemIdx] };
+ const item = newContent.meals[mealIdx].items[itemIdx];
 
  if (field === "calories") {
- newContent.meals[mealIdx].items[itemIdx][field] = parseInt(value) || 0;
+ item.calories = parseInt(value) || 0;
+ } else if (field === "alternatives") {
+ item.alternatives = value;
  } else {
- newContent.meals[mealIdx].items[itemIdx][field] = value;
+ item[field] = value;
  // Auto-calc calories when food or amount changes
  if (field === "food" || field === "amount") {
  try {
- const res = await fetch(`/api/food-search?q=${encodeURIComponent(newContent.meals[mealIdx].items[itemIdx].food || "")}`);
+ const res = await fetch(`/api/food-search?q=${encodeURIComponent(item.food || "")}`);
  if (res.ok) {
  const data = await res.json();
  const match = data.results?.[0];
  if (match) {
- const grams = parseInt(newContent.meals[mealIdx].items[itemIdx].amount?.replace(/[^0-9]/g, "") || "100") || 100;
+ const grams = parseInt(item.amount?.replace(/[^0-9]/g, "") || "100") || 100;
  const factor = grams / 100;
- newContent.meals[mealIdx].items[itemIdx].calories = Math.round(match.per100g.calories * factor);
- newContent.meals[mealIdx].items[itemIdx].protein_g = Math.round(match.per100g.protein * factor);
- newContent.meals[mealIdx].items[itemIdx].carbs_g = Math.round(match.per100g.carbs * factor);
- newContent.meals[mealIdx].items[itemIdx].fat_g = Math.round(match.per100g.fat * factor);
+ item.calories = Math.round(match.per100g.calories * factor);
+ item.protein_g = Math.round(match.per100g.protein * factor);
+ item.carbs_g = Math.round(match.per100g.carbs * factor);
+ item.fat_g = Math.round(match.per100g.fat * factor);
  }
  }
  } catch {
@@ -1888,7 +1926,7 @@ function PlanViewerModal({ plan, onClose, onRegenerate }: { plan: any; onClose: 
  // regenerating the whole plan.
  const [regeneratingMealIdx, setRegeneratingMealIdx] = useState<number | null>(null);
  const regenerateSingleMeal = async (mealIdx: number) => {
- if (!content?.meals?.[mealIdx]) return;
+ if (!content || !("meals" in content) || !content.meals[mealIdx]) return;
  setRegeneratingMealIdx(mealIdx);
  try {
  const meal = content.meals[mealIdx];
@@ -1897,11 +1935,11 @@ function PlanViewerModal({ plan, onClose, onRegenerate }: { plan: any; onClose: 
  const { result } = await runAiJob("meal_regenerate", {
  meal,
  targetCalories:
- (meal as any).total_calories ||
- ((meal as any).items || []).reduce((s: number, i: any) => s + (i.calories || 0), 0),
+ meal.total_calories ||
+ (meal.items || []).reduce((s, i) => s + (i.calories || 0), 0),
  });
  const newMeal = result.replacement;
- const newContent = { ...content };
+ const newContent: NutritionPlanContent = { ...content };
  newContent.meals = [...newContent.meals];
  newContent.meals[mealIdx] = { ...newMeal };
 
@@ -1925,31 +1963,35 @@ function PlanViewerModal({ plan, onClose, onRegenerate }: { plan: any; onClose: 
 
  setContent(newContent);
  toast.success("تم إعادة توليد الوجبة!");
- } catch (e: any) {
- toast.error(e.message || "فشل إعادة التوليد");
+ } catch (e) {
+ toast.error((e instanceof Error ? e.message : "") || "فشل إعادة التوليد");
  } finally {
  setRegeneratingMealIdx(null);
  }
  };
 
  // Update exercise
- const updateExercise = (dayIdx: number, exIdx: number, field: string, value: string) => {
- const newContent = { ...content };
+ const updateExercise = (dayIdx: number, exIdx: number, field: "name" | "notes" | "image" | "sets" | "reps" | "rest" | "exerciseSlug", value: string) => {
+ if (!content || !("days" in content) || !content.days[dayIdx]) return;
+ const newContent: WorkoutPlanContent = { ...content };
  newContent.days = [...newContent.days];
  newContent.days[dayIdx] = { ...newContent.days[dayIdx] };
  newContent.days[dayIdx].exercises = [...newContent.days[dayIdx].exercises];
- newContent.days[dayIdx].exercises[exIdx] = { ...newContent.days[dayIdx].exercises[exIdx] };
+ const ex = { ...newContent.days[dayIdx].exercises[exIdx] };
  if (field === "sets") {
- newContent.days[dayIdx].exercises[exIdx][field] = parseInt(value) || 0;
+ ex.sets = parseInt(value) || 0;
+ } else if (field === "exerciseSlug") {
+ ex.exerciseSlug = value;
  } else {
- newContent.days[dayIdx].exercises[exIdx][field] = value;
+ ex[field] = value;
  }
+ newContent.days[dayIdx].exercises[exIdx] = ex;
  setContent(newContent);
  };
 
  // Add meal item
  // Helper: recompute meal + plan totals after any change to items
- const recomputeTotals = (newContent: any) => {
+ const recomputeTotals = (newContent: NutritionPlanContent) => {
  for (let i = 0; i < newContent.meals.length; i++) {
  const items = newContent.meals[i].items || [];
  newContent.meals[i].total_calories = items.reduce((s, it) => s + (it.calories || 0), 0);
@@ -1976,7 +2018,8 @@ function PlanViewerModal({ plan, onClose, onRegenerate }: { plan: any; onClose: 
  const [regeneratingElKey, setRegeneratingElKey] = useState<string | null>(null);
 
  const regenerateSingleItem = async (mealIdx: number, itemIdx: number) => {
- const meal = content?.meals?.[mealIdx];
+ if (!content || !("meals" in content)) return;
+ const meal = content.meals[mealIdx];
  const item = meal?.items?.[itemIdx];
  if (!meal || !item) return;
  if (!String(item.food || "").trim()) {
@@ -1989,8 +2032,8 @@ function PlanViewerModal({ plan, onClose, onRegenerate }: { plan: any; onClose: 
  // Avoid-list: every OTHER item in the whole plan (same meal + other
  // meals) so the AI cannot propose something that already exists.
  const avoidNames: string[] = [];
- (content.meals || []).forEach((m: any, mi: number) => {
- (m.items || []).forEach((it: any, ii: number) => {
+ (content.meals || []).forEach((m, mi) => {
+ (m.items || []).forEach((it, ii) => {
  if ((mi !== mealIdx || ii !== itemIdx) && it?.food) avoidNames.push(String(it.food));
  });
  });
@@ -2001,7 +2044,7 @@ function PlanViewerModal({ plan, onClose, onRegenerate }: { plan: any; onClose: 
  });
  const rep = result?.replacement;
  if (!rep?.food) throw new Error("لم يتم إرجاع بديل صالح من الذكاء الاصطناعي");
- const newContent = { ...content };
+ const newContent: NutritionPlanContent = { ...content };
  newContent.meals = [...newContent.meals];
  newContent.meals[mealIdx] = { ...newContent.meals[mealIdx] };
  newContent.meals[mealIdx].items = [...newContent.meals[mealIdx].items];
@@ -2009,24 +2052,25 @@ function PlanViewerModal({ plan, onClose, onRegenerate }: { plan: any; onClose: 
  recomputeTotals(newContent);
  setContent(newContent);
  toast.success("تم استبدال الصنف ✅ — اضغط \"حفظ\" لتثبيت التعديل.");
- } catch (e: any) {
- toast.error(e.message || "فشل استبدال الصنف");
+ } catch (e) {
+ toast.error((e instanceof Error ? e.message : "") || "فشل استبدال الصنف");
  } finally {
  setRegeneratingElKey(null);
  }
  };
 
  const regenerateSingleDay = async (dayIdx: number) => {
- const d = content?.days?.[dayIdx];
+ if (!content || !("days" in content)) return;
+ const d = content.days[dayIdx];
  if (!d || d.isRest) return;
  const key = `day:${dayIdx}`;
  setRegeneratingElKey(key);
  try {
  // Avoid-list: every exercise used in the OTHER days of the same plan.
  const avoidNames: string[] = [];
- (content.days || []).forEach((day: any, di: number) => {
+ (content.days || []).forEach((day, di) => {
  if (di === dayIdx) return;
- (day.exercises || []).forEach((ex: any) => {
+ (day.exercises || []).forEach((ex) => {
  if (ex?.name) avoidNames.push(String(ex.name));
  });
  });
@@ -2042,15 +2086,16 @@ function PlanViewerModal({ plan, onClose, onRegenerate }: { plan: any; onClose: 
  newContent.days[dayIdx] = { ...d, ...rep, day: d.day };
  setContent(newContent);
  toast.success("تم إعادة توليد اليوم ✅ — اضغط \"حفظ\" لتثبيت التعديل.");
- } catch (e: any) {
- toast.error(e.message || "فشل إعادة توليد اليوم");
+ } catch (e) {
+ toast.error((e instanceof Error ? e.message : "") || "فشل إعادة توليد اليوم");
  } finally {
  setRegeneratingElKey(null);
  }
  };
 
  const addMealItem = (mealIdx: number) => {
- const newContent = { ...content };
+ if (!content || !("meals" in content)) return;
+ const newContent: NutritionPlanContent = { ...content };
  newContent.meals = [...newContent.meals];
  newContent.meals[mealIdx] = { ...newContent.meals[mealIdx] };
  newContent.meals[mealIdx].items = [...newContent.meals[mealIdx].items, { food: "", amount: "", calories: 0 }];
@@ -2060,25 +2105,28 @@ function PlanViewerModal({ plan, onClose, onRegenerate }: { plan: any; onClose: 
 
  // Remove meal item
  const removeMealItem = (mealIdx: number, itemIdx: number) => {
- const newContent = { ...content };
+ if (!content || !("meals" in content)) return;
+ const newContent: NutritionPlanContent = { ...content };
  newContent.meals = [...newContent.meals];
  newContent.meals[mealIdx] = { ...newContent.meals[mealIdx] };
- newContent.meals[mealIdx].items = newContent.meals[mealIdx].items.filter((_: any, i: number) => i !== itemIdx);
+ newContent.meals[mealIdx].items = newContent.meals[mealIdx].items.filter((_, i) => i !== itemIdx);
  recomputeTotals(newContent);
  setContent(newContent);
  };
 
  // Add exercise
  const addExercise = (dayIdx: number) => {
- const newContent = { ...content };
+ if (!content || !("days" in content) || !content.days[dayIdx]) return;
+ const newContent: WorkoutPlanContent = { ...content };
  newContent.days[dayIdx].exercises = [...newContent.days[dayIdx].exercises, { name: "", sets: 3, reps: "10-12", rest: "90 ثانية", notes: "" }];
  setContent(newContent);
  };
 
  // Remove exercise
  const removeExercise = (dayIdx: number, exIdx: number) => {
- const newContent = { ...content };
- newContent.days[dayIdx].exercises = newContent.days[dayIdx].exercises.filter((_: any, i: number) => i !== exIdx);
+ if (!content || !("days" in content) || !content.days[dayIdx]) return;
+ const newContent: WorkoutPlanContent = { ...content };
+ newContent.days[dayIdx].exercises = newContent.days[dayIdx].exercises.filter((_, i) => i !== exIdx);
  setContent(newContent);
  };
 
@@ -2086,7 +2134,7 @@ function PlanViewerModal({ plan, onClose, onRegenerate }: { plan: any; onClose: 
  // EditCell — defined at module level to prevent focus loss on re-render
  // (inline function definitions cause React to remount the component on every keystroke)
  const EditCell = useMemo(() => {
-   return ({ value, onChange, type = "text", className = "" }: { value: any; onChange: (v: string) => void; type?: string; className?: string }) => (
+   return ({ value, onChange, type = "text", className = "" }: { value: string | number | undefined; onChange: (v: string) => void; type?: string; className?: string }) => (
      editMode ? (
        <Input
          type={type}
@@ -2206,7 +2254,7 @@ function PlanViewerModal({ plan, onClose, onRegenerate }: { plan: any; onClose: 
  )}
 
  {/* PDF-style extras: data analysis + supplements + health notes + water target */}
- {!isWorkout && (content.data_analysis || content.supplements?.length || content.health_notes?.length || content.water_target) && (
+ {!isWorkout && content && "meals" in content && (content.data_analysis || content.supplements?.length || content.health_notes?.length || content.water_target) && (
  <div className="space-y-3 rounded-xl border border-border bg-muted/30 p-4">
  {content.data_analysis && (
  <div>
@@ -2231,7 +2279,7 @@ function PlanViewerModal({ plan, onClose, onRegenerate }: { plan: any; onClose: 
  <Label className="text-[10px] text-muted-foreground">{f.label}</Label>
  <Input
  type={f.type === "number" ? "number" : "text"}
- value={content.data_analysis[f.key] ?? ""}
+ value={String((content.data_analysis as Record<string, unknown> | undefined)?.[f.key] ?? "")}
  placeholder={f.placeholder}
  onChange={(e) => {
  const newContent = { ...content };
@@ -2262,11 +2310,11 @@ function PlanViewerModal({ plan, onClose, onRegenerate }: { plan: any; onClose: 
  </div>
  )}
 
- {content.supplements && content.supplements.length > 0 && (
+ {content && "supplements" in content && (content.supplements?.length ?? 0) > 0 && (
  <div>
  <h4 className="mb-2 text-sm font-bold"> المكملات والتوصيات الصحية {editMode && <span className="text-xs font-normal text-muted-foreground">(قابل للتعديل)</span>}</h4>
  <div className="space-y-2">
- {content.supplements.map((s: any, i: number) => (
+ {(content.supplements ?? []).map((s, i) => (
  <div key={i} className="rounded-lg border border-border bg-background p-2 text-xs">
  {editMode ? (
  <div className="space-y-1">
@@ -2274,9 +2322,10 @@ function PlanViewerModal({ plan, onClose, onRegenerate }: { plan: any; onClose: 
  <Input
  value={s.name || ""}
  onChange={(e) => {
- const newContent = { ...content };
- newContent.supplements = [...newContent.supplements];
- newContent.supplements[i] = { ...newContent.supplements[i], name: e.target.value };
+ if (!content || !("supplements" in content)) return;
+ const newContent: NutritionPlanContent = { ...content };
+ newContent.supplements = [...(newContent.supplements ?? [])];
+ newContent.supplements[i] = { ...(newContent.supplements ?? [])[i], name: e.target.value };
  setContent(newContent);
  }}
  placeholder="اسم المكمل"
@@ -2285,9 +2334,10 @@ function PlanViewerModal({ plan, onClose, onRegenerate }: { plan: any; onClose: 
  <Input
  value={s.dose || ""}
  onChange={(e) => {
- const newContent = { ...content };
- newContent.supplements = [...newContent.supplements];
- newContent.supplements[i] = { ...newContent.supplements[i], dose: e.target.value };
+ if (!content || !("supplements" in content)) return;
+ const newContent: NutritionPlanContent = { ...content };
+ newContent.supplements = [...(newContent.supplements ?? [])];
+ newContent.supplements[i] = { ...(newContent.supplements ?? [])[i], dose: e.target.value };
  setContent(newContent);
  }}
  placeholder="الجرعة (مثلاً: 200-400 مج)"
@@ -2298,9 +2348,10 @@ function PlanViewerModal({ plan, onClose, onRegenerate }: { plan: any; onClose: 
  <Input
  value={s.timing || ""}
  onChange={(e) => {
- const newContent = { ...content };
- newContent.supplements = [...newContent.supplements];
- newContent.supplements[i] = { ...newContent.supplements[i], timing: e.target.value };
+ if (!content || !("supplements" in content)) return;
+ const newContent: NutritionPlanContent = { ...content };
+ newContent.supplements = [...(newContent.supplements ?? [])];
+ newContent.supplements[i] = { ...(newContent.supplements ?? [])[i], timing: e.target.value };
  setContent(newContent);
  }}
  placeholder="الموعد (مثلاً: قبل النوم)"
@@ -2309,9 +2360,10 @@ function PlanViewerModal({ plan, onClose, onRegenerate }: { plan: any; onClose: 
  <Input
  value={s.purpose || ""}
  onChange={(e) => {
- const newContent = { ...content };
- newContent.supplements = [...newContent.supplements];
- newContent.supplements[i] = { ...newContent.supplements[i], purpose: e.target.value };
+ if (!content || !("supplements" in content)) return;
+ const newContent: NutritionPlanContent = { ...content };
+ newContent.supplements = [...(newContent.supplements ?? [])];
+ newContent.supplements[i] = { ...(newContent.supplements ?? [])[i], purpose: e.target.value };
  setContent(newContent);
  }}
  placeholder="الهدف"
@@ -2320,8 +2372,9 @@ function PlanViewerModal({ plan, onClose, onRegenerate }: { plan: any; onClose: 
  </div>
  <button
  onClick={() => {
- const newContent = { ...content };
- newContent.supplements = newContent.supplements.filter((_: any, j: number) => j !== i);
+ if (!content || !("supplements" in content)) return;
+ const newContent: NutritionPlanContent = { ...content };
+ newContent.supplements = (newContent.supplements ?? []).filter((_, j) => j !== i);
  setContent(newContent);
  }}
  className="text-destructive hover:text-destructive/80 text-[11px] flex items-center gap-1"
@@ -2345,7 +2398,8 @@ function PlanViewerModal({ plan, onClose, onRegenerate }: { plan: any; onClose: 
  {editMode && (
  <button
  onClick={() => {
- const newContent = { ...content };
+ if (!content || !("supplements" in content)) return;
+ const newContent: NutritionPlanContent = { ...content };
  newContent.supplements = [...(newContent.supplements || []), { name: "", dose: "", timing: "", purpose: "" }];
  setContent(newContent);
  }}
@@ -2357,19 +2411,20 @@ function PlanViewerModal({ plan, onClose, onRegenerate }: { plan: any; onClose: 
  </div>
  )}
 
- {content.health_notes && content.health_notes.length > 0 && (
+ {content && "meals" in content && (content.health_notes?.length ?? 0) > 0 && (
  <div>
  <h4 className="mb-2 text-sm font-bold"> توصيات صحية خاصة {editMode && <span className="text-xs font-normal text-muted-foreground">(قابل للتعديل)</span>}</h4>
  {editMode ? (
  <div className="space-y-1.5">
- {content.health_notes.map((n: string, i: number) => (
+ {(content.health_notes ?? []).map((n, i) => (
  <div key={i} className="flex gap-1.5">
  <span className="text-primary mt-1.5">•</span>
  <Input
  value={n}
  onChange={(e) => {
- const newContent = { ...content };
- newContent.health_notes = [...newContent.health_notes];
+ if (!content || !("meals" in content)) return;
+ const newContent: NutritionPlanContent = { ...content };
+ newContent.health_notes = [...(newContent.health_notes ?? [])];
  newContent.health_notes[i] = e.target.value;
  setContent(newContent);
  }}
@@ -2377,8 +2432,9 @@ function PlanViewerModal({ plan, onClose, onRegenerate }: { plan: any; onClose: 
  />
  <button
  onClick={() => {
- const newContent = { ...content };
- newContent.health_notes = newContent.health_notes.filter((_: string, j: number) => j !== i);
+ if (!content || !("meals" in content)) return;
+ const newContent: NutritionPlanContent = { ...content };
+ newContent.health_notes = (newContent.health_notes ?? []).filter((_, j) => j !== i);
  setContent(newContent);
  }}
  className="text-destructive hover:text-destructive/80 p-1"
@@ -2400,7 +2456,7 @@ function PlanViewerModal({ plan, onClose, onRegenerate }: { plan: any; onClose: 
  </div>
  ) : (
  <ul className="space-y-1 text-xs text-muted-foreground">
- {content.health_notes.map((n: string, i: number) => (
+ {(content.health_notes ?? []).map((n, i) => (
  <li key={i} className="flex items-start gap-1.5">
  <span className="text-primary">•</span>
  <span>{n}</span>
@@ -2435,7 +2491,7 @@ function PlanViewerModal({ plan, onClose, onRegenerate }: { plan: any; onClose: 
  )}
 
  {/* Meals table — PDF-style with numbered items, alternatives, and per-meal totals */}
- {!isWorkout && content.meals?.map((m: any, mealIdx: number) => (
+ {!isWorkout && content && "meals" in content && content.meals?.map((m, mealIdx: number) => (
  <div key={mealIdx} className="rounded-xl border border-border p-4">
  <div className="mb-2 flex items-center justify-between gap-2">
  <div className="flex-1">
@@ -2443,7 +2499,8 @@ function PlanViewerModal({ plan, onClose, onRegenerate }: { plan: any; onClose: 
  <Input
  value={m.name || ""}
  onChange={(e) => {
- const newContent = { ...content };
+ if (!content || !("meals" in content)) return;
+ const newContent: NutritionPlanContent = { ...content };
  newContent.meals[mealIdx] = { ...newContent.meals[mealIdx], name: e.target.value };
  setContent(newContent);
  }}
@@ -2489,7 +2546,7 @@ function PlanViewerModal({ plan, onClose, onRegenerate }: { plan: any; onClose: 
  </tr>
  </thead>
  <tbody>
- {m.items?.map((it: any, itemIdx: number) => (
+ {m.items?.map((it, itemIdx: number) => (
  <tr key={itemIdx} className="border-b border-border/60">
  <td className="p-2 text-muted-foreground">{itemIdx + 1}</td>
  <td className="p-2"><EditCell value={it.food} onChange={(v) => updateMealItem(mealIdx, itemIdx, "food", v)} className="font-medium" /></td>
@@ -2539,7 +2596,7 @@ function PlanViewerModal({ plan, onClose, onRegenerate }: { plan: any; onClose: 
  <tfoot>
  <tr className="border-t-2 border-primary/30 bg-primary/5">
  <td colSpan={3} className="p-2 text-end font-semibold text-primary">
- {typeof m.total_calories === "number" ? `~${m.total_calories}` : `~${m.items?.reduce((s: number, i: any) => s + (i.calories || 0), 0) || 0}`} سعرة حرارية
+ {typeof m.total_calories === "number" ? `~${m.total_calories}` : `~${m.items?.reduce((s, i) => s + (i.calories || 0), 0) || 0}`} سعرة حرارية
  </td>
  <td className="p-2 font-semibold text-success">
  {typeof m.total_protein_g === "number" ? m.total_protein_g : ""} {m.total_protein_g ? "جم بروتين" : ""}
@@ -2571,7 +2628,7 @@ function PlanViewerModal({ plan, onClose, onRegenerate }: { plan: any; onClose: 
  ))}
 
  {/* Workout volume + progression — editable */}
- {isWorkout && (content.weekly_volume || content.progression || editMode) && (
+ {isWorkout && content && "days" in content && (content.weekly_volume || content.progression || editMode) && (
  <div className="grid gap-3 sm:grid-cols-2">
  {(content.weekly_volume || editMode) && (
  <div>
@@ -2607,7 +2664,7 @@ function PlanViewerModal({ plan, onClose, onRegenerate }: { plan: any; onClose: 
  )}
 
  {/* Workout days */}
- {isWorkout && content.days?.map((d: any, dayIdx: number) => (
+ {isWorkout && content && "days" in content && content.days?.map((d, dayIdx: number) => (
  <div key={dayIdx} className={cn("rounded-xl border", d.isRest ? "border-muted/40 bg-muted/10" : "border-border")}>
  <div className="flex items-center justify-between border-b border-border bg-muted/40 px-4 py-2 gap-2">
  {editMode && !d.isRest ? (
@@ -2615,7 +2672,8 @@ function PlanViewerModal({ plan, onClose, onRegenerate }: { plan: any; onClose: 
  <Input
  value={d.day || ""}
  onChange={(e) => {
- const newContent = { ...content };
+ if (!content || !("days" in content)) return;
+ const newContent: WorkoutPlanContent = { ...content };
  newContent.days[dayIdx] = { ...newContent.days[dayIdx], day: e.target.value };
  setContent(newContent);
  }}
@@ -2624,7 +2682,8 @@ function PlanViewerModal({ plan, onClose, onRegenerate }: { plan: any; onClose: 
  <Input
  value={d.focus || ""}
  onChange={(e) => {
- const newContent = { ...content };
+ if (!content || !("days" in content)) return;
+ const newContent: WorkoutPlanContent = { ...content };
  newContent.days[dayIdx] = { ...newContent.days[dayIdx], focus: e.target.value };
  setContent(newContent);
  }}
@@ -2673,7 +2732,7 @@ function PlanViewerModal({ plan, onClose, onRegenerate }: { plan: any; onClose: 
  </tr>
  </thead>
  <tbody>
- {d.exercises?.map((ex: any, exIdx: number) => {
+ {d.exercises?.map((ex, exIdx: number) => {
  // Find exercise in library for images
  const exLib = EXERCISES.find((e) => e.slug === ex.exerciseSlug || e.nameEn === ex.name || e.nameEn?.toLowerCase() === ex.name?.toLowerCase());
  const exImages = exLib ? getExerciseImages(exLib.imageKey) : [];
@@ -2683,7 +2742,7 @@ function PlanViewerModal({ plan, onClose, onRegenerate }: { plan: any; onClose: 
  {/* Two images ABOVE the text — like exercise library */}
  {!editMode && exImages.length > 0 && (
  <div className="mb-2 grid grid-cols-2 gap-2">
- {exImages.slice(0, 2).map((url: string, imgIdx: number) => (
+ {exImages.slice(0, 2).map((url, imgIdx: number) => (
  <div key={imgIdx} className="relative aspect-square overflow-hidden rounded-lg bg-muted">
  <ImageWithFallback
  src={url}
@@ -2805,7 +2864,7 @@ function CoachAIPlanGenerator({
  lang,
 }: {
  generating: string | null;
- onGenerate: (planType: "workout" | "nutrition", overrides?: any) => Promise<void>;
+ onGenerate: (planType: "workout" | "nutrition", overrides?: PlanOverrides) => Promise<void>;
  t: (key: string) => string;
  quota: { unlimited: boolean; clientBalance?: { tier: string; nutrition: { used: number; limit: number; unlimited: boolean; weeklyUsed?: number; weeklyLimit?: number }; workout: { used: number; limit: number; unlimited: boolean; weeklyUsed?: number; weeklyLimit?: number } } } | null;
  lang: "ar" | "en";
@@ -2857,8 +2916,8 @@ function CoachAIPlanGenerator({
  const [mealsCount, setMealsCount] = useState("");
  const [notes, setNotes] = useState("");
 
- const buildOverrides = () => {
- const ov: any = {};
+ const buildOverrides = (): PlanOverrides | undefined => {
+ const ov: PlanOverrides = {};
  if (targetCalories.trim()) ov.targetCalories = parseInt(targetCalories);
  if (proteinG.trim() || carbsG.trim() || fatG.trim()) {
  ov.macros = {

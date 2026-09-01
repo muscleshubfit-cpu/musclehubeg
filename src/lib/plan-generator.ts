@@ -87,10 +87,14 @@ export type NutritionPlanContent = {
       amount: string;
       calories: number;
       protein_g?: number;
+      carbs_g?: number; // produced by the coach editor's auto-calc + meal totals
+      fat_g?: number;
       alternatives?: string; // "أو 180 جم سمك مشوي / 150 جم لحم أحمر"
     }>;
     total_calories?: number;
     total_protein_g?: number;
+    total_carbs_g?: number; // recomputed by CoachClientView editor after item edits
+    total_fat_g?: number;
     notes?: string;
     /** Exactly ≤2 complete replacement meals (owner directive #2). */
     meal_alternatives?: MealAlternative[];

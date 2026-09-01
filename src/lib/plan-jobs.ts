@@ -124,6 +124,8 @@ export type RecoverableJobInput = {
   job_type: string;
   status: string;
   created_at?: string;
+  /** ai_jobs.finished_at — recovery card shows when the result landed. */
+  finished_at?: string | null;
   /** ai_jobs.payload — only clientId is read for recovery selection. */
   payload?: { clientId?: string | null } | null;
 };
