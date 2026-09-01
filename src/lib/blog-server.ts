@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { unstable_cache } from "next/cache";
+import type { BlogPost } from "./blog";
 
 /**
  * Server-side blog helpers — for route handlers and server components.
@@ -128,7 +129,7 @@ export const fetchBlogForOG = unstable_cache(
 const fetchBlogPostFullUncached = async (
   slug: string,
   lang: "en" | "ar",
-): Promise<any | null> => {
+): Promise<BlogPostFull | null> => {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   if (!supabaseUrl || !supabaseAnonKey) return null;
@@ -158,27 +159,16 @@ export const fetchBlogPostFull = unstable_cache(
   { revalidate: 300 },
 );
 
-export type BlogPostFull = {
-  id: string;
-  slug: string;
-  language: "en" | "ar";
-  title: string;
-  meta_title: string | null;
-  meta_description: string | null;
-  excerpt: string | null;
-  content: string;
-  featured_image: string | null;
-  cover_alt: string | null;
-  reading_time: number | null;
-  category: string | null;
-  keywords: string[] | null;
-  faq_json: any | null;
-  is_published: boolean;
-  author: string | null;
-  published_at: string | null;
-  created_at: string;
-  updated_at: string | null;
-  linked_post_id: string | null;
+/** FAQ item stored in blog_posts.faq_json (JSONB array of {question, answer}). */
+export type BlogFaq = { question: string; answer: string };
+
+/**
+ * Full published post row (select("*")). Derived from BlogPost so the
+ * client article view (BlogArticlePage) stays assignable — with a typed
+ * faq_json (JSONB array of {question, answer}) instead of `any`.
+ */
+export type BlogPostFull = Omit<BlogPost, "faq_json"> & {
+  faq_json: BlogFaq[] | null;
 };
 
 // ─────────────────────────────────────────────────────────────────────

@@ -330,3 +330,24 @@ Stage Summary:
 - Site is in TOP shape for organic global growth: performance excellent, SEO complete, GEO already best-practice
 - Two real distribution gaps closed: bilingual RSS feeds + llms-full.txt (AI engines)
 - New routes are DB-absent-safe (empty channel/guide, never 500) and ISR-cached hourly
+
+---
+Task ID: 87
+Agent: Super Z (main)
+Task: Phase 87 — owner questions «هل llms.txt يحتاج إضافة في مكان زي GSC للسايت ماب؟» + «التحذيرات القديمة محتاجين نعمل فيها حاجة لمنع أي لغبطة في المستقبل؟»
+
+Work Log:
+- Confirmed Phase 86 was already pushed (origin/main == HEAD 5925589); production re-verified: /llms.txt, /llms-full.txt, /rss.xml, /ar/rss.xml, /sitemap.xml, /robots.txt ALL 200 with correct content-types
+- Answered Q1: llms.txt needs NO registration anywhere — no AI-search console exists; AI crawlers auto-discover it at the root (documented in QA_CHECKLIST + PROGRESS)
+- Answered Q2 by executing: located the 6 recurring eslint `any` warnings (blog-server.ts L131/L175 + LandingView.tsx L1286/L1322/L1361/L1401) and replaced them with real types
+- blog-server.ts: added `import type { BlogPost } from "./blog"` (type-only import — erased at runtime, server-safe); `BlogPostFull = Omit<BlogPost, "faq_json"> & { faq_json: BlogFaq[] | null }` + `export type BlogFaq = { question: string; answer: string }`; fetcher signature → Promise<BlogPostFull | null>
+- First tsc run caught a REAL gap the `any` was hiding: BlogPostFull lacked focus_keyword/tags/schema_json required by BlogArticlePage's BlogPost prop — deriving from BlogPost fixed it structurally (verified faq shape {question,answer} against BlogArticlePage L220-223 + p5-publish writer before typing)
+- LandingView.tsx: 4 typed props for helper cards (LandingTool/LandingExerciseCategory/LandingProgram/LandingFoodCategory) matching the inline data arrays exactly (structural typing, zero call-site changes)
+- Anti-confusion policy documented: full-repo eslint shows ~810 LEGACY `any` warnings outside the per-change gate = known noise, never blind-fixed, cleaned only on deliberate refactor with owner approval; standard gate = eslint on changed files must print NOTHING
+- Gates: tsc 0 · eslint 0 warnings/0 errors (both touched files — was 6 warnings every run) · vitest 191/191
+- Docs: QA_CHECKLIST Phase 87 table + PROGRESS Phase 87 section + this entry
+
+Stage Summary:
+- llms.txt: nothing to register, discovery is automatic — sitemap stays the only GSC submission (all GEO files re-proven live 200)
+- Recurring warnings permanently closed: gates output is now silent-clean, so ANY future warning appearing is genuinely new and worth attention
+- Type system got stronger for free: BlogPostFull can never drift from BlogPost again

@@ -1281,9 +1281,52 @@ export function LandingView() {
   );
 }
 
+// ─── Helper component prop types (typed instead of legacy `any`) ───
+
+type LandingTool = {
+  slug: string;
+  nameAr: string;
+  nameEn: string;
+  descAr: string;
+  descEn: string;
+  emoji: string;
+  color: string;
+  href: string;
+  image: string;
+};
+
+type LandingExerciseCategory = {
+  slug: string;
+  labelAr: string;
+  labelEn: string;
+  emoji: string;
+  image: string;
+  count: number;
+};
+
+type LandingProgram = {
+  slug: string;
+  titleAr: string;
+  titleEn: string;
+  descAr: string;
+  descEn: string;
+  emoji: string;
+  image: string;
+};
+
+type LandingFoodCategory = {
+  slug: string;
+  titleAr: string;
+  titleEn: string;
+  descAr: string;
+  descEn: string;
+  emoji: string;
+  image: string;
+};
+
 // ─── Helper components (conditional rendering — no display:none in DOM) ───
 
-function LandingToolCard({ tool, isAr }: { tool: any; isAr: boolean }) {
+function LandingToolCard({ tool, isAr }: { tool: LandingTool; isAr: boolean }) {
   return (
     <a
       href={tool.href}
@@ -1319,7 +1362,7 @@ function LandingToolCard({ tool, isAr }: { tool: any; isAr: boolean }) {
   );
 }
 
-function LandingExerciseCategoryCard({ cat, isAr }: { cat: any; isAr: boolean }) {
+function LandingExerciseCategoryCard({ cat, isAr }: { cat: LandingExerciseCategory; isAr: boolean }) {
   return (
     <a
       href={`${isAr ? "/ar" : ""}/exercises?cat=${cat.slug}`}
@@ -1358,7 +1401,7 @@ function LandingExerciseCategoryCard({ cat, isAr }: { cat: any; isAr: boolean })
   );
 }
 
-function LandingProgramCard({ prog, isAr }: { prog: any; isAr: boolean }) {
+function LandingProgramCard({ prog, isAr }: { prog: LandingProgram; isAr: boolean }) {
   return (
     <a
       href={`/programs/${prog.slug}`}
@@ -1398,7 +1441,7 @@ function LandingProgramCard({ prog, isAr }: { prog: any; isAr: boolean }) {
   );
 }
 
-function LandingFoodCategoryCard({ cat, isAr }: { cat: any; isAr: boolean }) {
+function LandingFoodCategoryCard({ cat, isAr }: { cat: LandingFoodCategory; isAr: boolean }) {
   return (
     <a
       href={`${isAr ? "/ar" : ""}/foods?cat=${cat.slug}`}

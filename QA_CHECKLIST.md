@@ -6,7 +6,17 @@
 
 ---
 
-## Latest Verification — 2026-09-02 (Phase 86 — speed/perf audit + SEO/GEO audit + RSS feeds + llms-full.txt)
+## Latest Verification — 2026-09-02 (Phase 87 — legacy lint warnings closed + llms.txt question answered)
+
+| Check | Result | How verified |
+|---|---|---|
+| Owner Q: does llms.txt need registration (like sitemap in GSC)? | ✅ NO — nothing to register | No "AI Search Console" exists; AI crawlers (GPTBot/ClaudeBot/PerplexityBot…) auto-discover /llms.txt at the root by design. Production verified: /llms.txt, /llms-full.txt, /rss.xml, /ar/rss.xml, /robots.txt ALL 200 with correct content-types. Sitemap remains the only file submitted in GSC. |
+| Owner Q: close the old recurring warnings for good | ✅ CLOSED — gates output now prints zero warnings | The 6 pre-existing `any` warnings (blog-server.ts ×2 + LandingView.tsx ×4) replaced with real types: `BlogPostFull = Omit<BlogPost,"faq_json"> & { faq_json: BlogFaq[] \| null }` (derived — can never drift from BlogPost again) · `BlogFaq = {question, answer}` · 4 helper-card prop types (LandingTool/LandingExerciseCategory/LandingProgram/LandingFoodCategory). eslint on both files: 0 warnings, 0 errors (was 6 every run). |
+| Type-safety side benefit | ✅ BETTER | `any` was masking a real gap: BlogPostFull lacked focus_keyword/tags/schema_json required by BlogArticlePage's BlogPost type — deriving from BlogPost surfaced it (tsc caught it), then structurally fixed it (tsc 0). |
+| Standing note (anti-confusion policy) | 📌 DOCUMENTED | Full-repo eslint (`npx eslint src`) reports ~810 legacy `any` warnings in files OUTSIDE the per-change gate — known legacy noise, NOT regressions, NOT part of the standard gates. Policy: never blind-fix them; a legacy file is only cleaned when deliberately refactored with owner approval. Standard gate stays: `npx eslint <changed files>` must print NOTHING. |
+| Gates | ✅ PASS | tsc 0 · eslint 0 warnings/0 errors (touched files) · vitest 191/191 |
+
+## Previous Verification — 2026-09-02 (Phase 86 — speed/perf audit + SEO/GEO audit + RSS feeds + llms-full.txt)
 
 | Check | Result | How verified |
 |---|---|---|
