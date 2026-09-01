@@ -6,7 +6,17 @@
 
 ---
 
-## Latest Verification — 2026-09-02 (Phase 87 — legacy lint warnings closed + llms.txt question answered)
+## Latest Verification — 2026-09-02 (Phase 88 — EVO streaming verified live + legacy-`any` cleanup batch 1)
+
+| Check | Result | How verified |
+|---|---|---|
+| EVO chat live on Vercel | ✅ WORKS | Production POST /api/ai/chat (anonymous mode): HTTP 200, real AI reply, source `groq:openai/gpt-oss-20b` (fast chain #1), TTFB 4.79s / total 4.79s |
+| EVO "streaming" truth | ✅ CLARIFIED | The reply arrives as ONE complete JSON (TTFB == TOTAL proves no progressive chunks): route returns `NextResponse.json` after awaiting the full model text (needed for LaTeX/reasoning cleaning), client does `await response.json()`. NOT token-streamed. Misleading build-info wording "EVO chat streams from Vercel" corrected to "served from Vercel — full JSON reply, not token-streamed; heavy AI jobs on GitHub Actions" |
+| Legacy warnings batch 1 | ✅ 804 → 795 | 8 files fixed with real types: `catch (e: any)` → `catch (e)` + `e instanceof Error` pattern (send-email, tools/lead, NewsletterForm, ContactView) · wger suggestion type in exercise-image · `unknown[]` in social-posts normalizeHashtags · minimal `{tier?: string \| null}` in use-membership-tier · build-info string. Plus DEAD CODE deleted: BlogView.tsx (imported nowhere, referenced stale columns title_ar/cover_image absent from current blog_posts schema — git history preserves it) |
+| Gates | ✅ PASS | tsc 0 · eslint 0 warnings/0 errors (all batch files) · vitest 191/191 |
+| Cleanup running tally | 📌 TRACKED | Start 804 → after batch 1: **795**. Next safest batches: 1-2-warning files first (lib/paypal, data/chat, data/referrals, ui files), then medium (data layer), sensitive files (auth, payments, cron) LAST with extra review |
+
+## Previous Verification — 2026-09-02 (Phase 87 — legacy lint warnings closed + llms.txt question answered)
 
 | Check | Result | How verified |
 |---|---|---|

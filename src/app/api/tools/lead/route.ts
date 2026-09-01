@@ -151,8 +151,8 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json({ ok: true, id: data?.id });
-  } catch (e: any) {
-    console.error("[api/tools/lead] Exception:", e?.message || e);
+  } catch (e) {
+    console.error("[api/tools/lead] Exception:", e instanceof Error ? e.message : e);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 },

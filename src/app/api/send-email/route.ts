@@ -558,8 +558,8 @@ export async function POST(request: NextRequest) {
     });
 
     return NextResponse.json({ ok: true, id: leadId, leadSaved });
-  } catch (e: any) {
-    console.error("[api/send-email] Exception:", e?.message || e);
+  } catch (e) {
+    console.error("[api/send-email] Exception:", e instanceof Error ? e.message : e);
     return NextResponse.json(
       { error: "Failed to send the email. Please try again." },
       { status: 500 },

@@ -351,3 +351,22 @@ Stage Summary:
 - llms.txt: nothing to register, discovery is automatic — sitemap stays the only GSC submission (all GEO files re-proven live 200)
 - Recurring warnings permanently closed: gates output is now silent-clean, so ANY future warning appearing is genuinely new and worth attention
 - Type system got stronger for free: BlogPostFull can never drift from BlogPost again
+
+---
+Task ID: 88
+Agent: Super Z (main)
+Task: Phase 88 — owner order «نبدأ في تقليص التحذيرات القديمة المتراكمة ملف ملف بأمان، محتاج تاكيد ان ايفو بيشتغل streaming على vercel»
+
+Work Log:
+- EVO live proof (production, anonymous mode): POST /api/ai/chat {"message":"what is a good post-workout meal?"} → HTTP 200, real reply, source groq:openai/gpt-oss-20b, TTFB 4.79s == TOTAL 4.79s, 350B single JSON
+- Streaming truth established: route returns NextResponse.json AFTER awaiting full model text (LaTeX/reasoning cleaning needs the whole text); client evo-chat-context.tsx does await response.json() — NO token streaming exists; the "EVO chat streams from Vercel" build-info wording was topology shorthand that caused the owner's confusion → corrected to "served from Vercel — full JSON reply, not token-streamed; heavy AI jobs on GitHub Actions"
+- Full-repo warning census (eslint -f json): 120 files / 804 warnings; biggest: CoachClientView 78, blog-generate 45, plan-generator 44, ai-job-processors 34
+- Batch 1 selected (safety rule: 1-2 warnings/file, away from payments/auth/cron): exercise-image, send-email, tools/lead, NewsletterForm, ContactView, use-membership-tier, social-posts + BlogView
+- Fixes: catch(e:any)→catch(e)+e instanceof Error ×4 (behavior identical) · WgerSuggestion type for wger API JSON · normalizeHashtags(raw: unknown)+unknown[] · .then((sub:{tier?:string|null}|null)) · BlogView.tsx DELETED (dead code: imported nowhere; stale columns title_ar/cover_image absent from blog_posts Row type — future-confusion landmine, git history preserves it)
+- vercel.json checked: no per-function maxDuration overrides (platform defaults apply; EVO ~5s fits comfortably; heavy AI jobs deliberately run on GitHub Actions per topology)
+- Gates: tsc 0 · eslint 0 warnings/0 errors on all 8 touched files · vitest 191/191 · post-fix census: 804 → 795
+- Docs: QA_CHECKLIST Phase 88 (incl. running tally + next-batch order) + PROGRESS Phase 88 + this entry
+
+Stage Summary:
+- EVO on Vercel: PROVEN working live (200, groq fast-chain, ~4.8s); honest status = full-JSON reply, NOT token-streamed — true SSE streaming offered as a separate future phase
+- Cleanup batch 1 complete: 804 → 795 (−9: 8 typed + 1 dead file deleted); order for next batches documented (small→medium→sensitive-last)

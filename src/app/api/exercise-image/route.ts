@@ -109,8 +109,15 @@ async function fetchExerciseImage(name: string): Promise<string | null> {
  return null;
  }
 
+ // wger search suggestion shape: { value?|name?, uuid?, data?: { uuid? } }
+ type WgerSuggestion = {
+ value?: string;
+ name?: string;
+ uuid?: string;
+ data?: { uuid?: string } | null;
+ };
  const searchData = await searchRes.json();
- const suggestions = searchData?.suggestions || [];
+ const suggestions: WgerSuggestion[] = searchData?.suggestions || [];
  if (suggestions.length === 0) {
  cache.set(cacheKey, null);
  cacheTimestamps.set(cacheKey, Date.now());
@@ -118,7 +125,7 @@ async function fetchExerciseImage(name: string): Promise<string | null> {
  }
 
  // Find the best match (exact or starts-with name match)
- const exact = suggestions.find((s: any) => {
+ const exact = suggestions.find((s) => {
  const n = (s.value || s.name || "").toLowerCase();
  return n === englishName.toLowerCase() || n.startsWith(englishName.toLowerCase());
  });

@@ -41,8 +41,8 @@ export function ContactView() {
       }
       setSubject("");
       setMessage("");
-    } catch (e: any) {
-      toast.error(e.message || (isAr ? "حدث خطأ" : "Something went wrong"));
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : (isAr ? "حدث خطأ" : "Something went wrong"));
     } finally {
       setSending(false);
     }

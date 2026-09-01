@@ -57,8 +57,8 @@ export function NewsletterForm({ variant = "footer" }: { variant?: "footer" | "h
         return;
       }
       setDone(true);
-    } catch (e: any) {
-      setError(e?.message || (isAr ? "حصل خطأ" : "Something went wrong"));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : (isAr ? "حصل خطأ" : "Something went wrong"));
     } finally {
       setSubmitting(false);
     }

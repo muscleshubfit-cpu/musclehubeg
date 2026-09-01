@@ -60,7 +60,7 @@ export function useMembershipTier(
     setLoading(true);
 
     getSubscriptionForClient(profile.id)
-      .then((sub: any) => {
+      .then((sub: { tier?: string | null } | null) => {
         if (cancelled) return;
         const t = sub?.tier;
         // 0045 legacy compat: retired starter/elite rows (remapped by

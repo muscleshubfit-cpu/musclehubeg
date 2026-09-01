@@ -146,10 +146,10 @@ const DEFAULT_TIMES: Record<SocialPlatform, string[]> = {
   linkedin: ["8:00 AM - 10:00 AM", "5:00 PM - 6:00 PM"],
 };
 
-function normalizeHashtags(raw: any, platform: SocialPlatform): string[] {
-  const list = Array.isArray(raw) ? raw : [];
+function normalizeHashtags(raw: unknown, platform: SocialPlatform): string[] {
+  const list: unknown[] = Array.isArray(raw) ? raw : [];
   const out = list
-    .map((h: any) => String(h || "").trim())
+    .map((h) => String(h || "").trim())
     .filter(Boolean)
     .map((h: string) => (/^#[\w\u0600-\u06FF]+$/.test(h) ? h : `#${h.replace(/^#+/, "").replace(/[^\w\u0600-\u06FF]/g, "_")}`))
     .filter((h: string) => h.length > 1);
