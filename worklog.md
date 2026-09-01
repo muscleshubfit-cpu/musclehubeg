@@ -251,3 +251,25 @@ Stage Summary:
 - Docs now claim exactly what the code does; every number re-verified against source (67 endpoints, 76 pages, quotas, commissions, migrations).
 - Repo weight: ~1.02MB of tracked+local doc bulk reduced; full history preserved verbatim under archive/ with dated appendix banners.
 - Owner note: revoke the GitHub token after this push.
+
+---
+Task ID: 83
+Agent: Super Z (main)
+Task: Phase 83 — owner-requested live health check post-Phase-82 («فحص حى سريع … مفيش اى ضرر + تجربة مستخدم حقيقية ومدرب وادمن وكوتش + عدد مرات توليد المقالات فى اليوم»)
+
+Work Log:
+- Push parity verified: origin/main == 18453c3 (Phase 82) — nothing unpushed; working tree clean
+- Gates re-run live: tsc --noEmit 0 errors · vitest 191/191 (18 files, 16.8s)
+- Live guest UX (agent-browser, dev server): / renders full EN landing (PWA SW ok, cookie consent, all nav sections, zero console errors — 1 benign next/image sizes warning on hero), /ar full Arabic RTL landing verified visually (screenshot), /blog renders search+categories, /auth renders
+- Live gate proof as anonymous guest: /dashboard → bounced to /auth ✓ · /admin → /auth ✓ · /coach → /auth ✓ (client gates firing in real browser)
+- API auth matrix live: 401 on wallets/coach-wallet/ai-usage/support/refund/admin-refunds/cron-blog-p0/progress-reminder (cron fail-closed ✓); 405 POST-only on staff/invite/cancel/member-edit/broadcast/send-email/upload; local-only 500/501/{results:[]} on external-plans/leads/ai-jobs/saved-results = isAuthConfigured=false dev pattern (auth skipped locally, returns "Server not configured" or empty list BEFORE any DB touch — production requireAdmin/requireUser proven in Phase 80)
+- Dev-server flakiness noted: local next dev died 3× under sequential route compilation (3.9GB RAM box) — environment-only, no code fault; restarted each time and continued
+- Production live: / , /ar , /blog , /api/build-info all 200 on musclehubeg.vercel.app; blog listing full of real published AI articles (protein plans, pre-workout, macro prep, splits…)
+- Article/day law documented from code: EN workflow crons 12/16/22 UTC = 3/day · AR crons 05/11/18 UTC = 3/day → TOTAL 6 articles/day (each run publishes exactly ONE article); Vercel dispatch-pipelines (21:00 UTC daily) only TOPS UP missed slots to quota — never exceeds 3+3; failure/cancelled runs don't count toward quota (2026-08-27 law)
+- 68 total route files confirmed: 66 route.ts under /api + auth/callback + og-image route.tsx (matches Phase-82 docs table)
+
+Stage Summary:
+- ZERO damage found — code, gates, tests, docs all healthy post-Phase-82
+- Roles: guest bounce proven live (member+admin+coach surfaces); staff/role laws re-verified by code+API responses; full logged-in role E2E remains proven by Phase 80 production session (local has no DB keys by design)
+- Article cadence: 6/day (3 EN + 3 AR), dispatcher self-healing, active on production
+- No code changes in this phase — verification-only + this worklog entry
