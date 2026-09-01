@@ -376,7 +376,15 @@ EvoFloatingWidget / ChatView (UI)
       (بما في ذلك حسابات Free المسجلة — إصلاح G5)
     → Platform search (تمارين، أكلات، برامج، أدوات) + بحث المدونة
     → callFreeAIFallbackChain (OpenRouter + Groq interleaved، ≤52s budget)
-    → Local fallback عند عدم توفر المزودين
+      — Phase 89: خيار onDelta يمرر قطع الرد الخام لحظياً
+    → النجاح يُبث SSE (text/event-stream):
+        event: delta  → قطع خام أول بأول (المستخدم يشوف الرد وهو بيتكتب)
+        event: final  → النص الكامل المنظف + links + source (يستبدل القطع الخام)
+        event: error  → انقطاع منتصف البث (العميل يحتفظ بالنص الجزئي)
+      والأخطاء/429 تبقى JSON — العميل يميز بالنوع (content-type)
+    → التنظيف (LaTeX/تفكير/ماركداون) يحتاج النص كاملاً فيعمل بعد الجمع
+      وبيتبعت في final — ممكن يختلف شوية عن القطع الخام بالتصميم
+    → Local fallback عند عدم توفر المزودين (يبث final محلياً)
 ```
 
 > **2026-08-27:** زر "مسح المحادثة" أُزيل نهائياً من الـ widget وصفحة /chat
@@ -471,7 +479,7 @@ State tracked in blog_generation_queue table (one row per language).
 | `/api/affiliate/commission` | POST | Admin | تسجيل/تسوية عمولة أفيليت (20%) |
 | `/api/affiliate/payout-notify` | POST | User | إشعار الأدمن بطلب سحب أفيليت |
 | `/api/affiliate/referred-coaches` | GET | User | المدربون المسجلون عبر رابط الإحالة |
-| `/api/ai/chat` | POST | User (اختياري للمجهول) | محادثة EVO — توليد الخطة يخصم من الرصيد الموحد (429 يميز أسبوعي/شهري) |
+| `/api/ai/chat` | POST | User (اختياري للمجهول) | محادثة EVO — توليد الخطة يخصم من الرصيد الموحد (429 يميز أسبوعي/شهري) · النجاح يُبث SSE (delta/final) والأخطاء JSON |
 | `/api/ai/jobs` | POST/GET | User/Coach + JOB_GATE | طابور مهام AI (توليد/استبدال/إعادة توليد) — فحص ملكية + رصيد العميل، مهام الموظفين محجوبة عن العملاء |
 | `/api/ai/queue-health` | GET/DELETE | Admin | صحة الطابور + تنظيف المهام العالقة |
 | `/api/ai/quota` | GET | User session | عدادات الرصيد الموحد (أسبوعي + شهري + التبديلات) |

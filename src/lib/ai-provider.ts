@@ -326,6 +326,123 @@ export async function callAIWithFallback(
 }
 
 /**
+ * Phase 89 — streaming variant of callAI for a single explicit provider
+ * config. Opens the request with stream:true and forwards raw content
+ * deltas to onDelta as they arrive (OpenAI-compatible SSE). Returns the
+ * FULL accumulated text.
+ *
+ * Reasoning deltas (gpt-oss etc.) are buffered silently and used only if
+ * NO content deltas ever arrive — mirroring callAI's content→reasoning
+ * fallback — so users never see thinking garbage live.
+ *
+ * Failure semantics (the chain's streaming contract):
+ * - request-level failures (HTTP error, timeout, network) throw BEFORE
+ *   any delta → the chain silently falls back to the next model.
+ * - mid-stream failures (after ≥1 delta was forwarded) throw with the
+ *   stream already consumed — the chain aborts (see callFreeAIFallbackChain).
+ */
+export async function callAIStream(
+  prompt: string,
+  options: CallAIOptions = {},
+  configOverride?: Partial<AIConfig> | null,
+  onDelta?: (chunk: string) => void,
+): Promise<string> {
+  const cfg = mergeOverride(configOverride);
+  if (!cfg || !cfg.apiKey) {
+    throw new Error("callAIStream: no provider config/apiKey given");
+  }
+
+  const messages: Array<{ role: string; content: string }> = [];
+  if (options.systemPrompt) {
+    messages.push({ role: "system", content: options.systemPrompt });
+  }
+  messages.push({ role: "user", content: prompt });
+
+  const body = {
+    model: cfg.model,
+    messages,
+    temperature: options.temperature ?? 0.7,
+    max_tokens: options.maxTokens ?? 4096,
+    stream: true,
+  };
+
+  const controller = new AbortController();
+  const timeoutMs = options.timeoutMs ?? 60_000;
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const res = await fetch(`${cfg.baseUrl}/chat/completions`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${cfg.apiKey}`,
+        ...(cfg.provider === "openrouter"
+          ? {
+              "HTTP-Referer": "https://musclehubeg.vercel.app",
+              "X-Title": "Musclehubeg EVO Chat",
+            }
+          : {}),
+      },
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    });
+
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      throw new Error(
+        `AI API error ${res.status} from ${cfg.provider}: ${text.slice(0, 500)}`,
+      );
+    }
+    if (!res.body) {
+      throw new Error(`AI provider ${cfg.provider} returned no stream body`);
+    }
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    let full = "";
+    let reasoning = "";
+
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+
+      let nlIdx: number;
+      while ((nlIdx = buffer.indexOf("\n")) !== -1) {
+        const line = buffer.slice(0, nlIdx).trim();
+        buffer = buffer.slice(nlIdx + 1);
+        if (!line || line.startsWith(":")) continue; // SSE comment / keep-alive
+        if (!line.startsWith("data:")) continue;
+        const payload = line.slice(5).trim();
+        if (payload === "[DONE]") continue;
+        try {
+          const evt = JSON.parse(payload);
+          const delta = evt?.choices?.[0]?.delta;
+          if (typeof delta?.content === "string" && delta.content.length > 0) {
+            full += delta.content;
+            onDelta?.(delta.content);
+          } else if (typeof delta?.reasoning === "string") {
+            // reasoning models — buffered silently, never streamed to users
+            reasoning += delta.reasoning;
+          }
+        } catch {
+          // malformed SSE line — skip
+        }
+      }
+    }
+
+    const text = (full || reasoning).trim();
+    if (!text) {
+      throw new Error(`AI provider ${cfg.provider} returned an empty stream`);
+    }
+    return text;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/**
  * Test that the configured provider responds. Returns a short sample message
  * on success, or throws on failure.
  */
@@ -545,6 +662,13 @@ export type FallbackChainOptions = CallAIOptions & {
    *  e.g. "evo-chat", "plan:workout", "blog:content-ar". Observational
    *  only — it NEVER changes model ordering or fallback policy. */
   tag?: string;
+  /** Phase 89 — TRUE TOKEN STREAMING: when provided, raw content deltas
+   *  stream to this callback as they arrive from the provider.
+   *  Fallback contract: attempts fail over silently ONLY while nothing
+   *  has been streamed yet; once the first delta reaches the user, a
+   *  mid-stream failure aborts the whole chain (the caller decides what
+   *  the user sees — the route sends an SSE error event). */
+  onDelta?: (chunk: string) => void;
 };
 
 /** Total time budget reserved for the whole chain (Vercel Hobby-safe).
@@ -710,21 +834,56 @@ export async function callFreeAIFallbackChain(
     // identical retry very often succeeds. Retry each entry ONCE on empty.
     for (const apiKey of candidateKeys) {
       for (let attemptNo = 0; attemptNo < 2; attemptNo++) {
+        // Phase 89 streaming: when the caller passed onDelta, this attempt
+        // streams raw deltas through the chain-level callback. attemptStreamed
+        // marks that THIS attempt already pushed tokens to the user — after
+        // that, a failure must abort the chain (no silent model switch that
+        // would splice two different answers into one visible stream).
+        let attemptStreamed = false;
+        const streamTap = options.onDelta
+          ? (chunk: string) => {
+              attemptStreamed = true;
+              options.onDelta?.(chunk);
+            }
+          : undefined;
         try {
-          const { text } = await callAIWithFallback(prompt, { ...callOptions, timeoutMs: effTimeoutMs }, {
-            provider,
-            apiKey,
-            model,
-            baseUrl,
-          });
+          const { text } = streamTap
+            ? {
+                text: await callAIStream(
+                  prompt,
+                  { ...callOptions, timeoutMs: effTimeoutMs },
+                  { provider, apiKey, model, baseUrl },
+                  streamTap,
+                ),
+              }
+            : await callAIWithFallback(
+                prompt,
+                { ...callOptions, timeoutMs: effTimeoutMs },
+                {
+                  provider,
+                  apiKey,
+                  model,
+                  baseUrl,
+                },
+              );
           if (text && text.trim().length > 0) {
-            console.log(`${LP} ${provider}/${model} succeeded${attemptNo ? " (after empty-retry)" : ""}`);
+            console.log(
+              `${LP} ${provider}/${model} succeeded${attemptNo ? " (after empty-retry)" : ""}${streamTap ? " (streamed)" : ""}`,
+            );
             return { text: text.trim(), model, provider };
           }
           throw new Error(`${model}: empty response`);
         } catch (e: any) {
           const msg = e?.message || String(e);
           errors.push(`${provider}/${model}: ${msg}`);
+          if (attemptStreamed) {
+            // Mid-stream failure AFTER user-visible tokens — rethrow so the
+            // caller can decide (route sends an SSE error event; the client
+            // keeps the partial text).
+            throw new Error(
+              `[ai-fallback-chain] stream failed mid-way on ${provider}/${model}: ${msg}`,
+            );
+          }
           console.warn(`${LP} ${provider}/${model} notice, trying next:`, msg);
         }
         const lastErr = errors[errors.length - 1] || "";

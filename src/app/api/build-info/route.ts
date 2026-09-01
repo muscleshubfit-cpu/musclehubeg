@@ -38,7 +38,7 @@ export async function GET() {
     {
       ok: true,
       service: "musclehubeg",
-      aiTopology: "native-github-actions-v2 (EVO chat served from Vercel — full JSON reply, not token-streamed; heavy AI jobs on GitHub Actions)",
+      aiTopology: "native-github-actions-v2 (EVO chat token-streams via SSE from Vercel — Phase 89; heavy AI jobs on GitHub Actions)",
       commit,
       commitShort: commit ? commit.slice(0, 7) : null,
       branch,

@@ -353,7 +353,12 @@ export function EvoChatProvider({ children }: { children: ReactNode }) {
           }),
         });
 
-        const data = await response.json();
+        // Phase 89 — the success response is either SSE (token streaming)
+        // or legacy JSON (safety path). 429/errors stay JSON. Sniff the
+        // content-type ONCE — never consume the body twice.
+        const contentType = response.headers.get("content-type") || "";
+        const isSSE = contentType.includes("text/event-stream");
+        const data = isSSE ? null : await response.json();
 
         // G9 FIX (2026-08-27): non-2xx responses (429 rate limit etc.) are no
         // longer rendered as normal EVO replies nor persisted as assistant
@@ -387,6 +392,144 @@ export function EvoChatProvider({ children }: { children: ReactNode }) {
             return; // NOT persisted to chat_messages
           }
           throw new Error(data?.error || `HTTP ${response.status}`);
+        }
+
+        if (isSSE && response.body) {
+          // ── Phase 89: TRUE TOKEN STREAMING ──
+          // Insert a live (empty) assistant bubble immediately, grow it on
+          // every delta, then swap in the cleaned final text + links.
+          const assistantId = `msg-${Date.now()}-assistant`;
+          setState((prev) => ({
+            ...prev,
+            isTyping: false,
+            messages: [
+              ...prev.messages,
+              {
+                id: assistantId,
+                role: "assistant" as const,
+                content: "",
+                timestamp: Date.now(),
+              },
+            ],
+          }));
+
+          type SseFinal = {
+            response?: string;
+            links?: Array<{ label: string; url: string }>;
+            source?: string;
+          };
+          const reader = response.body.getReader();
+          const decoder = new TextDecoder();
+          let buffer = "";
+          let acc = "";
+          let finalData: SseFinal | null = null;
+          let streamInterrupted = false;
+
+          // Parse one SSE frame and RETURN its effect (no closure mutation —
+          // keeps TS flow analysis exact and the state updaters pure).
+          const parseEvent = (
+            rawEvent: string,
+          ): { delta?: string; final?: SseFinal; error?: boolean } => {
+            let eventName = "message";
+            const dataLines: string[] = [];
+            for (const line of rawEvent.split("\n")) {
+              if (line.startsWith("event:")) eventName = line.slice(6).trim();
+              else if (line.startsWith("data:")) dataLines.push(line.slice(5).trim());
+            }
+            if (dataLines.length === 0) return {};
+            let parsed: unknown;
+            try {
+              parsed = JSON.parse(dataLines.join("\n"));
+            } catch {
+              return {}; // malformed frame — skip
+            }
+            const payload = parsed as {
+              text?: unknown;
+              response?: unknown;
+              links?: unknown;
+              message?: unknown;
+            };
+            if (eventName === "delta" && typeof payload?.text === "string" && payload.text.length > 0) {
+              return { delta: payload.text };
+            }
+            if (eventName === "final" && payload && typeof payload === "object") {
+              return { final: payload as SseFinal };
+            }
+            if (eventName === "error") return { error: true };
+            return {};
+          };
+
+          for (;;) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            buffer += decoder.decode(value, { stream: true });
+            let sep: number;
+            while ((sep = buffer.indexOf("\n\n")) !== -1) {
+              const frame = buffer.slice(0, sep);
+              buffer = buffer.slice(sep + 2);
+              const out = parseEvent(frame);
+              if (out.delta) {
+                acc += out.delta;
+                const snapshot = acc;
+                setState((prev) => ({
+                  ...prev,
+                  messages: prev.messages.map((m) =>
+                    m.id === assistantId ? { ...m, content: snapshot } : m,
+                  ),
+                }));
+              } else if (out.final) {
+                finalData = out.final;
+              } else if (out.error) {
+                streamInterrupted = true;
+              }
+            }
+          }
+
+          const intent = classifyEvoIntent(content);
+          const finalText =
+            finalData && typeof finalData.response === "string" && finalData.response.length > 0
+              ? finalData.response
+              : acc ||
+                (streamInterrupted
+                  ? "حصل انقطاع في الرد. جرب تبعت رسالتك تاني."
+                  : "عذراً، لم أتمكن من الرد. حاول مرة أخرى.");
+          const finalLinks = Array.isArray(finalData?.links) ? finalData.links : [];
+
+          setState((prev) => ({
+            ...prev,
+            messages: prev.messages.map((m) =>
+              m.id === assistantId
+                ? {
+                    ...m,
+                    content: finalText,
+                    links: finalLinks,
+                    ...(intent.isPlanCreation
+                      ? { planKind: intent.planDomain, planRequest: content.trim() }
+                      : {}),
+                  }
+                : m,
+            ),
+          }));
+
+          // Persist assistant message to Supabase (fire-and-forget) — PAID ONLY
+          // (Phase 69 memory gating)
+          if (isPaidTier && isSupabaseConfigured && supabase) {
+            (async () => {
+              try {
+                const { data: { user } } = await supabase.auth.getUser();
+                if (user) {
+                  await supabase.from("chat_messages").insert({
+                    client_id: user.id,
+                    role: "assistant",
+                    // LINK PERSISTENCE: links ride inside the body as markdown
+                    // bullets — parsePersistedBody restores them on reload.
+                    body: buildPersistBody(finalText, finalLinks),
+                  });
+                }
+              } catch { /* non-blocking */ }
+            })();
+          }
+          return;
         }
 
         // PHASE 69 — tag the reply that answers a plan-creation request so

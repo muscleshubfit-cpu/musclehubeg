@@ -336,8 +336,13 @@ One unified layer (see [`DEVELOPER_GUIDE.md`](./DEVELOPER_GUIDE.md) §14):
 |---|---|---|
 | `callAI()` | Single entrypoint | Routes to OpenRouter/Groq with model chain |
 | `callAIWithFallback()` | Plans, Articles, Research | Sequential strongest-chain with fallbacks |
-| `callFreeOpenRouterRace()` | EVO chat, Swap | Parallel — races top models via `Promise.any()`, returns first success |
-| `callFreeAIFallbackChain()` | Local fallback | Deterministic local generator when all providers fail |
+| `callFreeOpenRouterRace()` | Swap | Parallel — races top models via `Promise.any()`, returns first success |
+| `callFreeAIFallbackChain()` | EVO chat, Blog pipeline, Plans | Sequential interleaved chain (fast/strongest) + key rotation — optional `onDelta` forwards raw tokens live |
+| `callAIStream()` | EVO chat (Phase 89) | Streaming single-provider call — `stream:true`, forwards SSE content deltas to `onDelta`, returns full text; reasoning deltas buffered silently |
+
+**EVO chat streaming (Phase 89):** the chat endpoint answers with SSE —
+`event: delta` (raw tokens, live typing) → `event: final` (cleaned full
+text + links + source) — while 429/errors stay JSON.
 
 **Owner directive (2026-08-27):** the platform uses **OpenRouter and Groq
 ONLY** through `src/lib/ai-provider.ts`. The old direct Gemini SDK /

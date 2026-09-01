@@ -338,134 +338,147 @@ export async function POST(request: NextRequest) {
       await recordAnonChatUsage(anonKey, "chat");
     }
 
-    // 7. Try AI via callFreeAIFallbackChain (OpenRouter + Groq interleaved).
-    // maxModels=3 × self-clamped ≤17s each → worst ~52s (Vercel Hobby-safe);
-    // Promise-free sequential keeps quality-first ordering for short answers.
-    try {
-      // OWNER DIRECTIVE #1 (2026-08-27): interactive chat uses the
-      // speed-first chain (fastest free models, accuracy-checked) while
-      // streaming stays on Vercel per the same directive.
-      const { text: aiReply, model: aiModel, provider: aiProvider } = await callFreeAIFallbackChain(
-        fullPrompt,
-        {
-          tag: "evo-chat",
-          temperature: 0.6,
-          maxTokens: 800,
-          timeoutMs: 16_000,
-          maxModels: 3,
-          chain: "fast",
-        },
-      );
+    // 7. Try AI via callFreeAIFallbackChain — Phase 89: TRUE TOKEN STREAMING.
+    //    Success responses are SSE (text/event-stream):
+    //      event: delta → raw model tokens live (user sees typing as they arrive)
+    //      event: final → CLEANED full text + links + source (client swaps it in)
+    //      event: error → mid-stream failure (client keeps the partial text)
+    //    429/quota and pre-stream failures stay JSON — the client sniffs the
+    //    content-type and handles both shapes. Cleaning still needs the full
+    //    text (LaTeX/reasoning stripping), so `final` may differ slightly from
+    //    the raw streamed tokens — by design (quality floor unchanged).
+    //    maxModels=3 × self-clamped ≤17s each → worst ~52s (Vercel-safe).
+    const sseEncoder = new TextEncoder();
+    const localReplyFallback = () =>
+      generateLocalReply(message, clientContext, platformResults, foodNutrition, blogResults);
 
-      if (aiReply && aiReply.trim().length > 5) {
-        // Clean up reasoning artifacts from models that sometimes include
-        // "thinking process" content in the response.
-        let cleanText = aiReply;
-
-          // 1. Strip <think>...</think>, <reasoning>...</reasoning>,
-          //    <reflection>...</reflection>, <analysis>...</analysis> blocks
-          cleanText = cleanText
-            .replace(/<think>[\s\S]*?<\/think>\s*/gi, "")
-            .replace(/<reasoning>[\s\S]*?<\/reasoning>\s*/gi, "")
-            .replace(/<reflection>[\s\S]*?<\/reflection>\s*/gi, "")
-            .replace(/<analysis>[\s\S]*?<\/analysis>\s*/gi, "");
-
-          // 2. Strip "Here's a thinking process:" / "Thinking process:" headers
-          cleanText = cleanText
-            .replace(/^Here's a thinking process:?\s*/i, "")
-            .replace(/^Thinking process:?\s*/i, "")
-            .replace(/^Step-by-step thinking:?\s*/i, "")
-            .replace(/^Reasoning:?\s*/i, "")
-            .replace(/^Let me think about this:?\s*/i, "");
-
-          // 3. Try to extract the final answer if the model wrote reasoning
-          //    steps followed by a "Final Answer:" / "Draft:" / "Response:" marker.
-          const finalAnswerMatch = cleanText.match(
-            /(?:Final Answer|Final answer|Formulate Response|Draft|Response):?\s*:?\s*\n?\s*"([^"]+)"/i,
+    const sseStream = new ReadableStream<Uint8Array>({
+      async start(controller) {
+        const send = (event: string, data: unknown) => {
+          controller.enqueue(sseEncoder.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`));
+        };
+        try {
+          // OWNER DIRECTIVE #1 (2026-08-27): interactive chat uses the
+          // speed-first chain (fastest free models, accuracy-checked).
+          // Phase 89: raw tokens stream to the user via onDelta while the
+          // chain keeps its fast-order + key-rotation + fallback policy.
+          const { text: aiReply, model: aiModel, provider: aiProvider } = await callFreeAIFallbackChain(
+            fullPrompt,
+            {
+              tag: "evo-chat",
+              temperature: 0.6,
+              maxTokens: 800,
+              timeoutMs: 16_000,
+              maxModels: 3,
+              chain: "fast",
+              onDelta: (chunk) => send("delta", { text: chunk }),
+            },
           );
-          if (finalAnswerMatch && finalAnswerMatch[1]) {
-            cleanText = finalAnswerMatch[1].trim();
-          } else {
-            // 4. Strip numbered reasoning steps at the start.
-            const lines = cleanText.split("\n");
-            let answerStartIdx = 0;
-            let foundNumberedStep = false;
-            for (let i = 0; i < lines.length; i++) {
-              const line = lines[i].trim();
-              if (!line) continue;
-              if (/^\d+\.\s+\*\*?[A-Z]/.test(line)) {
-                foundNumberedStep = true;
-                answerStartIdx = i + 1;
-                continue;
-              }
-              if (/^[-*]\s+\*\*?[A-Z]/.test(line) || /^\*\*?[A-Z][a-z]+\s*\*?\*?:\s/.test(line)) {
-                foundNumberedStep = true;
-                answerStartIdx = i + 1;
-                continue;
-              }
-              if (foundNumberedStep && line.length > 20 && !/^(step|draft|formulate|analyze|strategy|determine|response):/i.test(line)) {
-                answerStartIdx = i;
-                break;
-              }
-            }
-            if (answerStartIdx > 0) {
-              cleanText = lines.slice(answerStartIdx).join("\n").trim();
-            }
-          }
 
-          // 5. Strip leading "**" + numbered thinking steps (legacy cleanup)
-          cleanText = cleanText.replace(/^\*\*\d+\.\s+/m, "").trim();
+          if (aiReply && aiReply.trim().length > 5) {
+            // Clean up reasoning artifacts from models that sometimes include
+            // "thinking process" content in the response.
+            let cleanText = aiReply;
 
-          // 6. Strip wrapping quotes (model wrote: "answer here")
-          cleanText = cleanText.replace(/^"([^"]+)"$/, "$1").trim();
+            // 1. Strip <think>...</think>, <reasoning>...</reasoning>,
+            //    <reflection>...</reflection>, <analysis>...</analysis> blocks
+            cleanText = cleanText
+              .replace(/<think>[\s\S]*?<\/think>\s*/gi, "")
+              .replace(/<reasoning>[\s\S]*?<\/reasoning>\s*/gi, "")
+              .replace(/<reflection>[\s\S]*?<\/reflection>\s*/gi, "")
+              .replace(/<analysis>[\s\S]*?<\/analysis>\s*/gi, "");
 
-          // 6.5 OWNER 2026-08-27: LATEX→PLAIN + MARKDOWN STRIP sanitizer.
-          // The chat renders plain text only — live evidence showed raw
-          // "\\frac{4}{3}\\pi r^{3}" reaching users verbatim (models ignore
-          // the no-LaTeX law occasionally; this is the guaranteed floor).
-          cleanText = sanitizeLatexToPlain(cleanText);
-          cleanText = stripMarkdownSyntax(cleanText);
+            // 2. Strip "Here's a thinking process:" / "Thinking process:" headers
+            cleanText = cleanText
+              .replace(/^Here's a thinking process:?\s*/i, "")
+              .replace(/^Thinking process:?\s*/i, "")
+              .replace(/^Step-by-step thinking:?\s*/i, "")
+              .replace(/^Reasoning:?\s*/i, "")
+              .replace(/^Let me think about this:?\s*/i, "");
 
-          // 7. Final validation: too-short output falls back to local reply.
-          if (cleanText.length < 10 || /^\s*\d+\.\s+\*\*?[A-Z]/.test(cleanText)) {
-            console.warn("[api/ai/chat] Cleaned text still looks like reasoning, using local fallback");
-            const localReply = generateLocalReply(
-              message,
-              clientContext,
-              platformResults,
-              foodNutrition,
-              blogResults,
+            // 3. Try to extract the final answer if the model wrote reasoning
+            //    steps followed by a "Final Answer:" / "Draft:" / "Response:" marker.
+            const finalAnswerMatch = cleanText.match(
+              /(?:Final Answer|Final answer|Formulate Response|Draft|Response):?\s*:?\s*\n?\s*"([^"]+)"/i,
             );
-            return NextResponse.json({
-              response: localReply,
-              links,
-              source: "local",
-            });
+            if (finalAnswerMatch && finalAnswerMatch[1]) {
+              cleanText = finalAnswerMatch[1].trim();
+            } else {
+              // 4. Strip numbered reasoning steps at the start.
+              const lines = cleanText.split("\n");
+              let answerStartIdx = 0;
+              let foundNumberedStep = false;
+              for (let i = 0; i < lines.length; i++) {
+                const line = lines[i].trim();
+                if (!line) continue;
+                if (/^\d+\.\s+\*\*?[A-Z]/.test(line)) {
+                  foundNumberedStep = true;
+                  answerStartIdx = i + 1;
+                  continue;
+                }
+                if (/^[-*]\s+\*\*?[A-Z]/.test(line) || /^\*\*?[A-Z][a-z]+\s*\*?\*?:\s/.test(line)) {
+                  foundNumberedStep = true;
+                  answerStartIdx = i + 1;
+                  continue;
+                }
+                if (foundNumberedStep && line.length > 20 && !/^(step|draft|formulate|analyze|strategy|determine|response):/i.test(line)) {
+                  answerStartIdx = i;
+                  break;
+                }
+              }
+              if (answerStartIdx > 0) {
+                cleanText = lines.slice(answerStartIdx).join("\n").trim();
+              }
+            }
+
+            // 5. Strip leading "**" + numbered thinking steps (legacy cleanup)
+            cleanText = cleanText.replace(/^\*\*\d+\.\s+/m, "").trim();
+
+            // 6. Strip wrapping quotes (model wrote: "answer here")
+            cleanText = cleanText.replace(/^"([^"]+)"$/, "$1").trim();
+
+            // 6.5 OWNER 2026-08-27: LATEX→PLAIN + MARKDOWN STRIP sanitizer.
+            // The chat renders plain text only — live evidence showed raw
+            // "\\frac{4}{3}\\pi r^{3}" reaching users verbatim (models ignore
+            // the no-LaTeX law occasionally; this is the guaranteed floor).
+            cleanText = sanitizeLatexToPlain(cleanText);
+            cleanText = stripMarkdownSyntax(cleanText);
+
+            // 7. Final validation: too-short output falls back to local reply.
+            if (cleanText.length < 10 || /^\s*\d+\.\s+\*\*?[A-Z]/.test(cleanText)) {
+              console.warn("[api/ai/chat] Cleaned text still looks like reasoning, using local fallback");
+              send("final", { response: localReplyFallback(), links, source: "local" });
+            } else {
+              send("final", { response: cleanText, links, source: `${aiProvider}:${aiModel}` });
+            }
+          } else {
+            // Model returned an unusably short text → local fallback.
+            send("final", { response: localReplyFallback(), links, source: "local" });
           }
-
-          return NextResponse.json({
-            response: cleanText,
-            links,
-            source: `${aiProvider}:${aiModel}`,
-          });
+        } catch (aiErr) {
+          console.error("[api/ai/chat] AI fallback chain failed:", aiErr);
+          const aiMsg = aiErr instanceof Error ? aiErr.message : String(aiErr);
+          if (/stream failed mid-way/i.test(aiMsg)) {
+            // Tokens already reached the user — no silent model switch / no
+            // replacement; the client keeps the partial text and is told the
+            // stream was interrupted.
+            send("error", { message: "stream interrupted" });
+          } else {
+            // Nothing streamed (providers failed before the first token) —
+            // graceful local fallback, same as the pre-streaming era.
+            send("final", { response: localReplyFallback(), links, source: "local" });
+          }
+        } finally {
+          controller.close();
         }
-      } catch (aiErr) {
-        console.error("[api/ai/chat] AI fallback chain failed, using local reply:", aiErr);
-      }
+      },
+    });
 
-    // 8. Fallback: local rule-based reply + platform context
-    const localReply = generateLocalReply(
-      message,
-      clientContext,
-      platformResults,
-      foodNutrition,
-      blogResults,
-    );
-
-    return NextResponse.json({
-      response: localReply,
-      links,
-      source: "local",
+    return new Response(sseStream, {
+      headers: {
+        "Content-Type": "text/event-stream; charset=utf-8",
+        "Cache-Control": "no-cache, no-transform",
+      },
     });
   } catch (e: any) {
     console.error("[api/ai/chat] Error:", e?.message || e);

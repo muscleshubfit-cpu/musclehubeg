@@ -188,6 +188,32 @@ Additional rules:
   "the local clone reflecting the project state". When in doubt, fetch
   and diff.
 
+### 3.6 Documentation Parity Law (Owner directive 2026-09-02 — «دايماً عدل التوثيقات وملفات هيكل المشروع علشان ميحصلش لغبطة»)
+
+- **Every code change ships with its documentation in the SAME phase.**
+  Documentation is never "later" — a pushed code change without its docs
+  update is an INCOMPLETE change.
+- Minimum per phase (append-only, newest on top):
+  1. `worklog.md` — new Task entry (Work Log + Stage Summary).
+  2. `QA_CHECKLIST.md` — new "Latest Verification" table; demote the
+     previous one to "Previous".
+  3. `PROGRESS.md` — new phase section + refresh the «آخر تحديث» line.
+- Additionally, WHENEVER the changed behavior is described elsewhere,
+  update that file in the same phase too:
+  - `README.md` — architecture / feature tables it touches.
+  - `DEVELOPER_GUIDE.md` — flows, API tables, performance tables.
+  - `AGENTS.md` — rules / topology statements.
+  - `src/app/api/build-info/route.ts` — the `aiTopology` label MUST
+    describe the CURRENT behavior in plain words. (Proof of why: this
+    label once said "EVO chat streams from Vercel" while the chat did
+    NOT stream — it caused owner confusion and needed a correction.)
+- Wrong-but-confident docs are worse than missing docs: if a doc line
+  cannot be verified against code or a live check, fix it or delete it —
+  never leave it "because it sounds right".
+- Dead code (imported nowhere) and stale schema references count as
+  documentation debt: delete them in the same phase (git history
+  preserves them) so future agents never trip on them.
+
 ---
 
 ## 4. Definition of Done
