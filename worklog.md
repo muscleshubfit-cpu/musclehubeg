@@ -3703,3 +3703,21 @@ Stage Summary:
 - 404 العربي انتهى: كل صفحات التمارين والأكلات لها مرايا عربية مفهرسة بروابط داخلية عربية.
 - كل مقال جديد تلقائياً بيتوجه لعبارات البحث الطويلة وبيحمل حتى 3 روابط أدوات مجانية داخلياً.
 - المطلوب من المالك: بعد النشر جرّب صفحة تفاصيل عربية + أعد إرسال الـ sitemap في Search Console.
+
+---
+Task ID: 6 (Phase 75)
+Agent: Super Z (main agent)
+Task: المرحلة 75 (طلب المالك «نعم نكمل المهام المؤجلة») — تنفيذ/إتمام قائمة المهام المؤجلة: خطوات الأفيليت 1-7 + عمولة ملموسة، حذف 4 أقسام من صفحة الأرباح، إكمال إشعارات الأفيليت، والتحقق من البنود المُنجزة سابقاً (خصم الرصيد، الأدمن بلا حدود، Starter/Elite، مولد الخطط اليدوي، cron 21:00، عمولة دعوة المدرب).
+
+Work Log:
+- فحص شامل أثبت إنجاز 6/9 بنود في مراحل سابقة (72-74 + مراحل أفيليت أقدم) — وثّق التحقق في PROGRESS/QA بدون تعديل كود عليها.
+- AffiliateProgramView: how.steps 4→7 (AR+EN كاملة) + بلاطتا أمثلة $6→$1.20 / $16→$3.20 في كارت الاشتراكات + نوع examples موثق في Copy.
+- ReferralView: حذف الإحالات + العمولات + المحتوى الترويجي + بانرات الموقع (الأقسام الأربعة) + تنظيف استيرادات (AffiliateToolkit/Users/Coins/FileText/LayoutGrid) + نداء payout-notify بعد نجاح طلب الصرف.
+- نقل AffiliateToolkit لصفحة /affiliate العامة بقسم «أدواتك الترويجية» (مسجل = أدوات كاملة، زائر = CTA تسجيل) — حفاظاً على وعد الصفحة ببلاطات «محتوى ترويجي + بانرات».
+- NEW POST /api/affiliate/payout-notify: requireUser + service role + حراس (طلب pending ≤10 دقائق + dedup [uid:]) → admin_notification «طلب صرف عمولة جديد 💸» → /admin/referrals.
+- affiliate-engine-server: إشعار انعكاس العمولة (notifications + admin_notifications للموظفين) داخل reverseCommissionServer — غير حاجز.
+- Migration 0061: تريجر AFTER INSERT على referrals → لو المُحال coach → جرس الداعي «مدرب جديد دعوته انضم! 🤝» (+جرس موظفين /coach/affiliate) — SECURITY DEFINER، استثناءات مبتلعة بالكامل، idempotent. تطبيق تلقائي عبر تكامل Supabase-GitHub.
+- بوابات: tsc 0 / eslint 0 أخطاء (4 baseline على الملفين المعدلين) / vitest 182/182 / build ✓ 1,880 صفحة / دخان :3779: /affiliate 200 بالقسم والخطوة 7، /referral 200، payout-notify GET→405 (POST فقط)، unauth POST→401.
+
+Stage Summary:
+- رفع main → Vercel نشر تلقائي. المطلوب من المالك: جولة تحقق حية (الأفيليت 7 خطوات + لوحة أرباح نظيفة + انتظار تطبيق 0061 تلقائياً) — لا خطوات SQL يدوية.

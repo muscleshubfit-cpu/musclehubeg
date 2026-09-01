@@ -462,6 +462,39 @@ export async function reverseCommissionServer(
     // 'requested'/'pending' → admin decides manually (payout console)
   }
 
+  // Phase 75 — notify the affiliate that a commission was reversed
+  // (owner request: «5 إشعارات الأفيليت» — reversal was the missing bell).
+  // Non-blocking: a failed bell never fails the reversal itself.
+  try {
+    await db.from("notifications").insert({
+      user_id: row.affiliate_user_id,
+      type: "referral_commission_reversed",
+      title: "عمولة تم عكسها ⚠️",
+      body: `تم عكس عمولة بمبلغ $${Number(row.amount).toFixed(2)} (استرجاع/إلغاء الدفع). السبب: ${reason}. لو عندك استفسار تواصل مع الدعم.`,
+      link: "/referral",
+      read: false,
+    });
+
+    const { data: affProfile } = await db
+      .from("profiles")
+      .select("role")
+      .eq("id", row.affiliate_user_id)
+      .maybeSingle();
+    if (affProfile && (affProfile as { role: string }).role !== "client") {
+      await db.from("admin_notifications").insert({
+        type: "referral_commission_reversed",
+        title: "عمولة تم عكسها ⚠️",
+        body: `تم عكس عمولة بمبلغ $${Number(row.amount).toFixed(2)}. السبب: ${reason}.`,
+        link: "/coach/affiliate",
+        target_role: "coach",
+        target_coach_id: row.affiliate_user_id,
+        read: false,
+      });
+    }
+  } catch (e) {
+    console.error("[affiliate-engine-server] reversal notification error (non-blocking):", e);
+  }
+
   console.log(`[affiliate-engine-server] reversed commission for txn ${transactionId}: ${reason}`);
   return true;
 }

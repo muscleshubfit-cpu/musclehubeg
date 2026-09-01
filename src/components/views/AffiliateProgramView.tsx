@@ -31,6 +31,7 @@ import {
 } from "@/lib/affiliate-content";
 import { COMMISSION_RATE, getOrCreateReferralCode } from "@/lib/referral";
 import { CopyButton } from "@/components/ui/copy-button";
+import { AffiliateToolkit } from "@/components/views/AffiliateToolkit";
 import { toast } from "sonner";
 import { ArrowRight, Check, Gift, Link2, Share2, Users, Wallet } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -274,6 +275,30 @@ export function AffiliateProgramView() {
                     {c.commission.subs.rateSuffix}
                   </span>
                 </p>
+
+                {/* Phase 75 (owner): concrete commission examples */}
+                <p className="mt-6 text-sm font-medium text-[#1d1d1f]">
+                  {c.commission.subs.examplesTitle}
+                </p>
+                <div className="mt-3 grid grid-cols-2 gap-3">
+                  {c.commission.subs.examples.map((ex, i) => (
+                    <div
+                      key={i}
+                      className="rounded-2xl bg-[#f5f5f7] p-4 text-center"
+                    >
+                      <p className="text-xs font-normal text-[#6e6e73]">
+                        {isAr ? "اشتراك" : "Subscription"} {ex.price}
+                      </p>
+                      <p className="mt-1 text-xl font-semibold tracking-tight text-[#0071e3]">
+                        {ex.earn}
+                      </p>
+                      <p className="mt-0.5 text-[11px] font-normal text-[#6e6e73]">
+                        {isAr ? "عمولتك" : "your commission"}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+
                 <p className="mt-6 text-sm font-normal leading-relaxed text-[#6e6e73]">
                   {c.commission.subs.body}
                 </p>
@@ -331,6 +356,49 @@ export function AffiliateProgramView() {
                 </div>
               ))}
             </div>
+          </div>
+        </section>
+
+        {/* ─── YOUR PROMO TOOLKIT (authenticated) / CTA (guests) ─── */}
+        {/* Phase 75 (owner): the promo toolkit moved from the /referral
+            earnings dashboard to the public program page — marketing tools
+            belong on the marketing page. Authenticated affiliates get their
+            real toolkit; guests get a sign-up CTA. */}
+        <section className="border-b border-[#d2d2d7] bg-[#fafafa]">
+          <div className="mx-auto w-full max-w-5xl px-4 py-20 sm:px-6 md:py-28">
+            <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl md:text-5xl">
+              {isAr ? "أدواتك الترويجية" : "YOUR PROMO TOOLKIT"}
+            </h2>
+            <p className="mt-4 max-w-2xl text-base font-normal text-[#6e6e73] sm:text-lg">
+              {isAr
+                ? "قوالب جاهزة للنشر وبانرات بكود HTML جاهز للنسخ — كله برابط الأفلييت الشخصي بتاعك."
+                : "Ready-to-publish templates and website banners with copy-ready HTML embed codes — all carrying your personal affiliate link."}
+            </p>
+            {profile ? (
+              <div className="mt-10">
+                <AffiliateToolkit />
+              </div>
+            ) : (
+              <div className="mt-10 rounded-3xl bg-white p-10 text-center ring-1 ring-[#e5e5e7]">
+                <p className="text-lg font-semibold tracking-tight">
+                  {isAr
+                    ? "سجّل حسابك لتفتح أدواتك الترويجية"
+                    : "Create an account to unlock your promo toolkit"}
+                </p>
+                <p className="mx-auto mt-2 max-w-md text-sm font-normal text-[#6e6e73]">
+                  {isAr
+                    ? "القوالب والبانرات والرابط الشخصي كلها جاهزة ليك بعد التسجيل — خلال دقايق."
+                    : "Templates, banners and your personal link are all ready minutes after you sign up."}
+                </p>
+                <button
+                  onClick={() => navigate("auth", { mode: "signup" })}
+                  className="mt-6 inline-flex items-center gap-2 rounded-full bg-[#0071e3] px-8 py-3 text-sm font-medium text-white transition-opacity hover:opacity-90"
+                >
+                  {isAr ? "ابدأ الآن مجاناً" : "START NOW — FREE"}
+                  <ArrowRight className="h-4 w-4 rtl:rotate-180" aria-hidden="true" />
+                </button>
+              </div>
+            )}
           </div>
         </section>
 
@@ -481,6 +549,9 @@ type Copy = {
       rateSuffix: string;
       body: string;
       renewalNote: string;
+      /** Phase 75 (owner): concrete $6 → $1.20 / $16 → $3.20 examples */
+      examplesTitle: string;
+      examples: { price: string; earn: string }[];
     };
     prods: {
       badge: string;
@@ -566,6 +637,11 @@ function getCopy(isAr: boolean): Copy {
             "بتكسب 20% من قيمة أي اشتراك مؤهل يتسجل عن طريق رابطك ويتأكد دفعه. العمولة بتتسجل لحظة تأكيد الدفع، ومش بتتحسب قبل كده.",
           renewalNote:
             "لما تكون في عمليات تجديد اشتراك حقيقية متكررة (recurring payments)، الإحالات المؤهلة للاشتراك بتفضل محفوظة على السيرفر عشان العمولات المستقبلية من عمليات التجديد المؤهلة.",
+          examplesTitle: "أمثلة حقيقية على عمولتك:",
+          examples: [
+            { price: "$6", earn: "$1.20" },
+            { price: "$16", earn: "$3.20" },
+          ],
         },
         prods: {
           badge: "منتجات وخدمات",
@@ -582,22 +658,37 @@ function getCopy(isAr: boolean): Copy {
         steps: [
           {
             title: "احصل على رابطك",
-            body: "خد رابط الأفلييت الشخصي بتاعك من حسابك في Musclehubeg.",
+            body: "سجّل حساب في Musclehubeg وهتلاقي رابط الأفلييت الشخصي بتاعك جاهز في لوحتك — انسخه أو حمّل QR Code.",
           },
           {
-            title: "شارك",
+            title: "شارك رابطك",
             body:
-              "شاركه عبر السوشيال ميديا، المحتوى، المجتمعات، الرسائل، أو موقعك.",
+              "انشره على السوشيال ميديا، في المحتوى بتاعك، جوه الجروبات، في الرسايل، أو على موقعك — اللي يريحك.",
           },
           {
-            title: "ساعد الناس تكتشف Musclehubeg",
+            title: "الزائر يفتح رابطك",
             body:
-              "الناس اللي بتستخدم رابطك تقدر تستكشف Musclehubeg وتشتري منتجات أو خدمات مؤهلة.",
+              "أي حد يفتح رابطك بيتتبع تلقائيًا لمدة 30 يوم — حتى لو ساب الموقع ورجع بعدين، الرابط بيحسب لك.",
           },
           {
-            title: "اكسب",
+            title: "الزائر يسجّل حساب",
             body:
-              "العمليات المؤهلة بتوّلد عمولات بتظهر في لوحة الأفلييت بتاعتك.",
+              "لما يسجّل حساب من غير ما يدفع ملمش حاجة، حسابه بيتسجل بإحالتك — والربط بيفضل دائم (أول نقرة تحسم الإحالة).",
+          },
+          {
+            title: "الزائر يدفع اشتراك مؤهل",
+            body:
+              "لما يشترك في أي اشتراك مؤهل ويتأكد الدفع، العمولة بتتسجل لحظتها — مش قبل كده.",
+          },
+          {
+            title: "تكسب 20% فورًا",
+            body:
+              "بيتكسب 1.20$ عمولة من اشتراك 6$، و3.20$ من اشتراك 16$ — وكل عمولة بتظهر في لوحة أرباحك لحظة بلحظة.",
+          },
+          {
+            title: "اطلب صرف أرباحك",
+            body:
+              "أول ما رصيدك يوصل 10$ اطلب الصرف من لوحتك — محفظة كاش، خصم من اشتراكك، أو تحويل بنكي — والأدمن بيراجع ويصرف.",
           },
         ],
       },
@@ -693,6 +784,11 @@ function getCopy(isAr: boolean): Copy {
           "You earn 20% of any qualifying subscription purchased through your link and verified. The commission is recorded the moment payment is confirmed — never earlier.",
         renewalNote:
           "When real recurring subscription renewals exist, qualifying subscription referrals are retained server-side so future qualifying renewals can generate additional commissions. We do not imply that automatic renewals currently exist.",
+        examplesTitle: "What your commission looks like:",
+        examples: [
+          { price: "$6", earn: "$1.20" },
+          { price: "$16", earn: "$3.20" },
+        ],
       },
       prods: {
         badge: "PRODUCTS & SERVICES",
@@ -710,22 +806,37 @@ function getCopy(isAr: boolean): Copy {
         {
           title: "Get your link",
           body:
-            "Grab your personal Affiliate link from your Musclehubeg account.",
+            "Sign up on Musclehubeg and your personal Affiliate link is ready in your dashboard — copy it or download its QR code.",
         },
         {
-          title: "Share",
+          title: "Share your link",
           body:
-            "Share it through social media, content, communities, messages, or your website.",
+            "Post it on social media, inside your content, in communities, messages, or on your website — whatever suits you.",
         },
         {
-          title: "Help people discover Musclehubeg",
+          title: "A visitor opens your link",
           body:
-            "People using your link can explore Musclehubeg and purchase eligible products or services.",
+            "Anyone opening your link is tracked automatically for 30 days — even if they leave and come back later, the credit stays yours.",
         },
         {
-          title: "Earn",
+          title: "The visitor signs up",
           body:
-            "Eligible purchases generate commissions shown in your Affiliate dashboard.",
+            "When they create a free account, their signup is recorded under your referral — the bond is permanent (first click wins).",
+        },
+        {
+          title: "The visitor pays an eligible subscription",
+          body:
+            "When they subscribe to an eligible plan and payment is verified, the commission is recorded at that exact moment — never earlier.",
+        },
+        {
+          title: "You earn 20% instantly",
+          body:
+            "That's $1.20 from a $6 subscription, and $3.20 from a $16 subscription — every commission appears in your dashboard in real time.",
+        },
+        {
+          title: "Request your payout",
+          body:
+            "Once your balance reaches $10, request a payout from your dashboard — cash wallet, subscription discount, or bank transfer — and the admin reviews and pays it.",
         },
       ],
     },

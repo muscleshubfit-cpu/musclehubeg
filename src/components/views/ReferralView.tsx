@@ -13,7 +13,6 @@ import {
 } from "@/lib/referral";
 import { getAffiliateStats, type AffiliateStats } from "@/lib/affiliate-engine";
 import { toast } from "sonner";
-import { AffiliateToolkit } from "@/components/views/AffiliateToolkit";
 import { CopyButton } from "@/components/ui/copy-button";
 import {
   buildAffiliateUrl,
@@ -23,12 +22,8 @@ import {
 import {
   Link2,
   TrendingUp,
-  Users,
   UserCheck,
-  Coins,
   Wallet,
-  FileText,
-  LayoutGrid,
 } from "lucide-react";
 
 /** One referred coach, from GET /api/affiliate/referred-coaches (Phase 67). */
@@ -175,6 +170,10 @@ export function ReferralView() {
       setPayoutAmount("");
       setWalletNumber("");
       setBankDetails("");
+      // Phase 75 — ring the ADMIN's bell (5-notification affiliate suite):
+      // fire-and-forget; the request itself is already saved, the bell is
+      // a best-effort add-on handled server-side.
+      fetch("/api/affiliate/payout-notify", { method: "POST" }).catch(() => {});
       await load();
     } catch (e: any) {
       toast.error(e.message || (isAr ? "حدث خطأ" : "Something went wrong"));
@@ -395,54 +394,6 @@ export function ReferralView() {
         </div>
       )}
 
-      {/* ── Section: REFERRALS ── */}
-      <SectionHeader
-        id="sec-referrals"
-        icon={<Users className="h-4 w-4" aria-hidden="true" />}
-        title={isAr ? "الإحالات" : "REFERRALS"}
-      />
-      {stats && stats.referrals.length > 0 && (
-        <div className="rounded-3xl bg-[#f5f5f7] p-8">
-          <h2 className="text-xl font-semibold tracking-tight">
-            {isAr ? "الدعوات" : "Referrals"}
-          </h2>
-          <div className="mt-6 space-y-3">
-            {stats.referrals.map((r) => (
-              <div key={r.id} className="flex items-center justify-between rounded-2xl bg-white p-4">
-                <div>
-                  <p className="text-sm font-medium">{r.referred_name || r.referred_email || "—"}</p>
-                  <p className="mt-1 text-xs font-normal text-[#6e6e73]">
-                    {new Date(r.created_at).toLocaleDateString()}
-                  </p>
-                </div>
-                <div className="flex items-center gap-3">
-                  {r.commission_amount > 0 && (
-                    <span className="text-sm font-medium text-[#0071e3]">
-                      ${r.commission_amount.toFixed(2)}
-                    </span>
-                  )}
-                  <span
-                    className={`rounded-full px-2.5 py-0.5 text-xs font-normal ${
-                      r.status === "completed"
-                        ? "bg-[#0071e3]/10 text-[#0071e3]"
-                        : r.status === "pending"
-                          ? "bg-[#ff9500]/10 text-[#ff9500]"
-                          : "bg-[#ff3b30]/10 text-[#ff3b30]"
-                    }`}
-                  >
-                    {r.status === "completed"
-                      ? isAr ? "اكتملت" : "Completed"
-                      : r.status === "pending"
-                        ? isAr ? "في الانتظار" : "Pending"
-                        : isAr ? "مرفوضة" : "Rejected"}
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
       {/* ── Section: REFERRED COACHES (Phase 67 — owner decree 2026-09-01) ── */}
       {coachReferrals.length > 0 && (
         <>
@@ -485,52 +436,6 @@ export function ReferralView() {
             </div>
           </div>
         </>
-      )}
-
-      {/* ── Section: COMMISSIONS ── */}
-      <SectionHeader
-        id="sec-commissions"
-        icon={<Coins className="h-4 w-4" aria-hidden="true" />}
-        title={isAr ? "العمولات" : "COMMISSIONS"}
-      />
-      {stats && stats.earnings.length > 0 && (
-        <div className="rounded-3xl bg-[#f5f5f7] p-8">
-          <h2 className="text-xl font-semibold tracking-tight">
-            {isAr ? "سجل العمولات" : "Commission Log"}
-          </h2>
-          <div className="mt-6 space-y-3">
-            {stats.earnings.slice(0, 20).map((e) => (
-              <div key={e.id} className="flex items-center justify-between rounded-2xl bg-white p-4">
-                <div>
-                  <p className="text-sm font-medium">${Number(e.amount).toFixed(2)}</p>
-                  <p className="mt-1 text-xs font-normal text-[#6e6e73]">
-                    {new Date(e.created_at).toLocaleDateString()}
-                  </p>
-                </div>
-                <span
-                  className={`rounded-full px-2.5 py-0.5 text-xs font-normal ${
-                    e.status === "paid"
-                      ? "bg-[#0071e3]/10 text-[#0071e3]"
-                      : e.status === "available"
-                        ? "bg-[#34c759]/10 text-[#1d8a3d]"
-                        : e.status === "requested"
-                          ? "bg-[#ff9500]/10 text-[#ff9500]"
-                          : "bg-[#6e6e73]/10 text-[#6e6e73]"
-                  }`
-                }
-                >
-                  {e.status === "paid"
-                    ? isAr ? "تم الصرف" : "Paid"
-                    : e.status === "available"
-                      ? isAr ? "متاح" : "Available"
-                      : e.status === "requested"
-                        ? isAr ? "مطلوب" : "Requested"
-                        : isAr ? "معلق" : "Pending"}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
       )}
 
       {/* ── Section: PAYOUTS ── */}
@@ -581,20 +486,10 @@ export function ReferralView() {
         </div>
       )}
 
-      {/* ── Sections: PROMOTIONAL CONTENT + WEBSITE BANNERS ── */}
-      <SectionHeader
-        id="sec-promo"
-        icon={<FileText className="h-4 w-4" aria-hidden="true" />}
-        title={isAr ? "المحتوى الترويجي" : "PROMOTIONAL CONTENT"}
-      />
-
-      <SectionHeader
-        id="sec-banners"
-        icon={<LayoutGrid className="h-4 w-4" aria-hidden="true" />}
-        title={isAr ? "بانرات الموقع" : "WEBSITE BANNERS"}
-      />
-
-      <AffiliateToolkit />
+      {/* Phase 75 (owner): PROMOTIONAL CONTENT + WEBSITE BANNERS sections
+          were REMOVED from this earnings dashboard — the full promo toolkit
+          now lives on the public program page /affiliate (marketing belongs
+          on the marketing page; the "what you get" promises stay honest). */}
 
       {/* Payout Modal */}
       {showPayoutModal && (

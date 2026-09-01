@@ -6,7 +6,26 @@
 
 ---
 
-## Latest Verification — 2026-09-01 (Phase 74 — SEO: dynamic lang/dir + AR detail pages 404 fix + long-tail blog with auto tool links)
+## Latest Verification — 2026-09-01 (Phase 75 — postponed tasks completed: 7-step affiliate + concrete commissions + earnings-page cleanup (4 sections removed) + toolkit relocation + affiliate notification suite)
+
+| Check | Result | How verified |
+|---|---|---|
+| TypeScript (`npx tsc --noEmit`) | ✅ PASS | 0 errors on the whole repo |
+| ESLint (touched + new files) | ✅ PASS | 0 errors (4 baseline-style warnings on 2 edited files: pre-existing `any` ×3 + `<img>` QR — same patterns pre-edit) |
+| Unit tests (`vitest run`) | ✅ PASS | 17 files / **182/182 passed** (no behavior change to tested libs) |
+| Production build (`next build`) | ✅ PASS | ✓ Compiled successfully — **1,880 static pages** |
+| Smoke `:3779` — program page 7 steps + toolkit | ✅ PASS | `/affiliate` → 200 with «YOUR PROMO TOOLKIT» section + step-7 «Request your payout» present; commission examples tiles in the subscriptions card ($6 → $1.20 / $16 → $3.20) |
+| Smoke `:3779` — earnings dashboard slimmed | ✅ PASS | `/referral` → 200; REFERRALS + COMMISSIONS + PROMOTIONAL CONTENT + WEBSITE BANNERS sections removed (4 per owner request); kept: balance, link card, earnings, referred coaches, payouts, payout modal |
+| Smoke `:3779` — payout-notify route | ✅ PASS | GET → **405** (POST-only, expected); POST unauthenticated → **401** (requireUser); guards: fresh pending payout ≤10 min + `[uid:…]` dedup |
+| Toolkit relocation honesty | ✅ PASS | Promo toolkit now on public `/affiliate` (authenticated = full toolkit, guest = sign-up CTA) — the page's «website banners / promo content» promise stays TRUE after removing it from /referral |
+| Reversal bell (engine) | ✅ PASS | `reverseCommissionServer` inserts `referral_commission_reversed` member bell + staff bell (target_coach_id) — non-blocking try/catch, service role |
+| Coach-join bell (0061) | ✅ PASS | Migration `20260902090000_0061_coach_referral_join_notification.sql`: AFTER INSERT trigger on `referrals` (SECURITY DEFINER, exception-guarded, idempotent DROP+CREATE) — referred user role='coach' → inviter bell «مدرب جديد دعوته انضم! 🤝» + staff bell → `/coach/affiliate` |
+| Owner verification (post-deploy) | ⏳ OWNER | (1) Reload the site → check `/affiliate` shows the 7 steps + toolkit; (2) `/referral` shows the slim earnings dashboard; (3) Supabase auto-applies 0061 (no manual run needed) — then any NEW coach referral via your link should ring your bell |
+| Verified-done without changes | ✅ VERIFIED | Postponed list items already satisfied: quota deduction combined pool (EVO `/api/ai/chat` + coach `/api/ai/jobs` + meter), admin unlimited (staff semantics + manual uploads unlimited), Starter/Elite display already removed (legacy checkout links intentionally accepted), admin manual plan generator (upload + paste-normalize, `isAdmin` gate), cron `0 21 * * *` in vercel.json, 20% coach-invite commission engine |
+
+---
+
+## Previous Verification — 2026-09-01 (Phase 74 — SEO: dynamic lang/dir + AR detail pages 404 fix + long-tail blog with auto tool links)
 
 | Check | Result | How verified |
 |---|---|---|
