@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import { SiteHeader } from "@/components/SiteHeader";
-import { getBlogPost, getRelatedPosts, getLinkedPost, parseTableOfContents, renderMarkdown, getCategoryLabel, type BlogPost } from "@/lib/blog";
+import { getBlogPost, getRelatedPosts, getLinkedPost, parseTableOfContents, renderMarkdown, getCategoryLabel, type BlogPost, type BlogFaq } from "@/lib/blog";
 import { BlogMembershipCard, SocialShare, ReadingProgress, TableOfContents } from "./BlogComponents";
 import { AdSenseAd } from "@/components/AdSenseAd";
 
@@ -217,7 +217,7 @@ export function BlogArticlePage({
                   {isAr ? "الأسئلة الشائعة" : "Frequently Asked Questions"}
                 </h2>
                 <div className="mt-8 space-y-4">
-                  {post.faq_json.map((faq: any, i: number) => (
+                  {post.faq_json.map((faq: BlogFaq, i: number) => (
                     <div key={i} className="rounded-2xl bg-[#f5f5f7] p-6">
                       <h3 className="text-base font-semibold tracking-tight">{faq.question}</h3>
                       <p className="mt-2 text-base font-normal leading-relaxed text-[#6e6e73]">{faq.answer}</p>

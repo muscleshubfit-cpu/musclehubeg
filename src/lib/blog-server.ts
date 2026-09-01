@@ -1,6 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { unstable_cache } from "next/cache";
-import type { BlogPost } from "./blog";
+import type { BlogPost, BlogFaq } from "./blog";
 
 /**
  * Server-side blog helpers — for route handlers and server components.
@@ -159,8 +159,9 @@ export const fetchBlogPostFull = unstable_cache(
   { revalidate: 300 },
 );
 
-/** FAQ item stored in blog_posts.faq_json (JSONB array of {question, answer}). */
-export type BlogFaq = { question: string; answer: string };
+// FAQ item moved to blog.ts (client-safe single source of truth — Phase 90)
+// and re-exported here for the existing blog-server import surface.
+export type { BlogFaq };
 
 /**
  * Full published post row (select("*")). Derived from BlogPost so the

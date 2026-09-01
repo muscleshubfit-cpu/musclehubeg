@@ -5,7 +5,8 @@ import { Suspense, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/hooks/use-auth";
 import { CheckoutView } from "@/components/views/CheckoutView";
-import { type Duration } from "@/lib/plans";
+import { type Duration, type TierId } from "@/lib/plans";
+import type { MembershipTier } from "@/lib/memberships";
 
 // Sellable tiers (0046 OWNER DECREE — price revert):
 //   - premium / pro   → platform memberships (B2C, /memberships)
@@ -49,7 +50,7 @@ function CheckoutPageInner() {
     );
   }
 
-  return <CheckoutView tier={tierParam as any} months={months} />;
+  return <CheckoutView tier={tierParam as TierId | MembershipTier} months={months} />;
 }
 
 export default function Page() {

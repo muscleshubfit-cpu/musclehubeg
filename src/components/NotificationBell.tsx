@@ -13,7 +13,7 @@ import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/hooks/use-auth";
 import { useNav } from "@/hooks/use-nav";
 import { cn } from "@/lib/utils";
-import { listNotifications, markNotificationsRead, markNotificationRead } from "@/lib/data";
+import { listNotifications, markNotificationsRead, markNotificationRead, type NotificationRow } from "@/lib/data";
 
 export function NotificationBell() {
  const { t } = useI18n();
@@ -21,12 +21,12 @@ export function NotificationBell() {
  const { navigate } = useNav();
  const router = useRouter();
  const [open, setOpen] = useState(false);
- const [items, setItems] = useState<any[]>([]);
+ const [items, setItems] = useState<NotificationRow[]>([]);
  const [loading, setLoading] = useState(true);
 
  useEffect(() => {
  if (!profile) return;
- let interval: any;
+ let interval: ReturnType<typeof setInterval> | undefined;
  const load = async () => {
  try {
  const data = await listNotifications(profile.id);

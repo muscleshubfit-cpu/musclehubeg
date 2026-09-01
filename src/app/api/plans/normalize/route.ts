@@ -112,10 +112,11 @@ export async function POST(request: NextRequest) {
 
  const result = await normalizeCoachPlanText(text, planType);
  return NextResponse.json(result);
- } catch (e: any) {
- console.error("[api/plans/normalize] Error:", e?.message || e);
+ } catch (e) {
+ const msg = e instanceof Error ? e.message : String(e);
+ console.error("[api/plans/normalize] Error:", msg);
  return NextResponse.json(
- { error: e?.message || "Failed to normalize plan" },
+ { error: msg || "Failed to normalize plan" },
  { status: 500 },
  );
  }

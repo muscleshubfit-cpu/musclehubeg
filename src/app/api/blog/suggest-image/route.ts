@@ -36,14 +36,22 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  let body: any;
+  // Body is parsed once and typed at the boundary — every field is then
+  // narrowed with real runtime guards (no `any` leakage).
+  type SuggestImageBody = {
+    query?: unknown;
+    exclude?: unknown;
+    variation?: unknown;
+  };
+  let body: SuggestImageBody | null = null;
   try {
     body = await request.json();
   } catch {
     return NextResponse.json({ error: "invalid JSON body" }, { status: 400 });
   }
 
-  const query = typeof body?.query === "string" ? body.query.trim().slice(0, 300) : "";
+  const rawQuery = body?.query;
+  const query = typeof rawQuery === "string" ? rawQuery.trim().slice(0, 300) : "";
   if (query.length < 3) {
     return NextResponse.json(
       { error: "query too short — use the article title or focus keyword" },
@@ -53,17 +61,19 @@ export async function POST(request: NextRequest) {
 
   // Reject-list: URLs seen (and disliked) in this editing session — capped
   // so a hostile client can't balloon the request.
-  const exclude = Array.isArray(body?.exclude)
-    ? body.exclude
-        .filter((u: any) => typeof u === "string" && /^https?:\/\//.test(u))
+  const excludeRaw = body?.exclude;
+  const exclude = Array.isArray(excludeRaw)
+    ? excludeRaw
+        .filter((u: unknown) => typeof u === "string" && /^https?:\/\//.test(u))
         .map((u: string) => u.slice(0, 500))
         .slice(0, 12)
     : [];
 
   // variationSeed rotates the results pool between clicks on top of the
   // exclusion filter (two clicks → two different photos, deterministic).
-  const variation = Number.isFinite(Number(body?.variation))
-    ? Math.abs(Math.trunc(Number(body.variation))) % 1000
+  const rawVariation = body?.variation;
+  const variation = Number.isFinite(Number(rawVariation))
+    ? Math.abs(Math.trunc(Number(rawVariation))) % 1000
     : 0;
 
   const image = await fetchFeaturedImage(query, {

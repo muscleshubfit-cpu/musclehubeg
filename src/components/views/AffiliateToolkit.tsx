@@ -73,9 +73,15 @@ export function AffiliateToolkit() {
           setReferralCode(code);
           setError(null);
         }
-      } catch (e: any) {
+      } catch (e) {
         if (!cancelled) {
-          setError(e?.message || (isAr ? "تعذر تحميل رابط الأفلييت" : "Couldn't load your affiliate link"));
+          setError(
+            e instanceof Error
+              ? e.message
+              : (isAr
+                ? "تعذر تحميل رابط الأفلييت"
+                : "Couldn't load your affiliate link"),
+          );
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -414,6 +420,7 @@ function BannerCard({
               - On desktop: banner renders at its natural dimensions up to
                 the column width, preserving original aspect ratio
           */}
+          {/* eslint-disable-next-line @next/next/no-img-element -- intentional: static SVG banner asset (rationale in the note above); next/image adds no value here */}
           <img
             src={bannerUrl}
             alt={bannerLang === "ar"

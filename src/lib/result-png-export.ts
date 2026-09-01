@@ -19,10 +19,22 @@
  * as requested by the user — the site URL itself is musclehubeg.vercel.app.
  */
 
+/**
+ * Tool result payload as the card renderer consumes it: primitive fields
+ * (interpolated into the card text) plus the string fields some rows print
+ * directly. Extra fields tool pages send ride along untouched at runtime.
+ */
+type ToolResultData = Record<string, string | number | undefined | null> & {
+  category?: string;
+  gender?: string;
+  method?: string;
+  date?: string;
+};
+
 type ExportArgs = {
   toolSlug: string;
   title: string;
-  resultData: Record<string, any>;
+  resultData: ToolResultData;
   isAr: boolean;
 };
 
@@ -48,7 +60,7 @@ const TOOL_META: Record<
     nameAr: string;
     nameEn: string;
     /** Returns: { headline: string, sublabel: string, rows: [string, string][] } */
-    format: (data: any, isAr: boolean) => {
+    format: (data: ToolResultData, isAr: boolean) => {
       headline: string;
       sublabel: string;
       rows: Array<[string, string]>;
@@ -77,7 +89,7 @@ const TOOL_META: Record<
       headline: `${d.bmi}`,
       sublabel: isAr ? `(${d.category})` : `(${d.category})`,
       rows: [
-        [isAr ? "الفئة" : "Category", d.category],
+        [isAr ? "الفئة" : "Category", d.category || "—"],
         [isAr ? "الوزن المثالي" : "Ideal weight", `${d.idealWeightMin}–${d.idealWeightMax} kg`],
         [isAr ? "الجنس" : "Gender", d.gender || "—"],
       ],

@@ -234,7 +234,10 @@ export function AppLayout({ children }: { children: ReactNode }) {
                   })}
                   {coachExtraLinks.map((link) => {
                     // 0045: per-link active state (was hardcoded to admin-leads).
-                    const active = (pathname || "").startsWith(link.href) || view === ("admin-leads" as any);
+                    // `view` is a string-union View — widen to string for the
+                    // legacy "admin-leads" comparison (never an `any` cast).
+                    const active =
+                      (pathname || "").startsWith(link.href) || (view as string) === "admin-leads";
                     return (
                       <a
                         key={link.href}

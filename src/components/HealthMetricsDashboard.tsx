@@ -441,7 +441,7 @@ function computeMetrics(progress: ProgressEntry[], q?: QuestionnaireData | null)
  const last = sorted[sorted.length - 1];
 
  // Helper to safely get a number from questionnaire or progress entry
- const num = (v: any): number | null => {
+ const num = (v: string | number | null | undefined): number | null => {
  if (v === null || v === undefined || v === "") return null;
  const n = typeof v === "number" ? v : parseFloat(v);
  return isNaN(n) ? null : n;

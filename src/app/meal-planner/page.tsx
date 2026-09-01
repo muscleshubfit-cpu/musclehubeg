@@ -91,7 +91,7 @@ export default function MealPlannerPage() {
       setTier("coaching");
       return;
     }
-    getSubscriptionForClient(profile.id).then((sub: any) => {
+    getSubscriptionForClient(profile.id).then((sub: { tier?: string | null } | null) => {
       if (sub?.tier && ["free", "premium", "pro", "coaching"].includes(sub.tier)) {
         setTier(sub.tier as MembershipTier);
       }
@@ -279,8 +279,10 @@ export default function MealPlannerPage() {
       setSaved(true);
       toast.success(isAr ? "تم حفظ الجدول ✅" : "Plan saved ✅");
       setTimeout(() => setSaved(false), 3000);
-    } catch (e: any) {
-      toast.error(e?.message || (isAr ? "فشل الحفظ" : "Failed to save"));
+    } catch (e) {
+      toast.error(
+        e instanceof Error ? e.message : (isAr ? "فشل الحفظ" : "Failed to save"),
+      );
     } finally {
       setSaving(false);
     }

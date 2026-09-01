@@ -124,7 +124,8 @@ export type RecoverableJobInput = {
   job_type: string;
   status: string;
   created_at?: string;
-  payload?: any;
+  /** ai_jobs.payload — only clientId is read for recovery selection. */
+  payload?: { clientId?: string | null } | null;
 };
 
 export const PLAN_JOB_TYPES: readonly string[] = ["plan_nutrition", "plan_workout"];

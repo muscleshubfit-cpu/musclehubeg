@@ -27,6 +27,15 @@ type SearchResult = {
   brand?: string;
 };
 
+/** Shape of a product-database product row that this endpoint consumes. */
+type OffProduct = {
+  product_name?: string | null;
+  code?: string | null;
+  brands?: string | null;
+  image_front_small_url?: string | null;
+  nutriments?: Record<string, number> | null;
+};
+
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const query = searchParams.get("q") || "";
@@ -66,15 +75,15 @@ export async function GET(request: NextRequest) {
 
       if (offRes.ok) {
         const offData = await offRes.json();
-        const products = offData.products || [];
+        const products: OffProduct[] = offData.products || [];
 
         offResults = products
-          .filter((p: any) => {
+          .filter((p) => {
             // Only include products with nutrition data
             const n = p.nutriments || {};
             return n["energy-kcal_100g"] || n["proteins_100g"];
           })
-          .map((p: any) => {
+          .map((p) => {
             const n = p.nutriments || {};
             return {
               name: p.product_name || p.code || "Unknown",

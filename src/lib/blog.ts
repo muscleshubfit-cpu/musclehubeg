@@ -2,6 +2,9 @@
 
 import { supabase, isSupabaseConfigured } from "@/lib/supabase/client";
 
+/** FAQ item stored in blog_posts.faq_json (JSONB array of {question, answer}). */
+export type BlogFaq = { question: string; answer: string };
+
 export type BlogPost = {
  id: string;
  language: "en" | "ar";
@@ -22,8 +25,8 @@ export type BlogPost = {
  published_at: string | null;
  updated_at: string;
  is_published: boolean;
- faq_json: any;
- schema_json: any;
+ faq_json: BlogFaq[] | null;
+ schema_json: Record<string, unknown> | null;
  linked_post_id: string | null;
  created_at: string;
 };

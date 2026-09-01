@@ -188,7 +188,7 @@ export default function WaterTrackerPage() {
           ? "حفظ سجل الماء متاح للأعضاء Premium فأعلى"
           : "Water log save is Premium+ only",
       );
-      window.location.href = "/memberships";
+      navigate("memberships");
       return;
     }
 
@@ -225,8 +225,10 @@ export default function WaterTrackerPage() {
       setSavedToDb(true);
       toast.success(isAr ? "تم حفظ السجل ✅" : "Saved ✅");
       setTimeout(() => setSavedToDb(false), 3000);
-    } catch (e: any) {
-      toast.error(e?.message || (isAr ? "فشل الحفظ" : "Failed to save"));
+    } catch (e) {
+      toast.error(
+        e instanceof Error ? e.message : (isAr ? "فشل الحفظ" : "Failed to save"),
+      );
     } finally {
       setSavingToDb(false);
     }

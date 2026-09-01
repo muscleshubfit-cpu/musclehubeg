@@ -25,7 +25,7 @@
 import crypto from "node:crypto";
 
 import { MEMBERSHIPS } from "@/lib/memberships";
-import { getTier } from "@/lib/plans";
+import { getTier, type TierId } from "@/lib/plans";
 
 // ─────────────────────────────────────────────────────────────────────────
 // Config
@@ -311,8 +311,11 @@ export function resolvePlanPrice(
     return price > 0 ? price : null;
   }
 
-  // Legacy system (starter, elite)
-  const tier = getTier(planTier as any);
+  // Legacy system (starter, elite) — only legacy ids reach this line (the
+  // membership system returned above), and getTier safely returns
+  // undefined for anything else → null price (same cast pattern as
+  // CheckoutView/AdminPaymentsView).
+  const tier = getTier(planTier as TierId);
   if (tier) {
     const price = tier.prices[durationMonths as 1 | 12];
     return price ?? null;

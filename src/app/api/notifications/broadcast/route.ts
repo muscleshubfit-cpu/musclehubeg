@@ -162,7 +162,7 @@ export async function POST(request: NextRequest) {
 
   // Bulk insert notifications for all clients — M22 fix: batch in chunks of 500
   // to avoid Supabase's insert limit + partial failure on large client lists.
-  const notifications = clients.map((c: any) => ({
+  const notifications = clients.map((c: { id: string }) => ({
     user_id: c.id,
     type: "coach_broadcast",
     title,

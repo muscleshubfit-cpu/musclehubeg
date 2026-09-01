@@ -56,8 +56,10 @@ export async function dispatchAiJobsRunner(): Promise<boolean> {
       return false;
     }
     return true;
-  } catch (e: any) {
-    console.warn(`[ai-runner-dispatch] dispatch failed: ${e?.message || e}`);
+  } catch (e) {
+    console.warn(
+      `[ai-runner-dispatch] dispatch failed: ${e instanceof Error ? e.message : e}`,
+    );
     return false;
   }
 }

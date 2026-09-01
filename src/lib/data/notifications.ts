@@ -9,6 +9,30 @@ import {
  LS_PREFIX,
 } from "./helpers";
 
+// Row shapes for the notifications tables + their localStorage mirrors.
+// (Shared with NotificationBell / AdminNotificationBell — Phase 90.)
+export type NotificationRow = {
+ id: string;
+ user_id: string;
+ type: string;
+ title: string;
+ body: string;
+ link?: string | null;
+ read: boolean;
+ created_at: string;
+};
+
+export type AdminNotificationRow = {
+ id: string;
+ type: string;
+ title: string;
+ body: string;
+ link?: string | null;
+ read: boolean;
+ created_at: string;
+ target_coach_id?: string | null;
+};
+
 // ---------------------------------------------------------------------------
 // Notifications
 // ---------------------------------------------------------------------------
@@ -21,9 +45,9 @@ export async function listNotifications(userId: string) {
  .eq("user_id", userId)
  .order("created_at", { ascending: false })
  .limit(20);
- return data ?? [];
+ return (data ?? []) as NotificationRow[];
  }
- return read<any[]>(LS_PREFIX + "notifs", []).filter((n) => n.user_id === userId);
+ return read<NotificationRow[]>(LS_PREFIX + "notifs", []).filter((n) => n.user_id === userId);
 }
 
 export async function markNotificationsRead(userId: string) {
@@ -31,7 +55,7 @@ export async function markNotificationsRead(userId: string) {
  await supabase.from("notifications").update({ read: true }).eq("user_id", userId).eq("read", false);
  return;
  }
- const all = read<any[]>(LS_PREFIX + "notifs", []);
+ const all = read<NotificationRow[]>(LS_PREFIX + "notifs", []);
  all.forEach((n) => { if (n.user_id === userId) n.read = true; });
  write(LS_PREFIX + "notifs", all);
 }
@@ -45,7 +69,7 @@ export async function markNotificationRead(id: string) {
  await supabase.from("notifications").update({ read: true }).eq("id", id);
  return;
  }
- const all = read<any[]>(LS_PREFIX + "notifs", []);
+ const all = read<NotificationRow[]>(LS_PREFIX + "notifs", []);
  all.forEach((n) => { if (n.id === id) n.read = true; });
  write(LS_PREFIX + "notifs", all);
 }
@@ -60,7 +84,7 @@ export async function createNotification(userId: string, type: string, title: st
  if (error) throw new Error(error.message);
  return data;
  }
- const all = read<any[]>(LS_PREFIX + "notifs", []);
+ const all = read<NotificationRow[]>(LS_PREFIX + "notifs", []);
  const row = { id: uid(), user_id: userId, type, title, body, link, read: false, created_at: new Date().toISOString() };
  all.push(row);
  write(LS_PREFIX + "notifs", all);
@@ -78,9 +102,9 @@ export async function listAdminNotifications() {
  .select("*")
  .order("created_at", { ascending: false })
  .limit(30);
- return data ?? [];
+ return (data ?? []) as AdminNotificationRow[];
  }
- return read<any[]>(LS_PREFIX + "admin_notifs", []);
+ return read<AdminNotificationRow[]>(LS_PREFIX + "admin_notifs", []);
 }
 
 export async function markAdminNotificationsRead() {
@@ -88,7 +112,7 @@ export async function markAdminNotificationsRead() {
  await supabase.from("admin_notifications").update({ read: true }).eq("read", false);
  return;
  }
- const all = read<any[]>(LS_PREFIX + "admin_notifs", []);
+ const all = read<AdminNotificationRow[]>(LS_PREFIX + "admin_notifs", []);
  all.forEach((n) => { n.read = true; });
  write(LS_PREFIX + "admin_notifs", all);
 }
@@ -101,7 +125,7 @@ export async function markAdminNotificationRead(id: string) {
  await supabase.from("admin_notifications").update({ read: true }).eq("id", id);
  return;
  }
- const all = read<any[]>(LS_PREFIX + "admin_notifs", []);
+ const all = read<AdminNotificationRow[]>(LS_PREFIX + "admin_notifs", []);
  all.forEach((n) => { if (n.id === id) n.read = true; });
  write(LS_PREFIX + "admin_notifs", all);
 }
@@ -136,12 +160,12 @@ export async function createAdminNotification(
  }
  const data = await res.json();
  return data;
- } catch (e: any) {
+ } catch (e) {
  // Re-throw so callers can .catch() if they want to suppress
  throw e;
  }
  }
- const all = read<any[]>(LS_PREFIX + "admin_notifs", []);
+ const all = read<AdminNotificationRow[]>(LS_PREFIX + "admin_notifs", []);
  const row = { id: uid(), type, title, body, link, read: false, created_at: new Date().toISOString() };
  all.push(row);
  write(LS_PREFIX + "admin_notifs", all);

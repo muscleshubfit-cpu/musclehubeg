@@ -12,18 +12,18 @@ import {
 import { useI18n } from "@/lib/i18n";
 import { useNav } from "@/hooks/use-nav";
 import { cn } from "@/lib/utils";
-import { listAdminNotifications, markAdminNotificationsRead, markAdminNotificationRead } from "@/lib/data";
+import { listAdminNotifications, markAdminNotificationsRead, markAdminNotificationRead, type AdminNotificationRow } from "@/lib/data";
 
 export function AdminNotificationBell() {
  const { t } = useI18n();
  const { navigate } = useNav();
  const router = useRouter();
  const [open, setOpen] = useState(false);
- const [items, setItems] = useState<any[]>([]);
+ const [items, setItems] = useState<AdminNotificationRow[]>([]);
  const [loading, setLoading] = useState(true);
 
  useEffect(() => {
- let interval: any;
+ let interval: ReturnType<typeof setInterval> | undefined;
  const load = async () => {
  const data = await listAdminNotifications();
  setItems(data);

@@ -18,8 +18,8 @@ export async function getReferralStats(userId: string) {
  .order("created_at", { ascending: false });
  if (error) throw new Error(error.message);
  const total = data.length;
- const completed = data.filter((r: any) => r.status === "completed").length;
- const pending = data.filter((r: any) => r.status === "pending").length;
+ const completed = data.filter((r: { status?: string | null }) => r.status === "completed").length;
+ const pending = data.filter((r: { status?: string | null }) => r.status === "pending").length;
  return { total, completed, pending, referrals: data };
  }
  return { total: 0, completed: 0, pending: 0, referrals: [] };

@@ -22,7 +22,7 @@ type Props = {
   /** Short human-readable summary, e.g. "TDEE: 2500 kcal · Protein: 188g" */
   resultSummary: string;
   /** Structured result object — stored as JSON and rendered inside the email */
-  resultJson?: Record<string, any>;
+  resultJson?: Record<string, unknown>;
 };
 
 /**
@@ -83,8 +83,12 @@ export function LeadCaptureCard({ toolSlug, resultSummary, resultJson }: Props) 
         return;
       }
       setDone(true);
-    } catch (e: any) {
-      setError(e?.message || (isAr ? "حصل خطأ" : "Something went wrong"));
+    } catch (e) {
+      setError(
+        e instanceof Error
+          ? e.message
+          : (isAr ? "حصل خطأ" : "Something went wrong"),
+      );
     } finally {
       setSubmitting(false);
     }

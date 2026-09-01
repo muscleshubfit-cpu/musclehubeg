@@ -34,6 +34,15 @@ type ClientRow = {
   coachId: string | null;
   coachName: string | null;
 };
+/** Raw row of the get_coach_client_list RPC (migration 0030D). */
+type CoachClientListRow = {
+  client_id: string;
+  client_full_name: string | null;
+  client_email: string | null;
+  client_phone: string | null;
+  assigned_coach_id: string | null;
+  assigned_coach_name: string | null;
+};
 
 export function AdminAssignmentsView() {
   const { lang } = useI18n();
@@ -114,7 +123,7 @@ export function AdminAssignmentsView() {
 
         if (clientRows && clientRows.length >= 0) {
           setClients(
-            (clientRows as any[]).map((row) => ({
+            (clientRows as CoachClientListRow[]).map((row) => ({
               id: row.client_id,
               name: row.client_full_name || "—",
               email: row.client_email || row.client_phone || "—",

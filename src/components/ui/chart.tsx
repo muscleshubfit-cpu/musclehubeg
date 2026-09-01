@@ -3,8 +3,21 @@
 
 import * as React from "react"
 import * as RechartsPrimitive from "recharts"
+import type { Payload } from "recharts/types/component/DefaultTooltipContent"
 
 import { cn } from "@/lib/utils"
+
+/**
+ * shadcn chart payload item — recharts' Payload with dataKey narrowed to
+ * React-key-safe primitives (recharts types it as DataKey<any> which can
+ * be a function) and value narrowed off ValueType's array member (used
+ * as a React key in the legend). The `any`/array leakage is what the
+ * lint ban removed.
+ */
+type ChartPayloadItem = Omit<Payload, "dataKey" | "value"> & {
+ dataKey?: string | number
+ value?: string | number
+}
 
 // Format: { THEME_NAME: CSS_SELECTOR }
 const THEMES = { light: "", dark: ".dark" } as const
@@ -126,7 +139,7 @@ function ChartTooltipContent({
  indicator?: "line" | "dot" | "dashed"
  nameKey?: string
  labelKey?: string
- payload?: any[]
+ payload?: ChartPayloadItem[]
  label?: string
  }) {
  const { config } = useChart()
@@ -263,7 +276,7 @@ function ChartLegendContent({
  Omit<RechartsPrimitive.LegendProps, "payload"> & {
  hideIcon?: boolean
  nameKey?: string
- payload?: any[]
+ payload?: ChartPayloadItem[]
  }) {
  const { config } = useChart()
 
