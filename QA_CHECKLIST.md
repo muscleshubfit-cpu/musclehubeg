@@ -6,7 +6,31 @@
 
 ---
 
-## Latest Verification — 2026-09-01 (Phase 73 — Email Security & Filtering + Customers DB)
+## Latest Verification — 2026-09-01 (Phase 74 — SEO: dynamic lang/dir + AR detail pages 404 fix + long-tail blog with auto tool links)
+
+| Check | Result | How verified |
+|---|---|---|
+| TypeScript (`npx tsc --noEmit`) | ✅ PASS | 0 errors on the whole repo (after generating gitignored `next-env.d.ts`; the 4 pre-existing `TS2307` image-import errors on baseline vanish the same way Vercel's build handles them) |
+| ESLint (all touched + new files) | ✅ PASS | 0 errors (61 warnings = pre-existing `any` baseline style) |
+| Unit tests (`vitest run`) | ✅ PASS | 17 files / **182/182 passed** (172 prior + **10 new** `blog-tool-links` canaries) |
+| Production build (`next build`) | ✅ PASS | ✓ Compiled successfully — **1,879 static pages** (was 1,011; +868 AR exercise SSG pages); `/ar/exercises/[slug]` + `/ar/foods/[slug]` registered |
+| Smoke `:3779` — AR exercise detail | ✅ PASS | `/ar/exercises/ab-roller` → **200** (was 404 live) + `lang="ar" dir="rtl"` + AR title + HowTo/Breadcrumb JSON-LD + hreflang en/ar/x-default |
+| Smoke `:3779` — AR food detail | ✅ PASS | `/ar/foods/chicken-breast` → **200** (was 404 live) + AR title «صدور دجاج — السعرات والماكروز لكل 100 جرام» + NutritionInformation schema |
+| Smoke `:3779` — EN twins unaffected | ✅ PASS | `/exercises/ab-roller`, `/foods/chicken-breast`, `/exercises`, `/ar/exercises`, `/ar/foods` → 200 with `lang="en"` / `lang="ar"` respectively |
+| AR listing internal links | ✅ PASS | SSR HTML of `/ar/exercises` + `/ar/foods` cards link to `/ar/exercises/<slug>` + `/ar/foods/<slug>` (AR crawlable); EN listing still `/exercises/<slug>` |
+| Sitemap AR details | ✅ PASS | `/sitemap.xml` contains `/ar/exercises/<slug>` + `/ar/foods/<slug>` entries (~9,700 new URLs) with hreflang alternates |
+| Content-Language header | ✅ PASS | `/ar/exercises/ab-roller` → `content-language: ar-EG` |
+| Dynamic locale (route law) | ✅ PASS | `isArabicPath()` (exact `/ar` or `/ar/…`) unified in root layout + middleware; live `/ar` → `lang="ar" dir="rtl"`, `/` → `lang="en" dir="ltr"` |
+| Tool-link inserter canaries | ✅ PASS | insert/cap-3/first-occurrence/idempotent (EN+AR)/skips existing md links & headings/tables/quotes/internal-URLs-only |
+| No SQL migration | ✅ N/A | Phase 74 is code-only — no DB changes |
+
+### Owner follow-ups (Phase 74)
+- بعد النشر: تجربة `https://musclehubeg.vercel.app/ar/exercises/ab-roller` و `/ar/foods/chicken-breast` (كانت 404) + إرسال الموقع من جديد في Google Search Console (الخريطة فيها ~19,500 رابط دلوقتي).
+- المقال القادم المتولد تلقائياً (معادلة P0→P5) هتلاقي فيه روابط الأدوات تلقائياً — راجع `toolLinksInserted` في استجابة p5 أو Vercel Logs (`[blog-tool-links]`).
+
+---
+
+## Verification — 2026-09-01 (Phase 73 — Email Security & Filtering + Customers DB)
 
 | Check | Result | How verified |
 |---|---|---|

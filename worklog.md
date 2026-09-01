@@ -3682,3 +3682,24 @@ Work Log:
 Stage Summary:
 - tsc 0, push ab39ed9..0381a49, deploy verified via /api/build-info (0381a49 live).
 - Test rows (live-check*/final-check*) in tool_leads can be deleted from /admin/leads.
+
+---
+Task ID: 5 (Phase 74)
+Agent: Super Z (main agent)
+Task: المرحلة 74 (طلب المالك): منظومة الأرشفة والنمو العضوي — (1) وسم lang/dir ديناميكي من لغة المسار، (2) إصلاح 404 صفحات التمارين والأغذية العربية وربطها بالبيانات، (3) مدونة طويلة الذيل + روابط أدوات داخلية تلقائية، ثم فحص شامل ورفع GitHub لنشر Vercel.
+
+Work Log:
+- تشخيص حي: /ar بيرجع lang="ar" dir="rtl" فعلاً (الآلية موجودة) — قوّينا المطابقة بـ isArabicPath() موحدة (layout.tsx + middleware.ts): عربي = /ar بالظبط أو /ar/... فقط.
+- تأكيد 404 حي على /ar/exercises/push-up و /ar/foods/chicken-breast — السبب: المسارين غير موجودين نهائياً + روابط القوائم العربية كانت تفتح الإنجليزية.
+- إنشاء src/app/ar/exercises/[slug]/page.tsx (SSG لكل 868) و src/app/ar/foods/[slug]/page.tsx (ondemand لكل 8,830): ميتاداتا عربية + canonical/hreflang ثلاثي على الطرفين + og:locale ar_EG + JSON-LD عربي (HowTo/NutritionInformation/Breadcrumb).
+- ExerciseDetailClient/FoodDetailClient: خاصية lang اختيارية (نمط ProgramDetailClient) + كل الروابط الداخلية لغة-واعية؛ روابط كروت القوائم /ar/... للعربية؛ sitemap.ts أضاف ~9,700 رابط عربي بـ hreflang متبادل.
+- مدونة: وحدة جديدة src/lib/blog-tool-links.ts (إدراج حتمي لروابط الأدوات: 6 أدوات + 3 محاور؛ سقف 3/مقال؛ أول ظهور؛ idempotent؛ لا يمس الروابط/العناوين/الجداول/الاقتباسات؛ عربي+إنجليزي) مربوطة في p5-publish بعد المراجعة وفي generateArticleBundle/buildFinalBundle للمسار القديم + تعليمات P4.
+- كلمات طويلة الذيل: P0 يُلزم ≥6/10 عبارات طويلة وأسئلة PAA ومواضيع طويلة (عربي+إنجليزي fallback محسّن)؛ P1 عنوان + H2×2 + LSI×5 طويلة؛ P2 تضمين حرفي؛ P4 FAQ بصيغة البحث؛ blog-generate.ts (system/chunk1/chunk2) نفس القوانين.
+- اختبارات جديدة src/lib/__tests__/blog-tool-links.test.ts (10).
+- بوابات: tsc 0 (بعد توليد next-env.d.ts المهمل — 4 أخطاء TS2307 موجودة أصلاً في baseline) / eslint 0 أخطاء / vitest 182/182 / build ✓ 1,879 صفحة ثابتة / دخان :3779: التفاصيل العربية 200 بعنوان عربي وhreflang وContent-Language: ar-EG والإنجليزية سليمة.
+- توثيق PROGRESS.md (المرحلة 74) + QA_CHECKLIST.md + worklog.md؛ رفع main (كود فقط — لا SQL).
+
+Stage Summary:
+- 404 العربي انتهى: كل صفحات التمارين والأكلات لها مرايا عربية مفهرسة بروابط داخلية عربية.
+- كل مقال جديد تلقائياً بيتوجه لعبارات البحث الطويلة وبيحمل حتى 3 روابط أدوات مجانية داخلياً.
+- المطلوب من المالك: بعد النشر جرّب صفحة تفاصيل عربية + أعد إرسال الـ sitemap في Search Console.
