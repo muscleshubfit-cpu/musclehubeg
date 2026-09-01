@@ -29,7 +29,7 @@ export const COACH_FAQ_AR: Array<{ q: string; a: string }> = [
   },
   {
     q: "إيه حدود الذكاء الاصطناعي؟",
-    a: "4 خطط تغذية + 4 خطط تمارين لكل عميل كل شهر. والتعديل على الخطط ورفع خطط يدوية غير محدود تمامًا — العداد بيتصفّر أول الشهر.",
+    a: "توليد الخطط لعميلك بيسحب من رصيده الشهري حسب باقته: بريميوم 3 تغذية + 3 تمارين، برو 6 + 6، وكوتشينج 3 + 3 — وهو نفس الرصيد اللي بيستخدمه عميلك بنفسه من إيفو، وبيتصفّر أول الشهر. أما التعديل بيدك ورفع الخطط اليدوية وإعادة توليد أي وجبة أو صنف غذائي أو يوم تدريب أو تمرين بالذكاء الاصطناعي — فكلها غير محدودة تمامًا.",
   },
   {
     q: "هل عملائي هيبقوا تابعين للموقع؟",
@@ -60,7 +60,7 @@ export const COACH_FAQ_EN: Array<{ q: string; a: string }> = [
   },
   {
     q: "What are the AI limits?",
-    a: "4 nutrition plans + 4 workout plans per client per month. Editing plans and uploading manual plans is completely unlimited — the counter resets on the 1st.",
+    a: "Generating a client's plans draws from his own monthly balance by tier: Premium 3 nutrition + 3 workouts, Pro 6 + 6, Coaching 3 + 3 — the same pool your client spends through EVO, resetting on the 1st. Hand-editing, manual uploads, and AI-regenerating any meal, food item, workout day, or exercise are all unlimited.",
   },
   {
     q: "Will my clients belong to the site?",

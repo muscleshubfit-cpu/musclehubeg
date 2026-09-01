@@ -214,12 +214,12 @@ export default function ForCoachesPage() {
             </ul>
             <div className="mt-6 rounded-3xl bg-white p-6 ring-1 ring-[#e5e5ea]">
               <h3 className="text-sm font-bold">
-                {isAr ? "الشات الذكي — حدود شهرية واضحة" : "AI chat — clear monthly limits"}
+                {isAr ? "خطط الذكاء الاصطناعي — رصيد شهري واضح" : "AI plans — a clear monthly balance"}
               </h3>
               <p className="mt-2 text-sm leading-relaxed text-[#6e6e73]">
                 {isAr
-                  ? "ولّد لكل عميل 4 خطط تغذية + 4 خطط تمارين كل شهر بالذكاء الاصطناعي، وعدّل في التفاصيل براحتك — والتعديل ورفع الخطط اليدوية غير محدود خالص."
-                  : "Generate 4 nutrition + 4 workout plans per client per month with AI, then fine-tune every detail — editing and manual plan uploads are unlimited."}
+                  ? "توليد الخطط لعميلك بيسحب من رصيده الشهري حسب باقته (بريميوم 3 تغذية + 3 تمارين · برو 6 + 6 · كوتشينج 3 + 3) — وهو نفس الرصيد اللي بيستخدمه عميلك من إيفو، وبيتصفّر أول الشهر. والتعديل بيدك ورفع الخطط اليدوية وإعادة توليد أي وجبة أو صنف أو يوم تدريب بالذكاء الاصطناعي — كلها غير محدودة خالص."
+                  : "Generating a client's plans draws from his own monthly tier balance (Premium 3 nutrition + 3 workouts · Pro 6 + 6 · Coaching 3 + 3) — the same pool he spends through EVO, resetting on the 1st. Hand-editing, manual uploads, and AI-regenerating any meal, item, or workout day are all unlimited."}
               </p>
             </div>
           </div>
@@ -315,16 +315,16 @@ export default function ForCoachesPage() {
             alt: isAr ? "خطة تغذية صحية" : "Healthy nutrition plan",
             t: isAr ? "خطط تغذية بالذكاء الاصطناعي" : "AI nutrition plans",
             b: isAr
-              ? "محرك EVO بيولّد لكل عميل خطة تغذية مناسبة لهدفه وحاسباته بالسعرات والماكروز — وبتقدر تعدّل كل وجبة بيدك لحد ما تظبطها على ذوق عميلك."
-              : "The EVO engine builds each client a nutrition plan around his goal, with full calorie and macro targets — and you can hand-tune every meal until it fits your client perfectly.",
+              ? "محرك EVO بيولّد لكل عميل خطة تغذية مناسبة لهدفه وحاسباته بالسعرات والماكروز — تعدّل كل وجبة بيدك، أو تعيد توليد أي وجبة أو صنف غذائي بالذكاء الاصطناعي بضغطة زر لحد ما تظبطها على ذوق عميلك."
+              : "The EVO engine builds each client a nutrition plan around his goal, with full calorie and macro targets — hand-tune every meal, or AI-regenerate any meal or food item with one tap until it fits your client perfectly.",
           },
           {
             img: imgDumbbell,
             alt: isAr ? "دمبل في الجيم" : "Dumbbells in the gym",
             t: isAr ? "برامج تمارين من مكتبة 868+ تمرين" : "Workout programs from an 868+ exercise library",
             b: isAr
-              ? "برامج تمارين متكيفة بمستويات مختلفة، ومكتبة تمارين مشروحة بالفيديو اللي تقدر تبني منها أي جلسة — للاعب مبتدأ أو محترف."
-              : "Adaptive workout programs across levels, plus a video-explained exercise library you can build any session from — beginner or advanced.",
+              ? "برامج تمارين متكيفة بمستويات مختلفة، ومكتبة تمارين مشروحة بالفيديو اللي تقدر تبني منها أي جلسة — وتقدر كمان تعيد توليد أي يوم تدريبي كامل أو تستبدل أي تمرين بالذكاء الاصطناعي."
+              : "Adaptive workout programs across levels, plus a video-explained exercise library you can build any session from — and you can AI-regenerate any full training day or swap any exercise.",
           },
         ].map((f) => (
           <div

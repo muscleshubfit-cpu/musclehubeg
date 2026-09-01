@@ -3738,3 +3738,62 @@ Work Log:
 Stage Summary:
 - Push to main → Vercel auto-deploy. Migration 0062 auto-applies via the Supabase GitHub integration (proven 3/3) — NO manual SQL for the owner.
 - Owner verification path: (1) member: profile → «استرداد كامل خلال 7 أيام» card inside subscription card; (2) affiliate: /referral hold tile after a referred subscription payment; (3) admin: /admin/payments → refund requests section.
+
+---
+Task ID: 77
+Agent: Super Z (main)
+Task: Phase 77 — affiliate subscription commission examples with real Musclehubeg products (owner request)
+
+Work Log:
+- Replaced generic $6/$16 examples with real plans: Premium $14.99→$3.00, Pro $29.99→$6.00, Human Coaching $39.99→$8.00 (monthly, 20%)
+- AR + EN cards and how-it-works steps updated; 3-column responsive example grid on /affiliate
+
+Stage Summary:
+- Commit e67de60 pushed to main; Vercel auto-deploy; no DB changes
+
+---
+Task ID: 78
+Agent: Super Z (main)
+Task: Phases 78 + 78b — admin external-plans generator fully AI-powered + regeneration suite (owner request)
+
+Work Log:
+- Phase 78 (2f456e5): POST /api/admin/external-plans {ai:true} runs the SAME engine as member plans (plan-generator: OpenRouter+Groq chain + local fallback) — meal brief (3-6 meals, target calories or auto BMR/TDEE, 8 diet types, optional person data, details) + workout brief (days/week, goal, level, location); structured result in content.plan + Arabic text in content.text; brief stored in content.ai.params (powers whole-plan regeneration); maxDuration 60s
+- Phase 78b (571c0d6): regeneration suite — regenerate_plan (same stored brief, fresh variety roll), regenerate_meal (regenerateMeal + other-meals avoid-list + 2 full alternatives), regenerate_item (new regenerateFoodItem: same role, calories ±15%), regenerate_day (new regenerateWorkoutDay: same focus, avoid other days), regenerate_exercise (substituteExercise, library-ranked); AdminExternalPlansView renders structured cards with per-element regen buttons + AI badge with regen counter; legacy manual plans keep plain-text view
+
+Stage Summary:
+- Pushed to main; verified live on production in Phase 80 (below)
+
+---
+Task ID: 79
+Agent: Super Z (main)
+Task: Phase 79 — coaches get the FULL admin regeneration suite + plan draft materialization + admin version history (owner: «الكوتشينج يستفيدوا من نفس الخصائص، ايضا للادمن حفظ للخطط المولده»)
+
+Work Log:
+- ai-jobs.ts: new job types food_item_regenerate + day_regenerate (staff-gated "coach", quota-free, same GHA queue) with payload sanitizers
+- ai-job-processors.ts: runFoodItemRegenerate + runDayRegenerate (+ materializePlanDraftRow) — GHA runner inserts the plans draft row itself (materialized:true + plan_id in result; browser skips its insert — no doubles); generated member plans survive dead tabs/devices
+- CoachClientView PlanViewerModal: per-item Wand2 swap in meal tables (regenerateSingleItem with whole-plan avoid-list), per-day regen button in day headers (regenerateSingleDay), exercise swap visible in view mode too
+- Admin external-plans: every regeneration action snapshots previous text+plan into content.history (cap 5) + restore_version action (reversible — current state re-snapshotted) + saved-versions UI (expander + one-click restore)
+- Commit a5e98f3 pushed to main
+
+Stage Summary:
+- Fully verified LIVE on production in Phase 80
+
+---
+Task ID: 80
+Agent: Super Z (main)
+Task: Phase 80 — LIVE production check of Phases 77-79 with trial accounts + gating proof + docs parity + coach-join copy fix (owner request)
+
+Work Log:
+- Re-cloned repo fresh (sandbox reset); verified Phase 79 implemented (a5e98f3) and production build-info returns a5e98f3
+- LIVE as admin trial (0050 admin.test@): AI meal generation (2200kcal/5 meals/Cut — matches brief, params stored), AI workout generation (honors «لا باربال»), regenerate_plan (34.1s via groq:gpt-oss-120b), regenerate_meal ×2, regenerate_item ×3 (±15% kcal honored: 180→165), regenerate_day (constraint-respecting), regenerate_exercise, history cap-5 snapshots + Saved versions UI + restore_version (reversible, restore_backup logged)
+- LIVE as admin-in-coach-view: PlanViewerModal shows إعادة توليد + per-meal regen + per-item Wand2; food_item_regenerate job ran E2E (enqueue → GHA → done ~60-90s → valid 165→165kcal replacement)
+- Coach gating PROOF (owner question): fresh coach registered via /for-coaches/register funnel → /admin/external-plans redirects to /coach; POST/GET /api/admin/external-plans with coach cookies → 403 "Forbidden — admin only"; coach sidebar has ZERO admin items; JOB_GATE requireCoach blocks clients from staff job types
+- Environment notes (not code bugs): 2 all-provider outage windows (groq 400 json_validate empty generation + openrouter free 429s) → jobs retried 3× then failed safely, no quota burn, succeeded after recovery; intermittent Vercel 502s on long generation POSTs (UI toasts, retry OK)
+- FIXED for-coaches copy (content.ts + page.tsx, AR+EN): retired «4+4 per client» replaced by client-tier monthly balance law (premium 3/3 · pro 6/6 · coaching 3/3 — same EVO pool, resets on the 1st) + unlimited editing/manual upload/AI regeneration of meal/item/day/exercise highlighted
+- Docs parity: PROGRESS.md (77-79 entries + Phase 80), QA_CHECKLIST.md (live-check evidence table), DEVELOPER_GUIDE.md §2 (AdminGate admin-only, 13 /admin pages, 66 API routes, modern lib files), this worklog
+- Cleanup: 2 QA external plans deleted (200×2) + QA coach account deleted via /admin/accounts cascade
+- Gates: tsc 0 / eslint 0 errors / vitest 188/188 (see QA_CHECKLIST)
+
+Stage Summary:
+- Committed + pushed; owner verification: read PROGRESS Phase 80 section — the coach-gating answer is definitive (redirect + 403 + clean sidebar)
+- GitHub token used ONLY in git commands — owner should revoke it now that work is done

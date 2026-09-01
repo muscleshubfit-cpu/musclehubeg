@@ -110,28 +110,34 @@ src/
 │   ├── (app)/                   # Route group — محمي بـ auth gate
 │   │   ├── layout.tsx           # Auth gate: يتحقق من تسجيل الدخول
 │   │   ├── dashboard/           # لوحة تحكم العضو
-│   │   ├── coach/               # صفحات الكوتش (4 صفحات)
+│   │   ├── coach/               # لوحة الكوتش (العملاء + صفحة عامة + محفظة + أفيليت + إعلانات + دعم)
 │   │   ├── plans/               # خطط العضو
 │   │   ├── progress/            # تتبع التقدم
 │   │   ├── questionnaires/      # الاستبيانات
-│   │   ├── referral/           # نظام الإحالات
-│   │   ├── support/            # الدعم الفني
-│   │   └── chat/               # صفحة EVO الكاملة
-│   ├── admin/                   # Route group — محمي بـ coach role
-│   │   ├── layout.tsx           # Coach gate: يتحقق من role === "coach"
-│   │   ├── blog/               # CMS المدونة
-│   │   ├── leads/              # Leads من الأدوات
-│   │   ├── saved-results/      # نتائج محفوظة لكل المستخدمين
-│   │   └── referrals/           # إدارة الإحالات
-│   ├── api/                     # API Routes (36 endpoints — see §8)
-│   │   ├── ai/                  # AI endpoints (chat, plan, swap, generate)
-│   │   ├── admin/               # Admin endpoints (blog cleanup, leads, saved-results)
-│   │   ├── tools/               # Tool endpoints (save-result, save-meal-plan, lead)
-│   │   ├── cron/                # Cron job endpoints (blog generation pipeline)
-│   │   ├── paypal/              # PayPal payment endpoints (create-order, capture-order, webhook)
-│   │   ├── food-search/         # البحث عن الأكلات
-│   │   ├── og-image/[slug]/     # توليد صور OG ديناميكية
-│   │   └── notifications/admin/ # إنشاء إشعارات الكوتش
+│   │   ├── referral/           # لوحة أرباح الإحالات
+│   │   └── support/            # الدعم الفني
+│   ├── admin/                   # لوحة الأدمن — محمية بـ AdminGate (admin-only، المدرب يُحوّل لـ /coach)
+│   │   ├── admin-gate.tsx       # حارس الواجهة: غير الأدمن يُردّ لمكانه + API نفسه requireAdmin (403)
+│   │   ├── external-plans/      # توليد خطط بالـAI لغير الأعضاء + إعادة توليد (وجبة/صنف/يوم/تمرين) + سجل نسخ
+│   │   ├── accounts/            # تعليم حسابات الاختبار + حذف متسلسل
+│   │   ├── assignments/         # تعيين عملاء للمدربين + سجل التفعيلات
+│   │   ├── blog/                # CMS المدونة
+│   │   ├── coach-pages/         # مراجعة صفحات المدربين
+│   │   ├── coach-support/       # صندوق دعم المدربين
+│   │   ├── coach-system/        # مركز موحد لإدارة نظام المدربين
+│   │   ├── leads/               # Leads من الأدوات
+│   │   ├── payments/            # عضويات الموقع (طلبات الدفع اليدوي + استردادات 7 أيام)
+│   │   ├── referrals/           # إدارة الإحالات
+│   │   ├── saved-results/       # نتائج محفوظة لكل المستخدمين
+│   │   └── wallets/             # محافظ المدربين (طلبات الشحن + تعديل يدوي)
+│   ├── api/                     # API Routes (66 endpoint — route.ts)
+│   │   ├── ai/                  # AI (chat, jobs الطابير + quota, queue-health)
+│   │   ├── admin/               # Admin (external-plans, accounts, wallets, refunds, staff, blog, …)
+│   │   ├── coach/               # B2B (clients/invite, wallet, subscriptions/activate, support, …)
+│   │   ├── tools/               # Tool endpoints (save-result, save-meal-plan, lead, …)
+│   │   ├── cron/                # Cron (dispatch-pipelines 21:00 UTC + blog p0-p5 + progress-reminder)
+│   │   ├── paypal/              # PayPal (create-order, capture-order, webhook)
+│   │   └── …                    # send-email, food-search, og-image, build-info, …
 │   ├── ar/                      # النسخة العربية (mirror)
 │   ├── blog/                    # المدونة (EN)
 │   ├── checkout/                # صفحة الدفع
@@ -146,10 +152,11 @@ src/
 │   ├── layout.tsx               # Root layout (providers + analytics + PWA)
 │   └── metadata.ts              # SEO metadata شاملة
 ├── components/
-│   ├── ui/                      # 51 shadcn/ui component
-│   ├── views/                   # 25 page-level view
+│   ├── ui/                      # 52 shadcn/ui component
+│   ├── views/                   # 33 page-level view (منها AdminExternalPlansView — توليد غير الأعضاء)
 │   ├── blog/                    # مكونات المدونة
 │   ├── SiteHeader.tsx           # الهيدر + التنقل + الإشعارات
+│   ├── AppLayout.tsx            # سايدبار الأدوار (عضو/مدرب/أدمن — عناصر الأدمن isAdmin فقط)
 │   ├── EvoFloatingWidget.tsx    # EVO floating chat
 │   ├── AdSenseAd.tsx            # إعلانات AdSense (tier-gated)
 │   ├── SaveResultButton.tsx    # حفظ + تصدير النتائج
@@ -177,7 +184,14 @@ src/
 │   ├── blog-images.ts           # جلب صور المدونة
 │   ├── evo-chat-context.tsx     # حالة محادثة EVO
 │   ├── evo-search.ts            # بحث المنصة لـ EVO
-│   ├── plan-generator.ts        # توليد خطط تغذية/تمرين بـ AI
+│   ├── plan-generator.ts        # توليد خطط تغذية/تمرين بـ AI (+ regenerateMeal/FoodItem/WorkoutDay, substituteExercise)
+│   ├── external-plan-text.ts    # أنواع خطط غير الأعضاء المهيكلة + تصييرها نصًا
+│   ├── ai-jobs.ts               # أنواع مهام AI الطابير + البوابات (JOB_GATE) + تعقيم الحمولات
+│   ├── ai-job-processors.ts     # معالجات المهام (تُشغّل في GHA runner) + تجسيد مسودات الخطط
+│   ├── ai-jobs-client.ts        # إرسال مهمة ومتابعتها من المتصفح (poll حتى done)
+│   ├── tier-limits.ts           # حدود الباقات (شات/تبديلات/رصيد خطط العميل الموحد)
+│   ├── coach-limits.ts          # حدود نظام المدربين B2B + أسعار التفعيل
+│   ├── refund.ts                # أهلية استرداد 7 أيام (server-only)
 │   ├── referral.ts              # نظام الإحالات + العمولات
 │   ├── referral-cookie.ts       # تتبع كوكيز الإحالة
 │   ├── result-png-export.ts     # تصدير PDF/PNG (Canvas-based)
