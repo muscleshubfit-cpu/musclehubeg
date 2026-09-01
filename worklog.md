@@ -310,3 +310,23 @@ Stage Summary:
 - Docs now state the 6/day article cadence EXPLICITLY in every main file (README/PROGRESS/QA_CHECKLIST) — zero wrong numbers repo-wide
 - DEVELOPER_GUIDE cron-flow section matches the real p0-p5 pipeline (last stale spot from the Phase-82 audit closed)
 - Landing perf warning eliminated; only functional-code touch is the two `sizes` props — no behavior change
+
+---
+Task ID: 86
+Agent: Super Z (main)
+Task: Phase 86 — owner order «نفذ المقترح واعمل اختبار سرعه واداء للموقع بالكامل، وفحص seo، geo ومل ما يلزم لاقوى درجة انتشار سريع عالمى اورجاني»
+
+Work Log:
+- Production build verified: /api/build-info = 832e6db (Phase 85 live)
+- SPEED AUDIT (13 key pages EN+AR, best of 2 curl runs): TTFB 0.15-0.22s (Google good < 0.8s) · total ≤ 0.36s · HTML 53-150KB — home EN/AR 130KB, blogs 53KB, article 103KB, exercises 150KB, all excellent, zero outliers
+- SEO AUDIT: hreflang en/ar/x-default EVERYWHERE (home, static pages, articles both languages — earlier "missing" reading was a case-sensitive grep artifact: React renders hrefLang, valid per HTML spec) · canonical on every page · full OG + Twitter cards · JSON-LD Organization + WebSite/SearchAction + FAQPage(5Q) on home + Article/BreadcrumbList/ImageObject on articles · sitemap 19,480 URLs with xhtml:link per-URL hreflang alternates covering all sections in both languages
+- GEO AUDIT: robots.txt explicitly allows 14 AI crawlers (GPTBot, ChatGPT-User, OAI-SearchBot, ClaudeBot, Claude-Web, anthropic-ai, PerplexityBot, Google-Extended, Bingbot, Applebot, Applebot-Extended, Meta-ExternalAgent, Amazonbot, YouBot) · public/llms.txt curated + live
+- GAPS FOUND & FIXED: (1) no RSS → NEW /rss.xml (EN) + /ar/rss.xml (AR): RSS 2.0, latest 50 published posts/language, hourly ISR, empty-channel-safe; shared builder src/lib/rss.ts; NEW server-side listPublishedPostsForFeed() in blog-server.ts (fetchBlogForOG env/client pattern — the client listBlogPosts() from blog.ts CANNOT be called from route handlers: "Attempted to call client function from the server" 500s caught in dev smoke and fixed); RSS autodiscovery <link rel="alternate" type="application/rss+xml"> ×2 added to root layout <head> (site-wide); (2) no llms-full.txt → NEW dynamic route: curated sections + latest 30 articles/language with excerpts (AI engines cite fresh posts without full-site crawl); hourly ISR, text/plain
+- WIRING: robots.txt Allow /llms-full.txt /rss.xml /ar/rss.xml · llms.txt pointer lines to feeds + expanded guide
+- Gates: tsc 0 · eslint 0 errors (pre-existing any warnings L131/L175 blog-server + L1286-1401 LandingView untouched) · vitest 191/191 · dev smoke: all 3 new routes 200 with correct content-types
+- Docs: PROGRESS Phase 86 section + QA_CHECKLIST Latest Verification table + this entry
+
+Stage Summary:
+- Site is in TOP shape for organic global growth: performance excellent, SEO complete, GEO already best-practice
+- Two real distribution gaps closed: bilingual RSS feeds + llms-full.txt (AI engines)
+- New routes are DB-absent-safe (empty channel/guide, never 500) and ISR-cached hourly

@@ -37,6 +37,10 @@ Allow: /for-coaches/register
 Allow: /ar/for-coaches/register
 # GEO (2026-08-30): llms.txt — machine-readable site guide for AI engines
 Allow: /llms.txt
+# GEO (Phase 86): expanded AI guide + RSS feeds (organic distribution)
+Allow: /llms-full.txt
+Allow: /rss.xml
+Allow: /ar/rss.xml
 
 # Block private/authenticated pages
 Disallow: /dashboard

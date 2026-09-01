@@ -5,6 +5,8 @@
 - Full platform URL: https://musclehubeg.vercel.app
 - Arabic homepage: https://musclehubeg.vercel.app/ar
 - Language model: every URL has an English canonical version; main sections have Arabic mirrors under `/ar/*` (the language follows the URL, server-rendered).
+- Machine-readable feeds: English RSS https://musclehubeg.vercel.app/rss.xml · Arabic RSS https://musclehubeg.vercel.app/ar/rss.xml
+- Expanded guide (latest articles per language): https://musclehubeg.vercel.app/llms-full.txt
 
 ## Main sections
 

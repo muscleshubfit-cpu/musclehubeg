@@ -6,7 +6,19 @@
 
 ---
 
-## Latest Verification — 2026-09-02 (Phase 85 — blog cadence docs parity + stale cron-flow fix + landing hero `sizes` perf fix)
+## Latest Verification — 2026-09-02 (Phase 86 — speed/perf audit + SEO/GEO audit + RSS feeds + llms-full.txt)
+
+| Check | Result | How verified |
+|---|---|---|
+| Speed & performance (13 key pages, EN+AR) | ✅ EXCELLENT | Production curl ×2/page best: TTFB 0.15–0.22s (Google good < 0.8s) · total ≤ 0.36s · HTML 53–150KB — home EN/AR, blog EN/AR, article, exercises, AR exercise detail, foods, AR food detail, memberships, tool, for-coaches, programs |
+| SEO fundamentals | ✅ ALL PRESENT | hreflang en/ar/x-default on home + static pages + articles (BOTH languages) · canonical everywhere · full OG + Twitter cards · JSON-LD: Organization, WebSite+SearchAction, FAQPage (home), Article+BreadcrumbList+ImageObject (articles) · sitemap 19,480 URLs with per-URL xhtml:link hreflang alternates · dynamic lang/dir — note: grep for lowercase "hreflang" misses React's "hrefLang" attribute (case-insensitive per HTML spec; Google parses it) |
+| GEO (AI search readiness) | ✅ ALREADY STRONG | robots.txt explicitly allows GPTBot, ChatGPT-User, OAI-SearchBot, ClaudeBot, Claude-Web, anthropic-ai, PerplexityBot, Google-Extended, Bingbot, Applebot, Applebot-Extended, Meta-ExternalAgent, Amazonbot, YouBot · curated llms.txt live (200) |
+| NEW: RSS feeds (organic distribution) | ✅ ADDED | /rss.xml (EN) + /ar/rss.xml (AR) — RSS 2.0, latest 50 published posts each, hourly ISR, empty-channel-safe without DB (listPublishedPostsForFeed in blog-server.ts, fetchBlogForOG pattern) · RSS autodiscovery <link>s in root layout head (site-wide) · local 200 with correct content-type |
+| NEW: llms-full.txt (expanded AI guide) | ✅ ADDED | Dynamic route — curated sections + latest 30 articles per language with excerpts (AI engines cite fresh posts directly) · hourly ISR · text/plain · local 200 |
+| robots.txt + llms.txt wiring | ✅ UPDATED | robots: Allow /llms-full.txt, /rss.xml, /ar/rss.xml · llms.txt: feeds + expanded-guide pointer lines added |
+| Gates | ✅ PASS | tsc 0 · eslint 0 errors (pre-existing `any` warnings only) · vitest 191/191 · dev smoke: 3 new routes 200 |
+
+## Previous Verification — 2026-09-02 (Phase 85 — blog cadence docs parity + stale cron-flow fix + landing hero `sizes` perf fix)
 
 | Check | Result | How verified |
 |---|---|---|

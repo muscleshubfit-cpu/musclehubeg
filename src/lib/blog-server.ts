@@ -180,3 +180,49 @@ export type BlogPostFull = {
   updated_at: string | null;
   linked_post_id: string | null;
 };
+
+// ─────────────────────────────────────────────────────────────────────
+// FEED LISTING (Phase 86 — owner SEO/GEO push): server-side published-
+// posts list for /rss.xml + /ar/rss.xml + /llms-full.txt. Mirrors the
+// fetchBlogForOG* env/client pattern (fresh server client, anon keys,
+// null-safe when Supabase env is absent → feeds degrade to empty, never
+// throw). Sorted newest-first, capped by the caller.
+// ─────────────────────────────────────────────────────────────────────
+export type BlogFeedItem = {
+  title: string;
+  slug: string;
+  excerpt: string | null;
+  meta_description: string | null;
+  category: string;
+  featured_image: string | null;
+  published_at: string | null;
+  updated_at: string;
+};
+
+export async function listPublishedPostsForFeed(
+  lang: "en" | "ar",
+  limit = 50,
+): Promise<BlogFeedItem[]> {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!supabaseUrl || !supabaseAnonKey) return [];
+
+  try {
+    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+    const { data, error } = await supabase
+      .from("blog_posts")
+      .select(
+        "title, slug, excerpt, meta_description, category, featured_image, published_at, updated_at",
+      )
+      .eq("is_published", true)
+      .eq("language", lang)
+      .order("published_at", { ascending: false })
+      .limit(limit);
+    if (error) return [];
+    return (data ?? []) as BlogFeedItem[];
+  } catch {
+    return [];
+  }
+}
