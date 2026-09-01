@@ -3628,3 +3628,23 @@ Stage Summary:
 - Phase 69: /api/ai/quota meter in widget + save-evo plans (/api/plans/member-edit) + swap persistence + meal-planner export gate + cross-session memory gated to paid
 - Gates every phase: tsc 0 / eslint 0-new / vitest 164/164 / build ✓ / :3779 bilingual smoke / production verified (tables exist, guards 401, /coaching clean)
 - Commits: f1322e3 (0057 alone) → c0ce65a (66) → 7abb5f5 (67) → eed4c7d (68) → 72c2f7c (69)
+
+---
+Task ID: 3
+Agent: Main (Z User)
+Task: Phase 72 (owner request) — nodemailer results email API + wire all SIX free tools + newsletter form (footer + homepage) + tool_leads lead persistence (email, name, tool) before sending + newsletter type='newsletter' + full checks + deploy.
+
+Work Log:
+- Fresh clone of origin/main @ 7b8e692 (env reset between sessions; owner provided repo URL + token again).
+- Migration RUN_ON_SUPABASE_0059_TOOL_LEADS_NAME_TYPE_NEWSLETTER.sql: +name, +type (default 'tool'), tool_slug CHECK widened to 6 tools + 'newsletter' (dynamic constraint drop/re-create), type index; RLS untouched (public insert per 0006/0030C).
+- New POST /api/send-email (nodejs runtime): validates tool_slug/email/results, per-IP 5/10min + per-email 3/hour limits, saves lead FIRST (tool_leads: email, name, tool_slug, result_summary, result_json, lang, type='tool'), then sends bilingual (ar/en, RTL/LTR) professional HTML email with per-tool labeled results table + per-tool smart tips + CTA; EMAIL_SERVER_HOST/PORT/USER/PASSWORD read from env; EMAIL_FROM/EMAIL_REPLY_TO optional; 500 with clear message when email env missing; DB failure never blocks delivery (logged).
+- Upgraded LeadCaptureCard: posts to /api/send-email, exact owner copy «أدخل بريدك الإلكتروني لتصلك النتائج كاملة مع نصائح ذكية», optional name field, success state «تم الإرسال! تفقد بريدك الإلكتروني خلال دقائق.» + spam hint; same visual language.
+- Wired water-tracker + meal-planner (had NO lead card): card shows with goal/logged/progress and plan totals respectively.
+- New NewsletterForm component (footer/home variants): «اشترك الآن مجاناً» → /api/tools/lead with tool_slug='newsletter' + type='newsletter'; placed in LandingView footer strip + new homepage section before footer.
+- Extended /api/tools/lead: ALLOWED_TOOLS + water-tracker/meal-planner/newsletter, optional name, auto type (newsletter|tool) — single save endpoint, keeps rate limit.
+- types.ts tool_leads Row/Insert/Update updated; .env.example EMAIL_SERVER_* section added.
+- Gates: tsc 0 errors (image TS2307 = missing next-env.d.ts on fresh clone, pre-existing) / eslint 0 errors (13 pre-existing-style warnings) / vitest 172/172 / next build ✓ / :3779 smoke: EN+AR homes 200 with both CTA strings, tools 200, API 400s + newsletter & water-tracker accepted + env-guard 500 — all PASS.
+
+Stage Summary:
+- Commits: d0cd430 (0059 migration alone) → 0b1a862 (code: API + 6 tools + newsletter + docs) pushed to main; Vercel auto-deploy.
+- Owner actions: run 0059 in Supabase SQL Editor (raw link in QA_CHECKLIST), then live-test one email + one newsletter subscription.
