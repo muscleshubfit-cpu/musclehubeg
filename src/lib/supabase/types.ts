@@ -301,12 +301,14 @@ export type Database = {
       tool_leads: {
         Row: {
           id: string;
-          tool_slug: "calorie-calculator" | "bmi-calculator" | "macro-calculator" | "body-fat-calculator";
+          tool_slug: "calorie-calculator" | "bmi-calculator" | "macro-calculator" | "body-fat-calculator" | "water-tracker" | "meal-planner" | "newsletter";
           email: string | null;
+          name: string | null;
           whatsapp: string | null;
           result_summary: string | null;
           result_json: Json | null;
           lang: string | null;
+          type: string;
           consent: boolean;
           contacted: boolean;
           converted: boolean;
@@ -314,12 +316,14 @@ export type Database = {
         };
         Insert: {
           id?: string;
-          tool_slug: "calorie-calculator" | "bmi-calculator" | "macro-calculator" | "body-fat-calculator";
+          tool_slug: "calorie-calculator" | "bmi-calculator" | "macro-calculator" | "body-fat-calculator" | "water-tracker" | "meal-planner" | "newsletter";
           email?: string | null;
+          name?: string | null;
           whatsapp?: string | null;
           result_summary?: string | null;
           result_json?: Json | null;
           lang?: string | null;
+          type?: string;
           consent?: boolean;
           contacted?: boolean;
           converted?: boolean;
@@ -327,10 +331,12 @@ export type Database = {
         };
         Update: {
           email?: string | null;
+          name?: string | null;
           whatsapp?: string | null;
           result_summary?: string | null;
           result_json?: Json | null;
           lang?: string | null;
+          type?: string;
           consent?: boolean;
           contacted?: boolean;
           converted?: boolean;

@@ -12,6 +12,7 @@ import {
 import { listBlogPosts, getCategoryLabel, type BlogPost } from "@/lib/blog";
 import { EXERCISES } from "@/lib/exercises";
 import { SiteHeader } from "@/components/SiteHeader";
+import { NewsletterForm } from "@/components/NewsletterForm";
 import { getFAQSchema } from "@/lib/seo";
 import Image from "next/image";
 import { ImageWithFallback } from "@/components/ui/image-with-fallback";
@@ -1180,9 +1181,23 @@ export function LandingView() {
         </div>
       </section>
 
+      {/* ===================== 13. NEWSLETTER — Phase 72 (owner request) ====
+          Daily/weekly newsletter signup on the homepage. Saved in tool_leads
+          with type="newsletter" via /api/tools/lead. ===================== */}
+      <section className="bg-white px-4 py-12 md:py-16">
+        <div className="mx-auto max-w-2xl">
+          <NewsletterForm variant="home" />
+        </div>
+      </section>
+
       {/* ===================== FOOTER ===================== */}
       <footer className="border-t border-[#d2d2d7] bg-[#f5f5f7] px-4 py-10 text-[#6e6e73]">
         <div className="mx-auto max-w-6xl">
+          {/* Phase 72 (owner request): newsletter signup also lives in the footer */}
+          <div className="mb-8 rounded-3xl border border-[#d2d2d7] bg-white p-5 md:p-6">
+            <NewsletterForm variant="footer" />
+          </div>
+
           {/* Removed (owner feedback 2026-08-30): «أنت مدرب؟» footer CTA strip —
               it duplicated section 9.7 (same headline + same /for-coaches
               link). The rich dark section is the single coach funnel entry. */}

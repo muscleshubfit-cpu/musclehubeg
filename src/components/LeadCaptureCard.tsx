@@ -8,27 +8,33 @@ type ToolSlug =
   | "calorie-calculator"
   | "bmi-calculator"
   | "macro-calculator"
-  | "body-fat-calculator";
+  | "body-fat-calculator"
+  | "water-tracker"
+  | "meal-planner";
 
 type Props = {
   toolSlug: ToolSlug;
   /** Short human-readable summary, e.g. "TDEE: 2500 kcal · Protein: 188g" */
   resultSummary: string;
-  /** Structured result object — stored as JSON for re-creating the message later */
+  /** Structured result object — stored as JSON and rendered inside the email */
   resultJson?: Record<string, any>;
 };
 
 /**
- * LeadCaptureCard — simple newsletter signup on the result page of each free tool.
+ * LeadCaptureCard — Phase 72 (owner request)
  *
- * Collects the visitor's email and stores it as a lead in the `tool_leads`
- * table. The coach can later use these emails for newsletter campaigns.
- * No email is sent to the user — just a "subscribed" confirmation.
+ * Shows on the result page of every free tool AFTER the visitor calculates
+ * their results. The visitor enters their email (name optional) and receives
+ * a professional HTML email with their full results + smart tips.
+ *
+ * The lead (email + name + tool) is saved in the `tool_leads` table FIRST,
+ * then the email is sent via POST /api/send-email (nodemailer on the server).
  */
 export function LeadCaptureCard({ toolSlug, resultSummary, resultJson }: Props) {
   const { lang } = useI18n();
   const isAr = lang === "ar";
 
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
@@ -50,12 +56,13 @@ export function LeadCaptureCard({ toolSlug, resultSummary, resultJson }: Props) 
 
     setSubmitting(true);
     try {
-      const res = await fetch("/api/tools/lead", {
+      const res = await fetch("/api/send-email", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           tool_slug: toolSlug,
           email: cleanEmail,
+          name: name.trim() || undefined,
           result_summary: resultSummary,
           result_json: resultJson,
           lang,
@@ -82,12 +89,17 @@ export function LeadCaptureCard({ toolSlug, resultSummary, resultJson }: Props) 
           <CheckCircle2 className="h-6 w-6 text-white" />
         </div>
         <p className="mt-4 text-base font-medium text-[#1d1d1f]">
-          {isAr ? "تم الاشتراك ✅" : "Subscribed ✅"}
+          {isAr ? "تم الإرسال!" : "Sent!"}
         </p>
         <p className="mt-2 text-sm font-normal text-[#6e6e73]">
           {isAr
-            ? `سجّلنا إيميلك (${email}) في النشرة البريدية. هنوصلك بأحدث النصائح والعروض.`
-            : `We've added ${email} to our newsletter. You'll receive our latest tips and offers.`}
+            ? `تفقد بريدك الإلكتروني خلال دقائق — بعتنا لك نتائجك كاملة مع نصائح ذكية على (${email}).`
+            : `Check your inbox in a few minutes — we've sent your full results with smart tips to (${email}).`}
+        </p>
+        <p className="mt-2 text-xs font-normal text-[#8e8e93]">
+          {isAr
+            ? "مكتبتك الرسائل غير المرغوبة (Spam) لو الرسالة وصلت متأخر."
+            : "If it doesn't arrive, check your Spam folder."}
         </p>
       </div>
     );
@@ -99,29 +111,41 @@ export function LeadCaptureCard({ toolSlug, resultSummary, resultJson }: Props) 
       {/* Header */}
       <div className="flex items-start gap-3">
         <span className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-[#0071e3]/10 text-xl">
-          ✉️
+          <Mail className="h-5 w-5 text-[#0071e3]" />
         </span>
         <div>
           <h3 className="text-base font-semibold tracking-tight text-[#1d1d1f]">
-            {isAr ? "اشترك في النشرة البريدية" : "Subscribe to our newsletter"}
+            {isAr ? "استلم نتائجك كاملة على بريدك" : "Get your full results by email"}
           </h3>
           <p className="mt-1 text-sm font-normal text-[#6e6e73]">
             {isAr
-              ? "نصائح أسبوعية للتغذية واللياقة + عروض حصرية على الاشتراكات."
-              : "Weekly nutrition & fitness tips + exclusive subscription offers."}
+              ? "أدخل بريدك الإلكتروني لتصلك النتائج كاملة مع نصائح ذكية."
+              : "Enter your email to receive your full results with smart tips."}
           </p>
         </div>
       </div>
 
-      {/* Email input */}
+      {/* Name (optional) */}
       <div className="mt-5">
+        <input
+          type="text"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder={isAr ? "اسمك (اختياري)" : "Your name (optional)"}
+          maxLength={80}
+          className="w-full rounded-xl border border-[#d2d2d7] bg-white px-4 py-3 text-base font-normal outline-none focus:border-[#0071e3]"
+        />
+      </div>
+
+      {/* Email input */}
+      <div className="mt-3">
         <div className="relative">
           <Mail className="absolute start-3 top-1/2 h-5 w-5 -translate-y-1/2 text-[#6e6e73]" />
           <input
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            placeholder={isAr ? "you@example.com" : "you@example.com"}
+            placeholder="you@example.com"
             dir="ltr"
             className="w-full rounded-xl border border-[#d2d2d7] bg-white ps-11 pe-4 py-3 text-base font-normal outline-none focus:border-[#0071e3]"
           />
@@ -143,20 +167,20 @@ export function LeadCaptureCard({ toolSlug, resultSummary, resultJson }: Props) 
         {submitting ? (
           <>
             <Loader2 className="h-4 w-4 animate-spin" />
-            {isAr ? "جارٍ الاشتراك..." : "Subscribing..."}
+            {isAr ? "جارٍ الإرسال..." : "Sending..."}
           </>
         ) : (
           <>
             <Send className="h-4 w-4" />
-            {isAr ? "اشترك الآن" : "Subscribe now"}
+            {isAr ? "أرسل لي النتائج على بريدي" : "Email me my results"}
           </>
         )}
       </button>
 
       <p className="mt-3 text-center text-xs font-normal text-[#6e6e73]">
         {isAr
-          ? "مفيش سبام. تقدر تلغي الاشتراك في أي وقت."
-          : "No spam. Unsubscribe anytime."}
+          ? "مجاني تماماً. مفيش سبام، وتقدر تطلب حذف بريدك في أي وقت."
+          : "Completely free. No spam — ask us to remove your email anytime."}
       </p>
     </div>
   );

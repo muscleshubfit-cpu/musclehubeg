@@ -9,6 +9,7 @@ import { SiteHeader } from "@/components/SiteHeader";
 import { AdSenseAd } from "@/components/AdSenseAd";
 import { OtherTools } from "@/components/OtherTools";
 import { ShareButtons } from "@/components/ShareButtons";
+import { LeadCaptureCard } from "@/components/LeadCaptureCard";
 import { Bookmark, Download, Loader2, Check, Droplets, Plus, Minus, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 
@@ -495,6 +496,19 @@ export default function WaterTrackerPage() {
             <Download className="h-4 w-4" />
             {isAr ? "تحميل JSON" : "JSON"}
           </button>
+        </div>
+
+        {/* Lead Capture — Phase 72: email the logged results (owner request) */}
+        <div className="mt-6">
+          <LeadCaptureCard
+            toolSlug="water-tracker"
+            resultSummary={
+              isAr
+                ? `هدف الماء: ${settings.goalMl} مل · المسجل اليوم: ${consumedToday} مل (${progressPct}%)`
+                : `Water goal: ${settings.goalMl} ml · Logged today: ${consumedToday} ml (${progressPct}%)`
+            }
+            resultJson={{ goal_ml: settings.goalMl, consumed_today_ml: consumedToday, progress_pct: progressPct }}
+          />
         </div>
 
         {/* Share */}

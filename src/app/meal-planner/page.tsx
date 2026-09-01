@@ -8,6 +8,7 @@ import { SiteHeader } from "@/components/SiteHeader";
 import { AdSenseAd } from "@/components/AdSenseAd";
 import { OtherTools } from "@/components/OtherTools";
 import { ShareButtons } from "@/components/ShareButtons";
+import { LeadCaptureCard } from "@/components/LeadCaptureCard";
 import {
   Plus,
   Trash2,
@@ -427,6 +428,25 @@ export default function MealPlannerPage() {
             <Download className="h-4 w-4" />
             {isAr ? "تحميل JSON" : "JSON"}
           </button>
+        </div>
+
+        {/* Lead Capture — Phase 72: email the plan totals (owner request) */}
+        <div className="mt-6">
+          <LeadCaptureCard
+            toolSlug="meal-planner"
+            resultSummary={
+              isAr
+                ? `خطتي: ${meals.length} وجبات · ${grandTotal.calories} سعرة · بروتين ${grandTotal.protein}g · كارب ${grandTotal.carbs}g · دهون ${grandTotal.fat}g`
+                : `My plan: ${meals.length} meals · ${grandTotal.calories} kcal · protein ${grandTotal.protein}g · carbs ${grandTotal.carbs}g · fat ${grandTotal.fat}g`
+            }
+            resultJson={{
+              meals: meals.length,
+              calories: grandTotal.calories,
+              protein: grandTotal.protein,
+              carbs: grandTotal.carbs,
+              fat: grandTotal.fat,
+            }}
+          />
         </div>
 
         {/* Share */}

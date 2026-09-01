@@ -6,6 +6,34 @@
 
 ---
 
+## Latest Verification — 2026-09-01 (Phase 72 — Tool Results Email + Newsletter)
+
+| Check | Result | How verified |
+|---|---|---|
+| Git sync (base == `origin/main` `7b8e692`) | ✅ PASS | Fresh clone of `muscleshubfit-cpu/musclehubeg`, branch `main` |
+| TypeScript (`npx tsc --noEmit`) | ✅ PASS | 0 errors (the 4 `TS2307` image warnings appear only before `next build` generates `next-env.d.ts` on a fresh clone — pre-existing, unrelated) |
+| ESLint (changed files) | ✅ PASS | 0 errors / 13 warnings (pre-existing `no-explicit-any` style shared with LandingView old code) |
+| Unit tests (`vitest run`) | ✅ PASS | 16 files / **172/172 passed** |
+| Production build (`next build`) | ✅ PASS | Exit 0 — `/api/send-email` + all 6 tool routes compiled |
+| Local smoke `:3779` — EN home | ✅ PASS | HTTP 200 + `Subscribe free` (home section + footer strip) present |
+| Local smoke `:3779` — AR home | ✅ PASS | HTTP 200 + `اشترك الآن مجاناً` present |
+| Local smoke `:3779` — tools | ✅ PASS | `/tools/calorie-calculator` 200, `/meal-planner` 200 |
+| API validation — bad email | ✅ PASS | `POST /api/send-email` `{"email":"not-an-email"}` → **400** `Valid email is required` |
+| API validation — unknown tool | ✅ PASS | `POST /api/send-email` `{"tool_slug":"hack"}` → **400** `Invalid tool_slug` |
+| API — newsletter slug accepted | ✅ PASS | `POST /api/tools/lead` `{"tool_slug":"newsletter"}` → **200** `{ok:true,demo:true}` (demo mode — no Supabase env locally) |
+| API — water-tracker slug accepted | ✅ PASS | `POST /api/tools/lead` `{"tool_slug":"water-tracker","name":"أحمد"}` → **200** (was rejected before 0059) |
+| API — email env guard | ✅ PASS | Valid body without `EMAIL_SERVER_*` → **500** `Email service is not configured` + `leadSaved:false` (env vars exist on Vercel) |
+| Save-before-send order | ✅ PASS | Code path: lead insert → transporter.sendMail (owner directive) |
+
+### Phase 72 — Migration 0059 (owner action in Supabase SQL Editor)
+
+- Raw link: `https://raw.githubusercontent.com/muscleshubfit-cpu/musclehubeg/main/supabase/migrations/RUN_ON_SUPABASE_0059_TOOL_LEADS_NAME_TYPE_NEWSLETTER.sql`
+- Adds `name` + `type` columns, widens the `tool_slug` CHECK (6 tools + `newsletter`), adds `type` index. Safe to re-run; no data touched; RLS unchanged.
+- **Soft-roll safety:** if the code deploys before the migration runs, nothing breaks — `/api/tools/lead` logs the insert error and `/api/send-email` still delivers the email; once the migration runs, saving resumes automatically.
+- **Owner post-deploy test:** open any calculator on the live site → calculate → enter your own email → submit → verify the branded email arrives (check Spam) → confirm the row appears in `tool_leads` with your name + `type='tool'`; then subscribe from the footer with `type='newsletter'`.
+
+---
+
 ## Latest Verification — 2026-08-26 (Phase 12 — UI Palette Unification + Memberships Redesign)
 
 | Check | Result | How verified |

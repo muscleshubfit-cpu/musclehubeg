@@ -29,16 +29,19 @@ function checkRateLimit(ip: string): { allowed: boolean; remaining: number; rese
 /**
  * POST /api/tools/lead
  *
- * Saves an email lead (newsletter signup) from one of the free tools.
- * The lead is stored in the `tool_leads` table. The coach can later
- * export these emails for newsletter campaigns.
+ * Saves a contact lead in the `tool_leads` table — Phase 72 (owner request):
+ *   - all SIX free tools can save leads (water-tracker + meal-planner added)
+ *   - newsletter subscriptions save with tool_slug="newsletter" + type="newsletter"
+ *   - optional `name` column is stored when provided
+ * (Email SENDING lives in /api/send-email — this endpoint is save-only.)
  *
  * Public endpoint (no auth required). Rate limited: 5 req / 10 min / IP.
  *
  * Body:
  *   {
- *     tool_slug: "calorie-calculator" | "bmi-calculator" | "macro-calculator" | "body-fat-calculator",
+ *     tool_slug: "calorie-calculator" | "bmi-calculator" | "macro-calculator" | "body-fat-calculator" | "water-tracker" | "meal-planner" | "newsletter",
  *     email: string,
+ *     name?: string,
  *     result_summary?: string,
  *     result_json?: object,
  *     lang?: "ar" | "en"
@@ -70,17 +73,21 @@ export async function POST(request: NextRequest) {
     const {
       tool_slug,
       email,
+      name,
       result_summary,
       result_json,
       lang,
     } = body || {};
 
-    // Validate tool_slug
+    // Validate tool_slug — Phase 72: + water-tracker, meal-planner, newsletter
     const ALLOWED_TOOLS = [
       "calorie-calculator",
       "bmi-calculator",
       "macro-calculator",
       "body-fat-calculator",
+      "water-tracker",
+      "meal-planner",
+      "newsletter",
     ];
     if (!ALLOWED_TOOLS.includes(tool_slug)) {
       return NextResponse.json(
@@ -127,11 +134,14 @@ export async function POST(request: NextRequest) {
       .insert({
         tool_slug,
         email: cleanEmail,
+        name: typeof name === "string" && name.trim() ? name.trim().slice(0, 80) : null,
         whatsapp: null,
         result_summary: typeof result_summary === "string" ? result_summary.slice(0, 500) : null,
         result_json: result_json ?? null,
         lang: lang || "ar",
         consent: true,
+        // Phase 72: newsletter subscribers get their dedicated type
+        type: tool_slug === "newsletter" ? "newsletter" : "tool",
       })
       .select("id")
       .single();
