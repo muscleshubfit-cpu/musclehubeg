@@ -6,7 +6,19 @@
 
 ---
 
-## Latest Verification — 2026-09-02 (Phase 88 — EVO streaming verified live + legacy-`any` cleanup batch 1)
+## Latest Verification — 2026-09-02 (Phase 89 — EVO TRUE token streaming LIVE + Documentation Parity Law)
+
+| Check | Result | How verified |
+|---|---|---|
+| EVO token streaming LIVE on Vercel | ✅ WORKS | Production curl -N POST /api/ai/chat: word-by-word `event: delta` frames ({"text":"Aim"} → {"text":" to"} → …) then `event: final` with the cleaned full text + links + source. Build-info commit 1662c4d + label "EVO chat token-streams via SSE from Vercel — Phase 89" |
+| Fallback semantics preserved | ✅ SAME POLICY | Chain falls back silently across models/keys BEFORE the first delta; a mid-stream failure (after user-visible tokens) aborts the chain and sends `event: error` — the client keeps the partial text. Local fallback streams as `final` (identical UX to before) |
+| 429 / pre-stream errors unchanged | ✅ JSON | Quota + auth + server errors stay JSON; client sniffs content-type once and never double-consumes the body |
+| Cleaning pipeline unchanged | ✅ | LaTeX/reasoning/markdown cleaning still runs on the complete text and ships in `final` — may differ slightly from raw deltas BY DESIGN (quality floor intact) |
+| Documentation Parity Law | ✅ ADDED — AGENTS.md §3.6 | Owner directive «دايماً عدل التوثيقات…»: docs ship in the SAME phase — minimum worklog+QA+PROGRESS, plus README/DEVELOPER_GUIDE/AGENTS/build-info when the changed behavior is described there (the old misleading "streams from Vercel" label is cited as the proof-of-why) |
+| Docs updated in this phase | ✅ ALL | README function table (+callAIStream row, fixed callFreeAIFallbackChain use-case) + streaming note · DEVELOPER_GUIDE EVO flow (SSE events) + API table row · build-info aiTopology label · QA_CHECKLIST + PROGRESS + worklog |
+| Gates | ✅ PASS | tsc 0 · eslint 0 NEW warnings (21 pre-existing legacy in the 2 touched AI files) · vitest 191/191 |
+
+## Previous Verification — 2026-09-02 (Phase 88 — EVO streaming verified live + legacy-`any` cleanup batch 1)
 
 | Check | Result | How verified |
 |---|---|---|

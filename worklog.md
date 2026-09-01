@@ -370,3 +370,22 @@ Work Log:
 Stage Summary:
 - EVO on Vercel: PROVEN working live (200, groq fast-chain, ~4.8s); honest status = full-JSON reply, NOT token-streamed — true SSE streaming offered as a separate future phase
 - Cleanup batch 1 complete: 804 → 795 (−9: 8 typed + 1 dead file deleted); order for next batches documented (small→medium→sensitive-last)
+
+---
+Task ID: 89
+Agent: Super Z (main)
+Task: Phase 89 — owner order «ابدأ ب ايفو الاول، ودايما عدل التوثيقات وملفات هيكل المشروع علشان ميحصلش لغبطة، خليها قاعده فى توثيق الايجنت»
+
+Work Log:
+- ENV: repo re-cloned (3rd env reset) from origin @4e3ce2c + bun install + next-env.d.ts regenerated; tsc 0 before starting
+- ai-provider.ts: NEW callAIStream() — stream:true, OpenAI-compatible SSE parse, content deltas → onDelta, reasoning deltas buffered silently (content→reasoning fallback mirrors callAI); FallbackChainOptions.onDelta added; chain inner loop streams via streamTap — silent fallback only BEFORE first delta, mid-stream failure throws "stream failed mid-way on <provider>/<model>" and aborts the chain
+- route.ts step 7 rewritten: success = ReadableStream SSE (event: delta per token → event: final with cleaned text + links + source; event: error on mid-stream); cleaning pipeline (steps 1-7) unchanged, runs on the complete text and ships in final; too-short → local fallback as final; all-providers-failed (no deltas) → local fallback as final; 429/pre-stream failures remain JSON; outer catch untouched
+- evo-chat-context.tsx: content-type sniffing once (isSSE ? null : response.json() — never double-consume); SSE path: placeholder assistant bubble inserted immediately (isTyping false), grows per delta via pure setState map, parseEvent RETURNS effects (no closure mutation — fixes TS2339 'never' narrowing), final swap with cleaned text + links + planKind tag + paid persistence via buildPersistBody; legacy JSON path intact for safety
+- Gates: tsc 0 (after the narrowing fix) · eslint 0 NEW warnings (21 pre-existing = 15 route + 6 ai-provider) · vitest 191/191
+- PUSHED 1662c4d → Vercel built → LIVE TEST (curl -N, timed): word-by-word event:delta frames ({"text":"Aim"}{"text":" to"}…) then event:final with cleaned text — TRUE token streaming PROVEN on production; build-info label now "EVO chat token-streams via SSE from Vercel — Phase 89"
+- Documentation Parity Law added as AGENTS.md §3.6 (owner directive; cites the old misleading "streams from Vercel" label as proof-of-why); README function table (+callAIStream row; fixed callFreeAIFallbackChain use-case that wrongly said "Local fallback") + SSE note; DEVELOPER_GUIDE EVO flow (SSE events + cleaning note) + API table row; this entry + QA_CHECKLIST + PROGRESS
+- Commit plan: 1662c4d = code + AGENTS/README/DEVELOPER_GUIDE/build-info; follow-up docs commit = QA_CHECKLIST + PROGRESS + worklog with the REAL live evidence
+
+Stage Summary:
+- EVO chat now streams token-by-token on Vercel (SSE) — live-proven; quality floor unchanged (cleaned final still authoritative); quota/auth/error paths untouched; fallback policy preserved with an explicit mid-stream contract
+- Documentation Parity Law (§3.6) is now a binding operating rule for all future agents
