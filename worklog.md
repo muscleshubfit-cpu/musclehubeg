@@ -273,3 +273,21 @@ Stage Summary:
 - Roles: guest bounce proven live (member+admin+coach surfaces); staff/role laws re-verified by code+API responses; full logged-in role E2E remains proven by Phase 80 production session (local has no DB keys by design)
 - Article cadence: 6/day (3 EN + 3 AR), dispatcher self-healing, active on production
 - No code changes in this phase — verification-only + this worklog entry
+
+---
+Task ID: 84
+Agent: Super Z (main)
+Task: Phase 84 — owner verification-only check («تأكد إن التوثيق مكتوب فيه توليد المقالات 6/يوم فعلاً ولا رقم تاني» + إعادة فحص أمر SEO النهائي القديم (Phase 74) للتحقق من معالجته — بدون تنفيذ)
+
+Work Log:
+- Sandbox reset discovered (repo gone) → re-cloned fresh from origin; HEAD = eea0c33 (Phase 83) — nothing lost
+- Article-cadence docs audit: AGENTS.md L336 «3 articles/day per language» (EN 12/16/22 + AR 05/11/18) = 6 total ✓ · worklog Task 83 «TOTAL 6 articles/day» ✓ · archive/PROGRESS_ARCHIVE Phase 16 «3 مقالات/يوم لكل لغة = 6/يوم» ✓ · README/PROGRESS mention the dispatch cron but NOT an explicit count (incomplete, not wrong) · QA_CHECKLIST has no cadence line · DEVELOPER_GUIDE «التدفق الآلي (Cron)» L423-430 still describes RETIRED step1/step2/step3 flow (current = p0-p5) — stale, flagged to owner
+- SEO-command re-verification (owner directive 2026-09-01, delivered as Phase 74 / 82568f8): (1) layout.tsx resolveLocale() dynamic lang/dir from x-pathname (middleware) with URL>cookie precedence + stale-cookie fix — Googlebot sees ar/rtl on /ar/* ✓ (2) /ar/exercises + /ar/foods routes exist ([slug]+list) and LIVE 200 on production for 3 exercise slugs + 3 food slugs + both lists ✓ (3) blog-research.ts LONG-TAIL KEYWORD LAW (≥6/10 long-tail, question-format, per-topic long-tail binding) + blog-pipeline.ts LONG-TAIL SEO LAW (title + 2 H2 + 5 LSI) + AR prompts in Egyptian/Gulf-friendly MSA ✓; internal linking = blog-tool-links.ts deterministic guarantee layer (6 tools: calorie/macro/body-fat/bmi/water/meal-planner, EN+AR triggers, max 3/article, idempotent, vitest-covered) + prompt-level FREE-TOOL LINKING in blog-generate.ts ✓
+- LIVE PROOF of tool links on post-Phase-74 articles: progressive-overload-no-weight + 12-week-progressive-overload-intermediate (both published 2026-09-01T18:49Z) contain href=/tools/calorie-calculator, /tools/bmi-calculator, /tools/body-fat-calculator, /meal-planner; pre-Phase-74 articles predate the feature (expected)
+- Gates live this session: tsc 0 · vitest 191/191 (incl. blog-tool-links tests)
+- NO code changes (verification-only + this entry)
+
+Stage Summary:
+- No wrong article number anywhere in docs — the only stated figures (3/lang = 6/day) are correct; README/PROGRESS/QA lack an explicit count (optional polish), DEVELOPER_GUIDE cron-flow section is the one stale spot (step1-3 → should say p0-p5)
+- All three SEO-command items PROVEN treated and live in production (Phase 74)
+- Awaiting owner decision on the optional docs polish (README/PROGRESS explicit 6/day + DEVELOPER_GUIDE flow fix)
