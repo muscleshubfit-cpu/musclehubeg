@@ -67,15 +67,22 @@ export async function getRecentFeaturedImageUrls(limit = 30): Promise<string[]> 
   try {
     if (!isSupabaseAdminConfigured || !supabaseAdmin) return [];
     const { data } = await supabaseAdmin
-      .from("blog_posts" as any)
+      .from("blog_posts")
       .select("featured_image")
       .order("created_at", { ascending: false })
       .limit(limit);
-    return (data as any[] | null)?.map((p) => String(p?.featured_image || "")).filter(Boolean) ?? [];
+    return (data ?? []).map((p) => String(p.featured_image || "")).filter(Boolean);
   } catch {
     return [];
   }
 }
+
+/** Pexels search-result photo shape (only the fields we consume). */
+type PexelsPhoto = {
+  alt?: string | null;
+  photographer?: string | null;
+  src?: { landscape?: string; large?: string; medium?: string; original?: string } | null;
+};
 
 /**
  * Search Pexels for a photo matching the query. PRIMARY source.
@@ -94,12 +101,12 @@ async function searchPexels(
       { headers: { Authorization: key }, signal: AbortSignal.timeout(15_000) },
     );
     if (!res.ok) return null;
-    const data = await res.json();
-    const photos: any[] = data?.photos ?? [];
+    const data = (await res.json()) as { photos?: PexelsPhoto[] } | null;
+    const photos = data?.photos ?? [];
     // «لا عرى»: reject any result whose alt text carries NSFW or
     // immodest-signal vocabulary (v3.1: caught the shirtless-back case).
     const candidates = photos
-      .map((p: any) => ({
+      .map((p) => ({
         photo: p,
         url: p.src?.landscape || p.src?.large || p.src?.medium || p.src?.original,
       }))
@@ -124,6 +131,14 @@ async function searchPexels(
   }
 }
 
+/** Unsplash search-result photo shape (only the fields we consume). */
+type UnsplashPhoto = {
+  alt_description?: string | null;
+  description?: string | null;
+  urls?: { regular?: string; full?: string } | null;
+  user?: { name?: string | null } | null;
+};
+
 /**
  * Search Unsplash for a photo matching the query (failover source).
  */
@@ -140,10 +155,10 @@ async function searchUnsplash(
       { headers: { Authorization: `Client-ID ${key}` }, signal: AbortSignal.timeout(15_000) },
     );
     if (!res.ok) return null;
-    const data = await res.json();
-    const results: any[] = data?.results ?? [];
+    const data = (await res.json()) as { results?: UnsplashPhoto[] } | null;
+    const results = data?.results ?? [];
     const candidates = results
-      .map((p: any) => ({
+      .map((p) => ({
         photo: p,
         url: p.urls?.regular || p.urls?.full,
       }))
@@ -168,6 +183,15 @@ async function searchUnsplash(
   }
 }
 
+/** Pixabay search-result photo shape (only the fields we consume). */
+type PixabayPhoto = {
+  tags?: string | null;
+  largeImageURL?: string;
+  webformatURL?: string;
+  previewURL?: string;
+  user?: string | null;
+};
+
 /**
  * Search Pixabay for a photo matching the query (failover source;
  * safesearch=true is enforced by their API).
@@ -185,10 +209,10 @@ async function searchPixabay(
       { signal: AbortSignal.timeout(15_000) },
     );
     if (!res.ok) return null;
-    const data = await res.json();
-    const hits: any[] = data?.hits ?? [];
+    const data = (await res.json()) as { hits?: PixabayPhoto[] } | null;
+    const hits = data?.hits ?? [];
     const candidates = hits
-      .map((h: any) => ({
+      .map((h) => ({
         photo: h,
         url: h.largeImageURL || h.webformatURL || h.previewURL,
       }))

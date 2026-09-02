@@ -116,13 +116,13 @@ async function fetchCoachLandingRow(
   // NOTE: certificates are NOT part of this select — they're fetched
   // separately below so a missing 0049 column can NEVER break the load
   // (pending/rejected pages must stay hidden from the public regardless).
-  const { data: page, error: pageErr } = (await supabaseAdmin
-    .from("coach_pages" as any)
+  const { data: page, error: pageErr } = await supabaseAdmin
+    .from("coach_pages")
     .select(
       "slug, headline, bio, specialties, headline_en, bio_en, specialties_en, is_published, review_status, coach_id, photo_url, results_photos, instagram_url, facebook_url, tiktok_url, youtube_url",
     )
     .eq("slug", slug)
-    .maybeSingle()) as { data: any; error: any };
+    .maybeSingle();
 
   let pageRow = page;
   // PGRST204 (schema-cache miss) or 42703 (undefined column) → the
@@ -131,17 +131,16 @@ async function fetchCoachLandingRow(
   // (pre-0046 behaviour preserved).
   if (
     pageErr &&
-    ((pageErr as { code?: string }).code === "42703" ||
-      (pageErr as { code?: string }).code === "PGRST204")
+    (pageErr.code === "42703" || pageErr.code === "PGRST204")
   ) {
-    const legacy = (await supabaseAdmin
-      .from("coach_pages" as any)
+    const { data: legacy } = await supabaseAdmin
+      .from("coach_pages")
       .select(
         "slug, headline, bio, specialties, headline_en, bio_en, specialties_en, is_published, coach_id, photo_url, results_photos, instagram_url, facebook_url, tiktok_url, youtube_url",
       )
       .eq("slug", slug)
-      .maybeSingle()) as { data: any };
-    pageRow = legacy.data ? { ...legacy.data, review_status: "approved" } : null;
+      .maybeSingle();
+    pageRow = legacy ? { ...legacy, review_status: "approved" } : null;
   }
 
   if (!pageRow) return null;
@@ -149,11 +148,11 @@ async function fetchCoachLandingRow(
   // 0049 — certificates fetch is a SEPARATE lightweight query: if the
   // column is missing (0049 not run yet) the error is swallowed and the
   // section stays empty/hidden — nothing else is affected.
-  const { data: certRow } = (await supabaseAdmin
-    .from("coach_pages" as any)
+  const { data: certRow } = await supabaseAdmin
+    .from("coach_pages")
     .select("certificates")
     .eq("slug", slug)
-    .maybeSingle()) as { data: any; error: any };
+    .maybeSingle();
   const certRaw = certRow && Array.isArray(certRow.certificates) ? certRow.certificates : [];
 
   const { data: prof } = await supabaseAdmin

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireCoach, isAuthConfigured, type AuthUser } from "@/lib/auth-server";
 import { supabaseAdmin, isSupabaseAdminConfigured } from "@/lib/supabase/admin";
 import { COACH_AD_PACKAGES, coachAdPackageById } from "@/lib/coach-limits";
+import type { CoachAd } from "@/lib/supabase/types";
 
 /**
  * «أعلن معنا» — COACH AD SUBSCRIPTIONS (0037, owner-approved).
@@ -38,24 +39,24 @@ export async function GET(request: NextRequest) {
 
   const [adsRes, walletRes] = await Promise.all([
     supabaseAdmin
-      .from("coach_ads" as any)
+      .from("coach_ads")
       .select("id, package_id, days, price_usd, status, starts_at, ends_at, created_at")
       .eq("coach_id", user.id)
       .order("created_at", { ascending: false })
       .limit(20),
     supabaseAdmin
-      .from("coach_wallets" as any)
+      .from("coach_wallets")
       .select("balance")
       .eq("coach_id", user.id)
       .maybeSingle(),
   ]);
 
   const adsError = adsRes.error;
-  if (adsError && (adsError as { code?: string }).code !== "42P01") {
+  if (adsError && adsError.code !== "42P01") {
     return NextResponse.json({ error: adsError.message }, { status: 500 });
   }
 
-  const ads = (adsRes.data ?? []) as unknown as Array<Record<string, unknown>>;
+  const ads = adsRes.data ?? [];
   const now = Date.now();
   const activeAd = ads.find(
     (a) =>
@@ -65,7 +66,7 @@ export async function GET(request: NextRequest) {
 
   return NextResponse.json({
     packages: COACH_AD_PACKAGES,
-    balance: Number((walletRes.data as any)?.balance ?? 0),
+    balance: Number(walletRes.data?.balance ?? 0),
     activeAd: activeAd
       ? { ends_at: activeAd.ends_at, package_id: activeAd.package_id }
       : null,
@@ -103,7 +104,7 @@ export async function POST(request: NextRequest) {
   let debited = 0;
   if (auth.role === "coach" && price > 0) {
     const walletRes = await supabaseAdmin
-      .from("coach_wallets" as any)
+      .from("coach_wallets")
       .select("balance")
       .eq("coach_id", auth.id)
       .maybeSingle();
@@ -117,7 +118,7 @@ export async function POST(request: NextRequest) {
         { status: 503 },
       );
     }
-    const balance = Number((walletRes.data as any)?.balance ?? 0);
+    const balance = Number(walletRes.data?.balance ?? 0);
     if (balance < price) {
       return NextResponse.json(
         {
@@ -130,7 +131,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { error: debitErr } = await (supabaseAdmin as any).rpc(
+    const { error: debitErr } = await supabaseAdmin.rpc(
       "coach_adjust_wallet",
       {
         p_coach_id: auth.id,
@@ -159,33 +160,33 @@ export async function POST(request: NextRequest) {
   // ── Start a new ad or extend the running one. ──
   const now = new Date();
   try {
-    const { data: current } = (await supabaseAdmin
-      .from("coach_ads" as any)
+    const { data: current } = await supabaseAdmin
+      .from("coach_ads")
       .select("id, ends_at")
       .eq("coach_id", auth.id)
       .eq("status", "active")
       .gt("ends_at", now.toISOString())
       .order("ends_at", { ascending: false })
       .limit(1)
-      .maybeSingle()) as { data: any };
+      .maybeSingle();
 
-    let ad: Record<string, unknown> | null = null;
+    let ad: CoachAd | null = null;
     if (current) {
       // Extension: stack the package days on top of the remaining time.
       const base = new Date(String(current.ends_at));
       const ends = new Date(base.getTime() + pkg.days * 864e5);
-      const { data, error } = (await supabaseAdmin
-        .from("coach_ads" as any)
+      const { data, error } = await supabaseAdmin
+        .from("coach_ads")
         .update({ ends_at: ends.toISOString() })
-        .eq("id", (current as any).id)
+        .eq("id", current.id)
         .select()
-        .single()) as { data: any; error: any };
+        .single();
       if (error) throw error;
       ad = data;
     } else {
       const ends = new Date(now.getTime() + pkg.days * 864e5);
-      const { data, error } = (await supabaseAdmin
-        .from("coach_ads" as any)
+      const { data, error } = await supabaseAdmin
+        .from("coach_ads")
         .insert({
           coach_id: auth.id,
           package_id: pkg.id,
@@ -196,7 +197,7 @@ export async function POST(request: NextRequest) {
           ends_at: ends.toISOString(),
         })
         .select()
-        .single()) as { data: any; error: any };
+        .single();
       if (error) throw error;
       ad = data;
     }
@@ -205,7 +206,7 @@ export async function POST(request: NextRequest) {
     // coach gets a receipt notification. Neither can fail the purchase.
     const endsAr = new Date(String(ad!.ends_at)).toLocaleDateString("ar-EG");
     const { error: adminNotifErr } = await supabaseAdmin
-      .from("admin_notifications" as any)
+      .from("admin_notifications")
       .insert({
         type: "coach_ad",
         title: "اشتراك إعلان جديد",
@@ -225,11 +226,11 @@ export async function POST(request: NextRequest) {
     });
 
     return NextResponse.json({ ok: true, ad });
-  } catch (e: any) {
+  } catch (e) {
     // Refund — the coach never pays for a failed ad subscription.
     const code = (e as { code?: string }).code;
     if (debited > 0) {
-      await (supabaseAdmin as any).rpc("coach_adjust_wallet", {
+      await supabaseAdmin.rpc("coach_adjust_wallet", {
         p_coach_id: auth.id,
         p_amount: debited,
         p_kind: "adjust",
@@ -248,7 +249,7 @@ export async function POST(request: NextRequest) {
       );
     }
     return NextResponse.json(
-      { error: "ad_failed", message: `فشل تسجيل الإعلان: ${e?.message ?? "سبب غير معروف"} — وتم استرداد المبلغ` },
+      { error: "ad_failed", message: `فشل تسجيل الإعلان: ${(e as { message?: string })?.message ?? "سبب غير معروف"} — وتم استرداد المبلغ` },
       { status: 502 },
     );
   }

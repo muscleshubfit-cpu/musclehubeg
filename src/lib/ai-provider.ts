@@ -239,7 +239,7 @@ export async function callAI(
   }
   messages.push({ role: "user", content: prompt });
 
-  const body: any = {
+  const body: Record<string, unknown> = {
     model: cfg.model,
     messages,
     temperature: options.temperature ?? 0.7,
@@ -281,14 +281,24 @@ export async function callAI(
       );
     }
 
-    const data = await res.json();
+    // Typed view of the OpenAI-compatible chat-completions response (only
+    // the fields we consume — reasoning-model extras included).
+    const data = (await res.json()) as {
+      choices?: Array<{
+        message?: {
+          content?: string | null;
+          reasoning?: string | null;
+          reasoning_details?: Array<{ text?: unknown } | null> | null;
+        } | null;
+      }> | null;
+    } | null;
     const msg = data?.choices?.[0]?.message;
     // Prefer `content`; fall back to `reasoning` / `reasoning_details` for
     // reasoning models (gpt-oss, gemini-thinking) that hide output there.
-    let content: string | undefined = msg?.content;
+    let content: string | undefined = msg?.content ?? undefined;
     if (!content && Array.isArray(msg?.reasoning_details)) {
       content = msg.reasoning_details
-        .map((r: any) => (typeof r?.text === "string" ? r.text : ""))
+        .map((r) => (typeof r?.text === "string" ? r.text : ""))
         .filter(Boolean)
         .join("\n");
     }
@@ -466,7 +476,7 @@ export async function testConnection(
  * - Truncated JSON (auto-closes any open {/[/") — useful when the LLM hits
  * max_tokens mid-response and we want to salvage as much as possible.
  */
-export function parseJSON<T = any>(text: string): T | null {
+export function parseJSON<T = unknown>(text: string): T | null {
   if (!text) return null;
   let cleaned = text.trim();
 
@@ -612,8 +622,8 @@ export async function callFreeOpenRouterRace(
         return { text, model };
       }
       throw new Error(`${model}: empty response`);
-    } catch (e: any) {
-      throw new Error(`${model}: ${e?.message || e}`);
+    } catch (e) {
+      throw new Error(`${model}: ${e instanceof Error ? e.message : e}`);
     }
   });
 
@@ -622,10 +632,12 @@ export async function callFreeOpenRouterRace(
     // It rejects with AggregateError only if ALL promises reject.
     const result = await Promise.any(promises);
     return result;
-  } catch (e: any) {
+  } catch (e) {
     // All failed — collect errors from the AggregateError
     const errors =
-      e?.errors?.map((err: Error) => err.message).join("\n") || "Unknown error";
+      (e instanceof AggregateError
+        ? e.errors.map((err) => err.message).join("\n")
+        : "") || "Unknown error";
     throw new Error(`All raced OpenRouter models failed:\n${errors}`);
   }
 }
@@ -873,8 +885,8 @@ export async function callFreeAIFallbackChain(
             return { text: text.trim(), model, provider };
           }
           throw new Error(`${model}: empty response`);
-        } catch (e: any) {
-          const msg = e?.message || String(e);
+        } catch (e) {
+          const msg = e instanceof Error ? e.message : String(e);
           errors.push(`${provider}/${model}: ${msg}`);
           if (attemptStreamed) {
             // Mid-stream failure AFTER user-visible tokens — rethrow so the

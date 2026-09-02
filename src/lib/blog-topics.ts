@@ -1,6 +1,7 @@
 import { parseJSON } from "@/lib/ai-provider";
 import { callFreeAIFallbackChain } from "@/lib/ai-provider";
 import { supabaseAdmin, isSupabaseAdminConfigured } from "@/lib/supabase/admin";
+import type { Json } from "@/lib/supabase/types";
 
 /**
  * Smart topic picker for the automated blog pipeline.
@@ -130,13 +131,13 @@ export type TopicPick = {
 export async function getRecentPosts(limit = 100): Promise<{ title: string; focusKeyword: string; category: string; slug: string }[]> {
   if (!isSupabaseAdminConfigured || !supabaseAdmin) return [];
   const { data, error } = await supabaseAdmin
-    .from("blog_posts" as any)
+    .from("blog_posts")
     .select("title, focus_keyword, category, slug")
     .eq("language", "en")
     .order("created_at", { ascending: false })
     .limit(limit);
   if (error || !data) return [];
-  return (data as any[]).map((p) => ({
+  return data.map((p) => ({
     title: p.title || "",
     focusKeyword: p.focus_keyword || "",
     category: p.category || "",
@@ -147,13 +148,13 @@ export async function getRecentPosts(limit = 100): Promise<{ title: string; focu
 export async function getRecentPostsByLanguage(lang: "en" | "ar", limit = 100): Promise<{ title: string; focusKeyword: string; category: string; slug: string }[]> {
   if (!isSupabaseAdminConfigured || !supabaseAdmin) return [];
   const { data, error } = await supabaseAdmin
-    .from("blog_posts" as any)
+    .from("blog_posts")
     .select("title, focus_keyword, category, slug")
     .eq("language", lang)
     .order("created_at", { ascending: false })
     .limit(limit);
   if (error || !data) return [];
-  return (data as any[]).map((p) => ({
+  return data.map((p) => ({
     title: p.title || "",
     focusKeyword: p.focus_keyword || "",
     category: p.category || "",
@@ -176,16 +177,22 @@ export async function getRecentPostsByLanguage(lang: "en" | "ar", limit = 100): 
 export async function getRecentGeneratedTopics(lang: "en" | "ar", limit = 20): Promise<{ title: string; focusKeyword: string; category: string; slug: string }[]> {
   if (!isSupabaseAdminConfigured || !supabaseAdmin) return [];
   const { data, error } = await supabaseAdmin
-    .from("ai_jobs" as any)
+    .from("ai_jobs")
     .select("result")
     .eq("job_type", "article_generate")
     .eq("status", "done")
     .order("created_at", { ascending: false })
     .limit(limit);
   if (error || !data) return [];
-  return (data as any[])
-    .map((r) => r?.result)
-    .filter((res) => res && res.title && (res.language ?? lang) === lang)
+  // result is Json — narrow to a per-row Record view (Phase 92 pattern)
+  // before reading the AI-produced fields.
+  return data
+    .map((r) => r.result)
+    .filter((res): res is Record<string, Json> => {
+      if (!res || typeof res !== "object" || Array.isArray(res)) return false;
+      const view = res as Record<string, Json>;
+      return Boolean(view.title) && (view.language ?? lang) === lang;
+    })
     .map((res) => ({
       title: String(res.title || ""),
       focusKeyword: String(res.focus_keyword || ""),
@@ -602,7 +609,7 @@ IMPORTANT: Return the topic and focusKeyword in ${language === "ar" ? "ARABIC" :
     );
     console.log(`[blog-topics] Topic pick raw response (language: ${language}, length: ${raw.length})`);
 
-    const parsed = parseJSON<any>(raw);
+    const parsed = parseJSON<Record<string, unknown>>(raw);
     if (parsed?.topic && parsed?.focusKeyword) {
       const aiTopic = String(parsed.topic);
       const aiFocusKw = String(parsed.focusKeyword);
@@ -623,8 +630,8 @@ IMPORTANT: Return the topic and focusKeyword in ${language === "ar" ? "ARABIC" :
     } else {
       console.error(`[blog-topics] AI returned invalid JSON. Parsed keys: ${parsed ? Object.keys(parsed).join(", ") : "null"}. Raw (first 500): ${raw.slice(0, 500)}`);
     }
-  } catch (err: any) {
-    console.warn("[blog-topics] AI topic pick notice, using smart curated fallback:", err?.message || err);
+  } catch (err) {
+    console.warn("[blog-topics] AI topic pick notice, using smart curated fallback:", err instanceof Error ? err.message : err);
   }
 
   return getFallbackTopic(category, recent, language);

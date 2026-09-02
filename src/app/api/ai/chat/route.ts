@@ -22,6 +22,7 @@ import {
   sanitizeLatexToPlain,
   stripMarkdownSyntax,
 } from "@/lib/evo-chat-format";
+import type { Database, Json } from "@/lib/supabase/types";
 
 /**
  * EVO Chat endpoint — context-aware AI assistant.
@@ -81,6 +82,20 @@ function getAnonKey(request: NextRequest): string {
   return createHash("sha256").update(`${ip}:${salt}`).digest("hex").slice(0, 32);
 }
 
+/** Subscriber context handed to the prompt builder / local fallback (G5). */
+type EvoClientContext = {
+  name: string;
+  isSubscriber: boolean;
+  nutrition?: Json | null;
+  fitness?: Json | null;
+  recent_measurements?: { weight: number | null; waist: number | null; date: string }[];
+  current_plans?: { type: string; title: string; content: Json | null }[];
+  subscription?: { tier: string | null };
+};
+
+/** Local food-database hit returned by getFoodNutrition (incl. null). */
+type FoodNutritionInfo = ReturnType<typeof getFoodNutrition>;
+
 export async function POST(request: NextRequest) {
   try {
     // 1. Authenticate (optional — works for anonymous too)
@@ -104,7 +119,9 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json().catch(() => ({}));
     const rawMessage = typeof body?.message === "string" ? body.message : "";
-    const rawHistory = Array.isArray(body?.history) ? body.history.slice(-MAX_HISTORY_ITEMS) : [];
+    const rawHistory: unknown[] = Array.isArray(body?.history)
+      ? body.history.slice(-MAX_HISTORY_ITEMS)
+      : [];
     const message = rawMessage.trim().slice(0, MAX_MESSAGE_LENGTH);
 
     if (!message) {
@@ -112,9 +129,12 @@ export async function POST(request: NextRequest) {
     }
 
     const history = rawHistory
-      .filter((m: any) => m && typeof m.content === "string")
-      .map((m: any) => ({
-        role: m.role === "user" ? "user" : "assistant",
+      .filter((m): m is { role: unknown; content: string } => {
+        if (!m || typeof m !== "object") return false;
+        return typeof (m as { content?: unknown }).content === "string";
+      })
+      .map((m) => ({
+        role: m.role === "user" ? ("user" as const) : ("assistant" as const),
         content: String(m.content).slice(0, MAX_HISTORY_ITEM_LENGTH),
       }));
 
@@ -270,7 +290,7 @@ export async function POST(request: NextRequest) {
 
     // 5. Build context for the AI — subscribers only (G5 fix: the flag now
     // reflects the REAL tier, not merely being logged in).
-    let clientContext: any = { name: userName || "المستخدم", isSubscriber: false };
+    let clientContext: EvoClientContext = { name: userName || "المستخدم", isSubscriber: false };
     if (userId && isPaidTier) {
       try {
         // Subscriber data comes via service-role queries inside the data layer.
@@ -286,12 +306,12 @@ export async function POST(request: NextRequest) {
           isSubscriber: true,
           nutrition: nutriQ || null,
           fitness: fitQ || null,
-          recent_measurements: progress.slice(-3).map((p: any) => ({
+          recent_measurements: progress.slice(-3).map((p) => ({
             weight: p.weight,
             waist: p.waist,
             date: p.created_at,
           })),
-          current_plans: plans.map((p: any) => ({
+          current_plans: plans.map((p) => ({
             type: p.type,
             title: p.title,
             content: p.content,
@@ -312,7 +332,7 @@ export async function POST(request: NextRequest) {
     );
 
     const messages = [
-      ...history.map((m: any) => ({
+      ...history.map((m) => ({
         role: m.role,
         content: m.content,
       })),
@@ -480,10 +500,10 @@ export async function POST(request: NextRequest) {
         "Cache-Control": "no-cache, no-transform",
       },
     });
-  } catch (e: any) {
-    console.error("[api/ai/chat] Error:", e?.message || e);
+  } catch (e) {
+    console.error("[api/ai/chat] Error:", e instanceof Error ? e.message : e);
     return NextResponse.json(
-      { error: e?.message || "Internal server error" },
+      { error: e instanceof Error ? e.message : "Internal server error" },
       { status: 500 },
     );
   }
@@ -496,7 +516,7 @@ async function listPlansSafe(userId: string) {
     const { listPlans } = await import("@/lib/data");
     return await listPlans(userId);
   } catch {
-    return [] as any[];
+    return [];
   }
 }
 async function listProgressSafe(userId: string) {
@@ -504,7 +524,7 @@ async function listProgressSafe(userId: string) {
     const { listProgress } = await import("@/lib/data");
     return await listProgress(userId);
   } catch {
-    return [] as any[];
+    return [];
   }
 }
 async function getQuestionnaireSafe(userId: string, type: "nutrition" | "fitness") {
@@ -536,7 +556,7 @@ async function searchBlog(
     const isArabic = /[\u0600-\u06FF]/.test(query);
 
     const { createClient } = await import("@supabase/supabase-js");
-    const supabase = createClient(supabaseUrl, serviceKey || supabaseKey, {
+    const supabase = createClient<Database>(supabaseUrl, serviceKey || supabaseKey, {
       auth: { persistSession: false, autoRefreshToken: false },
     });
 
@@ -558,7 +578,7 @@ async function searchBlog(
 
     if (error || !data) return [];
 
-    return data.map((post: any) => ({
+    return data.map((post) => ({
       title: post.title,
       url: `${post.language === "ar" ? "/ar/blog" : "/blog"}/${post.slug}`,
       excerpt: post.excerpt || "",
@@ -574,15 +594,23 @@ async function searchBlog(
  * Includes platform context, search results, and blog articles.
  */
 function buildSystemPrompt(
-  ctx: any,
+  ctx: EvoClientContext,
   platformResults: SearchResult[],
-  foodNutrition: any,
+  foodNutrition: FoodNutritionInfo,
   blogResults: Array<{ title: string; url: string; excerpt: string }>,
 ): string {
   const isSubscriber = ctx.isSubscriber;
   const plans = ctx.current_plans || [];
-  const nutrition = ctx.nutrition || {};
-  const fitness = ctx.fitness || {};
+  // Questionnaire JSON blobs are Json — view them as Record<string, unknown>
+  // for the prompt (Phase 92 loose-fields pattern; shape unchanged).
+  const nutrition: Record<string, unknown> =
+    ctx.nutrition && typeof ctx.nutrition === "object" && !Array.isArray(ctx.nutrition)
+      ? (ctx.nutrition as Record<string, unknown>)
+      : {};
+  const fitness: Record<string, unknown> =
+    ctx.fitness && typeof ctx.fitness === "object" && !Array.isArray(ctx.fitness)
+      ? (ctx.fitness as Record<string, unknown>)
+      : {};
 
   // Build platform search context
   let platformContext = "";
@@ -617,8 +645,11 @@ function buildSystemPrompt(
     let planInfo = "لا توجد خطط مفعّلة بعد.";
     if (plans.length > 0) {
       planInfo = plans
-        .map((p: any) => {
-          const c = p.content;
+        .map((p) => {
+          const c =
+            p.content && typeof p.content === "object" && !Array.isArray(p.content)
+              ? (p.content as Record<string, unknown>)
+              : null;
           if (p.type === "meal" || p.type === "nutrition") {
             return `خطة تغذية "${p.title}": ${c?.daily_calories || "?"} كالوري/يوم`;
           }
@@ -693,9 +724,9 @@ CRITICAL — OUTPUT FORMAT (read carefully):
  */
 function generateLocalReply(
   message: string,
-  ctx: any,
+  ctx: EvoClientContext,
   platformResults: SearchResult[],
-  foodNutrition: any,
+  foodNutrition: FoodNutritionInfo,
   blogResults: Array<{ title: string; url: string }>,
 ): string {
   // If we found food nutrition info (exact match)

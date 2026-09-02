@@ -520,6 +520,46 @@ export type Database = {
           { foreignKeyName: "admin_notifications_target_coach_id_fkey"; columns: ["target_coach_id"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] },
         ];
       };
+      // mirror RUN_ON_SUPABASE_0037 (PART B) + 0038 price_usd rename —
+      // added Phase 93 (was from("coach_ads" as any) in /api/coach/ads)
+      coach_ads: {
+        Row: {
+          id: string;
+          coach_id: string;
+          package_id: string;
+          days: number;
+          price_usd: number;
+          status: string;
+          starts_at: string;
+          ends_at: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          coach_id: string;
+          package_id: string;
+          days: number;
+          price_usd: number;
+          status?: string;
+          starts_at?: string;
+          ends_at: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          coach_id?: string;
+          package_id?: string;
+          days?: number;
+          price_usd?: number;
+          status?: string;
+          starts_at?: string;
+          ends_at?: string;
+          created_at?: string;
+        };
+        Relationships: [
+          { foreignKeyName: "coach_ads_coach_id_fkey"; columns: ["coach_id"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] },
+        ];
+      };
       coach_assignments: {
         Row: {
           id: string;
@@ -744,6 +784,10 @@ export type Database = {
           { foreignKeyName: "coach_wallet_transactions_coach_id_fkey"; columns: ["coach_id"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] },
         ];
       };
+      // mirror 0031+0032 base + 0037 (photo_url, results_photos, social,
+      // whatsapp_phone) + 0046 (review_status) + 0049 (certificates) —
+      // columns added Phase 93 (was from("coach_pages" as any) in the
+      // landing/coach-pages consumers)
       coach_pages: {
         Row: {
           coach_id: string;
@@ -755,6 +799,15 @@ export type Database = {
           bio_en: string;
           specialties_en: string;
           is_published: boolean;
+          review_status: string;
+          photo_url: string;
+          results_photos: Json;
+          instagram_url: string;
+          facebook_url: string;
+          tiktok_url: string;
+          youtube_url: string;
+          whatsapp_phone: string;
+          certificates: Json;
           created_at: string;
           updated_at: string;
         };
@@ -768,6 +821,15 @@ export type Database = {
           bio_en?: string;
           specialties_en?: string;
           is_published?: boolean;
+          review_status?: string;
+          photo_url?: string;
+          results_photos?: Json;
+          instagram_url?: string;
+          facebook_url?: string;
+          tiktok_url?: string;
+          youtube_url?: string;
+          whatsapp_phone?: string;
+          certificates?: Json;
           created_at?: string;
           updated_at?: string;
         };
@@ -781,6 +843,15 @@ export type Database = {
           bio_en?: string;
           specialties_en?: string;
           is_published?: boolean;
+          review_status?: string;
+          photo_url?: string;
+          results_photos?: Json;
+          instagram_url?: string;
+          facebook_url?: string;
+          tiktok_url?: string;
+          youtube_url?: string;
+          whatsapp_phone?: string;
+          certificates?: Json;
           created_at?: string;
           updated_at?: string;
         };
@@ -1325,6 +1396,54 @@ export type Database = {
         };
         Relationships: [];
       };
+      // mirror RUN_ON_SUPABASE_0022 — tamper-proof EVO usage ledger
+      // (server-writes only; added Phase 93, was from("evo_chat_usage" as any))
+      evo_chat_usage: {
+        Row: {
+          id: string;
+          user_id: string;
+          source: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          source?: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          source?: string;
+          created_at?: string;
+        };
+        Relationships: [
+          { foreignKeyName: "evo_chat_usage_user_id_fkey"; columns: ["user_id"]; isOneToOne: false; referencedRelation: "users"; referencedColumns: ["id"] },
+        ];
+      };
+      // mirror RUN_ON_SUPABASE_0028 — anonymous EVO usage ledger
+      // (salted-IP-hash key; server-role writes only)
+      evo_anon_usage: {
+        Row: {
+          id: string;
+          anon_key: string;
+          source: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          anon_key: string;
+          source?: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          anon_key?: string;
+          source?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       external_plans: {
         Row: {
           id: string;
@@ -1369,6 +1488,19 @@ export type Database = {
     };
     Views: {};
     Functions: {
+      // mirror RUN_ON_SUPABASE_0035 (PART 4) — the ONLY wallet writer;
+      // signed amount, raises 'insufficient wallet balance' on over-debit.
+      coach_adjust_wallet: {
+        Args: {
+          p_coach_id: string;
+          p_amount: number;
+          p_kind: string;
+          p_ref_id?: string | null;
+          p_note?: string | null;
+          p_created_by?: string | null;
+        };
+        Returns: number;
+      };
       auto_promote_coach_if_allowed: {
         Args: Record<string, never>;
         Returns: boolean;
@@ -1482,6 +1614,7 @@ export type Subscription = Database["public"]["Tables"]["subscriptions"]["Row"];
 export type ProgressEntry = Database["public"]["Tables"]["progress_entries"]["Row"];
 export type Plan = Database["public"]["Tables"]["plans"]["Row"];
 export type SupportTicket = Database["public"]["Tables"]["support_tickets"]["Row"];
+export type TicketMessage = Database["public"]["Tables"]["ticket_messages"]["Row"];
 export type ToolLead = Database["public"]["Tables"]["tool_leads"]["Row"];
 export type BlogPost = Database["public"]["Tables"]["blog_posts"]["Row"];
 export type Notification = Database["public"]["Tables"]["notifications"]["Row"];
@@ -1496,3 +1629,6 @@ export type CoachPage = Database["public"]["Tables"]["coach_pages"]["Row"];
 export type NutritionQuestionnaire = Database["public"]["Tables"]["nutrition_questionnaires"]["Row"];
 export type FitnessQuestionnaire = Database["public"]["Tables"]["fitness_questionnaires"]["Row"];
 export type ProgressPhoto = Database["public"]["Tables"]["progress_photos"]["Row"];
+export type CoachAd = Database["public"]["Tables"]["coach_ads"]["Row"];
+export type EvoChatUsage = Database["public"]["Tables"]["evo_chat_usage"]["Row"];
+export type EvoAnonUsage = Database["public"]["Tables"]["evo_anon_usage"]["Row"];

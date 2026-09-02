@@ -1,6 +1,16 @@
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { supabase as supabaseClient } from "@/lib/supabase/client";
 import { articleSlugFromTitle } from "@/lib/slug";
+import type { Database } from "@/lib/supabase/types";
+import type { BlogFaq } from "@/lib/blog";
+
+// Generated Insert type for blog_posts. The legacy optional `source` column
+// (RUN_ON_SUPABASE_ORIGINAL_0014) is absent from the generated type, so the
+// payload carries it OUTSIDE BlogPostInsert — same documented pattern as
+// ai-job-processors (Phase 92). Retry paths delete it defensively.
+type BlogPostInsert = Database["public"]["Tables"]["blog_posts"]["Insert"];
+type BlogPostInsertWithSource = BlogPostInsert & { source?: string };
+type BlogPostUpdate = Database["public"]["Tables"]["blog_posts"]["Update"];
 
 export type AdminBlogPost = {
   id: string;
@@ -24,8 +34,8 @@ export type AdminBlogPost = {
   created_at?: string;
   updated_at?: string;
   source?: string;
-  faq_json?: any;
-  schema_json?: any;
+  faq_json?: BlogFaq[] | null;
+  schema_json?: Record<string, unknown> | null;
 };
 
 // ---- Client/Admin queries ----
@@ -97,8 +107,9 @@ export async function adminCreatePost(
   if (!client) throw new Error("Supabase client unavailable");
 
   const now = new Date().toISOString();
-  const payload: Record<string, any> = {
-    language: post.language || "ar",
+  const payload: BlogPostInsertWithSource = {
+    // DB enum is en|ar only — boundary cast keeps the ||-"ar" fallback.
+    language: (post.language || "ar") as "en" | "ar",
     title: post.title || "مقال جديد",
     // ONE-SLUG-LAW (2026-08-28j): was a raw timestamp slug — now the
     // shared title-derived latin slug (dated form = last net inside it).
@@ -120,16 +131,20 @@ export async function adminCreatePost(
     created_at: now,
     updated_at: now,
     faq_json: post.faq_json || [],
-    schema_json: post.schema_json || {},
+    // Record<string, unknown> → Json needs the single boundary cast.
+    schema_json: (post.schema_json || {}) as BlogPostInsert["schema_json"],
   };
 
   if (post.source) {
     payload.source = post.source;
   }
 
-  const { data, error } = await (client as any)
+  // Legacy `source` column lives OUTSIDE the generated Insert type — the
+  // object itself is fully checked above; this single boundary cast exists
+  // only for that optional legacy column (Phase 92 precedent).
+  const { data, error } = await client
     .from("blog_posts")
-    .insert([payload])
+    .insert([payload as BlogPostInsert])
     .select()
     .single();
 
@@ -137,9 +152,9 @@ export async function adminCreatePost(
     console.error("[adminCreatePost] Primary insert error:", error);
     if ("source" in payload) {
       delete payload.source;
-      const retryRes = await (client as any)
+      const retryRes = await client
         .from("blog_posts")
-        .insert([payload])
+        .insert([payload as BlogPostInsert])
         .select()
         .single();
       if (!retryRes.error) {
@@ -160,18 +175,25 @@ export async function adminUpdatePost(
   const client = typeof window === "undefined" ? supabaseAdmin : supabaseClient;
   if (!client) throw new Error("Supabase client unavailable");
 
-  const payload: Record<string, any> = {
-    ...updates,
+  const { language, schema_json, ...restUpdates } = updates;
+  const payload: Partial<BlogPostInsertWithSource> = {
+    ...restUpdates,
     updated_at: new Date().toISOString(),
   };
+  // Boundary casts: language is an en|ar DB enum; schema_json is
+  // Record<string, unknown> in AdminBlogPost but Json at the DB boundary.
+  if (language !== undefined) payload.language = language as "en" | "ar";
+  if (schema_json !== undefined) {
+    payload.schema_json = schema_json as Database["public"]["Tables"]["blog_posts"]["Update"]["schema_json"];
+  }
 
   if (payload.source === undefined) {
     delete payload.source;
   }
 
-  const { data, error } = await (client as any)
+  const { data, error } = await client
     .from("blog_posts")
-    .update(payload)
+    .update(payload as BlogPostUpdate)
     .eq("id", id)
     .select()
     .single();
@@ -180,9 +202,9 @@ export async function adminUpdatePost(
     console.error("[adminUpdatePost] Primary update error:", error);
     if ("source" in payload) {
       delete payload.source;
-      const retryRes = await (client as any)
+      const retryRes = await client
         .from("blog_posts")
-        .update(payload)
+        .update(payload as BlogPostUpdate)
         .eq("id", id)
         .select()
         .single();

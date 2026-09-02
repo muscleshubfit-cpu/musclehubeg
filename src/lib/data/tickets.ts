@@ -11,6 +11,22 @@ import {
  LS_PREFIX,
 } from "./helpers";
 import { createAdminNotification } from "./notifications";
+import type { SupportTicket, TicketMessage } from "@/lib/supabase/types";
+
+/** Staff-inbox row: support_tickets + the client profile embed. */
+export type StaffTicket = SupportTicket & {
+  profiles?: { full_name: string | null; email: string | null } | null;
+};
+
+/** /api/support/tickets JSON envelope (both list and action responses). */
+type TicketsRouteEnvelope = {
+  ok?: boolean;
+  error?: string;
+  message?: string;
+  ticket?: SupportTicket;
+  tickets?: StaffTicket[];
+  messages?: TicketMessage[];
+};
 
 export async function listTickets(clientId: string) {
  if (isSupabaseConfigured && supabase) {
@@ -21,7 +37,7 @@ export async function listTickets(clientId: string) {
  .order("created_at", { ascending: false });
  return data ?? [];
  }
- return read<any[]>(LS_TICKETS, []).filter((p) => p.client_id === clientId);
+ return read<SupportTicket[]>(LS_TICKETS, []).filter((p) => p.client_id === clientId);
 }
 
 export async function createTicket(clientId: string, subject: string, body: string) {
@@ -36,11 +52,11 @@ export async function createTicket(clientId: string, subject: string, body: stri
  headers: { "Content-Type": "application/json" },
  body: JSON.stringify({ subject, body }),
  });
- const json = await res.json().catch(() => null);
+ const json = (await res.json().catch(() => null)) as TicketsRouteEnvelope | null;
  if (res.ok && json?.ok) return json.ticket;
  console.error("[tickets] create route failed:", res.status, json?.error ?? json?.message);
- } catch (e: any) {
- console.error("[tickets] create route unreachable:", e?.message);
+ } catch (e) {
+ console.error("[tickets] create route unreachable:", e instanceof Error ? e.message : e);
  }
  // Legacy fallback — direct client insert (RLS: own rows), normal priority.
  const { data: ticket, error } = await supabase
@@ -54,11 +70,11 @@ export async function createTicket(clientId: string, subject: string, body: stri
  await createAdminNotification("new_ticket", "تذكرة دعم جديدة ", `موضوع: ${subject}`, "coach-support", clientId).catch(() => {});
  return ticket;
  }
- const all = read<any[]>(LS_TICKETS, []);
- const ticket = { id: uid(), client_id: clientId, subject, status: "open", priority: "normal", created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
+ const all = read<SupportTicket[]>(LS_TICKETS, []);
+ const ticket: SupportTicket = { id: uid(), client_id: clientId, subject, status: "open", priority: "normal", created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
  all.push(ticket);
  write(LS_TICKETS, all);
- const msgs = read<any[]>(LS_TICKET_MSGS, []);
+ const msgs = read<TicketMessage[]>(LS_TICKET_MSGS, []);
  msgs.push({ id: uid(), ticket_id: ticket.id, sender_id: clientId, body, created_at: new Date().toISOString() });
  write(LS_TICKET_MSGS, msgs);
  return ticket;
@@ -73,7 +89,7 @@ export async function listTicketMessages(ticketId: string) {
  .order("created_at", { ascending: true });
  return data ?? [];
  }
- return read<any[]>(LS_TICKET_MSGS, []).filter((m) => m.ticket_id === ticketId);
+ return read<TicketMessage[]>(LS_TICKET_MSGS, []).filter((m) => m.ticket_id === ticketId);
 }
 
 export async function addTicketMessage(ticketId: string, senderId: string, body: string) {
@@ -92,7 +108,7 @@ export async function addTicketMessage(ticketId: string, senderId: string, body:
  .eq("id", ticketId);
  return data;
  }
- const all = read<any[]>(LS_TICKET_MSGS, []);
+ const all = read<TicketMessage[]>(LS_TICKET_MSGS, []);
  const row = { id: uid(), ticket_id: ticketId, sender_id: senderId, body, created_at: new Date().toISOString() };
  all.push(row);
  write(LS_TICKET_MSGS, all);
@@ -114,7 +130,7 @@ export async function updateTicketStatus(ticketId: string, status: "open" | "pen
  if (error) throw new Error(error.message);
  return data;
  }
- const all = read<any[]>(LS_PREFIX + "tickets", []);
+ const all = read<SupportTicket[]>(LS_PREFIX + "tickets", []);
  const idx = all.findIndex((t) => t.id === ticketId);
  if (idx >= 0) {
  all[idx].status = status;
@@ -141,11 +157,11 @@ export async function listAllTickets() {
  if (isSupabaseConfigured && supabase) {
  try {
  const res = await fetch("/api/support/tickets");
- const json = await res.json().catch(() => null);
- if (res.ok && json) return (json.tickets ?? []) as any[];
+ const json = (await res.json().catch(() => null)) as TicketsRouteEnvelope | null;
+ if (res.ok && json) return json.tickets ?? [];
  console.error("[tickets] staff list route failed:", res.status, json?.error);
- } catch (e: any) {
- console.error("[tickets] staff list route unreachable:", e?.message);
+ } catch (e) {
+ console.error("[tickets] staff list route unreachable:", e instanceof Error ? e.message : e);
  }
  // Legacy fallback — RLS-scoped direct read (assigned coach / admin).
  const { data, error } = await supabase!
@@ -155,7 +171,7 @@ export async function listAllTickets() {
  if (error) throw new Error(error.message);
  return data ?? [];
  }
- return read<any[]>(LS_TICKETS, []);
+ return read<SupportTicket[]>(LS_TICKETS, []);
 }
 
 // ---------------------------------------------------------------------------
@@ -168,9 +184,9 @@ export async function listAllTickets() {
 
 export async function listTicketMessagesStaff(ticketId: string) {
  const res = await fetch(`/api/support/tickets?ticketId=${encodeURIComponent(ticketId)}`);
- const json = await res.json().catch(() => null);
+ const json = (await res.json().catch(() => null)) as TicketsRouteEnvelope | null;
  if (!res.ok || !json) throw new Error(json?.message || `HTTP ${res.status}`);
- return (json.messages ?? []) as any[];
+ return json.messages ?? [];
 }
 
 export async function addTicketMessageStaff(ticketId: string, body: string) {
@@ -179,7 +195,7 @@ export async function addTicketMessageStaff(ticketId: string, body: string) {
  headers: { "Content-Type": "application/json" },
  body: JSON.stringify({ ticketId, body }),
  });
- const json = await res.json().catch(() => null);
+ const json = (await res.json().catch(() => null)) as TicketsRouteEnvelope | null;
  if (!res.ok || !json?.ok) throw new Error(json?.message || `HTTP ${res.status}`);
  return json;
 }
@@ -190,7 +206,7 @@ export async function updateTicketStatusStaff(ticketId: string, status: "open" |
  headers: { "Content-Type": "application/json" },
  body: JSON.stringify({ ticketId, status }),
  });
- const json = await res.json().catch(() => null);
+ const json = (await res.json().catch(() => null)) as TicketsRouteEnvelope | null;
  if (!res.ok || !json?.ok) throw new Error(json?.message || `HTTP ${res.status}`);
  return json;
 }

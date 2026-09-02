@@ -34,7 +34,7 @@ export type EvoPlanKind = "nutrition" | "workout";
 
 const VALID_TIERS: MembershipTier[] = ["free", "premium", "pro", "coaching"];
 
-function sanitizeTier(tier: any): MembershipTier | null {
+function sanitizeTier(tier: unknown): MembershipTier | null {
   return VALID_TIERS.includes(tier as MembershipTier)
     ? (tier as MembershipTier)
     : null;
@@ -57,13 +57,13 @@ async function resolveTierFromDb(userId: string): Promise<MembershipTier> {
 
     if (!subs || subs.length === 0) return "free";
 
-    const tiers = subs.map((s: any) => sanitizeTier(s.tier)).filter(Boolean);
+    const tiers = subs.map((s) => sanitizeTier(s.tier)).filter(Boolean);
     if (tiers.includes("pro")) return "pro";
     if (tiers.includes("premium")) return "premium";
     if (tiers.includes("coaching")) return "coaching";
     return "free";
-  } catch (e: any) {
-    console.error("[tier-limits] resolveTierFromDb error:", e?.message);
+  } catch (e) {
+    console.error("[tier-limits] resolveTierFromDb error:", e instanceof Error ? e.message : e);
     // Fail CLOSED for limit purposes? No — fail OPEN would grant unlimited.
     // Fail SAFE: an unknown user counts as free (10 msgs/day), never premium.
     return "free";
@@ -178,7 +178,7 @@ async function countEvoPlanRowsSince(
 ): Promise<number> {
   if (!isSupabaseAdminConfigured || !supabaseAdmin) return 0;
   const { count, error } = await supabaseAdmin
-    .from("evo_chat_usage" as any)
+    .from("evo_chat_usage")
     .select("*", { count: "exact", head: true })
     .eq("user_id", userId)
     .eq("source", `plan_${kind}`)
@@ -215,7 +215,7 @@ async function countCoachPlanJobsSince(
 ): Promise<number> {
   if (!isSupabaseAdminConfigured || !supabaseAdmin) return 0;
   const { count, error } = await supabaseAdmin
-    .from("ai_jobs" as any)
+    .from("ai_jobs")
     .select("*", { count: "exact", head: true })
     .eq("job_type", `plan_${kind}`)
     .eq("status", "done")
@@ -389,7 +389,7 @@ export async function countTodayAnonChatUsage(anonKey: string): Promise<number> 
   const todayStart = new Date();
   todayStart.setHours(0, 0, 0, 0);
   const { count, error } = await supabaseAdmin
-    .from("evo_anon_usage" as any)
+    .from("evo_anon_usage")
     .select("*", { count: "exact", head: true })
     .eq("anon_key", anonKey)
     .gte("created_at", todayStart.toISOString());
@@ -407,7 +407,7 @@ export async function recordAnonChatUsage(
 ): Promise<void> {
   if (!isSupabaseAdminConfigured || !supabaseAdmin) return;
   const { error } = await supabaseAdmin
-    .from("evo_anon_usage" as any)
+    .from("evo_anon_usage")
     .insert({ anon_key: anonKey, source });
   if (error) {
     console.error("[tier-limits] recordAnonChatUsage error:", error.message);
@@ -435,7 +435,7 @@ export async function countTodayChatUsage(userId: string): Promise<number> {
   const todayStart = new Date();
   todayStart.setHours(0, 0, 0, 0);
   const { count, error } = await supabaseAdmin
-    .from("evo_chat_usage" as any)
+    .from("evo_chat_usage")
     .select("*", { count: "exact", head: true })
     .eq("user_id", userId)
     .gte("created_at", todayStart.toISOString());
@@ -459,7 +459,7 @@ export async function recordEvoChatUsage(
 ): Promise<void> {
   if (!isSupabaseAdminConfigured || !supabaseAdmin) return;
   const { error } = await supabaseAdmin
-    .from("evo_chat_usage" as any)
+    .from("evo_chat_usage")
     .insert({ user_id: userId, source });
   if (error) {
     console.error("[tier-limits] recordEvoChatUsage error:", error.message);
@@ -482,7 +482,7 @@ async function countThisWeekSwaps(
   weekStart.setDate(now.getDate() - mondayOffset);
   weekStart.setHours(0, 0, 0, 0);
   const { count, error } = await supabaseAdmin
-    .from("plan_swaps" as any)
+    .from("plan_swaps")
     .select("*", { count: "exact", head: true })
     .eq("user_id", userId)
     .eq("swap_type", swapType)
@@ -592,7 +592,7 @@ async function recordSwap(
 ): Promise<void> {
   if (!isSupabaseAdminConfigured || !supabaseAdmin) return;
   const { error } = await supabaseAdmin
-    .from("plan_swaps" as any)
+    .from("plan_swaps")
     .insert({
       user_id: userId,
       plan_id: "api-swap", // no specific plan when swapping via API
