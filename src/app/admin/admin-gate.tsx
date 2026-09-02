@@ -3,14 +3,19 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/use-auth";
-import { AppLayout } from "@/components/AppLayout";
+import { AdminShell } from "@/components/admin/AdminShell";
 
 /**
- * Client-side auth gate for /admin/* routes (blog CMS, referrals, leads,
- * saved-results). ADMIN-EXCLUSIVE (owner directive 2026-08-29): these
- * surfaces belong to the platform admin only — future coach accounts are
- * bounced back to their coach dashboard. Redirects logged-out users to
- * /auth. Sits OUTSIDE the (app) group, so it needs its own gate.
+ * Client-side auth gate for /admin/* routes. ADMIN-EXCLUSIVE (owner
+ * directive 2026-08-29): these surfaces belong to the platform admin only
+ * — future coach accounts are bounced back to their coach dashboard.
+ * Redirects logged-out users to /auth. Sits OUTSIDE the (app) group, so
+ * it needs its own gate.
+ *
+ * Admin Panel 2.0 (Phase 101): the chrome is now the DEDICATED AdminShell
+ * (own sectioned sidebar, dark admin identity, live pending badges) — the
+ * old shell reused AppLayout, which gave the admin the coach's sidebar
+ * plus 4 extra links and split navigation across two launcher hubs.
  *
  * NOTE: This is a client component, so it CANNOT export `metadata`. The
  * parent `layout.tsx` (server component) exports the `metadata`
@@ -41,5 +46,5 @@ export function AdminGate({ children }: { children: React.ReactNode }) {
     );
   }
 
-  return <AppLayout>{children}</AppLayout>;
+  return <AdminShell>{children}</AdminShell>;
 }

@@ -6,7 +6,21 @@
 
 ---
 
-## Latest Verification — 2026-09-02 (Phase 100 — PLAN_SWAPS STRICT RLS: the tamper-proof swap-history ledger gets the same lock progress_photos got in Phase 99 — owner directive)
+## Latest Verification — 2026-09-03 (Phase 101 — ADMIN PANEL 2.0: dedicated admin shell + nested sidebar routing + members table with real subscription lifecycle badges + finances page separating site money (B2C) from coach money (B2B) — owner «go يا برنس» after the architectural audit)
+
+| Check | Result | How verified |
+|---|---|---|
+| Dedicated AdminShell replaces AppLayout inside /admin only | ✅ | `src/components/admin/AdminShell.tsx` (new): sectioned sidebar (Overview / Clients & memberships / Coaches / Finances / Content / Growth / My surfaces), pathname-active dark identity #1d1d1f (2026-08-30 staff-identity law preserved), live orange badges for pending payment requests + pending coach-page reviews (best-effort, never block); AdminGate now renders `<AdminShell>` — member/coach app at (app)/* untouched |
+| Nav-context safety (no provider coupling) | ✅ | useNav() is a thin URL adapter over next/navigation (no React context) → works identically under the new shell; only AdminPaymentsView imports useNav among admin views and its navigate("coach-client") maps to the real URL /coach/<id>; admin views never import AppLayout internals |
+| New routing structure | ✅ | /admin/dashboard (KPI dashboard replaces the 13-card launcher of launchers) · /admin/members (full membership table) · /admin/finances (money overview) · /admin/coaches (coach hub) — /admin → redirect(/admin/dashboard), /admin/coach-system → redirect(/admin/coaches) so every old link keeps working; metadata noindex inherited from layout |
+| Members page (the missing surface) | ✅ | /admin/members = subscription-status table the old panel never had: lifecycle badge نشط/ينتهي قريباً/منتهي/بانتظار الدفع/بدون اشتراك computed by ONE shared helper (memberStatus in admin/ui.tsx mirroring the 0047 RPC flag logic + CoachView enrichClientRow), tier badges, end-date, coach column, «إدارة العميل» → /coach/<id> (admin is coach-of-all); filters = lifecycle tabs (counts from get_coach_client_stats) + MEMBERSHIPS tier select + sort (newest/oldest/name/expiry — valid p_sort values from 0047 SQL) + debounced search; Pagination component reused; zero new DB surface — same paged RPC the coach console uses |
+| Finances page (Revenue vs Coach Payouts separation) | ✅ | /admin/finances two labeled sections per TERMINOLOGY LAW §10: (A) SITE MONEY B2C — approved revenue sum/count, approved refunds, NET, pending, 6-month approved-revenue BarChart (recharts, client-side bucketing), recent approved table; (B) COACH MONEY B2B — wallet balances (prepaid credit, explicitly NOT revenue), approved/pending top-ups, offline activation ledger + per-coach expected monthly bill (fee×clients); ZERO new API surface — composes existing read-only endpoints (listSubscriptionRequests + /api/admin/refunds + /api/admin/wallets + /api/admin/coach-payments), admin-only page |
+| Component reusability (dedup) | ✅ | new `src/components/admin/ui.tsx` primitives: PageHeader, StatTile, MemberStatusBadge + memberStatus, TierBadge (was a private map in AdminPaymentsView), RequestStatusPill (StatusPill was duplicated ×2), SegmentedTabs (2 hand-rolled pill patterns unified), EmptyState, SectionCard, fmt helpers; dashboard/finances/coaches/members all compose them |
+| Mobile UX | ✅ | the old shell pushed a 13-big-button grid above content on phones; the new shell renders one compact scrollable chip row — content first |
+| Gates | ✅ PASS | tsc 0 · eslint 0 ×401 files (5 new) · vitest 191/191 |
+| Docs parity §3.6 | ✅ UPDATED | QA_CHECKLIST Phase 101 · PROGRESS Phase 101 + «آخر تحديث» · worklog Task 101; no migration → INDEX.md untouched; AGENTS.md law text unchanged (unchanged per §3.6 practice) |
+
+## Previous Verification — 2026-09-02 (Phase 100 — PLAN_SWAPS STRICT RLS: the tamper-proof swap-history ledger gets the same lock progress_photos got in Phase 99 — owner directive)
 
 | Check | Result | How verified |
 |---|---|---|
