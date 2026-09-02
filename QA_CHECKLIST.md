@@ -6,7 +6,21 @@
 
 ---
 
-## Latest Verification — 2026-09-02 (Phase 96 — DATABASE MIGRATIONS AUDIT: all 73 files cross-checked vs types.ts — real Phase-5-era drift found & CLOSED by 0063 + INDEX.md)
+## Latest Verification — 2026-09-02 (Phase 97 — VERCEL FREE-TIER IMAGE QUOTA GUARD: images.unoptimized=true in next.config.ts — owner directive)
+
+| Check | Result | How verified |
+|---|---|---|
+| Owner report: thousands of images vs Vercel free-tier Image Optimization quota | ✅ CONFIRMED RISK | Blog pipeline adds 3-5 photos × 6 articles/day × EN+AR + tool/landing/admin imagery → the /_next/image hop would exhaust the free quota almost immediately, after which EVERY next/image on the site throttles/fails |
+| Fix — one flag | ✅ APPLIED | `images.unoptimized: true` in next.config.ts (Phase 97-documented comment block): next/image now renders plain <img> and serves the SOURCE URL directly — no optimizer hop, no quota, nothing to hit |
+| Impact surface measured | ✅ | 20 files import next/image — ALL affected markup stays valid (unoptimized is a rendering-mode flag, not an API change); `priority` still maps to fetchpriority=high so the Phase 94 LCP work (SiteHeader logo, EvoFloatingWidget) keeps its prioritization semantics |
+| Optimization load already carried by origins | ✅ | Blog images come from Pexels/Pixabay/Unsplash whose URLs ship their own `?auto=compress&cs=tinysrgb&w=…` CDN params; Supabase Storage serves originals for avatars/progress photos; local assets are tiny (logos/icons) |
+| Direct-optimizer dependencies swept | ✅ ZERO | grep for `_next/image` / custom `loader=` across src → only middleware.ts matcher EXCLUDES `_next/image` (harmless under the flag — those requests simply stop existing) |
+| Stale comment corrected (anti-misleading-docs law) | ✅ | remotePatterns block previously claimed “next/image converts these to lightweight WebP at the edge” → rewritten to state the origin-CDN params carry the weight under unoptimized (same honesty law as the Phase 88 build-info fix) |
+| remotePatterns/formats/minimumCacheTTL kept | ✅ | Dead under the flag but harmless; re-enabling paid optimization later = ONE-LINE revert |
+| Gates | ✅ PASS | tsc 0 · eslint 0 (census still ZERO — only next.config.ts touched) · vitest 191/191 |
+| Docs parity §3.6 | ✅ UPDATED | QA_CHECKLIST Phase 97 section + PROGRESS Phase 97 + «آخر تحديث» + worklog Task 97 |
+
+## Previous Verification — 2026-09-02 (Phase 96 — DATABASE MIGRATIONS AUDIT: all 73 files cross-checked vs types.ts — real Phase-5-era drift found & CLOSED by 0063 + INDEX.md)
 
 | Check | Result | How verified |
 |---|---|---|

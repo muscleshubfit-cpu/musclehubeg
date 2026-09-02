@@ -21,6 +21,19 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
   // Image optimization
   images: {
+    // VERCEL FREE-TIER QUOTA GUARD (Phase 97, owner directive 2026-09-02):
+    // the blog pipeline adds 3-5 photos per article × 6 articles/day across
+    // EN+AR plus tool/landing/admin imagery — thousands of source images.
+    // Vercel's free-tier Image Optimization quota would be exhausted almost
+    // immediately and then EVERY next/image on the site starts failing/
+    // throttling. `unoptimized: true` makes next/image render plain <img>
+    // and serve the SOURCE URL directly — no /_next/image hop, no quota.
+    // The load is already carried by the origin CDNs (Pexels/Pixabay/
+    // Unsplash URLs ship compressed+resized via their own query params;
+    // Supabase Storage serves originals). remotePatterns/formats/minimumCacheTTL
+    // are kept untouched — dead under this flag but re-activating paid
+    // optimization later is a ONE-LINE revert.
+    unoptimized: true,
     formats: ["image/avif", "image/webp"],
     remotePatterns: [
       { protocol: "https", hostname: "randomuser.me" },
@@ -32,8 +45,9 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "musclehubeg.vercel.app" },
       // Blog image pipeline (2026-08-28): Pexels is the PRIMARY featured
       // image source (real photography, people OK / NSFW screened) and
-      // Pixabay a fallback — next/image converts these to lightweight
-      // WebP/responsive sizes at the edge (owner: «حجم خفيف بنظام الموقع»).
+      // Pixabay a fallback. NOTE Phase 97: with images.unoptimized=true
+      // these URLs are served as-is — their own CDN query params
+      // (?auto=compress&cs=tinysrgb&w=…) are what keeps them lightweight.
       // image.pollinations.ai stays allow-listed only so legacy DB rows
       // render until the migration runner rewrites them to Pexels URLs.
       { protocol: "https", hostname: "image.pollinations.ai" },

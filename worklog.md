@@ -538,3 +538,22 @@ Stage Summary:
 - The migrations-audit task (lost to context) is now COMPLETE with a real finding closed: production schema ↔ repo migrations gap of Phase-5 era sealed by 0063 (no-op on prod) + truth-verification script for the owner + permanent anti-confusion law
 - Next development item remains Phase 89-SSE (EVO streaming + build-info + evo-chat-context getReader) — first deferred dev item
 - REMINDER to owner: revoke the GitHub token (ghp_SV…IvWO) once all work is done — used transiently in git push commands only, never stored in files
+
+---
+Task ID: 97
+Agent: Super Z (main)
+Task: Phase 97 — owner directive: «Fix Vercel Free Tier Image Optimization Issue: add unoptimized: true inside the images object» — thousands of images would exhaust the free-tier optimization quota immediately
+
+Work Log:
+- Confirmed the risk surface: blog pipeline adds 3-5 photos × 6 articles/day × EN+AR plus tool/landing/admin imagery — every render used to hop through /_next/image against the Vercel free quota; once exhausted ALL site images throttle/fail
+- Applied the fix exactly as directed: images.unoptimized: true in next.config.ts with a Phase 97-documented comment block (why, what carries the load now, one-line revert path)
+- Impact measured: 20 files import next/image — markup stays valid (rendering-mode flag, not API change); priority still maps to fetchpriority=high so the Phase 94 LCP work (SiteHeader logo, EvoFloatingWidget) keeps its semantics
+- Dependency sweep: grep for _next/image / custom loader= across src → only middleware.ts matcher EXCLUDES _next/image (those requests simply stop existing) — zero code changes needed
+- Stale comment corrected per the anti-misleading-docs law: the remotePatterns block claimed next/image converts blog images to WebP at the edge — rewritten to state origin-CDN query params (?auto=compress&cs=tinysrgb&w=…) carry the weight under unoptimized; Supabase Storage serves originals; local assets tiny
+- remotePatterns/formats/minimumCacheTTL kept untouched — inert under the flag; re-enabling paid optimization after a plan upgrade = one-line revert
+- Gates: tsc 0 · eslint 0 (census still ZERO — only next.config.ts touched) · vitest 191/191
+- Docs parity §3.6: QA_CHECKLIST Phase 97 section + PROGRESS Phase 97 + «آخر تحديث» + this entry
+
+Stage Summary:
+- Vercel free-tier image quota risk eliminated with a single documented flag; zero src changes; rollback path is one line
+- REMINDER to owner: revoke the GitHub token (ghp_SV…IvWO) once all work is done — used transiently in git push commands only, never stored in files
