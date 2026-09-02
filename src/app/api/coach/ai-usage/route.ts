@@ -32,7 +32,7 @@ async function countCompleted(
   clientId: string,
 ): Promise<number> {
   const { count, error } = await supabaseAdmin!
-    .from("ai_jobs" as any)
+    .from("ai_jobs")
     .select("*", { count: "exact", head: true })
     .eq("requested_by", coachId)
     .eq("job_type", jobType)

@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
   }
 
   const { data, error } = await supabaseAdmin
-    .from("coach_topup_requests" as any)
+    .from("coach_topup_requests")
     .insert({
       coach_id: auth.id,
       amount: Math.round(amount * 100) / 100,

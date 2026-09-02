@@ -34,12 +34,12 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Server not configured" }, { status: 500 });
   }
 
-  const { data, error } = (await supabaseAdmin
-    .from("coach_support_messages" as any)
+  const { data, error } = await supabaseAdmin
+    .from("coach_support_messages")
     .select("id, parent_id, sender_role, subject, body, status, created_at")
     .eq("coach_id", user.id)
     .order("created_at", { ascending: true })
-    .limit(200)) as { data: any; error: any };
+    .limit(200);
 
   if (error) {
     const code = (error as { code?: string }).code;
@@ -92,7 +92,7 @@ export async function POST(request: NextRequest) {
   }
 
   const { data, error } = await supabaseAdmin
-    .from("coach_support_messages" as any)
+    .from("coach_support_messages")
     .insert({
       coach_id: auth.id,
       sender_role: "coach",
@@ -119,7 +119,7 @@ export async function POST(request: NextRequest) {
 
   // Admin visibility — same bell the other coach events ring.
   await supabaseAdmin
-    .from("admin_notifications" as any)
+    .from("admin_notifications")
     .insert({
       type: "coach_support",
       title: "رسالة دعم من مدرب",
@@ -128,5 +128,5 @@ export async function POST(request: NextRequest) {
       target_role: "coach",
     });
 
-  return NextResponse.json({ ok: true, id: (data as any)?.id ?? null });
+  return NextResponse.json({ ok: true, id: data?.id ?? null });
 }

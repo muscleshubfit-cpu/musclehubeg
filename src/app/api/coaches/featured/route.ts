@@ -22,7 +22,7 @@ export async function GET() {
 
   const now = new Date().toISOString();
   const { data: ads, error } = await supabaseAdmin
-    .from("coach_ads" as any)
+    .from("coach_ads")
     .select("coach_id, ends_at")
     .eq("status", "active")
     .gt("ends_at", now)
@@ -41,7 +41,7 @@ export async function GET() {
     return NextResponse.json({ coaches: [] });
   }
 
-  const coachIds = Array.from(new Set(ads.map((a: any) => a.coach_id as string)));
+  const coachIds = Array.from(new Set(ads.map((a) => a.coach_id)));
   const [profilesRes, pagesRes] = await Promise.all([
     supabaseAdmin
       .from("profiles")
@@ -51,14 +51,16 @@ export async function GET() {
     // Defensive: before migration 0046 the column is missing (42703) →
     // retry without the filter (pre-0046 behaviour).
     (async () => {
-      const gated = await (supabaseAdmin.from("coach_pages") as any)
+      const gated = await supabaseAdmin
+        .from("coach_pages")
         .select("coach_id, slug, headline, photo_url, is_published, review_status")
         .in("coach_id", coachIds)
         .eq("is_published", true)
         .eq("review_status", "approved");
       if (!gated.error) return gated;
       if ((gated.error as { code?: string }).code === "42703") {
-        return (supabaseAdmin.from("coach_pages") as any)
+        return supabaseAdmin
+          .from("coach_pages")
           .select("coach_id, slug, headline, photo_url, is_published")
           .in("coach_id", coachIds)
           .eq("is_published", true);
@@ -75,7 +77,7 @@ export async function GET() {
   );
 
   const coaches = ads
-    .map((ad: any) => {
+    .map((ad) => {
       const prof = profiles.get(String(ad.coach_id));
       if (!prof) return null; // deleted coach — skip the slot
       const page = pages.get(String(ad.coach_id));

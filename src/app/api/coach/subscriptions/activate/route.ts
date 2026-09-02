@@ -157,17 +157,17 @@ export async function POST(request: NextRequest) {
   if (auth.role === "coach") {
     const [feeRes, walletRes] = await Promise.all([
       supabaseAdmin
-        .from("coach_fees" as any)
+        .from("coach_fees")
         .select("fee_per_client")
         .eq("coach_id", auth.id)
         .maybeSingle(),
       supabaseAdmin
-        .from("coach_wallets" as any)
+        .from("coach_wallets")
         .select("balance")
         .eq("coach_id", auth.id)
         .maybeSingle(),
     ]);
-    const fee = Number((feeRes.data as any)?.fee_per_client ?? 0) || 0;
+    const fee = Number(feeRes.data?.fee_per_client ?? 0) || 0;
     walletCost = coachActivationCostUsd(months, fee);
     if (walletCost > 0) {
       const missingTable = [feeRes.error, walletRes.error]
@@ -182,7 +182,7 @@ export async function POST(request: NextRequest) {
           { status: 503 },
         );
       }
-      const balance = Number((walletRes.data as any)?.balance ?? 0);
+      const balance = Number(walletRes.data?.balance ?? 0);
       if (balance < walletCost) {
         return NextResponse.json(
           {
@@ -200,12 +200,12 @@ export async function POST(request: NextRequest) {
   // ── Debit the wallet FIRST (atomic) so no failure can leave a free
   // slot; refunded below if the activation itself fails.
   if (walletCost > 0) {
-    const { error: debitErr } = await (supabaseAdmin as any).rpc("coach_adjust_wallet", {
+    const { error: debitErr } = await supabaseAdmin.rpc("coach_adjust_wallet", {
       p_coach_id: auth.id,
       p_amount: -walletCost,
       p_kind: "activation",
       p_ref_id: paymentId,
-      p_note: `تفعيل ${months} ${months === 1 ? "شهر" : "شهور"} — عميل ${(target as any).full_name ?? clientId}`,
+      p_note: `تفعيل ${months} ${months === 1 ? "شهر" : "شهور"} — عميل ${target.full_name ?? clientId}`,
       p_created_by: auth.id,
     });
     if (debitErr) {
@@ -244,7 +244,7 @@ export async function POST(request: NextRequest) {
       : `فشل تفعيل الاشتراك: ${msg}`;
     // Refund the wallet debit — the coach never pays for a failed slot.
     if (walletCost > 0) {
-      await (supabaseAdmin as any).rpc("coach_adjust_wallet", {
+      await supabaseAdmin.rpc("coach_adjust_wallet", {
         p_coach_id: auth.id,
         p_amount: walletCost,
         p_kind: "adjust",
@@ -261,12 +261,12 @@ export async function POST(request: NextRequest) {
 
   // Ledger row — the admin's audit trail of offline collections.
   const { error: payErr } = await supabaseAdmin
-    .from("coach_payments" as any)
+    .from("coach_payments")
     .insert({
       id: paymentId,
       coach_id: auth.id,
       client_id: clientId,
-      subscription_id: (subscription as any).id ?? null,
+      subscription_id: subscription.id,
       tier,
       months,
       amount,
@@ -310,8 +310,8 @@ export async function POST(request: NextRequest) {
   }
 
   // Tell the client his subscription is live.
-  const end = (subscription as any).end_date
-    ? new Date((subscription as any).end_date).toLocaleDateString("ar-EG")
+  const end = subscription.end_date
+    ? new Date(subscription.end_date).toLocaleDateString("ar-EG")
     : "";
   await supabaseAdmin.from("notifications").insert({
     user_id: clientId,

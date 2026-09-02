@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireCoach, isAuthConfigured, type AuthUser } from "@/lib/auth-server";
 import { supabaseAdmin, isSupabaseAdminConfigured } from "@/lib/supabase/admin";
+import type { Database } from "@/lib/supabase/types";
+
+// 0049 SOFT-ROLL LAW: certificates is sent only on the FIRST attempt —
+// the retry payload (migration not applied yet) omits it.
+type CoachPageUpsert = Database["public"]["Tables"]["coach_pages"]["Insert"];
+type CoachPageBaseUpsert = Omit<CoachPageUpsert, "certificates">;
 
 /**
  * MULTI-COACH PHASE 2B — coach public landing page (self-promoted,
@@ -206,7 +212,7 @@ export async function PUT(request: NextRequest) {
   // ONCE without certificates — every other field saves exactly as
   // before, certificates are simply not persisted until the migration
   // runs. Zero disruption between deploy and migration.
-  const basePayload: Record<string, unknown> = {
+  const basePayload: CoachPageBaseUpsert = {
     coach_id: user.id,
     slug,
     headline,
@@ -227,17 +233,19 @@ export async function PUT(request: NextRequest) {
     ...reviewFields,
   };
 
-  let { data, error } = (await (supabaseAdmin.from("coach_pages") as any)
+  let { data, error } = await supabaseAdmin
+    .from("coach_pages")
     .upsert({ ...basePayload, certificates }, { onConflict: "coach_id" })
     .select()
-    .maybeSingle()) as { data: any; error: any };
+    .maybeSingle();
 
   const firstCode = (error as { code?: string } | null)?.code;
   if (error && (firstCode === "PGRST204" || firstCode === "42703")) {
-    ({ data, error } = (await (supabaseAdmin.from("coach_pages") as any)
+    ({ data, error } = await supabaseAdmin
+      .from("coach_pages")
       .upsert(basePayload, { onConflict: "coach_id" })
       .select()
-      .maybeSingle())) as { data: any; error: any };
+      .maybeSingle());
   }
 
   if (error) {

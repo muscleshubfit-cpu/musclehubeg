@@ -35,17 +35,17 @@ export async function GET(_request: NextRequest) {
 
   const [walletRes, feeRes, topupsRes, txnsRes] = await Promise.all([
     supabaseAdmin
-      .from("coach_wallets" as any)
+      .from("coach_wallets")
       .select("balance, currency, updated_at")
       .eq("coach_id", auth.id)
       .maybeSingle(),
     supabaseAdmin
-      .from("coach_fees" as any)
+      .from("coach_fees")
       .select("fee_per_client, currency")
       .eq("coach_id", auth.id)
       .maybeSingle(),
     supabaseAdmin
-      .from("coach_topup_requests" as any)
+      .from("coach_topup_requests")
       .select(
         "id, amount, currency, method, receipt_path, note, status, admin_note, created_at, reviewed_at",
       )
@@ -53,7 +53,7 @@ export async function GET(_request: NextRequest) {
       .order("created_at", { ascending: false })
       .limit(50),
     supabaseAdmin
-      .from("coach_wallet_transactions" as any)
+      .from("coach_wallet_transactions")
       .select("id, kind, amount, balance_after, ref_id, note, created_at")
       .eq("coach_id", auth.id)
       .order("created_at", { ascending: false })
@@ -72,10 +72,10 @@ export async function GET(_request: NextRequest) {
   }
 
   return NextResponse.json({
-    balance: walletRes.data ? Number((walletRes.data as any).balance) : 0,
-    currency: (walletRes.data as any)?.currency ?? "USD",
-    fee_per_client: feeRes.data ? Number((feeRes.data as any).fee_per_client) : 0,
-    fee_currency: (feeRes.data as any)?.currency ?? "USD",
+    balance: walletRes.data ? Number(walletRes.data.balance) : 0,
+    currency: walletRes.data?.currency ?? "USD",
+    fee_per_client: feeRes.data ? Number(feeRes.data.fee_per_client) : 0,
+    fee_currency: feeRes.data?.currency ?? "USD",
     topups: topupsRes.data ?? [],
     transactions: txnsRes.data ?? [],
   });
