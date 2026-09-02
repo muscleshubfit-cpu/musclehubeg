@@ -363,7 +363,7 @@ export function CoachClientView({ clientId }: { clientId: string }) {
  }
  if (job?.status === "done") {
  try {
- await materializePlanDraft(entry, job.result);
+ await materializePlanDraft(entry, (job.result ?? {}) as PlanJobResult);
  toast.success(
  entry.kind === "workout"
  ? "وصل برنامج التمارين وتم حفظه كمسودة ✅ راجعه ثم وافق عليه لإرساله للعميل."
@@ -408,8 +408,8 @@ export function CoachClientView({ clientId }: { clientId: string }) {
  const kind = planJobTypeToKind(job.job_type);
  if (!kind) throw new Error("نوع مهمة غير معروف");
  await materializePlanDraft(
- { id: job.id, clientId: job.payload.clientId, kind, createdAt: Date.now() },
- full.result,
+ { id: job.id, clientId: job.payload.clientId as string, kind, createdAt: Date.now() },
+ (full.result ?? {}) as PlanJobResult,
  );
  toast.success("تم استرجاع الخطة وحفظها كمسودة ✅");
  } catch (e) {

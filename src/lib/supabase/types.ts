@@ -1138,6 +1138,48 @@ export type Database = {
         };
         Relationships: [];
       };
+      ai_jobs: {
+        Row: {
+          id: string;
+          job_type: string;
+          status: string;
+          payload: Json;
+          result: Json | null;
+          error_message: string | null;
+          requested_by: string | null;
+          attempts: number;
+          created_at: string;
+          started_at: string | null;
+          finished_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          job_type: string;
+          status?: string;
+          payload?: Json;
+          result?: Json | null;
+          error_message?: string | null;
+          requested_by?: string | null;
+          attempts?: number;
+          created_at?: string;
+          started_at?: string | null;
+          finished_at?: string | null;
+        };
+        Update: {
+          job_type?: string;
+          status?: string;
+          payload?: Json;
+          result?: Json | null;
+          error_message?: string | null;
+          requested_by?: string | null;
+          attempts?: number;
+          started_at?: string | null;
+          finished_at?: string | null;
+        };
+        Relationships: [
+          { foreignKeyName: "ai_jobs_requested_by_fkey"; columns: ["requested_by"]; isOneToOne: false; referencedRelation: "users"; referencedColumns: ["id"] },
+        ];
+      };
       meal_plans: {
         Row: {
           id: string;

@@ -51,14 +51,18 @@ describe("article_generate — registry", () => {
 });
 
 describe("article_generate — sanitizeJobPayload", () => {
+  // sanitizeJobPayload returns Json (it is the enqueue trust boundary);
+  // tests read known whitelisted fields → one honest view per call.
+  const sanitize = (raw: unknown): Record<string, unknown> =>
+    sanitizeJobPayload("article_generate", raw) as Record<string, unknown>;
   it("keeps the whitelisted fields with clamps", () => {
-    const out = sanitizeJobPayload("article_generate", {
+    const out = sanitize({
       topic: "أفضل تمارين ضغط للصدر",
       language: "ar",
       tone: "تحفيزي",
       audience: "مبتدئين",
       category: "تمارين",
-      keywords: ["ضغط", " ", "صدر", 123 as any],
+      keywords: ["ضغط", " ", "صدر", 123 as unknown as string],
       evil: "https://javascript:alert(1)",
     });
     expect(out.topic).toBe("أفضل تمارين ضغط للصدر");
@@ -66,22 +70,23 @@ describe("article_generate — sanitizeJobPayload", () => {
     expect(out.tone).toBe("تحفيزي");
     expect(out.audience).toBe("مبتدئين");
     expect(out.keywords).toEqual(["ضغط", "صدر"]); // non-string entries are dropped
-    expect((out as any).evil).toBeUndefined();
+    expect(out.evil).toBeUndefined();
   });
 
   it("defaults language to ar and keywords to []", () => {
-    const out = sanitizeJobPayload("article_generate", { topic: "protein timing basics" });
+    const out = sanitize({ topic: "protein timing basics" });
     expect(out.language).toBe("ar");
     expect(out.keywords).toEqual([]);
   });
 
   it("caps keywords at 8 and each at 40 chars", () => {
-    const out = sanitizeJobPayload("article_generate", {
+    const out = sanitize({
       topic: "bulk topic here",
       keywords: Array.from({ length: 12 }, (_, i) => `kw${i}${"x".repeat(45)}`),
     });
-    expect(out.keywords.length).toBe(8);
-    expect((out.keywords as string[]).every((k) => k.length <= 40)).toBe(true);
+    const keywords = out.keywords as string[];
+    expect(keywords.length).toBe(8);
+    expect(keywords.every((k) => k.length <= 40)).toBe(true);
   });
 
   it("TOPIC-AUTO: empty/short topic is ACCEPTED (processor smart-picks the title)", () => {
@@ -89,13 +94,13 @@ describe("article_generate — sanitizeJobPayload", () => {
     // PROCESSOR pick a fresh title via pickSmartTopic (the blog pipeline's
     // topic brain), per owner directive «مفروض يختار العنوان بنفس نظام
     // التوليد». The sanitizer must pass it through as "" (no throw).
-    expect(sanitizeJobPayload("article_generate", {}).topic).toBe("");
-    expect(sanitizeJobPayload("article_generate", { topic: "abc" }).topic).toBe("abc");
-    expect(sanitizeJobPayload("article_generate", { topic: "  " }).topic).toBe("");
+    expect(sanitize({}).topic).toBe("");
+    expect(sanitize({ topic: "abc" }).topic).toBe("abc");
+    expect(sanitize({ topic: "  " }).topic).toBe("");
   });
 
   it("accepts en language", () => {
-    const out = sanitizeJobPayload("article_generate", { topic: "creatine guide", language: "en" });
+    const out = sanitize({ topic: "creatine guide", language: "en" });
     expect(out.language).toBe("en");
   });
 });
@@ -140,7 +145,7 @@ describe("SEO-SLUG LAW (2026-08-28i) — sanitizeModelSlug", () => {
     // articleSlugFromTitle → post-YYYYMMDDNNNN).
     expect(sanitizeModelSlug("أفضل-تمارين-للصدر")).toBe("");
     expect(sanitizeModelSlug("")).toBe("");
-    expect(sanitizeModelSlug(null as any)).toBe("");
+    expect(sanitizeModelSlug(null as unknown as string)).toBe("");
   });
 
   it("enforces the 80-char editor limit and 3-char minimum", () => {
@@ -171,7 +176,7 @@ describe("IMAGE BUNDLE LAW (2026-08-28i) — sectionSubjects fallback queries", 
 
   it("is a no-op on empty or non-structured markdown", () => {
     expect(sectionSubjects("")).toEqual([]);
-    expect(sectionSubjects(null as any)).toEqual([]);
+    expect(sectionSubjects(null as unknown as string)).toEqual([]);
     expect(sectionSubjects("just a paragraph, no headings")).toEqual([]);
   });
 });

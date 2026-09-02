@@ -37,6 +37,7 @@
  *   reapStaleJobs() → claimQueuedJobs() → PROCESSORS[type](payload)
  *   → finishJob()/failJob(); failJob requeues until MAX_ATTEMPTS.
  */
+import type { Json } from "@/lib/supabase/types";
 
 import { supabaseAdmin, isSupabaseAdminConfigured } from "@/lib/supabase/admin";
 
@@ -78,8 +79,8 @@ export type AiJobRow = {
   id: string;
   job_type: AiJobType;
   status: AiJobStatus;
-  payload?: any;
-  result?: any;
+  payload?: Record<string, unknown>;
+  result?: Record<string, unknown>;
   error_message?: string | null;
   requested_by?: string | null;
   attempts?: number;
@@ -119,7 +120,7 @@ export const JOB_LABELS: Record<AiJobType, { ar: string; en: string }> = {
   social_post: { ar: "منشور سوشيال ميديا", en: "Social post" },
 };
 
-export function isAiJobType(v: any): v is AiJobType {
+export function isAiJobType(v: unknown): v is AiJobType {
   return typeof v === "string" && (AI_JOB_TYPES as readonly string[]).includes(v);
 }
 
@@ -134,57 +135,61 @@ export class JobPayloadError extends Error {}
  * the user-owned free-text slots explicitly designed for them (`note`, `reason`).
  * ─────────────────────────────────────────────────────────────────────────────── */
 
-const str = (v: any, max: number): string =>
+const str = (v: unknown, max: number): string =>
   typeof v === "string" ? v.slice(0, max) : "";
-const num = (v: any): number | undefined => {
+const num = (v: unknown): number | undefined => {
   const n = typeof v === "number" ? v : parseFloat(String(v));
   return Number.isFinite(n) ? n : undefined;
 };
 
-function pickClientContext(cc: any) {
+function pickClientContext(cc: unknown) {
   // Same shape CoachClientView builds today — nothing else survives.
   // PHASE 62: recent_plan_names = foods/exercises from the client's
   // previous plans, injected into prompts as an avoid-repeat list.
   if (!cc || typeof cc !== "object") return undefined;
+  const o = cc as Record<string, unknown>;
   return {
-    name: str(cc.name, 80),
-    nutrition: cc.nutrition && typeof cc.nutrition === "object" ? cc.nutrition : null,
-    fitness: cc.fitness && typeof cc.fitness === "object" ? cc.fitness : null,
-    recent_measurements: Array.isArray(cc.recent_measurements)
-      ? cc.recent_measurements.slice(0, 5)
+    name: str(o.name, 80),
+    nutrition: o.nutrition && typeof o.nutrition === "object" ? (o.nutrition as Json) : null,
+    fitness: o.fitness && typeof o.fitness === "object" ? (o.fitness as Json) : null,
+    recent_measurements: Array.isArray(o.recent_measurements)
+      ? o.recent_measurements.slice(0, 5)
       : [],
-    recent_plan_names: Array.isArray(cc.recent_plan_names)
-      ? cc.recent_plan_names.filter((n: any) => typeof n === "string").map((n: string) => str(n, 60)).slice(0, 60)
+    recent_plan_names: Array.isArray(o.recent_plan_names)
+      ? (o.recent_plan_names as unknown[]).filter((n) => typeof n === "string").map((n) => str(n, 60)).slice(0, 60)
       : [],
   };
 }
 
-export function sanitizeJobPayload(type: AiJobType, raw: any): Record<string, any> {
-  const p = raw && typeof raw === "object" ? raw : {};
+export function sanitizeJobPayload(type: AiJobType, raw: unknown): Json {
+  const p = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
   switch (type) {
     case "plan_nutrition":
     case "plan_workout": {
-      const o = p.overrides && typeof p.overrides === "object" ? p.overrides : {};
+      const o = (p.overrides && typeof p.overrides === "object" ? p.overrides : {}) as Record<string, unknown>;
       return {
         clientId: str(p.clientId, 64),
         clientContext: pickClientContext(p.clientContext),
         overrides: {
           targetCalories: num(o.targetCalories),
-          macros: o.macros && typeof o.macros === "object"
-            ? {
-                protein_g: num(o.macros.protein_g),
-                carbs_g: num(o.macros.carbs_g),
-                fat_g: num(o.macros.fat_g),
-              }
-            : undefined,
-          foods: Array.isArray(o.foods) ? o.foods.map((f: any) => str(f, 60)).slice(0, 30) : undefined,
+          macros: (() => {
+            const m = o.macros && typeof o.macros === "object" ? (o.macros as Record<string, unknown>) : null;
+            return m
+              ? {
+                  protein_g: num(m.protein_g),
+                  carbs_g: num(m.carbs_g),
+                  fat_g: num(m.fat_g),
+                }
+              : undefined;
+          })(),
+          foods: Array.isArray(o.foods) ? (o.foods as unknown[]).map((f) => str(f, 60)).slice(0, 30) : undefined,
           mealsCount: (() => { const n = num(o.mealsCount); return n ? Math.min(6, Math.max(2, Math.round(n))) : undefined; })(),
           notes: str(o.notes, 500),
         },
       };
     }
     case "meal_regenerate": {
-      const m = p.meal && typeof p.meal === "object" ? p.meal : {};
+      const m = (p.meal && typeof p.meal === "object" ? p.meal : {}) as Record<string, unknown>;
       return {
         meal: {
           name: str(m.name, 120),
@@ -197,12 +202,12 @@ export function sanitizeJobPayload(type: AiJobType, raw: any): Record<string, an
         // PHASE 62 VARIETY: other meals' item names from the same plan —
         // the regenerated meal must not duplicate them.
         avoid_names: Array.isArray(p.avoid_names)
-          ? p.avoid_names.filter((n: any) => typeof n === "string").map((n: string) => str(n, 60)).slice(0, 40)
+          ? (p.avoid_names as unknown[]).filter((n) => typeof n === "string").map((n) => str(n, 60)).slice(0, 40)
           : [],
       };
     }
     case "exercise_regenerate": {
-      const ex = p.exercise && typeof p.exercise === "object" ? p.exercise : {};
+      const ex = (p.exercise && typeof p.exercise === "object" ? p.exercise : {}) as Record<string, unknown>;
       return {
         exercise: {
           name: str(ex.name, 120),
@@ -219,7 +224,7 @@ export function sanitizeJobPayload(type: AiJobType, raw: any): Record<string, an
     case "food_item_regenerate": {
       // PHASE 79: ONE food item — same nutritional role, calories ±15%.
       // Mirrors the admin external-plans regenerate_item contract.
-      const it = p.item && typeof p.item === "object" ? p.item : {};
+      const it = (p.item && typeof p.item === "object" ? p.item : {}) as Record<string, unknown>;
       return {
         item: {
           food: str(it.food, 120),
@@ -231,31 +236,34 @@ export function sanitizeJobPayload(type: AiJobType, raw: any): Record<string, an
         clientContext: pickClientContext(p.clientContext),
         note: str(p.note ?? p.reason, 400),
         avoid_names: Array.isArray(p.avoid_names)
-          ? p.avoid_names.filter((n: any) => typeof n === "string").map((n: string) => str(n, 60)).slice(0, 40)
+          ? (p.avoid_names as unknown[]).filter((n) => typeof n === "string").map((n) => str(n, 60)).slice(0, 40)
           : [],
       };
     }
     case "day_regenerate": {
       // PHASE 79: ONE workout day — same weekly slot + same muscle focus,
       // 4-6 fresh exercises that avoid the other days' exercises.
-      const d = p.day && typeof p.day === "object" ? p.day : {};
+      const d = (p.day && typeof p.day === "object" ? p.day : {}) as Record<string, unknown>;
       const exs = Array.isArray(d.exercises) ? d.exercises.slice(0, 10) : [];
       return {
         day: {
           day: str(d.day, 80),
           focus: str(d.focus, 120),
-          exercises: exs.map((e: any) => ({
-            name: str(e?.name, 120),
-            sets: num(e?.sets),
-            reps: str(e?.reps, 40),
-            rest: str(e?.rest, 40),
-            notes: str(e?.notes, 200),
-          })),
+          exercises: (exs as unknown[]).map((raw) => {
+            const e = (raw ?? {}) as Record<string, unknown>;
+            return {
+              name: str(e.name, 120),
+              sets: num(e.sets),
+              reps: str(e.reps, 40),
+              rest: str(e.rest, 40),
+              notes: str(e.notes, 200),
+            };
+          }),
         },
         clientContext: pickClientContext(p.clientContext),
         note: str(p.note ?? p.reason, 400),
         avoid_names: Array.isArray(p.avoid_names)
-          ? p.avoid_names.filter((n: any) => typeof n === "string").map((n: string) => str(n, 60)).slice(0, 60)
+          ? (p.avoid_names as unknown[]).filter((n) => typeof n === "string").map((n) => str(n, 60)).slice(0, 60)
           : [],
       };
     }
@@ -272,7 +280,7 @@ export function sanitizeJobPayload(type: AiJobType, raw: any): Record<string, an
         tone: str(p.tone, 60),
         audience: str(p.audience, 120),
         keywords: Array.isArray(p.keywords)
-          ? p.keywords.map((k: any) => str(k, 40).trim()).filter(Boolean).slice(0, 8)
+          ? (p.keywords as unknown[]).map((k) => str(k, 40).trim()).filter(Boolean).slice(0, 8)
           : [],
         category: str(p.category, 60),
       };
@@ -311,7 +319,7 @@ export function sanitizeJobPayload(type: AiJobType, raw: any): Record<string, an
 
 export async function enqueueAiJob(opts: {
   type: AiJobType;
-  payload: Record<string, any>;
+  payload: Record<string, unknown>;
   requestedBy?: string | null;
 }): Promise<{ id: string }> {
   if (!isSupabaseAdminConfigured || !supabaseAdmin) {
@@ -319,7 +327,7 @@ export async function enqueueAiJob(opts: {
   }
   const clean = sanitizeJobPayload(opts.type, opts.payload);
   const { data, error } = await supabaseAdmin
-    .from("ai_jobs" as any)
+    .from("ai_jobs")
     .insert({
       job_type: opts.type,
       payload: clean,
@@ -329,7 +337,7 @@ export async function enqueueAiJob(opts: {
     .select("id")
     .single();
   if (error) throw new Error(`enqueue failed: ${error.message}`);
-  return { id: (data as any).id };
+  return { id: data.id };
 }
 
 /**
@@ -340,7 +348,7 @@ export async function enqueueAiJob(opts: {
 export async function claimQueuedJobs(limit = 10): Promise<AiJobRow[]> {
   if (!isSupabaseAdminConfigured || !supabaseAdmin) throw new Error("admin client missing");
   const { data: candidates } = await supabaseAdmin
-    .from("ai_jobs" as any)
+    .from("ai_jobs")
     .select("*")
     .eq("status", "queued")
     .order("created_at", { ascending: true })
@@ -348,7 +356,7 @@ export async function claimQueuedJobs(limit = 10): Promise<AiJobRow[]> {
   const claimed: AiJobRow[] = [];
   for (const row of (candidates as unknown as AiJobRow[]) || []) {
     const { data } = await supabaseAdmin
-      .from("ai_jobs" as any)
+      .from("ai_jobs")
       .update({
         status: "processing",
         started_at: new Date().toISOString(),
@@ -362,12 +370,12 @@ export async function claimQueuedJobs(limit = 10): Promise<AiJobRow[]> {
   return claimed;
 }
 
-export async function finishJob(jobId: string, result: any): Promise<void> {
+export async function finishJob(jobId: string, result: unknown): Promise<void> {
   await supabaseAdmin!
-    .from("ai_jobs" as any)
+    .from("ai_jobs")
     .update({
       status: "done",
-      result,
+      result: result as Json,
       error_message: null,
       finished_at: new Date().toISOString(),
     })
@@ -378,7 +386,7 @@ export async function finishJob(jobId: string, result: any): Promise<void> {
 export async function failJob(jobId: string, currentAttempts: number, message: string): Promise<"requeued" | "failed"> {
   const exhausted = (currentAttempts || 1) >= MAX_JOB_ATTEMPTS;
   await supabaseAdmin!
-    .from("ai_jobs" as any)
+    .from("ai_jobs")
     .update({
       status: exhausted ? "failed" : "queued",
       error_message: message.slice(0, 2000),
@@ -393,7 +401,7 @@ export async function reapStaleJobs(staleMinutes = 30): Promise<number> {
   if (!isSupabaseAdminConfigured || !supabaseAdmin) return 0;
   const cutoff = new Date(Date.now() - staleMinutes * 60_000).toISOString();
   const { data } = await supabaseAdmin
-    .from("ai_jobs" as any)
+    .from("ai_jobs")
     .update({
       status: "queued",
       error_message: "reaped: processing exceeded time limit — auto-retried",
