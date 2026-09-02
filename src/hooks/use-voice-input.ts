@@ -20,14 +20,24 @@ type SpeechRecognitionLike = {
   start: () => void;
   stop: () => void;
   abort: () => void;
-  onresult: ((e: any) => void) | null;
-  onerror: ((e: any) => void) | null;
+  onresult: ((e: SpeechRecognitionEventLike) => void) | null;
+  onerror: ((e: SpeechRecognitionErrorEventLike) => void) | null;
   onend: (() => void) | null;
 };
 
+/** Minimal structural views of the Web Speech API events (no official DOM lib types). */
+type SpeechRecognitionEventLike = {
+  resultIndex: number;
+  results: { length: number } & Record<number, { isFinal: boolean; 0: { transcript: string } }>;
+};
+type SpeechRecognitionErrorEventLike = { error: string };
+
 function getRecognitionCtor(): (new () => SpeechRecognitionLike) | null {
   if (typeof window === "undefined") return null;
-  const w = window as any;
+  const w = window as unknown as {
+    SpeechRecognition?: new () => SpeechRecognitionLike;
+    webkitSpeechRecognition?: new () => SpeechRecognitionLike;
+  };
   return w.SpeechRecognition || w.webkitSpeechRecognition || null;
 }
 
@@ -79,7 +89,7 @@ export function useVoiceInput(opts: {
     finalRef.current = "";
     setInterim("");
 
-    rec.onresult = (e: any) => {
+    rec.onresult = (e: SpeechRecognitionEventLike) => {
       let finalText = "";
       let interimText = "";
       for (let i = e.resultIndex; i < e.results.length; i++) {

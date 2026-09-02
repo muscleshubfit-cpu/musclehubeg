@@ -27,7 +27,7 @@ export function AdminReferralsView() {
   const isAr = lang === "ar";
   const [referrals, setReferrals] = useState<Referral[]>([]);
   const [payouts, setPayouts] = useState<ReferralPayout[]>([]);
-  const [overview, setOverview] = useState<any>(null);
+  const [overview, setOverview] = useState<Awaited<ReturnType<typeof adminGetReferralOverview>> | null>(null);
   const [coachActivations, setCoachActivations] = useState<CoachActivationRow[]>([]);
   const [coachTotals, setCoachTotals] = useState({ count: 0, total: 0, referredCoaches: 0 });
   const [loading, setLoading] = useState(true);
@@ -123,8 +123,8 @@ export function AdminReferralsView() {
       await adminApprovePayout(id);
       toast.success(isAr ? "تم صرف العمولة" : "Payout approved");
       await load();
-    } catch (e: any) {
-      toast.error(e.message || (isAr ? "حدث خطأ" : "Error"));
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : (isAr ? "حدث خطأ" : "Error"));
     }
   };
 
@@ -134,8 +134,8 @@ export function AdminReferralsView() {
       await adminRejectPayout(id);
       toast.success(isAr ? "تم رفض الطلب" : "Payout rejected");
       await load();
-    } catch (e: any) {
-      toast.error(e.message || (isAr ? "حدث خطأ" : "Error"));
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : (isAr ? "حدث خطأ" : "Error"));
     }
   };
 

@@ -6,9 +6,10 @@ import { useAuth } from "@/hooks/use-auth";
 import { useNav } from "@/hooks/use-nav";
 import { MyCoachCard } from "@/components/MyCoachCard";
 import { listProgress, listPlans, listSubscriptionsForClient } from "@/lib/data";
+import type { ProgressEntry, Plan, Subscription } from "@/lib/supabase/types";
 import { supabase, isSupabaseConfigured } from "@/lib/data/helpers";
 import { coachPaymentMethodLabel } from "@/lib/coach-limits";
-import { getTier } from "@/lib/plans";
+import { getTier, type TierId } from "@/lib/plans";
 import { MEMBERSHIPS } from "@/lib/memberships";
 
 export function DashboardView() {
@@ -16,9 +17,9 @@ export function DashboardView() {
   const { profile } = useAuth();
   const { navigate } = useNav();
   const isAr = lang === "ar";
-  const [progress, setProgress] = useState<any[]>([]);
-  const [plans, setPlans] = useState<any[]>([]);
-  const [allSubs, setAllSubs] = useState<any[]>([]);
+  const [progress, setProgress] = useState<ProgressEntry[]>([]);
+  const [plans, setPlans] = useState<Plan[]>([]);
+  const [allSubs, setAllSubs] = useState<Subscription[]>([]);
   // 0034: coach-activated receipts — subscription_id → payment row. The
   // client sees «مفعّلة بواسطة مدربك» on subscriptions his coach activated
   // after collecting payment outside the site.
@@ -83,7 +84,7 @@ export function DashboardView() {
   const tierName = (tier: string) => {
     const m = MEMBERSHIPS.find((x) => x.id === tier);
     if (m) return isAr ? m.nameAr : m.nameEn;
-    const legacy = getTier(tier as any);
+    const legacy = getTier(tier as TierId);
     if (legacy) return t(legacy.nameKey);
     return tier;
   };

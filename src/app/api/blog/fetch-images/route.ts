@@ -56,8 +56,17 @@ export async function POST(request: NextRequest) {
   }
 
   // Only posts WITHOUT a cover are candidates.
-  const needsImage = (posts || []).filter((p: any) => !p.featured_image);
-  const results: any[] = [];
+  type CoverCandidate = {
+    id: string;
+    title: string | null;
+    language: string | null;
+    focus_keyword: string | null;
+    featured_image: string | null;
+    cover_alt: string | null;
+  };
+  const rows = (posts as CoverCandidate[] | null) ?? [];
+  const needsImage = rows.filter((p) => !p.featured_image);
+  const results: { title: string | null; status: string; image?: string }[] = [];
   let updated = 0;
   let failed = 0;
 
@@ -95,9 +104,9 @@ export async function POST(request: NextRequest) {
       }
       // Small pacing so a large backfill stays polite to the search APIs.
       await new Promise((r) => setTimeout(r, 400));
-    } catch (e: any) {
+    } catch (e) {
       failed++;
-      results.push({ title: post.title, status: e.message });
+      results.push({ title: post.title, status: e instanceof Error ? e.message : String(e) });
     }
   }
 

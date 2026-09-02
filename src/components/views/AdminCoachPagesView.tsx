@@ -75,8 +75,8 @@ export function AdminCoachPagesView() {
       setPages(data.pages ?? []);
       setCounts(data.counts ?? { total: 0, pending: 0, rejected: 0, approved: 0, missing: 0 });
       setMigrationMissing(data.migration_missing ?? null);
-    } catch (e: any) {
-      toast.error(e.message || (isAr ? "خطأ في تحميل الصفحات" : "Failed to load pages"));
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : (isAr ? "خطأ في تحميل الصفحات" : "Failed to load pages"));
     } finally {
       setLoading(false);
     }
@@ -84,7 +84,6 @@ export function AdminCoachPagesView() {
 
   useEffect(() => {
     load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const filtered = useMemo(
@@ -129,8 +128,8 @@ export function AdminCoachPagesView() {
       );
       setRejectId(null);
       setRejectNote("");
-    } catch (e: any) {
-      toast.error(e.message || (isAr ? "خطأ" : "Error"));
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : (isAr ? "خطأ" : "Error"));
     } finally {
       setBusyId(null);
     }

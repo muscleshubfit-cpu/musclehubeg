@@ -69,8 +69,8 @@ export function AdminAccountsView() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "failed");
       setRows(data.accounts ?? []);
-    } catch (e: any) {
-      toast.error(e.message || (isAr ? "خطأ في تحميل الحسابات" : "Failed to load accounts"));
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : (isAr ? "خطأ في تحميل الحسابات" : "Failed to load accounts"));
     } finally {
       setLoading(false);
     }
@@ -172,8 +172,8 @@ export function AdminAccountsView() {
           ? isAr ? "اتعلّم الحساب كتجريبي" : "Marked as test account"
           : isAr ? "اتشال علم الحساب التجريبي" : "Test mark removed",
       );
-    } catch (e: any) {
-      toast.error(e.message || (isAr ? "خطأ" : "Error"));
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : (isAr ? "خطأ" : "Error"));
     } finally {
       setBusyId(null);
     }
@@ -245,8 +245,8 @@ export function AdminAccountsView() {
           toast.error(failed[0].error || (isAr ? "خطأ في المسح" : "Delete failed"));
         }
       }
-    } catch (e: any) {
-      toast.error(e.message || (isAr ? "خطأ في المسح" : "Delete failed"));
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : (isAr ? "خطأ في المسح" : "Delete failed"));
     } finally {
       if (isBulk) setBulkBusy(false);
       else setBusyId(null);

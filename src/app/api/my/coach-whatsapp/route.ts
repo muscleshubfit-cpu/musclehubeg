@@ -31,33 +31,33 @@ export async function GET(request: NextRequest) {
   }
 
   // ── Gate 1+2: an ACTIVE subscription (same rule the app displays). ──
-  const { data: sub } = (await supabaseAdmin
+  const { data: sub } = await supabaseAdmin
     .from("subscriptions")
     .select("id")
     .eq("client_id", auth.id)
     .eq("status", "active")
     .gt("end_date", new Date().toISOString())
     .limit(1)
-    .maybeSingle()) as { data: any };
+    .maybeSingle();
 
   if (!sub) return NextResponse.json({ phone: null });
 
   // ── Gate 3: his assigned coach. ──
-  const { data: assignment } = (await supabaseAdmin
+  const { data: assignment } = await supabaseAdmin
     .from("coach_assignments")
     .select("coach_id")
     .eq("client_id", auth.id)
     .limit(1)
-    .maybeSingle()) as { data: any };
+    .maybeSingle();
 
   if (!assignment?.coach_id) return NextResponse.json({ phone: null });
 
   // ── Gate 4: the coach saved his WhatsApp number. ──
-  const { data: page } = (await supabaseAdmin
-    .from("coach_pages" as any)
+  const { data: page } = await supabaseAdmin
+    .from("coach_pages")
     .select("whatsapp_phone")
     .eq("coach_id", assignment.coach_id)
-    .maybeSingle()) as { data: any };
+    .maybeSingle();
 
   const phone = String(page?.whatsapp_phone ?? "").trim();
   return NextResponse.json({ phone: phone || null });

@@ -71,8 +71,8 @@ export function ReferralView() {
       setStats(s);
       setAffiliateStats(affS);
       setCoachReferrals(coachRows);
-    } catch (e: any) {
-      console.error("[ReferralView] load failed:", e?.message);
+    } catch (e) {
+      console.error("[ReferralView] load failed:", e instanceof Error ? e.message : e);
     } finally {
       setLoading(false);
     }
@@ -131,7 +131,7 @@ export function ReferralView() {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
       toast.success(isAr ? "تم تحميل QR Code" : "QR Code downloaded");
-    } catch (e: any) {
+    } catch (e) {
       toast.error(isAr ? "تعذر تحميل QR Code" : "Failed to download QR Code");
     }
   };
@@ -175,8 +175,8 @@ export function ReferralView() {
       // a best-effort add-on handled server-side.
       fetch("/api/affiliate/payout-notify", { method: "POST" }).catch(() => {});
       await load();
-    } catch (e: any) {
-      toast.error(e.message || (isAr ? "حدث خطأ" : "Something went wrong"));
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : (isAr ? "حدث خطأ" : "Something went wrong"));
     } finally {
       setSubmitting(false);
     }
@@ -318,6 +318,7 @@ export function ReferralView() {
         {/* Bottom: QR code + Download — side-by-side on desktop, stacked on mobile */}
         {referralLink && (
           <div className="flex flex-col items-center gap-4 border-t border-white/10 p-6 sm:flex-row sm:items-center sm:gap-6 sm:p-8">
+            {/* eslint-disable-next-line @next/next/no-img-element -- external QR-service URL (qrserver.com); optimization must never touch a scannable QR (AffiliateToolkit/CoachWallet precedent) and next/image would need a remotePatterns entry for a third-party QR API */}
             <img
               src={`https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(referralLink)}`}
               alt={isAr ? "QR Code لرابط الأفلييت" : "QR Code for affiliate link"}

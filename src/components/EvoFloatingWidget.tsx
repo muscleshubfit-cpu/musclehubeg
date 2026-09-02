@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import Image from "next/image";
 import { useEvoChat } from "@/lib/evo-chat-context";
 import { useI18n } from "@/lib/i18n";
 import { Send, X, ExternalLink, Loader2, Sparkles, Bookmark, Check } from "lucide-react";
@@ -228,9 +229,12 @@ export function EvoFloatingWidget() {
         >
           {/* EVO profile image with pulse animation — image only, no text */}
           <span className="relative block">
-            <img
+            <Image
               src="/images/evo-standalone.jpg"
               alt="EVO"
+              width={48}
+              height={48}
+              priority
               className="h-12 w-12 rounded-full object-cover ring-2 ring-white/40"
             />
             <span className="absolute inset-0 animate-ping rounded-full bg-[#0071e3] opacity-20" />
@@ -262,9 +266,11 @@ export function EvoFloatingWidget() {
             {/* Header */}
             <div className="flex items-center justify-between border-b border-[#d2d2d7] bg-gradient-to-r from-[#0071e3] to-[#8b5cf6] p-4 text-white">
               <div className="flex items-center gap-3">
-                <img
+                <Image
                   src="/images/evo-standalone.jpg"
                   alt="EVO"
+                  width={40}
+                  height={40}
                   className="h-10 w-10 rounded-full object-cover ring-2 ring-white/30"
                 />
                 <div>
@@ -316,9 +322,11 @@ export function EvoFloatingWidget() {
               {showWelcome ? (
                 /* Welcome screen */
                 <div className="flex h-full flex-col items-center justify-center text-center">
-                  <img
+                  <Image
                     src="/images/evo-standalone.jpg"
                     alt="EVO"
+                    width={80}
+                    height={80}
                     className="h-20 w-20 rounded-2xl object-cover"
                   />
                   <h3 className="mt-4 text-lg font-semibold">EVO</h3>

@@ -10,7 +10,7 @@
  * clear error the UI can surface.
  */
 
-import type { AiJobType } from "@/lib/ai-jobs";
+import type { AiJobType, AiJobRow } from "@/lib/ai-jobs";
 
 const POLL_INTERVAL_MS = 20_000;
 const POLL_WINDOW_MS = 25 * 60_000; // 25 min hard ceiling
@@ -62,7 +62,7 @@ type Pending = { id: string };
 
 export async function enqueueAiJobClient(
   type: AiJobType,
-  payload: Record<string, any>,
+  payload: Record<string, unknown>,
 ): Promise<string> {
   const res = await fetch("/api/ai/jobs", {
     method: "POST",
@@ -77,10 +77,10 @@ export async function enqueueAiJobClient(
   return (data as Pending).id;
 }
 
-export async function getAiJob(id: string): Promise<any> {
+export async function getAiJob(id: string): Promise<AiJobRow> {
   const res = await fetch(`/api/ai/jobs?id=${encodeURIComponent(id)}`);
   if (!res.ok) throw new Error("job poll failed");
-  return res.json();
+  return (await res.json()) as AiJobRow;
 }
 
 /**
@@ -90,9 +90,9 @@ export async function getAiJob(id: string): Promise<any> {
  */
 export async function runAiJob(
   type: AiJobType,
-  payload: Record<string, any>,
+  payload: Record<string, unknown>,
   opts?: { onQueued?: () => void },
-): Promise<{ result: any; id: string }> {
+): Promise<{ result: Record<string, unknown>; id: string }> {
   const id = await enqueueAiJobClient(type, payload);
   opts?.onQueued?.();
 
@@ -106,7 +106,7 @@ export async function runAiJob(
       // ALL-RESULTS LAW (2026-08-28m): the id rides along so callers can
       // mark the job as already-shown — a later manual hydration refresh
       // never duplicates a result the user just watched land.
-      if (job?.status === "done") return { result: job.result, id };
+      if (job?.status === "done") return { result: job.result ?? {}, id };
       if (job?.status === "failed") {
         throw new Error(job.error_message || "فشل توليد النتيجة. حاول مرة أخرى.");
       }

@@ -148,7 +148,6 @@ export function CoachLandingEditor() {
         setLoading(false);
       }
     })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const publicUrl = useMemo(
@@ -256,12 +255,12 @@ export function CoachLandingEditor() {
       const url = await uploadCoachImage(file, coachId, "photo");
       setPhotoUrl(url);
       setMessage({ kind: "ok", text: isAr ? "تم رفع الصورة — اضغط نشر لحفظها على صفحتك" : "Photo uploaded — press publish to save it to your page" });
-    } catch (e: any) {
+    } catch (e) {
       setMessage({
         kind: "err",
         text: isAr
-          ? `تعذر رفع الصورة — لو الخطأ تكرر شغّل هجرة 0037 (${e?.message || "upload failed"})`
-          : `Upload failed — if it repeats, run migration 0037 (${e?.message || "upload failed"})`,
+          ? `تعذر رفع الصورة — لو الخطأ تكرر شغّل هجرة 0037 (${e instanceof Error ? e.message : "upload failed"})`
+          : `Upload failed — if it repeats, run migration 0037 (${e instanceof Error ? e.message : "upload failed"})`,
       });
     } finally {
       setBusyUpload(null);
@@ -292,12 +291,12 @@ export function CoachLandingEditor() {
       }
       setResultsPhotos((prev) => [...prev, ...uploaded].slice(0, MAX_RESULTS_PHOTOS));
       setMessage({ kind: "ok", text: isAr ? `تم رفع ${uploaded.length} صورة — اضغط نشر لحفظها` : `Uploaded ${uploaded.length} photo(s) — press publish to save` });
-    } catch (e: any) {
+    } catch (e) {
       setMessage({
         kind: "err",
         text: isAr
-          ? `تعذر رفع الصور — لو الخطأ تكرر شغّل هجرة 0037 (${e?.message || "upload failed"})`
-          : `Upload failed — if it repeats, run migration 0037 (${e?.message || "upload failed"})`,
+          ? `تعذر رفع الصور — لو الخطأ تكرر شغّل هجرة 0037 (${e instanceof Error ? e.message : "upload failed"})`
+          : `Upload failed — if it repeats, run migration 0037 (${e instanceof Error ? e.message : "upload failed"})`,
       });
     } finally {
       setBusyUpload(null);
@@ -329,12 +328,12 @@ export function CoachLandingEditor() {
       }
       setCertificates((prev) => [...prev, ...uploaded].slice(0, MAX_CERTIFICATES));
       setMessage({ kind: "ok", text: isAr ? `تم رفع ${uploaded.length} شهادة — اكتب اسم كل شهادة ثم اضغط نشر` : `Uploaded ${uploaded.length} certificate(s) — type each name then press publish` });
-    } catch (e: any) {
+    } catch (e) {
       setMessage({
         kind: "err",
         text: isAr
-          ? `تعذر رفع الشهادات — لو الخطأ تكرر شغّل هجرات 0037 و 0049 (${e?.message || "upload failed"})`
-          : `Upload failed — if it repeats, run migrations 0037 & 0049 (${e?.message || "upload failed"})`,
+          ? `تعذر رفع الشهادات — لو الخطأ تكرر شغّل هجرات 0037 و 0049 (${e instanceof Error ? e.message : "upload failed"})`
+          : `Upload failed — if it repeats, run migrations 0037 & 0049 (${e instanceof Error ? e.message : "upload failed"})`,
       });
     } finally {
       setBusyUpload(null);

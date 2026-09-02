@@ -1629,7 +1629,8 @@ function PlanViewerModal({ plan, onClose, onRegenerate }: { plan: Plan; onClose:
  const { result } = await runAiJob("exercise_regenerate", {
  exercise: { name: ex.name, sets: ex.sets, reps: ex.reps, rest: ex.rest, focus },
  });
- const rep = result?.replacement;
+ // Job results are job-type-specific JSON — narrow to the exercise contract the engine honors.
+ const rep = (result.replacement ?? null) as WorkoutPlanContent["days"][number]["exercises"][number] | null;
  if (!rep?.name) throw new Error("لم يتم إرجاع بديل صالح من الذكاء الاصطناعي");
  const newContent = { ...content };
  newContent.days = [...newContent.days];
@@ -1938,7 +1939,9 @@ function PlanViewerModal({ plan, onClose, onRegenerate }: { plan: Plan; onClose:
  meal.total_calories ||
  (meal.items || []).reduce((s, i) => s + (i.calories || 0), 0),
  });
- const newMeal = result.replacement;
+ // Job results are job-type-specific JSON — the engine’s "done" result always carries
+ // a replacement meal with this exact shape (same runtime semantics as before).
+ const newMeal = result.replacement as NutritionPlanContent["meals"][number];
  const newContent: NutritionPlanContent = { ...content };
  newContent.meals = [...newContent.meals];
  newContent.meals[mealIdx] = { ...newMeal };
@@ -2042,7 +2045,8 @@ function PlanViewerModal({ plan, onClose, onRegenerate }: { plan: Plan; onClose:
  meal_name: meal.name,
  avoid_names: avoidNames.slice(0, 40),
  });
- const rep = result?.replacement;
+ // Job results are job-type-specific JSON — narrow to the item contract the engine honors.
+ const rep = (result.replacement ?? null) as NutritionPlanContent["meals"][number]["items"][number] | null;
  if (!rep?.food) throw new Error("لم يتم إرجاع بديل صالح من الذكاء الاصطناعي");
  const newContent: NutritionPlanContent = { ...content };
  newContent.meals = [...newContent.meals];
@@ -2078,7 +2082,8 @@ function PlanViewerModal({ plan, onClose, onRegenerate }: { plan: Plan; onClose:
  day: { day: d.day, focus: d.focus, exercises: d.exercises || [] },
  avoid_names: avoidNames.slice(0, 60),
  });
- const rep = result?.replacement;
+ // Job results are job-type-specific JSON — narrow to the day contract the engine honors.
+ const rep = (result.replacement ?? null) as WorkoutPlanContent["days"][number] | null;
  if (!rep?.exercises?.length) throw new Error("لم يتم إرجاع يوم صالح من الذكاء الاصطناعي");
  const newContent = { ...content };
  newContent.days = [...newContent.days];

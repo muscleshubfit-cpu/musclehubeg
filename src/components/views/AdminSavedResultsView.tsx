@@ -18,7 +18,7 @@ type SavedResult = {
   id: string;
   tool_slug: string;
   title: string | null;
-  result_data: Record<string, any>;
+  result_data: Record<string, unknown>;
   created_at: string;
   user_id: string;
   user_name: string;
@@ -34,19 +34,19 @@ const TOOL_LABELS: Record<string, { ar: string; en: string }> = {
 };
 
 /** Compact summary of the result_data — different per tool. */
-function summarizeResult(tool: string, data: any): string {
+function summarizeResult(tool: string, data: Record<string, unknown> | null): string {
   if (!data) return "—";
   switch (tool) {
     case "calorie-calculator":
-      return `${data.target || "—"} kcal · P:${data.protein || "?"}g · C:${data.carbs || "?"}g · F:${data.fat || "?"}g`;
+      return `${String(data.target || "—")} kcal · P:${String(data.protein || "?")}g · C:${String(data.carbs || "?")}g · F:${String(data.fat || "?")}g`;
     case "bmi-calculator":
-      return `BMI: ${data.bmi || "—"} (${data.category || "?"}) · Ideal: ${data.idealWeightMin || "?"}-${data.idealWeightMax || "?"}kg`;
+      return `BMI: ${String(data.bmi || "—")} (${String(data.category || "?")}) · Ideal: ${String(data.idealWeightMin || "?")}-${String(data.idealWeightMax || "?")}kg`;
     case "macro-calculator":
-      return `${data.calories || data.target || "—"} kcal · P:${data.protein || "?"}g · C:${data.carbs || "?"}g · F:${data.fat || "?"}g`;
+      return `${String(data.calories || data.target || "—")} kcal · P:${String(data.protein || "?")}g · C:${String(data.carbs || "?")}g · F:${String(data.fat || "?")}g`;
     case "body-fat-calculator":
-      return `${data.bodyFat || data.bf || "—"}% · ${data.category || "?"} · Lean: ${data.leanMass || "?"}kg`;
+      return `${String(data.bodyFat || data.bf || "—")}% · ${String(data.category || "?")} · Lean: ${String(data.leanMass || "?")}kg`;
     case "water-tracker":
-      return `${data.consumed_ml || 0}/${data.goal_ml || 0} ml · ${data.date || "?"}`;
+      return `${Number(data.consumed_ml) || 0}/${Number(data.goal_ml) || 0} ml · ${String(data.date || "?")}`;
     default:
       return JSON.stringify(data).slice(0, 100);
   }
@@ -79,8 +79,8 @@ export function AdminSavedResultsView() {
       const data = await res.json();
       setResults(data.results || []);
       setTotal(data.total || 0);
-    } catch (e: any) {
-      toast.error(e?.message || (isAr ? "فشل التحميل" : "Failed to load"));
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : (isAr ? "فشل التحميل" : "Failed to load"));
       setResults([]);
     } finally {
       setLoading(false);

@@ -40,8 +40,8 @@ export function AdminLeadsView() {
         const data = await res.json();
         setLeads(data.leads || []);
       }
-    } catch (e: any) {
-      toast.error(e?.message || (isAr ? "فشل التحميل" : "Failed to load"));
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : (isAr ? "فشل التحميل" : "Failed to load"));
       setLeads([]);
     } finally {
       setLoading(false);
@@ -68,8 +68,8 @@ export function AdminLeadsView() {
       setLeads((prev) =>
         prev.map((l) => (l.id === lead.id ? { ...l, contacted: !l.contacted } : l)),
       );
-    } catch (e: any) {
-      toast.error(e?.message || (isAr ? "فشل التحديث" : "Update failed"));
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : (isAr ? "فشل التحديث" : "Update failed"));
     }
   };
 
@@ -89,8 +89,8 @@ export function AdminLeadsView() {
       setLeads((prev) =>
         prev.map((l) => (l.id === lead.id ? { ...l, converted: !l.converted } : l)),
       );
-    } catch (e: any) {
-      toast.error(e?.message || (isAr ? "فشل التحديث" : "Update failed"));
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : (isAr ? "فشل التحديث" : "Update failed"));
     }
   };
 
@@ -106,8 +106,8 @@ export function AdminLeadsView() {
       }
       toast.success(isAr ? "تم الحذف" : "Deleted");
       setLeads((prev) => prev.filter((l) => l.id !== lead.id));
-    } catch (e: any) {
-      toast.error(e?.message || (isAr ? "فشل الحذف" : "Delete failed"));
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : (isAr ? "فشل الحذف" : "Delete failed"));
     }
   };
 

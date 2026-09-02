@@ -8,6 +8,7 @@ import { listSubscriptionRequests, reviewSubscriptionRequest, getReceiptSignedUr
 import { MEMBERSHIPS } from "@/lib/memberships";
 import { getTier, type TierId } from "@/lib/plans";
 import { toast } from "sonner";
+import type { SubscriptionRequest } from "@/lib/supabase/types";
 
 /**
  * ADMIN PAYMENTS VIEW (0043 — renamed from CoachPaymentsView).
@@ -48,7 +49,7 @@ export function AdminPaymentsView() {
   const isAr = lang === "ar";
   const { navigate } = useNav();
   const [filter, setFilter] = useState<FilterTab>("pending");
-  const [rows, setRows] = useState<any[]>([]);
+  const [rows, setRows] = useState<SubscriptionRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [reviewing, setReviewing] = useState<string | null>(null);
 
@@ -102,8 +103,8 @@ export function AdminPaymentsView() {
             : "Request rejected",
       );
       await loadRefunds();
-    } catch (e: any) {
-      toast.error(e.message || t("common.error"));
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : t("common.error"));
     } finally {
       setRefundBusy(null);
     }
@@ -135,14 +136,17 @@ export function AdminPaymentsView() {
       await reviewSubscriptionRequest(id, action, adminNote);
       toast.success(action === "approve" ? t("admin.approvedToast") : t("admin.rejectedToast"));
       await load();
-    } catch (e: any) {
-      toast.error(e.message || t("common.error"));
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : t("common.error"));
     } finally {
       setReviewing(null);
     }
   };
 
-  const openReceipt = async (path: string) => {
+  // Accepts null: the JSX guard hides the button when receipt_path is null,
+  // but the click handler must accept the row's nullable field type.
+  const openReceipt = async (path: string | null) => {
+    if (!path) return;
     try {
       const url = await getReceiptSignedUrl(path);
       if (url) window.open(url, "_blank", "noopener");

@@ -44,7 +44,7 @@ export type View =
  * call site in the app keeps working unchanged, but each call now produces a
  * real URL + a real browser history entry.
  */
-function pathForView(view: View, params: Record<string, any> = {}): string {
+function pathForView(view: View, params: Record<string, string> = {}): string {
  switch (view) {
  case "landing":
  return "/";
@@ -121,7 +121,7 @@ export function useNav() {
 
  const view = useMemo(() => viewForPath(pathname || "/"), [pathname]);
  const params = useMemo(() => {
- const obj: Record<string, any> = {};
+ const obj: Record<string, string> = {};
  searchParams?.forEach((value, key) => { obj[key] = value; });
  if (view === "coach-client") {
  obj.clientId = (pathname || "").split("/").filter(Boolean)[1];
@@ -130,7 +130,7 @@ export function useNav() {
  }, [searchParams, pathname, view]);
 
  const navigate = useCallback(
- (v: View, p: Record<string, any> = {}) => {
+ (v: View, p: Record<string, string> = {}) => {
  router.push(pathForView(v, p));
  // NOTE: Do NOT call window.scrollTo here.
  // The smooth-scroll on every navigation was causing a jarring "scroll

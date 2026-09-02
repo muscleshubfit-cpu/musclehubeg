@@ -95,7 +95,7 @@ export async function fetchQueueItem(
     return { data: null, error: "Supabase admin not configured." };
   }
   const { data, error } = await supabaseAdmin
-    .from("blog_generation_queue" as any)
+    .from("blog_generation_queue")
     .select("*")
     .eq("id", queueId)
     .maybeSingle();
@@ -162,8 +162,8 @@ export async function updateQueueItem(
     return "Supabase admin not configured.";
   }
   const { error } = await supabaseAdmin
-    .from("blog_generation_queue" as any)
-    .update(updates as any)
+    .from("blog_generation_queue")
+    .update(updates)
     .eq("id", queueId);
   if (error) return `Queue update ${queueId}: ${error.message}`;
   return null;
@@ -180,7 +180,7 @@ export async function markQueueItemFailed(
   if (!isSupabaseAdminConfigured || !supabaseAdmin) return;
   try {
     await supabaseAdmin
-      .from("blog_generation_queue" as any)
+      .from("blog_generation_queue")
       .update({
         status: "failed",
         error_message: errorMessage.slice(0, 2000), // cap to avoid DB column overflow
