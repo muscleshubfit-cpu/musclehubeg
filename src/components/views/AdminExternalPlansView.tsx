@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useI18n } from "@/lib/i18n";
 import type { Database } from "@/lib/supabase/types";
+import type { PlanContent } from "@/lib/data";
 import { toast } from "sonner";
 import {
   Dumbbell,
@@ -40,7 +41,7 @@ type AIPlanMeta = {
 
 type ExternalPlan = Omit<ExternalPlanRow, "content"> & {
   text: string;
-  plan?: Record<string, any> | null;
+  plan?: PlanContent | null;
   ai?: AIPlanMeta | null;
   /** Phase 79: saved-version summaries (full snapshots live server-side). */
   history?: { at: string; action: string }[];
@@ -1011,7 +1012,7 @@ export function AdminExternalPlansView() {
                 </div>
               </div>
               {plan.notes && <p className="mt-2 text-xs text-[#86868b]">{isAr ? "ملاحظات: " : "Notes: "}{plan.notes}</p>}
-              {plan.plan_type === "meal" && plan.plan && Array.isArray(plan.plan.meals) ? (
+              {plan.plan_type === "meal" && plan.plan && "meals" in plan.plan && Array.isArray(plan.plan.meals) ? (
                 /* ── Structured meal plan — per-meal / per-item regen ── */
                 <div className="mt-3 max-h-[460px] space-y-2.5 overflow-y-auto rounded-2xl bg-[#f5f5f7] p-3">
                   {typeof plan.plan.daily_calories === "number" && plan.plan.daily_calories > 0 && (
@@ -1024,7 +1025,7 @@ export function AdminExternalPlansView() {
                       )}
                     </p>
                   )}
-                  {plan.plan.meals.map((meal: Record<string, any>, mi: number) => (
+                  {plan.plan.meals.map((meal, mi) => (
                     <div key={mi} className="rounded-xl bg-white p-3">
                       <div className="flex items-center justify-between gap-2">
                         <p className="min-w-0 truncate text-sm font-semibold text-[#1d1d1f]" dir="auto">
@@ -1044,7 +1045,7 @@ export function AdminExternalPlansView() {
                         </button>
                       </div>
                       <div className="mt-1.5 space-y-0.5">
-                        {((meal.items || []) as Record<string, any>[]).map((item, ii) => (
+                        {(meal.items || []).map((item, ii) => (
                           <div key={ii} className="flex items-center justify-between gap-2 rounded-lg px-1 py-0.5 hover:bg-[#f5f5f7]">
                             <p className="min-w-0 flex-1 text-xs leading-relaxed text-[#1d1d1f]" dir="auto">
                               <span className="font-medium">{String(item.food ?? "")}</span>
@@ -1084,13 +1085,13 @@ export function AdminExternalPlansView() {
                     </div>
                   )}
                 </div>
-              ) : plan.plan_type === "workout" && plan.plan && Array.isArray(plan.plan.days) ? (
+              ) : plan.plan_type === "workout" && plan.plan && "days" in plan.plan && Array.isArray(plan.plan.days) ? (
                 /* ── Structured workout plan — per-day / per-exercise regen ── */
                 <div className="mt-3 max-h-[460px] space-y-2.5 overflow-y-auto rounded-2xl bg-[#f5f5f7] p-3">
                   {plan.plan.overview ? (
                     <p className="text-xs leading-relaxed text-[#1d1d1f]" dir="auto">{String(plan.plan.overview)}</p>
                   ) : null}
-                  {(plan.plan.days as Record<string, any>[]).map((day, di) => (
+                  {plan.plan.days.map((day, di) => (
                     <div key={di} className="rounded-xl bg-white p-3">
                       <div className="flex items-center justify-between gap-2">
                         <p className="min-w-0 truncate text-sm font-semibold text-[#1d1d1f]" dir="auto">
@@ -1110,7 +1111,7 @@ export function AdminExternalPlansView() {
                       </div>
                       {!day.isRest && (
                         <div className="mt-1.5 space-y-0.5">
-                          {((day.exercises || []) as Record<string, any>[]).map((ex, ei) => (
+                          {(day.exercises || []).map((ex, ei) => (
                             <div key={ei} className="flex items-center justify-between gap-2 rounded-lg px-1 py-0.5 hover:bg-[#f5f5f7]">
                               <p className="min-w-0 flex-1 text-xs leading-relaxed text-[#1d1d1f]" dir="auto">
                                 <span className="font-medium">{String(ex.name ?? "")}</span>

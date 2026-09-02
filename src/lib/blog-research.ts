@@ -70,29 +70,37 @@ function asStringArray(v: unknown, max: number): string[] {
     .slice(0, max);
 }
 
-function normalizeResearch(raw: any): LanguageResearch {
-  const keywords: ResearchKeyword[] = Array.isArray(raw?.keywords)
-    ? raw.keywords
-        .map((k: any) =>
-          typeof k === "string"
-            ? { keyword: k.trim(), searchVolume: "" }
-            : { keyword: String(k?.keyword ?? "").trim(), searchVolume: String(k?.searchVolume ?? k?.volume ?? "").trim() },
-        )
+function normalizeResearch(rawInput: unknown): LanguageResearch {
+  // Loose record view — model JSON fields are defensively coerced below.
+  const raw = (typeof rawInput === "object" && rawInput !== null ? rawInput : {}) as Record<string, unknown>;
+  const keywords: ResearchKeyword[] = Array.isArray(raw.keywords)
+    ? (raw.keywords as unknown[])
+        .map((k): ResearchKeyword => {
+          if (typeof k === "string") return { keyword: k.trim(), searchVolume: "" };
+          const r = (typeof k === "object" && k !== null ? k : {}) as Record<string, unknown>;
+          return {
+            keyword: String(r.keyword ?? "").trim(),
+            searchVolume: String(r.searchVolume ?? r.volume ?? "").trim(),
+          };
+        })
         .filter((k: ResearchKeyword) => k.keyword.length > 2)
         .slice(0, 10)
     : [];
 
-  const faqs: ResearchFaq[] = Array.isArray(raw?.faqs)
-    ? raw.faqs
-        .map((f: any) => ({
-          question: String(f?.question ?? f?.q ?? "").trim(),
-          answer: String(f?.answer ?? f?.a ?? "").trim(),
-        }))
+  const faqs: ResearchFaq[] = Array.isArray(raw.faqs)
+    ? (raw.faqs as unknown[])
+        .map((f): ResearchFaq => {
+          const r = (typeof f === "object" && f !== null ? f : {}) as Record<string, unknown>;
+          return {
+            question: String(r.question ?? r.q ?? "").trim(),
+            answer: String(r.answer ?? r.a ?? "").trim(),
+          };
+        })
         .filter((f: ResearchFaq) => f.question.length > 5 && f.answer.length > 2)
         .slice(0, 10)
     : [];
 
-  return { keywords, faqs, topics: asStringArray(raw?.topics, 5) };
+  return { keywords, faqs, topics: asStringArray(raw.topics, 5) };
 }
 
 /**
@@ -224,15 +232,15 @@ Return STRICT JSON only, no markdown fences:
       timeoutMs: 55_000,
       maxModels: 3,
     });
-    const parsed = parseJSONLoose<any>(text);
+    const parsed = parseJSONLoose<Record<string, unknown>>(text);
     const data = parsed ? normalizeResearch(parsed) : null;
     if (data && data.topics.length > 0 && data.keywords.length >= 5) {
       console.log(`[blog-research] P0 ${lang} done (${provider}:${model}, kw:${data.keywords.length} faq:${data.faqs.length} topics:${data.topics.length})`);
       return { data, source: `${provider}:${model}` };
     }
     console.error(`[blog-research] P0 ${lang} invalid shape from ${provider}:${model} — using fallback`);
-  } catch (e: any) {
-    console.error(`[blog-research] P0 ${lang} chain failed: ${e?.message || e}`);
+  } catch (e) {
+    console.error(`[blog-research] P0 ${lang} chain failed: ${e instanceof Error ? e.message : e}`);
   }
   return { data: fallbackResearch(lang, recentTitles), source: "curated-fallback" };
 }

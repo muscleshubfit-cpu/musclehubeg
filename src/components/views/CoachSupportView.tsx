@@ -8,15 +8,17 @@ import {
   listTicketMessagesStaff,
   addTicketMessageStaff,
   updateTicketStatusStaff,
+  type StaffTicket,
 } from "@/lib/data";
+import type { TicketMessage } from "@/lib/supabase/types";
 import { toast } from "sonner";
 
 export function CoachSupportView() {
   const { t, lang: uiLang } = useI18n();
-  const [tickets, setTickets] = useState<any[]>([]);
+  const [tickets, setTickets] = useState<StaffTicket[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [active, setActive] = useState<any | null>(null);
+  const [active, setActive] = useState<StaffTicket | null>(null);
 
   // Phase 55: staff inbox reads through /api/support/tickets (service-side).
   // Failures are now SHOWN instead of silently rendering an empty inbox.
@@ -26,9 +28,10 @@ export function CoachSupportView() {
       const data = await listAllTickets();
       setTickets(data);
       setError(null);
-    } catch (e: any) {
-      console.error("[CoachSupportView] load failed:", e?.message);
-      setError(e?.message || "تعذر تحميل التذاكر");
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      console.error("[CoachSupportView] load failed:", msg);
+      setError(msg || "تعذر تحميل التذاكر");
     } finally {
       setLoading(false);
     }
@@ -130,10 +133,10 @@ function StatusPill({ status, t }: { status: string; t: (k: string) => string })
   );
 }
 
-function TicketDetail({ ticket, onClose, onReplied, onStatusChange }: { ticket: any; onClose: () => void; onReplied: () => void; onStatusChange: () => void }) {
+function TicketDetail({ ticket, onClose, onReplied, onStatusChange }: { ticket: StaffTicket; onClose: () => void; onReplied: () => void; onStatusChange: () => void }) {
   const { t } = useI18n();
   const isAr = useI18n().lang === "ar";
-  const [messages, setMessages] = useState<any[]>([]);
+  const [messages, setMessages] = useState<TicketMessage[]>([]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const [statusLoading, setStatusLoading] = useState(false);
@@ -168,8 +171,8 @@ function TicketDetail({ ticket, onClose, onReplied, onStatusChange }: { ticket: 
       // from the session on the server (same rule as admin replies).
       await addTicketMessageStaff(ticket.id, text);
       onReplied();
-    } catch (e: any) {
-      toast.error(e.message || t("common.error"));
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : t("common.error"));
     } finally {
       setSending(false);
     }
@@ -182,8 +185,8 @@ function TicketDetail({ ticket, onClose, onReplied, onStatusChange }: { ticket: 
       await updateTicketStatusStaff(ticket.id, newStatus);
       toast.success(isAr ? (newStatus === "closed" ? "تم إغلاق التذكرة" : "تم إعادة فتح التذكرة") : (newStatus === "closed" ? "Ticket closed" : "Ticket reopened"));
       onStatusChange();
-    } catch (e: any) {
-      toast.error(e.message || t("common.error"));
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : t("common.error"));
     } finally {
       setStatusLoading(false);
     }

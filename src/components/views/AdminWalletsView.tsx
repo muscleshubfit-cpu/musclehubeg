@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { ExternalLink } from "lucide-react";
 import { getReceiptSignedUrl } from "@/lib/data";
 import { coachTopupMethodLabel } from "@/lib/coach-limits";
+import type { CoachTopupRequest } from "@/lib/supabase/types";
 
 /**
  * ADMIN — COACH WALLETS (0035) — /admin/wallets
@@ -31,11 +32,17 @@ type WalletRow = {
   client_count: number;
 };
 
+/** Row shape returned by GET /api/admin/wallets — coach_topup_requests + the
+ *  embedded coach:profiles relation (full_name/email for display). */
+type TopupRow = CoachTopupRequest & {
+  coach: { full_name: string | null; email: string | null } | null;
+};
+
 export function AdminWalletsView() {
   const { lang } = useI18n();
   const isAr = lang === "ar";
   const [wallets, setWallets] = useState<WalletRow[]>([]);
-  const [topups, setTopups] = useState<any[]>([]);
+  const [topups, setTopups] = useState<TopupRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
   const [adjustCoach, setAdjustCoach] = useState("");
@@ -50,8 +57,8 @@ export function AdminWalletsView() {
       if (!res.ok) throw new Error(json.message || "error");
       setWallets(json.wallets ?? []);
       setTopups(json.topups ?? []);
-    } catch (e: any) {
-      toast.error(e.message || (isAr ? "خطأ غير متوقع" : "Unexpected error"));
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : (isAr ? "خطأ غير متوقع" : "Unexpected error"));
     } finally {
       setLoading(false);
     }
@@ -81,8 +88,8 @@ export function AdminWalletsView() {
           : isAr ? "الطلب مرفوض" : "Request rejected",
       );
       await load();
-    } catch (e: any) {
-      toast.error(e.message || (isAr ? "خطأ غير متوقع" : "Unexpected error"));
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : (isAr ? "خطأ غير متوقع" : "Unexpected error"));
     } finally {
       setBusy(null);
     }
@@ -120,8 +127,8 @@ export function AdminWalletsView() {
       setAdjustAmount("");
       setAdjustNote("");
       await load();
-    } catch (e: any) {
-      toast.error(e.message || (isAr ? "خطأ غير متوقع" : "Unexpected error"));
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : (isAr ? "خطأ غير متوقع" : "Unexpected error"));
     } finally {
       setBusy(null);
     }
@@ -176,9 +183,9 @@ export function AdminWalletsView() {
                     <div className="flex flex-wrap items-center justify-between gap-3">
                       <div>
                         <p className="text-sm font-medium">
-                          {(t.coach as any)?.full_name || t.coach_id}
+                          {t.coach?.full_name || t.coach_id}
                           <span className="ms-2 text-xs font-normal text-[#6e6e73]">
-                            {(t.coach as any)?.email}
+                            {t.coach?.email}
                           </span>
                         </p>
                         <p className="mt-1 text-sm" dir="ltr">
@@ -336,7 +343,7 @@ export function AdminWalletsView() {
                   <tbody>
                     {reviewed.map((t) => (
                       <tr key={t.id} className="border-t border-[#e5e5ea]">
-                        <td className="p-3 text-xs">{(t.coach as any)?.full_name || t.coach_id}</td>
+                        <td className="p-3 text-xs">{t.coach?.full_name || t.coach_id}</td>
                         <td className="p-3 font-medium" dir="ltr">{fmt(Number(t.amount))}</td>
                         <td className="p-3 text-xs">{coachTopupMethodLabel(t.method, lang)}</td>
                         <td className="p-3">

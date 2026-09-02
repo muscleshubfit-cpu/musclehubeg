@@ -234,13 +234,25 @@ Create the detailed article blueprint. Return STRICT JSON only:
     timeoutMs: 70_000,
     maxModels: 2,
   });
-  const parsed = parseJSONLoose<any>(text);
+  const parsed = parseJSONLoose<{
+    title?: string;
+    subtitle?: string;
+    metaDescription?: string;
+    slugBase?: string;
+    sections?: unknown[];
+    imagePlan?: unknown[];
+    lsiKeywords?: unknown[];
+  }>(text);
   if (!parsed?.title || !Array.isArray(parsed.sections)) {
     throw new Error(`P1 ${lang}: invalid outline JSON from ${provider}:${model}`);
   }
   const imagePlan: ImagePlanItem[] = Array.isArray(parsed.imagePlan)
     ? parsed.imagePlan
-        .map((i: any) => ({ subject: String(i?.subject ?? "").trim(), type: String(i?.type ?? "photo").trim() }))
+        .map((i) => {
+          // Per-item loose view — model JSON fields are defensively coerced below.
+          const r = (typeof i === "object" && i !== null ? i : {}) as Record<string, unknown>;
+          return { subject: String(r.subject ?? "").trim(), type: String(r.type ?? "photo").trim() };
+        })
         .filter((i: ImagePlanItem) => i.subject.length > 2)
         .slice(0, 5)
     : [];
@@ -469,12 +481,20 @@ Return STRICT JSON only:
     timeoutMs: 110_000,
     maxModels: 5,
   });
-  const parsed = parseJSONLoose<any>(text);
+  const parsed = parseJSONLoose<{
+    articleMd?: string;
+    keywordCoverage?: string;
+    changesSummary?: unknown[];
+    factCheckNotes?: string;
+    ctaAdded?: boolean;
+    internalLinks?: unknown[];
+    externalLinks?: unknown[];
+  }>(text);
   const md = (parsed?.articleMd || "").trim();
-  if (!md || countWords(md) < 400) {
+  if (!parsed || !md || countWords(md) < 400) {
     throw new Error(`P4 ${lang}: invalid review JSON from ${provider}:${model}`);
   }
-  const coverage = ["good", "partial", "poor"].includes(parsed?.keywordCoverage)
+  const coverage = ["good", "partial", "poor"].includes(parsed?.keywordCoverage ?? "")
     ? (parsed.keywordCoverage as ReviewReport["keywordCoverage"])
     : "partial";
 
@@ -491,12 +511,18 @@ Return STRICT JSON only:
     },
     internalLinks: Array.isArray(parsed.internalLinks)
       ? parsed.internalLinks
-          .filter((l: any) => typeof l?.slug === "string" && typeof l?.anchorText === "string")
+          .filter((l): l is { slug: string; anchorText: string } => {
+            const r = (typeof l === "object" && l !== null ? l : {}) as Record<string, unknown>;
+            return typeof r.slug === "string" && typeof r.anchorText === "string";
+          })
           .slice(0, 5)
       : [],
     externalLinks: Array.isArray(parsed.externalLinks)
       ? parsed.externalLinks
-          .filter((l: any) => typeof l?.url === "string" && /^https:\/\//.test(l.url) && typeof l?.anchorText === "string")
+          .filter((l): l is { url: string; anchorText: string } => {
+            const r = (typeof l === "object" && l !== null ? l : {}) as Record<string, unknown>;
+            return typeof r.url === "string" && /^https:\/\//.test(r.url) && typeof r.anchorText === "string";
+          })
           .slice(0, 3)
       : [],
     source: `${provider}:${model}`,

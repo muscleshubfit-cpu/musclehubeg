@@ -35,6 +35,8 @@ import {
   Megaphone,
   ShieldQuestion,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+import Image from "next/image";
 import { LanguageToggle } from "@/components/LanguageToggle";
 import { useI18n } from "@/lib/i18n";
 import { useNav } from "@/hooks/use-nav";
@@ -116,7 +118,7 @@ export function SiteHeader({ variant = "landing" }: { variant?: "landing" | "app
 
   type MenuItem = {
     label: string;
-    icon: any;
+    icon: LucideIcon;
     href?: string;
     onClick?: () => void;
   };
@@ -344,17 +346,21 @@ export function SiteHeader({ variant = "landing" }: { variant?: "landing" | "app
             className="flex items-center gap-2"
             aria-label="Musclehubeg"
           >
-            <img
+            <Image
               src="/logo.png"
               alt="Musclehubeg"
+              width={120}
+              height={80}
+              priority
               className="hidden h-9 w-auto object-contain md:block"
-              loading="eager"
             />
-            <img
+            <Image
               src="/icon-192.png"
               alt="Musclehubeg"
+              width={36}
+              height={36}
+              priority
               className="h-9 w-9 rounded-lg object-contain md:hidden"
-              loading="eager"
             />
           </button>
 
@@ -378,6 +384,7 @@ export function SiteHeader({ variant = "landing" }: { variant?: "landing" | "app
                 aria-label={isAr ? "حسابي" : "My account"}
               >
                 {profile?.avatar_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element -- avatar URL is a user-provided arbitrary host; next/image would need a wildcard remotePatterns entry (weakens the image allowlist) and this is a 36px decorative thumbnail (QR-asset precedent)
                   <img
                     src={profile.avatar_url}
                     alt={profile.full_name || "Profile"}
@@ -522,6 +529,7 @@ export function SiteHeader({ variant = "landing" }: { variant?: "landing" | "app
                   className="mb-1 flex items-center gap-3 rounded-lg px-3 py-3 text-start text-sm font-normal transition-colors text-[#1d1d1f] hover:bg-[#f5f5f7]"
                 >
                   {profile?.avatar_url ? (
+                    // eslint-disable-next-line @next/next/no-img-element -- avatar URL is a user-provided arbitrary host; next/image would need a wildcard remotePatterns entry (weakens the image allowlist) and this is a 28px decorative thumbnail (QR-asset precedent)
                     <img
                       src={profile.avatar_url}
                       alt={profile.full_name || "Profile"}

@@ -1,16 +1,18 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/use-auth";
 import { useI18n } from "@/lib/i18n";
 import { useMembershipTier } from "@/hooks/use-membership-tier";
 import { Bookmark, Loader2, Check, Download, Trash2, ImageDown } from "lucide-react";
 import { toast } from "sonner";
+import type { ToolResultData } from "@/lib/result-png-export";
 
 type Props = {
   toolSlug: string;
   title: string;
-  resultData: Record<string, any>;
+  resultData: ToolResultData;
 };
 
 /**
@@ -27,6 +29,7 @@ type Props = {
 export function SaveResultButton({ toolSlug, title, resultData }: Props) {
   const { profile } = useAuth();
   const { lang } = useI18n();
+  const router = useRouter();
   const isAr = lang === "ar";
   const { tier } = useMembershipTier(profile);
   const [saving, setSaving] = useState(false);
@@ -36,7 +39,7 @@ export function SaveResultButton({ toolSlug, title, resultData }: Props) {
   const handleSave = async () => {
     if (!profile) {
       toast.error(isAr ? "سجّل الدخول للحفظ" : "Log in to save");
-      window.location.href = "/auth?mode=login&next=" + encodeURIComponent(window.location.pathname);
+      router.push("/auth?mode=login&next=" + encodeURIComponent(window.location.pathname));
       return;
     }
 
@@ -70,8 +73,8 @@ export function SaveResultButton({ toolSlug, title, resultData }: Props) {
       setSaved(true);
       toast.success(isAr ? "تم الحفظ ✅" : "Saved ✅");
       setTimeout(() => setSaved(false), 3000);
-    } catch (e: any) {
-      toast.error(e?.message || (isAr ? "فشل الحفظ" : "Failed to save"));
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : (isAr ? "فشل الحفظ" : "Failed to save"));
     } finally {
       setSaving(false);
     }
@@ -113,7 +116,7 @@ export function SaveResultButton({ toolSlug, title, resultData }: Props) {
           ? "تحميل PDF متاح للأعضاء Premium فأعلى"
           : "PDF export is Premium+ only",
       );
-      window.location.href = "/memberships";
+      router.push("/memberships");
       return;
     }
 
@@ -127,7 +130,7 @@ export function SaveResultButton({ toolSlug, title, resultData }: Props) {
         isAr,
       });
       toast.success(isAr ? "تم تحميل PDF" : "PDF downloaded");
-    } catch (e: any) {
+    } catch (e) {
       console.error("[PDF export]", e);
       toast.error(
         isAr ? "فشل إنشاء PDF" : "Failed to generate PDF",

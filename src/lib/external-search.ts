@@ -137,9 +137,9 @@ Produce the research JSON now.`;
   );
 
   const data = parseJSON<{
-    topArticles?: any[];
-    relatedQuestions?: any[];
-    trendingKeywords?: any[];
+    topArticles?: unknown[];
+    relatedQuestions?: unknown[];
+    trendingKeywords?: unknown[];
   }>(text);
 
   const topArticles = Array.isArray(data?.topArticles) ? data!.topArticles : [];
@@ -155,22 +155,24 @@ Produce the research JSON now.`;
   // Sanitize hosts into the trusted list; unknown/missing → "" (never fabricated).
   const sanitized: ExternalSearchArticle[] = topArticles
     .slice(0, maxResults)
-    .map((a: any) => {
-      const rawHost = String(a?.host || "").toLowerCase().trim();
+    .map((a) => {
+      // Per-item loose view — model JSON fields are defensively coerced below.
+      const r = (typeof a === "object" && a !== null ? a : {}) as Record<string, unknown>;
+      const rawHost = String(r.host || "").toLowerCase().trim();
       const host = WELL_KNOWN_HEALTH_HOSTS.includes(rawHost) ? rawHost : "";
       return {
-        title: String(a?.title || "").slice(0, 200),
+        title: String(r.title || "").slice(0, 200),
         url: "", // never publish model-suggested URLs
         host,
-        snippet: String(a?.snippet || "").slice(0, 600),
+        snippet: String(r.snippet || "").slice(0, 600),
       };
     });
 
   const relatedQuestions = Array.isArray(data?.relatedQuestions)
-    ? data!.relatedQuestions.map((q: any) => String(q).slice(0, 200)).slice(0, 15)
+    ? data!.relatedQuestions.map((q) => String(q).slice(0, 200)).slice(0, 15)
     : [];
   const trendingKeywords = Array.isArray(data?.trendingKeywords)
-    ? data!.trendingKeywords.map((k: any) => String(k).slice(0, 60)).slice(0, 10)
+    ? data!.trendingKeywords.map((k) => String(k).slice(0, 60)).slice(0, 10)
     : [];
 
   console.log(

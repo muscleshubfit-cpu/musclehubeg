@@ -24,7 +24,7 @@
  * (interpolated into the card text) plus the string fields some rows print
  * directly. Extra fields tool pages send ride along untouched at runtime.
  */
-type ToolResultData = Record<string, string | number | undefined | null> & {
+export type ToolResultData = Record<string, string | number | undefined | null> & {
   category?: string;
   gender?: string;
   method?: string;

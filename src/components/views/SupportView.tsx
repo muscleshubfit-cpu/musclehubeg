@@ -24,18 +24,19 @@ import {
  listTicketMessages,
  addTicketMessage,
 } from "@/lib/data";
+import type { SupportTicket, TicketMessage } from "@/lib/supabase/types";
 import { toast } from "sonner";
 
 export function SupportView() {
  const { t } = useI18n();
  const { profile } = useAuth();
- const [tickets, setTickets] = useState<any[]>([]);
+ const [tickets, setTickets] = useState<SupportTicket[]>([]);
  const [loading, setLoading] = useState(true);
  const [open, setOpen] = useState(false);
  const [subject, setSubject] = useState("");
  const [message, setMessage] = useState("");
  const [saving, setSaving] = useState(false);
- const [activeTicket, setActiveTicket] = useState<any | null>(null);
+ const [activeTicket, setActiveTicket] = useState<SupportTicket | null>(null);
 
  const load = async () => {
  if (!profile) return;
@@ -43,8 +44,8 @@ export function SupportView() {
  try {
  const data = await listTickets(profile.id);
  setTickets(data);
- } catch (e: any) {
- console.error("[SupportView] load failed:", e?.message);
+ } catch (e) {
+ console.error("[SupportView] load failed:", e instanceof Error ? e.message : e);
  } finally {
  setLoading(false);
  }
@@ -64,8 +65,8 @@ export function SupportView() {
  setOpen(false);
  await load();
  toast.success(t("support.created"));
- } catch (e: any) {
- toast.error(e.message || t("common.error"));
+ } catch (e) {
+ toast.error(e instanceof Error ? e.message : t("common.error"));
  } finally {
  setSaving(false);
  }
@@ -170,10 +171,10 @@ function StatusBadge({ status, t }: { status: string; t: (k: string) => string }
  return <Badge variant="outline" className={cls}>{label}</Badge>;
 }
 
-function TicketDetail({ ticket, onClose }: { ticket: any; onClose: () => void }) {
+function TicketDetail({ ticket, onClose }: { ticket: SupportTicket; onClose: () => void }) {
  const { t } = useI18n();
  const { profile } = useAuth();
- const [messages, setMessages] = useState<any[]>([]);
+ const [messages, setMessages] = useState<TicketMessage[]>([]);
  const [input, setInput] = useState("");
  const [sending, setSending] = useState(false);
 
