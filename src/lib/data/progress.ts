@@ -69,14 +69,15 @@ export async function listPhotos(userId: string): Promise<Array<ProgressPhoto & 
  .from("progress_photos")
  .select("*")
  .eq("user_id", userId)
- .order("taken_on", { ascending: false });
+ .order("taken_at", { ascending: false });
  if (!data) return [];
- // Generate signed URLs for each photo
+ // Generate signed URLs for each photo (photo_url stores the STORAGE
+ // PATH — Phase 105 renamed from the phantom file_path mirror column)
  const withUrls = await Promise.all(
  data.map(async (p) => {
  const { data: signed } = await supabase!.storage
  .from("progress-photos")
- .createSignedUrl(p.file_path, 3600);
+ .createSignedUrl(p.photo_url, 3600);
  return { ...p, url: signed?.signedUrl ?? "" };
  }),
  );
@@ -87,7 +88,7 @@ export async function listPhotos(userId: string): Promise<Array<ProgressPhoto & 
  .map((p) => ({ ...p, url: "" }));
 }
 
-export async function uploadPhoto(userId: string, file: File, date: string, note: string) {
+export async function uploadPhoto(userId: string, file: File, date: string) {
  // M7 fix: validate file type + size before uploading
  validateUploadFile(file, ["image/jpeg", "image/png", "image/webp"], 5 * 1024 * 1024);
  // Phase 98: compress ON-DEVICE before upload — phone photos arrive at
@@ -100,9 +101,12 @@ export async function uploadPhoto(userId: string, file: File, date: string, note
  const path = `${userId}/${Date.now()}.${ext}`;
  const { error: upErr } = await supabase.storage.from("progress-photos").upload(path, file);
  if (upErr) throw new Error(upErr.message);
+ // Phase 105: live columns are photo_url (storage path) + taken_at —
+ // the old file_path/taken_on/note insert was the mirror fiction and
+ // failed silently on production (42703-class drift, Phase 99-run)
  const { data, error } = await supabase
  .from("progress_photos")
- .insert({ user_id: userId, file_path: path, taken_on: date, note: note || null })
+ .insert({ user_id: userId, photo_url: path, taken_at: date })
  .select()
  .single();
  if (error) throw new Error(error.message);
@@ -110,15 +114,15 @@ export async function uploadPhoto(userId: string, file: File, date: string, note
  }
  // Local fallback
  const all = read<ProgressPhoto[]>(LS_PREFIX + "photos", []);
- const row: ProgressPhoto & { url: string } = { id: uid(), user_id: userId, file_path: "", taken_on: date, note, created_at: new Date().toISOString(), url: URL.createObjectURL(file) };
+ const row: ProgressPhoto & { url: string } = { id: uid(), user_id: userId, photo_url: "", taken_at: date, created_at: new Date().toISOString(), url: URL.createObjectURL(file) };
  all.push(row);
  write(LS_PREFIX + "photos", all);
  return row;
 }
 
-export async function deletePhoto(id: string, filePath?: string) {
+export async function deletePhoto(id: string, storagePath?: string) {
  if (isSupabaseConfigured && supabase) {
- if (filePath) await supabase.storage.from("progress-photos").remove([filePath]);
+ if (storagePath) await supabase.storage.from("progress-photos").remove([storagePath]);
  await supabase.from("progress_photos").delete().eq("id", id);
  return;
  }

@@ -44,7 +44,6 @@ export function ProgressView() {
  // Photo upload
  const [photoOpen, setPhotoOpen] = useState(false);
  const [photoDate, setPhotoDate] = useState(new Date().toISOString().slice(0, 10));
- const [photoNote, setPhotoNote] = useState("");
  const [photoFile, setPhotoFile] = useState<File | null>(null);
  const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
@@ -115,10 +114,12 @@ export function ProgressView() {
  if (!profile || !photoFile) return;
  setUploadingPhoto(true);
  try {
- await uploadPhoto(profile.id, photoFile, photoDate, photoNote);
+ // Phase 105: live progress_photos has NO note column (proven 99-run) —
+ // the note input previously wrote to a phantom mirror column and never
+ // persisted on production; the field is gone instead of lying.
+ await uploadPhoto(profile.id, photoFile, photoDate);
  await load();
  setPhotoFile(null);
- setPhotoNote("");
  setPhotoOpen(false);
  toast.success(t("prog.photoUploaded"));
  } catch (e) {
@@ -128,10 +129,10 @@ export function ProgressView() {
  }
  };
 
- const removePhoto = async (id: string, filePath?: string) => {
+ const removePhoto = async (id: string, storagePath?: string) => {
  if (!confirm(t("common.delete") + "?")) return;
  try {
- await deletePhoto(id, filePath);
+ await deletePhoto(id, storagePath);
  await load();
  toast.success(t("common.delete"));
  } catch (e) {
@@ -266,15 +267,14 @@ export function ProgressView() {
  <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
  {photos.map((p) => (
  <div key={p.id} className="group relative aspect-square w-full overflow-hidden rounded-xl border border-border">
- <Image src={p.url} alt={p.note ?? "progress"} fill className="object-cover" />
+ <Image src={p.url} alt="progress" fill className="object-cover" />
  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-2">
  <span className="text-xs text-white">
- {p.taken_on ? new Date(p.taken_on).toLocaleDateString() : ""}
+ {p.taken_at ? new Date(p.taken_at).toLocaleDateString() : ""}
  </span>
- {p.note && <p className="line-clamp-1 text-[10px] text-white/80">{p.note}</p>}
  </div>
  <button
- onClick={() => removePhoto(p.id, p.file_path)}
+ onClick={() => removePhoto(p.id, p.photo_url)}
  className="absolute end-1 top-1 rounded-full bg-black/50 p-1.5 text-white opacity-0 transition-opacity group-hover:opacity-100"
  aria-label={t("common.delete")}
  >
@@ -356,10 +356,6 @@ export function ProgressView() {
  onChange={(e) => setPhotoFile(e.target.files?.[0] ?? null)}
  className="mt-1.5"
  />
- </div>
- <div>
- <Label htmlFor="pnote">{t("prog.photoNote")}</Label>
- <Input id="pnote" value={photoNote} onChange={(e) => setPhotoNote(e.target.value)} className="mt-1.5" />
  </div>
  </div>
  <DialogFooter>

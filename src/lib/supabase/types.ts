@@ -1386,47 +1386,52 @@ export type Database = {
         Relationships: [];
       };
       coach_presence: {
+        // Phase 105: mirror corrected to the LIVE production shape proven
+        // column-by-column in Phase 99-run (id · coach_id · last_seen ·
+        // updated_at). The old user_id/status mirror was fiction and made
+        // 0066 v1 abort with 42703 + kept presence helpers silently offline.
         Row: {
           id: string;
-          user_id: string;
-          status: string;
+          coach_id: string;
           last_seen: string;
+          updated_at: string;
         };
         Insert: {
           id?: string;
-          user_id: string;
-          status: string;
-          last_seen: string;
+          coach_id: string;
+          last_seen?: string;
+          updated_at?: string;
         };
         Update: {
-          user_id?: string;
-          status?: string;
+          coach_id?: string;
           last_seen?: string;
+          updated_at?: string;
         };
         Relationships: [];
       };
       progress_photos: {
+        // Phase 105: mirror corrected to the LIVE production shape proven
+        // column-by-column in Phase 99-run (id · user_id · photo_url ·
+        // taken_at · created_at). The old file_path/taken_on/note mirror
+        // broke the member photos list silently on production.
         Row: {
           id: string;
           user_id: string;
-          file_path: string;
-          taken_on: string;
-          note: string | null;
+          photo_url: string;
+          taken_at: string;
           created_at: string;
         };
         Insert: {
           id?: string;
           user_id: string;
-          file_path: string;
-          taken_on: string;
-          note?: string | null;
+          photo_url: string;
+          taken_at?: string;
           created_at?: string;
         };
         Update: {
           user_id?: string;
-          file_path?: string;
-          taken_on?: string;
-          note?: string | null;
+          photo_url?: string;
+          taken_at?: string;
         };
         Relationships: [];
       };

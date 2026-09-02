@@ -746,3 +746,20 @@ Work Log:
 
 Stage Summary:
 - كل الوصف الواجه للمستخدم (README + GitHub About + metadata + DEVELOPER_GUIDE) بقى مطابق للكود الفعلي عند Phase 103b — الفجوة 81→103b اتقفلت، ووصف الريبو القديم اتصلح نهائيًا
+
+---
+Task ID: 105
+Agent: Super Z (main)
+Task: إصلاح حقيقة المرآة (0069) — موافقة «go» على مرشح 99-run/104: types.ts + مسارات التطبيق + توفيق البيئات الجديدة
+
+Work Log:
+- types.ts: coach_presence = id·coach_id·last_seen·updated_at وprogress_photos = id·user_id·photo_url·taken_at·created_at (الشكل الحي المثبت عمود-عمود في 99-run) مع تعليقات نسبة الحادثة
+- data/progress.ts: listPhotos ترتيب taken_at + موقعنة من photo_url · uploadPhoto يكتب {user_id, photo_url, taken_at} (بلا note — العمود غير موجود حيًا) · deletePhoto storagePath
+- data/coach.ts: دالات الحضور معاد كتابتها على coach_id/last_seen — online = last_seen ≤ 2 دقائق، offline = حذف الصف (لا status حيًا) — دفاعي: select-then-update/insert لأن uniqueness الحية لـ coach_id غير مثبتة
+- ProgressView: حقل ملاحظة الصورة اتشال (كان بيكتب في عمود وهمي — واجهة كاذبة) + العرض taken_at + الحذف photo_url
+- 0069 تلقائي (20260903173000): ALTERات سطر واحد بالأعلى (إضافة ×4 + حذف ×5 — idempotent بالاتجاهين، no-op نقي على الإنتاج) + نسخ بيانات محكومة بـ information_schema قبل الحذف — حد موثق: البيئة النظيفة بتوقف عند 0064 قبل 0069 → bootstrap في عدة النسخة النظيفة (معروضة للمالك قبل التنفيذ)
+- migration_audit.py: بيفهم alter drop column (تطور أداة Phase 96) — مقارنة كاملة بخط الأساس (git stash): الفرق الوحيد files scanned 80→81 — صفر انجراف جديد
+- INDEX.md: صف 0069 + heading 0001→0069 + عداد + سجل تدقيق 105 · QA_CHECKLIST Phase 105 · PROGRESS Phase 105 + آخر تحديث · worklog ×2
+
+Stage Summary:
+- المرآة بقى بتعكس الحقيقة الحية — قائمة صور العضو شغالة حيًا لأول مرة (كانت مكسورة بصمت) — الحضور جاهز للتوصيل مستقبلًا — والبوابات كلها خضرا

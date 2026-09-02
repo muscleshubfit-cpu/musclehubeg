@@ -93,6 +93,18 @@ for f in files:
             if col.lower() not in CONSTRAINT_STARTERS:
                 mig_tables.setdefault(t, set()).add(col)
                 mig_order.setdefault(t, f.name)
+        # alter drop column (Phase 105): a later migration may legitimately
+        # remove a column an earlier one created (e.g. 0069 dropping the
+        # phantom mirror columns 0063 declared) — the effective migration
+        # shape is what remains, so retire it from the expected set
+        m = re.match(
+            r"(?i)alter\s+table\s+(?:only\s+)?(?:public\.)?([\w.\"']+)\s+"
+            r"drop\s+(?:column\s+)?(?:if\s+exists\s+)?([\w\"']+)",
+            line)
+        if m:
+            t, col = norm(m.group(1)), m.group(2).strip('"').lower()
+            if t in mig_tables:
+                mig_tables[t].discard(col)
 
 # ---------------------------------------------------------------- types.ts
 ts = TYPES.read_text()

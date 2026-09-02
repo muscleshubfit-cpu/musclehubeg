@@ -6,7 +6,20 @@
 
 ---
 
-## Latest Verification — 2026-09-03 (Phase 104 — DOCS PARITY SYNC: owner asked «عايز اتاكد ان كل خصائص ومميزات المشروع مكتوبة فى وصف وهيكل المشروع بالظبط ، وصف الريبو مكتوب قديم محتاج يتعدل» — full audit of every doc-facing description/structure against the CODE, then the stale GitHub repo About rewritten via API)
+## Latest Verification — 2026-09-03 (Phase 105 — MIRROR TRUTH FIX: owner approved «go» on the 105 candidate recorded in Phase 104 — types.ts mirror + app paths corrected to the LIVE columns proven in 99-run + 0069 convergence migration + audit tool learns drop-column)
+
+| Check | Result | How verified |
+|---|---|---|
+| Mirror corrected to LIVE truth | ✅ | types.ts coach_presence = id · coach_id · last_seen · updated_at and progress_photos = id · user_id · photo_url · taken_at · created_at — the exact shapes proven column-by-column on production in Phase 99-run; inline comments cite the incident lineage (0066 v1 42703 · 0064 v1 pipeline halt) |
+| App paths un-silenced (the real user-facing fix) | ✅ | data/progress.ts: listPhotos orders by taken_at (was phantom taken_on → empty list live) + signed URLs from photo_url (was file_path); uploadPhoto inserts {user_id, photo_url, taken_at} (was file_path/taken_on/note → silent insert failure); data/coach.ts presence rewritten on coach_id/last_seen — online = last_seen ≤ 2min, offline = row delete (no status column exists); helpers currently UNCALLED (dormant legacy) so zero live-behavior risk |
+| UI honesty (ProgressView) | ✅ | photo note input REMOVED — it wrote to a phantom column and never persisted on production (lying UI); photo cards show taken_at date; delete passes photo_url as storage path; alt fixed; i18n key prog.photoNote left harmless-unused |
+| 0069 auto-migration (audit-honest convergence) | ✅ | `20260903173000_0069_legacy_tables_live_convergence.sql`: top-level SINGLE-LINE ALTERs (add if not exists ×4 + drop if exists ×5) so the line-oriented audit sees the effective shape + DO-block data copies gated on information_schema (the 0064 v1 lesson — never reference a column unconditionally) + drops AFTER copy; PRODUCTION = pure no-op (every guard false); FRESH = converges 0063's mirror-shaped tables to live truth; HONEST LIMITATION documented: fresh pipelines halt at 0064 v2 BEFORE reaching 0069 (indexes reference taken_at/coach_id which only exist from 0069) — clean installs need the bootstrap pre-step (clean-copy kit presented to owner, NOT executed yet per owner's «اعرض حلول قبل التنفيذ») |
+| Audit tool evolution (Phase 96 script) | ✅ | migration_audit.py now parses `alter table … drop column` (a later migration legitimately retires earlier columns — effective shape is what remains); rigorous full-output diff vs git-stashed BASELINE: **ONLY difference = files scanned 80→81** — zero new drift, coach_presence/progress_photos clean in BOTH states |
+| Gates | ✅ PASS | tsc 0 · eslint 0 · vitest 191/191 · migration_audit identical-to-baseline (81 files) · check-stale-refs exit 0 · zero phantom refs in src (remaining mentions are historical comments only) |
+| Live verification path | ✅ | member Progress photos page is the owner's visual proof (was silently empty/broken live, renders real rows now); presence helpers stay dormant (no callers); 0069 on production = VERIFY grid all no-op (probes match BEFORE/AFTER) |
+| Docs parity §3.6 | ✅ UPDATED | INDEX.md 0069 row + heading 0001→0069 + counter + audit-log row · QA_CHECKLIST Phase 105 · PROGRESS Phase 105 + «آخر تحديث» · worklog Task 105 ×2 |
+
+## Previous Verification — 2026-09-03 (Phase 104 — DOCS PARITY SYNC: owner asked «عايز اتاكد ان كل خصائص ومميزات المشروع مكتوبة فى وصف وهيكل المشروع بالظبط ، وصف الريبو مكتوب قديم محتاج يتعدل» — full audit of every doc-facing description/structure against the CODE, then the stale GitHub repo About rewritten via API)
 
 | Check | Result | How verified |
 |---|---|---|
