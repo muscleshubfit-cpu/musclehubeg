@@ -74,8 +74,14 @@ export async function GET(request: NextRequest) {
         query,
       )}&page_size=10&fields=product_name,brands,nutriments,image_front_small_url,code`;
 
+      // Open Food Facts API policy REQUIRES an identifying User-Agent —
+      // the default undici UA gets blocked (503/403) by their bot shield.
       const offRes = await fetch(offUrl, {
         signal: AbortSignal.timeout(8000),
+        headers: {
+          "User-Agent": "MuscleHubEG/1.0 (https://musclehubeg.vercel.app; contact via site support)",
+          Accept: "application/json",
+        },
       });
 
       if (offRes.ok) {
