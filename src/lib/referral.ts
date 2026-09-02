@@ -318,9 +318,9 @@ export async function getReferralStats(userId: string): Promise<ReferralStats> {
       .eq("user_id", userId)
       .order("created_at", { ascending: false });
 
-    const completed = (referrals || []).filter((r: any) => r.status === "completed");
-    const pending = (referrals || []).filter((r: any) => r.status === "pending");
-    const rejected = (referrals || []).filter((r: any) => r.status === "rejected");
+    const completed = (referrals || []).filter((r) => r.status === "completed");
+    const pending = (referrals || []).filter((r) => r.status === "pending");
+    const rejected = (referrals || []).filter((r) => r.status === "rejected");
 
     // PHASE 76 — the withdrawable balance EXCLUDES commissions still
     // inside the 7-day refund window (available_at in the future):
@@ -328,21 +328,21 @@ export async function getReferralStats(userId: string): Promise<ReferralStats> {
     // Those sit in onHoldBalance and unlock themselves when the window
     // passes (checked live on every read — no cron needed).
     const nowIso = new Date().toISOString();
-    const isUnlocked = (e: any) => !e.available_at || e.available_at <= nowIso;
+    const isUnlocked = (e: { available_at?: string | null }) => !e.available_at || e.available_at <= nowIso;
 
-    const totalEarnings = (earnings || []).reduce((sum: number, e: any) => sum + Number(e.amount), 0);
+    const totalEarnings = (earnings || []).reduce((sum, e) => sum + Number(e.amount), 0);
     const availableBalance = (earnings || [])
-      .filter((e: any) => e.status === "available" && isUnlocked(e))
-      .reduce((sum: number, e: any) => sum + Number(e.amount), 0);
+      .filter((e) => e.status === "available" && isUnlocked(e))
+      .reduce((sum, e) => sum + Number(e.amount), 0);
     const onHoldBalance = (earnings || [])
-      .filter((e: any) => e.status === "available" && !isUnlocked(e))
-      .reduce((sum: number, e: any) => sum + Number(e.amount), 0);
+      .filter((e) => e.status === "available" && !isUnlocked(e))
+      .reduce((sum, e) => sum + Number(e.amount), 0);
     const pendingEarnings = (earnings || [])
-      .filter((e: any) => e.status === "pending")
-      .reduce((sum: number, e: any) => sum + Number(e.amount), 0);
+      .filter((e) => e.status === "pending")
+      .reduce((sum, e) => sum + Number(e.amount), 0);
     const paidOut = (earnings || [])
-      .filter((e: any) => e.status === "paid")
-      .reduce((sum: number, e: any) => sum + Number(e.amount), 0);
+      .filter((e) => e.status === "paid")
+      .reduce((sum, e) => sum + Number(e.amount), 0);
 
     return {
       total: referrals?.length || 0,
@@ -355,7 +355,7 @@ export async function getReferralStats(userId: string): Promise<ReferralStats> {
       pendingEarnings,
       paidOut,
       referralCode,
-      referrals: (referrals || []).map((r: any) => ({
+      referrals: (referrals || []).map((r) => ({
         ...r,
         referred_name: r.referred?.full_name || r.referred_email || "—",
       })),
@@ -425,7 +425,7 @@ export async function createPayoutRequest(
       );
     }
 
-    const totalAvailable = earnings.reduce((sum: number, e: any) => sum + Number(e.amount), 0);
+    const totalAvailable = earnings.reduce((sum, e) => sum + Number(e.amount), 0);
     if (amount > totalAvailable) {
       throw new Error(
         `المبلغ المطلوب أكبر من رصيدك القابل للسحب ($${totalAvailable.toFixed(2)}). ملاحظة: أرباح اشتراكات آخر 7 أيام محجوزة كفترة أمان ولن تُتاح إلا بعد مرور مدة الاسترداد`,
@@ -488,7 +488,7 @@ export async function adminGetAllReferrals(): Promise<Referral[]> {
 
   if (error) return [];
 
-  return (data || []).map((r: any) => ({
+  return (data || []).map((r) => ({
     ...r,
     referred_name: r.referred?.full_name || r.referred_email || "—",
   }));
@@ -510,7 +510,7 @@ export async function adminGetAllPayouts(): Promise<ReferralPayout[]> {
 
   if (error) return [];
 
-  return (data || []).map((p: any) => ({
+  return (data || []).map((p) => ({
     ...p,
     user_name: p.user?.full_name || "—",
     user_email: p.user?.email || "—",
@@ -706,11 +706,11 @@ export async function adminGetReferralOverview(): Promise<{
 
   return {
     totalReferrals: referrals.length,
-    completedReferrals: referrals.filter((r: any) => r.status === "completed").length,
-    pendingReferrals: referrals.filter((r: any) => r.status === "pending").length,
-    totalCommission: earnings.reduce((s: number, e: any) => s + Number(e.amount), 0),
-    paidOut: earnings.filter((e: any) => e.status === "paid").reduce((s: number, e: any) => s + Number(e.amount), 0),
-    pendingPayouts: payouts.filter((p: any) => p.status === "pending").length,
-    pendingPayoutAmount: payouts.filter((p: any) => p.status === "pending").reduce((s: number, p: any) => s + Number(p.amount), 0),
+    completedReferrals: referrals.filter((r) => r.status === "completed").length,
+    pendingReferrals: referrals.filter((r) => r.status === "pending").length,
+    totalCommission: earnings.reduce((s, e) => s + Number(e.amount), 0),
+    paidOut: earnings.filter((e) => e.status === "paid").reduce((s, e) => s + Number(e.amount), 0),
+    pendingPayouts: payouts.filter((p) => p.status === "pending").length,
+    pendingPayoutAmount: payouts.filter((p) => p.status === "pending").reduce((s, p) => s + Number(p.amount), 0),
   };
 }
