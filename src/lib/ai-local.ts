@@ -309,7 +309,7 @@ function calculateBMR(weight: number, height: number, age: number, isMale: boole
 /** Questionnaire records arrive as JSON blobs — the local generator reads
  *  a known set of string-ish fields. One honest loose view per entry point. */
 type LooseFields = Record<string, string | number | boolean | undefined>;
-const loose = (v: unknown): LooseFields =>
+export const loose = (v: unknown): LooseFields =>
  (v && typeof v === "object" && !Array.isArray(v) ? v : {}) as LooseFields;
 
 const ACTIVITY_MULTIPLIERS: Record<string, number> = {

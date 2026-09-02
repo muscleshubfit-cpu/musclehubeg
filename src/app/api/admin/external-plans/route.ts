@@ -470,8 +470,8 @@ async function handleRegenerationAction(
         food: String(it?.food ?? ""),
         amount: String(it?.amount ?? ""),
         calories: typeof it?.calories === "number" ? it.calories : 0,
-        protein_g: it?.protein_g,
-        alternatives: it?.alternatives,
+        protein_g: typeof it?.protein_g === "number" ? it.protein_g : undefined,
+        alternatives: typeof it?.alternatives === "string" ? it.alternatives : undefined,
       }));
       const mealAlternatives = (out.suggestions || [])
         .slice(0, 2)

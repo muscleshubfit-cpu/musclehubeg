@@ -28,9 +28,11 @@ import {
 import {
   generateNutritionPlan,
   generateWorkoutPlan,
+  loose,
   type ClientContext,
 } from "@/lib/ai-local";
-import { EXERCISES, CATEGORY_LABELS, EQUIPMENT_LABELS, LEVEL_LABELS } from "@/lib/exercises";
+import { EXERCISES, CATEGORY_LABELS, EQUIPMENT_LABELS, LEVEL_LABELS, type Exercise } from "@/lib/exercises";
+import type { PlanContent } from "@/lib/data/plans";
 
 // Plan generator uses callFreeAIFallbackChain (interleaved OpenRouter + Groq)
 // for all AI calls — strongest free models first, with Groq for speed.
@@ -231,8 +233,8 @@ export async function generateNutritionPlanAI(
         source: `${provider}:${model}`,
       };
     }
-  } catch (e: any) {
-    console.error("[plan-generator] Nutrition plan AI failed:", e?.message);
+  } catch (e) {
+    console.error("[plan-generator] Nutrition plan AI failed:", e instanceof Error ? e.message : e);
   }
 
   // Fallback: local rule-based generator
@@ -280,8 +282,8 @@ export async function generateWorkoutPlanAI(
         source: `${provider}:${model}`,
       };
     }
-  } catch (e: any) {
-    console.error("[plan-generator] Workout plan AI failed:", e?.message);
+  } catch (e) {
+    console.error("[plan-generator] Workout plan AI failed:", e instanceof Error ? e.message : e);
   }
 
   const local = generateWorkoutPlan(ctx);
@@ -300,6 +302,14 @@ export async function generateWorkoutPlanAI(
  * additional alternative suggestions, each with macros + calories. The
  * regeneration reason (allergy / dislike / boredom) steers the model.
  */
+/** AI-supplied meal — callers read fields defensively (String()/typeof). */
+export type RegeneratedMeal = {
+  name: unknown;
+  time?: unknown;
+  notes?: unknown;
+  items: Array<{ food?: unknown; amount?: unknown; calories?: unknown; protein_g?: unknown; alternatives?: unknown }>;
+};
+
 export async function regenerateMeal(
   meal: {
     name?: string;
@@ -310,7 +320,7 @@ export async function regenerateMeal(
   clientContext?: ClientContext,
   coachNote?: string,
   avoidNames: string[] = [],
-): Promise<{ meal: any; suggestions: any[]; source: string }> {
+): Promise<{ meal: RegeneratedMeal; suggestions: Array<Record<string, unknown>>; source: string }> {
   const totalCals =
     targetCalories ||
     (meal.items || []).reduce((s, i) => s + (i.calories || 0), 0);
@@ -370,22 +380,27 @@ ${coachNote ? `تعليمات الكوتش: ${coachNote}` : ""}
         maxModels: 3,
       },
     );
-    const parsed = parseJSON<any>(text);
-    if (parsed?.meal?.items?.length > 0) {
+    const rawParsed = parseJSON<Record<string, unknown>>(text);
+    const parsed = (rawParsed ?? {}) as {
+      meal?: { items?: unknown[] };
+      suggestions?: unknown[];
+      items?: unknown[];
+    };
+    if ((parsed.meal?.items?.length ?? 0) > 0) {
       return {
-        meal: parsed.meal,
+        meal: parsed.meal as RegeneratedMeal,
         suggestions: Array.isArray(parsed.suggestions)
-          ? parsed.suggestions.slice(0, 3)
+          ? (parsed.suggestions as Array<Record<string, unknown>>).slice(0, 3)
           : [],
         source: `${provider}:${model}`,
       };
     }
     // Backward-compat shape (flat meal object without wrapper).
-    if (parsed && parsed.items && parsed.items.length > 0) {
-      return { meal: parsed, suggestions: [], source: `${provider}:${model}` };
+    if (parsed.items && parsed.items.length > 0) {
+      return { meal: rawParsed as RegeneratedMeal, suggestions: [], source: `${provider}:${model}` };
     }
-  } catch (e: any) {
-    console.error("[regenerate-meal] AI failed:", e?.message);
+  } catch (e) {
+    console.error("[regenerate-meal] AI failed:", e instanceof Error ? e.message : e);
   }
 
   // Fallback: return the original meal unchanged (the caller can show an error)
@@ -422,13 +437,13 @@ export type NutritionTargets = {
   bodyFatPct: number | null;
 };
 
-function numOr(v: any, fallback: number): number {
+function numOr(v: unknown, fallback: number): number {
   const n = parseFloat(String(v ?? "").replace(/[^\d.-]/g, ""));
   return Number.isFinite(n) && n > 0 ? n : fallback;
 }
 
 /** Map questionnaire activity strings (AR or EN) to a TDEE multiplier. */
-function activityMultiplier(activity: any): number {
+function activityMultiplier(activity: unknown): number {
   const a = String(activity || "").toLowerCase();
   if (/sedentary|خفيف جدا|قليل الحركة|مكتبي/.test(a)) return 1.2;
   if (/light|خفيف|1-3/.test(a)) return 1.375;
@@ -440,9 +455,9 @@ function activityMultiplier(activity: any): number {
 }
 
 function computeNutritionTargets(ctx: ClientContext, overrides?: PlanOverrides): NutritionTargets {
-  const nutrition = ctx.nutrition || {};
-  const fitness = ctx.fitness || {};
-  const measurements = ctx.recent_measurements?.[0] || {};
+  const nutrition = loose(ctx.nutrition);
+  const fitness = loose(ctx.fitness);
+  const measurements = ctx.recent_measurements?.[0] ?? null;
 
   const genderRaw = String(nutrition.gender || "male").toLowerCase();
   const gender: "male" | "female" =
@@ -450,7 +465,7 @@ function computeNutritionTargets(ctx: ClientContext, overrides?: PlanOverrides):
       ? "female"
       : "male";
 
-  const weightKg = numOr(nutrition.weight ?? measurements.weight, 80);
+  const weightKg = numOr(nutrition.weight ?? measurements?.weight, 80);
   const heightCm = numOr(nutrition.height, 175);
   const ageYears = numOr(nutrition.age, 25);
 
@@ -488,7 +503,7 @@ function computeNutritionTargets(ctx: ClientContext, overrides?: PlanOverrides):
   // 5. Body fat — US Navy (optional inputs).
   let bodyFatPct: number | null = null;
   const neck = numOr(nutrition.neck, 0);
-  const waist = numOr(nutrition.waist ?? measurements.waist, 0);
+  const waist = numOr(nutrition.waist ?? measurements?.waist, 0);
   const hip = numOr(nutrition.hip, 0);
   if (neck > 0 && waist > 0) {
     try {
@@ -615,11 +630,11 @@ function buildNutritionPrompt(
   overrides: PlanOverrides | undefined,
   targets?: NutritionTargets,
 ): string {
-  const nutrition = ctx.nutrition || {};
-  const fitness = ctx.fitness || {};
-  const measurements = ctx.recent_measurements?.[0] || {};
+  const nutrition = loose(ctx.nutrition);
+  const fitness = loose(ctx.fitness);
+  const measurements = ctx.recent_measurements?.[0] ?? null;
 
-  const weight = nutrition.weight || measurements.weight || "80";
+  const weight = String(nutrition.weight || measurements?.weight || "80");
   const height = nutrition.height || "175";
   const age = nutrition.age || "25";
   const target = nutrition.target || nutrition.target_weight || weight;
@@ -631,7 +646,7 @@ function buildNutritionPrompt(
   const disliked = nutrition.disliked || "";
   const gender = nutrition.gender || "male";
   const neck = nutrition.neck || "";
-  const waist = nutrition.waist || measurements.waist || "";
+  const waist = String(nutrition.waist || measurements?.waist || "");
   const hip = nutrition.hip || "";
   const health = nutrition.health || nutrition.medical_conditions || "";
 
@@ -678,8 +693,8 @@ ${hip ? `- محيط الورك: ${hip} سم` : ""}
 ${allergies ? `- حساسية: ${allergies}` : "- حساسية: لا يوجد"}
 ${disliked ? `- أطعمة غير مرغوبة: ${disliked}` : ""}
 ${health ? `- الحالة الصحية: ${health}` : ""}
-${(nutrition as any).notes ? `- ملاحظات إضافية من استبيان التغذية: ${(nutrition as any).notes}` : ""}
-${(fitness as any).notes && !(nutrition as any).notes ? `- ملاحظات إضافية من استبيان اللياقة: ${(fitness as any).notes}` : (fitness as any).notes ? `- ملاحظات اللياقة: ${(fitness as any).notes}` : ""}
+${nutrition.notes ? `- ملاحظات إضافية من استبيان التغذية: ${nutrition.notes}` : ""}
+${fitness.notes && !nutrition.notes ? `- ملاحظات إضافية من استبيان اللياقة: ${fitness.notes}` : fitness.notes ? `- ملاحظات اللياقة: ${fitness.notes}` : ""}
 ${overridesText}
 الأرقام الرسمية (daily_calories / الماكروز / BMR / TDEE) تم حسابها مسبقاً من نظام المنصة في قسم "أرقام رسمية" أعلاه — انسخها كما هي ولا تعيد حسابها.
 مهمتك هي فقط توزيع الوجبات والأصناف.
@@ -743,16 +758,16 @@ function buildWorkoutPrompt(
   name: string,
   overrides?: PlanOverrides,
 ): string {
-  const fitness = ctx.fitness || {};
-  const nutrition = ctx.nutrition || {};
+  const fitness = loose(ctx.fitness);
+  const nutrition = loose(ctx.nutrition);
 
-  const goal = fitness.goal || "general fitness";
-  const days = overrides?.mealsCount || fitness.days || "4"; // mealsCount reused as daysPerWeek
-  const location = fitness.location || "gym";
-  const experience = fitness.experience || "intermediate";
-  const injuries = fitness.injuries || "";
-  const weight = nutrition.weight || "80";
-  const gender = nutrition.gender || "male";
+  const goal = String(fitness.goal || "general fitness");
+  const days = String(overrides?.mealsCount || fitness.days || "4"); // mealsCount reused as daysPerWeek
+  const location = String(fitness.location || "gym");
+  const experience = String(fitness.experience || "intermediate");
+  const injuries = String(fitness.injuries || "");
+  const weight = String(nutrition.weight || "80");
+  const gender = String(nutrition.gender || "male");
   const weightNum = parseFloat(weight) || 80;
   const isHeavy = weightNum > 100; // heavy clients need joint-friendly exercises
   const isBeginner =
@@ -866,54 +881,62 @@ ${splitDescription}${safetyRules}
  *   - data_analysis.bmr/tdee/body_fat_pct ← server-computed values
  */
 function normalizeNutritionPlan(
-  plan: any,
+  plan: Record<string, unknown>,
   overrides?: PlanOverrides,
   targets?: NutritionTargets,
 ): NutritionPlanContent {
-  const meals = (plan.meals || []).map((m: any) => {
-    const items = (m.items || []).map((it: any) => ({
-      food: it.food || "",
-      amount: it.amount || "",
-      calories: typeof it.calories === "number" ? it.calories : 0,
-      protein_g: it.protein_g,
-      alternatives: it.alternatives,
-    }));
+  const meals = ((plan.meals as unknown[] | undefined) || []).map((rawMeal) => {
+    const m = (rawMeal ?? {}) as Record<string, unknown>;
+    const items = ((m.items as unknown[] | undefined) || []).map((rawItem) => {
+      const it = (rawItem ?? {}) as Record<string, unknown>;
+      return {
+        food: String(it.food || ""),
+        amount: String(it.amount || ""),
+        calories: typeof it.calories === "number" ? it.calories : 0,
+        protein_g: it.protein_g as number | undefined,
+        alternatives: it.alternatives as string | undefined,
+      };
+    });
     const total_calories =
       typeof m.total_calories === "number"
         ? m.total_calories
-        : items.reduce((s: number, i: any) => s + (i.calories || 0), 0);
+        : items.reduce((s, i) => s + (i.calories || 0), 0);
     const total_protein_g =
       typeof m.total_protein_g === "number"
         ? m.total_protein_g
-        : items.reduce((s: number, i: any) => s + (i.protein_g || 0), 0);
+        : items.reduce((s, i) => s + (i.protein_g || 0), 0);
     // Owner directive #2: keep up to TWO structured whole-meal alternatives,
     // normalizing each alternative's totals exactly like top-level meals.
     const meal_alternatives = Array.isArray(m.meal_alternatives)
-      ? m.meal_alternatives.slice(0, 2).map((alt: any) => {
-          const altItems = Array.isArray(alt?.items)
-            ? alt.items.slice(0, 12).map((it: any) => ({
-                food: String(it?.food ?? ""),
-                amount: String(it?.amount ?? ""),
-                calories: typeof it?.calories === "number" ? it.calories : 0,
-              }))
+      ? (m.meal_alternatives as unknown[]).slice(0, 2).map((rawAlt) => {
+          const alt = (rawAlt ?? {}) as Record<string, unknown>;
+          const altItems = Array.isArray(alt.items)
+            ? (alt.items as unknown[]).slice(0, 12).map((rawIt) => {
+                const it = (rawIt ?? {}) as Record<string, unknown>;
+                return {
+                  food: String(it.food ?? ""),
+                  amount: String(it.amount ?? ""),
+                  calories: typeof it.calories === "number" ? it.calories : 0,
+                };
+              })
             : [];
           return {
-            name: String(alt?.name || "بديل"),
+            name: String(alt.name || "بديل"),
             items: altItems,
             total_calories:
-              typeof alt?.total_calories === "number"
+              typeof alt.total_calories === "number"
                 ? alt.total_calories
-                : altItems.reduce((s: number, i: any) => s + (i.calories || 0), 0),
+                : altItems.reduce((s, i) => s + (i.calories || 0), 0),
           };
         })
       : undefined;
     return {
-      name: m.name || "وجبة",
-      time: m.time,
+      name: String(m.name || "وجبة"),
+      time: m.time as string | undefined,
       items,
       total_calories,
       total_protein_g,
-      notes: m.notes,
+      notes: m.notes as string | undefined,
       ...(meal_alternatives && meal_alternatives.length > 0
         ? { meal_alternatives }
         : {}),
@@ -931,29 +954,31 @@ function normalizeNutritionPlan(
       typeof plan.daily_calories === "number" ? plan.daily_calories : 0;
   }
 
+  const planMacros = (plan.macros ?? {}) as Record<string, unknown>;
   const protein_g =
-    (overrides?.macros?.protein_g || targets?.macros.protein_g || plan.macros?.protein_g) ?? 0;
+    (overrides?.macros?.protein_g || targets?.macros.protein_g || numOr(planMacros.protein_g, 0)) || 0;
   const carbs_g =
-    (overrides?.macros?.carbs_g || targets?.macros.carbs_g || plan.macros?.carbs_g) ?? 0;
+    (overrides?.macros?.carbs_g || targets?.macros.carbs_g || numOr(planMacros.carbs_g, 0)) || 0;
   const fat_g =
-    (overrides?.macros?.fat_g || targets?.macros.fat_g || plan.macros?.fat_g) ?? 0;
+    (overrides?.macros?.fat_g || targets?.macros.fat_g || numOr(planMacros.fat_g, 0)) || 0;
 
+  const planAnalysis = (plan.data_analysis ?? null) as Record<string, unknown> | null;
   const data_analysis = targets
     ? {
-        ...(plan.data_analysis || {}),
+        ...(planAnalysis ?? {}),
         gender: targets.gender === "male" ? "ذكر" : "أنثى",
         weight: `${targets.weightKg} كجم`,
         height: `${targets.heightCm} سم`,
         age: `${targets.ageYears} سنة`,
         body_fat_pct:
-          targets.bodyFatPct !== null ? `~${targets.bodyFatPct}%` : (plan.data_analysis?.body_fat_pct ?? ""),
+          targets.bodyFatPct !== null ? `~${targets.bodyFatPct}%` : String(planAnalysis?.body_fat_pct ?? ""),
         bmr: targets.bmr,
         tdee: targets.tdee,
       }
-    : plan.data_analysis;
+    : (planAnalysis ?? undefined);
 
   return {
-    overview: plan.overview || "",
+    overview: String(plan.overview || ""),
     data_analysis,
     daily_calories,
     macros: {
@@ -964,36 +989,40 @@ function normalizeNutritionPlan(
       carbs_cal: carbs_g * 4,
       fat_cal: fat_g * 9,
     },
-    supplements: plan.supplements,
-    health_notes: plan.health_notes,
-    water_target: plan.water_target,
+    supplements: plan.supplements as NutritionPlanContent["supplements"],
+    health_notes: plan.health_notes as string[] | undefined,
+    water_target: plan.water_target as string | undefined,
     meals,
   };
 }
 
-function normalizeWorkoutPlan(plan: any): WorkoutPlanContent {
+function normalizeWorkoutPlan(plan: Record<string, unknown>): WorkoutPlanContent {
   return {
-    overview: plan.overview || "",
-    weekly_volume: plan.weekly_volume,
-    progression: plan.progression,
-    days: (plan.days || []).map((d: any) => ({
-      day: d.day || "",
-      focus: d.focus || "",
+    overview: String(plan.overview || ""),
+    weekly_volume: plan.weekly_volume as string | undefined,
+    progression: plan.progression as string | undefined,
+    days: ((plan.days as unknown[] | undefined) || []).map((rawDay) => {
+      const d = (rawDay ?? {}) as Record<string, unknown>;
+      return {
+      day: String(d.day || ""),
+      focus: String(d.focus || ""),
       isRest: !!d.isRest,
-      exercises: (d.exercises || []).map((ex: any) => {
-        const name = ex.name || "";
+      exercises: ((d.exercises as unknown[] | undefined) || []).map((rawEx) => {
+        const ex = (rawEx ?? {}) as Record<string, unknown>;
+        const name = String(ex.name || "");
         const matched = findExerciseInLibrary(name);
         return {
           name: matched ? matched.nameEn : name,
-          sets: typeof ex.sets === "number" ? ex.sets : parseInt(ex.sets) || 0,
-          reps: ex.reps || "",
-          rest: ex.rest || "",
-          notes: ex.notes || "",
-          image: matched ? getExerciseImageFromLibrary(matched) : ex.image,
+          sets: typeof ex.sets === "number" ? ex.sets : parseInt(String(ex.sets ?? "")) || 0,
+          reps: String(ex.reps || ""),
+          rest: String(ex.rest || ""),
+          notes: String(ex.notes || ""),
+          image: matched ? getExerciseImageFromLibrary(matched) : (ex.image as string | undefined),
           exerciseSlug: matched ? matched.slug : undefined,
         };
       }),
-    })),
+      };
+    }),
   };
 }
 
@@ -1002,7 +1031,7 @@ function normalizeWorkoutPlan(plan: any): WorkoutPlanContent {
  * The AI generates Arabic or English exercise names — we try to match them
  * to our 547-exercise library.
  */
-function findExerciseInLibrary(name: string): any | null {
+function findExerciseInLibrary(name: string): Exercise | null {
   if (!name) return null;
   const q = name.toLowerCase().trim();
 
@@ -1061,7 +1090,7 @@ function findExerciseInLibrary(name: string): any | null {
 /**
  * Get the first image URL from an exercise in our library.
  */
-function getExerciseImageFromLibrary(exercise: any): string | undefined {
+function getExerciseImageFromLibrary(exercise: Exercise): string | undefined {
   if (!exercise || !exercise.imageKey) return undefined;
   const images = exercise.imageKey.split(",").filter(Boolean);
   if (images.length === 0) return undefined;
@@ -1082,7 +1111,7 @@ function getExerciseImageFromLibrary(exercise: any): string | undefined {
 export async function normalizeCoachPlanText(
   rawText: string,
   planType: "nutrition" | "workout",
-): Promise<{ content: any; source: string }> {
+): Promise<{ content: PlanContent | null; source: string }> {
   if (!rawText || !rawText.trim()) {
     return { content: null, source: "empty" };
   }
@@ -1166,7 +1195,7 @@ ${
         maxModels: 2,
       },
     );
-    const parsed = parseJSON<any>(text);
+    const parsed = parseJSON<Record<string, unknown>>(text);
     if (parsed && (parsed.meals || parsed.days)) {
       const normalized =
         planType === "nutrition"
@@ -1174,8 +1203,8 @@ ${
           : normalizeWorkoutPlan(parsed);
       return { content: normalized, source: `${provider}:${model}` };
     }
-  } catch (e: any) {
-    console.error("[normalize-coach-plan] AI failed:", e?.message);
+  } catch (e) {
+    console.error("[normalize-coach-plan] AI failed:", e instanceof Error ? e.message : e);
   }
 
   // Last-resort fallback: wrap the raw text in a minimal structure
@@ -1265,7 +1294,7 @@ function injuryBlacklist(reason: string): Array<{ test: RegExp; slugs: RegExp[] 
   return rules;
 }
 
-function buildCandidatePool(input: SubstituteExerciseInput): any[] {
+function buildCandidatePool(input: SubstituteExerciseInput): Exercise[] {
   const { exercise, reason = "", location = "" } = input;
 
   // 1. Resolve the current exercise in the library → inherit its category.
@@ -1293,12 +1322,12 @@ function buildCandidatePool(input: SubstituteExerciseInput): any[] {
     : ["barbell", "dumbbell", "bodyweight", "cable", "machine", "kettlebell", "band", "none"];
 
   // 3. Beginner clients stay at beginner/intermediate difficulty.
-  const experience = String(input.clientContext?.fitness?.experience || "").toLowerCase();
+  const experience = String((input.clientContext?.fitness as Record<string, unknown> | null | undefined)?.experience ?? "").toLowerCase();
   const isBeginner = /beginner|مبتدئ/.test(experience);
 
   // 4. Injury blacklist.
   const blacklistedSlugs = injuryBlacklist(reason);
-  const isBlacklisted = (e: any): boolean =>
+  const isBlacklisted = (e: Exercise): boolean =>
     blacklistedSlugs.some((rule) =>
       rule.slugs.some((slugRe) => slugRe.test(String(e.slug || "").toLowerCase())),
     );
@@ -1313,7 +1342,7 @@ function buildCandidatePool(input: SubstituteExerciseInput): any[] {
   );
 
   // Diversify equipment picks then cap the AI-facing list.
-  const picked: any[] = [];
+  const picked: Exercise[] = [];
   for (const lvl of ["beginner", "intermediate", "advanced"]) {
     for (const eq of okEquipment) {
       const hit = candidates.find((c) => c.level === lvl && c.equipment === eq && !picked.includes(c));
@@ -1342,13 +1371,13 @@ export async function substituteExercise(
   const fallbackReps = input.exercise.reps || "10-12";
   const fallbackRest = input.exercise.rest || "90 ثانية";
 
-  const fmtSets = (n: any, dflt: number) => (Number.isFinite(Number(n)) && Number(n) > 0 ? Math.round(Number(n)) : dflt);
-  const sRep = (v: any) => (typeof v === "string" && v.trim() ? v.trim().slice(0, 40) : "");
-  const sTxt = (v: any, max = 400) => (typeof v === "string" ? v.slice(0, max) : "");
+  const fmtSets = (n: unknown, dflt: number) => (Number.isFinite(Number(n)) && Number(n) > 0 ? Math.round(Number(n)) : dflt);
+  const sRep = (v: unknown) => (typeof v === "string" && v.trim() ? v.trim().slice(0, 40) : "");
+  const sTxt = (v: unknown, max = 400) => (typeof v === "string" ? v.slice(0, max) : "");
 
   type SubstituteAlt = SubstituteExerciseResult["alternatives"][number];
 
-  const shapeOne = (c: any, overrides?: Partial<SubstituteExerciseResult["replacement"]>) => ({
+  const shapeOne = (c: Exercise, overrides?: Partial<SubstituteExerciseResult["replacement"]>) => ({
     name: c?.nameEn || input.exercise.name,
     nameAr: c?.nameAr || "",
     sets: fmtSets(overrides?.sets ?? fallbackSets, fallbackSets),
@@ -1407,7 +1436,7 @@ export async function substituteExercise(
 التمرين الحالي: ${input.exercise.name}
 سبب الاستبدال: ${input.reason || "التنويع"}
 اليوم المستهدف: ${input.exercise.focus || ""}
-${input.clientContext ? `بيانات العميل: ${JSON.stringify({ injuries: input.clientContext.fitness?.injuries, experience: input.clientContext.fitness?.experience }, null, 2)}\n` : ""}
+${input.clientContext ? `بيانات العميل: ${JSON.stringify({ injuries: (input.clientContext.fitness as Record<string, unknown> | null | undefined)?.injuries, experience: (input.clientContext.fitness as Record<string, unknown> | null | undefined)?.experience }, null, 2)}\n` : ""}
 اختر من هذه القائمة المعتمدة فقط (ممنوع ذكر أي تمرين خارجها):
 ${candidateList}
 
@@ -1438,13 +1467,14 @@ ${candidateList}
         maxModels: 2,
       },
     );
-    const parsed = parseJSON<any>(text);
+    const parsed = parseJSON<Record<string, unknown>>(text);
     const idx = Number(parsed?.choice_index);
     if (!parsed || !Number.isInteger(idx) || idx < 1 || idx > pool.length) {
       return deterministic();
     }
     const chosen = pool[idx - 1];
-    const pickAlt = (a: any): SubstituteAlt | null => {
+    const pickAlt = (raw: unknown): SubstituteAlt | null => {
+      const a = (raw ?? {}) as Record<string, unknown>;
       const i2 = Number(a?.index);
       if (!Number.isInteger(i2) || i2 < 1 || i2 > pool.length || pool[i2 - 1] === chosen) return null;
       const c = pool[i2 - 1];
@@ -1458,7 +1488,7 @@ ${candidateList}
     };
     const alts: SubstituteAlt[] = (Array.isArray(parsed.alternatives) ? parsed.alternatives : [])
       .map(pickAlt)
-      .filter(Boolean)
+      .filter((a): a is SubstituteAlt => a !== null)
       .slice(0, 3);
     while (alts.length < 3) {
       const extra = pool.find((c) => c !== chosen && !alts.some((a) => a.name === c.nameEn));
@@ -1478,8 +1508,8 @@ ${candidateList}
       libraryMatched: Boolean(current),
       source: `ai-ranked:${model}`,
     };
-  } catch (e: any) {
-    console.error("[substitute-exercise] AI ranking failed, deterministic path:", e?.message);
+  } catch (e) {
+    console.error("[substitute-exercise] AI ranking failed, deterministic path:", e instanceof Error ? e.message : e);
     return deterministic();
   }
 }
@@ -1538,7 +1568,7 @@ ${ctx ? `بيانات الشخص (راعِ الحساسية والأطعمة غ�
     timeoutMs: 30_000,
     maxModels: 3,
   });
-  const parsed = parseJSON<any>(text);
+  const parsed = parseJSON<Record<string, unknown>>(text);
   const food = String(parsed?.food ?? "").trim();
   if (!food) throw new Error("تعذّر إعادة توليد الصنف. حاول مرة أخرى.");
   const cals = Number(parsed?.calories);
@@ -1575,7 +1605,7 @@ export async function regenerateWorkoutDay(
   day: { day: string; focus: string; isRest: false; exercises: Array<{ name: string; sets: number; reps: string; rest: string; notes: string; image?: string; exerciseSlug?: string }> };
   source: string;
 }> {
-  const fitness = clientContext?.fitness || {};
+  const fitness = loose(clientContext?.fitness);
   const isHome = String(fitness.location || "").includes("منزل") || String(fitness.location || "").toLowerCase().includes("home");
   const currentList = (day.exercises || []).map((e) => e.name).join("، ") || "لا يوجد";
   const avoid = avoidNames.filter((n) => typeof n === "string" && n.trim().length > 1).slice(0, 60);
@@ -1608,16 +1638,17 @@ ${avoid.length > 0 ? `تمارين باقي أيام الخطة (ممنوع تك
     timeoutMs: 45_000,
     maxModels: 3,
   });
-  const parsed = parseJSON<any>(text);
+  const parsed = parseJSON<Record<string, unknown>>(text);
   const exercises = Array.isArray(parsed?.exercises) ? parsed.exercises : [];
   if (exercises.length === 0) throw new Error("تعذّر إعادة توليد اليوم. حاول مرة أخرى.");
 
-  const shaped = exercises.slice(0, 8).map((ex: any) => {
-    const name = String(ex?.name ?? "");
+  const shaped = (exercises as unknown[]).slice(0, 8).map((rawEx) => {
+    const ex = (rawEx ?? {}) as Record<string, unknown>;
+    const name = String((ex as Record<string, unknown>)?.name ?? "");
     const matched = findExerciseInLibrary(name);
     return {
       name: matched ? matched.nameEn : name,
-      sets: typeof ex?.sets === "number" ? ex.sets : parseInt(ex?.sets) || 3,
+      sets: typeof ex?.sets === "number" ? ex.sets : parseInt(String(ex?.sets ?? "")) || 3,
       reps: String(ex?.reps ?? "10-12"),
       rest: String(ex?.rest ?? "90 ثانية"),
       notes: String(ex?.notes ?? ""),
