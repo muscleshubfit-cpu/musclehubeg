@@ -6,7 +6,21 @@
 
 ---
 
-## Latest Verification — 2026-09-02 (Phase 93 — legacy-`any` cleanup batch 5: 385 → 244)
+## Latest Verification — 2026-09-02 (Phase 94 — legacy-`any` cleanup batch 6: 244 → 137, non-sensitive set now ZERO)
+
+| Check | Result | How verified |
+|---|---|---|
+| Batch 6 — scattered small non-sensitive files | ✅ 244 → 137 (−107, 58 → 33 files) | Stage 1 (−51, commit baddb37): AdminWalletsView 7, CoachSupportView 7, SupportView 6, external-search 6, SaveResultButton 5, SiteHeader 5, AdminExternalPlansView 5, blog-pipeline 5, blog-research 5 + result-png-export (ToolResultData exported) · Stage 2 (−56, commit 0cd4438): coach-whatsapp route 4, AdminLeadsView 4, CoachLandingEditor 4, DashboardView 4, ReferralView 4, use-voice-input 4, ai-jobs-client 4, blog-queue 4, fetch-images route 3, EvoFloatingWidget 3, AdminAccountsView 3, AdminCoachPagesView 3, AdminPaymentsView 3, AdminReferralsView 3, AdminSavedResultsView 3, use-nav 3 + CoachClientView job-result narrowings |
+| MILESTONE: non-sensitive census = 0 | ✅ CLOSED | Census split: TOTAL 137 across 33 files — ALL of them the documented sensitive set (admin/coach/paypal/auth/cron/wallet routes + auth-server + ai/jobs + ai/queue-health + CheckoutView + refund.ts). Every remaining warning now lives in a file reserved for the final double-review batch |
+| tsc caught a REAL stale generated type | ✅ FIXED | `blog_generation_queue` in types.ts did NOT match migration 0005 (+0021/0026): stale columns (blog_post_id, updated_at) removed; real columns added (topic_ar, focus_keyword_ar, focus_keyword, category, rationale, article_bundle Json, en_post_id, ar_post_id, generated_at, published_at). blog-queue.ts `as any` casts dropped — update paths now type-checked against the real Update shape |
+| tsc caught a REAL null gap | ✅ FIXED | blog-pipeline P4: `parsed` could be null past the md-guard → added `!parsed \|\|` to the guard (same error thrown, identical behavior). runAiJob now returns `Record<string, unknown>` + `getAiJob` returns typed `AiJobRow` — CoachClientView regen flows narrow `replacement` to the engine contract per call site (exercise/meal/food-item/day) |
+| Next.js lint turned into REAL improvements | ✅ | SaveResultButton: `window.location.href` ×2 → `router.push` (SPA navigation) · SiteHeader logo + icon-192 → `next/image` with priority (LCP on every page) · EvoFloatingWidget ×3 → `next/image` (48/40/80px, lazy for in-panel) · Avatars (user-provided arbitrary hosts) + ReferralView QR (third-party QR API) kept as `<img>` with documented inline rationale — QR-asset precedent |
+| Route payloads typed from real contracts | ✅ | AdminPaymentsView rows → `SubscriptionRequest[]` · CoachSupportView/SupportView → `StaffTicket`/`SupportTicket`/`TicketMessage` (imported from supabase/types; the data barrel doesn't re-export them) · AdminWalletsView topups → `CoachTopupRequest & { coach relation }` · DashboardView → `ProgressEntry[]/Plan[]/Subscription[]` · adminGetReferralOverview → `Awaited<ReturnType<>>` |
+| Web Speech API typed without DOM lib support | ✅ | use-voice-input: `SpeechRecognitionEventLike` + `SpeechRecognitionErrorEventLike` structural views + ctor lookup typed — zero `any` in the hook, runtime identical |
+| Gates | ✅ PASS ×2 stages | tsc 0 after EVERY stage · eslint 0 warnings/0 errors on ALL 28 touched files · vitest 191/191 ×2 · census 244 → 193 → 137 |
+| Docs parity §3.6 | ✅ UPDATED | QA_CHECKLIST Phase 94 section + PROGRESS Phase 94 + «آخر تحديث» + worklog Task 94 |
+
+## Previous Verification — 2026-09-02 (Phase 93 — legacy-`any` cleanup batch 5: 385 → 244)
 
 | Check | Result | How verified |
 |---|---|---|

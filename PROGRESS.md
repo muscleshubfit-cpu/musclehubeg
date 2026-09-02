@@ -1,6 +1,22 @@
 # PROGRESS.md — MuscleHub Status Board
 
-> **آخر تحديث:** 2026-09-02 (المرحلة 93: **الدفعة الخامسة — الملفات المتوسطة غير الحساسة 385 → 244** — 14 ملف بقوا صفر، والأنواع المولّدة اكتملت بجداول المحافظ والإعلانات وسجلات EVO، وفاضل المجموعة الحساسة بس للدفعة الأخيرة)
+> **آخر تحديث:** 2026-09-02 (المرحلة 94: **الدفعة السادسة — الملفات الصغيرة المشتتة 244 → 137** — المجموعة غير الحساسة بقت **صفر تحذيرات** بالكامل، والـ 137 المتبقية كلها المجموعة الحساسة المحجوزة للدفعة الأخيرة بمراجعة مضاعفة)
+
+---
+
+## 2026-09-02 — المرحلة 94: الدفعة السادسة — الملفات الصغيرة المشتتة (244 → 137) — طلب المالك «كمل»
+
+- **طلب المالك:** «كمل» — تكملة المنهجية الموثقة: الملفات الصغيرة المشتتة غير الحساسة، والمجموعة الحساسة (admin/coach/paypal/auth/cron/wallet ≈137) لسه للدفعة الأخيرة بمراجعة مضاعفة.
+- **النتيجة:** 244 → **137 تحذير** (−107) والملفات نزلت من 58 → **33**. **إنجاز تاريخي: الجرد مصنّف — المجموعة غير الحساسة = صفر تحذيرات بالكامل.** 28 ملف اتلمسوا في مرحلتين متثبتين:
+  - **المرحلة 1 (−51):** AdminWalletsView 7 · CoachSupportView 7 · SupportView 6 · external-search 6 · SaveResultButton 5 · SiteHeader 5 · AdminExternalPlansView 5 · blog-pipeline 5 · blog-research 5 (+ تصدير ToolResultData من result-png-export).
+  - **المرحلة 2 (−56):** coach-whatsapp 4 · AdminLeadsView 4 · CoachLandingEditor 4 · DashboardView 4 · ReferralView 4 · use-voice-input 4 · ai-jobs-client 4 · blog-queue 4 · fetch-images 3 · EvoFloatingWidget 3 · AdminAccountsView 3 · AdminCoachPagesView 3 · AdminPaymentsView 3 · AdminReferralsView 3 · AdminSavedResultsView 3 · use-nav 3 (+ تضييق أنواع نتائج regeneration في CoachClientView).
+- **tsc كشف أخطاء حقيقية اتصححت:**
+  - النوع المولّد لجدول `blog_generation_queue` كان **قديم ومخالف** للمايجريشن 0005 (+0021/0026): أعمدة مش موجودة (blog_post_id, updated_at) اتشالت وأعمدة حقيقية اكتملت (topic_ar, focus_keyword_ar, category, rationale, article_bundle Json, en_post_id, ar_post_id, generated_at, published_at) — وكاستات `as any` في blog-queue.ts اتحططت ومسارات التحديث بقت متفحصة ضد الشكل الحقيقي.
+  - فجوة null حقيقية في blog-pipeline P4: `parsed` ممكن يكون null بعد حارس md → الحارس بقى `!parsed ||` (نفس الخطأ بيترمى، نفس السلوك).
+  - `runAiJob` بقى بيرجع `Record<string, unknown>` و`getAiJob` بيرجع `AiJobRow` مكتوب — وCoachClientView بيضيّق `replacement` لعقد الـ engine في كل موقع استدعاء (exercise/meal/food-item/day).
+- **تحذيرات Next.js اتحولت لتحسينات حقيقية:** SaveResultButton `window.location.href` ×2 → `router.push` · لوجو الهيدر + الأيقونة → `next/image` مع priority (عنصر LCP في كل الصفحات) · صور EVO ×3 → `next/image` · الصور الرمزية للمستخدمين (روابط خارجية عشوائية) + QR الأفلييت (خدمة QR خارجية) اتحافظ عليهم `<img>` بتعليق موثق (سابقة أصول QR).
+- **الأنواع جاية من عقود حقيقية:** SubscriptionRequest · StaffTicket/SupportTicket/TicketMessage (من supabase/types مباشرة — البرميل مش بيديرها) · CoachTopupRequest + علاقة المدرب · ProgressEntry/Plan/Subscription · Awaited<ReturnType<>> للإحصائيات · Web Speech API بأنواع بنيوية يدوية بلا أي.
+- **البوابات:** tsc 0 بعد كل مرحلة · eslint صفر تحذيرات/أخطاء على كل الملفات الملموسة · اختبارات 191/191 ×2.
 
 ---
 
