@@ -429,3 +429,24 @@ Stage Summary:
 - Data layer now the single type source for views — new pattern documented (types.ts → data layer → views)
 - Remaining: technical giants (blog-generate 45, plan-generator 44, ai-job-processors 34, ai-local 28, referral 25, ai-jobs 24) then the sensitive set (admin/coach/paypal/auth/cron/wallet) last with double review
 - REMINDER to owner: revoke the GitHub token (ghp_SV…IvWO) once all work is done — it is only used transiently in git push commands, never stored in files
+
+---
+Task ID: 92
+Agent: Super Z (main)
+Task: Phase 92 — owner order «كمل اخر دفعه» — legacy-any cleanup batch 4: the six technical giants
+
+Work Log:
+- Started at 589/79 files (Phase 91 pushed); batch = ai-jobs, referral, ai-local, ai-job-processors, plan-generator, blog-generate — six staged commits, full gates after each
+- 4a (589→561, b2cef55): ai_jobs table added to generated types (mirror RUN_ON_SUPABASE_0024) — all `from("ai_jobs" as any)` dead · supabaseAdmin already Database-typed → its as-any casts removed · AiJobRow payload/result Record<string, unknown> · sanitizeJobPayload(raw: unknown)→Json with per-case Record views · ripple casts at CoachClientView (job.result as PlanJobResult) + test file sanitize() wrapper (its own 4 as-anys also removed)
+- 4b (561→536): referral.ts — callback annotations dropped over Database-typed rows; isUnlocked takes structural { available_at } view
+- 4c (536→508): ai-local.ts — ClientContext.nutrition/fitness → unknown + exported loose() helper (LooseFields view, one cast per entry point); current_plans typed { type, content: PlanContent | null }; ExerciseVariant for EXERCISE_LIBRARY/pickExercises (filter predicate); chat replies narrow plan content via 'meals'/'days' in guards; String() wraps preserve ||-fallback semantics exactly
+- 4d (508→476): ai-job-processors.ts — all (supabaseAdmin as any) deleted; plans/blog_posts inserts typed (PlanContent→Json; blog row cast documented for legacy optional source column); PROCESSORS/ProcessorResult Record<string, unknown>; parseJSON<Record<string, unknown>> ×2; social platform/tone as SocialPlatform/SocialTone; regenerate* arg views matching param required fields
+- 4e (476→430): plan-generator.ts — loose() reused; normalizeNutrition/Workout per-item Record views; RegeneratedMeal exported (unknown fields read defensively; external-plans route item map normalized with typeof guards — behavior identical); Exercise[] pool family; parseJSON typed ×5; catch instanceof ×5; trending/notes prompt reads via LooseFields
+- 4f (430→385): blog-generate.ts — ResearchData = ResearchResult (imported); ArticleSeo exported; FaqItem/LinkItem/ImagePrompts/SocialPosts; result-type aliases; ArticleBundle.research widened honestly to ResearchResult | {angle,searchIntent,rationale} | null; legacy optional result fields documented (arResult.seo / *.research / internalLinksAr — undefined at runtime → same fallbacks); dead research.trendingAngles access dropped; parseJSON typed ×4; buildFinalBundle parts fully typed
+- Gates: tsc 0 ×6 · eslint 0 on all touched · vitest 191/191 ×6 · census 589 → 561 → 536 → 508 → 476 → 430 → 385 (72 files)
+- Docs parity §3.6: QA_CHECKLIST Phase 92 section + PROGRESS Phase 92 + «آخر تحديث» + this entry
+
+Stage Summary:
+- Batch 4 complete: 589 → 385 (−204); running tally 804 → 795 → 749 → 589 → 385; the ENTIRE AI pipeline (enqueue → sanitize → GHA processors → generators → blog bundle) is now end-to-end typed with zero suppressions
+- Remaining 385: small/medium non-sensitive files + the sensitive set (payments/auth/cron) last with double review
+- REMINDER to owner: revoke the GitHub token (ghp_SV…IvWO) once all work is done — used transiently in git push commands only, never stored in files

@@ -6,6 +6,20 @@
 
 ---
 
+## Latest Verification — 2026-09-02 (Phase 92 — legacy-`any` cleanup batch 4: 589 → 385)
+
+| Check | Result | How verified |
+|---|---|---|
+| Batch 4 — the six technical giants | ✅ 589 → 385 (−204, 79 → 72 files) | ai-jobs −24 (st. 4a) · referral −25 (4b) · ai-local −28 (4c) · ai-job-processors −34 (4d) · plan-generator −44 (4e) · blog-generate −45 (4f). Six staged commits, gates after each |
+| ai_jobs table typed | ✅ | Added to generated types (mirror RUN_ON_SUPABASE_0024) → all `from("ai_jobs" as any)` casts deleted; supabaseAdmin was already `createClient<Database>` — its `as any` casts were bypass friction, now deleted (plans/blog_posts inserts typed, content: PlanContent → Json proven assignable) |
+| AI payload/result pipeline typed | ✅ | AiJobRow.payload/result → Record<string, unknown> · sanitizeJobPayload(raw: unknown) → Json (enqueue trust boundary, per-case Record views) · parseJSON<Record<string, unknown>> ×7 · PROCESSORS payload aligned · runAiJob/getAiJob callers cast honestly at their boundaries |
+| ClientContext hardened | ✅ | nutrition/fitness → unknown (questionnaire JSON blobs) + exported `loose()` view helper (single honest cast per entry point, reused by ai-local + plan-generator) · current_plans → { type, content: PlanContent \| null } · subscription { swapLimit } |
+| PlanContent family end-to-end | ✅ | plan-generator normalize* functions: per-item Record views + String() at render boundaries · RegeneratedMeal type (AI-supplied, fields read defensively — external-plans route typeof-checks protein_g/alternatives, behavior identical) · Exercise[] family for substitute-exercise pool |
+| blog-generate fully typed | ✅ | ResearchData = ResearchResult (imported — single source) · ArticleSeo exported · FaqItem/LinkItem/ImagePrompts/SocialPosts · result-type aliases · ArticleBundle.research widened HONESTLY: ResearchResult \| {angle,searchIntent,rationale} \| null (AI path stores the external ResearchResult — was hidden by any) · legacy optional reads documented (arResult.seo, internalLinksAr — undefined at runtime → same fallback behavior) |
+| Dead access removed | ✅ | `research.trendingAngles` in chunk1Prompt — field never existed on ResearchResult (kept `trendingKeywords` only; behavior identical) |
+| Gates | ✅ PASS ×6 | tsc 0 after every stage · eslint 0 on all touched files · vitest 191/191 ×6 runs |
+| Cleanup running tally | 📌 TRACKED | Start 804 → 795 (b1) → 749 (b2) → 589 (b3) → **385** (b4). Remaining 72 files: 40 non-sensitive small/medium views+libs (BlogEditorView 11, CoachWalletView 11, data/tickets 11, tier-limits 11, subscriptions 14, chat route 15, coach/ads 18 …) + sensitive set (admin/coach routes, paypal, auth/callback, cron/blog, wallet) LAST with double review |
+
 ## Latest Verification — 2026-09-02 (Phase 91 — legacy-`any` cleanup batch 3: 749 → 589)
 
 | Check | Result | How verified |
