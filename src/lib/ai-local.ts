@@ -10,12 +10,15 @@
  * Nutrition: { overview, daily_calories, macros: {protein_g, carbs_g, fat_g}, meals: [{name, items, notes}] }
  */
 
+import type { PlanContent } from "@/lib/data/plans";
+
 export type ClientContext = {
  name?: string | null;
- nutrition?: any;
- fitness?: any;
- recent_measurements?: any[];
- current_plans?: any[];
+ nutrition?: unknown;
+ fitness?: unknown;
+ recent_measurements?: Array<{ weight?: number | string; waist?: number | string; date?: string }>;
+ current_plans?: Array<{ type?: string; content?: PlanContent | null; title?: string }>;
+ subscription?: { swapLimit?: number | null } | null;
  /** PHASE 62 VARIETY: names of foods/exercises used in this client's
   *  previous plans — injected as an avoid-repeat list into AI prompts. */
  recent_plan_names?: string[];
@@ -52,17 +55,17 @@ type NutritionContent = {
 /* ----------------------------- Workout plan ------------------------------ */
 
 export function generateWorkoutPlan(ctx: ClientContext): WorkoutContent {
- const fitness = ctx.fitness || {};
- const nutrition = ctx.nutrition || {};
- const goal = (fitness.goal || nutrition.target || "general fitness").toLowerCase();
- const daysPerWeek = parseInt(fitness.days) || 4;
- const location = (fitness.location || "gym").toLowerCase();
- const experience = (fitness.experience || "intermediate").toLowerCase();
- const injuries = (fitness.injuries || "").toLowerCase();
+ const nutrition = loose(ctx.nutrition);
+ const fitness = loose(ctx.fitness);
+ const goal = String(fitness.goal || nutrition.target || "general fitness").toLowerCase();
+ const daysPerWeek = parseInt(String(fitness.days ?? "")) || 4;
+ const location = String(fitness.location || "gym").toLowerCase();
+ const experience = String(fitness.experience || "intermediate").toLowerCase();
+ const injuries = String(fitness.injuries || "").toLowerCase();
 
  const isHome = location.includes("home") || location.includes("منزل");
  const isBeginner = experience.includes("beginner") || experience.includes("مبتدئ");
- const weight = parseFloat(nutrition.weight || "80");
+ const weight = parseFloat(String(nutrition.weight || "80"));
  const isHeavy = weight > 100; // heavy clients need joint-friendly exercises
  const isFatLoss = goal.includes("fat") || goal.includes("loss") || goal.includes("دهون") || goal.includes("تخسيس");
  const isMuscleGain = goal.includes("muscle") || goal.includes("build") || goal.includes("عضلات") || goal.includes("كتلة");
@@ -72,7 +75,7 @@ export function generateWorkoutPlan(ctx: ClientContext): WorkoutContent {
  const shuffledKeys = shuffle(allKeys);
 
  // Choose split based on days/week
- let trainingDays: Array<{ day: string; focus: string; exercises: Array<any> }> = [];
+ let trainingDays: Array<{ day: string; focus: string; exercises: ExerciseVariant[] }> = [];
 
  if (daysPerWeek <= 3) {
  trainingDays = [
@@ -99,7 +102,7 @@ export function generateWorkoutPlan(ctx: ClientContext): WorkoutContent {
 
  // Insert rest days between training days
  const dayNames = ["السبت", "الأحد", "الإثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة"];
- const days: Array<{ day: string; focus: string; exercises: Array<any>; isRest?: boolean }> = [];
+ const days: Array<{ day: string; focus: string; exercises: ExerciseVariant[]; isRest?: boolean }> = [];
 
  // Pattern: train, rest, train, rest, train, train, rest (for 4 days)
  // For 3 days: train, rest, train, rest, train, rest, rest
@@ -152,9 +155,12 @@ ${injuries ? " تم مراعاة الإصابات المذكورة — تجنب 
  return { overview, days };
 }
 
+/** One concrete exercise prescription (the shape AI plans render). */
+type ExerciseVariant = { name: string; sets: number; reps: string; rest: string; notes: string; image: string };
+
 // Exercise library with images (Unsplash — free to use)
 // Image URLs are exercise-specific and show proper form
-const EXERCISE_LIBRARY: Record<string, { gym: any; home: any }> = {
+const EXERCISE_LIBRARY: Record<string, { gym: ExerciseVariant; home: ExerciseVariant }> = {
  squat: {
  gym: { name: "سكوات بالبار", sets: 4, reps: "6-8", rest: "3 دقائق", notes: "حافظ على عمق الحركة وظهرك مستقيم", image: "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a7/Barbell_squat.jpg/200px-Barbell_squat.jpg" },
  home: { name: "سكوات بالدمبل", sets: 4, reps: "10-12", rest: "90 ثانية", notes: "نزل ببطء واصعد بقوة", image: "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6f/Dumbbell_squat.jpg/200px-Dumbbell_squat.jpg" },
@@ -269,7 +275,7 @@ function pickExercises(
  isBeginner: boolean,
  _injuries: string,
  isHeavy: boolean = false,
-): Array<any> {
+): ExerciseVariant[] {
  const skipAdvanced = isBeginner || isHeavy;
  return keys.map((k) => {
  const ex = EXERCISE_LIBRARY[k];
@@ -286,7 +292,7 @@ function pickExercises(
  return { ...variant, reps: "10-15" };
  }
  return variant;
- }).filter(Boolean);
+ }).filter((x): x is ExerciseVariant => x !== null);
 }
 
 /* ---------------------------- Nutrition plan ----------------------------- */
@@ -300,6 +306,12 @@ function calculateBMR(weight: number, height: number, age: number, isMale: boole
 }
 
 // Activity multipliers based on activity level
+/** Questionnaire records arrive as JSON blobs — the local generator reads
+ *  a known set of string-ish fields. One honest loose view per entry point. */
+type LooseFields = Record<string, string | number | boolean | undefined>;
+const loose = (v: unknown): LooseFields =>
+ (v && typeof v === "object" && !Array.isArray(v) ? v : {}) as LooseFields;
+
 const ACTIVITY_MULTIPLIERS: Record<string, number> = {
  sedentary: 1.2, // مكتب work, no exercise
  light: 1.375, // 1-3 days exercise
@@ -536,17 +548,17 @@ export function calcCaloriesForItem(foodName: string, amount: string): number | 
 }
 
 export function generateNutritionPlan(ctx: ClientContext): NutritionContent {
- const nutrition = ctx.nutrition || {};
- const fitness = ctx.fitness || {};
+ const nutrition = loose(ctx.nutrition);
+ const fitness = loose(ctx.fitness);
  const measurements = ctx.recent_measurements || [];
 
- const weight = parseFloat(nutrition.weight || measurements[0]?.weight || "80");
- const height = parseFloat(nutrition.height || "175");
- const age = parseInt(nutrition.age || "25");
- const targetWeight = parseFloat(nutrition.target || nutrition.target_weight || weight);
- const goal = (fitness.goal || "").toLowerCase();
- const activityLevel = parseActivityLevel(fitness.activity || "");
- const trainingDays = parseInt(fitness.days) || 4;
+ const weight = parseFloat(String(nutrition.weight || measurements[0]?.weight || "80"));
+ const height = parseFloat(String(nutrition.height || "175"));
+ const age = parseInt(String(nutrition.age || "25"));
+ const targetWeight = parseFloat(String(nutrition.target || nutrition.target_weight || weight));
+ const goal = String(fitness.goal || "").toLowerCase();
+ const activityLevel = parseActivityLevel(String(fitness.activity || ""));
+ const trainingDays = parseInt(String(fitness.days ?? "")) || 4;
 
  const weightDiff = targetWeight - weight;
  const isFatLoss = weightDiff < -2 || goal.includes("fat") || goal.includes("دهون") || goal.includes("تخسيس") || goal.includes("loss");
@@ -594,11 +606,11 @@ export function generateNutritionPlan(ctx: ClientContext): NutritionContent {
  carbsG = Math.max(0, Math.round((dailyCalories - proteinG * 4 - fatG * 9) / 4));
  }
 
- const mealsCount = parseInt(nutrition.meals) || 4;
- const diet = (nutrition.diet || "").toLowerCase();
+ const mealsCount = parseInt(String(nutrition.meals ?? "")) || 4;
+ const diet = String(nutrition.diet || "").toLowerCase();
  const isVeg = diet.includes("veg") || diet.includes("نبات");
- const allergies = (nutrition.allergies || "").toLowerCase();
- const disliked = (nutrition.disliked || "").toLowerCase();
+ const allergies = String(nutrition.allergies || "").toLowerCase();
+ const disliked = String(nutrition.disliked || "").toLowerCase();
 
  // Filter foods by allergies + disliked + veg
  const availableFoods = FOOD_DB.filter((f) => {
@@ -757,11 +769,11 @@ ${allergies ? ` تم استبعاد: ${allergies}\n` : ""}${disliked ? ` تم ت
 export function generateChatReply(message: string, ctx?: ClientContext): string {
  const text = message.toLowerCase().trim();
  const name = ctx?.name || "";
- const plans = (ctx as any)?.current_plans || [];
- const nutrition = ctx?.nutrition || {};
- const fitness = ctx?.fitness || {};
+ const plans = ctx?.current_plans || [];
+ const nutrition = loose(ctx?.nutrition);
+ const fitness = loose(ctx?.fitness);
  const measurements = ctx?.recent_measurements || [];
- const subscription = (ctx as any)?.subscription;
+ const subscription = ctx?.subscription;
 
  // Helper: check if ANY keyword matches
  const has = (...words: string[]) => words.some((w) => text.includes(w));
@@ -798,11 +810,12 @@ ${fitness.goal ? ` هدفك: ${fitness.goal}` : ""}
 
  // Protein — broader
  if (has("protein", "بروتين", "بروتينة", "واي", "whey")) {
- const weight = parseFloat(nutrition.weight || measurements[0]?.weight || "80");
+ const weight = parseFloat(String(nutrition.weight || measurements[0]?.weight || "80"));
  const proteinTarget = Math.round(weight * 2);
- const nutritionPlan = plans.find((p: any) => p.type === "meal" || p.type === "nutrition");
- if (nutritionPlan?.content?.macros?.protein_g) {
- return `خطة التغذية بتاعتك فيها ${nutritionPlan.content.macros.protein_g}جم بروتين يومياً.
+ const nContent = plans.find((p) => p.type === "meal" || p.type === "nutrition")?.content;
+ const c = nContent && "meals" in nContent ? nContent : null;
+ if (c?.macros?.protein_g) {
+ return `خطة التغذية بتاعتك فيها ${c.macros.protein_g}جم بروتين يومياً.
 وزنك ${weight} كجم، احتياجك ${proteinTarget}جم (2جم/كجم) — خطتك بتغطي احتياجك! 
 
 مصادر ممتازة: صدور دجاج، بيض، سمك، لحم قليل الدهن، زبادي يوناني، جبن قريش، تونة.
@@ -817,7 +830,7 @@ ${fitness.goal ? ` هدفك: ${fitness.goal}` : ""}
 
  // Water — broader
  if (has("water", "ماء", "مياه", "شرب", "ميه", "ترطيب", "hydration")) {
- const weight = parseFloat(nutrition.weight || measurements[0]?.weight || "80");
+ const weight = parseFloat(String(nutrition.weight || measurements[0]?.weight || "80"));
  const waterTarget = Math.round(weight * 35 / 1000 * 10) / 10;
  return `احتياجك اليومي من الماء حوالي ${waterTarget} لتر (${Math.round(weight * 35)} مل).
 • اضف 500 مل حول التمرين
@@ -828,13 +841,14 @@ ${fitness.goal ? ` هدفك: ${fitness.goal}` : ""}
 
  // Weight loss / fat loss — broader
  if (has("weight", "وزن", "fat", "دهون", "تخسيس", "تنحيف", "خسارة", "خفف", "أخفف", "نزل", "أنزل", "نزول", "diet", "دايت", "رجيم", "حرق")) {
- const weight = parseFloat(nutrition.weight || measurements[0]?.weight || "80");
- const target = parseFloat(nutrition.target || nutrition.target_weight || "0");
- const nutritionPlan = plans.find((p: any) => p.type === "meal" || p.type === "nutrition");
- if (nutritionPlan?.content?.daily_calories) {
+ const weight = parseFloat(String(nutrition.weight || measurements[0]?.weight || "80"));
+ const target = parseFloat(String(nutrition.target || nutrition.target_weight || "0"));
+ const nContent = plans.find((p) => p.type === "meal" || p.type === "nutrition")?.content;
+ const c = nContent && "meals" in nContent ? nContent : null;
+ if (c?.daily_calories) {
  const maintenance = Math.round(weight * 33);
- const deficit = maintenance - nutritionPlan.content.daily_calories;
- return `خطتك الحالية فيها ${nutritionPlan.content.daily_calories} كالوري/يوم.
+ const deficit = maintenance - c.daily_calories;
+ return `خطتك الحالية فيها ${c.daily_calories} كالوري/يوم.
 صيانة وزنك ≈ ${maintenance} كالوري، يعني خطتك بتعمل عجز ${deficit} كالوري/يوم ≈ ${(deficit * 7 / 7700).toFixed(1)} كجم أسبوعياً.
 
 ${target ? ` هدفك: ${target} كجم (متبقي ${(weight - target).toFixed(1)} كجم)` : ""}
@@ -858,13 +872,14 @@ ${target ? ` هدفك: ${target} كجم (متبقي ${(weight - target).toFixed(
 
  // Muscle building — broader
  if (has("muscle", "عضلات", "عضلة", "build", "تضخيم", "كتلة", "بناء", "ضخامة", "bulk", "تضخم")) {
- const weight = parseFloat(nutrition.weight || measurements[0]?.weight || "80");
- const nutritionPlan = plans.find((p: any) => p.type === "meal" || p.type === "nutrition");
- if (nutritionPlan?.content?.daily_calories) {
- return `خطتك الحالية فيها ${nutritionPlan.content.daily_calories} كالوري/يوم — مصممة لبناء العضلات.
+ const weight = parseFloat(String(nutrition.weight || measurements[0]?.weight || "80"));
+ const nContent = plans.find((p) => p.type === "meal" || p.type === "nutrition")?.content;
+ const c = nContent && "meals" in nContent ? nContent : null;
+ if (c?.daily_calories) {
+ return `خطتك الحالية فيها ${c.daily_calories} كالوري/يوم — مصممة لبناء العضلات.
 
  لبناء عضلات بشكل فعال:
-• التزم ببروتين ${nutritionPlan.content.macros?.protein_g || Math.round(weight * 2)}جم يومياً
+• التزم ببروتين ${c.macros?.protein_g || Math.round(weight * 2)}جم يومياً
 • تدرّب بأوزان ثقيلة (6-12 تكرار)
 • زد 2.5 كجم كل أسبوعين (progressive overload)
 • نام 7-9 ساعات للتعافي العضلي
@@ -917,21 +932,21 @@ ${target ? ` هدفك: ${target} كجم (متبقي ${(weight - target).toFixed(
  if (plans.length === 0) {
  return `لا يوجد خطة مفعّلة لديك حالياً. بمجرد ما الكوتش يفعّل خطتك، هقدر أقولك تفاصيلها بالكامل: السعرات، الماكروز، الوجبات، التمارين، وأي تبديلات تناسبك.`;
  }
- const mealPlan = plans.find((p: any) => p.type === "meal" || p.type === "nutrition");
- const workoutPlan = plans.find((p: any) => p.type === "workout");
+ const mealContent = plans.find((p) => p.type === "meal" || p.type === "nutrition")?.content;
+ const mealPlan = mealContent && "meals" in mealContent ? mealContent : null;
+ const workoutPlan = plans.find((p) => p.type === "workout")?.content;
+ const wContent = workoutPlan && "days" in workoutPlan ? workoutPlan : null;
  let reply = `عندك ${plans.length} خطة مفعّلة:\n\n`;
- if (mealPlan?.content) {
- const c = mealPlan.content;
- reply += ` ${mealPlan.title}:\n`;
- if (c.daily_calories) reply += ` • السعرات: ${c.daily_calories} كالوري/يوم\n`;
- if (c.macros) reply += ` • الماكروز: بروتين ${c.macros.protein_g}جم | كارب ${c.macros.carbs_g}جم | دهون ${c.macros.fat_g}جم\n`;
- if (c.meals) reply += ` • ${c.meals.length} وجبات: ${c.meals.map((m: any) => m.name).join("، ")}\n`;
+ if (mealPlan) {
+ const c = mealPlan;
+ reply += ` • السعرات: ${c.daily_calories} كالوري/يوم\n`;
+ reply += ` • الماكروز: بروتين ${c.macros.protein_g}جم | كارب ${c.macros.carbs_g}جم | دهون ${c.macros.fat_g}جم\n`;
+ reply += ` • ${c.meals.length} وجبات: ${c.meals.map((m) => m.name).join("، ")}\n`;
  reply += "\n";
  }
- if (workoutPlan?.content?.days) {
- reply += ` ${workoutPlan.title}:\n`;
- reply += ` • ${workoutPlan.content.days.filter((d: any) => !d.isRest).length} أيام تدريب + ${workoutPlan.content.days.filter((d: any) => d.isRest).length} أيام راحة\n`;
- reply += ` • الأيام: ${workoutPlan.content.days.map((d: any) => `${d.day} (${d.isRest ? "راحة" : d.focus})`).join("، ")}\n\n`;
+ if (wContent?.days) {
+ reply += ` • ${wContent.days.filter((d) => !d.isRest).length} أيام تدريب + ${wContent.days.filter((d) => d.isRest).length} أيام راحة\n`;
+ reply += ` • الأيام: ${wContent.days.map((d) => `${d.day} (${d.isRest ? "راحة" : d.focus})`).join("، ")}\n\n`;
  }
  reply += `تقدر تسألني عن أي وجبة أو تمرين محدد، أو تطلب تبديل وأحسبه لك.`;
  return reply;
@@ -952,9 +967,9 @@ ${target ? ` هدفك: ${target} كجم (متبقي ${(weight - target).toFixed(
 
  // Calories question — broader
  if (has("سعرات", "calories", "كالوري", "سعرة", "حرارية", "كم سعرة", "كام سعرة")) {
- const nutritionPlan = plans.find((p: any) => p.type === "meal" || p.type === "nutrition");
- if (nutritionPlan?.content?.daily_calories) {
- const c = nutritionPlan.content;
+ const nContent = plans.find((p) => p.type === "meal" || p.type === "nutrition")?.content;
+ const c = nContent && "meals" in nContent ? nContent : null;
+ if (c?.daily_calories) {
  return `خطتك فيها ${c.daily_calories} كالوري/يوم.
 • بروتين: ${c.macros?.protein_g || 0}جم = ${((c.macros?.protein_g || 0) * 4)} كالوري (${Math.round((c.macros?.protein_g || 0) * 4 / c.daily_calories * 100)}%)
 • كارب: ${c.macros?.carbs_g || 0}جم = ${((c.macros?.carbs_g || 0) * 4)} كالوري (${Math.round((c.macros?.carbs_g || 0) * 4 / c.daily_calories * 100)}%)
@@ -965,25 +980,26 @@ ${target ? ` هدفك: ${target} كجم (متبقي ${(weight - target).toFixed(
 
  // Macros question
  if (has("ماكرو", "macro", "بروتين", "كارب", "دهون", "macros", "نسبة")) {
- const nutritionPlan = plans.find((p: any) => p.type === "meal" || p.type === "nutrition");
- if (nutritionPlan?.content?.macros) {
+ const nContent = plans.find((p) => p.type === "meal" || p.type === "nutrition")?.content;
+ const c = nContent && "meals" in nContent ? nContent : null;
+ if (c?.macros) {
  return `الماكروز في خطتك:
-• بروتين: ${nutritionPlan.content.macros.protein_g}جم
-• كارب: ${nutritionPlan.content.macros.carbs_g}جم
-• دهون: ${nutritionPlan.content.macros.fat_g}جم`;
+• بروتين: ${c.macros.protein_g}جم
+• كارب: ${c.macros.carbs_g}جم
+• دهون: ${c.macros.fat_g}جم`;
  }
  return `بعد ما الكوتش يفعّل خطة تغذيتك، هقدر أقولك الماكروز بالتفصيل.`;
  }
 
  // What exercises today?
  if (has("تمارين", "تمرين", "تدريب", "workout", "exercise", "أد إيه", "اد ايه", "اليوم")) {
- const workoutPlan = plans.find((p: any) => p.type === "workout");
- if (workoutPlan?.content?.days) {
- const trainingDays = workoutPlan.content.days.filter((d: any) => !d.isRest);
+ const wContent = plans.find((p) => p.type === "workout")?.content;
+ if (wContent && "days" in wContent && wContent.days) {
+ const trainingDays = wContent.days.filter((d) => !d.isRest);
  let reply = `برنامجك فيه ${trainingDays.length} أيام تدريب:\n\n`;
- trainingDays.forEach((d: any) => {
+ trainingDays.forEach((d) => {
  reply += `${d.day} — ${d.focus}:\n`;
- d.exercises?.forEach((ex: any) => {
+ d.exercises?.forEach((ex) => {
  reply += ` • ${ex.name}: ${ex.sets}×${ex.reps} (راحة: ${ex.rest})\n`;
  });
  reply += "\n";
@@ -1015,8 +1031,9 @@ ${target ? ` هدفك: ${target} كجم (متبقي ${(weight - target).toFixed(
 
 function handleFoodSwapQuestion(text: string, ctx?: ClientContext): string {
  const plans = ctx?.current_plans || [];
- const nutrition = ctx?.nutrition || {};
- const nutritionPlan = plans.find((p: any) => p.type === "meal" || p.type === "nutrition");
+ const nutrition = loose(ctx?.nutrition);
+ const nContent = plans.find((p) => p.type === "meal" || p.type === "nutrition")?.content;
+ const nutritionPlan = nContent && "meals" in nContent ? nContent : null;
 
  // Common food swaps with macro calculations
  const foodSwaps: Record<string, { from: string; to: string; fromCal: number; toCal: number; fromGrams: number; toGrams: number; fromProtein: number; toProtein: number; fromCarbs: number; toCarbs: number; note: string }> = {
@@ -1070,10 +1087,10 @@ function handleFoodSwapQuestion(text: string, ctx?: ClientContext): string {
 
  // Generic calculation for any food swap
  if (!swap) {
- if (nutritionPlan?.content?.meals) {
+ if (nutritionPlan?.meals) {
  return `سؤال ممتاز عن تبديل الأطعمة! 
 
-عندك ${nutritionPlan.content.meals.length} وجبات في خطتك الحالية. للتبديل:
+عندك ${nutritionPlan.meals.length} وجبات في خطتك الحالية. للتبديل:
 1. اذهب لصفحة "خطتي"
 2. افتح الخطة
 3. اضغط زر "استبدال" بجانب الوجبة
@@ -1108,7 +1125,8 @@ function handleFoodSwapQuestion(text: string, ctx?: ClientContext): string {
 
 function handleExerciseSwapQuestion(text: string, ctx?: ClientContext): string {
  const plans = ctx?.current_plans || [];
- const workoutPlan = plans.find((p: any) => p.type === "workout");
+ const wContent = plans.find((p) => p.type === "workout")?.content;
+ const workoutPlan = wContent && "days" in wContent ? wContent : null;
 
  // Common exercise swaps by muscle group
  const exerciseSwaps: Record<string, { from: string; to: string; muscle: string; sets: number; reps: string; note: string }> = {
@@ -1127,10 +1145,10 @@ function handleExerciseSwapQuestion(text: string, ctx?: ClientContext): string {
  }
 
  if (!swap) {
- if (workoutPlan?.content?.days) {
+ if (workoutPlan?.days) {
  return `سؤال ممتاز عن تبديل التمارين! 
 
-عندك ${workoutPlan.content.days.length} أيام تدريب. للتبديل:
+عندك ${workoutPlan.days.length} أيام تدريب. للتبديل:
 1. اذهب لصفحة "خطتي"
 2. افتح برنامج التمارين
 3. اضغط زر "استبدال" بجانب التمرين
