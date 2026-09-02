@@ -50,14 +50,14 @@ export async function POST(request: NextRequest) {
     .select("id, role, full_name")
     .eq("id", coachId)
     .maybeSingle();
-  if (!target || !((target as any).role === "coach" || (target as any).role === "admin")) {
+  if (!target || !(target.role === "coach" || target.role === "admin")) {
     return NextResponse.json(
       { error: "not_staff", message: "المحافظ للمدربين فقط" },
       { status: 409 },
     );
   }
 
-  const { data: balance, error: rpcErr } = await (supabaseAdmin as any).rpc(
+  const { data: balance, error: rpcErr } = await supabaseAdmin.rpc(
     "coach_adjust_wallet",
     {
       p_coach_id: coachId,

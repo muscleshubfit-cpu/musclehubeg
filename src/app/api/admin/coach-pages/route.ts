@@ -52,7 +52,8 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Server not configured" }, { status: 500 });
   }
 
-  const { data, error } = await (supabaseAdmin.from("coach_pages") as any)
+  const { data, error } = await supabaseAdmin
+    .from("coach_pages")
     .select(
       "coach_id, slug, headline, bio, headline_en, is_published, review_status, review_note, reviewed_at, updated_at, photo_url",
     )
@@ -200,7 +201,8 @@ export async function PATCH(request: NextRequest) {
     );
   }
 
-  const { data, error } = await (supabaseAdmin.from("coach_pages") as any)
+  const { data, error } = await supabaseAdmin
+    .from("coach_pages")
     .update({
       review_status: action === "approve" ? "approved" : "rejected",
       review_note: action === "approve" ? "" : note,

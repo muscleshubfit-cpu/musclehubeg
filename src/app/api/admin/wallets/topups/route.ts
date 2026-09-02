@@ -45,7 +45,7 @@ export async function PATCH(request: NextRequest) {
   }
 
   const { data: req, error: fetchErr } = await supabaseAdmin
-    .from("coach_topup_requests" as any)
+    .from("coach_topup_requests")
     .select("id, coach_id, amount, currency, method, status, note")
     .eq("id", id)
     .maybeSingle();
@@ -56,27 +56,27 @@ export async function PATCH(request: NextRequest) {
       { status: 404 },
     );
   }
-  if ((req as any).status !== "pending") {
+  if (req.status !== "pending") {
     return NextResponse.json(
       { error: "already_reviewed", message: "الطلب اتراجع قبل كده" },
       { status: 409 },
     );
   }
 
-  const coachId = (req as any).coach_id as string;
-  const amount = Number((req as any).amount);
+  const coachId = req.coach_id;
+  const amount = Number(req.amount);
 
   if (action === "approve") {
     // Atomic credit — the RPC raises 'insufficient wallet balance' on
     // debits only; a top-up credit cannot fail on balance.
-    const { data: newBalance, error: rpcErr } = await (supabaseAdmin as any).rpc(
+    const { data: newBalance, error: rpcErr } = await supabaseAdmin.rpc(
       "coach_adjust_wallet",
       {
         p_coach_id: coachId,
         p_amount: amount,
         p_kind: "topup",
         p_ref_id: id,
-        p_note: adminNote ?? (req as any).note ?? null,
+        p_note: adminNote ?? req.note ?? null,
         p_created_by: auth.id,
       },
     );
@@ -89,7 +89,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     const { error: updErr } = await supabaseAdmin
-      .from("coach_topup_requests" as any)
+      .from("coach_topup_requests")
       .update({
         status: "approved",
         admin_note: adminNote,
@@ -118,7 +118,7 @@ export async function PATCH(request: NextRequest) {
 
   // Reject — no wallet touch, coach gets the reason.
   const { error: rejErr } = await supabaseAdmin
-    .from("coach_topup_requests" as any)
+    .from("coach_topup_requests")
     .update({
       status: "rejected",
       admin_note: adminNote,

@@ -67,7 +67,7 @@ export async function GET(request: NextRequest) {
     .order("created_at", { ascending: false })
     .limit(200);
 
-  const rows = (data ?? []).map((r: any) => ({
+  const rows = (data ?? []).map((r) => ({
     ...r,
     user_name: r.user?.full_name || "—",
     user_email: r.user?.email || "—",

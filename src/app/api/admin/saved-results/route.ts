@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { requireAdmin, isAuthConfigured } from "@/lib/auth-server";
+import type { Database } from "@/lib/supabase/types";
+
+// tool_slug is a DB enum (check constraint) — this union is its mirror.
+type SavedToolSlug = Database["public"]["Tables"]["saved_results"]["Row"]["tool_slug"];
 
 /**
  * GET /api/admin/saved-results
@@ -39,7 +43,7 @@ export async function GET(request: NextRequest) {
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-  const supabase = createClient(supabaseUrl, serviceKey, {
+  const supabase = createClient<Database>(supabaseUrl, serviceKey, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
 
@@ -54,7 +58,10 @@ export async function GET(request: NextRequest) {
     .range(offset, offset + limit - 1);
 
   if (tool) {
-    query = query.eq("tool_slug", tool);
+    // Trust-boundary cast: invalid values simply match no rows at the DB
+    // check-constraint level (identical runtime behavior to the old untyped
+    // builder — the constraint is the runtime guard).
+    query = query.eq("tool_slug", tool as SavedToolSlug);
   }
 
   const { data, count, error } = await query;
@@ -64,7 +71,14 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  const results = (data || []).map((r: any) => ({
+  // saved_results.user_id references auth.users (no direct profiles FK),
+  // so the transitive profiles embed cannot be statically resolved by the
+  // generated types (Relationships: []). One documented boundary cast —
+  // the runtime query is unchanged and PostgREST resolves it live.
+  type SavedResultWithUser = Database["public"]["Tables"]["saved_results"]["Row"] & {
+    profiles: { full_name: string | null; email: string | null } | null;
+  };
+  const results = ((data || []) as unknown as SavedResultWithUser[]).map((r) => ({
     id: r.id,
     tool_slug: r.tool_slug,
     title: r.title,

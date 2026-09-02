@@ -1,6 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin, isAuthConfigured } from "@/lib/auth-server";
 import { supabaseAdmin, isSupabaseAdminConfigured } from "@/lib/supabase/admin";
+import type { Database } from "@/lib/supabase/types";
+
+// Only the text columns this route patches — keeps `.update()` fully typed.
+type BlogTextPatch = Partial<
+  Pick<
+    Database["public"]["Tables"]["blog_posts"]["Update"],
+    "title" | "excerpt" | "meta_title" | "meta_description" | "content"
+  >
+>;
 
 /**
  * POST /api/admin/blog/cleanup
@@ -150,11 +159,11 @@ export async function POST(request: NextRequest) {
 
   for (const post of posts || []) {
     const fields = ["title", "excerpt", "meta_title", "meta_description", "content"] as const;
-    const updates: Record<string, string> = {};
+    const updates: BlogTextPatch = {};
     let totalReplacements = 0;
 
     for (const field of fields) {
-      const original = (post as any)[field];
+      const original = post[field];
       if (!original || typeof original !== "string") continue;
 
       let updated = original;
@@ -194,7 +203,7 @@ export async function POST(request: NextRequest) {
 
     const { error: patchErr } = await supabaseAdmin
       .from("blog_posts")
-      .update(updates as any)
+      .update(updates)
       .eq("id", post.id);
 
     details.push({

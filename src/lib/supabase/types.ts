@@ -809,6 +809,44 @@ export type Database = {
           { foreignKeyName: "coach_wallet_transactions_coach_id_fkey"; columns: ["coach_id"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] },
         ];
       };
+      // mirror 0037 COACH_BOOST — added Phase 95 (was
+      // from("coach_support_messages" as any) in admin/coach-support)
+      coach_support_messages: {
+        Row: {
+          id: string;
+          coach_id: string;
+          parent_id: string | null;
+          sender_role: "coach" | "admin";
+          subject: string;
+          body: string;
+          status: "open" | "answered" | "closed";
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          coach_id: string;
+          parent_id?: string | null;
+          sender_role?: "coach" | "admin";
+          subject?: string;
+          body: string;
+          status?: "open" | "answered" | "closed";
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          coach_id?: string;
+          parent_id?: string | null;
+          sender_role?: "coach" | "admin";
+          subject?: string;
+          body?: string;
+          status?: "open" | "answered" | "closed";
+          created_at?: string;
+        };
+        Relationships: [
+          { foreignKeyName: "coach_support_messages_coach_id_fkey"; columns: ["coach_id"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] },
+          { foreignKeyName: "coach_support_messages_parent_id_fkey"; columns: ["parent_id"]; isOneToOne: false; referencedRelation: "coach_support_messages"; referencedColumns: ["id"] },
+        ];
+      };
       // mirror 0031+0032 base + 0037 (photo_url, results_photos, social,
       // whatsapp_phone) + 0046 (review_status) + 0049 (certificates) —
       // columns added Phase 93 (was from("coach_pages" as any) in the
@@ -825,6 +863,8 @@ export type Database = {
           specialties_en: string;
           is_published: boolean;
           review_status: string;
+          review_note: string;
+          reviewed_at: string | null;
           photo_url: string;
           results_photos: Json;
           instagram_url: string;
@@ -847,6 +887,8 @@ export type Database = {
           specialties_en?: string;
           is_published?: boolean;
           review_status?: string;
+          review_note?: string;
+          reviewed_at?: string | null;
           photo_url?: string;
           results_photos?: Json;
           instagram_url?: string;
@@ -869,6 +911,8 @@ export type Database = {
           specialties_en?: string;
           is_published?: boolean;
           review_status?: string;
+          review_note?: string;
+          reviewed_at?: string | null;
           photo_url?: string;
           results_photos?: Json;
           instagram_url?: string;

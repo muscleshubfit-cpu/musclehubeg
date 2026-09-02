@@ -26,15 +26,15 @@ export async function GET(_request: NextRequest) {
       .from("profiles")
       .select("id, full_name, email, role")
       .in("role", ["coach", "admin"]),
-    supabaseAdmin.from("coach_wallets" as any).select("coach_id, balance, currency"),
+    supabaseAdmin.from("coach_wallets").select("coach_id, balance, currency"),
     supabaseAdmin
-      .from("coach_fees" as any)
+      .from("coach_fees")
       .select("coach_id, fee_per_client, currency"),
     supabaseAdmin
       .from("coach_assignments")
       .select("coach_id"),
     supabaseAdmin
-      .from("coach_topup_requests" as any)
+      .from("coach_topup_requests")
       .select(
         `id, coach_id, amount, currency, method, receipt_path, note, status,
          admin_note, created_at,
@@ -55,16 +55,16 @@ export async function GET(_request: NextRequest) {
   }
 
   const walletMap = new Map(
-    (walletsRes.data ?? []).map((w: any) => [w.coach_id, w]),
+    (walletsRes.data ?? []).map((w) => [w.coach_id, w]),
   );
-  const feeMap = new Map((feesRes.data ?? []).map((f: any) => [f.coach_id, f]));
+  const feeMap = new Map((feesRes.data ?? []).map((f) => [f.coach_id, f]));
   const countMap = new Map<string, number>();
   for (const row of countsRes.data ?? []) {
-    const cid = (row as any).coach_id as string;
+    const cid = row.coach_id;
     countMap.set(cid, (countMap.get(cid) ?? 0) + 1);
   }
 
-  const wallets = (staffRes.data ?? []).map((p: any) => ({
+  const wallets = (staffRes.data ?? []).map((p) => ({
     coach_id: p.id,
     full_name: p.full_name,
     email: p.email,

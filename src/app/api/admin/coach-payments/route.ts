@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
   const limit = Math.min(100, Math.max(1, Number(url.searchParams.get("limit")) || 50));
 
   const { data, error } = await supabaseAdmin
-    .from("coach_payments" as any)
+    .from("coach_payments")
     .select(
       `id, tier, months, amount, currency, method, note, created_at,
        coach:profiles!coach_payments_coach_id_fkey(id, full_name, email),

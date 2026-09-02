@@ -35,11 +35,11 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Server not configured" }, { status: 500 });
   }
 
-  const { data, error } = (await supabaseAdmin
-    .from("coach_support_messages" as any)
+  const { data, error } = await supabaseAdmin
+    .from("coach_support_messages")
     .select("id, coach_id, parent_id, sender_role, subject, body, status, created_at")
     .order("created_at", { ascending: true })
-    .limit(400)) as { data: any; error: any };
+    .limit(400);
 
   if (error) {
     const code = (error as { code?: string }).code;
@@ -111,7 +111,7 @@ export async function POST(request: NextRequest) {
   }
 
   const { data: parent } = await supabaseAdmin
-    .from("coach_support_messages" as any)
+    .from("coach_support_messages")
     .select("id, coach_id, status")
     .eq("id", parentId)
     .maybeSingle();
@@ -123,9 +123,9 @@ export async function POST(request: NextRequest) {
   }
 
   const { error: insertErr } = await supabaseAdmin
-    .from("coach_support_messages" as any)
+    .from("coach_support_messages")
     .insert({
-      coach_id: (parent as any).coach_id,
+      coach_id: parent.coach_id,
       parent_id: parentId,
       sender_role: "admin",
       subject: "",
@@ -137,13 +137,13 @@ export async function POST(request: NextRequest) {
   }
 
   await supabaseAdmin
-    .from("coach_support_messages" as any)
+    .from("coach_support_messages")
     .update({ status: close ? "closed" : "answered" })
     .eq("id", parentId);
 
   // The coach hears about the reply instantly.
   await supabaseAdmin.from("notifications").insert({
-    user_id: (parent as any).coach_id,
+    user_id: parent.coach_id,
     type: "coach_support_reply",
     title: "رد فريق الدعم على رسالتك",
     body: text.slice(0, 200),

@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin, isAuthConfigured } from "@/lib/auth-server";
 import { supabaseAdmin, isSupabaseAdminConfigured } from "@/lib/supabase/admin";
+import type { Database } from "@/lib/supabase/types";
+
+// tool_slug is a DB enum — this union is its mirror (types.ts tool_leads.Row).
+type ToolSlug = Database["public"]["Tables"]["tool_leads"]["Row"]["tool_slug"];
 
 /**
  * GET /api/admin/leads?tool=calorie-calculator
@@ -35,7 +39,9 @@ export async function GET(request: NextRequest) {
     .range(offset, offset + limit - 1);
 
   if (tool && tool !== "all") {
-    q = q.eq("tool_slug", tool as any);
+    // Trust-boundary cast: an invalid tool value simply matches no rows at
+    // the DB enum level (identical runtime behavior to the old `as any`).
+    q = q.eq("tool_slug", tool as ToolSlug);
   }
 
   const { data, error, count } = await q;
@@ -74,7 +80,9 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ error: "id is required" }, { status: 400 });
   }
 
-  const update: Record<string, boolean> = {};
+  const update: Partial<
+    Pick<Database["public"]["Tables"]["tool_leads"]["Update"], "contacted" | "converted">
+  > = {};
   if (typeof contacted === "boolean") update.contacted = contacted;
   if (typeof converted === "boolean") update.converted = converted;
 
@@ -84,7 +92,7 @@ export async function PATCH(request: NextRequest) {
 
   const { data, error } = await supabaseAdmin
     .from("tool_leads")
-    .update(update as any)
+    .update(update)
     .eq("id", id)
     .select()
     .single();
