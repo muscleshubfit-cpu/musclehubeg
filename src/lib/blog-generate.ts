@@ -28,7 +28,7 @@
  */
 
 import { callFreeAIFallbackChain, parseJSON } from "@/lib/ai-provider";
-import { externalSearch } from "@/lib/external-search";
+import { externalSearch, type ResearchResult } from "@/lib/external-search";
 import { insertToolLinks } from "@/lib/blog-tool-links";
 
 export const ARTICLE_SYSTEM_PROMPT = `You are the Musclehubeg AI Content Assistant — an expert SEO content strategist and copywriter for a premium online nutrition & fitness coaching platform (Musclehubeg, musclehubeg.vercel.app).
@@ -109,16 +109,68 @@ Output: STRICT JSON only. No prose outside the JSON, no markdown fences.`;
 // ─────────────────────────────────────────────────────────────────────────
 // CHUNK 1: SEO + Research + English Article
 // ─────────────────────────────────────────────────────────────────────────
+/** Research payload — the external-search result (shared with p0-research). */
+type ResearchData = ResearchResult;
+
+/** Per-language SEO bundle produced by the article chunks (queue JSON view). */
+export type ArticleSeo = {
+  en?: SeoBlock | null;
+  ar?: SeoBlock | null;
+  focusKeyword?: string;
+  secondaryKeywords?: string[];
+};
+
+type LinkItem = { slug: string; anchorText: string; anchorTextAr?: string; reason: string };
+type ExternalLinkItem = { url: string; anchorText: string; anchorTextAr?: string; reason: string };
+type ImagePrompts = { featuredImage: string; facebookImage: string; openGraphImage: string };
+type SocialPosts = { facebook: string; linkedin: string; instagram: string; x: string };
+type FaqItem = { question: string; answer: string };
+
+type EnglishArticleResult = {
+  /** Legacy read in the merge — never set by the current EN chunk. */
+  research?: { angle: string; searchIntent: string; rationale: string } | null;
+  seo: ArticleSeo;
+  englishArticle: string;
+  faq: FaqItem[];
+  imagePrompts: ImagePrompts;
+  socialPosts: SocialPosts;
+  estimatedReadingTime: number;
+  source: string;
+};
+type ArabicArticleResult = {
+  /** Legacy read in the merge — the AR writer never returns seo (undefined). */
+  seo?: ArticleSeo | null;
+  /** Legacy read in the merge — never set by the current AR chunk. */
+  research?: { angle: string; searchIntent: string; rationale: string } | null;
+  arabicArticle: string;
+  faqAr: FaqItem[];
+  imagePromptsAr: ImagePrompts;
+  socialPostsAr: SocialPosts;
+  estimatedReadingTimeAr: number;
+  source: string;
+};
+type LinksResult = {
+  /** NEW: AR-specific links — absent from the current combined-shape return (undefined). */
+  internalLinksAr?: LinkItem[];
+  externalLinksAr?: ExternalLinkItem[];
+  internalLinks: LinkItem[];
+  externalLinks: ExternalLinkItem[];
+  imagePrompts: ImagePrompts;
+  socialPosts: SocialPosts;
+  estimatedReadingTime: number;
+  source: string;
+};
+
 const chunk1Prompt = (input: {
   topic?: string;
   focusKeyword?: string;
   category?: string;
-}, research?: any) => {
+}, research?: ResearchData | null) => {
   const researchBlock = research ? `
 
 STEP 0 — RESEARCH DATA (from external web search — use this to inform your article):
 Top-ranking articles on this topic:
-${(research.topArticles || []).slice(0, 5).map((a: any, i: number) => `  ${i + 1}. "${a.title}" (${a.host || a.url || "?"})\n     ${a.snippet || ""}`).join("\n")}
+${(research.topArticles || []).slice(0, 5).map((a, i: number) => `  ${i + 1}. "${a.title}" (${a.host || a.url || "?"})\n     ${a.snippet || ""}`).join("\n")}
 
 Related questions people are asking (address these in your article + FAQ):
 ${(research.relatedQuestions || []).slice(0, 8).map((q: string, i: number) => `  ${i + 1}. ${q}`).join("\n")}
@@ -229,7 +281,7 @@ const chunk2Prompt = (input: {
   topic?: string;
   focusKeyword?: string;
   category?: string;
-}, _seo?: any) => {
+}, _seo?: ArticleSeo | null) => {
   // EN/AR SEPARATION: The AR writer receives ONLY the Arabic topic + focus
   // keyword (from the AR topic pool, NOT the EN topic). It generates ALL
   // Arabic SEO (title, meta, slug, keywords) from scratch.
@@ -351,7 +403,7 @@ Return ONLY the JSON. No commentary, no markdown fences.`;
 const chunk3Prompt = (input: {
   topic?: string;
   focusKeyword?: string;
-}, seo: any) => {
+}, seo: ArticleSeo | null) => {
   const enTitle = seo?.en?.seoTitle || input.topic || "";
   const arTitle = seo?.ar?.seoTitle || "";
   const focusKw = seo?.focusKeyword || input.focusKeyword || "";
@@ -422,7 +474,8 @@ export type SeoBlock = {
 };
 
 export type ArticleBundle = {
-  research: { angle: string; searchIntent: string; rationale: string } | null;
+  /** Local generator: {angle, searchIntent, rationale}. AI path: the full external ResearchResult. */
+  research: ResearchResult | { angle: string; searchIntent: string; rationale: string } | null;
   seo: {
     // Shared fields (backward compat — old bundles use these for both EN and AR).
     // New bundles populate these from seo.en.* for backward compat with legacy consumers.
@@ -487,7 +540,7 @@ export function generateLocalArticleBundle(input: {
   topic?: string;
   focusKeyword?: string;
   category?: string;
-  research?: any;
+  research?: ResearchData | null;
 }): ArticleBundle {
   const rawTopic = input.topic || input.focusKeyword || "Evidence-Based Fitness and Nutrition Strategy";
   const focusKw = input.focusKeyword || input.topic || "fitness and nutrition guide";
@@ -687,30 +740,31 @@ Mastering **${focusKw}** is a journey of disciplined daily habits backed by scie
 }
 
 export async function generateArticleBundle(
-  input: { topic?: string; focusKeyword?: string; category?: string; research?: any; language?: "en" | "ar" },
+  input: { topic?: string; focusKeyword?: string; category?: string; research?: ResearchData | null; language?: "en" | "ar" },
 ): Promise<ArticleBundle> {
   console.log(`[blog-generate] Starting EN/AR separated article generation (language: ${input.language || "both"})`);
 
   const emptySeo: SeoBlock = { seoTitle: "", metaTitle: "", metaDescription: "", slug: "" };
-  const buildSeo = (block: any): SeoBlock => ({
-    seoTitle: block?.seoTitle || "",
-    metaTitle: block?.metaTitle || block?.seoTitle || "",
-    metaDescription: block?.metaDescription || "",
-    slug: block?.slug || "",
-    focusKeyword: block?.focusKeyword,
-    secondaryKeywords: Array.isArray(block?.secondaryKeywords) ? block.secondaryKeywords : undefined,
+  const buildSeo = (block: Record<string, unknown> | SeoBlock | null | undefined): SeoBlock => ({
+    seoTitle: String(block?.seoTitle || ""),
+    metaTitle: String(block?.metaTitle || block?.seoTitle || ""),
+    metaDescription: String(block?.metaDescription || ""),
+    slug: String(block?.slug || ""),
+    focusKeyword: typeof block?.focusKeyword === "string" ? block.focusKeyword : undefined,
+    secondaryKeywords: Array.isArray(block?.secondaryKeywords) ? (block.secondaryKeywords as string[]) : undefined,
   });
 
   // ───────────────────────────────────────────────────────────────────
   // EN ARTICLE (skip if language=ar)
   // ───────────────────────────────────────────────────────────────────
-  let enResult: any = null;
+  let enResult: EnglishArticleResult | null = null;
   if (input.language !== "ar") {
     try {
       enResult = await generateEnglishArticle(input, input.research);
-    } catch (e: any) {
-      console.error("[blog-generate] EN article failed:", e?.message);
-      throw new Error(`Blog article generation failed — EN article step error: ${e?.message || "Unknown"}. Ensure OPENROUTER_API is set with a valid key.`);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Unknown";
+      console.error("[blog-generate] EN article failed:", msg);
+      throw new Error(`Blog article generation failed — EN article step error: ${msg}. Ensure OPENROUTER_API is set with a valid key.`);
     }
   }
 
@@ -719,14 +773,14 @@ export async function generateArticleBundle(
   // Does NOT receive englishArticle as input.
   // Uses input.topic/focusKeyword directly (should be Arabic if language=ar).
   // ───────────────────────────────────────────────────────────────────
-  let arResult: any = null;
+  let arResult: ArabicArticleResult | null = null;
   if (input.language !== "en") {
     try {
       // Pass null for seo — AR writer generates its own AR SEO from scratch.
       // This prevents EN SEO from leaking into the AR prompt context.
       arResult = await generateArabicArticle(input, null, input.research);
-    } catch (e: any) {
-      console.error("[blog-generate] AR article failed:", e?.message);
+    } catch (e) {
+      console.error("[blog-generate] AR article failed:", e instanceof Error ? e.message : e);
       if (!enResult) throw e; // If EN also failed, throw.
       // If only AR failed, continue with EN-only bundle.
     }
@@ -736,7 +790,7 @@ export async function generateArticleBundle(
   // LINKS — generated separately per language via generateLinksAndSocial
   // (which now calls generateEnglishLinks + generateArabicLinks internally).
   // ───────────────────────────────────────────────────────────────────
-  let linksResult: any = null;
+  let linksResult: LinksResult | null = null;
   try {
     linksResult = await generateLinksAndSocial(
       { topic: input.topic, focusKeyword: input.focusKeyword },
@@ -744,8 +798,8 @@ export async function generateArticleBundle(
       enResult?.englishArticle || "",
       arResult?.arabicArticle || "",
     );
-  } catch (e: any) {
-    console.error("[blog-generate] Links failed:", e?.message);
+  } catch (e) {
+    console.error("[blog-generate] Links failed:", e instanceof Error ? e.message : e);
   }
 
   // ───────────────────────────────────────────────────────────────────
@@ -791,7 +845,8 @@ export async function generateArticleBundle(
   if (!enSeoBlock.focusKeyword && enSeo?.focusKeyword) enSeoBlock.focusKeyword = enSeo.focusKeyword;
   if (!enSeoBlock.secondaryKeywords && Array.isArray(enSeo?.secondaryKeywords)) enSeoBlock.secondaryKeywords = enSeo.secondaryKeywords;
 
-  const arSeoBlock: SeoBlock = arSeo?.ar ? buildSeo(arSeo.ar) : (arSeo?.seoTitle ? buildSeo(arSeo) : emptySeo);
+    // Legacy flat-shape check (old bundles had seo.seoTitle at the top level).
+  const arSeoBlock: SeoBlock = arSeo?.ar ? buildSeo(arSeo.ar) : ((arSeo as unknown as { seoTitle?: string } | null)?.seoTitle ? buildSeo(arSeo) : emptySeo);
   if (!arSeoBlock.focusKeyword && arSeo?.focusKeyword) arSeoBlock.focusKeyword = arSeo.focusKeyword;
   if (!arSeoBlock.secondaryKeywords && Array.isArray(arSeo?.secondaryKeywords)) arSeoBlock.secondaryKeywords = arSeo.secondaryKeywords;
   // Fallback: if AR SEO is still empty, use input topic/focusKeyword
@@ -854,7 +909,7 @@ export async function generateArticleBundle(
  */
 export async function generateExternalResearch(
   input: { topic?: string; focusKeyword?: string; category?: string },
-): Promise<{ research: any; source: string }> {
+): Promise<{ research: ResearchResult; source: string }> {
   const result = await externalSearch({
     topic: input.topic,
     focusKeyword: input.focusKeyword,
@@ -877,16 +932,8 @@ export async function generateExternalResearch(
 
 export async function generateEnglishArticle(
   input: { topic?: string; focusKeyword?: string; category?: string },
-  research?: any,
-): Promise<{
-  seo: any;
-  englishArticle: string;
-  faq: any[];
-  imagePrompts: any;
-  socialPosts: any;
-  estimatedReadingTime: number;
-  source: string;
-}> {
+  research?: ResearchData | null,
+): Promise<EnglishArticleResult> {
   const prompt = chunk1Prompt(input, research);
   const { text, model, provider } = await callFreeAIFallbackChain(
     prompt,
@@ -905,37 +952,31 @@ export async function generateEnglishArticle(
   );
   // M62 fix: removed raw text logging (AGENTS.md §8 — never log AI response)
 
-  const parsed = parseJSON<any>(text);
+  const parsed = parseJSON<Record<string, unknown>>(text);
   if (!parsed || !parsed.englishArticle || !parsed.seo) {
     console.error(`[blog-generate] EN article FAILED — model: ${model}, provider: ${provider}`);
     console.error(`[blog-generate] EN parsed keys: ${parsed ? Object.keys(parsed).join(", ") : "null"}`);
     // M62 fix: removed raw text logging
     throw new Error(`English article chunk returned invalid data — missing englishArticle or seo. Provider: ${provider}, Model: ${model}. Parsed keys: ${parsed ? Object.keys(parsed).join(", ") : "null"}`);
   }
-  console.log(`[blog-generate] EN article done (model: ${model}, provider: ${provider}, words: ${parsed.englishArticle.split(/\s+/).length})`);
+  const enArticle = String(parsed.englishArticle || "");
+  console.log(`[blog-generate] EN article done (model: ${model}, provider: ${provider}, words: ${enArticle.split(/\s+/).length})`);
   return {
-    seo: parsed.seo,
-    englishArticle: parsed.englishArticle,
-    faq: Array.isArray(parsed.faq) ? parsed.faq : [],
-    imagePrompts: parsed.imagePrompts || { featuredImage: "", facebookImage: "", openGraphImage: "" },
-    socialPosts: parsed.socialPosts || { facebook: "", linkedin: "", instagram: "", x: "" },
-    estimatedReadingTime: typeof parsed.estimatedReadingTime === "number" ? parsed.estimatedReadingTime : Math.max(1, Math.ceil(parsed.englishArticle.split(/\s+/).length / 200)),
+    seo: parsed.seo as ArticleSeo,
+    englishArticle: enArticle,
+    faq: Array.isArray(parsed.faq) ? (parsed.faq as FaqItem[]) : [],
+    imagePrompts: (parsed.imagePrompts || { featuredImage: "", facebookImage: "", openGraphImage: "" }) as ImagePrompts,
+    socialPosts: (parsed.socialPosts || { facebook: "", linkedin: "", instagram: "", x: "" }) as SocialPosts,
+    estimatedReadingTime: typeof parsed.estimatedReadingTime === "number" ? parsed.estimatedReadingTime : Math.max(1, Math.ceil(enArticle.split(/\s+/).length / 200)),
     source: `${provider}:${model}`,
   };
 }
 
 export async function generateArabicArticle(
   input: { topic?: string; focusKeyword?: string; category?: string },
-  seo: any,
-  research?: any,
-): Promise<{
-  arabicArticle: string;
-  faqAr: any[];
-  imagePromptsAr: any;
-  socialPostsAr: any;
-  estimatedReadingTimeAr: number;
-  source: string;
-}> {
+  seo: ArticleSeo | null,
+  research?: ResearchData | null,
+): Promise<ArabicArticleResult> {
   // EN/AR SEPARATION: this function does NOT receive englishArticle as input.
   // It uses chunk2Prompt but the AR writer gets only topic + research (same as EN).
   // The AR article, AR FAQ, AR image prompts, AR social posts, and AR reading
@@ -956,10 +997,10 @@ export async function generateArabicArticle(
   );
   // M62 fix: removed raw text logging (AGENTS.md §8)
 
-  const parsed = parseJSON<any>(text);
+  const parsed = parseJSON<Record<string, unknown>>(text);
 
   // Robust parsing — try multiple field name variations
-  const arabicArticle = parsed?.arabicArticle || parsed?.arabic_article || parsed?.article_ar || parsed?.article || "";
+  const arabicArticle = String(parsed?.arabicArticle || parsed?.arabic_article || parsed?.article_ar || parsed?.article || "");
   if (!parsed || !arabicArticle) {
     console.error(`[blog-generate] AR article FAILED — model: ${model}, provider: ${provider}`);
     console.error(`[blog-generate] AR parsed keys: ${parsed ? Object.keys(parsed).join(", ") : "null"}`);
@@ -969,9 +1010,9 @@ export async function generateArabicArticle(
   console.log(`[blog-generate] AR article done (model: ${model}, provider: ${provider}, words: ${arabicArticle.split(/\s+/).length})`);
   return {
     arabicArticle,
-    faqAr: Array.isArray(parsed.faq_ar) ? parsed.faq_ar : (Array.isArray(parsed.faqAr) ? parsed.faqAr : []),
-    imagePromptsAr: parsed.imagePromptsAr || parsed.image_prompts_ar || { featuredImage: "", facebookImage: "", openGraphImage: "" },
-    socialPostsAr: parsed.socialPostsAr || parsed.social_posts_ar || { facebook: "", linkedin: "", instagram: "", x: "" },
+    faqAr: Array.isArray(parsed.faq_ar) ? (parsed.faq_ar as FaqItem[]) : (Array.isArray(parsed.faqAr) ? (parsed.faqAr as FaqItem[]) : []),
+    imagePromptsAr: (parsed.imagePromptsAr || parsed.image_prompts_ar || { featuredImage: "", facebookImage: "", openGraphImage: "" }) as ImagePrompts,
+    socialPostsAr: (parsed.socialPostsAr || parsed.social_posts_ar || { facebook: "", linkedin: "", instagram: "", x: "" }) as SocialPosts,
     estimatedReadingTimeAr: typeof parsed.estimatedReadingTimeAr === "number" ? parsed.estimatedReadingTimeAr : Math.max(1, Math.ceil(arabicArticle.split(/\s+/).length / 200)),
     source: `${provider}:${model}`,
   };
@@ -984,17 +1025,10 @@ export async function generateArabicArticle(
  */
 export async function generateLinksAndSocial(
   input: { topic?: string; focusKeyword?: string },
-  seo: any,
+  seo: ArticleSeo | null,
   englishArticle: string,
   arabicArticle: string,
-): Promise<{
-  internalLinks: any[];
-  externalLinks: any[];
-  imagePrompts: any;
-  socialPosts: any;
-  estimatedReadingTime: number;
-  source: string;
-}> {
+): Promise<LinksResult> {
   const enTitle = seo?.en?.seoTitle || input.topic || "";
   const arTitle = seo?.ar?.seoTitle || "";
   const focusKw = seo?.focusKeyword || input.focusKeyword || "";
@@ -1077,7 +1111,7 @@ Return ONLY the JSON. No commentary, no markdown fences.`;
     },
   );
   // M62 fix: removed raw text logging
-  const parsed = parseJSON<any>(text);
+  const parsed = parseJSON<Record<string, unknown>>(text);
   if (!parsed) {
     console.error(`[blog-generate] Links FAILED — model: ${model}, provider: ${provider}`);
     // M62 fix: removed raw text logging
@@ -1090,16 +1124,16 @@ Return ONLY the JSON. No commentary, no markdown fences.`;
       ? parsed.estimatedReadingTime
       : Math.max(1, Math.ceil(wordCount / 200));
 
-  console.log(`[blog-generate] Links + social done (model: ${model}, links: ${parsed.internalLinks?.length || 0})`);
+  console.log(`[blog-generate] Links + social done (model: ${model}, links: ${Array.isArray(parsed.internalLinks) ? parsed.internalLinks.length : 0})`);
   return {
-    internalLinks: Array.isArray(parsed.internalLinks) ? parsed.internalLinks : [],
-    externalLinks: Array.isArray(parsed.externalLinks) ? parsed.externalLinks : [],
-    imagePrompts: parsed.imagePrompts || {
+    internalLinks: Array.isArray(parsed.internalLinks) ? (parsed.internalLinks as LinkItem[]) : [],
+    externalLinks: Array.isArray(parsed.externalLinks) ? (parsed.externalLinks as ExternalLinkItem[]) : [],
+    imagePrompts: (parsed.imagePrompts || {
       featuredImage: `Ultra-realistic editorial photo directly related to: ${input.topic || input.focusKeyword || "fitness and nutrition"}. Professional lighting, 8k, no text overlay`,
       facebookImage: `Close-up realistic photo about: ${input.focusKeyword || input.topic || "fitness"}. Professional studio lighting, no text overlay`,
       openGraphImage: `Dynamic scene depicting: ${input.topic || input.focusKeyword || "athletic training"}. Professional editorial style, no text overlay`,
-    },
-    socialPosts: parsed.socialPosts || { facebook: "", linkedin: "", instagram: "", x: "" },
+    }) as ImagePrompts,
+    socialPosts: (parsed.socialPosts || { facebook: "", linkedin: "", instagram: "", x: "" }) as SocialPosts,
     estimatedReadingTime,
     source: `${provider}:${model}`,
   };
@@ -1115,32 +1149,32 @@ Return ONLY the JSON. No commentary, no markdown fences.`;
  * internalLinks with both anchorText + anchorTextAr).
  */
 export function buildFinalBundle(parts: {
-  research: any;
-  seo: any;
+  research: ResearchResult | { angle: string; searchIntent: string; rationale: string } | null;
+  seo: ArticleSeo | null;
   englishArticle: string;
   arabicArticle: string;
-  faq: any[];
-  faqAr: any[];
-  internalLinks: any[];
-  externalLinks: any[];
-  imagePrompts: any;
-  socialPosts: any;
+  faq: FaqItem[];
+  faqAr: FaqItem[];
+  internalLinks: LinkItem[];
+  externalLinks: ExternalLinkItem[];
+  imagePrompts: ImagePrompts;
+  socialPosts: SocialPosts;
   estimatedReadingTime: number;
   // NEW optional fields (absent in old bundles):
-  imagePromptsAr?: any;
-  socialPostsAr?: any;
+  imagePromptsAr?: ImagePrompts;
+  socialPostsAr?: SocialPosts;
   estimatedReadingTimeAr?: number;
-  internalLinksAr?: any[];
-  externalLinksAr?: any[];
+  internalLinksAr?: LinkItem[];
+  externalLinksAr?: ExternalLinkItem[];
 }): ArticleBundle {
   const emptySeo: SeoBlock = { seoTitle: "", metaTitle: "", metaDescription: "", slug: "" };
-  const buildSeo = (block: any): SeoBlock => ({
-    seoTitle: block?.seoTitle || "",
-    metaTitle: block?.metaTitle || block?.seoTitle || "",
-    metaDescription: block?.metaDescription || "",
-    slug: block?.slug || "",
-    focusKeyword: block?.focusKeyword,
-    secondaryKeywords: Array.isArray(block?.secondaryKeywords) ? block.secondaryKeywords : undefined,
+  const buildSeo = (block: Record<string, unknown> | SeoBlock | null | undefined): SeoBlock => ({
+    seoTitle: String(block?.seoTitle || ""),
+    metaTitle: String(block?.metaTitle || block?.seoTitle || ""),
+    metaDescription: String(block?.metaDescription || ""),
+    slug: String(block?.slug || ""),
+    focusKeyword: typeof block?.focusKeyword === "string" ? block.focusKeyword : undefined,
+    secondaryKeywords: Array.isArray(block?.secondaryKeywords) ? (block.secondaryKeywords as string[]) : undefined,
   });
 
   // EN links (use top-level internalLinks/externalLinks — old combined shape or new EN-only shape)
