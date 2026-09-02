@@ -6,7 +6,22 @@
 
 ---
 
-## Latest Verification — 2026-09-02 (Phase 90 — legacy-`any` cleanup batch 2: 795 → 749)
+## Latest Verification — 2026-09-02 (Phase 91 — legacy-`any` cleanup batch 3: 749 → 589)
+
+| Check | Result | How verified |
+|---|---|---|
+| Batch 3 — data-layer-first strategy | ✅ 749 → 589 (−160, 87 → 79 files) | Stage A data layer (−42) → Stage B CoachClientView (−78) → Stage C PlansView + QuestionnairesView (−40). Full-repo eslint JSON inventory after each stage: 749 → 707 → 629 → 589 |
+| Single source of truth | ✅ | Discovered generated supabase types (src/lib/supabase/types.ts) are COMPLETE and the browser client is `createBrowserClient<Database>` — supabase select() rows were ALREADY typed; the `any`s lived in localStorage fallbacks + needless callback annotations. Row types now flow: types.ts → data layer (typed returns) → views (inferred state) |
+| New exported Row types | ✅ | types.ts: +NutritionQuestionnaire, +FitnessQuestionnaire, +ProgressPhoto · data/plans.ts: PlanContent (union of generator content types, type-only import — erased, zero bundle cost), PlanInsert, PlanUpdate · data/progress.ts: ProgressEntryInsert · data/questionnaires.ts: QuestionnaireRow · data/subscriptions.ts: SubscriptionRequestInput (Pick<SubscriptionRequest,…> — payment_method union == lib/plans PaymentMethod) |
+| NutritionPlanContent corrected to reality | ✅ | items: +carbs_g?, +fat_g? · meals: +total_carbs_g?, +total_fat_g? — fields the CoachClientView editor already produced/consumed; the old `any` hid this type drift |
+| CoachClientView (78 → 0) | ✅ ZERO | State typed from data layer (Profile/Subscription/ProgressEntry/Plan/QuestionnaireRow) · RecoverableJobInput[] + AiJobRow · PlanJobResult · PlanContent narrowing via `in` guards (no casts where narrowing works) · updateMealItem/updateExercise field params = literal unions · QuestionnaireForm: Json form + asForm() + String() at render boundaries · EditCell value: string\|number\|undefined |
+| BUG FIXED (latent, owner-flagged) | ✅ | buildRecentPlanNames compared `p.type === "nutrition"` — a value the DB enum (meal\|workout) can NEVER contain → nutrition variety names silently dead since the feature shipped. Now matches `meal` + legacy `nutrition` localStorage rows (documented inline). Same `any`-blindness class this whole phase exists to kill |
+| PlansView (27 → 0) + QuestionnairesView (13 → 0) | ✅ ZERO | PlansView: Plan[] state · SwapUsage = Awaited<ReturnType<typeof getSwapUsage>> · asPlanContent() helper · applySwapToPlans mutate() on narrow views (DayView) · MealContent(content: NutritionPlanContent) / WorkoutContent(content: WorkoutPlanContent) · EVO text-plan branch narrowed `"text" in content` · QV: QuestionnaireRow state + Record<string, Json> forms + String() at every render boundary + Array.isArray photos guards |
+| tsc caught REAL gaps (proof the cleanup matters) | ✅ | ProgressView chart data accepted null-weight rows without a type predicate · progress/subscriptions local-fallback rows missing required columns (reviewed_at, subscription_type, cancel_requested_at) · undefined-vs-null at Insert→Row boundaries — all fixed, all caught BEFORE runtime |
+| Gates | ✅ PASS | tsc 0 (after each stage) · eslint 0 warnings/0 errors on all touched files · vitest 191/191 (×3 runs) |
+| Cleanup running tally | 📌 TRACKED | Start 804 → 795 (b1) → 749 (b2) → **589** (b3). Remaining giants: blog-generate 45, plan-generator 44, ai-job-processors 34, ai-local 28, referral 25, ai-jobs 24. Sensitive set (admin/coach routes, paypal, auth/callback, cron/blog, wallet) stays LAST with double review |
+
+## Previous Verification — 2026-09-02 (Phase 90 — legacy-`any` cleanup batch 2: 795 → 749)
 
 | Check | Result | How verified |
 |---|---|---|

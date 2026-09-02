@@ -408,3 +408,24 @@ Work Log:
 Stage Summary:
 - Batch 2 complete: 795 → 749 (−46 = 45 typed/cleaned + 1 dead file deleted); every remaining ≤2-warning file is in the SENSITIVE set (admin/coach routes, paypal create-order/webhook, auth/callback, cron/blog ×4, wallet topup) — they wait for the final batch with double review, per the documented order
 - Running tally: 804 → 795 (batch 1) → 749 (batch 2); next batch options: medium files (blog-admin, SaveResultButton ×5, BlogEditorView ×11, ai-job-processors ×34…) or the sensitive small set with extra review — owner's call
+
+---
+Task ID: 91
+Agent: Super Z (main)
+Task: Phase 91 — owner order «نفذ الافضل من اقتراحاتك … عايزين نقفل باب الاخطاء القديمة ونركز فى تطوير المشروع» — legacy-any cleanup batch 3 (data-layer-first + the 3 biggest non-sensitive files)
+
+Work Log:
+- Started from 749/87 files (batch 2 already pushed by the previous session); owner asked for the best-suggestion continuation → documented batch order says medium files next, sensitive set last
+- KEY DISCOVERY: src/lib/supabase/types.ts (generated) covers ALL tables incl. progress_photos/subscription_requests, and supabase client is createBrowserClient<Database> — select() rows were already typed; warnings lived in localStorage fallbacks + needless `(s: any)` annotations. Strategy: define types ONCE in the data layer, views inherit them for free
+- Stage A (749→707, commit 8efa8ca): types.ts +4 exported Rows (NutritionQuestionnaire/FitnessQuestionnaire/ProgressPhoto) · subscriptions.ts 14→0 (Subscription/SubscriptionRequest/SubscriptionRequestInput; local fallback rows gained reviewed_at/subscription_type/cancel_requested_at — tsc caught the gaps) · plans.ts 10→0 (Plan/SupportTicket/PlanInsert/PlanUpdate/PlanContent via type-only import from plan-generator; addPlan explicit Row build; updatePlan builds PlanUpdate + single documented Json cast; getSwapUsage tier as MembershipTier) · progress.ts 7→0 (ProgressEntry/ProgressPhoto/ProgressEntryInsert; addProgress explicit Row build — tsc caught undefined-vs-null; photos fallback mirrors signed-url url field) · questionnaires.ts 4→0 (QuestionnaireRow union; data param Json) · ProgressView 7→0 (typed states + catch instanceof + chart filter type predicate — tsc PROVED the old any hid a null-weight leak into the chart)
+- Stage B (707→629, commit ef2ded1): CoachClientView 78→0 — state from data-layer types · RecoverableJobInput[]/AiJobRow/PlanJobResult · PlanContent narrowing via in-guards · NutritionPlanContent extended to reality (item carbs_g/fat_g + meal total_carbs_g/total_fat_g) · updateMealItem/updateExercise literal field unions · EditCell string|number|undefined · QuestionnaireForm Json form + asForm() + String() boundaries · plan-jobs RecoverableJobInput +finished_at · BUG FIXED: buildRecentPlanNames compared p.type==="nutrition" (impossible per DB enum meal|workout) — nutrition variety names were silently dead; now matches meal + legacy nutrition rows, documented inline
+- Stage C (629→589, commit d74ced1): PlansView 27→0 (Plan[] state · SwapUsage = Awaited<ReturnType<typeof getSwapUsage>> · asPlanContent() narrowing · applySwapToPlans mutate on narrow views · MealContent/WorkoutContent/PlanCard/PlanDetailModal/Stat typed · EVO text-plan branch "text" in content) · QuestionnairesView 13→0 (QuestionnaireRow state · Record<string,Json> forms · String() at every render boundary · Array.isArray photos guards ×4)
+- Method note: the tool display strips `[m` sequences from shown text — copying displayed text into replacement patterns caused silent no-ops once (python str.replace); recovered by rebuilding patterns programmatically with bracket-safe composition and per-edit match reporting; scripts persisted under /home/z/my-project/scripts/
+- Gates: tsc 0 (run after EVERY stage) · eslint 0 warnings/0 errors on all touched files · vitest 191/191 ×3 · census: 749 → 707 → 629 → **589** (79 files)
+- Docs parity §3.6: QA_CHECKLIST new Latest section + PROGRESS Phase 91 section + «آخر تحديث» + this entry
+
+Stage Summary:
+- Batch 3 complete: 749 → 589 (−160); running tally 804 → 795 → 749 → 589; the project's biggest file (CoachClientView) is now fully typed with zero suppressions
+- Data layer now the single type source for views — new pattern documented (types.ts → data layer → views)
+- Remaining: technical giants (blog-generate 45, plan-generator 44, ai-job-processors 34, ai-local 28, referral 25, ai-jobs 24) then the sensitive set (admin/coach/paypal/auth/cron/wallet) last with double review
+- REMINDER to owner: revoke the GitHub token (ghp_SV…IvWO) once all work is done — it is only used transiently in git push commands, never stored in files
