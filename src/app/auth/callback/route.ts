@@ -79,10 +79,11 @@ export async function GET(request: Request) {
  // Session is now set in cookies. Send the user home.
  // Do not log user email — PII violation per SECURITY.md §2.3 (C9 fix).
  return NextResponse.redirect(`${requestUrl.origin}${safeNext(next)}`);
- } catch (e: any) {
- console.error("[auth/callback] Exception:", e?.message || e);
+ } catch (e) {
+ const msg = e instanceof Error ? e.message : String(e);
+ console.error("[auth/callback] Exception:", msg);
  return NextResponse.redirect(
- `${requestUrl.origin}/?auth_error=${encodeURIComponent(e?.message || "unknown")}`,
+ `${requestUrl.origin}/?auth_error=${encodeURIComponent(msg || "unknown")}`,
  );
  }
 }

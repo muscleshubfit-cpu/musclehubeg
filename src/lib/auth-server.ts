@@ -128,12 +128,12 @@ export async function getAuthUser(
       .gt("end_date", new Date().toISOString());
     if (subs && subs.length > 0) {
       // Separate coaching from memberships
-      const hasCoaching = subs.some((s: any) => s.tier === "coaching");
+      const hasCoaching = subs.some((s) => s.tier === "coaching");
       // 0045 legacy compat: starter/elite were the retired coaching-page
       // products; migration 0045 remapped all rows (starter → premium,
       // elite → pro). The mapping here is belt-and-suspenders so a stray
       // legacy row can never downgrade a paying client to "free" again.
-      const membershipSubs = subs.filter((s: any) =>
+      const membershipSubs = subs.filter((s) =>
         ["premium", "pro", "starter", "elite"].includes(s.tier),
       );
 
@@ -144,7 +144,7 @@ export async function getAuthUser(
           if (tier === "premium" || tier === "starter") return 2;
           return 0;
         };
-        membershipSubs.sort((a: any, b: any) => priority(b.tier) - priority(a.tier));
+        membershipSubs.sort((a, b) => priority(b.tier) - priority(a.tier));
         const best = membershipSubs[0].tier as string;
         membership_tier = (best === "elite" ? "pro" : best === "starter" ? "premium" : best) as MembershipTier;
       } else if (hasCoaching) {
@@ -275,8 +275,8 @@ export async function getAuthUserFromHeaders(): Promise<AuthUser | null> {
       .gt("end_date", new Date().toISOString());
     if (subs && subs.length > 0) {
       // Separate coaching from memberships
-      const hasCoaching = subs.some((s: any) => s.tier === "coaching");
-      const membershipSubs = subs.filter((s: any) =>
+      const hasCoaching = subs.some((s) => s.tier === "coaching");
+      const membershipSubs = subs.filter((s) =>
         ["premium", "pro"].includes(s.tier),
       );
 
@@ -286,7 +286,7 @@ export async function getAuthUserFromHeaders(): Promise<AuthUser | null> {
           if (tier === "premium") return 2;
           return 0;
         };
-        membershipSubs.sort((a: any, b: any) => priority(b.tier) - priority(a.tier));
+        membershipSubs.sort((a, b) => priority(b.tier) - priority(a.tier));
         membership_tier = membershipSubs[0].tier as MembershipTier;
       } else if (hasCoaching) {
         membership_tier = "coaching";
