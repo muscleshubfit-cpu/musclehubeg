@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
     const p0 = await runPhase0Research(lang);
 
     const { data, error } = await supabaseAdmin
-      .from("blog_generation_queue" as any)
+      .from("blog_generation_queue")
       .insert({
         // Single-language row (V3). Legacy dual columns topic_ar /
         // focus_keyword_ar stay null until P1 mirrors them in for AR rows.
@@ -63,7 +63,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       ok: true,
       step: "p0",
-      queueId: (data as any).id,
+      queueId: data.id,
       lang,
       category: p0.category,
       keywords: p0.research.keywords.length,
@@ -71,8 +71,9 @@ export async function GET(request: NextRequest) {
       topics: p0.research.topics.length,
       source: p0.source,
     });
-  } catch (e: any) {
-    console.error("[blog/p0-research] Error:", e?.message || e);
-    return NextResponse.json({ error: e?.message || "Failed" }, { status: 500 });
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    console.error("[blog/p0-research] Error:", msg);
+    return NextResponse.json({ error: msg || "Failed" }, { status: 500 });
   }
 }

@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
     // ── 1. Fetch all active clients ───────────────────────────────────
     const { data: activeClients, error: clientsErr } = await supabaseAdmin
       .from("profiles")
-      .select("id, full_name, lang")
+      .select("id, full_name")
       .eq("role", "client");
 
     if (clientsErr) throw new Error(`Profiles query: ${clientsErr.message}`);
@@ -61,7 +61,7 @@ export async function GET(request: NextRequest) {
     }
 
     // ── 2. Check which clients have active subscriptions ──────────────
-    const clientIds = activeClients.map((c: any) => c.id);
+    const clientIds = activeClients.map((c) => c.id);
 
     const { data: activeSubs, error: subsErr } = await supabaseAdmin
       .from("subscriptions")
@@ -72,7 +72,7 @@ export async function GET(request: NextRequest) {
     if (subsErr) throw new Error(`Subscriptions query: ${subsErr.message}`);
 
     const activeClientIds = new Set(
-      (activeSubs || []).map((s: any) => s.client_id),
+      (activeSubs || []).map((s) => s.client_id),
     );
 
     if (activeClientIds.size === 0) {
@@ -89,7 +89,7 @@ export async function GET(request: NextRequest) {
     if (entriesErr) throw new Error(`Progress entries query: ${entriesErr.message}`);
 
     const clientsWithProgress = new Set(
-      (weekEntries || []).map((e: any) => e.client_id),
+      (weekEntries || []).map((e) => e.client_id),
     );
 
     // Clients who need a reminder = active but no progress this week
@@ -112,7 +112,7 @@ export async function GET(request: NextRequest) {
     if (notifsErr) throw new Error(`Notifications dedup query: ${notifsErr.message}`);
 
     const alreadyReminded = new Set(
-      (existingNotifs || []).map((n: any) => n.user_id),
+      (existingNotifs || []).map((n) => n.user_id),
     );
 
     const toRemind = needsReminder.filter((id) => !alreadyReminded.has(id));
@@ -122,22 +122,22 @@ export async function GET(request: NextRequest) {
     }
 
     // ── 5. Build and insert notifications ─────────────────────────────
-    const clientMap = new Map(activeClients.map((c: any) => [c.id, c]));
+    const clientMap = new Map(activeClients.map((c) => [c.id, c]));
 
     const notifRows = toRemind.map((clientId) => {
       const client = clientMap.get(clientId);
-      const lang = client?.lang === "en" ? "en" : "ar";
+      // NOTE: profiles has NO per-user language column (verified across
+      // all migrations) — the old code selected a phantom `lang`, which
+      // made PostgREST reject the ENTIRE query (hidden for years by an
+      // `any` annotation). Site language is URL-locale based; the old
+      // ternary's own fallback branch was "ar" (MuscleHub EG core
+      // audience) — the AR text below IS that designed fallback, with
+      // the unreachable EN branch removed as dead code.
       const name = client?.full_name || "";
 
-      const title =
-        lang === "en"
-          ? `Time to log your weekly progress!`
-          : `حان وقت تسجيل تقدمك الأسبوعي!`;
+      const title = `حان وقت تسجيل تقدمك الأسبوعي!`;
 
-      const body =
-        lang === "en"
-          ? `Hi${name ? ` ${name}` : ""}, don't forget to update your weekly check-in (weight, measurements, energy). It helps your coach track your progress!`
-          : `${name ? `مرحباً ${name}` : "مرحباً"}، متنساش تسجل متابعتك الأسبوعية (الوزن، القياسات، الطاقة). ده بيساعد كوتشك يتتبع تقدمك!`;
+      const body = `${name ? `مرحباً ${name}` : "مرحباً"}، متنساش تسجل متابعتك الأسبوعية (الوزن، القياسات، الطاقة). ده بيساعد كوتشك يتتبع تقدمك!`;
 
       return {
         user_id: clientId,
@@ -179,10 +179,11 @@ export async function GET(request: NextRequest) {
         alreadyReminded: alreadyReminded.size,
       },
     });
-  } catch (e: any) {
-    console.error("[progress-reminder] Error:", e?.message || e);
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    console.error("[progress-reminder] Error:", msg);
     return NextResponse.json(
-      { error: e?.message || "Failed" },
+      { error: msg || "Failed" },
       { status: 500 },
     );
   }

@@ -103,9 +103,10 @@ export async function GET(request: NextRequest) {
       words: article.wordCount,
       source: article.source,
     });
-  } catch (e: any) {
-    console.error("[blog/p2-content] Error:", e?.message || e);
-    if (queueId) await markQueueItemFailed(queueId, `p2: ${e?.message || "Unknown"}`);
-    return NextResponse.json({ error: e?.message || "Failed" }, { status: 500 });
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    console.error("[blog/p2-content] Error:", msg);
+    if (queueId) await markQueueItemFailed(queueId, `p2: ${msg || "Unknown"}`);
+    return NextResponse.json({ error: msg || "Failed" }, { status: 500 });
   }
 }

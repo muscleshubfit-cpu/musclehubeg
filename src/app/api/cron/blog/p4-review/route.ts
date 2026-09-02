@@ -120,9 +120,10 @@ export async function GET(request: NextRequest) {
       coverage: review.report.keywordCoverage,
       source: review.source,
     });
-  } catch (e: any) {
-    console.error("[blog/p4-review] Error:", e?.message || e);
-    if (queueId) await markQueueItemFailed(queueId, `p4: ${e?.message || "Unknown"}`);
-    return NextResponse.json({ error: e?.message || "Failed" }, { status: 500 });
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    console.error("[blog/p4-review] Error:", msg);
+    if (queueId) await markQueueItemFailed(queueId, `p4: ${msg || "Unknown"}`);
+    return NextResponse.json({ error: msg || "Failed" }, { status: 500 });
   }
 }

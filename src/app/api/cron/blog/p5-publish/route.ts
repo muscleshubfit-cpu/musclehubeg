@@ -40,7 +40,7 @@ async function uniqueSlug(base: string, language: "en" | "ar"): Promise<string> 
   let attempt = 0;
   while (attempt < 5) {
     const { data } = await supabaseAdmin
-      .from("blog_posts" as any)
+      .from("blog_posts")
       .select("id")
       .eq("slug", slug)
       .eq("language", language)
@@ -57,7 +57,7 @@ async function titleAlreadyExists(title: string, language: "en" | "ar"): Promise
   const normalized = title.trim().toLowerCase();
   if (!normalized) return false;
   const { data } = await supabaseAdmin
-    .from("blog_posts" as any)
+    .from("blog_posts")
     .select("id")
     .eq("language", language)
     .ilike("title", normalized)
@@ -160,12 +160,12 @@ export async function GET(request: NextRequest) {
     };
 
     const { data: post, error: insertErr } = await supabaseAdmin
-      .from("blog_posts" as any)
+      .from("blog_posts")
       .insert(row)
       .select()
-      .single() as any;
+      .single();
     if (insertErr) throw new Error(`Post insert (${lang}): ${insertErr.message}`);
-    publishedPostId = (post as any)?.id || null;
+    publishedPostId = post?.id || null;
 
     const updateErr = await updateQueueItem(qi.id, {
       status: "published",
@@ -186,15 +186,16 @@ export async function GET(request: NextRequest) {
       slug,
       toolLinksInserted: toolLinkPass.inserted.length,
     });
-  } catch (e: any) {
-    console.error("[blog/p5-publish] Error:", e?.message || e);
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    console.error("[blog/p5-publish] Error:", msg);
     if (queueId) {
       const partial = publishedPostId
         ? `partial_publish: ${String(qi?.language ?? "?").toUpperCase()} post ${publishedPostId} inserted but post-update failed. `
         : "";
-      await markQueueItemFailed(queueId, `p5: ${partial}${e?.message || "Unknown"}`);
+      await markQueueItemFailed(queueId, `p5: ${partial}${msg || "Unknown"}`);
     }
-    return NextResponse.json({ error: e?.message || "Failed" }, { status: 500 });
+    return NextResponse.json({ error: msg || "Failed" }, { status: 500 });
   }
 }
 

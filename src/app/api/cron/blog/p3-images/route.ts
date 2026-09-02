@@ -150,9 +150,10 @@ export async function GET(request: NextRequest) {
       lang,
       images: imgs.length,
     });
-  } catch (e: any) {
-    console.error("[blog/p3-images] Error:", e?.message || e);
-    if (queueId) await markQueueItemFailed(queueId, `p3: ${e?.message || "Unknown"}`);
-    return NextResponse.json({ error: e?.message || "Failed" }, { status: 500 });
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    console.error("[blog/p3-images] Error:", msg);
+    if (queueId) await markQueueItemFailed(queueId, `p3: ${msg || "Unknown"}`);
+    return NextResponse.json({ error: msg || "Failed" }, { status: 500 });
   }
 }
