@@ -699,3 +699,18 @@ Work Log:
 
 Stage Summary:
 - إعادة الدفع تفتح الترحيل تلقائيًا (0064 v2 ← 0065 ← 0067) — تحقق حي بعدها: coach_kind/site_coach_assignments/RPC تظهر
+
+---
+Task ID: 99-run-verify
+Agent: Super Z (main)
+Task: تحقق ما بعد الدفع — فتح الترحيل + تأكيد مسح الحساب التجريبي
+
+Work Log:
+- بعد ~100 ثانية من الدفع: profiles.coach_kind → موجودة · site_coach_assignments → الجدول موجود (رفض anon بـ 42501 = سلوك revoke-all-from-anon المصمم، مش PGRST205) · rpc get_admin_clients_paged → موجودة وقابلة للاستدعاء (200) — نشر واحد طبق 0064 v2 ← 0065 ← 0067 بالترتيب
+- قراءة صفحات /admin/site-assignments و API: المتصفح بيقرأ عبر /api/admin/site-assignments (service role) → غياب grant authenticated على الجدول الجديد مبيأثرش على حاجة اليوم (السياسات نائمة لحد Phase 104 مع grant مصاحب)
+- لغز is_admin=false/[] المؤقت: الحساب التجريبي اتمسح في نفس النافذة — probe دخول جديد → 400 = auth.users row GONE = المالك شغّل 0066 v2 بنجاح والمعاملة الذرية مسحت كل حاجة
+- توثيق: QA_CHECKLIST صفّي Owner action/0066 اتحدثوا + PROGRESS سطر تحقق ما بعد الدفع
+
+Stage Summary:
+- خط الترحيل فتح: 0064 v2 + 0065 + 0067 حية على الإنتاج (RLS بتاعت 99/100 نزلت فعليًا + مساحات Phase 103 اشتغلت)
+- الحساب التجريبي admin.test@musclehub-test.com اتمسح نهائيًا (0066 v2 بنجاح)
