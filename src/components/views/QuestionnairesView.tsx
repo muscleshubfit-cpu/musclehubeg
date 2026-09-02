@@ -13,6 +13,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { getQuestionnaire, upsertQuestionnaire } from "@/lib/data";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import type { QuestionnaireRow } from "@/lib/data/questionnaires";
+import type { Json } from "@/lib/supabase/types";
 
 type QType = "nutrition" | "fitness";
 type Step = 1 | 2 | 3; // 1 = nutrition, 2 = fitness, 3 = review
@@ -31,10 +33,10 @@ export function QuestionnairesView() {
   const isAr = lang === "ar";
   const { profile } = useAuth();
   const [step, setStep] = useState<Step>(1);
-  const [nutrition, setNutrition] = useState<any>(null);
-  const [fitness, setFitness] = useState<any>(null);
-  const [nutritionForm, setNutritionForm] = useState<Record<string, any>>({});
-  const [fitnessForm, setFitnessForm] = useState<Record<string, any>>({});
+  const [nutrition, setNutrition] = useState<QuestionnaireRow | null>(null);
+  const [fitness, setFitness] = useState<QuestionnaireRow | null>(null);
+  const [nutritionForm, setNutritionForm] = useState<Record<string, Json>>({});
+  const [fitnessForm, setFitnessForm] = useState<Record<string, Json>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
@@ -50,8 +52,8 @@ export function QuestionnairesView() {
         ]);
         setNutrition(n);
         setFitness(f);
-        setNutritionForm((n?.data as Record<string, any>) ?? {});
-        setFitnessForm((f?.data as Record<string, any>) ?? {});
+        setNutritionForm((n?.data as Record<string, Json>) ?? {});
+        setFitnessForm((f?.data as Record<string, Json>) ?? {});
         // Auto-detect starting step: go to first incomplete, or review if both have data
         const nHas = n?.data && Object.keys(n.data as object).length > 0;
         const fHas = f?.data && Object.keys(f.data as object).length > 0;
@@ -83,8 +85,8 @@ export function QuestionnairesView() {
       if (type === "nutrition") setNutrition(row);
       else setFitness(row);
       return row;
-    } catch (e: any) {
-      toast.error(e.message || t("common.error"));
+    } catch (e) {
+      toast.error((e instanceof Error ? e.message : "") || t("common.error"));
       return null;
     } finally {
       setSaving(false);
@@ -136,9 +138,9 @@ export function QuestionnairesView() {
       if (fRow) setFitness(fRow);
       toast.success(t("q.allSubmitted"));
       setStep(1);
-    } catch (e: any) {
+    } catch (e) {
       console.error("[submitAll] Error:", e);
-      toast.error(e.message || t("common.error"));
+      toast.error((e instanceof Error ? e.message : "") || t("common.error"));
     } finally {
       setSaving(false);
     }
@@ -147,7 +149,7 @@ export function QuestionnairesView() {
   // Photo upload
   const handlePhotoUpload = async (file: File) => {
     if (!profile) return;
-    if ((nutritionForm.photos?.length || 0) >= 3) {
+    if (Array.isArray(nutritionForm.photos) && nutritionForm.photos.length >= 3) {
       toast.error(isAr ? "بحد أقصى 3 صور." : "Max 3 photos.");
       return;
     }
@@ -184,11 +186,11 @@ export function QuestionnairesView() {
 
       setNutritionForm((prev) => ({
         ...prev,
-        photos: [...(prev.photos || []), url],
+        photos: [...((prev.photos as Json[] | undefined) || []), url],
       }));
       toast.success(isAr ? "تم رفع الصورة!" : "Photo uploaded!");
-    } catch (e: any) {
-      toast.error(e.message || (isAr ? "فشل رفع الصورة" : "Upload failed"));
+    } catch (e) {
+      toast.error((e instanceof Error ? e.message : "") || (isAr ? "فشل رفع الصورة" : "Upload failed"));
     } finally {
       setUploadingPhoto(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -198,7 +200,7 @@ export function QuestionnairesView() {
   const removePhoto = (idx: number) => {
     setNutritionForm((prev) => ({
       ...prev,
-      photos: (prev.photos || []).filter((_: any, i: number) => i !== idx),
+      photos: ((prev.photos as Json[] | undefined) || []).filter((_, i: number) => i !== idx),
     }));
   };
 
@@ -254,8 +256,8 @@ export function QuestionnairesView() {
 
   const renderField = (
     f: typeof nutritionFields[number] | typeof fitnessFields[number],
-    form: Record<string, any>,
-    setForm: (updater: (prev: Record<string, any>) => Record<string, any>) => void,
+    form: Record<string, Json>,
+    setForm: (updater: (prev: Record<string, Json>) => Record<string, Json>) => void,
     locked: boolean,
   ) => {
     // Label with required/optional badge
@@ -318,7 +320,7 @@ export function QuestionnairesView() {
           <select
             id={f.key}
             disabled={locked}
-            value={form[f.key] ?? ""}
+            value={form[f.key] == null ? "" : String(form[f.key])}
             onChange={(e) => setForm((prev) => ({ ...prev, [f.key]: e.target.value }))}
             className="mt-1.5 w-full rounded-lg border border-border bg-card px-3 py-2 text-sm"
           >
@@ -339,7 +341,7 @@ export function QuestionnairesView() {
           id={f.key}
           type={f.type === "number" ? "number" : "text"}
           disabled={locked}
-          value={form[f.key] ?? ""}
+          value={form[f.key] == null ? "" : String(form[f.key])}
           placeholder={f.placeholder}
           onChange={(e) => setForm((prev) => ({ ...prev, [f.key]: e.target.value }))}
           className="mt-1.5"
@@ -458,7 +460,7 @@ export function QuestionnairesView() {
               <Textarea
                 id="notes"
                 disabled={nutritionLocked}
-                value={nutritionForm.notes ?? ""}
+                value={nutritionForm.notes == null ? "" : String(nutritionForm.notes)}
                 onChange={(e) => setNutritionForm((prev) => ({ ...prev, notes: e.target.value }))}
                 className="mt-1.5 min-h-24"
               />
@@ -477,7 +479,7 @@ export function QuestionnairesView() {
                 variant="outline"
                 size="sm"
                 className="gap-1.5"
-                disabled={nutritionLocked || uploadingPhoto || (nutritionForm.photos?.length || 0) >= 3}
+                disabled={nutritionLocked || uploadingPhoto || (Array.isArray(nutritionForm.photos) && nutritionForm.photos.length >= 3)}
                 onClick={() => fileInputRef.current?.click()}
               >
                 {uploadingPhoto ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImagePlus className="h-4 w-4" />}
@@ -494,11 +496,11 @@ export function QuestionnairesView() {
                 }}
               />
             </div>
-            {nutritionForm.photos?.length > 0 && (
+            {Array.isArray(nutritionForm.photos) && nutritionForm.photos.length > 0 && (
               <div className="mt-3 grid grid-cols-3 gap-2">
-                {nutritionForm.photos.map((url: string, i: number) => (
+                {nutritionForm.photos.map((url, i: number) => (
                   <div key={i} className="group relative aspect-square overflow-hidden rounded-lg border border-border">
-                    <Image src={url} alt={`Progress ${i + 1}`} fill className="object-cover" />
+                    <Image src={String(url)} alt={`Progress ${i + 1}`} fill className="object-cover" />
                     {!nutritionLocked && (
                       <button
                         type="button"
@@ -548,7 +550,7 @@ export function QuestionnairesView() {
               <Textarea
                 id="f-notes"
                 disabled={fitnessLocked}
-                value={fitnessForm.notes ?? ""}
+                value={fitnessForm.notes == null ? "" : String(fitnessForm.notes)}
                 onChange={(e) => setFitnessForm((prev) => ({ ...prev, notes: e.target.value }))}
                 className="mt-1.5 min-h-24"
               />
@@ -612,7 +614,7 @@ export function QuestionnairesView() {
                       <span className="font-medium text-end" dir="auto">
                         {f.type === "gender"
                           ? t(`q.n.gender.${nutritionForm[f.key]}`)
-                          : nutritionForm[f.key]}
+                          : String(nutritionForm[f.key])}
                       </span>
                     </div>
                   ))}
@@ -620,11 +622,11 @@ export function QuestionnairesView() {
                   <div className="flex justify-between gap-4">
                     <span className="text-[#6e6e73]">{t("q.n.notes")}</span>
                     <span className="max-w-[60%] text-end font-medium" dir="auto">
-                      {nutritionForm.notes}
+                      {String(nutritionForm.notes)}
                     </span>
                   </div>
                 )}
-                {nutritionForm.photos?.length > 0 && (
+                {Array.isArray(nutritionForm.photos) && nutritionForm.photos.length > 0 && (
                   <div className="flex justify-between gap-4">
                     <span className="text-[#6e6e73]">{t("q.n.photos")}</span>
                     <span className="font-medium">
@@ -658,7 +660,7 @@ export function QuestionnairesView() {
                       <span className="font-medium text-end" dir="auto">
                         {f.type === "select" && f.optionPrefix
                           ? t(`${f.optionPrefix}${fitnessForm[f.key]}`)
-                          : fitnessForm[f.key]}
+                          : String(fitnessForm[f.key])}
                       </span>
                     </div>
                   ))}
@@ -666,7 +668,7 @@ export function QuestionnairesView() {
                   <div className="flex justify-between gap-4">
                     <span className="text-[#6e6e73]">{t("q.f.notes")}</span>
                     <span className="max-w-[60%] text-end font-medium" dir="auto">
-                      {fitnessForm.notes}
+                      {String(fitnessForm.notes)}
                     </span>
                   </div>
                 )}

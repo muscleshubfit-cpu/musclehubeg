@@ -10,6 +10,10 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { listPlans, getPlanFileUrl, getSwapUsage } from "@/lib/data";
+import type { PlanContent } from "@/lib/data/plans";
+import type { NutritionPlanContent, WorkoutPlanContent } from "@/lib/plan-generator";
+import type { AiJobRow } from "@/lib/ai-jobs";
+import type { Plan, Json } from "@/lib/supabase/types";
 import { enqueueAiJobClient, getAiJob } from "@/lib/ai-jobs-client";
 import { resolveExerciseImage, getExerciseImage, getExerciseImages, getFallbackSVG } from "@/lib/exercise-images";
 import { EXERCISES } from "@/lib/exercises";
@@ -61,14 +65,23 @@ function writePendingSwaps(list: PendingSwap[]): void {
  }
 }
 
+/** Narrow plan.content (Json) into the parsed generator shape. */
+function asPlanContent(v: Json | null | undefined): PlanContent | null {
+ if (!v || typeof v !== "object" || Array.isArray(v)) return null;
+ return v as PlanContent;
+}
+
+/** Swap-quota readout shape returned by data/plans.getSwapUsage. */
+type SwapUsage = Awaited<ReturnType<typeof getSwapUsage>>;
+
 export function PlansView() {
  const { t } = useI18n();
  const { profile } = useAuth();
- const [plans, setPlans] = useState<any[]>([]);
+ const [plans, setPlans] = useState<Plan[]>([]);
  const [loading, setLoading] = useState(true);
- const [active, setActive] = useState<any | null>(null);
+ const [active, setActive] = useState<Plan | null>(null);
  const [swapLoading, setSwapLoading] = useState<string | null>(null);
- const [swapUsage, setSwapUsage] = useState<any>({ meal: { used: 0, limit: 2, remaining: 2 }, exercise: { used: 0, limit: 2, remaining: 2 } });
+ const [swapUsage, setSwapUsage] = useState<SwapUsage>({ meal: { used: 0, limit: 2, remaining: 2, unlimited: false }, exercise: { used: 0, limit: 2, remaining: 2, unlimited: false } });
  const activeWatchers = useRef<Set<string>>(new Set());
  // PHASE 69 — latest plans snapshot so the swap persists the EXACT mutated
  // content via /api/plans/member-edit (plans RLS is coach-write-only for
@@ -112,25 +125,29 @@ export function PlansView() {
  /** Applies a finished job's replacement to local plan state AND persists
  * it (PHASE 69 — previously local-only: a reload reverted the swap). */
  const applySwapToPlans = useCallback(
- (entry: PendingSwap, replacement: any) => {
- const mutate = (content: any): any => {
+ (entry: PendingSwap, replacement: unknown) => {
+ // Dynamic JSON mutation on parsed plan content — kept honest with
+ // explicit narrow views instead of `any`.
+ const mutate = (content: Json | null): Json => {
+ const base = content && typeof content === "object" && !Array.isArray(content) ? content : {};
  if (entry.kind === "meal") {
- const meals = [...(content.meals || [])];
+ const meals = [...(((content as { meals?: unknown[] } | null)?.meals || []))];
  if (meals[entry.i1] !== undefined) meals[entry.i1] = replacement;
- return { ...content, meals };
+ return { ...base, meals } as Json;
  }
- const days = [...(content.days || [])];
- const day = { ...(days[entry.i1] || {}) };
+ const days = [...(((content as { days?: unknown[] } | null)?.days || []))];
+ type DayView = { exercises?: unknown[]; [k: string]: unknown };
+ const day = { ...((days[entry.i1] as DayView | undefined) || {}) };
  day.exercises = [...(day.exercises || [])];
  if (day.exercises[entry.i2!] !== undefined) day.exercises[entry.i2!] = replacement;
  days[entry.i1] = day;
- return { ...content, days };
+ return { ...base, days } as Json;
  };
  // Compute the new content ONCE from the latest snapshot (plansRef is
  // render-synced) so the persisted payload always matches the UI.
  const target = plansRef.current.find((p) => p.id === entry.planId);
  if (!target) return;
- const newContent = mutate(target.content);
+ const newContent = mutate((target.content ?? null) as Json | null);
  setPlans((prev) => prev.map((p) => (p.id === entry.planId ? { ...p, content: newContent } : p)));
  setActive((prevActive) =>
  prevActive && prevActive.id === entry.planId
@@ -151,7 +168,7 @@ export function PlansView() {
  const deadline = Date.now() + 26 * 60_000;
  while (Date.now() < deadline) {
  await new Promise((r) => setTimeout(r, 20_000));
- let job: any = null;
+ let job: AiJobRow | null = null;
  try {
  job = await getAiJob(entry.id);
  } catch {
@@ -194,8 +211,8 @@ export function PlansView() {
  ]);
  setPlans(data);
  setSwapUsage(usage);
- } catch (e: any) {
- console.error("[PlansView] load failed:", e?.message);
+ } catch (e) {
+ console.error("[PlansView] load failed:", e instanceof Error ? e.message : e);
  } finally {
  setLoading(false);
  }
@@ -222,19 +239,20 @@ export function PlansView() {
  setSwapLoading(`meal-${planId}-${mealIndex}`);
  try {
  const plan = plans.find((p) => p.id === planId);
- if (!plan?.content?.meals?.[mealIndex]) throw new Error("Meal not found");
- const mealItem = plan.content.meals[mealIndex];
+ const planContent = asPlanContent(plan?.content);
+ if (!planContent || !("meals" in planContent) || !planContent.meals[mealIndex]) throw new Error("Meal not found");
+ const mealItem = planContent.meals[mealIndex];
  // PHASE 62 VARIETY: pass the OTHER meals' item names from the same plan
  // so the regenerated meal doesn't duplicate them (allergies/dislikes in
  // the questionnaire aren't available client-side here, but the queue
  // sanitizer keeps the list server-safe).
- const avoidNames: string[] = (plan.content.meals || [])
-   .flatMap((m: any, i: number) =>
+ const avoidNames: string[] = (planContent.meals || [])
+   .flatMap((m, i) =>
      i === mealIndex
        ? []
-       : [String(m?.name || ""), ...((m?.items || []).map((it: any) => String(it?.food || "")))],
+       : [String(m?.name || ""), ...((m?.items || []).map((it) => String(it?.food || "")))],
    )
-   .filter((n: string) => n.trim().length > 1)
+   .filter((n) => n.trim().length > 1)
    .slice(0, 40);
  // OWNER DIRECTIVE 2026-08-27: generation runs on GitHub Actions — this
  // click only enqueues the job (tier limit is enforced server-side now).
@@ -254,8 +272,8 @@ export function PlansView() {
  await refreshUsage(); // server recorded the swap at enqueue time
  void watchSwapJob(pendingEntry);
  toast.info("تم إرسال طلب الاستبدال 🚀 النتيجة هتتطبق تلقائيًا خلال ~10 دقائق حتى لو قفلت الصفحة.");
- } catch (e: any) {
- toast.error(e.message || t("common.error"));
+ } catch (e) {
+ toast.error((e instanceof Error ? e.message : "") || t("common.error"));
  } finally {
  setSwapLoading(null);
  }
@@ -270,9 +288,10 @@ export function PlansView() {
  setSwapLoading(`ex-${planId}-${dayIndex}-${exIndex}`);
  try {
  const plan = plans.find((p) => p.id === planId);
- if (!plan?.content?.days?.[dayIndex]?.exercises?.[exIndex]) throw new Error("Exercise not found");
- const exercise = plan.content.days[dayIndex].exercises[exIndex];
- const focus = plan.content.days[dayIndex].focus;
+ const planContent = asPlanContent(plan?.content);
+ if (!planContent || !("days" in planContent) || !planContent.days[dayIndex]?.exercises?.[exIndex]) throw new Error("Exercise not found");
+ const exercise = planContent.days[dayIndex].exercises[exIndex];
+ const focus = planContent.days[dayIndex].focus;
  // Library-filtered, injury-safe substitution on GitHub Actions.
  const jobId = await enqueueAiJobClient("exercise_regenerate", {
  exercise: { ...exercise, focus },
@@ -290,17 +309,17 @@ export function PlansView() {
  await refreshUsage();
  void watchSwapJob(pendingEntry);
  toast.info("تم إرسال طلب استبدال التمرين 🚀 البديل الآمن هيظهر خلال ~10 دقائق.");
- } catch (e: any) {
- toast.error(e.message || t("common.error"));
+ } catch (e) {
+ toast.error((e instanceof Error ? e.message : "") || t("common.error"));
  } finally {
  setSwapLoading(null);
  }
  };
 
- const printPlan = (plan: any) => {
+ const printPlan = (plan: Plan) => {
  const w = window.open("", "_blank", "width=820,height=1040");
  if (!w) return;
- const content = plan.content;
+ const content = asPlanContent(plan.content);
  const isWorkout = plan.type === "workout";
  let html = `<!doctype html><html dir="rtl" lang="ar"><head><meta charset="utf-8"><title>${plan.title}</title>
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
@@ -350,7 +369,7 @@ export function PlansView() {
 
  if (!isWorkout) {
  // Data analysis
- if (content.data_analysis) {
+ if (content && "meals" in content && content.data_analysis) {
  const da = content.data_analysis;
  html += `<h2> تحليل البيانات</h2><div class="analysis"><div class="analysis-grid">`;
  const fields = [
@@ -368,7 +387,7 @@ export function PlansView() {
  }
 
  // Macros
- if (content.daily_calories || content.macros) {
+ if (content && "meals" in content && (content.daily_calories || content.macros)) {
  html += `<h2> السعرات والماكروز</h2><div class="stats">`;
  if (content.daily_calories) html += `<div class="stat"><span class="stat-label">السعرات اليومية</span><span class="stat-value">${content.daily_calories}</span></div>`;
  if (content.macros?.protein_g) html += `<div class="stat"><span class="stat-label">بروتين</span><span class="stat-value">${content.macros.protein_g}جم</span></div>`;
@@ -378,9 +397,9 @@ export function PlansView() {
  }
 
  // Supplements
- if (content.supplements?.length > 0) {
+ if (content && "meals" in content && (content.supplements?.length ?? 0) > 0) {
  html += `<h2> المكملات والتوصيات الصحية</h2>`;
- for (const s of content.supplements) {
+ for (const s of content.supplements ?? []) {
  html += `<div class="supplement"><div class="supplement-name">${s.name}</div>`;
  if (s.dose) html += `<div>الجرعة: ${s.dose}</div>`;
  if (s.timing) html += `<div>الموعد: ${s.timing}</div>`;
@@ -390,35 +409,35 @@ export function PlansView() {
  }
 
  // Health notes
- if (content.health_notes?.length > 0) {
+ if (content && "meals" in content && (content.health_notes?.length ?? 0) > 0) {
  html += `<h2> توصيات صحية خاصة</h2>`;
- for (const n of content.health_notes) {
+ for (const n of content.health_notes ?? []) {
  html += `<div class="health-note">${n}</div>`;
  }
  }
 
  // Water target
- if (content.water_target) {
+ if (content && "meals" in content && content.water_target) {
  html += `<h2> استهلاك الماء</h2><p>${content.water_target}</p>`;
  }
 
  // Meals
- if (content.meals) {
+ if (content && "meals" in content && content.meals) {
  html += `<h2> النظام الغذائي</h2>`;
  for (const m of content.meals) {
  html += `<h3>${escapeHtml(m.name)}${m.time ? ` <span style="font-size:11px;color:#666;font-weight:400">${escapeHtml(m.time)}</span>` : ""}</h3>`;
  html += `<table><tr><th style="width:30px">#</th><th>المكون</th><th>الكمية</th><th>السعرات</th><th>البدائل</th></tr>`;
- (m.items || []).forEach((it: any, i: number) => {
+ (m.items || []).forEach((it, i) => {
  html += `<tr><td>${i + 1}</td><td>${escapeHtml(it.food)}</td><td>${escapeHtml(it.amount)}</td><td>${escapeHtml(String(it.calories))}</td><td style="font-size:11px;color:#666">${escapeHtml(it.alternatives) || "—"}</td></tr>`;
  });
  if (m.total_calories || m.total_protein_g) {
- html += `<tr class="meal-total"><td colspan="3">إجمالي الوجبة: ~${m.total_calories || (m.items || []).reduce((s: number, i: any) => s + (i.calories || 0), 0)} سعرة</td><td>${m.total_protein_g || ""} ${m.total_protein_g ? "جم بروتين" : ""}</td><td></td></tr>`;
+ html += `<tr class="meal-total"><td colspan="3">إجمالي الوجبة: ~${m.total_calories || (m.items || []).reduce((s, i) => s + (i.calories || 0), 0)} سعرة</td><td>${m.total_protein_g || ""} ${m.total_protein_g ? "جم بروتين" : ""}</td><td></td></tr>`;
  }
  html += `</table>`;
  if (m.notes) html += `<p style="font-size:12px;color:#666"> ${m.notes}</p>`;
  }
  }
- } else if (isWorkout && content.days) {
+ } else if (isWorkout && content && "days" in content) {
  // Workout volume + progression
  if (content.weekly_volume || content.progression) {
  html += `<h2> الحجم والتقدم</h2>`;
@@ -432,7 +451,7 @@ export function PlansView() {
  } else {
  html += `<h3>${d.day} — ${d.focus || ""}</h3>`;
  html += `<table><tr><th style="width:30px">#</th><th>التمرين</th><th>مجموعات</th><th>تكرارات</th><th>راحة</th></tr>`;
- (d.exercises || []).forEach((ex: any, i: number) => {
+ (d.exercises || []).forEach((ex, i) => {
  // Find exercise in library for images
  const exLib = EXERCISES.find((e) => e.slug === ex.exerciseSlug || e.nameEn === ex.name || e.nameEn?.toLowerCase() === ex.name?.toLowerCase());
  const exImages = exLib ? getExerciseImages(exLib.imageKey) : [];
@@ -544,7 +563,8 @@ function EmptyCard({ text }: { text: string }) {
  );
 }
 
-function PlanCard({ plan, onClick }: { plan: any; onClick: () => void }) {
+function PlanCard({ plan, onClick }: { plan: Plan; onClick: () => void }) {
+ const content = asPlanContent(plan.content);
  const { t, lang } = useI18n();
  const isAr = lang === "ar";
  return (
@@ -561,17 +581,17 @@ function PlanCard({ plan, onClick }: { plan: any; onClick: () => void }) {
  {t("plans.view")}
  </Button>
  </div>
- {plan.content?.daily_calories && (
+ {content && "meals" in content && content.daily_calories && (
  <div className="mt-3 flex gap-2 text-xs">
- <Badge variant="secondary">{plan.content.daily_calories} cal</Badge>
- {plan.content.macros && (
- <Badge variant="outline">P:{plan.content.macros.protein_g}g</Badge>
+ <Badge variant="secondary">{content.daily_calories} cal</Badge>
+ {content.macros && (
+ <Badge variant="outline">P:{content.macros.protein_g}g</Badge>
  )}
  </div>
  )}
- {plan.content?.days && (
+ {content && "days" in content && (
  <div className="mt-3 text-xs text-muted-foreground">
- {plan.content.days.length} {isAr ? "أيام" : "days"}
+ {content.days.length} {isAr ? "أيام" : "days"}
  </div>
  )}
  </Card>
@@ -587,7 +607,7 @@ function PlanDetailModal({
  onPrint,
  onOpenFile,
 }: {
- plan: any;
+ plan: Plan;
  onClose: () => void;
  onSwapMeal: (i: number) => void;
  onSwapExercise: (d: number, e: number) => void;
@@ -596,7 +616,7 @@ function PlanDetailModal({
  onOpenFile: (path: string) => void;
 }) {
  const { t } = useI18n();
- const content = plan.content;
+ const content = asPlanContent(plan.content);
 
  return (
  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
@@ -615,7 +635,7 @@ function PlanDetailModal({
  <span className="hidden sm:inline">{t("plan.print")}</span>
  </Button>
  {plan.file_url && (
- <Button size="sm" variant="outline" className="gap-2" onClick={() => onOpenFile(plan.file_url)}>
+ <Button size="sm" variant="outline" className="gap-2" onClick={() => plan.file_url && onOpenFile(plan.file_url)}>
  <Download className="h-4 w-4" />
  <span className="hidden sm:inline">{t("common.download")}</span>
  </Button>
@@ -624,20 +644,20 @@ function PlanDetailModal({
  </div>
  </div>
 
- {plan.type === "meal" && content ? (
+ {plan.type === "meal" && content && "meals" in content ? (
  <MealContent content={content} onSwap={onSwapMeal} swapLoading={swapLoading} planId={plan.id} />
- ) : plan.type === "workout" && content?.days ? (
+ ) : plan.type === "workout" && content && "days" in content ? (
  <WorkoutContent content={content} onSwap={onSwapExercise} swapLoading={swapLoading} planId={plan.id} />
  ) : (
  <div className="text-sm text-muted-foreground">
  {/* PHASE 69 — EVO-saved plans render their text content */}
- {content?.text ? (
- <p className="whitespace-pre-wrap leading-relaxed">{content.text}</p>
+ {content && "text" in content ? (
+ <p className="whitespace-pre-wrap leading-relaxed">{String((content as { text?: unknown }).text)}</p>
  ) : (
  plan.notes || "—"
  )}
  {plan.file_url && (
- <a href="#" onClick={(e) => { e.preventDefault(); onOpenFile(plan.file_url); }} className="mt-3 flex items-center gap-1 text-primary hover:underline">
+ <a href="#" onClick={(e) => { e.preventDefault(); if (plan.file_url) onOpenFile(plan.file_url); }} className="mt-3 flex items-center gap-1 text-primary hover:underline">
  <Download className="h-4 w-4" /> {t("common.download")}
  </a>
  )}
@@ -648,7 +668,7 @@ function PlanDetailModal({
  );
 }
 
-function MealContent({ content, onSwap, swapLoading, planId }: any) {
+function MealContent({ content, onSwap, swapLoading, planId }: { content: NutritionPlanContent; onSwap: (i: number) => void; swapLoading: string | null; planId: string }) {
  const { t } = useI18n();
  return (
  <div className="space-y-4">
@@ -683,13 +703,13 @@ function MealContent({ content, onSwap, swapLoading, planId }: any) {
  )}
 
  {/* Supplements & health notes */}
- {(content.supplements?.length > 0 || content.health_notes?.length > 0 || content.water_target) && (
+ {((content.supplements?.length ?? 0) > 0 || (content.health_notes?.length ?? 0) > 0 || content.water_target) && (
  <div className="rounded-xl border border-border bg-muted/30 p-4 space-y-3">
- {content.supplements?.length > 0 && (
+ {(content.supplements?.length ?? 0) > 0 && (
  <div>
  <h4 className="mb-2 text-sm font-bold"> المكملات والتوصيات الصحية</h4>
  <div className="space-y-2">
- {content.supplements.map((s: any, i: number) => (
+ {(content.supplements ?? []).map((s, i) => (
  <div key={i} className="rounded-lg border border-border bg-background p-2 text-xs">
  <div className="font-semibold">{s.name}</div>
  <div className="text-muted-foreground">
@@ -702,11 +722,11 @@ function MealContent({ content, onSwap, swapLoading, planId }: any) {
  </div>
  </div>
  )}
- {content.health_notes?.length > 0 && (
+ {(content.health_notes?.length ?? 0) > 0 && (
  <div>
  <h4 className="mb-2 text-sm font-bold"> توصيات صحية خاصة</h4>
  <ul className="space-y-1 text-xs text-muted-foreground">
- {content.health_notes.map((n: string, i: number) => (
+ {(content.health_notes ?? []).map((n, i) => (
  <li key={i} className="flex items-start gap-1.5">
  <span className="text-primary">•</span>
  <span>{n}</span>
@@ -724,7 +744,7 @@ function MealContent({ content, onSwap, swapLoading, planId }: any) {
  )}
 
  {/* Meals — PDF-style with numbered items, alternatives, and per-meal totals */}
- {content.meals?.map((m: any, i: number) => (
+ {content.meals?.map((m, i: number) => (
  <div key={i} className="rounded-xl border border-border p-4">
  <div className="mb-2 flex items-center justify-between gap-2">
  <div>
@@ -757,7 +777,7 @@ function MealContent({ content, onSwap, swapLoading, planId }: any) {
  </tr>
  </thead>
  <tbody>
- {m.items?.map((it: any, j: number) => (
+ {m.items?.map((it, j: number) => (
  <tr key={j} className="border-t border-border/60">
  <td className="p-2 text-muted-foreground">{j + 1}</td>
  <td className="p-2 font-medium">{it.food}</td>
@@ -776,7 +796,7 @@ function MealContent({ content, onSwap, swapLoading, planId }: any) {
  <td colSpan={3} className="p-2 text-end font-semibold text-primary">
  {typeof m.total_calories === "number"
  ? `~${m.total_calories}`
- : `~${m.items?.reduce((s: number, i: any) => s + (i.calories || 0), 0) || 0}`} سعرة حرارية
+ : `~${m.items?.reduce((s, i) => s + (i.calories || 0), 0) || 0}`} سعرة حرارية
  </td>
  <td className="p-2 font-semibold text-success">
  {m.total_protein_g ? `${m.total_protein_g} جم بروتين` : ""}
@@ -793,12 +813,12 @@ function MealContent({ content, onSwap, swapLoading, planId }: any) {
  );
 }
 
-function WorkoutContent({ content, onSwap, swapLoading, planId }: any) {
+function WorkoutContent({ content, onSwap, swapLoading, planId }: { content: WorkoutPlanContent; onSwap: (d: number, e: number) => void; swapLoading: string | null; planId: string }) {
  const { t } = useI18n();
  return (
  <div className="space-y-4">
  {content.overview && <p className="text-sm text-muted-foreground">{content.overview}</p>}
- {content.days?.map((d: any, i: number) => (
+ {content.days?.map((d, i: number) => (
  <div key={i} className="rounded-xl border border-border">
  <div className="flex items-center justify-between border-b border-border bg-muted/40 px-4 py-2">
  <span className="font-semibold">{d.day}</span>
@@ -806,7 +826,7 @@ function WorkoutContent({ content, onSwap, swapLoading, planId }: any) {
  </div>
  {/* Exercise list — card layout (responsive mobile + desktop) */}
  <div className="space-y-3">
- {d.exercises?.map((ex: any, j: number) => {
+ {d.exercises?.map((ex, j: number) => {
  // Find exercise in library to get both images
  const exLib = EXERCISES.find((e) => e.slug === ex.exerciseSlug || e.nameEn === ex.name || e.nameEn.toLowerCase() === ex.name?.toLowerCase());
  const exImages = exLib ? getExerciseImages(exLib.imageKey) : (ex.image ? [ex.image] : []);
@@ -816,7 +836,7 @@ function WorkoutContent({ content, onSwap, swapLoading, planId }: any) {
  {/* Two images ABOVE the text — like exercise library */}
  {exImages.length > 0 && (
  <div className="mb-3 grid grid-cols-2 gap-2">
- {exImages.slice(0, 2).map((url: string, idx: number) => (
+ {exImages.slice(0, 2).map((url, idx: number) => (
  <div key={idx} className="relative aspect-square overflow-hidden rounded-xl bg-muted">
  <ImageWithFallback
  src={url}
@@ -875,7 +895,7 @@ function WorkoutContent({ content, onSwap, swapLoading, planId }: any) {
  );
 }
 
-function Stat({ label, value }: { label: string; value: any }) {
+function Stat({ label, value }: { label: string; value: string | number }) {
  return (
  <div className="rounded-xl border border-border bg-card p-3 text-center">
  <div className="font-display text-lg font-bold text-gradient">{value}</div>
