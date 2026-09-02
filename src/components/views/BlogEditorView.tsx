@@ -138,8 +138,8 @@ export function BlogEditorView({ mode, postId }: { mode: "new" | "edit"; postId?
      setImgVariation((v) => v + 1);
      setPost((p) => ({ ...p, featured_image: data.image.url, cover_alt: data.image.alt || p.cover_alt }));
      toast.success(isAr ? "وصلت صورة آمنة مقترحة ✅ اقبلها أو اطلب غيرها" : "Safe photo suggested ✅ accept it or ask for another");
-   } catch (e: any) {
-     toast.error(e?.message || (isAr ? "فشل اقتراح الصورة" : "Image suggestion failed"));
+   } catch (e) {
+     toast.error(e instanceof Error ? e.message : (isAr ? "فشل اقتراح الصورة" : "Image suggestion failed"));
    } finally {
      setImgBusy(false);
    }
@@ -184,8 +184,8 @@ export function BlogEditorView({ mode, postId }: { mode: "new" | "edit"; postId?
        content: (p.content || "").slice(0, b.start) + replacement + (p.content || "").slice(b.end),
      }));
      toast.success(isAr ? "اتبدلت الصورة في مكانها ✅" : "Image swapped in place ✅");
-   } catch (e: any) {
-     toast.error(e?.message || (isAr ? "فشل تبديل الصورة" : "Image swap failed"));
+   } catch (e) {
+     toast.error(e instanceof Error ? e.message : (isAr ? "فشل تبديل الصورة" : "Image swap failed"));
    } finally {
      setBodyImgBusy(null);
    }
@@ -232,7 +232,6 @@ export function BlogEditorView({ mode, postId }: { mode: "new" | "edit"; postId?
  } catch {
  /* malformed draft — ignore, the editor stays clean */
  }
- // eslint-disable-next-line react-hooks/exhaustive-deps
  }, [mode]);
 
  useEffect(() => {
@@ -241,7 +240,7 @@ export function BlogEditorView({ mode, postId }: { mode: "new" | "edit"; postId?
  try {
  const p = await adminGetPost(postId);
  if (p) setPost(p);
- } catch (e: any) { toast.error(e.message); }
+ } catch (e) { toast.error(e instanceof Error ? e.message : "فشل تحميل المقال"); }
  finally { setLoading(false); }
  })();
  }
@@ -322,7 +321,7 @@ export function BlogEditorView({ mode, postId }: { mode: "new" | "edit"; postId?
  toast.success(isAr ? "تم إنشاء المقال!" : "Article created!");
  router.push("/admin/blog");
  }
- } catch (e: any) { toast.error(e.message); }
+ } catch (e) { toast.error(e instanceof Error ? e.message : "فشل الحفظ"); }
  finally { setSaving(false); }
  };
 
@@ -400,19 +399,21 @@ export function BlogEditorView({ mode, postId }: { mode: "new" | "edit"; postId?
  * paste-able deliverable (the text itself / post+hashtags). */
 type AiResultEntry = { display: string; copy: string };
 type AiResultListItem = AiResultEntry & { key: string; label: string; at: string; recovered: boolean; jobId?: string };
-const formatSocialResult = (r: any): AiResultEntry => {
- const tags = Array.isArray(r?.hashtags) ? r.hashtags.join(" ") : "";
- const main = [String(r?.post_text || ""), tags ? `\n\n${tags}` : ""].join("");
+const formatSocialResult = (r: unknown): AiResultEntry => {
+ const view = (r ?? {}) as Record<string, unknown>;
+ const tags = Array.isArray(view.hashtags) ? view.hashtags.join(" ") : "";
+ const main = [String(view.post_text || ""), tags ? `\n\n${tags}` : ""].join("");
  const aux = [
- r?.cta ? `\n\n📣 ${r.cta}` : "",
- r?.image_idea ? `\n\n🖼️ اقتراح صورة: ${r.image_idea}` : "",
- r?.best_times?.length ? `\n⏰ أفضل أوقات النشر: ${r.best_times.join(" • ")}` : "",
+ view.cta ? `\n\n📣 ${view.cta}` : "",
+ view.image_idea ? `\n\n🖼️ اقتراح صورة: ${view.image_idea}` : "",
+ Array.isArray(view.best_times) && view.best_times.length ? `\n⏰ أفضل أوقات النشر: ${view.best_times.join(" • ")}` : "",
  ].join("");
  return { copy: main.trim(), display: `${main}${aux}`.trim() };
 };
-const formatToolResult = (r: any): AiResultEntry => {
- const text = String(r?.text ?? "");
- const notes = typeof r?.notes === "string" && r.notes.trim() ? r.notes : undefined;
+const formatToolResult = (r: unknown): AiResultEntry => {
+ const view = (r ?? {}) as Record<string, unknown>;
+ const text = String(view.text ?? "");
+ const notes = typeof view.notes === "string" && view.notes.trim() ? view.notes : undefined;
  return {
  copy: text.trim(),
  display: notes ? `${text}\n\n📝 تغييرات:\n${notes}` : text,
@@ -475,7 +476,7 @@ const runAITool = async (tool: string) => {
  content: (post.excerpt || "") + "\n\n" + (post.content || "").slice(0, 6000),
  });
  jobId = id;
- entry = formatSocialResult(result as any);
+ entry = formatSocialResult(result);
  } else {
  const { result, id } = await runAiJob("article_tool", {
  tool,
@@ -486,7 +487,7 @@ const runAITool = async (tool: string) => {
  language: post.language,
  });
  jobId = id;
- entry = formatToolResult(result as any);
+ entry = formatToolResult(result);
  }
  if (!entry.copy.trim()) throw new Error("نتيجة فارغة — حاول مرة أخرى.");
  // Mark the settled job so a later manual hydration refresh can NEVER
@@ -498,8 +499,8 @@ const runAITool = async (tool: string) => {
  ...prev,
  ]);
  toast.success("تم التوليد من الطابور!");
- } catch (e: any) {
- toast.error(e.message || "فشل التوليد");
+ } catch (e) {
+ toast.error(e instanceof Error ? e.message : "فشل التوليد");
  } finally {
  setAiBusy((b) => ({ ...b, [tool]: false }));
  }
@@ -524,7 +525,16 @@ const scanRecentToolJobs = useCallback(async () => {
  const res = await fetch("/api/ai/jobs?limit=20");
  if (!res.ok) return;
  const data = await res.json().catch(() => null);
- const jobs = (data?.jobs ?? []) as any[];
+ // jobs list rows — only the fields the hydration scan consumes.
+ type ToolJobRow = {
+ id?: string;
+ status?: string;
+ job_type?: string;
+ payload?: Record<string, unknown> | null;
+ finished_at?: string | null;
+ created_at?: string | null;
+ };
+ const jobs = ((data as { jobs?: ToolJobRow[] } | null)?.jobs) ?? [];
  const cutoff = Date.now() - 24 * 3_600_000;
  const recovered: AiResultListItem[] = [];
  for (const j of jobs) {
@@ -547,7 +557,7 @@ const scanRecentToolJobs = useCallback(async () => {
  const r = job?.result;
  const entry = j.job_type === "social_post" ? formatSocialResult(r) : formatToolResult(r);
  if (!entry.copy.trim()) continue;
- const at = new Date(j.finished_at || j.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+ const at = new Date(String(j.finished_at || j.created_at)).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
  const display = `♻️ نتيجة سابقة (اتكملت ${at})\n\n${entry.display}`;
  recovered.push({ ...entry, display, key, label: aiResultLabel(key), at, recovered: true });
  }

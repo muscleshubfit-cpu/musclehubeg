@@ -10,6 +10,7 @@ import { useNav } from "@/hooks/use-nav";
 import { SiteHeader } from "@/components/SiteHeader";
 import { openEvoFloatingChat } from "@/lib/evo-chat-context";
 import { supabase } from "@/lib/supabase/client";
+import type { Database } from "@/lib/supabase/types";
 import { MEMBERSHIPS, getLimits, type MembershipTier } from "@/lib/memberships";
 import { EXERCISES } from "@/lib/exercises";
 import { FOODS } from "@/lib/foods";
@@ -224,19 +225,19 @@ export default function ProfilePage() {
       }
 
       toast.success(isAr ? "تم رفع الصورة!" : "Avatar updated!");
-    } catch (e: any) {
-      toast.error(e?.message || (isAr ? "فشل رفع الصورة" : "Upload failed"));
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : (isAr ? "فشل رفع الصورة" : "Upload failed"));
     } finally {
       setUploadingAvatar(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
 
-  const updateProfile = async (updates: Record<string, any>) => {
+  const updateProfile = async (updates: Database["public"]["Tables"]["profiles"]["Update"]) => {
     if (!profile || !supabase) return;
     const { error } = await supabase
       .from("profiles")
-      .update(updates as any)
+      .update(updates)
       .eq("id", profile.id);
     if (error) {
       console.error("[profile] Update failed:", error.message);
@@ -252,8 +253,8 @@ export default function ProfilePage() {
         phone: phone.trim(),
       });
       toast.success(isAr ? "تم حفظ التغييرات" : "Changes saved");
-    } catch (e: any) {
-      toast.error(e?.message || (isAr ? "فشل الحفظ" : "Save failed"));
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : (isAr ? "فشل الحفظ" : "Save failed"));
     } finally {
       setSaving(false);
     }
@@ -615,7 +616,14 @@ export default function ProfilePage() {
 
 // Saved results section component
 function SavedResultsSection({ isAr, userId }: { isAr: boolean; userId?: string }) {
-  const [results, setResults] = useState<any[]>([]);
+  /** saved-results API row — only the fields this section renders. */
+  type SavedResultRow = {
+    id: string;
+    tool_slug: string;
+    title?: string | null;
+    created_at: string;
+  };
+  const [results, setResults] = useState<SavedResultRow[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -732,7 +740,33 @@ function SavedResultsSection({ isAr, userId }: { isAr: boolean; userId?: string 
 
 // Saved meal plans section component
 function SavedMealPlansSection({ isAr, userId }: { isAr: boolean; userId?: string }) {
-  const [plans, setPlans] = useState<any[]>([]);
+  /** saved-meal-plans API row — only the fields this section renders. */
+  type SavedMealPlanRow = {
+    id: string;
+    title?: string | null;
+    created_at?: string;
+    total_calories?: number | null;
+    total_protein?: number | null;
+    total_carbs?: number | null;
+    total_fat?: number | null;
+    meal_count?: number | null;
+    plan_data?: {
+      meals?: {
+        name?: string;
+        items?: {
+          name?: string;
+          grams?: number | null;
+          per100g?: {
+            calories?: number | null;
+            protein?: number | null;
+            carbs?: number | null;
+            fat?: number | null;
+          } | null;
+        }[];
+      }[];
+    } | null;
+  };
+  const [plans, setPlans] = useState<SavedMealPlanRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
@@ -825,7 +859,7 @@ function SavedMealPlansSection({ isAr, userId }: { isAr: boolean; userId?: strin
                         {p.title || (isAr ? "جدول وجبات" : "Meal Plan")}
                       </p>
                       <p className="mt-0.5 text-xs font-normal text-[#6e6e73]" dir="ltr">
-                        {totals.calories} kcal · P{totals.protein}g · C{totals.carbs}g · F{totals.fat}g · {mealCount} {isAr ? "وجبات" : "meals"} · {new Date(p.created_at).toLocaleDateString()}
+                        {totals.calories} kcal · P{totals.protein}g · C{totals.carbs}g · F{totals.fat}g · {mealCount} {isAr ? "وجبات" : "meals"} · {new Date(p.created_at ?? "").toLocaleDateString()}
                       </p>
                     </div>
                   </button>
@@ -849,9 +883,10 @@ function SavedMealPlansSection({ isAr, userId }: { isAr: boolean; userId?: strin
 
                 {isExpanded && p.plan_data?.meals && (
                   <div className="mt-3 space-y-2 border-t border-[#d2d2d7] pt-3">
-                    {p.plan_data.meals.map((meal: any, mi: number) => {
+                    {p.plan_data.meals.map((meal, mi) => {
+                      const items = meal.items || [];
                       let mCal = 0, mP = 0, mC = 0, mF = 0;
-                      for (const item of meal.items || []) {
+                      for (const item of items) {
                         const factor = (item.grams || 0) / 100;
                         mCal += Math.round((item.per100g?.calories || 0) * factor);
                         mP   += Math.round((item.per100g?.protein  || 0) * factor);
@@ -866,9 +901,9 @@ function SavedMealPlansSection({ isAr, userId }: { isAr: boolean; userId?: strin
                               {mCal} kcal · P{mP}g · C{mC}g · F{mF}g
                             </p>
                           </div>
-                          {(meal.items || []).length > 0 && (
+                          {(items).length > 0 && (
                             <ul className="mt-2 space-y-0.5">
-                              {meal.items.map((item: any, ii: number) => (
+                              {items.map((item, ii) => (
                                 <li
                                   key={ii}
                                   className="flex items-center justify-between text-xs text-[#6e6e73]"

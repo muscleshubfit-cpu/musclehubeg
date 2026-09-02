@@ -10,11 +10,35 @@ import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Sparkles, Search, Plus, RefreshCw, FileText, Globe, CheckCircle2, FileEdit, Trash2, Copy, ExternalLink, Eye, ImagePlus, Loader2, Wand2 } from "lucide-react";
 
+/** Blog stats snapshot returned by getBlogStats(). */
+type BlogStats = Awaited<ReturnType<typeof getBlogStats>>;
+
+/** ai_jobs row view consumed by the article-generation watcher. */
+type GeneratedArticleJob = {
+  status?: string;
+  error_message?: string | null;
+  result?: {
+    title?: string;
+    markdown?: string;
+    post_id?: string | number;
+    excerpt?: string;
+    meta_title?: string;
+    meta_description?: string;
+    tags?: unknown;
+    language?: string;
+    category?: string;
+    slug?: string;
+    focus_keyword?: string;
+    featured_image?: string;
+    cover_alt?: string;
+  } | null;
+};
+
 export function BlogAdminView() {
   const { t, lang } = useI18n();
   const router = useRouter();
   const isAr = lang === "ar";
-  const [stats, setStats] = useState<any>(null);
+  const [stats, setStats] = useState<BlogStats | null>(null);
   const [posts, setPosts] = useState<AdminBlogPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"all" | "en" | "ar">("all");
@@ -51,7 +75,7 @@ export function BlogAdminView() {
         const deadline = Date.now() + 26 * 60_000;
         while (Date.now() < deadline) {
           await new Promise((r) => setTimeout(r, 20_000));
-          let job: any = null;
+          let job: GeneratedArticleJob | null = null;
           try {
             job = await getAiJob(entry.id);
           } catch {
@@ -159,8 +183,8 @@ export function BlogAdminView() {
       setGenCategory("");
       toast.success(isAr ? "تم إرسال طلب التوليد — جاري التنفيذ في الخلفية ⏳" : "Generation queued — running in the background");
       void watchArticleJob(entry);
-    } catch (e: any) {
-      toast.error(e.message || "فشل إرسال الطلب");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "فشل إرسال الطلب");
     } finally {
       setGenBusy(false);
     }
@@ -172,8 +196,8 @@ export function BlogAdminView() {
       const [s, p] = await Promise.all([getBlogStats(), adminListPosts()]);
       setStats(s);
       setPosts(p);
-    } catch (e: any) {
-      toast.error(e.message);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "فشل التحميل");
     } finally {
       setLoading(false);
     }
@@ -190,7 +214,6 @@ export function BlogAdminView() {
         /* health probe is best-effort */
       }
     })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // CLEAR-FAILED (2026-08-28m, owner screenshot + «ضيف طريقى لمسحه الرسالة
@@ -213,8 +236,8 @@ export function BlogAdminView() {
       const h = await fetch("/api/ai/queue-health");
       if (h.ok) setQHealth(await h.json());
       toast.success(isAr ? `تم مسح ${data?.deleted ?? 0} مهمة فاشلة من السجل ✅` : `Cleared ${data?.deleted ?? 0} failed jobs ✅`);
-    } catch (e: any) {
-      toast.error(e?.message || (isAr ? "تعذّر مسح التنبيه" : "Couldn't clear the alert"));
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : (isAr ? "تعذّر مسح التنبيه" : "Couldn't clear the alert"));
     } finally {
       setQClearing(false);
     }
@@ -226,8 +249,8 @@ export function BlogAdminView() {
       await adminDeletePost(id);
       await load();
       toast.success(isAr ? "تم الحذف" : "Deleted");
-    } catch (e: any) {
-      toast.error(e.message);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "فشل الحذف");
     }
   };
 
@@ -236,8 +259,8 @@ export function BlogAdminView() {
       await adminDuplicatePost(id);
       await load();
       toast.success(isAr ? "تم نسخ المقال" : "Article duplicated");
-    } catch (e: any) {
-      toast.error(e.message);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "فشل النسخ");
     }
   };
 
@@ -299,8 +322,8 @@ export function BlogAdminView() {
                     : `Filled ${data.updated} of ${data.total} missing covers${data.failed ? ` — ${data.failed} failed` : ""} ✅`,
                 );
                 if (data.updated > 0) await load();
-              } catch (e: any) {
-                alert(e?.message || (isAr ? "فشل الاستكمال" : "Backfill failed"));
+              } catch (e) {
+                alert(e instanceof Error ? e.message : (isAr ? "فشل الاستكمال" : "Backfill failed"));
               }
             }}
             className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3.5 py-2 text-xs font-medium text-emerald-600 dark:text-emerald-400 transition-colors hover:bg-emerald-500/20"
@@ -559,11 +582,11 @@ export function BlogAdminView() {
       </div>
 
       {/* Recent articles */}
-      {stats?.recent?.length > 0 && (
+      {(stats?.recent?.length ?? 0) > 0 && (
         <div className="pt-2">
           <h2 className="mb-3 text-base font-bold text-foreground">{isAr ? "أحدث المقالات المضافة" : "Recently Added"}</h2>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {stats.recent.map((p: AdminBlogPost) => (
+            {(stats?.recent ?? []).map((p) => (
               <div key={p.id} className="rounded-xl border border-border bg-card p-3.5 shadow-2xs hover:border-primary/30 transition-all">
                 <div className="flex items-center justify-between gap-2">
                   <span className="rounded-md bg-muted px-2 py-0.5 text-[10px] font-medium text-foreground">

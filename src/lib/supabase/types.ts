@@ -1630,5 +1630,7 @@ export type NutritionQuestionnaire = Database["public"]["Tables"]["nutrition_que
 export type FitnessQuestionnaire = Database["public"]["Tables"]["fitness_questionnaires"]["Row"];
 export type ProgressPhoto = Database["public"]["Tables"]["progress_photos"]["Row"];
 export type CoachAd = Database["public"]["Tables"]["coach_ads"]["Row"];
+export type CoachTopupRequest = Database["public"]["Tables"]["coach_topup_requests"]["Row"];
+export type CoachWalletTransaction = Database["public"]["Tables"]["coach_wallet_transactions"]["Row"];
 export type EvoChatUsage = Database["public"]["Tables"]["evo_chat_usage"]["Row"];
 export type EvoAnonUsage = Database["public"]["Tables"]["evo_anon_usage"]["Row"];

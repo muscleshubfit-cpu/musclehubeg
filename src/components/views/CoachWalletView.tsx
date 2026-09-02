@@ -31,13 +31,15 @@ import { uploadReceipt, getReceiptSignedUrl } from "@/lib/data";
  * + request history + ledger.
  */
 
+import type { CoachTopupRequest, CoachWalletTransaction } from "@/lib/supabase/types";
+
 type WalletData = {
   balance: number;
   currency: string;
   fee_per_client: number;
   fee_currency: string;
-  topups: any[];
-  transactions: any[];
+  topups: CoachTopupRequest[];
+  transactions: CoachWalletTransaction[];
 };
 
 const statusBadge = (status: string, isAr: boolean) => {
@@ -127,7 +129,15 @@ function WalletPayPalButtons({
 
   useEffect(() => {
     if (renderedRef.current || !paypalRef.current) return;
-    const w = window as any;
+    // PayPal JS SDK loaded via <script> — typed window view (SDK types not
+    // installed; only Buttons/render + the options we pass are consumed).
+    const w = window as typeof window & {
+      paypal?: {
+        Buttons?: (options: Record<string, unknown>) => {
+          render: (target: HTMLElement) => Promise<void>;
+        };
+      };
+    };
     if (!w.paypal?.Buttons) return;
 
     renderedRef.current = true;
@@ -165,9 +175,10 @@ function WalletPayPalButtons({
               toast.error(result.error || (isAr ? "فشل الدفع" : "Payment failed"));
               onError(result.error || "Capture failed");
             }
-          } catch (e: any) {
-            toast.error(e.message || (isAr ? "خطأ في المعالجة" : "Processing error"));
-            onError(e.message);
+          } catch (e) {
+            const msg = e instanceof Error ? e.message : String(e);
+            toast.error(msg || (isAr ? "خطأ في المعالجة" : "Processing error"));
+            onError(msg);
           } finally {
             setProcessing(false);
           }
@@ -175,14 +186,14 @@ function WalletPayPalButtons({
         onCancel: () => {
           toast.info(isAr ? "تم إلغاء الدفع" : "Payment cancelled");
         },
-        onError: (err: any) => {
+        onError: (err: unknown) => {
           console.error("[paypal] Wallet button error:", err);
           toast.error(isAr ? "حدث خطأ. حاول مرة أخرى." : "An error occurred. Please try again.");
           onError("PayPal button error");
         },
       })
       .render(paypalRef.current)
-      .catch((e: any) => {
+      .catch((e) => {
         console.error("[paypal] Render error:", e);
         renderedRef.current = false;
       });
@@ -226,8 +237,8 @@ export function CoachWalletView() {
       const json = await res.json();
       if (!res.ok) throw new Error(json.message || "error");
       setData(json);
-    } catch (e: any) {
-      toast.error(e.message || (isAr ? "خطأ غير متوقع" : "Unexpected error"));
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : (isAr ? "خطأ غير متوقع" : "Unexpected error"));
     } finally {
       setLoading(false);
     }
@@ -277,8 +288,8 @@ export function CoachWalletView() {
       setReceipt(null);
       if (fileRef.current) fileRef.current.value = "";
       await load();
-    } catch (e: any) {
-      toast.error(e.message || (isAr ? "خطأ غير متوقع" : "Unexpected error"));
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : (isAr ? "خطأ غير متوقع" : "Unexpected error"));
     } finally {
       setSubmitting(false);
     }
@@ -465,6 +476,7 @@ export function CoachWalletView() {
                       {isAr ? m.ar : m.en}
                     </span>
                     {contact.qr && (
+                      // eslint-disable-next-line @next/next/no-img-element -- static QR asset rendered as-is; optimization must never touch a scannable QR (AffiliateToolkit banner precedent)
                       <img
                         src={contact.qr}
                         alt={`${m.en} QR`}
@@ -591,7 +603,7 @@ export function CoachWalletView() {
                     </tr>
                   </thead>
                   <tbody>
-                    {data!.topups.map((t: any) => {
+                    {data!.topups.map((t) => {
                       const badge = statusBadge(t.status, isAr);
                       return (
                         <tr key={t.id} className="border-t border-[#e5e5ea]">
@@ -649,7 +661,7 @@ export function CoachWalletView() {
                     </tr>
                   </thead>
                   <tbody>
-                    {data!.transactions.map((x: any) => (
+                    {data!.transactions.map((x) => (
                       <tr key={x.id} className="border-t border-[#e5e5ea]">
                         <td className="p-3 text-xs text-[#6e6e73]">
                           {new Date(x.created_at).toLocaleDateString(isAr ? "ar-EG" : "en-GB")}

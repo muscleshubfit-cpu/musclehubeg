@@ -14,7 +14,8 @@ import {
   getCoachClientStats,
   type CoachClientStats,
 } from "@/lib/data";
-import { getTier } from "@/lib/plans";
+import type { SubscriptionRequest } from "@/lib/supabase/types";
+import { getTier, type TierId } from "@/lib/plans";
 import { MEMBERSHIPS } from "@/lib/memberships";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
@@ -40,8 +41,8 @@ type ClientWithMeta = {
   email: string | null;
   phone: string | null;
   created_at: string;
-  // subscription info
-  sub?: any;
+  // subscription info (RPC view from enrichClientRow OR full Subscription row)
+  sub?: ClientSubInfo;
   isActive: boolean;
   isExpiring: boolean;
   isExpired: boolean;
@@ -54,6 +55,15 @@ type ClientWithMeta = {
   // multi-coach assignment (0030A — admin reassignment UI, Phase 2B)
   assigned_coach_id: string | null;
   assigned_coach_name: string | null;
+};
+
+/** Subscription info attached to a client row (RPC view or full row). */
+type ClientSubInfo = {
+  tier?: string | null;
+  status?: string | null;
+  end_date?: string | null;
+  months?: number | null;
+  client_id?: string;
 };
 
 type StaffMember = { id: string; full_name: string | null; email: string | null; role: string };
@@ -132,7 +142,7 @@ export function CoachView() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [activeTab, setActiveTab] = useState<FilterTab>("all");
-  const [pendingRequests, setPendingRequests] = useState<any[]>([]);
+  const [pendingRequests, setPendingRequests] = useState<SubscriptionRequest[]>([]);
   // Admin reassignment (Phase 2B): staff dropdown + per-row saving state
   const [staff, setStaff] = useState<StaffMember[]>([]);
   const [reassigning, setReassigning] = useState<string | null>(null);
@@ -186,7 +196,7 @@ export function CoachView() {
         ]);
         if (!cancelled) {
           setStats(st);
-          setPendingRequests(reqs as any[]);
+          setPendingRequests(reqs);
         }
       } catch {
         /* stats stay null → tab pills count the loaded page/list instead */
@@ -302,7 +312,7 @@ export function CoachView() {
         const optimized = await getCoachClientListOptimized();
 
         if (optimized && optimized.length >= 0) {
-          setClients((optimized as any[]).map(enrichClientRow));
+          setClients(optimized.map(enrichClientRow));
           setLoading(false);
           return;
         }
@@ -316,14 +326,14 @@ export function CoachView() {
 
         const now = Date.now();
         const enrichedFallback = await Promise.all(
-          (c as any[]).map(async (client) => {
-            const sub = (s as any[]).find((x) => x.client_id === client.id);
+          c.map(async (client) => {
+            const sub = s.find((x) => x.client_id === client.id);
             const isActive =
-              sub && sub.status === "active" && new Date(sub.end_date).getTime() > now;
+              sub && sub.status === "active" && new Date(sub.end_date ?? 0).getTime() > now;
             const isExpiring =
-              isActive && new Date(sub.end_date).getTime() - now < 14 * 864e5;
+              isActive && new Date(sub.end_date ?? 0).getTime() - now < 14 * 864e5;
             const isExpired =
-              sub && (sub.status !== "active" || new Date(sub.end_date).getTime() <= now);
+              sub && (sub.status !== "active" || new Date(sub.end_date ?? 0).getTime() <= now);
             const hasSub = !!sub;
 
             const [nutriQ, fitQ] = await Promise.all([
@@ -331,7 +341,7 @@ export function CoachView() {
               getQuestionnaire(client.id, "fitness").catch(() => null),
             ]);
 
-            const hasPendingPayment = (reqs as any[]).some(
+            const hasPendingPayment = reqs.some(
               (r) => r.user_id === client.id && r.status === "pending",
             );
 
@@ -357,7 +367,7 @@ export function CoachView() {
 
         if (!cancelled) {
           setClients(enrichedFallback);
-          setPendingRequests(reqs as any[]);
+          setPendingRequests(reqs);
         }
       } catch (e) {
         console.error("[CoachView] load failed", e);
@@ -530,7 +540,9 @@ export function CoachView() {
   const tierName = (subTier: string) => {
     const m = MEMBERSHIPS.find((x) => x.id === subTier);
     if (m) return isAr ? m.nameAr : m.nameEn;
-    const legacy = getTier(subTier as any);
+    // Legacy tier ids (starter/elite) — only they can ever match getTier,
+    // which returns undefined for everything else (Phase 90 cast pattern).
+    const legacy = getTier(subTier as TierId);
     if (legacy) return t(legacy.nameKey);
     return subTier || "—";
   };
