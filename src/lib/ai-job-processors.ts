@@ -23,6 +23,8 @@ import type { ClientContext } from "@/lib/ai-local";
 import { generateSocialPost } from "@/lib/social-posts";
 import { pickSmartTopic } from "@/lib/blog-topics";
 import { supabaseAdmin, isSupabaseAdminConfigured } from "@/lib/supabase/admin";
+import type { PlanContent } from "@/lib/data/plans";
+import type { SocialPlatform, SocialTone } from "@/lib/social-posts";
 import { VALID_CATEGORY_IDS } from "@/lib/blog";
 import { articleSlugFromTitle } from "@/lib/ai-jobs-client";
 import { resolveSlug, sanitizeModelSlug } from "@/lib/slug";
@@ -122,17 +124,17 @@ async function enrichArticleImages(
   }
 }
 
-function pickClientContext(raw: any): ClientContext {
-  const cc = raw && typeof raw === "object" ? raw : {};
+function pickClientContext(raw: unknown): ClientContext {
+  const cc = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
   return {
     name: typeof cc.name === "string" ? cc.name : "",
     nutrition: cc.nutrition || {},
     fitness: cc.fitness || {},
     recent_measurements: Array.isArray(cc.recent_measurements)
-      ? cc.recent_measurements
+      ? (cc.recent_measurements as ClientContext["recent_measurements"])
       : [],
     recent_plan_names: Array.isArray(cc.recent_plan_names)
-      ? cc.recent_plan_names.filter((n: any) => typeof n === "string")
+      ? (cc.recent_plan_names as unknown[]).filter((n) => typeof n === "string")
       : [],
   };
 }
@@ -176,7 +178,7 @@ type ToolOutput = {
   /** Main deliverable shown to the editor. */
   text: string;
   /** Optional machine-readable extras (LSI list, bullets array …). */
-  data?: Record<string, any>;
+  data?: Record<string, unknown>;
   /** Optional change-notes section rendered under the result. */
   notes?: string;
   /** Model id that served the tool (kept for provenance). */
@@ -203,7 +205,7 @@ function splitSentinel(text: string): ToolOutput {
   return { text: raw.replace(MARKER_MAIN, "").trim() };
 }
 
-async function runArticleTool(payload: any): Promise<ToolOutput> {
+async function runArticleTool(payload: Record<string, unknown>): Promise<ToolOutput> {
   const tool = resolveArticleTool(String(payload.tool || ""));
   const content = String(payload.content || "");
   const title = String(payload.title || "");
@@ -320,13 +322,13 @@ ${MARKER_NOTES}
   );
 
   if (needsJson) {
-    const parsed = parseJSON<any>(text);
+    const parsed = parseJSON<Record<string, unknown>>(text);
     if (!parsed) throw new Error("فشل تحليل نتيجة الأداة (JSON غير صالح).");
     if (tool === "faq") {
       const faq = Array.isArray(parsed.faq) ? parsed.faq.slice(0, 6) : [];
       if (faq.length === 0) throw new Error("لم يتم توليد أسئلة صالحة.");
       return {
-        text: faq.map((q: any) => `**${q.question}**\n${q.answer}`).join("\n\n"),
+        text: faq.map((q) => `**${q.question}**\n${q.answer}`).join("\n\n"),
         data: { faq },
         sourceLabel: model,
       };
@@ -370,17 +372,17 @@ ${MARKER_NOTES}
 
 /* ─────────────────────────── Social post ─────────────────────────── */
 
-async function runSocialPost(payload: any) {
-  const platform = String(payload.platform || "facebook") as any;
-  const tone = String(payload.tone || "motivational") as any;
+async function runSocialPost(payload: Record<string, unknown>) {
+  const platform = String(payload.platform || "facebook") as SocialPlatform;
+  const tone = String(payload.tone || "motivational") as SocialTone;
   return generateSocialPost({
     platform,
     tone,
     language: payload.language === "en" ? "en" : "ar",
-    topic: payload.topic,
-    content: payload.content,
-    title: payload.title,
-    articleUrl: payload.articleUrl,
+    topic: payload.topic as string | undefined,
+    content: payload.content as string | undefined,
+    title: payload.title as string | undefined,
+    articleUrl: payload.articleUrl as string | undefined,
   });
 }
 
@@ -399,15 +401,15 @@ async function runSocialPost(payload: any) {
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 async function materializePlanDraftRow(
-  payload: any,
+  payload: Record<string, unknown>,
   title: string,
-  content: any,
+  content: PlanContent | null,
   planType: "meal" | "workout",
 ): Promise<string | null> {
   if (!isSupabaseAdminConfigured || !supabaseAdmin) return null;
   const clientId = String(payload?.clientId ?? "");
   if (!UUID_RE.test(clientId)) return null; // no target client → browser fallback only
-  const { data, error } = await (supabaseAdmin as any)
+  const { data, error } = await supabaseAdmin
     .from("plans")
     .insert({
       client_id: clientId,
@@ -427,12 +429,18 @@ async function materializePlanDraftRow(
     console.error("[plan job] server-side draft materialization failed:", error.message);
     return null;
   }
-  return (data as any)?.id ?? null;
+  return data?.id ?? null;
 }
 
-async function runPlanNutrition(payload: any) {
+async function runPlanNutrition(payload: Record<string, unknown>) {
   const ctx = pickClientContext(payload.clientContext);
-  const overrides = payload.overrides || {};
+  const overrides = (payload.overrides ?? {}) as {
+    targetCalories?: number;
+    macros?: { protein_g: number; carbs_g: number; fat_g: number };
+    foods?: string[];
+    mealsCount?: number;
+    notes?: string;
+  };
   const res = await generateNutritionPlanAI(ctx, {
     targetCalories: overrides.targetCalories,
     macros: overrides.macros,
@@ -454,9 +462,13 @@ async function runPlanNutrition(payload: any) {
   };
 }
 
-async function runPlanWorkout(payload: any) {
+async function runPlanWorkout(payload: Record<string, unknown>) {
   const ctx = pickClientContext(payload.clientContext);
-  const overrides = payload.overrides || {};
+  const overrides = (payload.overrides ?? {}) as {
+    mealsCount?: number;
+    foods?: string[];
+    notes?: string;
+  };
   const res = await generateWorkoutPlanAI(ctx, {
     mealsCount: overrides.mealsCount, // legacy reuse → daysPerWeek
     foods: overrides.foods,
@@ -476,14 +488,14 @@ async function runPlanWorkout(payload: any) {
   };
 }
 
-async function runMealRegenerate(payload: any) {
+async function runMealRegenerate(payload: Record<string, unknown>) {
   const ctx = payload.clientContext ? pickClientContext(payload.clientContext) : undefined;
   const out = await regenerateMeal(
-    payload.meal || {},
-    payload.targetCalories,
+    (payload.meal || {}) as { name?: string; items?: Array<{ food: string; amount: string; calories: number }>; notes?: string },
+    payload.targetCalories as number | undefined,
     ctx,
-    payload.reason,
-    Array.isArray(payload.avoid_names) ? payload.avoid_names : [],
+    payload.reason as string | undefined,
+    Array.isArray(payload.avoid_names) ? (payload.avoid_names as string[]) : [],
   );
   return {
     replacement: out.meal,
@@ -492,11 +504,11 @@ async function runMealRegenerate(payload: any) {
   };
 }
 
-async function runExerciseRegenerate(payload: any) {
+async function runExerciseRegenerate(payload: Record<string, unknown>) {
   const out = await substituteExercise({
-    exercise: payload.exercise || {},
-    reason: payload.reason,
-    location: payload.location,
+    exercise: (payload.exercise || {}) as { name: string; sets?: number; reps?: string; rest?: string; focus?: string },
+    reason: payload.reason as string | undefined,
+    location: payload.location as string | undefined,
     clientContext: payload.clientContext ? pickClientContext(payload.clientContext) : undefined,
   });
   return out; // { replacement(+exerciseSlug/image), alternatives[3], libraryMatched, source }
@@ -506,24 +518,24 @@ async function runExerciseRegenerate(payload: any) {
  * regeneration tools that used to be admin-external-plans only are now
  * staff editing tools on the same GitHub Actions queue. */
 
-async function runFoodItemRegenerate(payload: any) {
+async function runFoodItemRegenerate(payload: Record<string, unknown>) {
   const ctx = payload.clientContext ? pickClientContext(payload.clientContext) : undefined;
   const out = await regenerateFoodItem(
-    payload.item || {},
+    (payload.item || {}) as { food: string; amount: string; calories: number; alternatives?: string },
     ctx,
-    Array.isArray(payload.avoid_names) ? payload.avoid_names : [],
-    payload.note,
+    Array.isArray(payload.avoid_names) ? (payload.avoid_names as string[]) : [],
+    payload.note as string | undefined,
   );
   return { replacement: out.item, source: out.source };
 }
 
-async function runDayRegenerate(payload: any) {
+async function runDayRegenerate(payload: Record<string, unknown>) {
   const ctx = payload.clientContext ? pickClientContext(payload.clientContext) : undefined;
   const out = await regenerateWorkoutDay(
-    payload.day || {},
+    (payload.day || {}) as { day: string; focus: string; exercises: Array<{ name: string; sets: number; reps: string; rest: string; notes: string }> },
     ctx,
-    Array.isArray(payload.avoid_names) ? payload.avoid_names : [],
-    payload.note,
+    Array.isArray(payload.avoid_names) ? (payload.avoid_names as string[]) : [],
+    payload.note as string | undefined,
   );
   return { replacement: out.day, source: out.source };
 }
@@ -563,7 +575,7 @@ async function materializeArticleDraft(r: {
   // dated post-YYYYMMDDNNNN fallback only fires when BOTH the model slug
   // AND the title's latin core are unusable (ONE-SLUG-LAW: resolveSlug).
   const slug = resolveSlug(r.slug, r.title);
-  const row: Record<string, any> = {
+  const row: Record<string, unknown> = {
     language: r.language,
     title: r.title,
     slug,
@@ -593,12 +605,12 @@ async function materializeArticleDraft(r: {
     source: "ai:article_generate",
   };
   for (let attempt = 0; attempt < 3; attempt++) {
-    const { data, error } = await (supabaseAdmin as any)
+    const { data, error } = await supabaseAdmin
       .from("blog_posts")
-      .insert([row])
+      .insert([row as never]) // row carries legacy optional `source` — deleted on schema mismatch below
       .select("id")
       .single();
-    if (!error) return (data as any)?.id ?? null;
+    if (!error) return data?.id ?? null;
     const msg = String(error?.message || "");
     if (/duplicate|unique|conflict/i.test(msg)) {
       // Same-title slug collision (rare) — suffix and retry.
@@ -626,7 +638,7 @@ async function internalLinkCandidates(
   limit = 8,
 ): Promise<Array<{ slug: string; title: string }>> {
   if (!isSupabaseAdminConfigured || !supabaseAdmin) return [];
-  const { data, error } = await (supabaseAdmin as any)
+  const { data, error } = await supabaseAdmin
     .from("blog_posts")
     .select("slug, title")
     .eq("is_published", true)
@@ -634,7 +646,7 @@ async function internalLinkCandidates(
     .order("created_at", { ascending: false })
     .limit(limit);
   if (error || !data) return [];
-  return (data as any[])
+  return (data || [])
     .filter((p) => p.slug && p.title)
     .map((p) => ({ slug: String(p.slug), title: String(p.title) }));
 }
@@ -653,14 +665,14 @@ async function internalLinkCandidates(
  * { title, markdown, excerpt, meta_description, tags[], language, source }
  * + topic diagnostics: { topic, autoTopic, focus_keyword, topic_rationale, category }
  */
-async function runArticleGenerate(payload: any) {
+async function runArticleGenerate(payload: Record<string, unknown>) {
   let topic = String(payload.topic || "").trim();
   const isAr = payload.language !== "en";
   const tone = String(payload.tone || "").trim();
   const audience = String(payload.audience || "").trim();
   let category = String(payload.category || "").trim();
   const keywords = Array.isArray(payload.keywords)
-    ? payload.keywords.map((k: any) => String(k).trim()).filter(Boolean).slice(0, 8)
+    ? (payload.keywords as unknown[]).map((k) => String(k).trim()).filter(Boolean).slice(0, 8)
     : [];
 
   // TOPIC-AUTO (2026-08-28b): when the coach leaves the topic empty, the
@@ -787,7 +799,7 @@ async function runArticleGenerate(payload: any) {
     },
   );
 
-  const parsed = parseJSON<any>(text);
+  const parsed = parseJSON<Record<string, unknown>>(text);
   if (!parsed || typeof parsed !== "object") {
     throw new Error("فشل تحليل نتيجة التوليد (JSON غير صالح).");
   }
@@ -816,12 +828,15 @@ async function runArticleGenerate(payload: any) {
     );
   }
   const faqOut = Array.isArray(parsed.faq)
-    ? parsed.faq
-        .map((f: any) => ({
-          question: String(f?.question || "").trim().slice(0, 300),
-          answer: String(f?.answer || "").trim().slice(0, 1200),
-        }))
-        .filter((f: any) => f.question && f.answer)
+    ? (parsed.faq as unknown[])
+        .map((f) => {
+          const o = (f ?? {}) as Record<string, unknown>;
+          return {
+            question: String(o.question || "").trim().slice(0, 300),
+            answer: String(o.answer || "").trim().slice(0, 1200),
+          };
+        })
+        .filter((f) => f.question && f.answer)
         .slice(0, 8)
     : [];
 
@@ -829,9 +844,9 @@ async function runArticleGenerate(payload: any) {
   // English photo queries. Headings are the last-resort query fallback.
   // Everything here degrades gracefully — image failures NEVER fail the
   // article (it lands without images exactly like the pre-fix flow).
-  const modelSlug = sanitizeModelSlug(parsed.slug);
+  const modelSlug = sanitizeModelSlug(String(parsed.slug ?? ""));
   const imageQueries: string[] = Array.isArray(parsed.image_queries)
-    ? parsed.image_queries.map((q: any) => String(q || "").trim()).filter(Boolean)
+    ? (parsed.image_queries as unknown[]).map((q) => String(q || "").trim()).filter(Boolean)
     : [];
   if (imageQueries.length < 2) {
     for (const h of sectionSubjects(markdown, 3)) {
@@ -853,7 +868,7 @@ async function runArticleGenerate(payload: any) {
 
   console.log(`[article_generate] quality: ${wordCount} words, ${sectionCount} sections, ${faqOut.length} FAQs`);
   const tags = Array.isArray(parsed.tags)
-    ? parsed.tags.map((t: any) => String(t).trim()).filter(Boolean).slice(0, 10)
+    ? (parsed.tags as unknown[]).map((t) => String(t).trim()).filter(Boolean).slice(0, 10)
     : [];
 
   // DRAFT MATERIALIZATION (2026-08-28d): persist the finished article as a
@@ -902,11 +917,11 @@ async function runArticleGenerate(payload: any) {
 
 /* ─────────────────────────── Registry ─────────────────────────── */
 
-export type ProcessorResult = Record<string, any>;
+export type ProcessorResult = Record<string, unknown>;
 
 export const PROCESSORS: Record<
   string,
-  (payload: any) => Promise<ProcessorResult>
+  (payload: Record<string, unknown>) => Promise<ProcessorResult>
 > = {
   plan_nutrition: runPlanNutrition,
   plan_workout: runPlanWorkout,
@@ -914,7 +929,7 @@ export const PROCESSORS: Record<
   exercise_regenerate: runExerciseRegenerate,
   food_item_regenerate: runFoodItemRegenerate,
   day_regenerate: runDayRegenerate,
-  article_tool: async (p: any) => {
+  article_tool: async (p: Record<string, unknown>) => {
     const out = await runArticleTool(p);
     const r: ProcessorResult = { text: out.text, tool: resolveArticleTool(String(p.tool)) };
     if (out.data) r.data = out.data;
