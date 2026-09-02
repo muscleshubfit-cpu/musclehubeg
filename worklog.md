@@ -599,3 +599,51 @@ Stage Summary:
 - All three owner tasks delivered in one push: 0064 migration (auto-applies via integration), food-search domain fix, PlansView optimistic UX
 - Owner follow-ups available: run VERIFY_SCHEMA_DRIFT.sql (read-only) to see the new RLS state on progress_photos; test meal-planner external product search
 - REMINDER: revoke the GitHub token once all work is done — transient git-push use only
+
+---
+Task ID: 100
+Agent: Super Z (main)
+Task: [BACKFILL — الأصل ضاع في إعادة تجهيز مساحة العمل؛ مُستكمل من رسالة كوميت 2b78027 وسجل PROGRESS] Phase 100 — PLAN_SWAPS STRICT RLS (سجل التبديلات المضاد للعبث)
+
+Work Log:
+- تفعيل RLS على plan_swaps + حذف أي سياسات بأسماء مجهولة عبر pg_policies (سياسة متبقية متساهلة كانت هتكسر القفل)
+- 3 سياسات مسماة: select_own + insert_own (auth.uid() = user_id) + select_assigned_coach عبر coach_assignments — صفر سياسات UPDATE/DELETE (سجل تاريخي) + revoke update,delete على مستوى الجدول لي فشل بصوت عالي
+- إثبات التوافق قبل الـ SQL: مساري التنفيذ والاسترجاع service-role (يتجاوز RLS) والعرض الوحيد getSwapUsage بيفلتر user_id=self — صفر .update()/.delete() على الجدول في src كله
+- توثيق: INDEX.md 0065 · QA_CHECKLIST · PROGRESS · worklog (المفقود) — بوابات: tsc 0 · eslint 0 ×396 · vitest 191/191
+
+Stage Summary:
+- سجل الاسترجاع بقى غير قابل للعبث من أي طرف — التزامًا بوعد نظام استرجاع الفلوس
+
+---
+Task ID: 101
+Agent: Super Z (main)
+Task: [BACKFILL — الأصل ضاع في إعادة تجهيز مساحة العمل؛ مُستكمل من رسالة كوميت 63cb788 وسجل PROGRESS] Phase 101 — ADMIN PANEL 2.0 (شل أدمن مستقل + أعضاء + مالية — تنفيذ «GO» بعد التدقيق المعماري)
+
+Work Log:
+- AdminShell جديد داخل /admin فقط: قائمة جانبية 7 أقسام/16 رابط بهوية داكنة pathname-active (#1d1d1f) + عدّادات حية (طلبات دفع معلقة/صفحات للمراجعة) + شريط شرائح للموبايل؛ AdminGate بيرندر الشل الجديد
+- /admin/dashboard (6 KPIات + روابط سريعة؛ /admin يحوّل عليها) · /admin/members (جدول العضويات الناقص: شارات دورة حياة نشط/ينتهي قريباً 14 يوم/منتهي/بانتظار الدفع/بدون اشتراك عبر memberStatus موحدة + فلاتر وترقيم — بنفس RPC المُقسّم 0047 بلا أي سطح قاعدة بيانات جديد)
+- /admin/finances بفصل قانون المصطلحات §10: أموال الموقع B2C (إيراد معتمد/استردادات/صافي + رسم 6 شهور) مقابل أموال المدربين B2B (محافظ = رصيد استخدام مش إيراد + شحنات + فاتورة شهرية متوقعة) — من نفس endpoints القراءة المحمية بلا endpoint جديد
+- /admin/coaches هب جديد (تحويل من coach-system) + src/components/admin/ui.tsx لتوحيد PageHeader/StatTile/MemberStatusBadge/TierBadge/RequestStatusPill/SegmentedTabs/EmptyState/SectionCard
+- استرجاع src/app/api/upload/route.ts اللي حذفه إعادة التجهيز من القرص (مش تغييرنا)
+- توثيق: QA_CHECKLIST · PROGRESS · worklog (المفقود) — بوابات: tsc 0 · eslint 0 ×401 · vitest 191/191
+
+Stage Summary:
+- كل نقاط الخطة المعمارية الثلاثة منفذة: التوجيه المتداخل + فصل الحالات والمالية + إعادة استخدام المكونات — وصفر تغيير قاعدة بيانات
+
+---
+Task ID: 102
+Agent: Super Z (main)
+Task: Phase 102 — TEST ADMIN ACCOUNT DELETION (owner: «admin.test@musclehub-test.com ده حساب تجريبى امسحة») — full wipe with zero orphans
+
+Work Log:
+- Origin traced: account born in RUN_ON_SUPABASE_0050 (email + role=admin, re-promoted in 0055) — grep proves ZERO src references (docs + historical SQL only) → no code change needed
+- Live-mirror FK audit (types.ts full Relationships parse, correct 6/8/10-space indents — first sloppy parse corrected): 9 user-keyed surfaces have NO live FK so cascade never reaches them: chat_messages.client_id · saved_results.user_id · meal_plans.user_id · plan_swaps.user_id · coach_presence.user_id · progress_photos.user_id · subscription_requests.user_id · tool_leads (email-keyed, 0060 lead sync) · coach_wallet_transactions.created_by (attribution → NULLed, not deleted — mirrors ON DELETE SET NULL without corrupting real wallet rows)
+- RUN_ON_SUPABASE_0066_DELETE_TEST_ADMIN_ACCOUNT.sql written: idempotent DO block scoped to the exact email only; 3 steps = FK-less pre-delete (+ defensive evo_chat_usage/ticket_messages deletes) → profiles (fires all live cascades: subscriptions/notifications/coach_*/affiliate_*/refunds/external_plans/questionnaires) → auth.users (auth identities/sessions/tokens + storage.objects + ai_jobs set-null); final verification grid MUST show 3 zeros
+- Manual-run by design (NOT a timestamped auto-migration): touches auth.users — all auth ops in this project are manual by precedent (0040/0050/0055); a failing auto-migration on integration-role auth privileges would block the whole migration pipeline (0054 lesson); INDEX.md registered as يدوي
+- Gates: tsc 0 · eslint 0 ×402 files · vitest 191/191 · migration_audit no NEW drift (remaining flags = documented §3 boundaries); data-only → types.ts regen NOT needed per MIGRATION INDEX LAW (c)
+- Docs parity §3.6: INDEX.md 0066 row + heading 0001→0066 + audit-count line · QA_CHECKLIST Phase 102 (Phase 101 → Previous) · PROGRESS Phase 102 + «آخر تحديث» · this entry + backfilled Task 100/101 (lost to workspace re-provisioning); AGENTS.md law text unchanged
+
+Stage Summary:
+- Deletion script delivered and registered — PENDING owner action: run 0066 in Supabase SQL Editor, expect the 3-zero grid, reply تم
+- Historical QA rows referencing the account (Phase 80) intentionally preserved as history
+- REMINDER: revoke the GitHub token (ghp_SV…IvWO) once all work is done — transient git-push use only, never stored in files

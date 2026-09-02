@@ -3,7 +3,7 @@
 > **قاعدة ملزمة:** كل تهجيرة جديدة تُضاف هنا في نفس الـ commit.
 > الفحص المرجعي: `scripts/migration_audit.py` (Phase 96) يقارن
 > كل الملفات بـ `src/lib/supabase/types.ts` — يشغَّل قبل أي تعديل هيكل.
-> آخر تدقيق: **Phase 100 — 2026-09-02** (76 ملف → الآن 77 مع 0065 — بعدّاد سكريبت التدقيق).
+> آخر تدقيق: **Phase 100 — 2026-09-02** (76 ملف → الآن 77 مع 0065 — بعدّاد سكريبت التدقيق) · +1 يدوي مع 0066 (Phase 102، بيانات فقط).
 
 ## 1) عائلات التسمية — من بيِتطبق تلقائيًا ومن لا
 
@@ -19,7 +19,7 @@
 + إدخال في هذا الفهرس + تحديث `types.ts` المولّد + تشغيل سكريبت التدقيق.
 **ممنوع إعادة تسمية ملفات موجودة** — درس حادثة Phase 61 وإصلاح الـ ledger (0054).
 
-## 2) خريطة الترقيم 0001 → 0065
+## 2) خريطة الترقيم 0001 → 0066
 
 | # | الملف | الموضوع | المسار |
 |---|---|---|---|
@@ -53,6 +53,7 @@
 | 0063 | `20260902120000_0063_schema_drift_backfill.sql` | سد انجراف Phase 5: plan_swaps / coach_presence / progress_photos / referrals.last_seen | integration (no-op على الإنتاج) |
 | 0064 | `20260902130000_0064_progress_photos_rls_and_hot_indexes.sql` | RLS صارم لـ progress_photos (4 سياسات جدول + سياساتي دلو التخزين) + فهارس المسارات الساخنة ×3 (progress_photos / plan_swaps / coach_presence) | integration |
 | 0065 | `20260902154500_0065_plan_swaps_strict_rls.sql` | RLS صارم لسجل التبديلات plan_swaps (سجل الاسترجاع المضاد للعبث — كان بدون RLS إطلاقًا): المستخدم يقرأ/يسجل تبديلاته هو بس + الكوتش يقرأ فقط تبديلات عملائه المسندين (عبر coach_assignments) + لا UPDATE ولا DELETE لأي أحد للأبد (سجل تاريخي — ومنع إضافي بإلغاء الصلاحيات على مستوى الجدول) | integration |
+| 0066 | `RUN_ON_SUPABASE_0066_DELETE_TEST_ADMIN_ACCOUNT.sql` | مسح الحساب التجريبي للأدمن admin.test@musclehub-test.com بالكامل (عكس 0050): الخطوة 1 تمسح صفوفه من الجداول اللي مرآة types.ts مؤكدة إنها بلا FK حي (chat_messages / saved_results / meal_plans / plan_swaps / coach_presence / progress_photos / subscription_requests + tool_leads بالإيميل) وتصفّر coach_wallet_transactions.created_by، الخطوة 2/3 تحذف profiles ثم auth.users فيشتغل الكاسكيد الحي والتخزين — بيانات فقط بدون أي تغيير مخطط | يدوي ⚠️ |
 | — | `VERIFY_SCHEMA_DRIFT.sql` | قراءة فقط: يطبع الأعمدة/RLS/السياسات الحقيقية للانجراف | SQL Editor (يدوي، اختياري) |
 
 ⚠️ **0059 بصيغة قديمة (تُطبق يدويًا)** بينما إخوته 0057/0058/0060-0062 تلقائية —

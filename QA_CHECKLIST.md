@@ -6,7 +6,20 @@
 
 ---
 
-## Latest Verification — 2026-09-03 (Phase 101 — ADMIN PANEL 2.0: dedicated admin shell + nested sidebar routing + members table with real subscription lifecycle badges + finances page separating site money (B2C) from coach money (B2B) — owner «go يا برنس» after the architectural audit)
+## Latest Verification — 2026-09-03 (Phase 102 — TEST ADMIN ACCOUNT DELETION: full wipe of admin.test@musclehub-test.com (created in 0050, re-promoted in 0055) — owner «ده حساب تجريبى امسحة»)
+
+| Check | Result | How verified |
+|---|---|---|
+| Deletion target traced to origin | ✅ | account created by `RUN_ON_SUPABASE_0050_TEST_ADMIN_ACCOUNT.sql` (email + role=admin) — grep proves ZERO src references (only docs + historical SQL 0050/0055) → no code change needed |
+| Orphan-risk audit (types.ts live mirror, NOT migration guesswork) | ✅ | full parse of every table's Relationships: 9 user-keyed surfaces have NO live FK → cascade would never reach them: chat_messages.client_id · saved_results.user_id · meal_plans.user_id · plan_swaps.user_id · coach_presence.user_id · progress_photos.user_id · subscription_requests.user_id · tool_leads (email-keyed lead from 0060 sync) · coach_wallet_transactions.created_by (attribution → NULLed, mirrors ON DELETE SET NULL without corrupting real wallet rows) |
+| 0066 manual script (RUN_ON_SUPABASE_0066) | ✅ | scoped to the exact email only (cannot touch any other account) · idempotent DO block (safe re-run, safe if already gone) · 3 steps: FK-less pre-delete → profiles (fires all live cascades: subscriptions/notifications/coach_*/affiliate_*/refunds/external_plans) → auth.users (auth identities/sessions/tokens + storage.objects + ai_jobs set-null) · data-only, ZERO schema change → types.ts regen NOT needed per MIGRATION INDEX LAW (c) |
+| Why manual, not auto-migration | ✅ | touches auth.users — all auth-schema ops in this project are manual by precedent (0040/0050/0055); an auto migration failing on integration-role auth privileges would block the whole migration pipeline (0054 lesson) — registered in INDEX.md as يدوي |
+| Owner action required | ⏳ | Supabase Dashboard → SQL Editor → paste `RUN_ON_SUPABASE_0066_DELETE_TEST_ADMIN_ACCOUNT.sql` → Run → final grid MUST show 3 zeros (auth_users_left / profiles_left / leads_left) → reply تم |
+| Historical QA records | ℹ️ | Phase 80 rows above reference this account's login tests — they remain as history; the account no longer exists after 0066 is run |
+| Gates | ✅ PASS | tsc 0 · eslint 0 ×402 files · vitest 191/191 · migration_audit: no NEW drift (remaining flags = documented §3 boundaries) |
+| Docs parity §3.6 | ✅ UPDATED | INDEX.md 0066 row + heading 0001→0066 + audit-count line · QA_CHECKLIST Phase 102 · PROGRESS Phase 102 + «آخر تحديث» · worklog Task 102 (+ backfilled Task 100/101 entries lost to workspace re-provisioning) · AGENTS.md law text unchanged |
+
+## Previous Verification — 2026-09-03 (Phase 101 — ADMIN PANEL 2.0: dedicated admin shell + nested sidebar routing + members table with real subscription lifecycle badges + finances page separating site money (B2C) from coach money (B2B) — owner «go يا برنس» after the architectural audit)
 
 | Check | Result | How verified |
 |---|---|---|
