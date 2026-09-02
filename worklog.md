@@ -557,3 +557,24 @@ Work Log:
 Stage Summary:
 - Vercel free-tier image quota risk eliminated with a single documented flag; zero src changes; rollback path is one line
 - REMINDER to owner: revoke the GitHub token (ghp_SV…IvWO) once all work is done — used transiently in git push commands only, never stored in files
+
+---
+Task ID: 98
+Agent: Super Z (main)
+Task: Phase 98 — owner question «هل فى طريقة اخرى لتحسين السرعه وضغط الصور خارج فيرسل؟» — image speed beyond Vercel: on-device upload compression (implemented) + option map
+
+Work Log:
+- Mapped the options with numbers: (1) on-device upload compression — free/permanent/no quota, implemented now; (2) Cloudinary free loader (25 credits/mo + global CDN, f_auto/q_auto) — the true external Vercel-style optimizer, needs owner free-account cloud name, wiring ready; (3) Supabase Storage Transformations — free quota ≈100/mo ≪ our thousands → ruled out
+- Real heavy-image audit: the heaviest bytes are USER uploads (avatars, progress/questionnaire photos, coach photos — phone cameras 3-8MB stored forever in Supabase Storage and shipped whole on every render) + local logo.png 774K
+- NEW src/lib/image-compress.ts: EXIF-honoring decode (createImageBitmap from-image + <img> fallback) → longest-edge cap → WebP with JPEG fallback (older Safari) → File. SAFETY CONTRACT: never throws — any failure or "not smaller" returns the ORIGINAL file; GIF/SVG/WebP/≤80KB passthrough
+- Wired into all 4 client upload paths: progress-photos 1600/q0.82 · avatar 512/q0.85 BEFORE the 2MB gate · questionnaire photos 1600/q0.82 before the 5MB gate · coach photo/result 1600/q0.85
+- Deliberate exclusions (money/legibility law): receipts untouched (pixel-identical payment proof), coach CERTIFICATES untouched (admin review legibility), /api/upload server route contract unchanged (compression happens before it client-side)
+- One-time sharp recompression of local assets (same format/dims, zero reference changes): logo.png 774K→245K (−68%), hero/coaching-1 −34%, total −20% (3365K→2691K); QR files NEVER touched (scannable-QR law); script kept at scripts/compress_local_assets.js (local tooling, /scripts/* gitignored)
+- Preconnects completed in layout head: images.pexels.com + cdn.pixabay.com (the blog's PRIMARY featured-image origins were missing)
+- Import-path miss caught mid-phase: compressImageFile initially added to the ./helpers import (wrong module) — fixed to its own @/lib/image-compress import before gates ran
+- Gates: tsc 0 · eslint 0 on all 6 touched files · vitest 191/191
+- Docs parity §3.6: QA_CHECKLIST Phase 98 section + PROGRESS Phase 98 + «آخر تحديث» + this entry
+
+Stage Summary:
+- Image speed beyond Vercel delivered: uploads compressed on-device (permanent storage + bandwidth win), local assets −20%, blog image origins preconnected; Cloudinary upgrade path documented and ready pending owner's free-account cloud name
+- REMINDER to owner: revoke the GitHub token (ghp_SV…IvWO) once all work is done — used transiently in git push commands only, never stored in files

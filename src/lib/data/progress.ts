@@ -10,6 +10,7 @@ import {
  LS_PROGRESS,
  LS_PREFIX,
 } from "./helpers";
+import { compressImageFile } from "@/lib/image-compress";
 import type { Database, ProgressEntry, ProgressPhoto } from "@/lib/supabase/types";
 
 /** Input shape for addProgress (progress_entries Insert — client_id required). */
@@ -89,6 +90,11 @@ export async function listPhotos(userId: string): Promise<Array<ProgressPhoto & 
 export async function uploadPhoto(userId: string, file: File, date: string, note: string) {
  // M7 fix: validate file type + size before uploading
  validateUploadFile(file, ["image/jpeg", "image/png", "image/webp"], 5 * 1024 * 1024);
+ // Phase 98: compress ON-DEVICE before upload — phone photos arrive at
+ // 3-8MB and are stored forever; a ~1600px WebP (~200-400KB) renders
+ // identically on every screen. The helper NEVER throws and returns the
+ // original file whenever compression is impossible or not smaller.
+ file = await compressImageFile(file, { maxDim: 1600, quality: 0.82 });
  if (isSupabaseConfigured && supabase) {
  const ext = file.name.split(".").pop();
  const path = `${userId}/${Date.now()}.${ext}`;

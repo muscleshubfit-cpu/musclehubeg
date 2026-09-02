@@ -6,7 +6,20 @@
 
 ---
 
-## Latest Verification — 2026-09-02 (Phase 97 — VERCEL FREE-TIER IMAGE QUOTA GUARD: images.unoptimized=true in next.config.ts — owner directive)
+## Latest Verification — 2026-09-02 (Phase 98 — IMAGE SPEED BEYOND VERCEL: on-device upload compression + local-asset recompression + preconnects — owner question «هل فى طريقة اخرى لتحسين السرعه وضغط الصور خارج فيرسل؟»)
+
+| Check | Result | How verified |
+|---|---|---|
+| Owner question answered with a mapped option set | ✅ | (1) ON-DEVICE upload compression — implemented now, free, permanent, no quota (2) Cloudinary free loader (25 credits/mo + global CDN) — the true Vercel-style external optimizer, REQUIRES owner free-account cloud name → ready to wire when provided (3) Supabase Storage Transformations — free quota ≈100/mo, far below our thousands/month → ruled out |
+| NEW `src/lib/image-compress.ts` | ✅ | Canvas-based compressImageFile(): EXIF-honoring decode (createImageBitmap from-image with <img> fallback) → longest-edge cap → WebP encode with JPEG fallback for older Safari → returns a File. SAFETY CONTRACT: never throws — ANY failure or “not smaller than original” returns the ORIGINAL file; GIF/SVG/WebP passthrough; ≤80KB passthrough |
+| Wired into all 4 client upload paths | ✅ | progress-photos (data/progress.ts, 1600px q0.82) · profile avatar (512px q0.85, BEFORE the 2MB gate so multi-MB phone photos pass naturally) · questionnaire photos (QuestionnairesView, 1600px q0.82, before the 5MB gate) · coach public photo/result (CoachLandingEditor, 1600px q0.85) |
+| Deliberate exclusions (money/legibility law) | ✅ | receipts uploads (subscriptions.ts) untouched — payment proof must stay pixel-identical · coach CERTIFICATES untouched — admin review needs perfectly legible text · server /api/upload route untouched (compression happens before it in the browser; contract unchanged) |
+| Local asset recompression (one-time, sharp) | ✅ −20% total | logo.png 774K → 245K (−68%, palette q90, dims unchanged) · hero/coaching-1.jpg −34% · rest −2-7% (already well-compressed) — same formats/dimensions, ZERO reference changes · QR files NEVER touched (scannable-QR law) · script kept at scripts/compress_local_assets.js (gitignored /scripts/*, not a repo artifact) |
+| Preconnects completed | ✅ | images.pexels.com + cdn.pixabay.com added to layout head (the blog’s PRIMARY featured-image origins were missing while unsplash/wger/qrserver existed) — warms the connection before the first LCP image fetch on /blog |
+| Gates | ✅ PASS | tsc 0 · eslint 0 on all 6 touched files · vitest 191/191 |
+| Docs parity §3.6 | ✅ UPDATED | QA_CHECKLIST Phase 98 section + PROGRESS Phase 98 + «آخر تحديث» + worklog Task 98 |
+
+## Previous Verification — 2026-09-02 (Phase 97 — VERCEL FREE-TIER IMAGE QUOTA GUARD: images.unoptimized=true in next.config.ts — owner directive)
 
 | Check | Result | How verified |
 |---|---|---|

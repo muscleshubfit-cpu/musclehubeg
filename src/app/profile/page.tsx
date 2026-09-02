@@ -10,6 +10,7 @@ import { useNav } from "@/hooks/use-nav";
 import { SiteHeader } from "@/components/SiteHeader";
 import { openEvoFloatingChat } from "@/lib/evo-chat-context";
 import { supabase } from "@/lib/supabase/client";
+import { compressImageFile } from "@/lib/image-compress";
 import type { Database } from "@/lib/supabase/types";
 import { MEMBERSHIPS, getLimits, type MembershipTier } from "@/lib/memberships";
 import { EXERCISES } from "@/lib/exercises";
@@ -191,6 +192,11 @@ export default function ProfilePage() {
       toast.error(isAr ? "غير قادر على رفع الصورة" : "Unable to upload");
       return;
     }
+    // Phase 98: compress ON-DEVICE before the size gate — a 6MB phone
+    // photo becomes a few-hundred-KB ~512px WebP that renders identically
+    // as an avatar. The helper never throws; the original file wins when
+    // compression is impossible, so the upload path is unbreakable.
+    file = await compressImageFile(file, { maxDim: 512, quality: 0.85 });
     if (file.size > 2 * 1024 * 1024) {
       toast.error(isAr ? "الصورة كبيرة (حد أقصى 2 ميجا)" : "Image too large (max 2MB)");
       return;

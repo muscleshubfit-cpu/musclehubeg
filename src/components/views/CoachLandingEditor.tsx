@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/lib/supabase/client";
+import { compressImageFile } from "@/lib/image-compress";
 import type { CoachResultPhoto, CoachCertificate } from "@/lib/coach-landing-server";
 
 /**
@@ -60,11 +61,20 @@ async function uploadCoachImage(
   if (!supabase) {
     throw new Error("Supabase client unavailable");
   }
-  const ext = (file.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "");
+  // Phase 98: compress member-facing photos ON-DEVICE before upload
+  // (multi-MB phone photos stored forever in the public bucket).
+  // Certificates are DOCUMENTS — passed through untouched so the text
+  // stays perfectly legible for the admin review flow. The helper never
+  // throws: the original file wins whenever compression is impossible.
+  const toUpload =
+    kind === "cert"
+      ? file
+      : await compressImageFile(file, { maxDim: 1600, quality: 0.85 });
+  const ext = (toUpload.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "");
   const path = `${coachId}/${kind}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
   const { error } = await supabase.storage
     .from("coach-public")
-    .upload(path, file, { upsert: false, cacheControl: "31536000" });
+    .upload(path, toUpload, { upsert: false, cacheControl: "31536000" });
   if (error) throw error;
   const { data } = supabase.storage.from("coach-public").getPublicUrl(path);
   const full = data?.publicUrl || "";

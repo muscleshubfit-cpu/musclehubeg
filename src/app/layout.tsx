@@ -129,6 +129,12 @@ export default async function RootLayout({
         <link rel="dns-prefetch" href="https://api.qrserver.com" />
         <link rel="preconnect" href="https://images.unsplash.com" />
         <link rel="dns-prefetch" href="https://images.unsplash.com" />
+        {/* Phase 98: the blog's PRIMARY image sources — warm the origins
+            before the first featured-image fetch (LCP on /blog pages) */}
+        <link rel="preconnect" href="https://images.pexels.com" />
+        <link rel="dns-prefetch" href="https://images.pexels.com" />
+        <link rel="preconnect" href="https://cdn.pixabay.com" />
+        <link rel="dns-prefetch" href="https://cdn.pixabay.com" />
         <link rel="preconnect" href="https://wger.de" />
         <link rel="dns-prefetch" href="https://wger.de" />
         {/* Structured data — Organization + WebSite (site-wide) */}

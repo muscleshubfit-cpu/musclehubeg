@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { getQuestionnaire, upsertQuestionnaire } from "@/lib/data";
 import { cn } from "@/lib/utils";
+import { compressImageFile } from "@/lib/image-compress";
 import { toast } from "sonner";
 import type { QuestionnaireRow } from "@/lib/data/questionnaires";
 import type { Json } from "@/lib/supabase/types";
@@ -153,6 +154,10 @@ export function QuestionnairesView() {
       toast.error(isAr ? "بحد أقصى 3 صور." : "Max 3 photos.");
       return;
     }
+    // Phase 98: compress ON-DEVICE before the size gate — phone photos
+    // shrink from multi-MB to a few hundred KB; the helper never throws
+    // and returns the original whenever compression is impossible.
+    file = await compressImageFile(file, { maxDim: 1600, quality: 0.82 });
     if (file.size > 5 * 1024 * 1024) {
       toast.error(isAr ? "الصورة كبيرة جداً (الحد 5 ميجا)." : "Image too large (max 5MB).");
       return;
