@@ -97,8 +97,9 @@ export function AppLayout({ children }: { children: ReactNode }) {
     // individual surfaces (pages review / assignments / wallets / support
     // inbox) live INSIDE the hub page. Admin HOME mirrors the same rule.
     { href: "/admin/coach-system", label: isAr ? "إدارة نظام المدربين" : "Coach system", emoji: "🎛️" },
-    // 0045 (owner request): mark TEST accounts + delete accounts, one surface.
-    { href: "/admin/accounts", label: isAr ? "الحسابات" : "Accounts", emoji: "👥" },
+    // Phase 103 (owner: «كلهم نفس الغرض مفروض صفحة واحده»): accounts tools
+    // merged into the unified clients page (/admin/accounts redirects too).
+    { href: "/admin/clients", label: isAr ? "العملاء" : "Clients", emoji: "👥" },
     { href: "/admin/leads", label: isAr ? "Leads الأدوات" : "Tool Leads", emoji: "📨" },
     { href: "/admin/saved-results", label: isAr ? "النتائج المحفوظة" : "Saved Results", emoji: "🔖" },
   ];

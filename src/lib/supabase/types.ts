@@ -23,6 +23,11 @@ export type Database = {
           full_name: string | null;
           phone: string | null;
           role: "client" | "coach" | "admin";
+          // Added by migration 0067 (admin clients unification — coach-type
+          // distinction): 'site' = follows up site members (B2C), 'b2b' =
+          // external partner with his own clients + wallet. Only meaningful
+          // when role='coach'; every existing coach defaults to 'b2b'.
+          coach_kind: string | null;
           avatar_url: string | null;
           referral_code: string | null;
           is_test_account: boolean;
@@ -34,6 +39,7 @@ export type Database = {
           full_name?: string | null;
           phone?: string | null;
           role?: "client" | "coach" | "admin";
+          coach_kind?: string | null;
           avatar_url?: string | null;
           referral_code?: string | null;
           is_test_account?: boolean;
@@ -44,6 +50,7 @@ export type Database = {
           full_name?: string | null;
           phone?: string | null;
           role?: "client" | "coach" | "admin";
+          coach_kind?: string | null;
           avatar_url?: string | null;
           referral_code?: string | null;
           is_test_account?: boolean;
@@ -1423,6 +1430,38 @@ export type Database = {
         };
         Relationships: [];
       };
+      // Added by migration 0067 (admin clients unification): the B2C
+      // follow-up roster — member ↔ site-coach. Deliberately SEPARATE from
+      // coach_assignments (the B2B money relation feeding wallet bills and
+      // affiliate attribution). One member ↔ one site coach (unique client_id).
+      site_coach_assignments: {
+        Row: {
+          id: string;
+          coach_id: string;
+          client_id: string;
+          assigned_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          coach_id: string;
+          client_id: string;
+          assigned_by?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          coach_id?: string;
+          client_id?: string;
+          assigned_by?: string | null;
+          created_at?: string;
+        };
+        Relationships: [
+          { foreignKeyName: "site_coach_assignments_coach_id_fkey"; columns: ["coach_id"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] },
+          { foreignKeyName: "site_coach_assignments_client_id_fkey"; columns: ["client_id"]; isOneToOne: true; referencedRelation: "profiles"; referencedColumns: ["id"] },
+          { foreignKeyName: "site_coach_assignments_assigned_by_fkey"; columns: ["assigned_by"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] },
+        ];
+      };
       subscription_requests: {
         Row: {
           id: string;
@@ -1665,6 +1704,59 @@ export type Database = {
           site_clients: string;
         }[];
       };
+      // Added by migration 0067 — the unified admin clients feed (every
+      // role, membership lifecycle, B2B + site-coach relations, type/test
+      // filters). Admin-only: non-admin callers get an empty set.
+      get_admin_clients_paged: {
+        Args: {
+          p_limit: number;
+          p_offset: number;
+          p_search: string | null;
+          p_filter: string;
+          p_type: string;
+          p_test: string;
+          p_sort: string;
+        };
+        Returns: {
+          client_id: string;
+          client_email: string;
+          client_full_name: string;
+          client_phone: string;
+          client_avatar_url: string;
+          client_created_at: string;
+          role: string;
+          coach_kind: string;
+          is_test_account: boolean;
+          sub_tier: string;
+          sub_status: string;
+          sub_end_date: string;
+          sub_months: number;
+          pending_payments: number;
+          assigned_coach_id: string | null;
+          assigned_coach_name: string | null;
+          site_coach_id: string | null;
+          site_coach_name: string | null;
+          b2b_clients: number;
+          site_members: number;
+          total_count: string;
+        }[];
+      };
+      get_admin_clients_stats: {
+        Args: Record<string, never>;
+        Returns: {
+          total: string;
+          member_site: string;
+          client_of_coach: string;
+          coach_site: string;
+          coach_b2b: string;
+          admin_count: string;
+          test_count: string;
+          active: string;
+          expiring: string;
+          expired: string;
+          pending_payment: string;
+        }[];
+      };
     };
     Enums: {
       user_role: "client" | "coach" | "admin";
@@ -1703,3 +1795,4 @@ export type CoachTopupRequest = Database["public"]["Tables"]["coach_topup_reques
 export type CoachWalletTransaction = Database["public"]["Tables"]["coach_wallet_transactions"]["Row"];
 export type EvoChatUsage = Database["public"]["Tables"]["evo_chat_usage"]["Row"];
 export type EvoAnonUsage = Database["public"]["Tables"]["evo_anon_usage"]["Row"];
+export type SiteCoachAssignment = Database["public"]["Tables"]["site_coach_assignments"]["Row"];

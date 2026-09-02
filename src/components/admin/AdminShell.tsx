@@ -59,10 +59,12 @@ const SECTIONS: AdminNavSection[] = [
     ],
   },
   {
+    // Phase 103 (owner: «كلهم نفس الغرض مفروض صفحة واحده»): members +
+    // accounts merged into the ONE unified clients page.
     ar: "العملاء والعضويات",
     en: "Clients & memberships",
     items: [
-      { href: "/admin/members", emoji: "👥", ar: "الأعضاء", en: "Members" },
+      { href: "/admin/clients", emoji: "👥", ar: "العملاء", en: "Clients" },
       {
         href: "/admin/payments",
         emoji: "💳",
@@ -70,14 +72,17 @@ const SECTIONS: AdminNavSection[] = [
         en: "Membership requests",
         badge: "pendingPayment",
       },
-      { href: "/admin/accounts", emoji: "🛡️", ar: "الحسابات", en: "Accounts" },
     ],
   },
   {
+    // Phase 103 (owner: «تفرقة بين مدربين الموقع ومدربين b2b»): the roster
+    // lives on /admin/coaches; the B2C follow-up roster on its own page.
     ar: "المدربون",
     en: "Coaches",
     items: [
-      { href: "/admin/coaches", emoji: "🎛️", ar: "مركز المدربين", en: "Coach hub" },
+      { href: "/admin/coaches", emoji: "🎛️", ar: "المدربون", en: "Coaches" },
+      { href: "/admin/site-assignments", emoji: "🎯", ar: "مدربو الموقع", en: "Site coaches" },
+      { href: "/admin/assignments", emoji: "🤝", ar: "تعيينات B2B", en: "B2B assignments" },
       {
         href: "/admin/coach-pages",
         emoji: "🗂️",
@@ -85,7 +90,6 @@ const SECTIONS: AdminNavSection[] = [
         en: "Coach pages",
         badge: "pendingPages",
       },
-      { href: "/admin/assignments", emoji: "🤝", ar: "التعيينات", en: "Assignments" },
       { href: "/admin/wallets", emoji: "👷", ar: "المحافظ", en: "Wallets" },
       { href: "/admin/coach-support", emoji: "🛠️", ar: "دعم المدربين", en: "Coach support" },
     ],
@@ -125,10 +129,13 @@ const SECTIONS: AdminNavSection[] = [
     ],
   },
   {
+    // Phase 103 (owner: «داشبورد الادمن القديمة لسة بتفتح برابط كوتش»):
+    // the /coach admin-mode listing IS the old dashboard — its links are
+    // gone from the shell. The per-client manager (/coach/<id>) stays
+    // reachable from the unified clients page where it belongs.
     ar: "أسطري",
     en: "My surfaces",
     items: [
-      { href: "/coach", emoji: "🧑‍💼", ar: "إدارة العملاء الكاملة", en: "Full client manager" },
       { href: "/coach/landing", emoji: "🌐", ar: "صفحتي العامة", en: "My public page" },
       { href: "/profile", emoji: "👤", ar: "ملفي الشخصي", en: "My profile" },
     ],
@@ -234,12 +241,8 @@ export function AdminShell({ children }: { children: ReactNode }) {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <Link
-              href="/coach"
-              className="hidden rounded-full bg-white/15 px-2.5 py-1 text-[10px] font-bold text-white transition-colors hover:bg-white/25 sm:block"
-            >
-              {isAr ? "واجهة المدرب ›" : "Coach console ›"}
-            </Link>
+            {/* Phase 103: the old «واجهة المدرب ›» /coach button is GONE —
+                it opened the old admin dashboard. The admin's name stays. */}
             <span className="rounded-full bg-white/15 px-2.5 py-1 text-[10px] font-bold text-white">
               {profile?.full_name || (isAr ? "أدمن" : "Admin")}
             </span>
@@ -247,11 +250,46 @@ export function AdminShell({ children }: { children: ReactNode }) {
         </div>
       </div>
 
-      {/* Mobile: compact scrollable chips (replaces the old 13-big-button
-          grid that pushed content down two screens) */}
+      {/* Mobile: BUTTON GRID (Phase 103, owner directive «الشريط فى الاعلى
+          بتاع التنقل غيره لازرار») — the old horizontal chips strip felt
+          like a scroller, not navigation. Real tappable buttons now,
+          grouped by section, badge visible, 2 columns so nothing pushes
+          content down more than a screen. */}
       <div className="border-b border-[#f2f2f7] bg-white md:hidden">
-        <div className="flex gap-2 overflow-x-auto px-4 py-2.5">
-          {SECTIONS.flatMap((s) => s.items).map((item) => renderItem(item, true))}
+        <div className="space-y-3 px-4 py-4">
+          {SECTIONS.map((section) => (
+            <div key={section.en}>
+              <p className="pb-1.5 text-[10px] font-bold uppercase tracking-wider text-[#86868b]">
+                {isAr ? section.ar : section.en}
+              </p>
+              <div className="grid grid-cols-2 gap-2">
+                {section.items.map((item) => {
+                  const active = isActive(item);
+                  const badge = badgeFor(item.badge);
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className={cn(
+                        "flex items-center gap-2 rounded-xl border px-3 py-2.5 text-sm font-medium transition-colors",
+                        active
+                          ? "border-[#1d1d1f] bg-[#1d1d1f] text-white"
+                          : "border-[#e8e8ed] bg-white text-[#1d1d1f] hover:bg-[#f5f5f7]",
+                      )}
+                    >
+                      <span className="text-base leading-none">{item.emoji}</span>
+                      <span className="truncate">{isAr ? item.ar : item.en}</span>
+                      {badge !== null && badge > 0 && (
+                        <span className="ms-auto rounded-full bg-[#ff9500] px-1.5 py-0.5 text-[10px] font-bold text-white">
+                          {badge}
+                        </span>
+                      )}
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
         </div>
       </div>
 

@@ -26,18 +26,18 @@ const QUICK: { ar: string; en: string; cards: QuickCard[] }[] = [
     ar: "العملاء والعضويات",
     en: "Clients & memberships",
     cards: [
-      { href: "/admin/members", emoji: "👥", ar: "جدول الأعضاء", en: "Members table" },
+      // Phase 103: members + accounts merged into /admin/clients
+      { href: "/admin/clients", emoji: "👥", ar: "جدول العملاء", en: "Clients table" },
       { href: "/admin/payments", emoji: "💳", ar: "طلبات العضويات", en: "Membership requests" },
-      { href: "/admin/accounts", emoji: "🛡️", ar: "الحسابات", en: "Accounts" },
     ],
   },
   {
     ar: "المدربون",
     en: "Coaches",
     cards: [
-      { href: "/admin/coaches", emoji: "🎛️", ar: "مركز المدربين", en: "Coach hub" },
+      { href: "/admin/coaches", emoji: "🎛️", ar: "قائمة المدربين", en: "Coach roster" },
+      { href: "/admin/site-assignments", emoji: "🎯", ar: "مدربو الموقع", en: "Site coaches" },
       { href: "/admin/coach-pages", emoji: "🗂️", ar: "مراجعة الصفحات", en: "Page reviews" },
-      { href: "/admin/wallets", emoji: "👷", ar: "المحافظ", en: "Wallets" },
     ],
   },
   {
@@ -121,19 +121,19 @@ export default function AdminDashboardPage() {
         <StatTile
           label={isAr ? "إجمالي العملاء" : "Total clients"}
           value={stats ? fmtNum(stats.total, isAr) : null}
-          href="/admin/members"
+          href="/admin/clients"
         />
         <StatTile
           label={isAr ? "اشتراكات نشطة" : "Active subs"}
           value={stats ? fmtNum(stats.active, isAr) : null}
           tone="green"
-          href="/admin/members"
+          href="/admin/clients"
         />
         <StatTile
           label={isAr ? "اشتراكات منتهية" : "Expired subs"}
           value={stats ? fmtNum(stats.expired, isAr) : null}
           tone="red"
-          href="/admin/members"
+          href="/admin/clients"
         />
         <StatTile
           label={isAr ? "طلبات دفع معلّقة" : "Pending payments"}

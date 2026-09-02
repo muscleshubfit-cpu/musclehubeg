@@ -573,37 +573,43 @@ export default function ProfilePage() {
           })}
         </div>
 
-        {/* Membership limits summary */}
-        <div className="mt-4 rounded-3xl bg-white p-6 md:p-8">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold tracking-tight">
-              {isAr ? "حدود عضويتك" : "Your Plan Limits"}
-            </h2>
-            {/* Phase 51 — staff accounts resolve to the coaching tier and
-                never buy site memberships; the member «ترقية» CTA made the
-                page feel member-facing (owner complaint). */}
-            {!isCoach && (
-              <a href="/memberships" className="text-xs font-medium text-[#0071e3] hover:underline">
-                {isAr ? "ترقية ›" : "Upgrade ›"}
-              </a>
-            )}
+        {/* Membership limits summary — Phase 103 (owner: «الادمن فى صفحتة
+            الشخصية بتظهر بيانات وحدود استخدام مثل العضويات وده مش منطقى»):
+            the member-facing limits card is HIDDEN for admins entirely — the
+            platform admin is not a subscriber of his own product. Coaches
+            keep it (Phase 51: staff resolve to the coaching tier). */}
+        {!isAdmin && (
+          <div className="mt-4 rounded-3xl bg-white p-6 md:p-8">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold tracking-tight">
+                {isAr ? "حدود عضويتك" : "Your Plan Limits"}
+              </h2>
+              {/* Phase 51 — staff accounts resolve to the coaching tier and
+                  never buy site memberships; the member «ترقية» CTA made the
+                  page feel member-facing (owner complaint). */}
+              {!isCoach && (
+                <a href="/memberships" className="text-xs font-medium text-[#0071e3] hover:underline">
+                  {isAr ? "ترقية ›" : "Upgrade ›"}
+                </a>
+              )}
+            </div>
+            <div className="mt-4 grid grid-cols-2 gap-3">
+              {[
+                { label: isAr ? "EVO رسائل/يوم" : "EVO msgs/day", value: limits.evoChatDailyLimit === null ? "∞" : `${limits.evoChatDailyLimit}` },
+                { label: isAr ? "خطط تغذية/شهر" : "Nutrition plans/mo", value: limits.evoNutritionPlanLimit === 0 ? "—" : limits.evoNutritionPlanLimit === null ? "∞" : `${limits.evoNutritionPlanLimit}` },
+                { label: isAr ? "خطط تمرين/شهر" : "Workout plans/mo", value: limits.evoWorkoutPlanLimit === 0 ? "—" : limits.evoWorkoutPlanLimit === null ? "∞" : `${limits.evoWorkoutPlanLimit}` },
+                { label: isAr ? "تبديلات/أسبوع" : "Swaps/week", value: limits.evoSwapLimit === 0 ? "—" : limits.evoSwapLimit === null ? "∞" : `${limits.evoSwapLimit}` },
+                { label: isAr ? "حفظ نتائج" : "Saved results", value: limits.savedResultsLimit === null ? "∞" : `${limits.savedResultsLimit}` },
+                { label: isAr ? "جداول وجبات" : "Meal plans saved", value: limits.mealPlannerMaxSaved === null ? "∞" : `${limits.mealPlannerMaxSaved}` },
+              ].map((item, i) => (
+                <div key={i} className="rounded-xl bg-[#f5f5f7] p-3">
+                  <p className="text-xs font-normal text-[#6e6e73]">{item.label}</p>
+                  <p className="mt-0.5 text-lg font-semibold">{item.value}</p>
+                </div>
+              ))}
+            </div>
           </div>
-          <div className="mt-4 grid grid-cols-2 gap-3">
-            {[
-              { label: isAr ? "EVO رسائل/يوم" : "EVO msgs/day", value: limits.evoChatDailyLimit === null ? "∞" : `${limits.evoChatDailyLimit}` },
-              { label: isAr ? "خطط تغذية/شهر" : "Nutrition plans/mo", value: limits.evoNutritionPlanLimit === 0 ? "—" : limits.evoNutritionPlanLimit === null ? "∞" : `${limits.evoNutritionPlanLimit}` },
-              { label: isAr ? "خطط تمرين/شهر" : "Workout plans/mo", value: limits.evoWorkoutPlanLimit === 0 ? "—" : limits.evoWorkoutPlanLimit === null ? "∞" : `${limits.evoWorkoutPlanLimit}` },
-              { label: isAr ? "تبديلات/أسبوع" : "Swaps/week", value: limits.evoSwapLimit === 0 ? "—" : limits.evoSwapLimit === null ? "∞" : `${limits.evoSwapLimit}` },
-              { label: isAr ? "حفظ نتائج" : "Saved results", value: limits.savedResultsLimit === null ? "∞" : `${limits.savedResultsLimit}` },
-              { label: isAr ? "جداول وجبات" : "Meal plans saved", value: limits.mealPlannerMaxSaved === null ? "∞" : `${limits.mealPlannerMaxSaved}` },
-            ].map((item, i) => (
-              <div key={i} className="rounded-xl bg-[#f5f5f7] p-3">
-                <p className="text-xs font-normal text-[#6e6e73]">{item.label}</p>
-                <p className="mt-0.5 text-lg font-semibold">{item.value}</p>
-              </div>
-            ))}
-          </div>
-        </div>
+        )}
 
         {/* Logout */}
         <button

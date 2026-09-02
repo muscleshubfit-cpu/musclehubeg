@@ -3,7 +3,7 @@
 > **قاعدة ملزمة:** كل تهجيرة جديدة تُضاف هنا في نفس الـ commit.
 > الفحص المرجعي: `scripts/migration_audit.py` (Phase 96) يقارن
 > كل الملفات بـ `src/lib/supabase/types.ts` — يشغَّل قبل أي تعديل هيكل.
-> آخر تدقيق: **Phase 100 — 2026-09-02** (76 ملف → الآن 77 مع 0065 — بعدّاد سكريبت التدقيق) · +1 يدوي مع 0066 (Phase 102، بيانات فقط).
+> آخر تدقيق: **Phase 100 — 2026-09-02** (76 ملف → الآن 77 مع 0065 — بعدّاد سكريبت التدقيق) · +1 يدوي مع 0066 (Phase 102، بيانات فقط) · +1 تلقائي مع 0067 (Phase 103).
 
 ## 1) عائلات التسمية — من بيِتطبق تلقائيًا ومن لا
 
@@ -19,7 +19,7 @@
 + إدخال في هذا الفهرس + تحديث `types.ts` المولّد + تشغيل سكريبت التدقيق.
 **ممنوع إعادة تسمية ملفات موجودة** — درس حادثة Phase 61 وإصلاح الـ ledger (0054).
 
-## 2) خريطة الترقيم 0001 → 0066
+## 2) خريطة الترقيم 0001 → 0067
 
 | # | الملف | الموضوع | المسار |
 |---|---|---|---|
@@ -54,6 +54,7 @@
 | 0064 | `20260902130000_0064_progress_photos_rls_and_hot_indexes.sql` | RLS صارم لـ progress_photos (4 سياسات جدول + سياساتي دلو التخزين) + فهارس المسارات الساخنة ×3 (progress_photos / plan_swaps / coach_presence) | integration |
 | 0065 | `20260902154500_0065_plan_swaps_strict_rls.sql` | RLS صارم لسجل التبديلات plan_swaps (سجل الاسترجاع المضاد للعبث — كان بدون RLS إطلاقًا): المستخدم يقرأ/يسجل تبديلاته هو بس + الكوتش يقرأ فقط تبديلات عملائه المسندين (عبر coach_assignments) + لا UPDATE ولا DELETE لأي أحد للأبد (سجل تاريخي — ومنع إضافي بإلغاء الصلاحيات على مستوى الجدول) | integration |
 | 0066 | `RUN_ON_SUPABASE_0066_DELETE_TEST_ADMIN_ACCOUNT.sql` | مسح الحساب التجريبي للأدمن admin.test@musclehub-test.com بالكامل (عكس 0050): الخطوة 1 تمسح صفوفه من الجداول اللي مرآة types.ts مؤكدة إنها بلا FK حي (chat_messages / saved_results / meal_plans / plan_swaps / coach_presence / progress_photos / subscription_requests + tool_leads بالإيميل) وتصفّر coach_wallet_transactions.created_by، الخطوة 2/3 تحذف profiles ثم auth.users فيشتغل الكاسكيد الحي والتخزين — بيانات فقط بدون أي تغيير مخطط | يدوي ⚠️ |
+| 0067 | `20260903120000_0067_admin_clients_unification.sql` | توحيد عملاء الأدمن (Phase 103): A- عمود profiles.coach_kind ('site'\|'b2b'، الافتراضي b2b) لتفرقة مدربي الموقع عن مدربي B2B بتوجيه المالك، B- جدول جديد site_coach_assignments (عضو↔مدرب موقع 1↔1 بـ unique client_id — منفصل عمداً عن coach_assignments اللي بيهتسب فواتير المحافظ والإحالات، CASCADE بالاتجاهين وSET NULL للمدقق)، C- RLS حتمي بنمط 0064/0065 (أدمن كامل + قراءة الكوتش لقائمته + قراءة العضو لصفه + سحب صلاحيات الكتابة من authenticated لفشل صاخب — الكتابة عبر API service-role)، D- RPC موحد get_admin_clients_paged (كل الأدوار مش role='client' بس — ده سبب اختفاء مدربي B2B المشتركين) + get_admin_clients_stats بفلاتر النوع/الحالة/التجريبي؛ RPCs الـ 0047 لم تُمس (صفر كسر لواجهة الكوتش) — بدون لمس auth.users | integration |
 | — | `VERIFY_SCHEMA_DRIFT.sql` | قراءة فقط: يطبع الأعمدة/RLS/السياسات الحقيقية للانجراف | SQL Editor (يدوي، اختياري) |
 
 ⚠️ **0059 بصيغة قديمة (تُطبق يدويًا)** بينما إخوته 0057/0058/0060-0062 تلقائية —

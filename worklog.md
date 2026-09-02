@@ -647,3 +647,21 @@ Stage Summary:
 - Deletion script delivered and registered — PENDING owner action: run 0066 in Supabase SQL Editor, expect the 3-zero grid, reply تم
 - Historical QA rows referencing the account (Phase 80) intentionally preserved as history
 - REMINDER: revoke the GitHub token (ghp_SV…IvWO) once all work is done — transient git-push use only, never stored in files
+
+---
+Task ID: 103
+Date: 2026-09-03
+Phase: 103 — ADMIN CLIENTS UNIFICATION (Admin Panel 2.0 correction round)
+Owner directives: «go , + مفروض سكريبتات سوبابيز تتنفذ تلقائي» on the presented plan; plan-first law «راجع الطلبات الاول وادرس الامر ثم اعرضة قبل التنفيذ»; 5 complaints + 5 new details (site/B2B coach split, unified clients with type filters, B2B coaches show memberships, NEW B2C site-coach roster, verify all linked DBs)
+
+Work Log:
+- Plan-first audit delivered (read-only) → GO → one timestamped AUTO migration 20260903120000_0067_admin_clients_unification.sql (owner: scripts run automatically — zero manual SQL this phase, auth.users untouched)
+- 0067: profiles.coach_kind ('site'|'b2b', default b2b) + site_coach_assignments (unique client_id 1↔1, CASCADE, assigned_by SET NULL, 2 indexes) + deterministic RLS (6 policies 0064/0065 pattern, authenticated writes revoked = loud failure) + get_admin_clients_paged (ALL roles — the role='client' hard-filter was why subscribing B2B coaches were invisible) + get_admin_clients_stats; 0047 RPCs untouched
+- types.ts live mirror: coach_kind ×3 + site_coach_assignments (Row/Insert/Update + 3 Relationships) + 2 Functions + SiteCoachAssignment export; lib/data wrappers getAdminClientsPaged/Stats; Profile literals in auth.ts gain coach_kind
+- APIs: /api/admin/site-assignments (GET roster / POST assign-upsert with role guards / DELETE) + /api/admin/coach-kind (PATCH, role='coach' guard, never touches role); danger tools reuse /api/admin/accounts PATCH+DELETE
+- UI: /admin/clients unified page (type filter buttons + lifecycle tabs + test filter + search/sort/pagination + test-mark/delete/bulk-delete ported + rpcFailed empty state); /admin/members + /admin/accounts → redirects; /admin/coaches rebuilt (real roster: kind badge + counts + membership + wallet + one-tap kind toggle + tools below); /admin/site-assignments (coach picker → member search → assign + roster table); AdminShell (mobile chips strip → 2-col button grid by section; banner «واجهة المدرب ›» deleted; «أسطري» loses /coach link); dashboard QUICK + KPI hrefs → /admin/clients; /profile limits card hidden for admins; orphaned AdminAccountsView.tsx deleted (ported); AppLayout admin extra link → /admin/clients
+- Docs parity §3.6: INDEX.md 0067 row + heading + audit line · QA_CHECKLIST Phase 103 · PROGRESS Phase 103 + آخر تحديث · this worklog
+- Gates: tsc 0 · eslint 0 ×406 · vitest 191/191 · migration_audit no NEW drift (coach_kind joins the documented alter-column bucket)
+
+Stage Summary:
+- Phase 103 complete pending push: unified clients + coach-kind split + B2C roster + button grid + admin-profile fix + old-dashboard links removed; Phase 104 candidate (owner decision pending): extend coach RLS so site coaches can open assigned members' data in-app

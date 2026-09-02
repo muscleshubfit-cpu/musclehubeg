@@ -1,13 +1,10 @@
-"use client";
-import { AdminAccountsView } from "@/components/views/AdminAccountsView";
+import { redirect } from "next/navigation";
 
 /**
- * ADMIN — ACCOUNTS MANAGER (0045).
- * Owner request: «ضيف فى داشبورد الادمن طريقة للتعليم على الحسابات وزرار مسح»
- * One place to mark test accounts (badged) and delete accounts (guarded,
- * cascade delete). Protected by the /admin layout AdminGate (role='admin'
- * only — coaches bounce to /coach, clients to /dashboard).
+ * /admin/accounts — Phase 103 (owner: «كلهم نفس الغرض مفروض صفحة واحده»):
+ * the accounts manager (test-mark + delete tools) merged into the UNIFIED
+ * clients page /admin/clients. This redirect keeps old bookmarks working.
  */
-export default function Page() {
-  return <AdminAccountsView />;
+export default function AccountsRedirect() {
+  redirect("/admin/clients");
 }

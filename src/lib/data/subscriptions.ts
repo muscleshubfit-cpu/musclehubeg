@@ -114,6 +114,90 @@ export type CoachClientStats = {
  site_clients: number;
 };
 
+// ---------------------------------------------------------------------------
+// UNIFIED ADMIN CLIENTS FEED (Phase 103 — 0067).
+// Every profile (client + coach + admin) with membership lifecycle, B2B
+// coach relation, site-coach follow-up relation, coach_kind and the
+// test-account flag. Admin-only inside the RPC (non-admin gets an empty
+// set). Returns null when the 0067 RPC is not applied yet → the unified
+// clients page shows its own "service not applied" empty state.
+// ---------------------------------------------------------------------------
+
+export type AdminClientsPageOpts = {
+  limit?: number;
+  offset?: number;
+  search?: string;
+  filter?: string; // all|active|expiring|expired|no_plan|pending_payment|premium|pro|coaching
+  type?: string; // all|member_site|client_of_coach|coach|coach_site|coach_b2b|admin
+  test?: string; // all|test|real
+  sort?: string; // newest|oldest|name|expiry
+};
+
+export async function getAdminClientsPaged(opts: AdminClientsPageOpts = {}) {
+  if (isSupabaseConfigured && supabase) {
+    try {
+      const { data, error } = await supabase.rpc("get_admin_clients_paged", {
+        p_limit: Math.max(1, Math.min(opts.limit ?? 25, 100)),
+        p_offset: Math.max(0, opts.offset ?? 0),
+        p_search: opts.search?.trim() || null,
+        p_filter: opts.filter || "all",
+        p_type: opts.type || "all",
+        p_test: opts.test || "all",
+        p_sort: opts.sort || "newest",
+      });
+      if (!error && data) return data;
+      if (error) console.warn("[data] get_admin_clients_paged not ready:", error.message);
+    } catch (e) {
+      console.warn("[data] get_admin_clients_paged failed:", e);
+    }
+  }
+  return null;
+}
+
+export type AdminClientsStats = {
+  total: number;
+  member_site: number;
+  client_of_coach: number;
+  coach_site: number;
+  coach_b2b: number;
+  admin_count: number;
+  test_count: number;
+  active: number;
+  expiring: number;
+  expired: number;
+  pending_payment: number;
+};
+
+/** One row of counts for the unified clients page tiles + type buttons. */
+export async function getAdminClientsStats(): Promise<AdminClientsStats | null> {
+  if (isSupabaseConfigured && supabase) {
+    try {
+      const { data, error } = await supabase.rpc("get_admin_clients_stats");
+      if (!error && data && data.length > 0) {
+        const s = data[0];
+        const n = (v: unknown) => Number(v) || 0;
+        return {
+          total: n(s.total),
+          member_site: n(s.member_site),
+          client_of_coach: n(s.client_of_coach),
+          coach_site: n(s.coach_site),
+          coach_b2b: n(s.coach_b2b),
+          admin_count: n(s.admin_count),
+          test_count: n(s.test_count),
+          active: n(s.active),
+          expiring: n(s.expiring),
+          expired: n(s.expired),
+          pending_payment: n(s.pending_payment),
+        };
+      }
+      if (error) console.warn("[data] get_admin_clients_stats not ready:", error.message);
+    } catch (e) {
+      console.warn("[data] get_admin_clients_stats failed:", e);
+    }
+  }
+  return null;
+}
+
 /** One row of tab counts over the caller's scope (admin → everyone; coach → his clients). */
 export async function getCoachClientStats(): Promise<CoachClientStats | null> {
  if (isSupabaseConfigured && supabase) {
