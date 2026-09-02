@@ -77,9 +77,9 @@ CRON_SECRET=your-cron-secret
 
 ### Database Setup
 
-`supabase/migrations/` contains **80 SQL files** in four naming
+`supabase/migrations/` contains **81 SQL files** in four naming
 families (see [`supabase/migrations/INDEX.md`](./supabase/migrations/INDEX.md) — the
-binding registry). The numbering map currently runs **0001 → 0068**:
+binding registry). The numbering map currently runs **0001 → 0069**:
 
 | Family | Example | Applied by |
 |---|---|---|
@@ -229,13 +229,14 @@ musclehubeg/
 │   │   └── ...
 │   ├── middleware.ts            # Session refresh + Content-Language header + locale-aware lang/dir
 ├── supabase/
-│   └── migrations/             # 80 SQL files (0001→0068 registry in INDEX.md; manual
+│   └── migrations/             # 81 SQL files (0001→0069 registry in INDEX.md; manual
 │                               #   RUN_ON_SUPABASE_* + VERIFY_* scripts included)
 ├── scripts/                    # ai-jobs-runner (GHA), blog-runner (GHA), migration_audit.py
-│                               #   (schema-drift gate, Phase 96), check-stale-refs.sh
+│                               #   (schema-drift gate, Phase 96), docs_parity.py (docs-counts
+│                               #   gate, Phase 106), check-stale-refs.sh
 ├── public/                     # Static assets (icons, QR codes, images, manifest, sw.js)
-├── .github/workflows/          # 5 workflows: blog-post-ar, blog-post-en, process-ai-jobs,
-│                               #   remediate-blog-images, guard-stale-refs
+├── .github/workflows/          # 6 workflows: blog-post-ar, blog-post-en, process-ai-jobs,
+│                               #   remediate-blog-images, guard-stale-refs, docs-parity-gate
 ├── AGENTS.md                   # AI agent operating rules
 ├── SECURITY.md                 # Security policy
 ├── LICENSE                     # Proprietary, all rights reserved
@@ -321,9 +322,9 @@ musclehubeg/
 
 ## 📊 Database
 
-**80 SQL files** across four naming families (see
+**81 SQL files** across four naming families (see
 [`supabase/migrations/INDEX.md`](./supabase/migrations/INDEX.md)) with the
-numbering map running **0001 → 0068**. All auto-applied families carry
+numbering map running **0001 → 0069**. All auto-applied families carry
 Row Level Security (RLS) policies — hardened progressively (Phases
 99–100: strict RLS for `progress_photos` and the tamper-proof
 `plan_swaps` usage ledger, with table-level revokes for loud failures).
@@ -455,7 +456,7 @@ See [`LICENSE`](./LICENSE) for the full proprietary terms.
 - [`PROGRESS.md`](./PROGRESS.md) — Recent phases snapshot (older phases archived in `archive/`)
 - [`DEVELOPER_GUIDE.md`](./DEVELOPER_GUIDE.md) — Developer onboarding + architecture details
 - [`QA_CHECKLIST.md`](./QA_CHECKLIST.md) — Verification evidence + QA protocol (older evidence archived)
-- [`supabase/migrations/INDEX.md`](./supabase/migrations/INDEX.md) — Binding migration registry (0001→0068) + naming laws
+- [`supabase/migrations/INDEX.md`](./supabase/migrations/INDEX.md) — Binding migration registry (0001→0069) + naming laws
 - [`docs/`](./docs/) — SEO frameworks (CWV thresholds, E-E-A-T, schema reference) + historical audits
 - [`.env.example`](./.env.example) — Environment variables reference
 - [`worklog.md`](./worklog.md) — Per-agent change log (older entries archived in `archive/`)

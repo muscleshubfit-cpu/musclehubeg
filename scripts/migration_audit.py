@@ -9,11 +9,18 @@ Checks:
      bug class caught in Phases 94/95)
   5. RLS coverage: tables without "enable row level security" anywhere
   6. Functions defined in migrations vs Function block of types.ts
+
+Phase 106 (owner: «عايز حل ثابت انها متحصلش تانى»): adds a --ci mode for
+.github/workflows/docs-parity-gate.yml — exit 1 on any NEW finding that is
+not part of the documented accepted baseline below; report mode unchanged.
 """
-import re, os, json
+import re, os, json, sys
 from pathlib import Path
 
-REPO = Path("/home/z/my-project/repo")
+# Portable: works in CI checkouts and local workspaces alike (was a
+# hardcoded sandbox path that would break the GitHub Actions runner).
+REPO = Path(os.environ.get(
+    "REPO_ROOT", Path(__file__).resolve().parent.parent))
 MIG = REPO / "supabase/migrations"
 TYPES = REPO / "src/lib/supabase/types.ts"
 
@@ -105,6 +112,21 @@ for f in files:
             t, col = norm(m.group(1)), m.group(2).strip('"').lower()
             if t in mig_tables:
                 mig_tables[t].discard(col)
+        # alter rename column (Phase 106): 0012/0038 renamed
+        # price_egp → price_usd — the FINAL name is what types.ts and
+        # live production carry; without this the parser keeps reporting
+        # the dead name as "missing" and the live name as "phantom"
+        m = re.match(
+            r"(?i)alter\s+table\s+(?:only\s+)?(?:public\.)?([\w.\"']+)\s+"
+            r"rename\s+(?:column\s+)?([\w\"']+)\s+to\s+([\w\"']+)",
+            line)
+        if m:
+            t = norm(m.group(1))
+            old = m.group(2).strip('"').lower()
+            new = m.group(3).strip('"').lower()
+            if t in mig_tables:
+                mig_tables[t].discard(old)
+                mig_tables[t].add(new)
 
 # ---------------------------------------------------------------- types.ts
 ts = TYPES.read_text()
@@ -173,3 +195,99 @@ if not no_rls:
 print("\n[6] functions found in migrations:")
 print("   ", sorted(functions) or "none")
 print("\n[7] enums:", {k: v for k, v in enums.items()} or "none")
+
+# ---------------------------------------------------------------- CI gate
+# Phase 106 — owner: «عايز حل ثابت انها متحصلش تانى خصوصاً ان ملفات
+# التوثيق دايما بتسبب مشاكل». The findings below are the DOCUMENTED,
+# ACCEPTED boundaries as of Phase 106 (INDEX.md §3 boundary notes + the
+# static-parser blind spots: columns created inside DO $$/dynamic-SQL
+# blocks are invisible to a line-oriented regex audit). Anything NOT in
+# these sets is NEW DRIFT and fails the gate (exit 1).
+#
+# Baseline hygiene: if an accepted item later RESOLVES (drift fixed), the
+# gate stays green and prints a "resolved — prune baseline" hint; prune
+# the line in the same commit that fixed it. Accepted sets are EXACT
+# (per-table), so any brand-new phantom column on an accepted table is
+# still caught.
+ACCEPTED_MISSING_TABLES = {
+    # INDEX.md §3: audit_log has no live FK data path; gh_sync_probe is a
+    # probe table created and dropped during the GitHub-sync trials (0056)
+    "audit_log", "gh_sync_probe",
+}
+ACCEPTED_MISSING_COLS = {
+    # INDEX.md §3-family boundary: added in 0014, lives in production,
+    # not surfaced in the generated mirror (no app code selects it)
+    "blog_posts": {"source"},
+    # price_egp → price_usd renames (0012 subscription_requests ·
+    # 0038 coach_ads) are parser-blind: 0012 splits the statement across
+    # two lines and 0038 renames inside a DO $$ block — the dead egp name
+    # therefore still appears "missing"; §3 documents both as resolved
+    "coach_ads": {"price_egp"},
+    "subscription_requests": {"price_egp"},
+}
+ACCEPTED_PHANTOM_COLS = {
+    # Columns visible in types.ts but created via DO-block/dynamic SQL or
+    # manual-application-era migrations the static parser cannot see
+    "admin_notifications": {"target_coach_id"},
+    "blog_generation_queue": {"focus_keyword_ar", "language", "topic_ar"},
+    "coach_pages": {"bio_en", "certificates", "headline_en", "review_note",
+                    "review_status", "reviewed_at", "specialties_en"},
+    "plans": {"approved_at", "is_current", "status"},
+    "profiles": {"coach_kind", "is_test_account", "referral_code"},
+    "referral_earnings": {"affiliate_commission_id", "available_at",
+                          "transaction_type"},
+    "referrals": {"last_seen"},
+    "subscriptions": {"cancel_requested_at", "subscription_type"},
+    # the USD side of the parser-blind renames documented above — the
+    # final live name types.ts correctly carries
+    "coach_ads": {"price_usd"},
+    "subscription_requests": {"price_usd"},
+}
+
+missing_tables = set(mig_tables) - set(ts_tables)
+new_missing_tables = missing_tables - ACCEPTED_MISSING_TABLES
+resolved = sorted(ACCEPTED_MISSING_TABLES - missing_tables)
+
+new_missing_cols, new_phantom_cols = {}, {}
+for t in sorted(set(mig_tables) & set(ts_tables)):
+    miss = mig_tables[t] - ts_tables[t]
+    acc_m = ACCEPTED_MISSING_COLS.get(t, set())
+    if miss - acc_m:
+        new_missing_cols[t] = sorted(miss - acc_m)
+    resolved += [f"missing:{t}:{c}" for c in sorted(acc_m - miss)]
+    ph = ts_tables[t] - mig_tables[t]
+    acc_p = ACCEPTED_PHANTOM_COLS.get(t, set())
+    if ph - acc_p:
+        new_phantom_cols[t] = sorted(ph - acc_p)
+    resolved += [f"phantom:{t}:{c}" for c in sorted(acc_p - ph)]
+
+print("\n" + "=" * 64)
+print("[8] CI GATE — new drift vs accepted baseline (Phase 106)")
+gate_ok = not (new_missing_tables or new_missing_cols or new_phantom_cols)
+if new_missing_tables:
+    print(f"    NEW missing tables : {sorted(new_missing_tables)}")
+if new_missing_cols:
+    print(f"    NEW missing columns: {new_missing_cols}")
+if new_phantom_cols:
+    print(f"    NEW phantom columns: {new_phantom_cols}")
+if gate_ok:
+    print("    PASS ✓ — zero new drift (accepted baseline documented above)")
+if resolved:
+    print(f"    baseline items RESOLVED — prune their baseline lines: "
+          f"{resolved}")
+print("=" * 64)
+
+if "--ci" in sys.argv:
+    if not gate_ok:
+        for t in sorted(new_missing_tables):
+            print(f"::error::migration_audit: table '{t}' exists in "
+                  f"migrations but is MISSING from types.ts")
+        for t, cols in new_missing_cols.items():
+            print(f"::error::migration_audit: columns {cols} of '{t}' "
+                  f"exist in migrations but are MISSING from types.ts")
+        for t, cols in new_phantom_cols.items():
+            print(f"::error::migration_audit: PHANTOM columns {cols} of "
+                  f"'{t}' exist in types.ts but in NO migration "
+                  f"(the 42703 incident class — see Phase 99-run)")
+        sys.exit(1)
+    sys.exit(0)

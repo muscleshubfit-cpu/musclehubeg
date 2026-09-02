@@ -1,0 +1,54 @@
+name: Docs & schema parity gate
+
+# ============================================================
+# Phase 106 (2026-09-03) — owner: «عايز حل ثابت انها متحصلش تانى
+# خصوصاً ان ملفات التوثيق دايما بتسبب مشاكل»
+#
+# Born from two real incident classes:
+#   1) Docs drift: README froze at Phase 81 while the product moved
+#      to 103b (Phase 104 audit) — stale counts, stale registry range.
+#   2) Mirror drift: the hand-written types.ts claimed phantom columns
+#      (coach_presence.user_id · progress_photos.taken_on) that halted
+#      the migration pipeline at 0064 v1 with 42703 and silently broke
+#      app paths (Phase 99-run / Phase 105).
+#
+# This gate re-derives every documented count from the filesystem and
+# re-audits migrations ↔ types.ts on EVERY push/PR — so neither class
+# can merge silently again. Runs on GitHub's own runners, independent
+# of any agent session or local workspace.
+#
+# Pure static analysis — no dependencies, finishes in seconds.
+# ============================================================
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch: {}
+
+concurrency:
+  group: docs-parity-gate
+  cancel-in-progress: true
+
+jobs:
+  parity:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      # Every count claimed in README / DEVELOPER_GUIDE / INDEX.md must
+      # equal the filesystem truth (pages · endpoints · SQL files ·
+      # views · ui components · registry range 0001→NNNN). A stale
+      # number — or a claim sentence edited away — fails the build.
+      - name: Documented counts vs filesystem (docs_parity.py)
+        run: python3 scripts/docs_parity.py --ci
+
+      # Migrations ↔ types.ts mirror audit: fails on any NEW missing/
+      # phantom table or column that is not part of the documented
+      # accepted baseline embedded in the script (INDEX.md §3
+      # boundaries + parser blind spots).
+      - name: Migrations ↔ types.ts mirror audit (migration_audit.py --ci)
+        run: python3 scripts/migration_audit.py --ci

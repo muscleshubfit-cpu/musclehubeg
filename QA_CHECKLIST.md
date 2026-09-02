@@ -6,7 +6,20 @@
 
 ---
 
-## Latest Verification — 2026-09-03 (Phase 105 — MIRROR TRUTH FIX: owner approved «go» on the 105 candidate recorded in Phase 104 — types.ts mirror + app paths corrected to the LIVE columns proven in 99-run + 0069 convergence migration + audit tool learns drop-column)
+## Latest Verification — 2026-09-03 (Phase 106 — DOCS PARITY GATE: owner asked for a FIXED solution «عايز حل ثابت انها متحصلش تانى خصوصاً ان ملفات التوثيق دايما بتسبب مشاكل» — best-of-study chosen: an automated GitHub Actions gate that re-derives every documented count from the filesystem and gates the mirror audit on every push/PR, independent of any agent session)
+
+| Check | Result | How verified |
+|---|---|---|
+| Solution chosen from the study (owner: «عرفنى فقط الافضل ونفذ مباشر») | ✅ | CI gate on GitHub's own runners (same proven pattern as guard-stale-refs.yml) — survives session wipes because it lives IN the repo, needs no agent memory or owner discipline, and travels with the upcoming clean-copy/rebrand automatically; local-only alternatives (hooks/manual scripts) rejected: they depend on whoever remembers to run them |
+| NEW scripts/docs_parity.py (the docs-counts gate) | ✅ | re-derives filesystem truth every run (pages=82 · endpoints=69 = 68 route.ts + 1 route.tsx · sql=81 · views=31 · ui=51 · newest NNNN=0069) and compares EVERY occurrence in README (N SQL files · N page.tsx · N API endpoints · (N views) · N components) · 0001→NNNN), DEVELOPER_GUIDE (Total: N endpoints) and INDEX (خريطة الترقيم heading); line_scope keeps TRUE historical statements out («Phase 82 verified 67 endpoints» · audit-log «الترقيم كامل 0001→0062»); a claim sentence edited away = CLAIM SENTENCE MISSING failure (docs can no longer quietly drop their own numbers) |
+| migration_audit.py upgraded into a hard gate | ✅ | new --ci mode: exit 1 on any NEW missing/phantom table or column outside the documented accepted baseline embedded in the script (INDEX.md §3 boundaries + static-parser blind spots: DO-block dynamic SQL, multi-line 0012 split statement); accepted sets are EXACT per-table so a brand-new phantom on an accepted table is still caught; RENAME COLUMN parsing added (helps future single-line renames); REPO_ROOT made portable (was a hardcoded sandbox path — would have broken any CI checkout) |
+| NEW .github/workflows/docs-parity-gate.yml | ✅ | push/PR/workflow_dispatch on main, concurrency-grouped, 5-min timeout, zero dependencies (python3 stdlib only) — runs docs_parity.py --ci + migration_audit.py --ci with ::error:: annotations |
+| First live catch (proof the drift was REAL) | ✅ 7 claims | the very first gate run failed on README: 3× «80 SQL files» → 81 and 4× «0001→0068» (incl. the spaced «0001 → 0068» variant that forced the regex wider) → 0069 — drift introduced when Phase 105 updated INDEX.md but not README; all 7 fixed in this same commit + tree comments updated (5→6 workflows, scripts/ gains docs_parity.py) |
+| Failure-mode proof (gate blocks, not just reports) | ✅ | injected a phantom `brand_new_phantom` into plans Row of types.ts → --ci exit 1 with a precise `::error:: PHANTOM columns ['brand_new_phantom'] of 'plans'` (accepted siblings approved_at/is_current/status NOT flagged) → restored from backup → exit 0, `git status` clean |
+| Gates | ✅ PASS | tsc 0 · eslint 0 · vitest 191/191 (18 files) · check-stale-refs exit 0 · docs_parity exit 0 · migration_audit --ci exit 0 |
+| Docs parity §3.6 | ✅ UPDATED | QA_CHECKLIST Phase 106 · PROGRESS Phase 106 + «آخر تحديث» · worklog Task 106 ×2 · INDEX.md header gains the CI-gate note · README 7 claims + 2 tree comments |
+
+## Previous Verification — 2026-09-03 (Phase 105 — MIRROR TRUTH FIX: owner approved «go» on the 105 candidate recorded in Phase 104 — types.ts mirror + app paths corrected to the LIVE columns proven in 99-run + 0069 convergence migration + audit tool learns drop-column)
 
 | Check | Result | How verified |
 |---|---|---|

@@ -774,3 +774,23 @@ Work Log:
 
 Stage Summary:
 - مخطط الإنتاج مطابق بالظبط لمرآة types.ts المصححة و0069 ما لمسش حاجة — الدليل مسجل في QA_CHECKLIST صف Post-push
+
+---
+Task ID: 106
+Agent: Super Z (main)
+Task: Phase 106 — بوابة docs-parity الآلية (CI) — «عايز حل ثابت انها متحصلش تانى خصوصاً ان ملفات التوثيق دايما بتسبب مشاكل» + سؤال المالك عن البرانش قبل الجو («عرفنى فقط الافضل ونفذ مباشر»)
+
+Work Log:
+- إجابة سؤال البرانش بالصراحة: البرانش ما يغنيش عن الاستنساخ (الشغل محتاج ملفات على القرص — build/fحوصات/تعديل) والاستنساخ ثواني بـ shallow clone؛ البرانش = نفس الامكانيات 100% والفرق الوحيد النشر (main → production · برانش → preview)؛ الأفضل للمشروع: main مباشرة زي ما احنا + برانش مؤقت فقط للتغييرات الخطرة المحتاجة معاينة
+- الحل المختار من الدراسة: GitHub Actions gate (يعيش جوه الريبو — مستقل عن الجلسات والمساحات المؤقتة — نفس نمط guard-stale-refs المجرب — وبونص: بيتنقل مع النسخة النظيفة القادمة تلقائيًا)
+- scripts/docs_parity.py (جديد): يشتق كل رقم من الملفات (82 صفحة · 69 endpoint · 81 SQL · 31 views · 51 ui · أحدث NNNN) ويقارن كل ورقة في README/DEVELOPER_GUIDE/INDEX — line_scope يستثني السطور التاريخية الصحيحة — حذف جملة الادعاء = فشل
+- scripts/migration_audit.py (ترقية): وضع --ci بـ exit 1 على انجراف جديد خارج baseline موثق (حدود INDEX §3 + النقاط العمياء: DO blocks · 0012 المتقسم) — الـ baseline مجموعات EXACT فأي عمود وهمي جديد على جدول مقبول بيتصطاد — RENAME COLUMN parsing — REPO_ROOT نسبي (كان مسار sandbox ثابت كان هكسر الـ runner)
+- .github/workflows/docs-parity-gate.yml (جديد): push/PR/manual — يشغل البوابتين بصفر dependencies
+- الصيد الأول حيًا: 7 ادعاءات README قديمة من Phase 105 (3× 80 SQL → 81 · 4× 0001→0068 → 0069) + «5 workflows» → 6 — كلها اتصلحت في نفس الفريم
+- إثبات الاتجاهين: حقن brand_new_phantom في plans → exit 1 مع ::error:: دقيق → إرجاع → exit 0 وgit نظيف
+- البوابات: tsc 0 · eslint 0 · vitest 191/191 · check-stale-refs 0 · docs_parity 0 · migration_audit --ci 0
+- توثيق §3.6: QA_CHECKLIST Phase 106 · PROGRESS Phase 106 + آخر تحديث · INDEX.md ملاحظة البوابة · worklog ×2
+
+Stage Summary:
+- انجراف التوثيق بقى مستحيل بصمت: كل push بيتفحص على GitHub نفسه — الأرقام من الملفات لاير، والمرآة تحت مراقبة exit-code
+- الملفات: scripts/docs_parity.py · scripts/migration_audit.py · .github/workflows/docs-parity-gate.yml · README · QA_CHECKLIST · PROGRESS · INDEX · worklog
