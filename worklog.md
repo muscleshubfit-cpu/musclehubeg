@@ -665,3 +665,20 @@ Work Log:
 
 Stage Summary:
 - Phase 103 complete pending push: unified clients + coach-kind split + B2C roster + button grid + admin-profile fix + old-dashboard links removed; Phase 104 candidate (owner decision pending): extend coach RLS so site coaches can open assigned members' data in-app
+
+---
+Task ID: 102-run
+Agent: Super Z (main)
+Task: تصحيح 0066 v2 بعد أول تشغيل حي فاشل (42703 على coach_presence.user_id) — فحص المخطط الحي عمود-عمود وإصلاح سطر واحد
+
+Work Log:
+- أول تشغيل للمالك وقف: 42703 «column user_id does not exist» على delete from public.coach_presence — الـ DO block معاملة واحدة → إقفال تلقائي = صفر مسح جزئي (الحساب لسه حي — probe دخول HTTP 200 بعد الحادثة مباشرة)
+- فحص حي PostgREST لكل عمود السكريبت بيمسّه (select=<col>&limit=1 → 200/42703): chat_messages.client_id ✅ saved_results.user_id ✅ meal_plans.user_id ✅ plan_swaps.user_id ✅ coach_presence.user_id ❌ progress_photos.user_id ✅ subscription_requests.user_id ✅ evo_chat_usage.user_id ✅ ticket_messages.sender_id ✅ tool_leads.email ✅ coach_wallet_transactions.created_by ✅
+- أعمدة coach_presence الحقيقية في الإنتاج: id · coach_id · last_seen · updated_at (مفيش user_id ولا status) — مرآة types.ts كانت غلط في الجدول ده بس
+- v2: تصحيح سطر واحد (coach_presence.coach_id = v_uid) + ملاحظة v2 في رأس الملف + INDEX.md صف 0066 اتحدث + QA_CHECKLIST Phase 102-run + PROGRESS Phase 102-run + آخر تحديث
+- مكتشف جانبي مسجل مش منفذ: helpers الحضور في data/coach.ts بيسأل على user_id/status غير الموجودين حيًا → بيرجع offline بصمت (مرشح Phase 104)
+- السكريبت فضل ذري/Idempotent/محصور بالبريد — عمليات auth فضلت يدوية بالسابقة (0040/0050/0055 + درس 0054)
+
+Stage Summary:
+- 0066 v2 جاهزة بنفس المسار/اللينك — كل عمود متحقق منه حيًا قبل إعادة الشحن
+- الحالة: بانتظار تشغيل المالك تاني → جدول التحقق 3 أصفار → probe تأكيد نهائي

@@ -6,7 +6,20 @@
 
 ---
 
-## Latest Verification — 2026-09-03 (Phase 103 — ADMIN CLIENTS UNIFICATION: the 5-point Admin Panel 2.0 correction round — owner «go , + مفروض سكريبتات سوبابيز تتنفذ تلقائي» after the plan-first audit)
+## Latest Verification — 2026-09-03 (Phase 102-run — 0066 v2 CORRECTION: owner ran the script live and hit `42703 column "user_id" does not exist` on coach_presence; live column-by-column probe of production found the mirror wrong for that ONE table — fixed to coach_id and re-shipped via the same raw link — owner «شغل الاسكريبت الى بعتهولى ٠٠٦٦ وعرفنى النتيجة»)
+
+| Check | Result | How verified |
+|---|---|---|
+| Live incident report | ✅ | owner's SQL Editor run aborted with `42703: column "user_id" does not exist` at `delete from public.coach_presence where user_id = v_uid` — the DO block is ONE transaction → automatic rollback = ZERO partial deletion (account verified still alive immediately after, login probe HTTP 200) |
+| Live schema probe (no guessing, no mirror) | ✅ | PostgREST probe on production for every column 0066 touches (`select=<col>&limit=1` → 200 exists / 42703 missing): chat_messages.client_id ✅ · saved_results.user_id ✅ · meal_plans.user_id ✅ · plan_swaps.user_id ✅ · **coach_presence.user_id ❌ GONE** · progress_photos.user_id ✅ · subscription_requests.user_id ✅ · evo_chat_usage.user_id ✅ · ticket_messages.sender_id ✅ · tool_leads.email ✅ · coach_wallet_transactions.created_by ✅ — the ONLY wrong column was coach_presence |
+| coach_presence REAL live columns | ✅ | id · coach_id · last_seen · updated_at (NO user_id, NO status) — types.ts mirror was wrong for this ad-hoc Phase-5 table (app's presence helpers in data/coach.ts query user_id/status that don't exist live → silently return offline; recorded as a Phase 104 candidate, NOT touched here) |
+| 0066 v2 fix | ✅ | one-line correction `coach_presence.coach_id = v_uid` + header v2 note + INDEX.md 0066 row updated; all 10 other columns hard-verified live before re-shipping; script stays atomic/idempotent/email-scoped |
+| Account state after failed run | ✅ ALIVE | login probe with the 0050-documented credentials → HTTP 200 + profile row (role=admin, is_test_account=false, created 2026-08-31) — proves the failed run deleted nothing |
+| Why this script stays manual | ✅ | auth.users ops are manual by project precedent (0040/0050/0055); auto-migrating it risks blocking the whole pipeline (0054 lesson) — all timestamped scripts (0064/0065/0067) DO run automatically |
+| Docs parity §3.6 | ✅ UPDATED | INDEX.md 0066 row (v2 note) · QA_CHECKLIST Phase 102-run · PROGRESS Phase 102-run + «آخر تحديث» · worklog Task 102-run · AGENTS.md law text unchanged |
+| Owner action | ⏳ | SAME raw link (now serves v2) → SQL Editor → paste → Run → final grid MUST show 3 zeros → reply تم |
+
+## Previous Verification — 2026-09-03 (Phase 103 — ADMIN CLIENTS UNIFICATION: the 5-point Admin Panel 2.0 correction round — owner «go , + مفروض سكريبتات سوبابيز تتنفذ تلقائي» after the plan-first audit)
 
 | Check | Result | How verified |
 |---|---|---|

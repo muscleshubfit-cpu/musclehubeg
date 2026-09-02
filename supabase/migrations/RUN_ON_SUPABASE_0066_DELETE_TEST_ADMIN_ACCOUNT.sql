@@ -24,7 +24,7 @@
 --            FK حي في الإنتاج (الكاسكيد مش هيوصلها أبدًا):
 --              chat_messages.client_id · saved_results.user_id ·
 --              meal_plans.user_id · plan_swaps.user_id ·
---              coach_presence.user_id · progress_photos.user_id ·
+--              coach_presence.coach_id · progress_photos.user_id ·
 --              subscription_requests.user_id
 --            + حذف وقائي (لو الـ FK cascade فعلًا فالأثر صفر):
 --              evo_chat_usage.user_id · ticket_messages.sender_id
@@ -55,6 +55,16 @@
 --
 -- RUN: Supabase Dashboard → SQL Editor → paste → Run
 -- التحقق: استعلام التحقق الأخير لازم يرجّع 3 أصفار → reply تم
+--
+-- v2 تصحيح (بعد أول تشغيل حي):
+--   أول تشغيل وقف بـ 42703 «column user_id does not exist» على
+--   coach_presence — الفحص الحي (PostgREST probe عمود-عمود على الإنتاج)
+--   ثبت إن الجدول في الإنتاج أعمدته: id · coach_id · last_seen ·
+--   updated_at (مفيش user_id ولا status — مرآة types.ts كانت غلط في
+--   الجدول ده بس). باقي الـ 10 أعمدة اتأكدت حية عمود-عمود ✅.
+--   الـ DO block معاملة واحدة → الإقفال التلقائي رجّع كل حاجة =
+--   صفر مسح جزئي في التشغيل الفاشل والحساب سليم. المصحح الوحيد:
+--   coach_presence.coach_id بدل user_id.
 -- =====================================================================
 
 do $$
@@ -91,8 +101,9 @@ begin
     delete from public.plan_swaps where user_id = v_uid;
   end if;
 
+  -- v2: العمود الحي في الإنتاج هو coach_id (مش user_id — 42703 حي)
   if to_regclass('public.coach_presence') is not null then
-    delete from public.coach_presence where user_id = v_uid;
+    delete from public.coach_presence where coach_id = v_uid;
   end if;
 
   if to_regclass('public.progress_photos') is not null then
