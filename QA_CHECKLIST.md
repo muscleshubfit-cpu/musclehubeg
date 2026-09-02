@@ -6,6 +6,20 @@
 
 ---
 
+## Latest Verification — 2026-09-02 (Phase 93 — legacy-`any` cleanup batch 5: 385 → 244)
+
+| Check | Result | How verified |
+|---|---|---|
+| Batch 5 — medium non-sensitive files | ✅ 385 → 244 (−141, 72 → 58 files) | Stage 1 libs + EVO pair + coach/ads (−93: tier-limits 11, data/tickets 11, coach/ads 18, blog-images 8, blog-admin 8, coach-landing-server 8, blog-topics 8, ai/chat 15, ai-provider 6) · Stage 2 views (−48: BlogEditorView 11, CoachWalletView 11, BlogAdminView 9, CoachView 9, profile 8). 14 files cleaned to ZERO |
+| Generated types expanded (mirror law, Phase 92 precedent) | ✅ | +table `coach_ads` (mirror 0037 + 0038 price_usd) · +`evo_chat_usage` (mirror 0022) · +`evo_anon_usage` (mirror 0028) · +Function `coach_adjust_wallet` (mirror 0035) · `coach_pages` completed with the missing 0037/0046/0049 columns (review_status, photo_url, results_photos, socials, whatsapp_phone, certificates) · new exports: CoachAd, CoachTopupRequest, CoachWalletTransaction, TicketMessage, EvoChatUsage, EvoAnonUsage |
+| EVO pair zero-`any` — streaming contract intact | ✅ | ai/chat 15→0 (EvoClientContext type, typed history filter predicate, createClient<Database> blog search, prompt-builder Record views) · ai-provider 6→0 (typed chat-completions response incl. reasoning_details view, Record<string,unknown> request body, AggregateError instanceof, parseJSON default T=unknown — every caller already passes an explicit generic). SSE delta/final/error contract untouched |
+| Honest boundary casts (each documented inline) | ✅ | blog-admin legacy `source` column lives outside the generated Insert type → payload fully typed, single `as BlogPostInsert`/`as BlogPostUpdate` cast per call (Phase 92 precedent) · `language as "en"\|"ar"` DB-enum cast keeps the \|\|-fallback · CoachView `getTier(subTier as TierId)` legacy-tier cast (Phase 90 pattern) |
+| tsc caught REAL gaps (proof the typing works) | ✅ | dropped `title` line in the adminCreatePost payload (caught + fixed) · supabase-js RejectExcessProperties refused the extra `source` prop inside insert/update generics → boundary casts · localStorage ticket literal widened `status` to string → annotated as SupportTicket · AdminBlogPost.faq_json/schema_json now BlogFaq[]/Record views (Phase 90 single-source) |
+| QR `<img>` documented exception | ✅ | CoachWalletView InstaPay/Vodafone QR kept as `<img>` with inline rationale — image optimization must NEVER touch a scannable QR (AffiliateToolkit banner precedent) |
+| Dead directives removed | ✅ | 2 unused `eslint-disable react-hooks/exhaustive-deps` lines (BlogEditorView, BlogAdminView) — leftovers after their cause moved |
+| Gates | ✅ PASS ×2 | tsc 0 after every stage · eslint 0 warnings/0 errors on ALL touched files (10 + 6) · vitest 191/191 ×2 |
+| Cleanup running tally | 📌 TRACKED | Start 804 → 795 (b1) → 749 (b2) → 589 (b3) → 385 (b4) → **244** (b5). Remaining 58 files: the SENSITIVE set (admin/coach/paypal/auth/callback/cron/wallet routes ≈150 warnings) + scattered small views/libs (≈94) — sensitive set stays LAST with double review per the documented batch order |
+
 ## Latest Verification — 2026-09-02 (Phase 92 — legacy-`any` cleanup batch 4: 589 → 385)
 
 | Check | Result | How verified |

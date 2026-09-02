@@ -450,3 +450,22 @@ Stage Summary:
 - Batch 4 complete: 589 → 385 (−204); running tally 804 → 795 → 749 → 589 → 385; the ENTIRE AI pipeline (enqueue → sanitize → GHA processors → generators → blog bundle) is now end-to-end typed with zero suppressions
 - Remaining 385: small/medium non-sensitive files + the sensitive set (payments/auth/cron) last with double review
 - REMINDER to owner: revoke the GitHub token (ghp_SV…IvWO) once all work is done — used transiently in git push commands only, never stored in files
+
+---
+Task ID: 93
+Agent: Super Z (main)
+Task: Phase 93 — owner order «كمل» — legacy-any cleanup batch 5: medium non-sensitive files (two staged commits)
+
+Work Log:
+- Started at 385/72 files (Phase 92 pushed); documented batch order says medium non-sensitive next, sensitive set (admin/coach/paypal/auth/cron/wallet routes) LAST with double review
+- Stage 1 (385→292, commit 854356a): GENERATED TYPES EXPANDED per the mirror law — +coach_ads (0037/0038), +evo_chat_usage (0022), +evo_anon_usage (0028), +Function coach_adjust_wallet (0035), coach_pages rows completed with the missing 0037/0046/0049 columns (review_status, photo_url, results_photos, socials, whatsapp_phone, certificates); new exports CoachAd/CoachTopupRequest/CoachWalletTransaction/TicketMessage/EvoChatUsage/EvoAnonUsage. Files zeroed: tier-limits 11→0 (casts dropped over typed tables) · data/tickets 11→0 (SupportTicket/TicketMessage + StaffTicket + typed /api/support/tickets envelope) · coach/ads 18→0 (real CoachAd rows, typed wallet rpc) · blog-images 8→0 (Pexels/Unsplash/Pixabay result shapes) · blog-admin 8→0 (BlogFaq + typed insert/update; legacy source column outside Insert type, single boundary cast per call) · coach-landing-server 8→0 · blog-topics 8→0 (Json Record views) · ai/chat 15→0 (EvoClientContext + typed history + createClient<Database>) · ai-provider 6→0 (typed completions response, parseJSON<T=unknown>)
+- Stage 2 (292→244, commit e480207): BlogEditorView 11→0 (unknown result shapers + typed jobs scan + catch instanceof ×4 + dead directive) · CoachWalletView 11→0 (generated row types + typed PayPal window view + catch instanceof; QR <img> kept with documented inline rationale — optimization must never touch a scannable QR, AffiliateToolkit precedent) · BlogAdminView 9→0 (BlogStats + GeneratedArticleJob watcher + catch ×5 + dead directive) · CoachView 9→0 (ClientSubInfo + SubscriptionRequest[] + casts dropped over typed data layer + getTier(subTier as TierId) Phase 90 pattern) · profile 8→0 (typed profiles.Update + SavedResultRow/SavedMealPlanRow views + catch ×2)
+- tsc caught REAL gaps mid-phase (each fixed): missing title line in adminCreatePost payload · supabase-js RejectExcessProperties rejecting the legacy source prop inside insert/update generics → boundary casts · localStorage ticket literal widened status · BlogAdminView stats null-narrowing in JSX · data/index has no SubscriptionRequest re-export → import from types.ts
+- Gates: tsc 0 after EVERY stage · eslint 0 warnings/0 errors on ALL touched files · vitest 191/191 ×2 · census 385 → 292 → 244 (58 files)
+- Docs parity §3.6: QA_CHECKLIST Phase 93 section + PROGRESS Phase 93 + «آخر تحديث» + this entry
+
+Stage Summary:
+- Batch 5 complete: 385 → 244 (−141); running tally 804 → 795 → 749 → 589 → 385 → 244
+- The LIVE EVO pair (chat route + ai-provider) is now zero-any with the SSE streaming contract byte-identical — the biggest risk item of the batch verified by the full gate suite
+- Remaining 244 = sensitive set (admin/coach/paypal/auth/cron/wallet ≈150) + scattered small files (≈94); sensitive set runs LAST with double review per the documented order
+- REMINDER to owner: revoke the GitHub token once all work is done — used transiently in git push commands only, never stored in files
