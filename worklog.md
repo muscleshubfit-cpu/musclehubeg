@@ -682,3 +682,20 @@ Work Log:
 Stage Summary:
 - 0066 v2 جاهزة بنفس المسار/اللينك — كل عمود متحقق منه حيًا قبل إعادة الشحن
 - الحالة: بانتظار تشغيل المالك تاني → جدول التحقق 3 أصفار → probe تأكيد نهائي
+
+---
+Task ID: 99-run
+Agent: Super Z (main)
+Task: فتح انسداد خط الترحيل (0064 v2) — «افحص ايه المشكلة وليه متعملش ميجريشن من جيتهب ل ٠٠٦٤ الى ٠٠٦٧ واصلح المشكلة»
+
+Work Log:
+- تأكيد حي لتقرير المالك (آخر ميجريشن مطبق 0063): profiles.coach_kind → 42703 مفقود · site_coach_assignments → PGRST205 جدول غير موجود · rpc get_admin_clients_paged → PGRST202 دالة غير موجودة = 0064/0065/0067 ما اطبقوش أبدًا
+- الجذر: أول نشر لـ 0064 فشل 42703 على عمودين وهميين من مرآة types.ts (اللي طلعت غلط في الجدولين ad-hoc — 0063 كان no-op مقصود على الإنتاج): coach_presence.user_id (الحقيقي coach_id — أعمدة حية: id/coach_id/last_seen/updated_at) + progress_photos.taken_on (الحقيقي taken_at — أعمدة حية: id/user_id/photo_url/taken_at/created_at)
+- فحص PostgREST عمود-عمود لكل مراجع 0064/0065/0067 قبل إعادة الدفع: plan_swaps.user_id/swap_type/created_at ✅ · coach_assignments.coach_id/client_id ✅ · subscriptions.client_id/tier/status/end_date/months/created_at ✅ · subscription_requests.status ✅ · profiles.id/email/full_name/phone/avatar_url/role/is_test_account ✅ · is_admin() → 200 true حيًا — 0065/0067 صفر تعديلات
+- 0064 v2: فهرس progress_photos (user_id, taken_at desc) + فهرس coach_presence (coach_id) — سياسات RLS لم تُمس
+- أثر الانسداد اتوثق: RLS بتاع 99/100 ما نزلش + Phase 103 (coach_kind/site_coach_assignments/RPCs) مش حية → صفحات /admin/clients و /admin/site-assignments وزر نوع المدرب كانت مكسورة في الإنتاج
+- انجراف المرآة وكود التطبيق المبني عليه (progress.ts taken_on/file_path/note · coach.ts user_id/status → فشل صامت لقائمة الصور ومؤشر الحضور) مسجل كمرشحين Phase 104 — غير ملموس هنا
+- توثيق §3.6: INDEX.md صف 0064 v2 + QA_CHECKLIST Phase 99-run + PROGRESS Phase 99-run + آخر تحديث + worklog
+
+Stage Summary:
+- إعادة الدفع تفتح الترحيل تلقائيًا (0064 v2 ← 0065 ← 0067) — تحقق حي بعدها: coach_kind/site_coach_assignments/RPC تظهر

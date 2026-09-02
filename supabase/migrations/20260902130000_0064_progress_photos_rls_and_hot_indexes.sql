@@ -9,9 +9,11 @@
 --
 -- PART A — HOT-PATH INDEXES (mirror the app's ACTUAL query patterns):
 --   * progress_photos: listPhotos() → .eq(user_id).order(taken_on desc)
+--     (v2: live column is taken_at)
 --   * plan_swaps:      tier-limits.getSwapUsage() →
 --                      .eq(user_id).eq(swap_type).gte(created_at)
---   * coach_presence:  data/coach.ts → .eq(user_id) lookups
+--   * coach_presence:  data/coach.ts lookups
+--     (v2: live key column is coach_id — user_id does not exist live)
 --   These tables were created ad-hoc OUTSIDE migrations (closed by 0063) and
 --   never received the index treatment that migration-created tables got.
 --
@@ -39,19 +41,45 @@
 --   except our own two names for idempotency).
 --
 -- Idempotent: safe to re-run. No data is modified or removed.
+--
+-- v2 CORRECTION (2026-09-03 — after the owner reported the pipeline stuck:
+--   «افحص ايه المشكلة وليه متعملش ميجريشن من جيتهب ل ٠٠٦٤ الى ٠٠٦٧ واصلح
+--   المشكلة» — last applied migration on production was 0063):
+--   THE BLOCK: this migration's FIRST deploy failed with 42703 and halted
+--   the whole pipeline — 0065/0067 never even attempted, so Phase 99/100
+--   RLS never landed and Phase 103's RPC/columns were missing live (the
+--   new admin pages were silently broken in production).
+--   ROOT CAUSE: TWO phantom columns taken from the types.ts mirror, which
+--   is WRONG for these two ad-hoc tables (0063's IF-NOT-EXISTS definitions
+--   were a no-op on production — the live tables predate it with different
+--   columns). Live PostgREST probe (42703/200 per column) proves:
+--     * coach_presence live = id · coach_id · last_seen · updated_at
+--       (NO user_id, NO status) → index now on coach_id
+--     * progress_photos live = id · user_id · photo_url · taken_at ·
+--       created_at (NO taken_on, NO file_path, NO note) → index now on
+--       (user_id, taken_at desc)
+--   ALL other references of 0064/0065/0067 were live-verified the same way
+--   (plan_swaps.user_id/swap_type/created_at · coach_assignments.coach_id/
+--   client_id · subscriptions.* · subscription_requests.status ·
+--   profiles.* incl. is_test_account/avatar_url/phone · is_admin() RPC
+--   returns 200 live) before this re-push. The mirror drift for the two
+--   app surfaces (progress.ts taken_on/file_path/note, coach.ts user_id/
+--   status) is recorded as Phase 104 candidates — NOT touched here.
 -- ============================================================================
 
 -- ---------------------------------------------------------------
--- PART A — hot-path indexes
+-- PART A — hot-path indexes (v2: columns live-verified — the mirror's
+--          taken_on/user_id do not exist on production; real ones are
+--          taken_at/coach_id — see header note)
 -- ---------------------------------------------------------------
 create index if not exists idx_progress_photos_user_taken
-  on public.progress_photos (user_id, taken_on desc);
+  on public.progress_photos (user_id, taken_at desc);
 
 create index if not exists idx_plan_swaps_user_type_created
   on public.plan_swaps (user_id, swap_type, created_at desc);
 
-create index if not exists idx_coach_presence_user
-  on public.coach_presence (user_id);
+create index if not exists idx_coach_presence_coach
+  on public.coach_presence (coach_id);
 
 -- ---------------------------------------------------------------
 -- PART B — strict RLS on progress_photos
