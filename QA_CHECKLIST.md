@@ -6,7 +6,19 @@
 
 ---
 
-## Latest Verification — 2026-09-02 (Phase 99 — PHASE 2 OPTIMIZATIONS: hot-path indexes + strict progress_photos RLS + Open Food Facts domain fix + Plan Swaps optimistic UI — owner «GO! 🚀» after the 3-task deep analysis)
+## Latest Verification — 2026-09-02 (Phase 100 — PLAN_SWAPS STRICT RLS: the tamper-proof swap-history ledger gets the same lock progress_photos got in Phase 99 — owner directive)
+
+| Check | Result | How verified |
+|---|---|---|
+| Owner spec (3 rules) | ✅ | (1) users SELECT+INSERT own rows only — `plan_swaps_select_own` using + `plan_swaps_insert_own` with check, both `auth.uid() = user_id`; (2) coaches SELECT assigned clients' swaps via `coach_assignments(client_id = plan_swaps.user_id ∧ coach_id = auth.uid())` — `plan_swaps_select_assigned_coach`, same relation 0064 granted for progress_photos; (3) NO UPDATE/DELETE policy created for anyone — historical log |
+| Immutability belt-and-braces | ✅ | RLS already blocks UPDATE/DELETE (zero policies for those commands) AND table-level `revoke update, delete from anon, authenticated` makes any accidental attempt fail LOUDLY with permission-denied instead of silently matching 0 rows; service_role deliberately untouched — server ledger writer (tier-limits.recordSwap) + refund counter keep working |
+| Code-compatibility audit (pre-SQL, 4 files grepped + 3 read) | ✅ | tier-limits countThisWeekSwaps/recordSwap → supabaseAdmin (bypasses RLS) · refund.ts countFeatureUsageSince → supabaseAdmin, module server-only by contract · data/plans.getSwapUsage → browser client (RLS applies) BUT always `.eq("user_id", profile.id)`, sole caller PlansView → select_own covers it; coach reading a client's usage → select_assigned_coach · ZERO `.update()`/`.delete()` on plan_swaps in the whole src tree |
+| Deterministic reset (0064 pattern) | ✅ | enable RLS + pg_policies-driven drop of ANY unknown-name policies on plan_swaps first — a leftover permissive policy would void the lock; everything in one transaction + `notify pgrst, 'reload schema'` |
+| Schema impact | ✅ none | policies + grants only — no column/table change → types.ts regen NOT needed per MIGRATION INDEX LAW (c); migration_audit: no NEW drift (remaining flags are the documented §3 boundaries) |
+| Gates | ✅ PASS | tsc 0 · eslint 0 · vitest 191/191 · migration_audit clean |
+| Docs parity §3.6 | ✅ UPDATED | INDEX.md 0065 row + heading 0001→0065 + audit-log row + last-audit count · QA_CHECKLIST Phase 100 · PROGRESS Phase 100 + «آخر تحديث» · worklog Task 100 |
+
+## Previous Verification — 2026-09-02 (Phase 99 — PHASE 2 OPTIMIZATIONS: hot-path indexes + strict progress_photos RLS + Open Food Facts domain fix + Plan Swaps optimistic UI — owner «GO! 🚀» after the 3-task deep analysis)
 
 | Check | Result | How verified |
 |---|---|---|
