@@ -35,6 +35,9 @@ function escapeHtml(str: string | undefined | null): string {
  * A click enqueues an ai_jobs row and returns instantly; a resilient
  * watcher (surviving page reloads via localStorage) applies the result
  * to local plan state as soon as the worker finishes.
+ * PHASE 99: the click is now OPTIMISTIC — the quota counter decrements
+ * instantly and a persistent badge marks the queued item until the
+ * watcher applies the replacement (server truth reconciles after).
  * ───────────────────────────────────────────────────────────────────── */
 type PendingSwap = {
  id: string;
@@ -82,6 +85,9 @@ export function PlansView() {
  const [active, setActive] = useState<Plan | null>(null);
  const [swapLoading, setSwapLoading] = useState<string | null>(null);
  const [swapUsage, setSwapUsage] = useState<SwapUsage>({ meal: { used: 0, limit: 2, remaining: 2, unlimited: false }, exercise: { used: 0, limit: 2, remaining: 2, unlimited: false } });
+ // PHASE 99 — pending-swaps snapshot (mirror of the localStorage queue)
+ // powering the persistent «جاري التبديل» badge + double-submit guard.
+ const [pendingSwaps, setPendingSwaps] = useState<PendingSwap[]>([]);
  const activeWatchers = useRef<Set<string>>(new Set());
  // PHASE 69 — latest plans snapshot so the swap persists the EXACT mutated
  // content via /api/plans/member-edit (plans RLS is coach-write-only for
@@ -118,8 +124,34 @@ export function PlansView() {
  }
  }, [profile]);
 
+ // PHASE 99 — OPTIMISTIC QUOTA: decrement the visible counter the instant
+ // the user clicks. refreshUsage() reconciles with server truth right
+ // after enqueue (and doubles as the rollback on failure). The server
+ // remains the enforcement authority — this is display-only.
+ const applyOptimisticUsage = useCallback((kind: "meal" | "exercise") => {
+ setSwapUsage((prev) => {
+ const cur = prev[kind];
+ if (cur.unlimited) return prev;
+ const next = { ...cur, used: cur.used + 1, remaining: Math.max(0, cur.remaining - 1) };
+ return kind === "meal" ? { ...prev, meal: next } : { ...prev, exercise: next };
+ });
+ }, []);
+
+ /** PHASE 99 — pending predicate for the modal's persistent badge and
+ * double-submit guard (driven by the localStorage mirror). */
+ const isSwapPending = useCallback(
+ (kind: "meal" | "exercise", planId: string, i1: number, i2?: number) =>
+ pendingSwaps.some(
+ (e) => e.planId === planId && e.kind === kind && e.i1 === i1 && (i2 === undefined ? e.i2 === undefined : e.i2 === i2),
+ ),
+ [pendingSwaps],
+ );
+
  const removePendingSwap = useCallback((id: string) => {
  writePendingSwaps(readPendingSwaps().filter((e) => e.id !== id));
+ // PHASE 99 — keep badge state in sync (the «جاري التبديل» chip
+ // disappears the moment the watcher applies/removes the entry).
+ setPendingSwaps(readPendingSwaps());
  }, []);
 
  /** Applies a finished job's replacement to local plan state AND persists
@@ -198,6 +230,7 @@ export function PlansView() {
 
  // Resume watching swaps that were queued before a page reload.
  useEffect(() => {
+ setPendingSwaps(readPendingSwaps());
  readPendingSwaps().forEach((entry) => void watchSwapJob(entry));
  }, [watchSwapJob]);
 
@@ -237,6 +270,8 @@ export function PlansView() {
  return;
  }
  setSwapLoading(`meal-${planId}-${mealIndex}`);
+ // PHASE 99 OPTIMISTIC: the counter shows the new value instantly.
+ applyOptimisticUsage("meal");
  try {
  const plan = plans.find((p) => p.id === planId);
  const planContent = asPlanContent(plan?.content);
@@ -269,10 +304,15 @@ export function PlansView() {
  createdAt: Date.now(),
  };
  writePendingSwaps([...readPendingSwaps(), pendingEntry]);
- await refreshUsage(); // server recorded the swap at enqueue time
+ setPendingSwaps(readPendingSwaps());
+ // PHASE 99 OPTIMISTIC: quota was already decremented on click; this
+ // reconcile is fire-and-forget so the toast fires instantly.
+ void refreshUsage();
  void watchSwapJob(pendingEntry);
  toast.info("تم إرسال طلب الاستبدال 🚀 النتيجة هتتطبق تلقائيًا خلال ~10 دقائق حتى لو قفلت الصفحة.");
  } catch (e) {
+ // Roll back the optimistic quota decrement to server truth.
+ void refreshUsage();
  toast.error((e instanceof Error ? e.message : "") || t("common.error"));
  } finally {
  setSwapLoading(null);
@@ -286,6 +326,8 @@ export function PlansView() {
  return;
  }
  setSwapLoading(`ex-${planId}-${dayIndex}-${exIndex}`);
+ // PHASE 99 OPTIMISTIC: the counter shows the new value instantly.
+ applyOptimisticUsage("exercise");
  try {
  const plan = plans.find((p) => p.id === planId);
  const planContent = asPlanContent(plan?.content);
@@ -306,10 +348,14 @@ export function PlansView() {
  createdAt: Date.now(),
  };
  writePendingSwaps([...readPendingSwaps(), pendingEntry]);
- await refreshUsage();
+ setPendingSwaps(readPendingSwaps());
+ // PHASE 99 OPTIMISTIC: fire-and-forget reconcile (rollback on catch).
+ void refreshUsage();
  void watchSwapJob(pendingEntry);
  toast.info("تم إرسال طلب استبدال التمرين 🚀 البديل الآمن هيظهر خلال ~10 دقائق.");
  } catch (e) {
+ // Roll back the optimistic quota decrement to server truth.
+ void refreshUsage();
  toast.error((e instanceof Error ? e.message : "") || t("common.error"));
  } finally {
  setSwapLoading(null);
@@ -535,6 +581,7 @@ export function PlansView() {
  onSwapMeal={(i) => swapMeal(active.id, i)}
  onSwapExercise={(d, e) => swapExercise(active.id, d, e)}
  swapLoading={swapLoading}
+ isSwapPending={isSwapPending}
  onPrint={() => printPlan(active)}
  onOpenFile={(path) => openFile(active.type === "meal" ? "meal-plans" : "workout-plans", path)}
  />
@@ -604,6 +651,7 @@ function PlanDetailModal({
  onSwapMeal,
  onSwapExercise,
  swapLoading,
+ isSwapPending,
  onPrint,
  onOpenFile,
 }: {
@@ -612,6 +660,7 @@ function PlanDetailModal({
  onSwapMeal: (i: number) => void;
  onSwapExercise: (d: number, e: number) => void;
  swapLoading: string | null;
+ isSwapPending: (kind: "meal" | "exercise", planId: string, i1: number, i2?: number) => boolean;
  onPrint: () => void;
  onOpenFile: (path: string) => void;
 }) {
@@ -645,9 +694,9 @@ function PlanDetailModal({
  </div>
 
  {plan.type === "meal" && content && "meals" in content ? (
- <MealContent content={content} onSwap={onSwapMeal} swapLoading={swapLoading} planId={plan.id} />
+ <MealContent content={content} onSwap={onSwapMeal} swapLoading={swapLoading} planId={plan.id} isSwapPending={isSwapPending} />
  ) : plan.type === "workout" && content && "days" in content ? (
- <WorkoutContent content={content} onSwap={onSwapExercise} swapLoading={swapLoading} planId={plan.id} />
+ <WorkoutContent content={content} onSwap={onSwapExercise} swapLoading={swapLoading} planId={plan.id} isSwapPending={isSwapPending} />
  ) : (
  <div className="text-sm text-muted-foreground">
  {/* PHASE 69 — EVO-saved plans render their text content */}
@@ -668,8 +717,9 @@ function PlanDetailModal({
  );
 }
 
-function MealContent({ content, onSwap, swapLoading, planId }: { content: NutritionPlanContent; onSwap: (i: number) => void; swapLoading: string | null; planId: string }) {
- const { t } = useI18n();
+function MealContent({ content, onSwap, swapLoading, planId, isSwapPending }: { content: NutritionPlanContent; onSwap: (i: number) => void; swapLoading: string | null; planId: string; isSwapPending: (kind: "meal" | "exercise", planId: string, i1: number, i2?: number) => boolean }) {
+ const { t, lang } = useI18n();
+ const isAr = lang === "ar";
  return (
  <div className="space-y-4">
  {content.overview && <p className="whitespace-pre-line text-sm text-muted-foreground">{content.overview}</p>}
@@ -748,7 +798,13 @@ function MealContent({ content, onSwap, swapLoading, planId }: { content: Nutrit
  <div key={i} className="rounded-xl border border-border p-4">
  <div className="mb-2 flex items-center justify-between gap-2">
  <div>
- <h4 className="font-semibold"> {m.name}</h4>
+ <h4 className="flex items-center gap-2 font-semibold"> {m.name}
+ {isSwapPending("meal", planId, i) && (
+ <span className="rounded-full bg-[#ff9500]/10 px-2 py-0.5 text-[10px] font-semibold text-[#ff9500]">
+ ⏳ {isAr ? "جاري التبديل" : "Swapping"}
+ </span>
+ )}
+ </h4>
  {m.time && <p className="text-xs text-muted-foreground">{m.time}</p>}
  </div>
  <Button
@@ -756,14 +812,14 @@ function MealContent({ content, onSwap, swapLoading, planId }: { content: Nutrit
  variant="ghost"
  className="h-7 gap-1 px-2 text-xs text-primary hover:bg-primary/10"
  onClick={() => onSwap(i)}
- disabled={swapLoading === `meal-${planId}-${i}`}
+ disabled={swapLoading === `meal-${planId}-${i}` || isSwapPending("meal", planId, i)}
  >
- {swapLoading === `meal-${planId}-${i}` ? (
+ {swapLoading === `meal-${planId}-${i}` || isSwapPending("meal", planId, i) ? (
  <Loader2 className="h-3.5 w-3.5 animate-spin" />
  ) : (
  <RefreshCw className="h-3.5 w-3.5" />
  )}
- {t("plan.swap")}
+ {isSwapPending("meal", planId, i) ? (isAr ? "قيد الاستبدال" : "Swapping") : t("plan.swap")}
  </Button>
  </div>
  <table className="w-full text-sm">
@@ -813,8 +869,9 @@ function MealContent({ content, onSwap, swapLoading, planId }: { content: Nutrit
  );
 }
 
-function WorkoutContent({ content, onSwap, swapLoading, planId }: { content: WorkoutPlanContent; onSwap: (d: number, e: number) => void; swapLoading: string | null; planId: string }) {
- const { t } = useI18n();
+function WorkoutContent({ content, onSwap, swapLoading, planId, isSwapPending }: { content: WorkoutPlanContent; onSwap: (d: number, e: number) => void; swapLoading: string | null; planId: string; isSwapPending: (kind: "meal" | "exercise", planId: string, i1: number, i2?: number) => boolean }) {
+ const { t, lang } = useI18n();
+ const isAr = lang === "ar";
  return (
  <div className="space-y-4">
  {content.overview && <p className="text-sm text-muted-foreground">{content.overview}</p>}
@@ -871,14 +928,19 @@ function WorkoutContent({ content, onSwap, swapLoading, planId }: { content: Wor
  {ex.rest}
  </span>
  )}
+ {isSwapPending("exercise", planId, i, j) && (
+ <span className="rounded-lg bg-[#ff9500]/10 px-3 py-1 text-xs font-semibold text-[#ff9500]">
+ ⏳ {isAr ? "جاري التبديل" : "Swapping"}
+ </span>
+ )}
  <Button
  size="sm"
  variant="ghost"
  className="ml-auto h-7 gap-1 px-2 text-xs text-primary hover:bg-primary/10"
  onClick={() => onSwap(i, j)}
- disabled={swapLoading === `ex-${planId}-${i}-${j}`}
+ disabled={swapLoading === `ex-${planId}-${i}-${j}` || isSwapPending("exercise", planId, i, j)}
  >
- {swapLoading === `ex-${planId}-${i}-${j}` ? (
+ {swapLoading === `ex-${planId}-${i}-${j}` || isSwapPending("exercise", planId, i, j) ? (
  <Loader2 className="h-3.5 w-3.5 animate-spin" />
  ) : (
  <RefreshCw className="h-3.5 w-3.5" />

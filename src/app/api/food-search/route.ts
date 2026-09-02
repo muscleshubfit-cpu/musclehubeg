@@ -5,16 +5,21 @@ import { FOODS } from "@/lib/foods";
  * GET /api/food-search?q=chicken+breast
  *
  * Unified food search combining:
- *   1. Our local food database (FOODS array)
- *   2. قاعدة بيانات المنتجات (for commercial products with images)
+ *   1. Our local food database (FOODS array — hand-curated + USDA import)
+ *   2. Open Food Facts (for commercial products with images)
  *
  * Returns unified results with consistent format.
- * قاعدة بيانات المنتجات results include product images.
+ * Open Food Facts results include product images.
+ *
+ * BUG HISTORY (Phase 99, 2026-09-02): commit 00d6dfa ("remove source
+ * names") find-replaced the REAL domain world.openfoodfacts.org into the
+ * nonexistent world.product-database.org — DNS fails instantly (HTTP 000)
+ * and the external half of this search died SILENTLY. Restored 2026-09-02.
  */
 
 type SearchResult = {
   name: string;
-  source: "local" | "product-database";
+  source: "local" | "openfoodfacts";
   slug?: string;
   url?: string;
   per100g: {
@@ -27,7 +32,7 @@ type SearchResult = {
   brand?: string;
 };
 
-/** Shape of a product-database product row that this endpoint consumes. */
+/** Shape of an Open Food Facts product row that this endpoint consumes. */
 type OffProduct = {
   product_name?: string | null;
   code?: string | null;
@@ -61,11 +66,11 @@ export async function GET(request: NextRequest) {
       per100g: f.per100g,
     }));
 
-  // 2. Search قاعدة بيانات المنتجات (if query is long enough)
+  // 2. Search Open Food Facts (if query is long enough)
   let offResults: SearchResult[] = [];
   if (q.length >= 3) {
     try {
-      const offUrl = `https://world.product-database.org/api/v2/search?search_terms=${encodeURIComponent(
+      const offUrl = `https://world.openfoodfacts.org/api/v2/search?search_terms=${encodeURIComponent(
         query,
       )}&page_size=10&fields=product_name,brands,nutriments,image_front_small_url,code`;
 
@@ -87,7 +92,7 @@ export async function GET(request: NextRequest) {
             const n = p.nutriments || {};
             return {
               name: p.product_name || p.code || "Unknown",
-              source: "product-database" as const,
+              source: "openfoodfacts" as const,
               brand: p.brands || undefined,
               image: p.image_front_small_url || undefined,
               per100g: {
@@ -101,11 +106,11 @@ export async function GET(request: NextRequest) {
           .slice(0, 10);
       }
     } catch (e) {
-      console.error("[api/food-search] قاعدة بيانات المنتجات failed:", e);
+      console.error("[api/food-search] Open Food Facts failed:", e);
     }
   }
 
-  // 3. Merge results — local first, then قاعدة بيانات المنتجات
+  // 3. Merge results — local first, then Open Food Facts
   const all = [...localResults, ...offResults];
 
   return NextResponse.json({

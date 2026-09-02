@@ -6,7 +6,20 @@
 
 ---
 
-## Latest Verification — 2026-09-02 (Phase 98 — IMAGE SPEED BEYOND VERCEL: on-device upload compression + local-asset recompression + preconnects — owner question «هل فى طريقة اخرى لتحسين السرعه وضغط الصور خارج فيرسل؟»)
+## Latest Verification — 2026-09-02 (Phase 99 — PHASE 2 OPTIMIZATIONS: hot-path indexes + strict progress_photos RLS + Open Food Facts domain fix + Plan Swaps optimistic UI — owner «GO! 🚀» after the 3-task deep analysis)
+
+| Check | Result | How verified |
+|---|---|---|
+| Task 1 truth-check (foods/exercises) | ✅ | 3 independent proofs the libraries are IN-CODE static files, NOT DB tables: (a) all 39 distinct `.from()` tables enumerated, (b) types.ts mirror 40 tables zero food/exercise, (c) 73 migrations zero library CREATE TABLE; owner verified live site himself then confirmed «You were 100% right about the static files» |
+| 0064 PART A — 3 hot-path indexes | ✅ | `idx_progress_photos_user_taken (user_id, taken_on desc)` mirrors listPhotos() · `idx_plan_swaps_user_type_created (user_id, swap_type, created_at desc)` mirrors tier-limits.getSwapUsage() · `idx_coach_presence_user (user_id)` mirrors data/coach.ts — the ad-hoc Phase-5-era tables never had ANY index |
+| 0064 PART B — strict progress_photos RLS | ✅ | enable RLS + catalog-driven drop of ANY unknown-name policies (a leftover permissive policy would void the lock) + 4 named policies: select_own / insert_own / delete_own (deletePhoto() is a live feature) / select_assigned_coach via coach_assignments (client_id=user_id AND coach_id=auth.uid()); UPDATE deliberately NOT granted (no code path updates photo rows) — all in ONE transaction, no RLS-on-with-zero-policies window |
+| 0064 PART C — storage bucket policies (add-only) | ✅ | progress_photos_storage_owner (own folder prefix, mirrors working behavior) + progress_photos_storage_coach (SELECT on assigned clients' objects — without it createSignedUrl fails for coaches); existing unknown storage.objects policies NOT touched |
+| Task 2 — broken OFF domain fixed | ✅ | 00d6dfa ("remove source names") find-replaced world.openfoodfacts.org → nonexistent world.product-database.org (DNS HTTP 000, external product search dead silently); restored + honest naming (OffProduct type was the tell) + union literal "product-database"→"openfoodfacts" synced in meal-planner page + save-meal-plan comment; consumers only compare === "local" (compat verified) |
+| Task 3 — Plan Swaps optimistic UI | ✅ | quota counter decrements INSTANTLY on click (applyOptimisticUsage, display-only; server stays the authority) · refreshUsage() is fire-and-forget reconcile after enqueue + rollback on catch · persistent ⏳ badge («جاري التبديل» / «قيد الاستبدال») on the queued meal/exercise from the localStorage mirror (pendingSwaps state synced on mount/add/remove) · double-submit guard via disabled button · EVO chat verified ALREADY optimistic (instant user bubble + 429 reconcile + Phase 89 SSE streaming) — documented, no changes |
+| Gates | ✅ PASS | tsc 0 · eslint 0 on touched files · vitest 191/191 · migration_audit.py clean |
+| Docs parity §3.6 | ✅ UPDATED | INDEX.md 0064 row + audit-log row + counts · QA_CHECKLIST Phase 99 · PROGRESS Phase 99 + «آخر تحديث» · worklog Task 99 |
+
+## Previous Verification — 2026-09-02 (Phase 98 — IMAGE SPEED BEYOND VERCEL: on-device upload compression + local-asset recompression + preconnects — owner question «هل فى طريقة اخرى لتحسين السرعه وضغط الصور خارج فيرسل؟»)
 
 | Check | Result | How verified |
 |---|---|---|

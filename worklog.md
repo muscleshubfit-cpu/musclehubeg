@@ -578,3 +578,24 @@ Work Log:
 Stage Summary:
 - Image speed beyond Vercel delivered: uploads compressed on-device (permanent storage + bandwidth win), local assets −20%, blog image origins preconnected; Cloudinary upgrade path documented and ready pending owner's free-account cloud name
 - REMINDER to owner: revoke the GitHub token (ghp_SV…IvWO) once all work is done — used transiently in git push commands only, never stored in files
+
+---
+Task ID: 99
+Agent: Super Z (main)
+Task: Phase 99 — PHASE 2 OPTIMIZATIONS (owner 3-task directive, deep analysis then «GO! 🚀»): Task 1 hot-path indexes (after proving foods/exercises libraries are in-code static files, NOT DB tables) · Task 2 strict progress_photos RLS · Task 3 optimistic UI
+
+Work Log:
+- Task 1 truth-check: enumerated ALL 39 distinct .from() tables + types.ts 40-table mirror + 73 migrations → ZERO food/exercise DB tables anywhere (foods.ts 8,830 = hand-curated core + USDA FoodData Central import c4b2022; exercises.ts 868 = free-exercise-db MIT import c92ff4c, images live from raw.githubusercontent.com — all verified 200 on production)
+- BONUS bug found by direct measurement: /api/food-search external half DEAD — commit 00d6dfa ("remove source names") find-replaced world.openfoodfacts.org → nonexistent world.product-database.org (DNS HTTP 000); type OffProduct was the tell
+- 0064 PART A: idx_progress_photos_user_taken(user_id,taken_on desc) + idx_plan_swaps_user_type_created(user_id,swap_type,created_at desc) + idx_coach_presence_user(user_id) — the three ad-hoc Phase-5-era tables had ZERO indexes despite per-request .eq(user_id) queries
+- 0064 PART B: enable RLS + catalog-driven drop of unknown-name policies + 4 named policies (select_own/insert_own/delete_own/select_assigned_coach via coach_assignments) — DELETE required (deletePhoto live), UPDATE deliberately withheld (no code path); single transaction
+- 0064 PART C: storage.objects policies add-only — owner own-folder prefix + coach SELECT on assigned clients (createSignedUrl needs object read); unknown existing storage policies untouched
+- Domain fix: route.ts world.openfoodfacts.org restored + honest naming (comments/union "openfoodfacts") synced in meal-planner page.tsx + save-meal-plan comment; consumers only compare === "local" (compat verified)
+- Optimistic UI (PlansView): applyOptimisticUsage decrements counter on click (display-only, server authority unchanged) · refreshUsage fire-and-forget reconcile + rollback on catch · pendingSwaps state mirrors localStorage queue (mount/add/remove sync) · persistent ⏳ badge + «قيد الاستبدال» button state + double-submit disabled guard on meal cards & exercise cards · EVO chat verified ALREADY optimistic (instant bubble + 429 reconcile + Phase 89 SSE) — documented only
+- Gates: tsc 0 · eslint 0 on touched files · vitest 191/191 · scripts/migration_audit.py clean
+- Docs parity §3.6: INDEX.md 0064 row + audit-log row + counts · QA_CHECKLIST Phase 99 · PROGRESS Phase 99 + «آخر تحديث» · this entry
+
+Stage Summary:
+- All three owner tasks delivered in one push: 0064 migration (auto-applies via integration), food-search domain fix, PlansView optimistic UX
+- Owner follow-ups available: run VERIFY_SCHEMA_DRIFT.sql (read-only) to see the new RLS state on progress_photos; test meal-planner external product search
+- REMINDER: revoke the GitHub token once all work is done — transient git-push use only

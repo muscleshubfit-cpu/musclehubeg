@@ -36,7 +36,7 @@ type Per100g = {
 type MealItem = {
   id: string;
   name: string;
-  source: "local" | "product-database";
+  source: "local" | "openfoodfacts";
   grams: number;
   per100g: Per100g;
 };
@@ -49,7 +49,7 @@ type Meal = {
 
 type SearchResult = {
   name: string;
-  source: "local" | "product-database";
+  source: "local" | "openfoodfacts";
   per100g: Per100g;
 };
 

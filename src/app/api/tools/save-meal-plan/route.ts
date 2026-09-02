@@ -20,7 +20,7 @@ import { getLimits, type MembershipTier } from "@/lib/memberships";
  *         name: string,
  *         items: Array<{
  *           name: string,
- *           source: "local" | "product-database",
+ *           source: "local" | "openfoodfacts",
  *           grams: number,
  *           per100g: { calories, protein, carbs, fat }
  *         }>
