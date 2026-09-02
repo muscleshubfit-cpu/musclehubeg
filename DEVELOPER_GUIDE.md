@@ -452,11 +452,12 @@ State tracked in blog_generation_queue table (one row per language).
 
 ## 8. API Routes Reference
 
-> **Phase 82 parity fix (2026-09-02):** The previous table listed
-> 36 routes (many of them retired). The verified count is
-> **67 endpoints** (66 `route.ts` + 1 `route.tsx` for the OG image).
-> Verified by `find src/app/api -name "route.ts*" | wc -l` and by
-> per-file extraction of exported handlers + auth guards.
+> **Phase 82 parity fix (2026-09-02) + Phase 104 docs-parity (2026-09-03):**
+> The previous table listed 36 routes (many of them retired); Phase 82
+> verified **67 endpoints**, and Phase 103 added two more — the verified
+> count is now **69 endpoints** (68 `route.ts` + 1 `route.tsx` for the
+> OG image). Verified by `find src/app/api -name "route.ts*" | wc -l`
+> and by per-file extraction of exported handlers + auth guards.
 
 | Route | Method | Auth | الوظيفة |
 |---|---|---|---|
@@ -464,6 +465,7 @@ State tracked in blog_generation_queue table (one row per language).
 | `/api/admin/assignments` | GET/PATCH | Admin | تعيين العملاء للمدربين + سجل التفعيلات |
 | `/api/admin/blog/cleanup` | POST | Admin/Cron | إصلاح النصوص المشوهة في المقالات |
 | `/api/admin/coach-fees` | GET/PATCH | Admin | رسوم نظام المدربين الشهرية لكل عميل |
+| `/api/admin/coach-kind` | POST | Admin | تحويل نوع المدرب site ↔ b2b (profiles.coach_kind — Phase 103) |
 | `/api/admin/coach-pages` | GET/PATCH | Admin | مراجعة صفحات المدربين (نشر/رفض) |
 | `/api/admin/coach-pages/notify` | POST | Admin | إشعار مدرب بقرار مراجعة صفحته |
 | `/api/admin/coach-payments` | GET | Admin | سجل تفعيلات المدربين (coach_payments) |
@@ -472,6 +474,7 @@ State tracked in blog_generation_queue table (one row per language).
 | `/api/admin/leads` | GET/PATCH/DELETE | Admin | قاعدة العملاء (leads من الأدوات + التسجيلات) |
 | `/api/admin/refunds` | GET/POST | Admin | طلبات الاسترداد 7 أيام + قرار الإدارة (إنهاء الاشتراك + عكس العمولة) |
 | `/api/admin/saved-results` | GET | Admin | كل النتائج المحفوظة لكل المستخدمين |
+| `/api/admin/site-assignments` | GET/POST/PATCH/DELETE | Admin (service-role) | إسنادات متابعة B2C عضو↔مدرب موقع (site_coach_assignments — Phase 103) |
 | `/api/admin/staff` | POST/PATCH | Admin | إدارة حسابات الموظفين |
 | `/api/admin/wallets` | GET | Admin | محافظ المدربين (أرصدة + حركات) |
 | `/api/admin/wallets/adjust` | POST | Admin | تعديل يدوي لمحفظة مدرب (مُدقَّق) |
@@ -528,7 +531,7 @@ State tracked in blog_generation_queue table (one row per language).
 | `/api/tools/saved-results` | GET/DELETE | User | إدارة النتائج المحفوظة |
 | `/api/upload` | POST | User | رفع ملف للتخزين (حدود + تعقيم) |
 
-**Total: 67 endpoints** (66 `route.ts` + 1 `route.tsx`) — verified 2026-09-02.
+**Total: 69 endpoints** (68 `route.ts` + 1 `route.tsx`) — verified 2026-09-03 (Phase 104 docs-parity).
 
 ---
 

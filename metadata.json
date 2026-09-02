@@ -1,6 +1,6 @@
 {
   "name": "MuscleHub",
-  "description": "AI-powered fitness & nutrition platform combining EVO AI engine with custom exercises, workout programs, and meal planning.",
+  "description": "AI-powered bilingual (AR/EN) fitness & nutrition platform — EVO AI coach (OpenRouter + Groq), 868 exercises, 8,830 foods, 6 free tools, workout programs, memberships, B2B coach system with wallets, B2C site-coach follow-ups, affiliate program, and an automated blog CMS.",
   "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+  "majorCapabilities": []
 }

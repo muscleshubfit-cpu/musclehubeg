@@ -6,7 +6,20 @@
 
 ---
 
-## Latest Verification — 2026-09-03 (Phase 103b — ADMIN CLIENT TYPE FIX: owner reported right after using the unified page — «فى خطاء ، جميع العملاء مكتوب عملاء b2b وده خطاء». Root cause proven in data + SQL, fixed by 0068 auto-migration + UI truth labels)
+## Latest Verification — 2026-09-03 (Phase 104 — DOCS PARITY SYNC: owner asked «عايز اتاكد ان كل خصائص ومميزات المشروع مكتوبة فى وصف وهيكل المشروع بالظبط ، وصف الريبو مكتوب قديم محتاج يتعدل» — full audit of every doc-facing description/structure against the CODE, then the stale GitHub repo About rewritten via API)
+
+| Check | Result | How verified |
+|---|---|---|
+| Docs-vs-code audit (counts from files, not memory) | ✅ | direct filesystem counts: 82 page.tsx (README said 76) · 69 API routes (said 67) · 80 SQL files (said 73, "dated up to 0062" — real map now 0001→0068) · 31 views (said 33) · 51 ui components (said 52) · 13 data modules ✓ · 5 workflows ✓ · admin/ = 19 sections + AdminShell + admin/ui.tsx |
+| README.md resynced through Phase 103b | ✅ | header parity line 81→103b; intro adds programs library / coach directory / site-coach B2C / Admin Panel 2.0 / SSE streaming; NEW «For Site Coaches (B2C)» section; Platform & Admin rewritten for AdminShell + unified clients + finances + coaches roster + site-assignments; Database Setup = 4 naming families per INDEX.md + 0063 drift RESOLVED note + pipeline-halts-on-failure lesson; DB tables add coach_kind / site_coach_assignments / get_admin_clients_paged(stats); yearly prices $119/$239/$359 verified against src/lib/memberships.ts |
+| Resolved known-issue removed + honest open one added | ✅ | «Phase-5 back-fill pending» deleted (closed by 0063 backfill + 0064/0065 RLS — Phase 99-run) and moved to the FIXED list; open candidate documented as Phase 105: types.ts mirror drift (coach_presence user_id/status · progress.ts taken_on/file_path/note — live-proven in 99-run) |
+| GitHub repo About (the owner's «وصف الريبو») | ✅ HTTP 200 | PATCH /repos/muscleshubfit-cpu/musclehubeg via API: old 'MuscleHubEG — Ahmed Zake Online Nutrition & Fitness Coaching Platform (Next.js 16 + Supabase + Vercel)' → full platform description (EVO AI coach, 868 exercises, 8.8k foods, tools, programs, memberships, B2B wallets/activations, B2C site-coach follow-ups, 20% affiliate, AI blog CMS, stack); + 10 topics (fitness, nutrition, workout, nextjs, react, supabase, vercel, ai-coach, arabic, bilingual); re-read after PATCH confirms stored values |
+| metadata.json stale AI capability flag | ✅ | MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API removed (direct Gemini integration was REMOVED by owner directive 2026-08-27 — OpenRouter + Groq ONLY); description expanded to the platform's real feature set |
+| DEVELOPER_GUIDE §8 | ✅ | 67 → **69 endpoints** + 2 new rows /api/admin/coach-kind + /api/admin/site-assignments (Phase 103); total line re-verified 2026-09-03 |
+| Docs-only scope | ✅ N/A code gates | zero src/supabase changes → tsc/eslint/vitest not applicable; the doc-relevant guard `scripts/check-stale-refs.sh` → exit 0 clean; every README relative link target verified to exist on disk |
+| Docs parity §3.6 | ✅ UPDATED | README.md · DEVELOPER_GUIDE §8 · metadata.json · GitHub About+topics · QA_CHECKLIST Phase 104 · PROGRESS Phase 104 + «آخر تحديث» · worklog Task 104 · INDEX.md untouched (no migration) |
+
+## Previous Verification — 2026-09-03 (Phase 103b — ADMIN CLIENT TYPE FIX: owner reported right after using the unified page — «فى خطاء ، جميع العملاء مكتوب عملاء b2b وده خطاء». Root cause proven in data + SQL, fixed by 0068 auto-migration + UI truth labels)
 
 | Check | Result | How verified |
 |---|---|---|

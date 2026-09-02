@@ -729,3 +729,20 @@ Work Log:
 
 Stage Summary:
 - التصنيف اتصلح من الجذر — المالك هيشوف أعضاء الموقع > 0 وعملاء B2B للمشتركين فعلاً بس بعد نشر 0068
+
+---
+Task ID: 104
+Agent: Super Z (main)
+Task: مزامنة الوثائق والوصف (docs-only) — «عايز اتاكد ان كل خصائص ومميزات المشروع مكتوبة فى وصف وهيكل المشروع بالظبط ، وصف الريبو مكتوب قديم محتاج يتعدل»
+
+Work Log:
+- تدقيق أرقام من الملفات مباشرة: 82 page.tsx (README قال 76) · 69 API route (قال 67) · 80 ملف SQL (قال 73 ولغاية 0062 — الحقيقي 0001→0068) · 31 views (قال 33) · 51 ui (قال 52) · 13 data modules ✓ · 5 workflows ✓
+- README.md متزامن من الصفر لحد Phase 103b: مقدمة المنصة الكاملة، قسم «For Site Coaches (B2C)» جديد، Platform & Admin معاد كتابته على Admin Panel 2.0، Database Setup على عائلات التسمية الأربعة من INDEX.md + ملاحظة أن انجراف Phase 5 مقفول بـ 0063/0064/0065، أسعار سنوية متحققة من memberships.ts
+- Known Issues: «back-fill pending» اتشال (محلول) والمرشح المفتوح اتوثق كـ Phase 105 (مرآة types.ts: coach_presence user_id/status · progress.ts taken_on/file_path/note)
+- وصف الريبو على GitHub عبر API: PATCH /repos → HTTP 200 (من «Ahmed Zake Online Nutrition & Fitness Coaching Platform» للوصف الكامل للمنصة) + PUT topics → HTTP 200 (10 topics) — واتأكدت بالقراءة بعد التعديل
+- metadata.json: شارة MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API اتشالت (Gemini المباشر متشال بأمر المالك 2026-08-27)
+- DEVELOPER_GUIDE §8: 67 → 69 endpoints + صفين الجداد (coach-kind · site-assignments)
+- بوابات docs: check-stale-refs.sh exit 0 · كل روابط README النسبية اتحققت على القرص · tsc/eslint/vitest لا تنطبق (صفر كود)
+
+Stage Summary:
+- كل الوصف الواجه للمستخدم (README + GitHub About + metadata + DEVELOPER_GUIDE) بقى مطابق للكود الفعلي عند Phase 103b — الفجوة 81→103b اتقفلت، ووصف الريبو القديم اتصلح نهائيًا

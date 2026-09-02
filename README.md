@@ -3,9 +3,9 @@
 > **Live:** [musclehubeg.vercel.app](https://musclehubeg.vercel.app)
 > **Repository:** [github.com/muscleshubfit-cpu/musclehubeg](https://github.com/muscleshubfit-cpu/musclehubeg)
 > **Stack:** Next.js 16 · React 19 · Supabase · OpenRouter + Groq AI · Tailwind CSS 4
-> **Last updated:** 2026-09-02 (docs↔code parity through Phase 81)
+> **Last updated:** 2026-09-03 (docs↔code parity through Phase 103b)
 
-A bilingual (Arabic/English) fitness & nutrition platform with 868 exercises, 8,830 foods, 6 free tools, an AI coach (EVO) with a two-window plan-quota system, an automated blog CMS, a full B2B coach system (clients, wallets, activations), an affiliate program with 20% commissions, a 7-day conditional refund system, and membership tiers.
+A bilingual (Arabic/English) fitness & nutrition platform with 868 exercises, 8,830 foods, a workout-programs library, 6 free tools, an AI coach (EVO) with live streaming chat and a two-window plan-quota system, a public coach directory, an automated bilingual blog CMS, a full B2B coach system (clients, wallets, activations, certificates, public coach pages), a B2C site-coach follow-up layer (`coach_kind` + `site_coach_assignments`), Admin Panel 2.0 (unified client roster with type filters, finances, site-assignments), an affiliate program with 20% commissions, a 7-day conditional refund system, and membership tiers.
 
 ---
 
@@ -77,18 +77,31 @@ CRON_SECRET=your-cron-secret
 
 ### Database Setup
 
-1. Go to your Supabase Dashboard → **SQL Editor**
-2. Run the migration files from `supabase/migrations/` in order —
-   numeric prefixes first (`0001…0041`), then the dated files
-   (`2026…0057` → `2026…0062`) — 73 SQL files total.
-3. After the migrations, run `NOTIFY pgrst, 'reload schema';` to refresh the PostgREST schema cache
-4. Or if you have the Supabase CLI: `supabase db push`
+`supabase/migrations/` contains **80 SQL files** in four naming
+families (see [`supabase/migrations/INDEX.md`](./supabase/migrations/INDEX.md) — the
+binding registry). The numbering map currently runs **0001 → 0068**:
 
-> **Note on production drift:** Three tables (`plan_swaps`,
-> `progress_photos`, `coach_presence`) were created ad-hoc on the
-> production database during Phase 5 and are still not in any
-> migration file — see [`PROGRESS.md`](./PROGRESS.md) § "Phase 5" for
-> the SQL scripts that were applied (still an open back-fill item).
+| Family | Example | Applied by |
+|---|---|---|
+| `0001_*.sql` (numeric only) | `0001_init.sql` … `0005_blog_generation_queue.sql` | Supabase GitHub integration (automatic) |
+| `YYYYMMDDHHMMSS_NNNN_*.sql` (dated) | `20260902120000_0063_schema_drift_backfill.sql` … `20260903153000_0068_admin_client_type_fix.sql` | Supabase GitHub integration (automatic) — **the required format for all new migrations** |
+| `RUN_ON_SUPABASE_*` | `RUN_ON_SUPABASE_0066_DELETE_TEST_ADMIN_ACCOUNT.sql` | Manual only (SQL Editor) — never auto-applied |
+| `VERIFY_*.sql` | `VERIFY_SCHEMA_DRIFT.sql` | Manual, read-only verification scripts |
+
+For a fresh project: run the numeric files first (`0001…0005`), then the
+dated files in timestamp order (`2026…0057` → `2026…0068`), then
+`NOTIFY pgrst, 'reload schema';` to refresh the PostgREST schema cache —
+or just `supabase db push` with the CLI. Manual `RUN_ON_SUPABASE_*`
+scripts are applied only when the corresponding legacy feature is needed.
+
+> **Historical drift — RESOLVED (Phase 99-run, 2026-09-03):** three
+> tables created ad-hoc on production during Phase 5 (`plan_swaps`,
+> `progress_photos`, `coach_presence`) were back-filled into migration
+> `0063_schema_drift_backfill.sql`, RLS-hardened in `0064`
+> (progress_photos) and `0065` (plan_swaps), and the stalled pipeline
+> (0064→0067) was unblocked and live-verified. A first failed migration
+> rolls back atomically and HALTS the auto pipeline — that is by design
+> (loud failure over silent drift; see the 0054 ledger repair).
 
 ### Run Locally
 
@@ -124,6 +137,13 @@ The app is configured for Vercel with (see [`vercel.json`](./vercel.json)):
 - **Cron jobs (2):** weekly progress reminder (Sunday 07:00 UTC) + daily `dispatch-pipelines` (21:00 UTC — tops up missed blog slots + rescues the AI-jobs worker)
 - **Blog cadence:** 6 articles/day — 3 EN (`blog-post-en.yml` at 12/16/22 UTC) + 3 AR (`blog-post-ar.yml` at 05/11/18 UTC); ONE workflow run == ONE article in ONE language, and the dispatcher only tops up missed slots (never exceeds 3+3)
 
+**Database migrations on deploy:** the Supabase GitHub integration
+auto-applies every auto-named migration (numeric + dated families) on
+push, in order. One failing migration halts the whole pipeline until
+fixed — proven live in Phase 99-run, where a single 42703 on two phantom
+columns froze the ledger at 0063 and silently held back 0064→0067
+(RLS hardening + the entire Phase 103 admin unification) until corrected.
+
 ---
 
 ## 🏗️ Project Structure
@@ -131,37 +151,49 @@ The app is configured for Vercel with (see [`vercel.json`](./vercel.json)):
 ```
 musclehubeg/
 ├── src/
-│   ├── app/                    # Next.js App Router — 76 page.tsx files
+│   ├── app/                    # Next.js App Router — 82 page.tsx files
 │   │   ├── (app)/              # Authenticated routes (dashboard, coach, plans, progress…)
-│   │   ├── admin/              # ADMIN-ONLY dashboard — AdminGate (coaches are redirected to /coach,
-│   │   │                       #   APIs return 403). 13 top-level sections / 15 page.tsx files:
-│   │   │                       #   external-plans (AI plans for non-members + regeneration + version
-│   │   │                       #   history), accounts, assignments, blog CMS, coach-pages,
-│   │   │                       #   coach-support, coach-system, leads, payments (+7-day refunds),
-│   │   │                       #   referrals, saved-results, wallets
-│   │   ├── api/                # 67 API endpoints (66 route.ts + og-image route.tsx) — see DEVELOPER_GUIDE §8
-│   │   ├── ar/                 # Full Arabic mirror — 15 routes (blog, exercises, foods, programs,
-│   │   │                       #   coaches, for-coaches, memberships, faq, about…)
+│   │   ├── (home)/             # Landing page route group
+│   │   ├── admin/              # ADMIN-ONLY — Admin Panel 2.0 with dedicated AdminShell
+│   │   │                       #   (AdminGate redirects coaches to /coach; APIs return 403).
+│   │   │                       #   Sections: dashboard (KPIs + quick actions, /admin redirects
+│   │   │                       #   here), clients (UNIFIED roster — type filter buttons
+│   │   │                       #   الكل/أعضاء الموقع/عملاء B2B/مدربو الموقع/مدربو B2B/الإدارة +
+│   │   │                       #   lifecycle tabs + danger tools), site-assignments (B2C
+│   │   │                       #   member↔site-coach 1↔1), coaches (real roster + one-tap
+│   │   │                       #   site/B2B kind toggle), finances (SITE money B2C vs COACH
+│   │   │                       #   money B2B), payments (+7-day refund console), members +
+│   │   │                       #   accounts (legacy redirects), assignments, blog CMS,
+│   │   │                       #   coach-pages, coach-support, coach-system, referrals,
+│   │   │                       #   leads, saved-results, wallets, external-plans
+│   │   ├── api/                # 69 API endpoints (68 route.ts + og-image route.tsx) — see DEVELOPER_GUIDE §8
+│   │   ├── ar/                 # Full Arabic RTL mirror (blog, exercises, foods, programs,
+│   │   │                       #   coaches, for-coaches, memberships, faq…)
 │   │   ├── affiliate/          # Affiliate program page (7-step program, 20% commission)
-│   │   ├── blog/               # Blog (list + article)
+│   │   ├── blog/               # Blog (list + article + OG images)
 │   │   ├── checkout/           # Checkout flow
 │   │   ├── coaching/           # Human coaching marketing page
+│   │   ├── coaches/[slug]/     # Public coach directory pages (+ featured API + preview route)
 │   │   ├── evo/                # EVO AI coach marketing page
 │   │   ├── exercises/          # Exercise library (868)
 │   │   ├── foods/              # Food database (8,830)
 │   │   ├── for-coaches/        # Coach join funnel (+ register)
 │   │   ├── meal-planner/       # Interactive meal planning tool
 │   │   ├── memberships/        # Pricing + membership tiers + comparison table
+│   │   ├── programs/           # Workout programs library (7 programs)
 │   │   ├── tools/              # 5 calculators (BMI, body fat, calories, macros, water)
 │   │   ├── profile/            # User profile + settings
 │   │   ├── layout.tsx          # Root layout (providers, analytics, ads, PWA)
 │   │   └── metadata.ts         # Site-wide SEO metadata
 │   ├── components/
-│   │   ├── ui/                 # shadcn/ui primitives (52 files, new-york style)
-│   │   ├── views/              # Page-level views (33 views)
+│   │   ├── ui/                 # shadcn/ui primitives (51 files, new-york style)
+│   │   ├── views/              # Page-level views (31 views)
+│   │   ├── admin/              # AdminShell (sidebar + mobile button grid + live badges)
+│   │   │                       #   + admin/ui.tsx shared primitives (StatTile, badges, tabs…)
 │   │   ├── blog/               # Blog article + list components
+│   │   ├── coach/              # Coach landing content
 │   │   ├── SiteHeader.tsx      # Navigation + auth + notifications
-│   │   ├── AppLayout.tsx       # Role sidebar (member/coach/admin — admin items gated)
+│   │   ├── AppLayout.tsx       # Role sidebar (member/coach — admins live in /admin)
 │   │   ├── EvoFloatingWidget.tsx # EVO AI chat floating widget (quota meters)
 │   │   ├── AdminNotificationBell.tsx / NotificationBell.tsx
 │   │   ├── SaveResultButton.tsx # Tool result save + PDF export
@@ -184,9 +216,10 @@ musclehubeg/
 │   │   ├── affiliate-engine.ts # Affiliate engine + COMMISSION_RATE 20% + payout holds
 │   │   ├── auth-server.ts      # Server auth helpers (requireUser, requireCoach, requireAdmin)
 │   │   ├── ai-provider.ts      # Unified AI layer: OpenRouter + Groq ONLY (callAI, callAIWithFallback,
-│   │   │                       #   callFreeOpenRouterRace, callFreeAIFallbackChain; ≤52s clamp)
+│   │   │                       #   callFreeOpenRouterRace, callFreeAIFallbackChain, callAIStream; ≤52s clamp)
 │   │   ├── exercises.ts        # 868 exercises dataset (yuhonas MIT-licensed)
 │   │   ├── foods.ts            # 8,830 foods dataset
+│   │   ├── workout-programs.ts # Workout programs library content
 │   │   ├── blog-*.ts           # Blog generation pipeline (research → outline → content → images → publish)
 │   │   ├── evo-chat-context.tsx # EVO chat state management
 │   │   ├── referral.ts + referral-cookie.ts # Referral + commission system
@@ -196,8 +229,10 @@ musclehubeg/
 │   │   └── ...
 │   ├── middleware.ts            # Session refresh + Content-Language header + locale-aware lang/dir
 ├── supabase/
-│   └── migrations/             # 73 SQL migration files (0001…0041 + dated 2026…0057…0062)
-├── scripts/                    # ai-jobs-runner (GHA), blog-runner (GHA), check-stale-refs.sh, check-ui-wiring.sh
+│   └── migrations/             # 80 SQL files (0001→0068 registry in INDEX.md; manual
+│                               #   RUN_ON_SUPABASE_* + VERIFY_* scripts included)
+├── scripts/                    # ai-jobs-runner (GHA), blog-runner (GHA), migration_audit.py
+│                               #   (schema-drift gate, Phase 96), check-stale-refs.sh
 ├── public/                     # Static assets (icons, QR codes, images, manifest, sw.js)
 ├── .github/workflows/          # 5 workflows: blog-post-ar, blog-post-en, process-ai-jobs,
 │                               #   remediate-blog-images, guard-stale-refs
@@ -218,16 +253,18 @@ musclehubeg/
 - **6 Free Tools:** Calorie calculator, BMI, macros, body fat %, water tracker, meal planner — each with email delivery of results + lead capture
 - **Exercise Library:** 868 exercises with images (start + end positions), Arabic + English
 - **Food Database:** 8,830 foods with per-100g macros
-- **EVO AI Coach:** Floating chat widget — free users get 10 msgs/day; subscribers unlimited
+- **Workout Programs Library:** 7 structured programs (home, gym, HIIT…)
+- **EVO AI Coach:** Floating chat widget with SSE streaming (live typing) — free users get 10 msgs/day; subscribers unlimited
+- **Coach Directory:** public coach pages (`/coaches/[slug]`) with landing editor, featured API, and preview mode
 - **Blog:** AI-generated articles in Arabic + English (automated research→publish pipeline)
 - **Save Results:** Free saves 3 results; premium tiers save 50–200 + PDF export
 - **Meal Planner:** Custom meals with per-gram macro calculation (tier-scaled)
 - **Progress Tracking:** Weight charts, body measurements, progress photos
 
 ### For Members (plan quotas — two windows, one shared pool with EVO)
-- **Premium ($14.99/mo):** Unlimited EVO chat · **4 nutrition + 4 workout plans per month, capped 1+1 per week** · 3 swaps/week · cross-session memory · 50 saved results
-- **Pro ($29.99/mo):** Everything in Premium ×2 — **8+8 plans monthly, capped 2+2 weekly** · 6 swaps/week · pattern analysis · 200 saved results · no ads
-- **Coaching ($39.99/mo):** Human coach + EVO at Premium-tier limits (4+4 monthly, 1+1 weekly)
+- **Premium ($14.99/mo or $119/yr):** Unlimited EVO chat · **4 nutrition + 4 workout plans per month, capped 1+1 per week** · 3 swaps/week · cross-session memory · 50 saved results
+- **Pro ($29.99/mo or $239/yr):** Everything in Premium ×2 — **8+8 plans monthly, capped 2+2 weekly** · 6 swaps/week · pattern analysis · 200 saved results · no ads
+- **Coaching ($39.99/mo or $359/yr):** Human coach + EVO at Premium-tier limits (4+4 monthly, 1+1 weekly)
 - Weekly window resets Monday 00:00 UTC; monthly totals reset on the 1st. Editing and manual uploads are always unlimited.
 
 ### For Coaches (B2B)
@@ -235,13 +272,25 @@ musclehubeg/
 - **Client Management:** per-client tabs (overview, subscription, plans, AI plans, questionnaires, progress)
 - **AI Plans:** generation draws from the CLIENT's own balance (ownership-checked); meal/item/day/exercise AI regeneration + manual edits are unlimited
 - **Wallet System:** monthly per-client fee paid to the site, receipt-reviewed top-ups (InstaPay/Vodafone Cash/PayPal link), activation gate (402 insufficient_wallet)
+- **Public Coach Page:** claimable slug + landing editor + ads + certificates
 - **Affiliate Program:** 20% commission on referred subscription payments ($3.00 per Premium, $6.00 per Pro, $8.00 per Coaching), 7-day payout hold, reversal on refunds
 
-### Platform & Admin (admin-only)
+### For Site Coaches (B2C — Phase 103)
+- **Coach Kind:** every coach profile is `'site'` (platform-employed) or `'b2b'` (independent business) — one-tap toggle in `/admin/coaches`
+- **Member Follow-ups:** admin assigns any member to a site coach via `/admin/site-assignments` (1↔1, move/unassign) — B2C members get human follow-up without touching the B2B money relation
+- **Separation guarantee:** `site_coach_assignments` is deliberately a SEPARATE table from `coach_assignments` (the B2B money relation that drives wallet billing + affiliate attribution) — B2C rows can never pollute billing
+
+### Platform & Admin (Admin Panel 2.0 — admin-only)
+- **Dedicated AdminShell:** replaces AppLayout inside `/admin` — sectioned sidebar with active-state identity, live pending badges (payment requests, coach-page reviews), mobile tappable button grid
+- **Unified Client Roster `/admin/clients`:** every person in ONE page — type filter buttons (الكل/أعضاء الموقع/عملاء مدربي B2B/مدربو الموقع/مدربو B2B/الإدارة), membership lifecycle tabs (نشط/ينتهي قريباً/منتهي/بانتظار الدفع/بدون اشتراك), tier badges, test filter, search/sort/pagination, danger tools (test-mark, two-step delete, mobile-proof bulk bar); served by the role-aware `get_admin_clients_paged` RPC (0067 + 0068 correct classification: B2B client ⇔ assignment onto a REAL coach; admin follow-up shows «متابعة الإدارة»)
+- **Finances `/admin/finances`:** SITE money (approved revenue, refunds, NET, pending + 6-month trend) separated from COACH money (prepaid wallet balances, top-ups, offline ledger + expected monthly bill)
+- **Members `/admin/members`:** membership-status table (legacy redirect → unified roster)
+- **Coaches Roster `/admin/coaches`:** the real coach list — kind badge, B2B clients + follow-up counts, membership status, wallet, one-tap site/B2B toggle
+- **Site Assignments `/admin/site-assignments`:** pick site coach → search member → assign/move/unassign
 - **AI Plans for Non-Members:** full generation + per-element regeneration (whole plan, one meal, one food item, one day, one exercise) + version history (cap 5) with reversible restore
 - **Payments + 7-Day Refunds:** manual payment review, refund console with no-features-used enforcement, automatic affiliate commission reversal
 - **Blog CMS:** AI pipeline with automated + manual modes
-- **Coach System Center:** fees, pages review, support, wallets, assignments
+- **Coach System Center:** fees, pages review, support, wallets, assignments, staff accounts
 
 > **Note:** The tier priority in code is `pro` (3) > `premium` (2) >
 > `free` (0). `coaching` is treated separately — it grants Premium-tier
@@ -255,9 +304,9 @@ musclehubeg/
 | Layer | Technology |
 |---|---|
 | **Framework** | Next.js 16 (App Router) |
-| **UI** | React 19, Tailwind CSS 4, shadcn/ui (new-york style, 52 components) |
-| **Backend** | Supabase (Postgres, Auth, Storage, RLS) |
-| **AI** | OpenRouter + Groq ONLY — unified layer (`src/lib/ai-provider.ts`), interleaved strongest-chain + Promise.any race, budget-clamped ≤52s |
+| **UI** | React 19, Tailwind CSS 4, shadcn/ui (new-york style, 51 components) |
+| **Backend** | Supabase (Postgres, Auth, Storage, RLS + GitHub-integration auto-migrations) |
+| **AI** | OpenRouter + Groq ONLY — unified layer (`src/lib/ai-provider.ts`), interleaved strongest-chain + Promise.any race + SSE streaming, budget-clamped ≤52s |
 | **Charts** | Recharts 3 (lazy-loaded) |
 | **Forms** | react-hook-form + zod |
 | **Email** | Nodemailer (tool results, newsletters, validation + daily 100/24h cap) |
@@ -272,39 +321,45 @@ musclehubeg/
 
 ## 📊 Database
 
-**73 SQL migration files** (numeric `0001…0041` + dated `2026…0057…0062`)
-define the schema, all with Row Level Security (RLS) policies. Key
-tables beyond the early core:
+**80 SQL files** across four naming families (see
+[`supabase/migrations/INDEX.md`](./supabase/migrations/INDEX.md)) with the
+numbering map running **0001 → 0068**. All auto-applied families carry
+Row Level Security (RLS) policies — hardened progressively (Phases
+99–100: strict RLS for `progress_photos` and the tamper-proof
+`plan_swaps` usage ledger, with table-level revokes for loud failures).
+Key tables:
 
 | Table | Purpose |
 |---|---|
-| `profiles`, `subscriptions`, `subscription_requests` | Accounts, active tiers, manual payment requests |
-| `plans`, `plan_swaps*`, `meal_plans` | Member plans + weekly swap tracking |
-| `nutrition_questionnaires`, `fitness_questionnaires`, `progress_entries`, `progress_photos*` | Intake + tracking |
+| `profiles`, `subscriptions`, `subscription_requests` | Accounts, active tiers, manual payment requests; `profiles.coach_kind` = `'site'`\|`'b2b'` (0067) |
+| `plans`, `plan_swaps`, `meal_plans` | Member plans + weekly swap tracking (immutable usage ledger) |
+| `nutrition_questionnaires`, `fitness_questionnaires`, `progress_entries`, `progress_photos` | Intake + tracking |
 | `chat_messages`, `evo_chat_usage` | EVO chat history + daily usage ledger |
 | `ai_jobs` | Queued AI jobs (chat/plan/swap/regeneration) with staff gates |
 | `blog_posts`, `blog_generation_queue` | Bilingual blog + pipeline state |
-| `saved_results`, `tool_leads` | Saved tool results (customers DB) + leads from all 6 tools + signups |
+| `saved_results`, `tool_leads` | Saved tool results (customers DB) + leads from all 6 tools + signups (0059/0060: name/type/newsletter) |
 | `referrals`, `referral_earnings`, `referral_payouts` | Affiliate tracking, 20% commissions (7-day `available_at` hold), payouts |
-| `coach_assignments`, `coach_payments` | B2B ownership + activation ledger |
+| `coach_assignments`, `coach_payments` | B2B MONEY relation (wallet billing + affiliate attribution) + activation ledger |
+| `site_coach_assignments` | B2C member↔site-coach 1↔1 follow-ups (0067 — deliberately separate from money) |
 | `coach_wallets`, `coach_topup_requests`, `coach_wallet_transactions` | Coach wallet + audited top-ups |
 | `coach_emails`, `support_tickets`, `ticket_messages`, `notifications`, `admin_notifications` | Comms |
 | `external_plans` | Admin-generated AI plans for non-members (RLS: admin only) |
 | `refund_requests` | 7-day refund flow (RLS: admin + owner read) |
+| `get_admin_clients_paged` / `get_admin_clients_stats` | Role-aware roster RPCs (0067, corrected 0068) covering every role — members, B2B coaches, site coaches, staff |
 
-\* `plan_swaps`, `progress_photos`, `coach_presence` were created
-ad-hoc on production during Phase 5 and are still not in any migration
-file (open back-fill item — see `PROGRESS.md`).
+> The three Phase-5 ad-hoc tables (`plan_swaps`, `progress_photos`,
+> `coach_presence`) are now IN the migration registry: back-filled by
+> `0063`, RLS-hardened by `0064`/`0065` (closed Phase 99-run, 2026-09-03).
 
 ---
 
 ## 🌍 Languages
 
 - **English** (primary) — `/`
-- **Arabic** (RTL) — full mirror under `/ar/*` (15 routes: blog, exercises, foods, programs, coaches, for-coaches, memberships, faq, about…)
+- **Arabic** (RTL) — full mirror under `/ar/*` (blog, exercises, foods, programs, coaches, for-coaches, memberships, faq…)
 - Language toggle in header (custom i18n provider — no `next-intl`)
 - `Content-Language` header set via middleware
-- **Dynamic `lang`/`dir` on `<html>`** — route-locale aware (Arabic routes render `lang="ar" dir="rtl"` at the root tag; no more wrapping-div-only approach)
+- **Dynamic `lang`/`dir` on `<html>`** — route-locale aware (Arabic routes render `lang="ar" dir="rtl"` at the root tag)
 - hreflang alternates on blog articles
 
 ---
@@ -315,7 +370,7 @@ Performance optimizations were applied during Phase 6 (2026-08-19) and the
 project has been running in production since. For current performance
 metrics and any ongoing optimizations, see `worklog.md` recent entries.
 
-- AI chat uses an interleaved strongest-models chain (OpenRouter ↔ Groq, server-side usage ledger)
+- AI chat uses an interleaved strongest-models chain (OpenRouter ↔ Groq, server-side usage ledger) with **SSE streaming** — raw tokens arrive live (`event: delta` → `event: final`)
 - Every sequential AI path is budget-clamped to `maxModels × timeoutMs ≤ 52s` (Vercel Hobby 60s cap)
 - Long-running generations (blog pipeline, AI jobs) run in GitHub Actions runners with retries instead of serverless timeouts
 - Image optimization: AVIF + WebP formats enabled
@@ -323,7 +378,7 @@ metrics and any ongoing optimizations, see `worklog.md` recent entries.
 
 | Feature | Before | After | Improvement |
 |---|---|---|---|
-| **EVO AI Chat** | 18-25s + thinking artifacts | 1.4-3.9s + clean responses | **5-7x faster** ✅ |
+| **EVO AI Chat** | 18-25s + thinking artifacts | 1.4-3.9s + clean streaming responses | **5-7x faster** ✅ |
 | **Plan generation** | 90-180s timeout | 30-60s (or GHA queue) | **3x faster** ✅ |
 | **Swap (meal + exercise)** | 60-90s | 10-30s | **3-4x faster** ✅ |
 | **Article generation** | Timeout + short articles | ~100s + 600-900 EN words + 500-800 AR words | **No more timeouts** ✅ |
@@ -357,9 +412,14 @@ around each pipeline step.
 
 A full evidence-based list is in [`PROGRESS.md`](./PROGRESS.md). Currently open:
 
-- **Back-fill pending** — `plan_swaps`, `progress_photos`, `coach_presence`
-  exist on production but in no migration file (a fresh Supabase project
-  needs the SQL scripts from `PROGRESS.md` § "Phase 5").
+- **Types mirror drift (Phase 105 candidate)** — `src/lib/supabase/types.ts`
+  still mirrors two Phase-5 legacy tables wrongly: `coach_presence`
+  (`user_id`/`status` — live columns are `coach_id`/`last_seen`) and
+  parts of `progress.ts` (`taken_on`/`file_path`/`note` — live is
+  `taken_at`/`photo_url`). Proven live column-by-column in Phase 99-run;
+  `migration_audit.py` reports no NEW drift, but the app's presence
+  helpers silently degrade until the mirror is regenerated. Migration
+  files themselves are aligned with LIVE schema (that was the 0064 v2 fix).
 - **H5 (partial)** — the blog generation CTA prompt still names
   "coach Ahmed Zake" (`src/lib/blog-pipeline.ts`); the author field
   itself defaults to Musclehubeg.
@@ -371,8 +431,9 @@ A full evidence-based list is in [`PROGRESS.md`](./PROGRESS.md). Currently open:
 Previously listed issues (root `<html>` lang hard-coded, Arabic-only
 membership features, `/ar/exercises` 404s, coach-route redirects,
 profile tool count, duplicate Pricing nav item, missing i18n keys,
-missing `scripts/` directory) were **fixed** in Phases 7–81 — see
-`PROGRESS.md` and `QA_CHECKLIST.md` for evidence.
+missing `scripts/` directory, **and the Phase-5 ad-hoc table back-fill**
+— resolved by `0063` in Phase 99-run) were **fixed** in Phases 7–103b —
+see `PROGRESS.md` and `QA_CHECKLIST.md` for evidence.
 
 ---
 
@@ -394,6 +455,7 @@ See [`LICENSE`](./LICENSE) for the full proprietary terms.
 - [`PROGRESS.md`](./PROGRESS.md) — Recent phases snapshot (older phases archived in `archive/`)
 - [`DEVELOPER_GUIDE.md`](./DEVELOPER_GUIDE.md) — Developer onboarding + architecture details
 - [`QA_CHECKLIST.md`](./QA_CHECKLIST.md) — Verification evidence + QA protocol (older evidence archived)
+- [`supabase/migrations/INDEX.md`](./supabase/migrations/INDEX.md) — Binding migration registry (0001→0068) + naming laws
 - [`docs/`](./docs/) — SEO frameworks (CWV thresholds, E-E-A-T, schema reference) + historical audits
 - [`.env.example`](./.env.example) — Environment variables reference
 - [`worklog.md`](./worklog.md) — Per-agent change log (older entries archived in `archive/`)
