@@ -714,3 +714,18 @@ Work Log:
 Stage Summary:
 - خط الترحيل فتح: 0064 v2 + 0065 + 0067 حية على الإنتاج (RLS بتاعت 99/100 نزلت فعليًا + مساحات Phase 103 اشتغلت)
 - الحساب التجريبي admin.test@musclehub-test.com اتمسح نهائيًا (0066 v2 بنجاح)
+
+---
+Task ID: 103b
+Agent: Super Z (main)
+Task: تصحيح تصنيف أنواع العملاء (0068) — «فى خطاء ، جميع العملاء مكتوب عملاء b2b وده خطاء»
+
+Work Log:
+- الجذر مثبت: auto_assign_client_to_admin (0030A) بيسجل كل عميل تحت الإدارة في coach_assignments + backfill لكل الموجودين — و0067 عدّ أي سجل = عميل B2B (assigned_coach_id is not null) → كل الأعضاء «عملاء B2B» وزر أعضاء الموقع فاضي
+- 0068 (تلقائي): إعادة بناء get_admin_clients_paged (نفس التوقيع + عمود assigned_coach_role) وget_admin_clients_stats مع _has_b2b_coach = ca.coach_id is not null and cp.role='coach' — member_site يشمل متابعة الإدارة، client_of_coach للمدرب الحقيقي فقط
+- UI: typeOf يصنف على assigned_coach_role + خلية المدرب تعرض «متابعة الإدارة: الاسم» للأعضاء العاديين — types.ts مرآة محدثة
+- coach_assignments لم تُمس (علاقة الفلوس) — صفحة المدربين غير متأثرة (فلاتر role-based) — 0047 RPCs لم تُمس
+- توثيق §3.6: INDEX صف 0068 + سطر العدّاد · QA_CHECKLIST Phase 103b · PROGRESS Phase 103b + آخر تحديث · worklog
+
+Stage Summary:
+- التصنيف اتصلح من الجذر — المالك هيشوف أعضاء الموقع > 0 وعملاء B2B للمشتركين فعلاً بس بعد نشر 0068

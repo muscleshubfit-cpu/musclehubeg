@@ -6,7 +6,19 @@
 
 ---
 
-## Latest Verification — 2026-09-03 (Phase 99-run — PIPELINE UNBLOCK: owner reported the last applied migration on Supabase was 0063 — «افحص ايه المشكلة وليه متعملش ميجريشن من جيتهب ل ٠٠٦٤ الى ٠٠٦٧ واصلح المشكلة». Root cause: 0064's first deploy failed 42703 on TWO phantom mirror columns and halted the whole pipeline — 0065/0067 never attempted. Fixed with live-verified columns and re-pushed)
+## Latest Verification — 2026-09-03 (Phase 103b — ADMIN CLIENT TYPE FIX: owner reported right after using the unified page — «فى خطاء ، جميع العملاء مكتوب عملاء b2b وده خطاء». Root cause proven in data + SQL, fixed by 0068 auto-migration + UI truth labels)
+
+| Check | Result | How verified |
+|---|---|---|
+| Owner's report root-caused (not guessed) | ✅ | `auto_assign_client_to_admin()` (0030A, read from the migration) + its backfill put EVERY client into coach_assignments with coach_id = THE ADMIN («followed by the general coach (admin)» — the mechanism behind the old /coach admin-mode listing); 0067 classified client_of_coach as `assigned_coach_id is not null` → true for every member → everyone «عميل مدرب B2B», member_site button ≈ 0 — exactly the owner's report |
+| 0068 auto-migration | ✅ | `20260903153000_0068_admin_client_type_fix.sql`: rebuilds get_admin_clients_paged (SAME 7-arg signature, returns + assigned_coach_role) and get_admin_clients_stats with `_has_b2b_coach = ca.coach_id is not null AND cp.role = 'coach'` — admin auto-assignment counts as member_site («متابعة الإدارة»), only assignments onto a real coach count as B2B clients; lifecycle math / search / sort / security-definer is_admin() boundary / grants unchanged; VERIFY grid expects \|1\|1\|1\|1\|1\| |
+| coach_assignments untouched (B2B money law) | ✅ | only the CLASSIFICATION reads the relation differently — wallet billing (fee_per_client × assigned rows) + affiliate attribution untouched; /admin/coaches roster unaffected (its p_type keys are role-based); 0047 RPCs untouched |
+| UI truth labels | ✅ | clients page: Row type + assigned_coach_role · typeOf() = B2B client only when assigned_coach_role==='coach' · the coach cell now shows «متابعة الإدارة: <name>» for admin-followed members instead of the false «كوتش B2B: <owner's own name>»; types.ts mirror updated (Function Returns + local Row) |
+| Gates | ✅ PASS | tsc 0 · eslint 0 · vitest 191/191 · migration_audit no NEW drift |
+| Live verification path | ✅ | RPC existence + callable probed live earlier (200); classification needs an admin session (test admin deleted — by design), so the owner's own /admin/clients view is the visual proof: أعضاء الموقع counter > 0, only truly-B2B clients under «عملاء مدربي B2B» |
+| Docs parity §3.6 | ✅ UPDATED | INDEX.md 0068 row + audit-count line · QA_CHECKLIST Phase 103b · PROGRESS Phase 103b + «آخر تحديث» · worklog Task 103b · AGENTS.md law text unchanged |
+
+## Previous Verification — 2026-09-03 (Phase 99-run — PIPELINE UNBLOCK: owner reported the last applied migration on Supabase was 0063 — «افحص ايه المشكلة وليه متعملش ميجريشن من جيتهب ل ٠٠٦٤ الى ٠٠٦٧ واصلح المشكلة». Root cause: 0064's first deploy failed 42703 on TWO phantom mirror columns and halted the whole pipeline — 0065/0067 never attempted. Fixed with live-verified columns and re-pushed)
 
 | Check | Result | How verified |
 |---|---|---|

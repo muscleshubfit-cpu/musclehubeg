@@ -1734,6 +1734,7 @@ export type Database = {
           pending_payments: number;
           assigned_coach_id: string | null;
           assigned_coach_name: string | null;
+          assigned_coach_role: string | null;
           site_coach_id: string | null;
           site_coach_name: string | null;
           b2b_clients: number;

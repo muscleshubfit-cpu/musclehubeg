@@ -44,10 +44,13 @@ import {
  *   - /admin/accounts (every account + test-mark + delete tools)
  *   - the /coach admin-mode listing (the old dashboard — links removed)
  *
- * Data: get_admin_clients_paged (0067) — EVERY profile (clients, B2B
- * coaches, site coaches, admins) with membership lifecycle + B2B coach +
- * site-coach follow-up + coach_kind + test flag. Type filter buttons are
- * the owner's customer-type split; lifecycle tabs / tier / test / sort /
+ * Data: get_admin_clients_paged (0067 + 0068 type fix) — EVERY profile
+ * (clients, B2B coaches, site coaches, admins) with membership lifecycle +
+ * B2B coach + site-coach follow-up + coach_kind + test flag. 0068 law: a
+ * client is «عميل مدرب B2B» only when his assignment targets a real coach
+ * — the 0030A admin auto-assignment is «متابعة الإدارة» (member_site),
+ * NOT a B2B relation. Type filter buttons are the owner's customer-type
+ * split; lifecycle tabs / tier / test / sort /
  * search mirror the members page. Danger tools (test mark, delete,
  * bulk-delete) reuse the SAME guarded endpoints /api/admin/accounts.
  */
@@ -66,6 +69,7 @@ type Row = {
   sub_months: number | null;
   pending_payments: number | null;
   assigned_coach_name: string | null;
+  assigned_coach_role: string | null;
   site_coach_name: string | null;
   b2b_clients: number;
   site_members: number;
@@ -162,7 +166,10 @@ export default function AdminClientsPage() {
   const typeOf = (r: Row): TypeKey => {
     if (r.role === "admin") return "admin";
     if (r.role === "coach") return r.coach_kind === "site" ? "coach_site" : "coach_b2b";
-    return r.assigned_coach_name ? "client_of_coach" : "member_site";
+    // 0068: a client is a «B2B coach client» only when the assignment
+    // targets a real coach — the 0030A admin auto-assignment (every site
+    // member is followed by the admin) is NOT a B2B relation.
+    return r.assigned_coach_role === "coach" ? "client_of_coach" : "member_site";
   };
 
   const typeBadge = (r: Row) => {
@@ -553,7 +560,14 @@ export default function AdminClientsPage() {
                     <TableCell className="hidden text-sm text-[#6e6e73] xl:table-cell">
                       {r.role === "client" ? (
                         <>
-                          <p>{isAr ? "كوتش B2B: " : "B2B coach: "}{r.assigned_coach_name || "—"}</p>
+                          <p>
+                            {r.assigned_coach_role === "admin"
+                              ? isAr ? "متابعة الإدارة: " : "Admin follow-up: "
+                              : isAr ? "كوتش B2B: " : "B2B coach: "}
+                            {r.assigned_coach_role
+                              ? r.assigned_coach_name || "—"
+                              : "—"}
+                          </p>
                           <p>{isAr ? "متابعة الموقع: " : "Site follow-up: "}{r.site_coach_name || "—"}</p>
                         </>
                       ) : (
