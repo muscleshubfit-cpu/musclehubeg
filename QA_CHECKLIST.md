@@ -6,7 +6,23 @@
 
 ---
 
-## Latest Verification — 2026-09-02 (Phase 94 — legacy-`any` cleanup batch 6: 244 → 137, non-sensitive set now ZERO)
+## Latest Verification — 2026-09-02 (Phase 95 — legacy-`any` cleanup batch 7 FINAL: the sensitive set, 137 → 0 — census ZERO)
+
+| Check | Result | How verified |
+|---|---|---|
+| Phase 94 push state discovered | ✅ ALREADY LIVE | Session opened with `git status [ahead 3]` — a stale remote-tracking ref: `git fetch` proved origin/main = a61da46 (Phase 94 docs commit). Production was already current; no re-push needed. Gates re-verified before continuing: tsc 0 · vitest 191/191 · census 137/33 (all sensitive) |
+| Batch 7 — THE SENSITIVE SET (double review) | ✅ 137 → 0 (−137, 33 → 0 files) | Stage A cron 19→0 (5e37f0d): p0 3, p1–p4 1×4, p5 6, progress-reminder 6 · Stage B ai/jobs + queue-health 14→0 · Stage C admin 35→0: coach-support 8, wallets/topups 8, wallets 7, adjust 3, blog/cleanup 2, coach-pages 2, leads 2, coach-payments 1, refunds 1, saved-results 1 · Stage D coach/coaches 38→0: subscriptions/activate 11, wallet 8, landing 6, support 6, coaches/featured 5, ai-usage 1, wallet/topup 1 · Stage E money 22→0: capture-order 6, refund.ts 6, CheckoutView 6, create-order 2, webhook 2 · Stage F auth 9→0: auth-server 8, auth/callback 1 |
+| REAL BUG FIXED — progress-reminder cron was 100% broken | ✅ FIXED | The route selected a PHANTOM `profiles.lang` column (profiles has no per-user language column — verified against 0001_init + ALL migrations). PostgREST rejects the entire select → the weekly reminder cron 500'd every Sunday and sent NOTHING, hidden for its whole life by an `any` annotation. Fix: select real columns only; the route's own designed ternary fallback was "ar" (MuscleHub EG core audience) → AR text kept, unreachable EN branch deleted as dead code, NOTE comment documents the whole story |
+| Generated types parity (mirror law) | ✅ | +table `coach_support_messages` (mirror 0037 COACH_BOOST) · coach_pages completed with `review_note` + `reviewed_at` (mirror 0046 — Phase 93 had added review_status but missed these two). tsc caught BOTH gaps the moment the `as any` casts were dropped — proof the mirror law works |
+| tsc caught REAL gaps (each fixed) | ✅ | phantom profiles.lang (above) · coach_pages.review_note/reviewed_at missing from Update type · saved_results→profiles transitive embed (no direct FK — user_id → auth.users) cannot be statically resolved → ONE documented boundary cast (runtime query unchanged, PostgREST resolves it live) · landing upsert payload rebuilt against real `coach_pages.Insert` (Omit certificates on the 0049 soft-roll retry) |
+| Honest boundary casts (each documented inline) | ✅ | leads `tool as ToolSlug` + saved-results `tool as SavedToolSlug` — DB enum/check-constraint is the runtime guard, identical match-no-rows behavior · webhook `JSON.parse(body) as PayPalWebhookEvent` structural view (only the fields the route reads) · CheckoutView PayPal SDK global → typed `PayPalWindow` view (no `any` escape) |
+| QR `<img>` documented exception (2nd instance) | ✅ | CheckoutView InstaPay/Vodafone QR kept as `<img>` with inline rationale — same law as CoachWalletView (Phase 93): image optimization must NEVER touch a scannable QR. Only eslint-disable added in the whole phase |
+| Double review (sensitive-set law) | ✅ DONE | Full diff of money+auth hunks inspected line-by-line: casts dropped only over generated Rows/Functions (runtime calls byte-identical) · catch pattern preserves exact message routing · webhook view is a superset-compatible narrowing · tier-resolution sort/filter semantics unchanged (0045 legacy mapping intact) |
+| Gates | ✅ PASS ×6 stages | tsc 0 after EVERY stage · eslint 0 warnings/0 errors on ALL 33 touched files · vitest 191/191 (re-run at phase end) · census 137 → **0 across 0 files** |
+| FINAL MILESTONE: legacy-`any` census = 0 | ✅ CLOSED | Running tally: 804 → 795 (b1) → 749 (b2) → 589 (b3) → 385 (b4) → 244 (b5) → 137 (b6) → **0** (b7). Every `@typescript-eslint/no-explicit-any` eliminated with REAL types — zero blanket suppressions. The cleanup era ends; focus returns to development (Phase 89-SSE design remains the next deferred dev item) |
+| Docs parity §3.6 | ✅ UPDATED | QA_CHECKLIST Phase 95 section + PROGRESS Phase 95 + «آخر تحديث» + worklog Task 95 |
+
+## Previous Verification — 2026-09-02 (Phase 94 — legacy-`any` cleanup batch 6: 244 → 137, non-sensitive set now ZERO)
 
 | Check | Result | How verified |
 |---|---|---|
