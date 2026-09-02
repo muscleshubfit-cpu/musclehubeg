@@ -125,7 +125,7 @@ export async function POST(request: NextRequest) {
       (type === "plan_nutrition" || type === "plan_workout") &&
       authRole === "coach"
     ) {
-      const clientId = String((payload as any)?.clientId ?? "");
+      const clientId = String(payload?.clientId ?? "");
       if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(clientId)) {
         return NextResponse.json(
           { error: "الخطة محتاج عميل محدد — افتح صفحة العميل ثم ولّد الخطة منه." },
@@ -217,7 +217,7 @@ export async function POST(request: NextRequest) {
         payload: payload ?? {},
         requestedBy: userId ?? null,
       }));
-    } catch (e: any) {
+    } catch (e) {
       // Required-field violations are client errors, not server faults.
       // (article_generate no longer requires a topic — empty = smart pick.)
       if (e instanceof JobPayloadError) {
@@ -237,10 +237,11 @@ export async function POST(request: NextRequest) {
       runnerDispatched,
       message: `تم إرسال الطلب — النتيجة تظهر خلال ~${runnerDispatched ? 3 : JOB_ETA_MINUTES} دقائق.`,
     });
-  } catch (e: any) {
-    console.error("[api/ai/jobs] POST error:", e?.message || e);
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    console.error("[api/ai/jobs] POST error:", msg);
     return NextResponse.json(
-      { error: e?.message || "Internal server error" },
+      { error: msg || "Internal server error" },
       { status: 500 },
     );
   }
@@ -271,12 +272,12 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ error: "Bad id" }, { status: 400 });
       }
       const { data } = await supabaseAdmin
-        .from("ai_jobs" as any)
+        .from("ai_jobs")
         .select("id, job_type, status, result, error_message, created_at, finished_at")
         .eq("id", id)
         .eq("requested_by", userId) // hard ownership filter on top of RLS
         .maybeSingle();
-      if (!(data as any)?.id) {
+      if (!data?.id) {
         return NextResponse.json({ error: "Not found" }, { status: 404 });
       }
       return NextResponse.json(data);
@@ -289,17 +290,18 @@ export async function GET(request: NextRequest) {
     // requested_by = caller, and plan payloads only ever contain data the
     // coach themselves enqueued — no cross-user exposure.
     const { data } = await supabaseAdmin
-      .from("ai_jobs" as any)
+      .from("ai_jobs")
       .select("id, job_type, status, error_message, created_at, finished_at, payload")
       .eq("requested_by", userId)
       .order("created_at", { ascending: false })
       .limit(limit);
 
     return NextResponse.json({ jobs: data ?? [] });
-  } catch (e: any) {
-    console.error("[api/ai/jobs] GET error:", e?.message || e);
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    console.error("[api/ai/jobs] GET error:", msg);
     return NextResponse.json(
-      { error: e?.message || "Internal server error" },
+      { error: msg || "Internal server error" },
       { status: 500 },
     );
   }

@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
 
   // ── Queue counts + oldest queued + last done (one light select) ──
   const { data: rows, error } = await supabaseAdmin
-    .from("ai_jobs" as any)
+    .from("ai_jobs")
     .select("status, job_type, created_at, finished_at")
     .order("created_at", { ascending: false })
     .limit(500);
@@ -50,7 +50,7 @@ export async function GET(request: NextRequest) {
   let oldestQueuedMinutes: number | null = null;
   let lastDone: { type: string; finishedAt: string } | null = null;
   const now = Date.now();
-  for (const r of (rows as any[]) || []) {
+  for (const r of rows || []) {
     const st = String(r.status || "");
     if (st in counts) counts[st as keyof typeof counts]++;
     if (st === "queued") {
@@ -88,8 +88,9 @@ export async function GET(request: NextRequest) {
         },
       );
       if (res.ok) {
-        const data: any = await res.json();
-        const ranAt = data?.workflow_runs?.[0]?.run_started_at;
+        const data: unknown = await res.json();
+        const ranAt = (data as { workflow_runs?: { run_started_at?: string }[] })
+          ?.workflow_runs?.[0]?.run_started_at;
         if (ranAt) {
           lastRunnerRunAt = String(ranAt);
           const sinceMin = (now - new Date(ranAt).getTime()) / 60_000;
@@ -144,30 +145,31 @@ export async function DELETE(request: NextRequest) {
   }
   try {
     const { data: rows, error: selErr } = await supabaseAdmin
-      .from("ai_jobs" as any)
+      .from("ai_jobs")
       .select("id")
       .eq("status", "failed")
       .limit(200);
     if (selErr) {
       return NextResponse.json({ error: selErr.message }, { status: 500 });
     }
-    const ids = ((rows as any[]) || [])
+    const ids = (rows || [])
       .map((r) => r?.id)
       .filter((id) => typeof id === "string" && id.length > 0);
     if (!ids.length) {
       return NextResponse.json({ deleted: 0 });
     }
     const { error: delErr } = await supabaseAdmin
-      .from("ai_jobs" as any)
+      .from("ai_jobs")
       .delete()
       .in("id", ids);
     if (delErr) {
       return NextResponse.json({ error: delErr.message }, { status: 500 });
     }
     return NextResponse.json({ deleted: ids.length });
-  } catch (e: any) {
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
     return NextResponse.json(
-      { error: e?.message || "delete failed unexpectedly" },
+      { error: msg || "delete failed unexpectedly" },
       { status: 500 },
     );
   }
