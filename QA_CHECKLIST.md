@@ -6,7 +6,25 @@
 
 ---
 
-## Latest Verification — 2026-09-02 (Phase 95 — legacy-`any` cleanup batch 7 FINAL: the sensitive set, 137 → 0 — census ZERO)
+## Latest Verification — 2026-09-02 (Phase 96 — DATABASE MIGRATIONS AUDIT: all 73 files cross-checked vs types.ts — real Phase-5-era drift found & CLOSED by 0063 + INDEX.md)
+
+| Check | Result | How verified |
+|---|---|---|
+| Environment reset (4th) | ✅ RECOVERED | repo re-cloned from GitHub at 967d0df (Phase 95 docs commit, live in production). worklog/QA history re-read; no context lost |
+| Migration file census | ✅ 73 files, numbering 0001→0062 COMPLETE | `ls supabase/migrations` + git archaeology: "missing" 0051-0053 = the 3 GitHub-sync probes (timestamped names); 0056 = `20260901120000_restore_rls_after_incident_and_drop_probe.sql` (timestamped name, 315 lines intact); no number ever skipped except 0025 (unused). Numbering map documented in `supabase/migrations/INDEX.md` |
+| NEW migrations 0057-0062 line-by-line review | ✅ ALL CLEAN | affiliate foundation (idempotent, RLS complete, SECURITY DEFINER + fixed search_path, pgrst reload) · external_plans (admin-only RLS) · 0059 tool_leads (safe re-run, RLS untouched by design) · customer sync (exception-guarded trigger, backfill, covers 0059 idempotently) · coach-join bell (fully exception-guarded) · refund system (select-own only, service-role writes law 0041 mirrored) |
+| Parity audit: migrations ↔ `types.ts` | ✅ SCRIPTED | `scripts/migration_audit.py` (committed to repo): paren-depth CREATE TABLE parser + multi-line ALTER parser vs generated Row blocks. 39 migration tables ↔ 40 types.ts tables; all column mismatches triaged: multi-line ALTER artifacts (verified by grep), price_egp→price_usd renames (0012/0038 — types correct), 2 real boundaries |
+| REAL DRIFT FOUND — 4 objects live in production with NO migration file | ✅ CLOSED by 0063 | `plan_swaps` (refund eligibility input! · refund.ts, data/plans.ts, tier-limits.ts) · `coach_presence` (coach online/offline · data/coach.ts) · `progress_photos` (progress.ts uploads) · `referrals.last_seen` column. Phase-5-era ad-hoc tables (already suspected in AGENTS §6, never backfilled). Zero src changes — types.ts Row blocks (generated FROM live DB) are the authoritative column source; Relationships:[] proves no FKs → faithfully mirrored. On production 0063 is a guaranteed NO-OP (all IF NOT EXISTS / ADD COLUMN IF NOT EXISTS) |
+| 0063 deliberate RLS omission (documented deviation) | ✅ SAFE | Blind `drop/create policy` on tables whose live policy state is unreadable from here could ALTER production behavior (owner-forbidden). Companion `VERIFY_SCHEMA_DRIFT.sql` (READ-ONLY, 5 sections: columns, row counts, RLS+policies, constraints, no-op proof) prints the truth for a from-truth follow-up if any gap appears |
+| Naming anomaly triaged | ✅ DOCUMENTED, NOT TOUCHED | 0059 = old `RUN_ON_SUPABASE_*` manual-apply format while siblings 0057/0058/0060-0062 are integration-visible. NO rename (Phase 61 ledger-incident lesson) — 0060 idempotently covers 0059's columns anyway. Documented in INDEX.md §2 with ⚠️ |
+| Known boundaries re-verified (not bugs) | ✅ | `audit_log`: trigger-written, zero app reads → absent from types.ts by design · `blog_posts.source`: 0014 exists but production lacks the column; code guards with `"source" in row/payload` — safe both ways · `gh_sync_probe`: created+dropped, RLS absence benign |
+| RLS coverage sweep | ✅ EVERY real table covered | All 39 migration tables have `enable row level security` somewhere EXCEPT gh_sync_probe (dropped 0056) — matches the 0055/0056 restoration posture |
+| MIGRATION INDEX LAW added to AGENTS §6 | ✅ | timestamped naming + same-commit INDEX.md row + types.ts regen + audit script before push + rename-forbidden rule — future schema work can't reopen the confusion door |
+| Gates | ✅ PASS | tsc 0 · eslint census 0 warnings (no src changes this phase — proven by git status) · vitest 191/191 |
+| Docs parity §3.6 | ✅ UPDATED | QA_CHECKLIST Phase 96 section + PROGRESS Phase 96 + «آخر تحديث» + worklog Task 96 + INDEX.md + AGENTS §6 |
+| ⚠️ OWNER ACTION (optional, read-only) | 📋 | Run `VERIFY_SCHEMA_DRIFT.sql` in Supabase SQL Editor once → output confirms 0063 was a no-op + reveals live RLS/policy state for the 3 drift tables (raw link in the final report) |
+
+## Previous Verification — 2026-09-02 (Phase 95 — legacy-`any` cleanup batch 7 FINAL: the sensitive set, 137 → 0 — census ZERO)
 
 | Check | Result | How verified |
 |---|---|---|
@@ -22,7 +40,7 @@
 | FINAL MILESTONE: legacy-`any` census = 0 | ✅ CLOSED | Running tally: 804 → 795 (b1) → 749 (b2) → 589 (b3) → 385 (b4) → 244 (b5) → 137 (b6) → **0** (b7). Every `@typescript-eslint/no-explicit-any` eliminated with REAL types — zero blanket suppressions. The cleanup era ends; focus returns to development (Phase 89-SSE design remains the next deferred dev item) |
 | Docs parity §3.6 | ✅ UPDATED | QA_CHECKLIST Phase 95 section + PROGRESS Phase 95 + «آخر تحديث» + worklog Task 95 |
 
-## Previous Verification — 2026-09-02 (Phase 94 — legacy-`any` cleanup batch 6: 244 → 137, non-sensitive set now ZERO)
+## Archived Verification — 2026-09-02 (Phase 94 — legacy-`any` cleanup batch 6: 244 → 137, non-sensitive set now ZERO)
 
 | Check | Result | How verified |
 |---|---|---|

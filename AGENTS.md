@@ -277,6 +277,20 @@ this rule is non-negotiable.
   not break on re-run.
 - Update `DEVELOPER_GUIDE.md` § "Database + RLS" with the new table
   count and list.
+- **MIGRATION INDEX LAW (Phase 96, owner directive «نقفل باب الاخطاء
+  القديمة»):** every new migration MUST (a) use the timestamped name
+  `YYYYMMDDHHMMSS_NNNN_<slug>.sql` — this is the only auto-apply format
+  the Supabase GitHub integration recognizes; (b) add its row to
+  `supabase/migrations/INDEX.md` in the same commit; (c) regenerate
+  `src/lib/supabase/types.ts` if the schema changed; (d) run
+  `python3 scripts/migration_audit.py` before pushing — it cross-checks
+  all migrations against `types.ts` and must report no NEW drift.
+  RENAMING existing migration files is FORBIDDEN (Phase 61 ledger
+  incident); known naming anomalies (0059 old-format manual, 0056
+  timestamped) are documented in INDEX.md — leave them as-is.
+  The Phase 5-era ad-hoc drift (plan_swaps, coach_presence,
+  progress_photos, referrals.last_seen) was closed by 0063 (no-op on
+  production) + `VERIFY_SCHEMA_DRIFT.sql` (owner read-only check).
 
 ---
 

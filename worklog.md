@@ -514,3 +514,27 @@ Stage Summary:
 - 2 real production-facing defects surfaced by the typing work: progress-reminder phantom column (FIXED this phase) + stale/missing generated types (blog_generation_queue Phase 94, coach_pages/coach_support_messages this phase)
 - Cleanup era CLOSED. Next: development focus — Phase 89-SSE (EVO streaming + build-info + evo-chat-context getReader) is the first deferred dev item
 - REMINDER to owner: revoke the GitHub token (ghp_SV…IvWO) once all work is done — used transiently in git push commands only, never stored in files
+
+---
+Task ID: 96
+Agent: Super Z (main)
+Task: Phase 96 — owner context «كنا شغالين على فحص ملفات تهجير لقواعد البيانات وخرجنا عن السياق» — full database-migrations audit + real drift closed (0063 + INDEX.md)
+
+Work Log:
+- Environment reset (4th time): repo re-cloned from GitHub at 967d0df (Phase 95 docs commit, live in production); worklog/QA history re-read before touching anything
+- Migration census: 73 files in supabase/migrations. Apparent "missing" numbers resolved via git archaeology — 0051/0052/0053 = the three GitHub-sync probes (timestamped filenames), 0056 = 20260901120000_restore_rls_after_incident_and_drop_probe.sql (timestamped name, 315 lines intact). Numbering 0001→0062 COMPLETE; only 0025 never used
+- Line-by-line review of the 6 newest migrations (0057-0062): all idempotent, RLS complete, SECURITY DEFINER with fixed search_path, exception guards, pgrst reload — clean
+- Built scripts/migration_audit.py (committed to repo): paren-depth CREATE TABLE + multi-line ALTER parser vs types.ts generated Row blocks — 39 migration tables ↔ 40 types.ts tables
+- All flagged mismatches triaged: multi-line ALTER artifacts (grep-verified), price_egp→price_usd renames 0012/0038 (types correct), audit_log absence benign (trigger-only, zero app reads), blog_posts.source boundary (0014 exists, prod lacks column, code guards with "source" in row — safe both ways)
+- REAL DRIFT (4 objects live in production with NO migration file): plan_swaps (refund eligibility input — refund.ts/data/plans.ts/tier-limits.ts) · coach_presence (data/coach.ts online/offline) · progress_photos (data/progress.ts) · referrals.last_seen column. Phase-5-era ad-hoc tables, already suspected in AGENTS §6, never backfilled — a fresh rebuild from the repo would have crashed refunds/presence/photos
+- CLOSED SAFELY: 20260902120000_0063_schema_drift_backfill.sql — IF NOT EXISTS only → guaranteed NO-OP on production; column definitions from types.ts mirror (generated FROM live DB, Relationships:[] proves no FKs → faithfully none added). DELIBERATE documented deviation: no blind RLS/policy writes on live tables (owner-forbidden behavior change risk)
+- Companion VERIFY_SCHEMA_DRIFT.sql (READ-ONLY, 5 sections: columns · row counts · RLS+policies · constraints · 0063 no-op proof) for the owner to run once in SQL Editor → any future policy reconciliation happens FROM TRUTH. Raw GitHub link attached in final report per RAW-SQL-LINK RULE
+- supabase/migrations/INDEX.md created: naming-family table (what auto-applies vs manual), full 0001→0063 map, ⚠️ on 0059 old-format manual anomaly (NOT renamed — Phase 61 ledger-incident lesson; 0060 idempotently covers it), known-boundaries section, audit log section
+- AGENTS.md §6 MIGRATION INDEX LAW added: timestamped naming + same-commit INDEX.md row + types.ts regen + audit script before push + RENAMING EXISTING FILES FORBIDDEN
+- Gates: tsc 0 · eslint 0 (zero src changes — git status proven) · vitest 191/191
+- Docs parity §3.6: QA_CHECKLIST Phase 96 section + PROGRESS Phase 96 + «آخر تحديث» + this entry + INDEX.md + AGENTS §6
+
+Stage Summary:
+- The migrations-audit task (lost to context) is now COMPLETE with a real finding closed: production schema ↔ repo migrations gap of Phase-5 era sealed by 0063 (no-op on prod) + truth-verification script for the owner + permanent anti-confusion law
+- Next development item remains Phase 89-SSE (EVO streaming + build-info + evo-chat-context getReader) — first deferred dev item
+- REMINDER to owner: revoke the GitHub token (ghp_SV…IvWO) once all work is done — used transiently in git push commands only, never stored in files

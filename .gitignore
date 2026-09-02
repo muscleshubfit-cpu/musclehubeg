@@ -53,6 +53,7 @@ pnpm-lock.yaml
 !/scripts/blog-runner/
 !/scripts/ai-jobs-runner/
 !/scripts/check-stale-refs.sh
+!/scripts/migration_audit.py
 /skills/
 /tests/
 /examples/
