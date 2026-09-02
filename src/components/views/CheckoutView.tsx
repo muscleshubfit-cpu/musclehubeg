@@ -161,7 +161,20 @@ function PayPalButtons({
 
   useEffect(() => {
     if (renderedRef.current || !paypalRef.current) return;
-    const w = window as any;
+    // Structural view of the PayPal SDK global — no `any` escape hatch.
+    type PayPalButtonsConfig = {
+      style?: Record<string, string>;
+      createOrder: () => Promise<string>;
+      onApprove: (data: { orderID: string }) => Promise<void> | void;
+      onCancel: () => void;
+      onError: (err: unknown) => void;
+    };
+    type PayPalWindow = {
+      paypal?: {
+        Buttons: (config: PayPalButtonsConfig) => { render: (el: HTMLElement) => Promise<void> };
+      };
+    };
+    const w = window as unknown as PayPalWindow;
     if (!w.paypal?.Buttons) return;
 
     renderedRef.current = true;
@@ -201,9 +214,10 @@ function PayPalButtons({
               toast.error(result.error || (isAr ? "فشل الدفع" : "Payment failed"));
               onError(result.error || "Capture failed");
             }
-          } catch (e: any) {
-            toast.error(e.message || (isAr ? "خطأ في المعالجة" : "Processing error"));
-            onError(e.message);
+          } catch (e) {
+            const msg = e instanceof Error ? e.message : String(e);
+            toast.error(msg || (isAr ? "خطأ في المعالجة" : "Processing error"));
+            onError(msg);
           } finally {
             setProcessing(false);
           }
@@ -211,14 +225,14 @@ function PayPalButtons({
         onCancel: () => {
           toast.info(isAr ? "تم إلغاء الدفع" : "Payment cancelled");
         },
-        onError: (err: any) => {
+        onError: (err: unknown) => {
           console.error("[paypal] Button error:", err);
           toast.error(isAr ? "حدث خطأ. حاول مرة أخرى." : "An error occurred. Please try again.");
           onError("PayPal button error");
         },
       })
       .render(paypalRef.current)
-      .catch((e: any) => {
+      .catch((e: unknown) => {
         console.error("[paypal] Render error:", e);
         renderedRef.current = false;
       });
@@ -315,8 +329,9 @@ export function CheckoutView({ tier, months }: { tier: TierId | MembershipTier; 
         isAr ? "تم إرسال طلب الاشتراك! راجعه فريق Musclehubeg قريباً." : "Subscription request sent!",
       );
       setTimeout(() => navigate("dashboard"), 3000);
-    } catch (e: any) {
-      toast.error(e.message || t("common.error"));
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      toast.error(msg || t("common.error"));
     } finally {
       setSubmitting(false);
     }
@@ -529,6 +544,7 @@ export function CheckoutView({ tier, months }: { tier: TierId | MembershipTier; 
                 {isManualMethod && (
                   <>
                     <div className="mt-5 flex flex-col items-center rounded-2xl border border-dashed border-border bg-muted/40 p-5">
+                      {/* eslint-disable-next-line @next/next/no-img-element -- static QR asset rendered as-is; optimization must never touch a scannable QR (CoachWalletView precedent) */}
                       <img
                         src={method === "instapay" ? "/qr-instapay.png" : "/qr-vodafone.png"}
                         alt={method === "instapay" ? "InstaPay QR Code" : "Vodafone Cash QR Code"}

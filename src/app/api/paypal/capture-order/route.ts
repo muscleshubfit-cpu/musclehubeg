@@ -259,7 +259,7 @@ async function handleWalletTopupCapture(
   // 3. Idempotency — already credited for this PayPal order?
   const refUuid = payPalOrderRefUuid(orderId);
   const { data: existing } = await supabaseAdmin
-    .from("coach_wallet_transactions" as any)
+    .from("coach_wallet_transactions")
     .select("id")
     .eq("ref_id", refUuid)
     .eq("kind", "topup")
@@ -278,7 +278,7 @@ async function handleWalletTopupCapture(
 
   // 4. Credit the wallet — the ONLY writer is coach_adjust_wallet (0035)
   const topupNote = `شحن محفظة عبر PayPal — order ${orderId}`;
-  const { data: newBalance, error: rpcErr } = await (supabaseAdmin as any).rpc(
+  const { data: newBalance, error: rpcErr } = await supabaseAdmin.rpc(
     "coach_adjust_wallet",
     {
       p_coach_id: userId,
@@ -308,7 +308,7 @@ async function handleWalletTopupCapture(
   // 5. History row (best-effort) — shows in the coach's top-up history
   //    and the admin wallets page as an auto-approved PayPal top-up.
   const { error: histErr } = await supabaseAdmin
-    .from("coach_topup_requests" as any)
+    .from("coach_topup_requests")
     .insert({
       coach_id: userId,
       amount: usd,
@@ -390,8 +390,8 @@ export async function POST(request: NextRequest) {
   let captureResult;
   try {
     captureResult = await capturePayPalOrder(orderId);
-  } catch (e: any) {
-    console.error("[paypal/capture-order] Capture error:", e?.message);
+  } catch (e) {
+    console.error("[paypal/capture-order] Capture error:", e instanceof Error ? e.message : String(e));
     return NextResponse.json(
       { error: "Failed to capture payment. Please contact support." },
       { status: 500 },
@@ -542,11 +542,11 @@ export async function POST(request: NextRequest) {
           plan_tier,
         );
       }
-    } catch (commissionError: any) {
+    } catch (commissionError) {
       // Commission failure should NOT block the subscription activation.
       console.error(
         "[paypal/capture-order] Affiliate commission error (non-blocking):",
-        commissionError?.message,
+        commissionError instanceof Error ? commissionError.message : String(commissionError),
       );
     }
 
@@ -587,10 +587,10 @@ export async function POST(request: NextRequest) {
       plan: plan_tier,
       durationMonths: duration_months,
     });
-  } catch (e: any) {
+  } catch (e) {
     console.error(
       "[paypal/capture-order] Subscription activation error:",
-      e?.message,
+      e instanceof Error ? e.message : String(e),
     );
     // The payment was captured but the subscription failed to activate.
     // This is a critical state — the user paid but doesn't have access.

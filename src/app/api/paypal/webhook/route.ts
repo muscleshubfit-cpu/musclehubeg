@@ -105,8 +105,8 @@ async function verifyWebhookSignature(
 
     console.error("[paypal/webhook] Signature verification failed:", verificationStatus);
     return false;
-  } catch (e: any) {
-    console.error("[paypal/webhook] Verification error:", e?.message);
+  } catch (e) {
+    console.error("[paypal/webhook] Verification error:", e instanceof Error ? e.message : String(e));
     return false;
   }
 }
@@ -127,9 +127,20 @@ export async function POST(request: NextRequest) {
   }
 
   // 3. Parse the event
-  let event: any;
+  // Structural view of the PayPal webhook event — only the fields this
+  // route reads; PayPal sends more, unknown extra fields stay untouched.
+  type PayPalWebhookEvent = {
+    event_type?: string;
+    resource_type?: string;
+    resource?: {
+      id?: string;
+      custom_id?: string;
+      supplementary_data?: { related_ids?: { order_id?: string } };
+    };
+  };
+  let event: PayPalWebhookEvent;
   try {
-    event = JSON.parse(body);
+    event = JSON.parse(body) as PayPalWebhookEvent;
   } catch {
     console.error("[paypal/webhook] Failed to parse webhook body");
     return NextResponse.json(

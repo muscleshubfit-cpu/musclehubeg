@@ -123,8 +123,8 @@ export async function POST(request: NextRequest) {
         approveUrl: approveLink?.href || null,
         chargeUsd,
       });
-    } catch (e: any) {
-      console.error("[paypal/create-order] Top-up order error:", e?.message);
+    } catch (e) {
+      console.error("[paypal/create-order] Top-up order error:", e instanceof Error ? e.message : String(e));
       return NextResponse.json(
         { error: "Failed to create PayPal order. Please try again." },
         { status: 500 },
@@ -191,8 +191,8 @@ export async function POST(request: NextRequest) {
       status: order.status,
       approveUrl,
     });
-  } catch (e: any) {
-    console.error("[paypal/create-order] Create Order error:", e?.message);
+  } catch (e) {
+    console.error("[paypal/create-order] Create Order error:", e instanceof Error ? e.message : String(e));
     return NextResponse.json(
       { error: "Failed to create PayPal order. Please try again." },
       { status: 500 },

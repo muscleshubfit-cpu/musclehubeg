@@ -105,7 +105,7 @@ export async function countFeatureUsageSince(
 
   // 1. EVO chats vs plan generations (same tamper-proof ledger, different sources)
   const { data: chatRows, error: chatErr } = await conn
-    .from("evo_chat_usage" as any)
+    .from("evo_chat_usage")
     .select("source")
     .eq("user_id", userId)
     .gte("created_at", sinceIso);
@@ -123,7 +123,7 @@ export async function countFeatureUsageSince(
 
   // 2. Swaps (meal/exercise)
   const { count: swapCount, error: swapErr } = await conn
-    .from("plan_swaps" as any)
+    .from("plan_swaps")
     .select("*", { count: "exact", head: true })
     .eq("user_id", userId)
     .gte("created_at", sinceIso);
@@ -136,7 +136,7 @@ export async function countFeatureUsageSince(
   // 3. Coach/admin AI plans generated for this client (done only —
   //    same convention as quota: failed generations never count)
   const { count: coachPlans, error: jobsErr } = await conn
-    .from("ai_jobs" as any)
+    .from("ai_jobs")
     .select("*", { count: "exact", head: true })
     .eq("job_type", "plan_nutrition")
     .eq("status", "done")
@@ -145,7 +145,7 @@ export async function countFeatureUsageSince(
   if (jobsErr) {
     // plan_nutrition bucket failed — retry the union via two counts
     const { count: workoutPlans, error: wErr } = await conn
-      .from("ai_jobs" as any)
+      .from("ai_jobs")
       .select("*", { count: "exact", head: true })
       .eq("job_type", "plan_workout")
       .eq("status", "done")
@@ -158,7 +158,7 @@ export async function countFeatureUsageSince(
     }
   } else {
     const { count: coachWorkout, error: wErr2 } = await conn
-      .from("ai_jobs" as any)
+      .from("ai_jobs")
       .select("*", { count: "exact", head: true })
       .eq("job_type", "plan_workout")
       .eq("status", "done")
@@ -259,8 +259,8 @@ export async function resolvePaymentInfo(
     .order("created_at", { ascending: false })
     .limit(5);
   const row = (reqs ?? []).find(
-    (r: any) => !sinceIso || (r.reviewed_at ?? r.created_at) >= sinceIso,
-  ) as { id: string; price_usd: number | null } | undefined;
+    (r) => !sinceIso || (r.reviewed_at ?? r.created_at) >= sinceIso,
+  );
   if (row) {
     return {
       amountUsd: row.price_usd ? Math.round(Number(row.price_usd) * 100) / 100 : null,
