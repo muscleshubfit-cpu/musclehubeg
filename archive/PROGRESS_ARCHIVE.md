@@ -4162,3 +4162,18 @@ This commit makes `ads.txt` available on production. AdSense's crawler will fetc
 6. `docs_parity.py` حُدّد نطاقه على INDEX.md (البيت الموثق الوحيد للنطاق) و`docs_audit.py` اتضاف كخطوة تالتة في نفس الـ workflow.
 
 **البوابات:** tsc 0 · eslint 0 · vitest 191/191 · migration_audit --ci 0 · docs_parity 0 · docs_audit 0 · check-stale-refs 0.
+
+---
+
+> **ملحق 2026-09-03 (Phase 114):** قسم Phase 108 نُقل هنا حرفيًا من PROGRESS.md (طقس الأرشفة — السقف 6 أقسام، الأقسام الحية 114→109).
+
+## 2026-09-03 — Phase 108: إبراز البوابات الآلية في وصف المشروع (README + GitHub About) — «ضيف وصف البوابة الآلية فى وصف المشروع اعتقد دى ميذة قوية لازم تتعرض ، كذلك لو فى اى امور قوية زيها اعرضها برده فى وصف المشروع»
+
+**اللي اتعمل:**
+1. **README — قسم 🛡️ Automated Quality Gates كامل** (بعد قسم الرخصة وقبل Quick Start): جدول البوابة / بتلقط إيه / الحادثة اللي خلدتها — migration_audit (انجراف المرآة · 42703) · docs_parity (الوثائق المتجمدة) · docs_audit (الحقائق المتكررة + §3.6 المكرر) · check-stale-refs + check-ui-wiring («edits vanish») · Supabase Preview (انسداد خط الترحيل الحي) + فقرة «ليه ده مهم»: الوثائق مش ممكن تكذب · المرآة مش بتتنزاح · الكود المتقاعد مش بيرجع · البوابات بتسافر تلقائيًا مع أي نسخة نظيفة/rebrand + سطر **CI Gates** في ترويسة README + جملة في الفقرة التعريفية.
+2. **Known Issues اتنضف من ادعاء بيكذب:** «Types mirror drift (Phase 105 candidate)» كان لسه مكتوب «مفتوح» رغم إنه اتقفل فعليًا في Phase 105 (مرآة حية + 0069 + بروب 8/8) — اتشال من المفتوح واتنقل لقائمة المقفول؛ H5 اتأكد إنه لسة حي (blog-pipeline.ts:411).
+3. **GitHub About + topics عبر API:** الوصف بقى يقود بالانضباط الهندسي — «Audited by automated CI quality gates on every push: schema-drift · registry-parity · knowledge-system · anti-regression» + topics جديدة: github-actions · quality-gates · ci-cd · typescript (إجمالي 14).
+4. **قانون الأرقام محترم:** صفر عدادات متغيرة دخلت README — أسماء البوابات معرفات ملفات ثابتة مش عدادات (docs_audit D 0 hits).
+5. **أرشفة:** قسم Phase 99-run اتنقل حرفيًا للملحق (سقف الـ 6 أقسام اتمسّ — البوابة F).
+
+**البوابات:** tsc 0 · eslint 0 · vitest 191/191 · migration_audit --ci 0 · docs_parity 0 · docs_audit 0 · check-stale-refs 0 · check-ui-wiring 0.

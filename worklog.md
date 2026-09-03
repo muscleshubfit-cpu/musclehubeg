@@ -956,3 +956,20 @@ Stage Summary:
 - ملف القوانين بقى 275 سطر (< 350 بهامش) بهيكل CI سليم 100% وروابط داخلية شغالة — المعرفة الطويلة عايشة في TECH_REFERENCE/الكود وفق هرمية §12.8، والقانون نفسه بقي ملزمًا بأسماء قوانينه كاملة
 - Commit SHA: 2d3424d
 - Push status: pushed (739d760..2d3424d) — CI حي أخضر على 2d3424d (Docs & schema parity · Anti-regression guard · Supabase Preview كلهم success) — post-push fixup: this line recorded the real SHA (the placeholder could not know its own commit hash before committing — same post-push pattern as 105/107/108/109/110/111/112)
+---
+Task ID: 114
+Agent: Super Z (main)
+Task: Phase 114 — التنظيف الأولي المتبقي («الأمر الرابع»): STATE.md ≤ 100 سطر · مطاردة النسخ الاحتياطية/المكررة في جذر المشروع ونقلها للأرشيف · التأكد من سلامة README/DEVELOPER_GUIDE/AGENTS.md بعد الأوامر السابقة · طقس §3.6 للمرحلة 114
+
+Work Log:
+- STATE.md: 48 سطر فعلًا (الحد 100 — docs_audit A أخضر بالتصميم) — وفيه بنود الأمر حرفيًا من غير اختصار: رقم المرحلة · قائمة المفتوح (+ بانتظار المالك) · قائمة الممنوعات (+ خريطة المصادر وبروتوكول الجلسة — تشغيلية مش تاريخية) — مفيش تاريخ زائد يستحق النقل، مفيش حاجة اتنقلت من STATE للأرشيف
+- المطاردة (بند 2): find على الريبو كله (باستثناء node_modules/.git/.next) عن *.bak/ *.backup/ *.old/ *.orig/ *~/ *.tmp/ *.swp/ *copy*/ «نسخة» + تضاربات أسماء AGENTS*/STATE*/README* — الإصابات الوحيدة هي الأصول القانونية نفسها + copy-button.tsx (مكون حقيقي) + public/images/README.md — صفر نسخ احتياطية: البند اتوفى بالنظافة القائمة مش بإضافة، ومفيش ملف اتنقل للأرشيف
+- سلامة الأساسيات (بند 3): diff عناوين AGENTS.md (grep '^#') بين HEAD وشجرة العمل = فاضي (275 سطر، الـ12 قسم ## كاملين) · README: سطور 🛡️ الثلاثة + «للاطلاع على التفاصيل الكاملة» + رابط docs/CI_GATES.md · DEVELOPER_GUIDE: بلوك مؤشر docs/TECH_REFERENCE.md · docs/TECH_REFERENCE.md + docs/CI_GATES.md بيحلّوا على القرص · git status نظيف = مطابق للـCI الأخضر على HEAD
+- البوابات: بأمر المالك صريحًا «لا حاجة لإعادة تشغيلها الآن» — البوابات الثمانية فضلت من 113 (صفر بايت كود اتغير)؛ بوابات التوازي الحارسة للملفات المعدلة اشتغلوا محليًا: docs_parity 0 · docs_audit 0 · وCI بيعيد الكاملة مع الـpush واتراقبت
+- طقس §3.6 (بند 4): STATE → مرحلة 114 · QA: Latest 114 (6 صفوف) + 113 بقت Previous + جدول 108 اتنقل حرفيًا للأرشيف (114→109) · PROGRESS: قسم 114 + قسم 108 اتنقل حرفيًا للملحق (114→109) + سطرا الملحق اتحدثوا — النقل بسكريبت بassert verbatim byte-identical
+- CHANGELOG.md فضل فارغ (0 بايت) بأمر Phase 111 — مش ضمن نطاق الأمر الرابع
+
+Stage Summary:
+- التنظيف الأولي اتأكد إنه شبه منتهي فعليًا من المراحل السابقة: مفيش بقايا ولا نسخ ولا تضخم — الأرشيف هو اللي شايل التاريخ والملفات الحية نحيفة وقانونية
+- Commit SHA: PENDING114 (post-push يصلّح السطر ده — الـplaceholder ميعرفش hash الكوميت بتاعه قبل ما يتعمل — نفس نمط 105/107/108/109/110/111/112/113)
+- Push status: PENDING — post-push fixup هيحدّث السطرين دول بالـSHA الحقيقي ونتيجة CI الحي

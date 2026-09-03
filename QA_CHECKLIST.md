@@ -6,7 +6,20 @@
 
 ---
 
-## Latest Verification — 2026-09-03 (Phase 113 — LAW FILE SLIMMED («الأمر الثالث»): owner «قم بتحرير ملف AGENTS.md لتقليص حجمه بشكل كبير … لا تحذف أي عنوان رئيسي لأن CI يفحص وجودها … الفقرات الطويلة بملخص سطر أو سطرين ورابط docs/TECH_REFERENCE.md … الهدف أقل من 350 سطر»)
+## Latest Verification — 2026-09-03 (Phase 114 — FIRST-PASS CLEANUP («الأمر الرابع»): owner «قم بالتنظيف الأولي المتبقي مع الحفاظ على ما أنجزته في المراحل السابقة» — STATE ≤ 100 audit · backup/duplicate sweep · core-docs integrity after 111-113 · §3.6 ritual for 114)
+
+| Check | Result | How verified |
+|---|---|---|
+| STATE.md ≤ 100 lines (owner item 1) | ✅ | wc -l = 48 (cap 100 — docs_audit A green by design) — already carries the owner's required trio verbatim: المرحلة الحالية · المفتوح الآن · ممنوعات نشطة (+ بانتظار المالك · خريطة المصادر · بروتوكول الجلسة — operational, not historical) — zero bytes needed moving to archive |
+| Backup/duplicate sweep (owner item 2) | ✅ | find across the repo (pruning node_modules/.git/.next) for *.bak *.backup *.old *.orig *~ *.tmp *.swp *copy* نسخة + AGENTS*/STATE*/README* name collisions → ONLY the lawful originals themselves (plus src/components/ui/copy-button.tsx — a real component, and public/images/README.md); archive/ holds exactly its 4 lawful files — NOTHING existed to move |
+| Core docs intact after الأوامر 111-113 (owner item 3) | ✅ | AGENTS.md 275 lines · diff of grep '^#' HEAD vs worktree = EMPTY (every heading byte-identical, all 12 ## sections) · README 🛡️ 3-line block + «للاطلاع على التفاصيل الكاملة» → docs/CI_GATES.md present · DEVELOPER_GUIDE docs/TECH_REFERENCE.md pointer block present · docs/TECH_REFERENCE.md + docs/CI_GATES.md resolve on disk · working tree clean = byte-identical to CI-green HEAD |
+| Gates policy (owner: «لا حاجة لإعادة تشغيلها الآن») | ✅ | full local 8-gate re-run skipped per owner directive — zero code/src/supabase bytes changed since 113's green run; the two parity gates guarding THESE edited files ran locally: docs_parity 0 · docs_audit 0 (STATE=PROGRESS=QA=114); CI re-runs the full set on push and is watched live |
+| Docs parity §3.6 | ✅ UPDATED | STATE.md → Phase 114 · QA Latest = Phase 114 + 113 demoted Previous + 108 table moved VERBATIM to archive/QA_CHECKLIST_ARCHIVE.md (cap 6: 114→109) · PROGRESS Phase 114 section + 108 moved VERBATIM to archive/PROGRESS_ARCHIVE.md ملحق (cap 6: 114→109) · worklog Task 114 ×2 (repo + workspace) · CHANGELOG.md stays EMPTY per Phase 111 order |
+| Gates after edits | ✅ | docs_parity 0 · docs_audit 0 — docs-only phase; tsc/eslint/vitest/migration_audit/check-stale-refs/check-ui-wiring unchanged since 113 (zero code bytes touched), CI re-runs all on push |
+
+---
+
+## Previous Verification — 2026-09-03 (Phase 113 — LAW FILE SLIMMED («الأمر الثالث»): owner «قم بتحرير ملف AGENTS.md لتقليص حجمه بشكل كبير … لا تحذف أي عنوان رئيسي لأن CI يفحص وجودها … الفقرات الطويلة بملخص سطر أو سطرين ورابط docs/TECH_REFERENCE.md … الهدف أقل من 350 سطر»)
 
 | Check | Result | How verified |
 |---|---|---|
@@ -75,23 +88,7 @@
 
 ---
 
-## Previous Verification — 2026-09-03 (Phase 108 — QUALITY-GATES SHOWCASE: owner «ضيف وصف البوابة الآلية فى وصف المشروع اعتقد دى ميذة قوية لازم تتعرض ، كذلك لو فى اى امور قوية زيها اعرضها برده» — README 🛡️ gates section + GitHub About/topics rewritten via API + Known Issues de-rotted)
-
-| Check | Result | How verified |
-|---|---|---|
-| README 🛡️ Automated Quality Gates section | ✅ | 5 gates documented with incident lineage (migration_audit · docs_parity · docs_audit · check-stale-refs + check-ui-wiring · Supabase Preview) — every referenced script verified present in `scripts/` on disk; «CI Gates» line added to README front matter + intro sentence |
-| Single-source number law | ✅ | docs_audit D-check 0 hits on the edited README — gate names are stable file identifiers, zero variable counts introduced |
-| Known Issues de-rotted | ✅ | stale «Types mirror drift (Phase 105 candidate)» removed from the open list (closed in Phase 105: live-shape mirror + 0069 + 8/8 production probes) and moved to the fixed list; H5 re-verified still true (src/lib/blog-pipeline.ts:411) |
-| GitHub About + topics via API | ✅ | PATCH /repos + PUT /topics → HTTP 200 — description now leads with the engineering discipline; topics gained github-actions · quality-gates · ci-cd · typescript |
-| CI state entering the phase | ✅ | live check-runs on fbb27f4: Supabase Preview success · guard success · parity success |
-| Docs parity §3.6 | ✅ UPDATED | STATE.md → Phase 108 / fbb27f4 · QA + PROGRESS Phase 108 sections · PROGRESS slimmed back to cap (Phase 99-run → archive/PROGRESS_ARCHIVE.md ملحق 2026-09-03 Phase 108, verbatim) · worklog Task 108 ×2 (repo + workspace) |
-| Gates after edits | ✅ | tsc 0 · eslint 0 · vitest 191/191 · migration_audit --ci 0 · docs_parity 0 · docs_audit 0 · check-stale-refs 0 · check-ui-wiring 0 |
-
----
-
----
-
-> 🗄️ **الأرشفة (Phase 82 + ملحق 2026-09-02):** الجداول الأقدم نُقلت إلى `archive/QA_CHECKLIST_ARCHIVE.md`. **ملحق 2026-09-03 (Phase 107):** كل ما قبل آخر 5 مراحل (102-run → 80) انضم للملحق — الملف ده سقفه 6 جداول بوابةً. **ملحق 2026-09-03 (Phase 109):** جدول Phase 99-run انضم للملحق (السقف 6 اتمسّ بأقسام 109→103b). **ملحق 2026-09-03 (Phase 110):** جدول Phase 103b انضم للملحق (السقف 6 اتمسّ بأقسام 110→104). **ملحق 2026-09-03 (Phase 111):** جدول Phase 104 انضم للملحق (السقف 6 اتمسّ بأقسام 111→105). **ملحق 2026-09-03 (Phase 112):** جدول Phase 105 انضم للملحق (السقف 6 اتمسّ بأقسام 112→107). **ملحق 2026-09-03 (Phase 113):** جدول Phase 107 انضم للملحق (السقف 6 اتمسّ بأقسام 113→108).
+> 🗄️ **الأرشفة (Phase 82 + ملحق 2026-09-02):** الجداول الأقدم نُقلت إلى `archive/QA_CHECKLIST_ARCHIVE.md`. **ملحق 2026-09-03 (Phase 107):** كل ما قبل آخر 5 مراحل (102-run → 80) انضم للملحق — الملف ده سقفه 6 جداول بوابةً. **ملحق 2026-09-03 (Phase 109):** جدول Phase 99-run انضم للملحق (السقف 6 اتمسّ بأقسام 109→103b). **ملحق 2026-09-03 (Phase 110):** جدول Phase 103b انضم للملحق (السقف 6 اتمسّ بأقسام 110→104). **ملحق 2026-09-03 (Phase 111):** جدول Phase 104 انضم للملحق (السقف 6 اتمسّ بأقسام 111→105). **ملحق 2026-09-03 (Phase 112):** جدول Phase 105 انضم للملحق (السقف 6 اتمسّ بأقسام 112→107). **ملحق 2026-09-03 (Phase 113):** جدول Phase 107 انضم للملحق (السقف 6 اتمسّ بأقسام 113→108). **ملحق 2026-09-03 (Phase 114):** جدول Phase 108 انضم للملحق (السقف 6 اتمسّ بأقسام 114→109).
 
 
 ## Verification Protocol
