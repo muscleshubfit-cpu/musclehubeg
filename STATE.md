@@ -2,12 +2,12 @@
 
 > **قانون (AGENTS.md §3.6):** ده أول ملف أي وكيل يقرأه قبل أي شغل — وبيتحدث إلزاميًا في نفس الفريم اللي بيغيّر الحالة.
 > الملف محدود بـ 100 سطر بوابةً (`scripts/docs_audit.py`) — اكتب مضغوط.
-> **آخر تحديث:** 2026-09-03 (Phase 110)
+> **آخر تحديث:** 2026-09-03 (Phase 111)
 
 ## المرحلة الحالية
 
-- **المرحلة:** 110 — إزالة ازدواج النشرة البريدية في الصفحة الرئيسية (كارت الفوتر المكرر اتشال — سيكشن 13 هو السطح الوحيد، نفس نمط إزالة CTA الفوتر 2026-08-30) + إصلاح CI عرضي: npm 10 arborist «edgesOut» crash → خطوة Bump npm@11 في الـ4 ووركفلوهات الـCI المكشوفة
-- **آخر كوميت متحقق منه:** 44e06de (Phase 110 + addendum · CI حي أخضر 3/3 بالـ API على 44e06de: Docs & schema parity · Anti-regression guard · Process AI jobs بعد إصلاح npm-11 · تحقق حي بعد الـ deploy: «النشرة البريدية المجانية» مرة واحدة على /ar و«The free newsletter» مرة واحدة على /)
+- **المرحلة:** 111 — ملفات مرجعية بأمر المالك: `docs/TECH_REFERENCE.md` (Supabase/RLS + Shadcn + SQL من AGENTS.md — نسخ منظم والقانون لم يُمس) + `docs/CI_GATES.md` (شرح البوابات من README/AGENTS) + `CHANGELOG.md` فارغ في الجذر
+- **آخر كوميت متحقق منه:** ccbe59b (Phase 110 post-push · CI حي أخضر: parity · guard على ccbe59b + Process AI jobs أخضر بـdispatch على 44e06de بعد إصلاح npm-11 · تحقق حي: «النشرة البريدية المجانية» مرة واحدة على /ar و/)
 - **البوابات وقتها:** tsc 0 · eslint 0 · vitest 191/191 · migration_audit --ci 0 · docs_parity 0 · docs_audit 0 · check-stale-refs 0 · check-ui-wiring 0
 - **الإنتاج:** musclehubeg.vercel.app حي · آخر ميجريشن مطبّق: 0069 (no-op توفيقي — الإنتاج مطابق للمرآة المثبتة حيًا 8/8)
 

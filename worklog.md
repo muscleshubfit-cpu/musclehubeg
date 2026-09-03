@@ -895,3 +895,23 @@ Stage Summary:
 - Commit SHA: e1fca38 (+ addendum 44e06de: إصلاح CI العرضي)
 - Push status: pushed (c398917..e1fca38 ثم e1fca38..44e06de) — CI حي أخضر على 44e06de 3/3 (Docs & schema parity · Anti-regression guard · Process AI jobs بعد إصلاح npm 11 workflow_dispatch) — post-push fixup: this line recorded the real SHAs + live verification: «النشرة البريدية المجانية» ظاهرة مرة واحدة بالظبط على /ar (كانت 2) و«The free newsletter» مرة واحدة على / — علامات Phase 109 لسا حية (رحلتك الرياضية الكاملة · ابدأ رحلتك دلوقتي مجانًا)
 - إصلاح CI عرضي في نفس الفريم: ووركفلو «Process AI jobs» المجدول قعد أحمر على e1fca38 — npm 10 arborist «Cannot read properties of null (reading 'edgesOut')» في Install dependencies (runner node 22 = npm 10 مدمج · الريبو ملفوش lockfile → npm install بيحل فريش · آخر نجاح 08:56 نفس اليوم على نفس ملف الاعتماديات · attempt 2 نفس الانهيار) · محليًا npm 11.17 dry-run بيحل نفس الشجرة exit 0 → خطوة «Bump npm (npm install -g npm@11)» قبل التثبيت في الـ4 ووركفلوهات المكشوفة (process-ai-jobs · blog-post-ar · blog-post-en · remediate-blog-images) + توثيق في QA/PROGRESS/STATE
+
+---
+Task ID: 111
+Agent: Super Z (main)
+Task: Phase 111 — ملفات مرجعية بأمر المالك (docs/TECH_REFERENCE.md + docs/CI_GATES.md + CHANGELOG.md فارغ) — «أريد تنفيذ المهمة التالية بدقة شديدة» (7 بنود حرفية)
+
+Work Log:
+- AGENTS.md قُرأ كاملًا (1699 سطر) لاستخراج المادة: قاعدة Supabase (§3.3/§6) · RLS (§8 role model v2 · upload law · money worlds) · كل صيغ SQL الحرفية (is_coach/is_coach_over/coach_of · NOTIFY pgrst · extend_subscription 0018 · salted-SHA-256 · tier guard 0045 · .delete().in) — مفيش أي ذكر لـShadcn فيه إطلاقًا
+- قرار توثيقي مُسجّل: النقل = نسخ منظم مش تمزيق — AGENTS.md لم يُمس بايت واحد لأن docs_audit (فحص E) يشترط بنيته؛ وقاعدة §12.5 «لا ملفات توثيق جديدة» يغطيها توجيه المالك الصريح المسجل في ترويسات الملفات (منشأ 2026-09-03) + هذا السجل
+- قائمة Shadcn مستخرجة من src/components/ui/ (المصدر القانوني: «أسماء المكونات → الكود نفسه») — قياسية (accordion…tooltip) + 3 مضافة خاصة (copy-button · image-with-fallback · 3d-testimonials) بالمصدر موثق بصراحة في الملف
+- docs/TECH_REFERENCE.md: 4 أقسام (قاعدة البيانات · RLS · Shadcn · SQL) بترويسة منشأ وقاعدة استخدام (مش بديل قانون)
+- docs/CI_GATES.md: جدول البوابات الخمس بالحوادث من README حرفيًا + سجل الـworkflows الستة + أوامر §3.5 + قوانين الصحة (مكافحة الانحدار · اللون الصادق · مناعة الجدولة) + حادثة Phase 110 npm-arborist
+- CHANGELOG.md: فارغ عمدًا (0 بايت) بنص الأمر «اتركه فارغاً الآن، سنملؤه لاحقاً»
+- طقس §3.6: STATE → مرحلة 111 · QA: Latest 111 (6 صفوف) + 110 بقت Previous + جدول 104 اتنقل حرفيًا للأرشيف (111→105) · PROGRESS: قسم 111 + قسم 105 اتنقل حرفيًا للملحق (111→106) + سطرا الملحق اتحدثوا
+- البوابات محليًا: tsc 0 · eslint 0 · vitest 191/191 · migration_audit --ci 0 · docs_parity 0 · docs_audit 0 (STATE=PROGRESS=QA=111) · check-stale-refs 0 · check-ui-wiring 0
+
+Stage Summary:
+- الملفات المرجعية الثلاثة عايشة في الريبو بترويسات منشأ واضحة — AGENTS.md/README.md سلامة كاملة — والمعرفة التقنية بقت منظمة في مكان واحد قابل للفهرسة
+- Commit SHA: (placeholder — post-push fixup)
+- Push status: (placeholder — post-push fixup)

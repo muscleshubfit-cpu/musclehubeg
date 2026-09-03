@@ -6,7 +6,20 @@
 
 ---
 
-## Latest Verification — 2026-09-03 (Phase 110 — NEWSLETTER DEDUP: owner «النشرة البريدية المجانية مكررة فى الصفحة الرئيسية» — duplicate footer card removed, section 13 is the single newsletter surface, same dedup pattern as the 2026-08-30 footer CTA removal)
+## Latest Verification — 2026-09-03 (Phase 111 — OWNER-DIRECTED REFERENCE DOCS: «استخرج منه كل المعلومات التقنية التفصيلية… وانقلها مع تنظيمها» + «استخرج شرح البوابات الآلية… كاملاً» + «CHANGELOG.md فارغ الآن سنملؤه لاحقاً» — docs/TECH_REFERENCE.md + docs/CI_GATES.md + empty CHANGELOG.md)
+
+| Check | Result | How verified |
+|---|---|---|
+| docs/TECH_REFERENCE.md | ✅ | Supabase architecture (anon vs service-role, types.ts mirror, INDEX.md registry, migration_audit gate) · migration law §6 (naming YYYYMMDDHHMMSS_NNNN, idempotency, RAW-SQL-LINK, RUN_ON_SUPABASE pattern, NOTIFY pgrst) · special-rules tables grid (ai_jobs · evo_chat_usage · evo_anon_usage · coach_* · subscriptions hardening) · full RLS section (predicates is_coach/is_admin/is_coach_over/coach_of · role model v2 · money-world separation · coach addition flows) · Shadcn inventory with names · all SQL snippets/forms from AGENTS.md (13 organized items) — provenance headers cite owner directive + sources |
+| Extraction discipline (AGENTS.md untouched) | ✅ | copy-organized, NOT carved out: AGENTS.md byte-identical (docs_audit E-check requires its §structure; §12.5 «no new doc files» satisfied by explicit owner directive recorded in the files' provenance headers + worklog); Shadcn list sourced from src/components/ui/ per the source-of-truth map (AGENTS.md names no components — stated honestly in the file) |
+| docs/CI_GATES.md | ✅ | README «🛡️ Automated Quality Gates» transferred in full (the 5-gate table with incident lineage + narrative + «why this matters») + workflows registry (6) + §3.5 canonical commands + AGENTS gate-health laws (anti-regression · honest run color · schedule health) + Phase 110 npm-arborist incident documented |
+| CHANGELOG.md (repo root) | ✅ | created EMPTY exactly as ordered («اتركه فارغاً الآن، سنملؤه لاحقاً») — 0 bytes |
+| Docs parity §3.6 | ✅ UPDATED | STATE.md → Phase 111 · QA Latest = Phase 111 + 110 demoted Previous + 104 table moved VERBATIM to archive/QA_CHECKLIST_ARCHIVE.md (cap 6: 111→105) · PROGRESS Phase 111 section + 105 moved VERBATIM to archive/PROGRESS_ARCHIVE.md ملحق (cap 6: 111→106) · worklog Task 111 ×2 (repo + workspace) |
+| Gates after edits | ✅ | tsc 0 · eslint 0 · vitest 191/191 · migration_audit --ci 0 · docs_parity 0 · docs_audit 0 · check-stale-refs 0 · check-ui-wiring 0 |
+
+---
+
+## Previous Verification — 2026-09-03 (Phase 110 — NEWSLETTER DEDUP: owner «النشرة البريدية المجانية مكررة فى الصفحة الرئيسية» — duplicate footer card removed, section 13 is the single newsletter surface, same dedup pattern as the 2026-08-30 footer CTA removal)
 
 | Check | Result | How verified |
 |---|---|---|
@@ -80,22 +93,9 @@
 | Post-push live verification (0069 no-op) | ✅ 8/8 | read-only PostgREST probes on production ~2min after push (anon key re-extracted from the deployed bundle): coach_presence coach_id 200 · updated_at 200 · user_id 42703 ABSENT · status 42703 ABSENT — progress_photos photo_url 200 · taken_at 200 · file_path 42703 · note 42703 = production schema EXACTLY matches the corrected types.ts and 0069 touched nothing (owner can additionally see 0069 recorded in Dashboard → Database → Migrations) |
 | Docs parity §3.6 | ✅ UPDATED | INDEX.md 0069 row + heading 0001→0069 + counter + audit-log row · QA_CHECKLIST Phase 105 · PROGRESS Phase 105 + «آخر تحديث» · worklog Task 105 ×2 |
 
-## Previous Verification — 2026-09-03 (Phase 104 — DOCS PARITY SYNC: owner asked «عايز اتاكد ان كل خصائص ومميزات المشروع مكتوبة فى وصف وهيكل المشروع بالظبط ، وصف الريبو مكتوب قديم محتاج يتعدل» — full audit of every doc-facing description/structure against the CODE, then the stale GitHub repo About rewritten via API)
-
-| Check | Result | How verified |
-|---|---|---|
-| Docs-vs-code audit (counts from files, not memory) | ✅ | direct filesystem counts: 82 page.tsx (README said 76) · 69 API routes (said 67) · 80 SQL files (said 73, "dated up to 0062" — real map now 0001→0068) · 31 views (said 33) · 51 ui components (said 52) · 13 data modules ✓ · 5 workflows ✓ · admin/ = 19 sections + AdminShell + admin/ui.tsx |
-| README.md resynced through Phase 103b | ✅ | header parity line 81→103b; intro adds programs library / coach directory / site-coach B2C / Admin Panel 2.0 / SSE streaming; NEW «For Site Coaches (B2C)» section; Platform & Admin rewritten for AdminShell + unified clients + finances + coaches roster + site-assignments; Database Setup = 4 naming families per INDEX.md + 0063 drift RESOLVED note + pipeline-halts-on-failure lesson; DB tables add coach_kind / site_coach_assignments / get_admin_clients_paged(stats); yearly prices $119/$239/$359 verified against src/lib/memberships.ts |
-| Resolved known-issue removed + honest open one added | ✅ | «Phase-5 back-fill pending» deleted (closed by 0063 backfill + 0064/0065 RLS — Phase 99-run) and moved to the FIXED list; open candidate documented as Phase 105: types.ts mirror drift (coach_presence user_id/status · progress.ts taken_on/file_path/note — live-proven in 99-run) |
-| GitHub repo About (the owner's «وصف الريبو») | ✅ HTTP 200 | PATCH /repos/muscleshubfit-cpu/musclehubeg via API: old 'MuscleHubEG — Ahmed Zake Online Nutrition & Fitness Coaching Platform (Next.js 16 + Supabase + Vercel)' → full platform description (EVO AI coach, 868 exercises, 8.8k foods, tools, programs, memberships, B2B wallets/activations, B2C site-coach follow-ups, 20% affiliate, AI blog CMS, stack); + 10 topics (fitness, nutrition, workout, nextjs, react, supabase, vercel, ai-coach, arabic, bilingual); re-read after PATCH confirms stored values |
-| metadata.json stale AI capability flag | ✅ | MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API removed (direct Gemini integration was REMOVED by owner directive 2026-08-27 — OpenRouter + Groq ONLY); description expanded to the platform's real feature set |
-| DEVELOPER_GUIDE §8 | ✅ | 67 → **69 endpoints** + 2 new rows /api/admin/coach-kind + /api/admin/site-assignments (Phase 103); total line re-verified 2026-09-03 |
-| Docs-only scope | ✅ N/A code gates | zero src/supabase changes → tsc/eslint/vitest not applicable; the doc-relevant guard `scripts/check-stale-refs.sh` → exit 0 clean; every README relative link target verified to exist on disk |
-| Docs parity §3.6 | ✅ UPDATED | README.md · DEVELOPER_GUIDE §8 · metadata.json · GitHub About+topics · QA_CHECKLIST Phase 104 · PROGRESS Phase 104 + «آخر تحديث» · worklog Task 104 · INDEX.md untouched (no migration) |
-
 ---
 
-> 🗄️ **الأرشفة (Phase 82 + ملحق 2026-09-02):** الجداول الأقدم نُقلت إلى `archive/QA_CHECKLIST_ARCHIVE.md`. **ملحق 2026-09-03 (Phase 107):** كل ما قبل آخر 5 مراحل (102-run → 80) انضم للملحق — الملف ده سقفه 6 جداول بوابةً. **ملحق 2026-09-03 (Phase 109):** جدول Phase 99-run انضم للملحق (السقف 6 اتمسّ بأقسام 109→103b). **ملحق 2026-09-03 (Phase 110):** جدول Phase 103b انضم للملحق (السقف 6 اتمسّ بأقسام 110→104).
+> 🗄️ **الأرشفة (Phase 82 + ملحق 2026-09-02):** الجداول الأقدم نُقلت إلى `archive/QA_CHECKLIST_ARCHIVE.md`. **ملحق 2026-09-03 (Phase 107):** كل ما قبل آخر 5 مراحل (102-run → 80) انضم للملحق — الملف ده سقفه 6 جداول بوابةً. **ملحق 2026-09-03 (Phase 109):** جدول Phase 99-run انضم للملحق (السقف 6 اتمسّ بأقسام 109→103b). **ملحق 2026-09-03 (Phase 110):** جدول Phase 103b انضم للملحق (السقف 6 اتمسّ بأقسام 110→104). **ملحق 2026-09-03 (Phase 111):** جدول Phase 104 انضم للملحق (السقف 6 اتمسّ بأقسام 111→105).
 
 
 ## Verification Protocol
