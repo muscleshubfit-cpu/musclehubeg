@@ -30,8 +30,8 @@ Allow: /ar/memberships
 Allow: /meal-planner
 Allow: /coaching
 Allow: /evo
-Allow: /coaches
-Allow: /coaches/*
+# (reverted per owner/coach note 2026-09-04 — Phase 117 correction: /coaches
+#  detail pages stay out of the explicit Allow list; /affiliate stays)
 Allow: /affiliate
 # FOR-COACHES — coach recruitment funnel (public, SEO-indexed)
 Allow: /for-coaches

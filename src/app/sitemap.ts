@@ -350,56 +350,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     } catch {}
   }
 
-  // Phase 117 (owner executive order — SEO/GEO audit): public coach pages.
-  // Closes the long-documented follow-up (comment at the top of the static
-  // block): /coaches/[slug] roster query. Visibility rule mirrors
-  // coach-landing-server.ts: is_published AND review_status 'approved'
-  // (the 0046 review gate — pending/rejected pages must NEVER be indexed).
-  // EN + AR mirrors exist for every coach slug (/ar/coaches/[slug] since
-  // Phase 74). Fail-open: DB error → sitemap simply skips coach pages.
-  if (supabaseUrl && supabaseKey) {
-    try {
-      const supabase = createClient(supabaseUrl, supabaseKey, {
-        auth: { persistSession: false, autoRefreshToken: false },
-      });
-      const { data: coachPages } = await supabase
-        .from("coach_pages")
-        .select("slug, updated_at")
-        .eq("is_published", true)
-        .eq("review_status", "approved");
-
-      if (coachPages) {
-        for (const page of coachPages) {
-          if (!page.slug) continue;
-          const pageDate = page.updated_at ? new Date(page.updated_at) : lastModified;
-          staticUrls.push({
-            url: `${baseUrl}/coaches/${page.slug}`,
-            lastModified: pageDate,
-            changeFrequency: "monthly",
-            priority: 0.6,
-            alternates: {
-              languages: {
-                en: `${baseUrl}/coaches/${page.slug}`,
-                ar: `${baseUrl}/ar/coaches/${page.slug}`,
-              },
-            },
-          });
-          staticUrls.push({
-            url: `${baseUrl}/ar/coaches/${page.slug}`,
-            lastModified: pageDate,
-            changeFrequency: "monthly",
-            priority: 0.6,
-            alternates: {
-              languages: {
-                en: `${baseUrl}/coaches/${page.slug}`,
-                ar: `${baseUrl}/ar/coaches/${page.slug}`,
-              },
-            },
-          });
-        }
-      }
-    } catch {}
-  }
+  // (reverted per owner/coach note 2026-09-04 — Phase 117 correction: the
+  //  coach_pages roster query that added /coaches/[slug] EN+AR mirrors was
+  //  removed by explicit owner directive; the pre-existing follow-up note
+  //  at the top of the static block stands again. /affiliate stays.)
 
   return staticUrls;
 }

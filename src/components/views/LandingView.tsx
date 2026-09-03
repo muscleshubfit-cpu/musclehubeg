@@ -120,20 +120,6 @@ function Reveal({
   return <div className={className}>{children}</div>;
 }
 
-function CenteredSection({
-  children,
-  bg = "bg-white",
-}: {
-  children: React.ReactNode;
-  bg?: string;
-}) {
-  return (
-    <section className={`${bg} px-4 py-16 md:py-24`}>
-      <div className="mx-auto max-w-4xl text-center">{children}</div>
-    </section>
-  );
-}
-
 /**
  * GradientFade — G2: smooth visual transition between sections with
  * different background colors. Inserts a 4px gradient strip that blends
@@ -424,8 +410,8 @@ export function LandingView() {
             </h1>
             <p className="mx-auto mt-4 max-w-xl text-base font-normal leading-relaxed md:mx-0 md:text-lg" style={{ color: PALETTE.textSec }}>
               {isAr
-                ? "منصة Musclehubeg للتدريب الرقمي: تجربة تدريب وتغذية مخصصة بالكامل — أكثر من 868 تمرينًا بشرح وافٍ، و8830 أكلة بالقيم الغذائية، برامج جاهزة لكل مستوى، وحاسبات لياقة مجانية. احصل على خطط مخصصة من مدربين معتمدين أو من مساعد الذكاء الاصطناعي EVO، وتابع تقدمك خطوة بخطوة في مكان واحد."
-                : "Musclehubeg is a complete digital training platform: a personalized workout and nutrition experience with 868+ exercises, 8,830+ foods, ready-made programs, and free calculators. Get custom plans from certified coaches or the EVO AI coach — everything you need to train, eat, and progress in one place."}
+                ? "منصة Musclehubeg للتدريب الرقمي مش مجرد موقع تمارين — دي منظومة رياضية متكاملة: أكثر من 868 تمرينًا بشرح وافٍ، 8830 أكلة بالقيم الغذائية، برامج جاهزة لكل مستوى، حاسبات لياقة مجانية، مدونة علمية، وكوتشينج حقيقي. احصل على خطط مخصصة من مدربين معتمدين أو ذكاء اصطناعي EVO، وتابع تقدمك خطوة بخطوة — كل ما تحتاجه في مكان واحد يوفر عليك وقتك وجهدك."
+                : "Musclehubeg is more than a fitness website — it's a complete digital training platform and sports ecosystem: 868+ exercises with full instructions, 8,830+ foods with nutrition data, ready-made programs for every level, free fitness calculators, a scientific blog, and real online coaching. Get custom plans from certified coaches or the EVO AI, and track your progress step by step — everything you need in one place, saving you time and effort."}
             </p>
             {/* Owner directive 2026-08-30: hero buttons = section navigation
                 for the WHOLE homepage (beautiful chips). EVO is a service
@@ -505,34 +491,7 @@ export function LandingView() {
         </div>
       </section>
 
-      {/* ===================== 2. WHAT IS MUSCLEHUB ===================== */}
-      <CenteredSection bg="bg-white">
-        <div className="px-4 text-center">
-          <p className="text-sm font-normal md:text-base" style={{ color: PALETTE.textSec }}>
-            {isAr ? "ما هي Musclehubeg؟" : "What is Musclehubeg?"}
-          </p>
-          <h2 className="mx-auto mt-4 max-w-4xl text-4xl font-semibold leading-[1.08] tracking-tight md:text-6xl lg:text-7xl" style={{ color: PALETTE.textPrim }}>
-            {isAr ? (
-              <>
-                مش مجرد موقع تمارين..
-                <br />
-                منظومة رياضية متكاملة.
-              </>
-            ) : (
-              <>
-                Not just a fitness platform.
-                <br />
-                A complete sports ecosystem.
-              </>
-            )}
-          </h2>
-          <p className="mx-auto mt-6 max-w-2xl text-lg font-normal leading-relaxed md:text-xl" style={{ color: PALETTE.textSec }}>
-            {isAr
-              ? "مكتبة تمارين احترافية، برامج تدريب جاهزة، حاسبات لياقة مجانية، قاعدة بيانات أطعمة بالسعرات، مدونة علمية، وكوتشينج حقيقي — كل ده في مكان واحد يوفّر عليك وقتك وجهدك."
-              : "Professional exercise library, ready workout programs, free fitness calculators, food database with calories, scientific sports blog, and online coaching — everything you need in one place."}
-          </p>
-        </div>
-      </CenteredSection>
+      {/* (removed: "What is Musclehubeg?" section — Phase 117 correction 2026-09-04, owner directive: duplicated the hero; best phrases merged into the hero subtitle above, CenteredSection deleted as now-unused) */}
 
       {/* ===================== 3. EVO PREVIEW ===================== */}
       <section id="evo" className="scroll-mt-20 px-4 py-16 md:py-24" style={{ backgroundColor: PALETTE.sectionGray, color: PALETTE.textPrim }}>
