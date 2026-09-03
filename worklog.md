@@ -971,5 +971,5 @@ Work Log:
 
 Stage Summary:
 - التنظيف الأولي اتأكد إنه شبه منتهي فعليًا من المراحل السابقة: مفيش بقايا ولا نسخ ولا تضخم — الأرشيف هو اللي شايل التاريخ والملفات الحية نحيفة وقانونية
-- Commit SHA: PENDING114 (post-push يصلّح السطر ده — الـplaceholder ميعرفش hash الكوميت بتاعه قبل ما يتعمل — نفس نمط 105/107/108/109/110/111/112/113)
-- Push status: PENDING — post-push fixup هيحدّث السطرين دول بالـSHA الحقيقي ونتيجة CI الحي
+- Commit SHA: 423409e
+- Push status: pushed (2689e93..423409e) — CI حي أخضر على 423409e (Docs & schema parity · Anti-regression guard · Supabase Preview كلهم success) — post-push fixup: this line recorded the real SHA (the placeholder could not know its own commit hash before committing — same post-push pattern as 105/107/108/109/110/111/112/113)
