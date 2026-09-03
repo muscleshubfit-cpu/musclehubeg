@@ -2,13 +2,13 @@
 
 > **قانون (AGENTS.md §3.6):** ده أول ملف أي وكيل يقرأه قبل أي شغل — وبيتحدث إلزاميًا في نفس الفريم اللي بيغيّر الحالة.
 > الملف محدود بـ 100 سطر بوابةً (`scripts/docs_audit.py`) — اكتب مضغوط.
-> **آخر تحديث:** 2026-09-03 (Phase 107)
+> **آخر تحديث:** 2026-09-03 (Phase 108)
 
 ## المرحلة الحالية
 
-- **المرحلة:** 107 — منظومة معرفة المشروع (STATE + قانون المصدر الواحد للأرقام + بوابة docs_audit + أرشفة PROGRESS/QA)
-- **آخر كوميت متحقق منه:** 8b48ce7 (Phase 106 — بوابة docs-parity على CI · أول تشغيل حي للبوابة أخضر `parity: success`)
-- **البوابات وقتها:** tsc 0 · eslint 0 · vitest 191/191 · migration_audit --ci 0 · docs_parity 0 · check-stale-refs 0
+- **المرحلة:** 108 — إبراز البوابات الآلية في وصف المشروع (قسم 🛡️ في README + إعادة صياغة GitHub About/topics عبر API)
+- **آخر كوميت متحقق منه:** fbb27f4 (Phase 107 + post-push fixes — CI خضرا 3/3 حيًا بالـ API: parity · guard · Supabase Preview)
+- **البوابات وقتها:** tsc 0 · eslint 0 · vitest 191/191 · migration_audit --ci 0 · docs_parity 0 · docs_audit 0 · check-stale-refs 0 · check-ui-wiring 0
 - **الإنتاج:** musclehubeg.vercel.app حي · آخر ميجريشن مطبّق: 0069 (no-op توفيقي — الإنتاج مطابق للمرآة المثبتة حيًا 8/8)
 
 ## المفتوح الآن

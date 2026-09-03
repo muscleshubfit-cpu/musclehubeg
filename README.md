@@ -3,9 +3,10 @@
 > **Live:** [musclehubeg.vercel.app](https://musclehubeg.vercel.app)
 > **Repository:** [github.com/muscleshubfit-cpu/musclehubeg](https://github.com/muscleshubfit-cpu/musclehubeg)
 > **Stack:** Next.js 16 · React 19 · Supabase · OpenRouter + Groq AI · Tailwind CSS 4
-> **Last updated:** 2026-09-03 (Phase 107 — knowledge operating system: STATE.md + single-source number law + docs_audit gate)
+> **CI Gates:** every push is audited — schema-drift · registry-parity · knowledge-system · anti-regression
+> **Last updated:** 2026-09-03 (Phase 108 — automated quality gates showcased in README + repo About)
 
-A bilingual (Arabic/English) fitness & nutrition platform with 868 exercises, 8,830 foods, a workout-programs library, 6 free tools, an AI coach (EVO) with live streaming chat and a two-window plan-quota system, a public coach directory, an automated bilingual blog CMS, a full B2B coach system (clients, wallets, activations, certificates, public coach pages), a B2C site-coach follow-up layer (`coach_kind` + `site_coach_assignments`), Admin Panel 2.0 (unified client roster with type filters, finances, site-assignments), an affiliate program with 20% commissions, a 7-day conditional refund system, and membership tiers.
+A bilingual (Arabic/English) fitness & nutrition platform with 868 exercises, 8,830 foods, a workout-programs library, 6 free tools, an AI coach (EVO) with live streaming chat and a two-window plan-quota system, a public coach directory, an automated bilingual blog CMS, a full B2B coach system (clients, wallets, activations, certificates, public coach pages), a B2C site-coach follow-up layer (`coach_kind` + `site_coach_assignments`), Admin Panel 2.0 (unified client roster with type filters, finances, site-assignments), an affiliate program with 20% commissions, a 7-day conditional refund system, and membership tiers. The engineering is gated too: automated quality gates (schema-drift, registry-parity, knowledge-system, anti-regression) audit every push on GitHub Actions — see the 🛡️ section below.
 
 ---
 
@@ -27,6 +28,40 @@ information are **private** and never appear in this repository.
 
 See [`LICENSE`](./LICENSE) for the full proprietary terms and
 [`SECURITY.md`](./SECURITY.md) for the security policy.
+
+---
+
+## 🛡️ Automated Quality Gates — Every Push Is Audited
+
+This repository doesn't rely on good intentions — it relies on gates.
+On every push and pull request, GitHub Actions re-derives the truth
+from the code itself and fails loudly on any lie: a schema mirror that
+drifted, a doc that rotted, a retired identifier that came back, or a
+migration that breaks the database. A failing gate blocks the merge —
+on GitHub's own runners, independent of any local machine or AI
+session. Each gate below was born from a real production incident,
+then turned into permanent code:
+
+| Gate | What it re-derives / catches | The incident that built it |
+|---|---|---|
+| **Schema-drift audit** — `scripts/migration_audit.py` | Parses every migration, compares the resulting schema against the hand-maintained `types.ts` mirror + a documented accepted baseline; any NEW missing/phantom table or column fails the push (`--ci`) | Phantom columns in the mirror halted the live migration pipeline (`42703`) and silently broke member-facing paths |
+| **Registry parity** — `scripts/docs_parity.py` | Re-counts the migrations on disk every run — the `INDEX.md` registry heading must equal the filesystem truth | Docs froze at an old phase while the product kept shipping; drift went unnoticed for months |
+| **Knowledge operating system** — `scripts/docs_audit.py` | `STATE.md` integrity (≤100 lines, required sections, its recorded commit must be an ancestor of HEAD — the state can never point forward) · phase equality across STATE/PROGRESS/QA · ZERO variable counts in README/DEVELOPER_GUIDE (single-source number law — numbers live in the code) · no duplicate section numbers in `AGENTS.md` · slim living docs with archive pointers | Facts written in several places rotted differently — and the law file itself once carried a duplicated §3.6 |
+| **Anti-regression guard** — `scripts/check-stale-refs.sh` + `scripts/check-ui-wiring.sh` | Fails fast on reintroduced retired identifiers (deleted routes, dead components, old pipeline step names) and on broken UI wiring: dead fetch targets, unregistered job types, processors without jobs, dishonest runner exits | Retired AI routes kept running in parallel with the new queue — the owner-visible «edits vanish» class |
+| **Supabase Preview** | Every push is applied against a real preview database by the Supabase GitHub integration — one failing migration halts the pipeline before it can reach production | Proven live: a single bad column froze the migration ledger and silently held back every migration behind it |
+
+On top of the gates, every push runs the standard battery: TypeScript
+`strict` typecheck · ESLint · the full Vitest suite — all gates are
+zero-dependency and annotate failures inline (`::error::`), finishing
+in seconds.
+
+**Why this matters:** the docs cannot lie, the schema mirror cannot
+drift, retired code cannot resurrect, and the current project state is
+always [`STATE.md`](./STATE.md) — a gated, 30-second read. And because
+the gates live in the repo itself (`.github/workflows/` + `scripts/`),
+they travel automatically with any future clean copy or rebrand. That
+is what makes this repository safe for agent-assisted development: any
+session, human or AI, can trust the front door without archaeology.
 
 ---
 
@@ -416,14 +451,6 @@ around each pipeline step.
 
 A full evidence-based list is in [`PROGRESS.md`](./PROGRESS.md). Currently open:
 
-- **Types mirror drift (Phase 105 candidate)** — `src/lib/supabase/types.ts`
-  still mirrors two Phase-5 legacy tables wrongly: `coach_presence`
-  (`user_id`/`status` — live columns are `coach_id`/`last_seen`) and
-  parts of `progress.ts` (`taken_on`/`file_path`/`note` — live is
-  `taken_at`/`photo_url`). Proven live column-by-column in Phase 99-run;
-  `migration_audit.py` reports no NEW drift, but the app's presence
-  helpers silently degrade until the mirror is regenerated. Migration
-  files themselves are aligned with LIVE schema (that was the 0064 v2 fix).
 - **H5 (partial)** — the blog generation CTA prompt still names
   "coach Ahmed Zake" (`src/lib/blog-pipeline.ts`); the author field
   itself defaults to Musclehubeg.
@@ -435,9 +462,12 @@ A full evidence-based list is in [`PROGRESS.md`](./PROGRESS.md). Currently open:
 Previously listed issues (root `<html>` lang hard-coded, Arabic-only
 membership features, `/ar/exercises` 404s, coach-route redirects,
 profile tool count, duplicate Pricing nav item, missing i18n keys,
-missing `scripts/` directory, **and the Phase-5 ad-hoc table back-fill**
-— resolved by `0063` in Phase 99-run) were **fixed** in Phases 7–103b —
-see `PROGRESS.md` and `QA_CHECKLIST.md` for evidence.
+missing `scripts/` directory, the Phase-5 ad-hoc table back-fill —
+resolved by `0063` in Phase 99-run — **and the types-mirror drift on
+`coach_presence` / `progress_photos`**: mirror corrected to live shapes
++ convergence migration `0069`, production probed live column-by-column
+in Phase 105) were **fixed** in Phases 7–107 — see `PROGRESS.md` and
+`QA_CHECKLIST.md` for evidence.
 
 ---
 

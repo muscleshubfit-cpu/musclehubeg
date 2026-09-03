@@ -6,7 +6,21 @@
 
 ---
 
-## Latest Verification — 2026-09-03 (Phase 107 — KNOWLEDGE OPERATING SYSTEM: owner «go» on the approved study after the earlier go-mixup — STATE.md + single-source number law + docs_audit gate + archive ritual; the law file itself carried a real duplicated §3.6 which this phase made impossible)
+## Latest Verification — 2026-09-03 (Phase 108 — QUALITY-GATES SHOWCASE: owner «ضيف وصف البوابة الآلية فى وصف المشروع اعتقد دى ميذة قوية لازم تتعرض ، كذلك لو فى اى امور قوية زيها اعرضها برده» — README 🛡️ gates section + GitHub About/topics rewritten via API + Known Issues de-rotted)
+
+| Check | Result | How verified |
+|---|---|---|
+| README 🛡️ Automated Quality Gates section | ✅ | 5 gates documented with incident lineage (migration_audit · docs_parity · docs_audit · check-stale-refs + check-ui-wiring · Supabase Preview) — every referenced script verified present in `scripts/` on disk; «CI Gates» line added to README front matter + intro sentence |
+| Single-source number law | ✅ | docs_audit D-check 0 hits on the edited README — gate names are stable file identifiers, zero variable counts introduced |
+| Known Issues de-rotted | ✅ | stale «Types mirror drift (Phase 105 candidate)» removed from the open list (closed in Phase 105: live-shape mirror + 0069 + 8/8 production probes) and moved to the fixed list; H5 re-verified still true (src/lib/blog-pipeline.ts:411) |
+| GitHub About + topics via API | ✅ | PATCH /repos + PUT /topics → HTTP 200 — description now leads with the engineering discipline; topics gained github-actions · quality-gates · ci-cd · typescript |
+| CI state entering the phase | ✅ | live check-runs on fbb27f4: Supabase Preview success · guard success · parity success |
+| Docs parity §3.6 | ✅ UPDATED | STATE.md → Phase 108 / fbb27f4 · QA + PROGRESS Phase 108 sections · PROGRESS slimmed back to cap (Phase 99-run → archive/PROGRESS_ARCHIVE.md ملحق 2026-09-03 Phase 108, verbatim) · worklog Task 108 ×2 (repo + workspace) |
+| Gates after edits | ✅ | tsc 0 · eslint 0 · vitest 191/191 · migration_audit --ci 0 · docs_parity 0 · docs_audit 0 · check-stale-refs 0 · check-ui-wiring 0 |
+
+---
+
+## Previous Verification — 2026-09-03 (Phase 107 — KNOWLEDGE OPERATING SYSTEM: owner «go» on the approved study after the earlier go-mixup — STATE.md + single-source number law + docs_audit gate + archive ritual; the law file itself carried a real duplicated §3.6 which this phase made impossible)
 
 | Check | Result | How verified |
 |---|---|---|
