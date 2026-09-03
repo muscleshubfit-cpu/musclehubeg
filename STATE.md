@@ -7,7 +7,7 @@
 ## المرحلة الحالية
 
 - **المرحلة:** 109 — خطة المحتوى العربي وSEO للصفحة الرئيسية (نسخ المالك الحرفي 2026-09-03 + CTA رئيسية + meta/alt + توثيق الأوامر 2-3 المسبقة)
-- **آخر كوميت متحقق منه:** 28377db (Phase 108 post-push · CI خضرا 3/3) — كوميت هذه المرحلة (109) يُثبّت في post-push بعد مراقبة CI حيًا (نمط 105/107/108)
+- **آخر كوميت متحقق منه:** 4c6b5ef (Phase 109 · CI خضرا 3/3 حيًا بالـ API: Supabase Preview · guard · parity · تحقق حي بعد الـ deploy: /ar بكل علامات النسخ الجديد + FAQPage محدث + hreflang سليم)
 - **البوابات وقتها:** tsc 0 · eslint 0 · vitest 191/191 · migration_audit --ci 0 · docs_parity 0 · docs_audit 0 · check-stale-refs 0 · check-ui-wiring 0
 - **الإنتاج:** musclehubeg.vercel.app حي · آخر ميجريشن مطبّق: 0069 (no-op توفيقي — الإنتاج مطابق للمرآة المثبتة حيًا 8/8)
 

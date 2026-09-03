@@ -873,5 +873,5 @@ Work Log:
 
 Stage Summary:
 - الصفحة الرئيسية العربية بقت بنسخ المالك الحرفي كاملة (عامية مصرية متسقة) + CTA مجانية جديدة + meta/alt محسّنة SEO — والإنتاج هيستلمها تلقائيًا عبر Vercel مع الدفع
-- Commit SHA: PENDING_POST_PUSH
-- Push status: PENDING
+- Commit SHA: 4c6b5ef
+- Push status: pushed (28377db..4c6b5ef) — CI حي أخضر 3/3 (Supabase Preview · guard · parity) — post-push fixup: this line recorded the real SHA + live verification: /ar يرجع 200 بكل علامات النسخ الجديد (12/12 فحص نصي) · FAQPage JSON-LD بالأسئلة الخمسة الجديدة حرفيًا للغتين · alt الجديدة ظاهرة في HTML · hrefLang en/ar/x-default + canonical /ar حية
