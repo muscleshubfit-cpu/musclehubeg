@@ -988,5 +988,5 @@ Work Log:
 
 Stage Summary:
 - منظومة المعرفة بقت سطح حي واحد (STATE.md) + أرشيف append-only — التكرار اللي كان بين STATE/PROGRESS/QA اتقفل للأبد وبوابة بتمنع رجوعه
-- Commit SHA: PENDING115 (post-push يصلّح السطر ده — الـplaceholder ميعرفش hash الكوميت بتاعه قبل ما يتعمل — نفس نمط 105/107/108/109/110/111/112/113/114)
-- Push status: PENDING — post-push fixup هيحدّث السطرين دول بالـSHA الحقيقي ونتيجة CI الحي
+- Commit SHA: 1dcf434
+- Push status: pushed (a1c52f1..1dcf434) — CI حي أخضر على 1dcf434 (Docs & schema parity · Anti-regression guard · Supabase Preview كلهم success) — post-push fixup: this line recorded the real SHA (the placeholder could not know its own commit hash before committing — same post-push pattern as 105/107/108/109/110/111/112/113/114)
