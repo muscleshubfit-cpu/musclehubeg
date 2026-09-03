@@ -934,5 +934,5 @@ Work Log:
 
 Stage Summary:
 - README وDEVELOPER_GUIDE بقوا واجهات مختصرة بروابط صادقة للمراجع العميقة (CI_GATES/TECH_REFERENCE) — مفيش معرفة اتمسحت: كلها مترحلة ومنظمة من Phase 111
-- Commit SHA: (placeholder — post-push will record the real SHA)
-- Push status: (pending push)
+- Commit SHA: 4f2b1ae
+- Push status: pushed (f5d969c..4f2b1ae) — CI حي أخضر على 4f2b1ae (Docs & schema parity · Anti-regression guard · Supabase Preview كلهم success) — post-push fixup: this line recorded the real SHA (the placeholder could not know its own commit hash before committing — same post-push pattern as 105/107/108/109/110/111)

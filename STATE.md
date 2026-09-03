@@ -7,7 +7,7 @@
 ## المرحلة الحالية
 
 - **المرحلة:** 112 — اختصار واجهات التوثيق بأمر المالك («الأمر الثاني»): README 🛡️ → 3 سطور + رابط `docs/CI_GATES.md` بعبارة «للاطلاع على التفاصيل الكاملة» · DEVELOPER_GUIDE: جدول RLS الكامل (22 صف) + دوال DB + تاريخ ad-hoc + عدادات المكونات اتحطت ورابط `docs/TECH_REFERENCE.md` مكانها (ترويسة + شجرة §2 + §4 كامل)
-- **آخر كوميت متحقق منه:** f5d969c (Phase 111 post-push · CI حي أخضر على aacbb4f — post-push هيقدّمه للـSHA بتاع 112)
+- **آخر كوميت متحقق منه:** 4f2b1ae (Phase 112 · CI حي أخضر على 4f2b1ae: parity · guard · Supabase Preview — الكوميت ترويسته تقول الباقي)
 - **البوابات وقتها:** tsc 0 · eslint 0 · vitest 191/191 · migration_audit --ci 0 · docs_parity 0 · docs_audit 0 · check-stale-refs 0 · check-ui-wiring 0
 - **الإنتاج:** musclehubeg.vercel.app حي · آخر ميجريشن مطبّق: 0069 (no-op توفيقي — الإنتاج مطابق للمرآة المثبتة حيًا 8/8)
 
