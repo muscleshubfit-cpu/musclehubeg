@@ -1069,5 +1069,5 @@ Work Log:
 
 Stage Summary:
 - الرئيسية الآن: هيرو واحد قوي بلا تكرار (قسمان → واحد) · صفحات المدربين التفصيلية خارج الفهرسة بقرار صريح · llms.txt والجدول المقارن و/affiliate محفوظون
-- Commit SHA: <pending-push>
-- Push status: will push in this frame (§12.2)
+- Commit SHA: 0ea1468
+- Push status: pushed (b774c55..0ea1468) — CI حي أخضر (Docs & schema parity ✓ · Anti-regression guard ✓) + تحقق إنتاجي حي (§3.7): build-info = 0ea1468 · النص المدمج يُعرض EN/AR في الإنتاج · القسم القديم = 0 في اللغتين · سايت ماب الإنتاج بلا روابط المدربين + /affiliate موجودة · robots بلا /coaches و/affiliate موجودة · llms والجدول المقارن حيّان — post-push fixup: هذا السطر سجل الـ SHA الحقيقي (النائب لم يكن ليعرف هاش كوميته قبل الكوميت — نفس نمط post-push للمراحل 105-117)
