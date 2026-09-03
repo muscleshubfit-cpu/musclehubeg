@@ -892,6 +892,6 @@ Work Log:
 
 Stage Summary:
 - النشرة البريدية بقت تظهر مرة واحدة في الرئيسية (سيكشن 13 المستقل) — الفوتر نضف والازدواج اللي المالك شافه اتشال من جذوره
-- Commit SHA: (placeholder — post-push fixup يسجل الـSHA الحقيقي)
-- Push status: (placeholder — post-push fixup)
+- Commit SHA: e1fca38 (+ addendum 44e06de: إصلاح CI العرضي)
+- Push status: pushed (c398917..e1fca38 ثم e1fca38..44e06de) — CI حي أخضر على 44e06de 3/3 (Docs & schema parity · Anti-regression guard · Process AI jobs بعد إصلاح npm 11 workflow_dispatch) — post-push fixup: this line recorded the real SHAs + live verification: «النشرة البريدية المجانية» ظاهرة مرة واحدة بالظبط على /ar (كانت 2) و«The free newsletter» مرة واحدة على / — علامات Phase 109 لسا حية (رحلتك الرياضية الكاملة · ابدأ رحلتك دلوقتي مجانًا)
 - إصلاح CI عرضي في نفس الفريم: ووركفلو «Process AI jobs» المجدول قعد أحمر على e1fca38 — npm 10 arborist «Cannot read properties of null (reading 'edgesOut')» في Install dependencies (runner node 22 = npm 10 مدمج · الريبو ملفوش lockfile → npm install بيحل فريش · آخر نجاح 08:56 نفس اليوم على نفس ملف الاعتماديات · attempt 2 نفس الانهيار) · محليًا npm 11.17 dry-run بيحل نفس الشجرة exit 0 → خطوة «Bump npm (npm install -g npm@11)» قبل التثبيت في الـ4 ووركفلوهات المكشوفة (process-ai-jobs · blog-post-ar · blog-post-en · remediate-blog-images) + توثيق في QA/PROGRESS/STATE
