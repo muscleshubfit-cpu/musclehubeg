@@ -973,3 +973,20 @@ Stage Summary:
 - التنظيف الأولي اتأكد إنه شبه منتهي فعليًا من المراحل السابقة: مفيش بقايا ولا نسخ ولا تضخم — الأرشيف هو اللي شايل التاريخ والملفات الحية نحيفة وقانونية
 - Commit SHA: 423409e
 - Push status: pushed (2689e93..423409e) — CI حي أخضر على 423409e (Docs & schema parity · Anti-regression guard · Supabase Preview كلهم success) — post-push fixup: this line recorded the real SHA (the placeholder could not know its own commit hash before committing — same post-push pattern as 105/107/108/109/110/111/112/113)
+---
+Task ID: 115
+Agent: Super Z (main)
+Task: Phase 115 — توحيد ملفات الحالة («الأمر الخامس» — الأخير): دمج PROGRESS/QA_CHECKLIST في STATE.md كمصدر رسمي وحيد + تجميدهما في archive/ + CONTRIBUTING.md بنص المالك الحرفي + سياسة الأرشفة في DEVELOPER_GUIDE + البوابات الثمانية كاملة محليًا
+
+Work Log:
+- التوحيد: STATE.md الجديد (58 سطر ≤ 100) = المصدر الرسمي الوحيد: المرحلة الحالية · المفتوح الآن · بانتظار المالك · ممنوعات نشطة (+ ممنوعة جديدة: منع إحياء الملفين في الجذر) · ملخص جودة المرحلة (قسم جديد بطلب المالك) · خريطة مصادر الحقيقة · بروتوكول الجلسة — والمراحل 109-114 محفوظة حرفيًا داخل archive/ (مفيش تفصيلة تاريخية اتمسحت)
+- النقل بالكامل: git mv PROGRESS.md → archive/PROGRESS.md + git mv QA_CHECKLIST.md → archive/QA_CHECKLIST.md مع ختم تجميد في أعلى كل ملف (المحتوى verbatim تحته)
+- CONTRIBUTING.md (جديد، الجذر): نص المالك الحرفي حرفيًا — مساهمة خاصة · Issues فقط · مراجعة خلال 48 ساعة · ممنوع نسخ الشيفرة دون إذن خطي مسبق
+- DEVELOPER_GUIDE: فقرة سياسة الأرشفة بنص المالك الحرفي في نهاية الملف (نقل المرحلة الأقدم من 6 مراحل للأرشيف تلقائيًا)
+- تطوير البوابة في نفس الفريم (نمط Phase 107): docs_audit A ضافت «ملخص جودة المرحلة» للعناصر الإلزامية · C استبدلت مساواة المراحل الثلاث بفحص التجميد (archive/PROGRESS.md + archive/QA_CHECKLIST.md موجودين) · F بقت تمنع إحياء الملفين في الجذر (anti-resurrection) — والقوانين المرتبطة اتحدثت: AGENTS §3.1/§3.5/§3.8/§12.5/§12.5.1-consolidated/§12.7/§12.8 (نصوص بس — كل العناوين حرفيًا كما هي) · README (الشجرة + 3 مواضع روابط → archive/) · SECURITY (إشارتان) · تعليق layout.tsx + تعليق check-stale-refs — كل الإشارات للملفين بقت على مكانها الجديد في archive/ · RUN_ON_SUPABASE_ORIGINAL_0013 اتسابت عمدًا (منطقة ميجريشنز — تعليق تاريخي داخل ملف مساعدة)
+- البوابات الثمانية محليًا (تشغيل كامل بطلب المالك «بعد الدمج الكبير»): tsc 0 · eslint 0 · vitest 191/191 · migration_audit --ci 0 · docs_parity 0 · docs_audit 0 (STATE=115 · 58 سطر · القانون المدموج مفروض) · check-stale-refs 0 · check-ui-wiring 0
+
+Stage Summary:
+- منظومة المعرفة بقت سطح حي واحد (STATE.md) + أرشيف append-only — التكرار اللي كان بين STATE/PROGRESS/QA اتقفل للأبد وبوابة بتمنع رجوعه
+- Commit SHA: PENDING115 (post-push يصلّح السطر ده — الـplaceholder ميعرفش hash الكوميت بتاعه قبل ما يتعمل — نفس نمط 105/107/108/109/110/111/112/113/114)
+- Push status: PENDING — post-push fixup هيحدّث السطرين دول بالـSHA الحقيقي ونتيجة CI الحي

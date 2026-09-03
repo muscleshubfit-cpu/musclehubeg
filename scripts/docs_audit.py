@@ -10,21 +10,23 @@ and this gate enforces the cure as code, on every push/PR.
 Checks (any failure = exit 1, ::error:: annotations in --ci):
   A. STATE.md exists, ≤ 100 lines, contains the required sections
      (المرحلة الحالية · المفتوح الآن · بانتظار موافقة المالك ·
-      ممنوعات نشطة · خريطة مصادر الحقيقة).
+      ممنوعات نشطة · خريطة مصادر الحقيقة · ملخص جودة المرحلة).
   B. STATE.md «آخر كوميت متحقق منه» is a real commit that is an
      ancestor-or-equal of HEAD (the state never points forward).
-  C. Phase equality: STATE.md المرحلة == newest PROGRESS.md phase
-     heading == QA_CHECKLIST.md «Latest Verification» phase.
+  C. STATE.md phase parseable + the Phase 115 frozen status files
+     exist: archive/PROGRESS.md + archive/QA_CHECKLIST.md (owner
+     «الأمر الخامس»: STATE.md is the single living status file —
+     PROGRESS/QA were merged into it and frozen verbatim).
   D. Number-free docs: README.md + DEVELOPER_GUIDE.md carry ZERO
      variable counts (the AGENTS.md §3.8 single-source law). Numbers
      live in the code / INDEX.md only. This check was SENSITIVITY-PROVEN
      against the pre-Phase-107 docs (13 hits) before they were stripped.
   E. AGENTS.md: no duplicate section numbers (### N.N / ## N.) — born
      from the real duplicated §3.6 (lines 134 + 191).
-  F. Slim living docs: PROGRESS.md ≤ 6 phase sections and ≤ 200 lines,
-     QA_CHECKLIST.md ≤ 6 verification sections and ≤ 200 lines, both
-     pointing to archive/ — history belongs to the archive, not the
-     entry-point docs.
+  F. Merged status law (Phase 115, owner «الأمر الخامس»): PROGRESS.md /
+     QA_CHECKLIST.md must NOT exist at the root (merged into STATE.md
+     and frozen in archive/ — resurrection is gated); STATE.md keeps
+     its archive/ pointer; the append-only archives must exist.
   G. STATE.md discoverability: README.md links it (the entry-point doc
      must be reachable from the front door).
 
@@ -71,7 +73,7 @@ if state:
              f"(it must stay a 30-second read); compress or archive")
     for marker in ("## المرحلة الحالية", "## المفتوح الآن",
                    "## بانتظار موافقة المالك", "## ممنوعات نشطة",
-                   "## خريطة مصادر الحقيقة"):
+                   "## خريطة مصادر الحقيقة", "## ملخص جودة المرحلة"):
         if marker not in state:
             fail("A/state-sections", f"STATE.md lost required section "
                                      f"«{marker}»")
@@ -117,32 +119,13 @@ if state and state_phase is None:
     fail("C/phase-equality",
          "STATE.md «**المرحلة:**» missing/unparseable")
 
-progress = read("PROGRESS.md")
-prog_phase = (
-    phase_num(progress,
-              r"(?m)^## \d{4}-\d{2}-\d{2}\s*—\s*(?:Phase|المرحلة)\s+"
-              r"(\d+[a-z]?)")
-    if progress else None)
-if progress and prog_phase is None:
-    fail("C/phase-equality",
-         "PROGRESS.md newest phase heading missing/unparseable "
-         "(expected «## <date> — Phase N: ...» or «المرحلة N»)")
-
-qa = read("QA_CHECKLIST.md")
-qa_phase = (phase_num(qa, r"(?m)^## Latest Verification.{0,400}?Phase\s+"
-                      r"(\d+[a-z]?)")
-            if qa else None)
-if qa and qa_phase is None:
-    fail("C/phase-equality",
-         "QA_CHECKLIST.md «Latest Verification ... Phase N» missing/"
-         "unparseable")
-
-if None not in (state_phase, prog_phase, qa_phase) and not (
-        state_phase == prog_phase == qa_phase):
-    fail("C/phase-equality",
-         f"phase mismatch: STATE={state_phase} · PROGRESS={prog_phase} "
-         f"· QA={qa_phase} — all three must describe the same current "
-         f"phase (update them in the same commit)")
+# Phase 115 merged law: the frozen status files must exist in archive/
+# (owner «الأمر الخامس» — STATE.md is the single living status file).
+for rel in ("archive/PROGRESS.md", "archive/QA_CHECKLIST.md"):
+    if not (REPO / rel).exists():
+        fail("C/frozen-archive",
+             f"{rel} MISSING — the Phase 115 merged law requires the "
+             f"frozen status files in archive/ (owner «الأمر الخامس»)")
 
 # ------------------------------------------------------------------ D
 FORBIDDEN: list[tuple[str, str]] = [
@@ -189,40 +172,16 @@ if agents:
                 seen[key] = ln_no
 
 # ------------------------------------------------------------------ F
-if progress:
-    phase_secs = re.findall(
-        r"(?m)^## \d{4}-\d{2}-\d{2}\s*—\s*(?:Phase|المرحلة)\s+\d+",
-        progress)
-    if len(phase_secs) > 6:
-        fail("F/slim-progress",
-             f"PROGRESS.md holds {len(phase_secs)} phase sections "
-             f"(cap 6) — move the older ones to "
-             f"archive/PROGRESS_ARCHIVE.md (append-only)")
-    if len(progress.splitlines()) > 200:
-        fail("F/slim-progress",
-             f"PROGRESS.md is {len(progress.splitlines())} lines "
-             f"(cap 200) — archive the history")
-    if "archive/" not in progress:
-        fail("F/slim-progress",
-             "PROGRESS.md lost its archive/ pointer")
-if qa:
-    ver_secs = re.findall(r"^## (?:Latest|Previous|Archived) Verification",
-                          qa, re.M)
-    if len(ver_secs) > 6:
-        fail("F/slim-qa",
-             f"QA_CHECKLIST.md holds {len(ver_secs)} verification "
-             f"sections (cap 6) — move older ones to "
-             f"archive/QA_CHECKLIST_ARCHIVE.md (append-only)")
-    if len(qa.splitlines()) > 200:
-        fail("F/slim-qa",
-             f"QA_CHECKLIST.md is {len(qa.splitlines())} lines (cap 200)")
-    if qa.count("## Latest Verification") != 1:
-        fail("F/slim-qa",
-             f"QA_CHECKLIST.md must hold EXACTLY ONE «Latest "
-             f"Verification» heading, found "
-             f"{qa.count('## Latest Verification')}")
-    if "archive/" not in qa:
-        fail("F/slim-qa", "QA_CHECKLIST.md lost its archive/ pointer")
+# Phase 115 merged law: no status files at the root, ever again.
+for rel in ("PROGRESS.md", "QA_CHECKLIST.md"):
+    if (REPO / rel).exists():
+        fail("F/no-root-status",
+             f"{rel} must NOT exist at the root — merged into STATE.md "
+             f"and frozen in archive/ at Phase 115 (owner «الأمر الخامس»); "
+             f"resurrection is gated")
+if state and "archive/" not in state:
+    fail("F/state-archive-pointer",
+         "STATE.md lost its archive/ pointer (history lives there)")
 for rel in ("archive/PROGRESS_ARCHIVE.md", "archive/QA_CHECKLIST_ARCHIVE.md"):
     if not (REPO / rel).exists():
         fail("F/archive-exists", f"{rel} MISSING — the archive law "
@@ -237,11 +196,9 @@ if readme and "STATE.md" not in readme:
 
 # ------------------------------------------------------------------ report
 print("=" * 64)
-print(f"knowledge gate : STATE phase={state_phase} · PROGRESS={prog_phase} "
-      f"· QA={qa_phase} · STATE lines="
-      f"{len(state.splitlines()) if state else '∅'} · PROGRESS lines="
-      f"{len(progress.splitlines()) if progress else '∅'} · QA lines="
-      f"{len(qa.splitlines()) if qa else '∅'}")
+print(f"knowledge gate : STATE phase={state_phase} · STATE lines="
+      f"{len(state.splitlines()) if state else '∅'} · merged law: "
+      f"root PROGRESS/QA absent, frozen copies in archive/")
 print("=" * 64)
 
 if failures:
@@ -252,7 +209,7 @@ if failures:
           "(AGENTS.md §3.6/§3.8).")
     sys.exit(1)
 
-print("\n✓ knowledge operating system consistent (STATE · phase "
-      "equality · number-free docs · AGENTS structure · slim living "
-      "docs · archive · discoverability)")
+print("\n✓ knowledge operating system consistent (STATE · merged single-"
+      "source law · number-free docs · AGENTS structure · frozen archive "
+      "· discoverability)")
 sys.exit(0)

@@ -251,9 +251,10 @@ musclehubeg/
 ├── AGENTS.md                   # AI agent operating rules
 ├── SECURITY.md                 # Security policy
 ├── LICENSE                     # Proprietary, all rights reserved
-├── PROGRESS.md                 # Recent phases snapshot (older phases archived in archive/)
+├── STATE.md                    # THE single official live state (merged status law — Phase 115)
+├── CONTRIBUTING.md             # Contribution policy (proprietary — issues only)
 ├── DEVELOPER_GUIDE.md          # Developer onboarding + architecture details
-├── QA_CHECKLIST.md             # Verification evidence + QA protocol (older evidence archived)
+│                               #   (status history frozen in archive/ since Phase 115)
 └── package.json
 ```
 
@@ -423,7 +424,7 @@ around each pipeline step.
 
 ## 🐛 Known Issues (Summary)
 
-A full evidence-based list is in [`PROGRESS.md`](./PROGRESS.md). Currently open:
+A full evidence-based list is in [`archive/PROGRESS.md`](./archive/PROGRESS.md) (frozen at Phase 115). Currently open:
 
 - **H5 (partial)** — the blog generation CTA prompt still names
   "coach Ahmed Zake" (`src/lib/blog-pipeline.ts`); the author field
@@ -440,8 +441,8 @@ missing `scripts/` directory, the Phase-5 ad-hoc table back-fill —
 resolved by `0063` in Phase 99-run — **and the types-mirror drift on
 `coach_presence` / `progress_photos`**: mirror corrected to live shapes
 + convergence migration `0069`, production probed live column-by-column
-in Phase 105) were **fixed** in Phases 7–107 — see `PROGRESS.md` and
-`QA_CHECKLIST.md` for evidence.
+in Phase 105) were **fixed** in Phases 7–107 — see `archive/PROGRESS.md` and
+`archive/QA_CHECKLIST.md` for evidence (both frozen at Phase 115).
 
 ---
 
@@ -461,9 +462,9 @@ See [`LICENSE`](./LICENSE) for the full proprietary terms.
 - [`STATE.md`](./STATE.md) — **الحالة الرسمية الحالية** (أول ملف يُقرأ في أي جلسة — AGENTS.md §3.6)
 - [`AGENTS.md`](./AGENTS.md) — AI agent operating rules (required reading)
 - [`SECURITY.md`](./SECURITY.md) — Security policy
-- [`PROGRESS.md`](./PROGRESS.md) — Recent phases snapshot (older phases archived in `archive/`)
+- [`archive/PROGRESS.md`](./archive/PROGRESS.md) — Status history FROZEN at Phase 115 (merged into `STATE.md`)
 - [`DEVELOPER_GUIDE.md`](./DEVELOPER_GUIDE.md) — Developer onboarding + architecture details
-- [`QA_CHECKLIST.md`](./QA_CHECKLIST.md) — Verification evidence + QA protocol (older evidence archived)
+- [`archive/QA_CHECKLIST.md`](./archive/QA_CHECKLIST.md) — Verification evidence FROZEN at Phase 115 (merged into `STATE.md`)
 - [`supabase/migrations/INDEX.md`](./supabase/migrations/INDEX.md) — Binding migration registry + naming laws
 - [`docs/`](./docs/) — SEO frameworks (CWV thresholds, E-E-A-T, schema reference) + historical audits
 - [`.env.example`](./.env.example) — Environment variables reference

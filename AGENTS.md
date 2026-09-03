@@ -29,7 +29,7 @@ The owner may designate additional agents or reviewers; until then the table abo
 
 ### 3.1 Inspect Before Modifying
 
-Read the actual source, config, and migrations before changing anything — docs can lag (hierarchy: §12.8); on conflict verify the code and document the discrepancy in `PROGRESS.md`. Quote file paths + line numbers in commits and reports so the human reviewer can verify.
+Read the actual source, config, and migrations before changing anything — docs can lag (hierarchy: §12.8); on conflict verify the code and document the discrepancy in `worklog.md`. Quote file paths + line numbers in commits and reports so the human reviewer can verify.
 
 ### 3.2 Do Not Expose Secrets
 
@@ -46,7 +46,8 @@ No precedent in the codebase → propose the design in plain prose FIRST, get ow
 ### 3.5 Verify Changes
 
 > **Canonical command set — do NOT duplicate these commands elsewhere.**
-> §4 (Definition of Done) and `QA_CHECKLIST.md` (Verification Protocol)
+> §4 (Definition of Done) and `archive/QA_CHECKLIST.md` (Verification Protocol —
+> frozen at Phase 115)
 > MUST reference this section by pointer instead of restating the commands.
 
 The canonical verification command set:
@@ -86,7 +87,7 @@ The local clone and conversation memory are NOT sources of truth. Before any sta
 
 ### 3.8 Documentation Parity Law (Owner directive 2026-09-02 — «دايماً عدل التوثيقات وملفات هيكل المشروع علشان ميحصلش لغبطة» + Phase 107 single-source extension)
 
-Every code change ships its docs in the SAME phase — never "later". Minimum per phase (append-only, newest on top): `worklog.md` entry · `QA_CHECKLIST.md` Latest table (previous demoted) · `PROGRESS.md` section · `STATE.md` refresh (§3.6 duty) — plus every file describing the changed behavior (`README.md`, `DEVELOPER_GUIDE.md`, `AGENTS.md`, the `build-info` `aiTopology` label). **Single-source number law:** README/DEVELOPER_GUIDE carry ZERO variable counts — numbers live in the code or `supabase/migrations/INDEX.md`; `scripts/docs_audit.py` fails the push on any count there, on duplicate section numbers in this file, and on STATE/PROGRESS/QA phase mismatches. Wrong-but-confident docs are worse than missing docs — fix or delete; dead code and stale references are deleted in the same phase (git preserves). Docs-only changes are allowed; commit starts with `docs:`. Obsolete sections move to `archive/` (append-only) or carry a `> **Deprecated (date):** reason` marker; PROGRESS/QA stay slim under archive-enforced caps.
+Every code change ships its docs in the SAME phase — never "later". Minimum per phase (append-only, newest on top): `worklog.md` entry · `STATE.md` refresh (§3.6 duty — since Phase 115, owner directive «الأمر الخامس», STATE.md is the SINGLE living status file: المرحلة + المفتوح + الممنوعات + ملخص جودة المرحلة; `PROGRESS.md`/`QA_CHECKLIST.md` were merged into it and FROZEN verbatim in `archive/`) — plus every file describing the changed behavior (`README.md`, `DEVELOPER_GUIDE.md`, `AGENTS.md`, the `build-info` `aiTopology` label). **Single-source number law:** README/DEVELOPER_GUIDE carry ZERO variable counts — numbers live in the code or `supabase/migrations/INDEX.md`; `scripts/docs_audit.py` fails the push on any count there, on duplicate section numbers in this file, and on STATE consistency (phase + required sections + QA summary). Wrong-but-confident docs are worse than missing docs — fix or delete; dead code and stale references are deleted in the same phase (git preserves). Docs-only changes are allowed; commit starts with `docs:`. Obsolete sections move to `archive/` (append-only) or carry a `> **Deprecated (date):** reason` marker; resurrecting `PROGRESS.md`/`QA_CHECKLIST.md` at the root is gated (docs_audit F).
 
 ---
 
@@ -214,9 +215,9 @@ Do not redo completed steps; preserve the current task's state; with queued task
 
 ### 12.5 Documentation
 
-Document every completed task while executing it, using the existing files (`PROGRESS.md`, `worklog.md`, `AGENTS.md`, `DEVELOPER_GUIDE.md`, `SECURITY.md`, `QA_CHECKLIST.md`, `README.md`) — no new documentation system if the existing one suffices; one comprehensive review pass is allowed at the end of a large body of work.
+Document every completed task while executing it, using the existing files (`STATE.md`, `worklog.md`, `AGENTS.md`, `DEVELOPER_GUIDE.md`, `SECURITY.md`, `README.md` — status history frozen in `archive/` since Phase 115) — no new documentation system if the existing one suffices; one comprehensive review pass is allowed at the end of a large body of work.
 
-> **Consolidated (2026-08-24):** executed via `docs/_AUDIT.md`. Do not create new documentation files — except `STATE.md` (Phase 107, owner-approved knowledge operating system; §3.6/§3.8).
+> **Consolidated (2026-08-24):** executed via `docs/_AUDIT.md`. Do not create new documentation files — except `STATE.md` (Phase 107, owner-approved knowledge operating system; §3.6/§3.8) and `CONTRIBUTING.md` (Phase 115, owner-directed contribution policy).
 
 #### 12.5.1 `worklog.md` Entry Template (Binding)
 
@@ -251,7 +252,7 @@ Treat EVO AI and AI Chat as ONE task (`EVO AI / AI Chat`); never record the same
 
 ### 12.7 AI Master Roadmap
 
-Aggregate AI task lists from actual source code, `PROGRESS.md`, `worklog.md`, `DEVELOPER_GUIDE.md`, and context; classify each task as `COMPLETED` / `IN PROGRESS` / `DEFERRED` / `NOT STARTED`; do NOT start implementation merely because a missing task was discovered — stick to the task the Owner assigns.
+Aggregate AI task lists from actual source code, `STATE.md`, `worklog.md`, `DEVELOPER_GUIDE.md`, and context; classify each task as `COMPLETED` / `IN PROGRESS` / `DEFERRED` / `NOT STARTED`; do NOT start implementation merely because a missing task was discovered — stick to the task the Owner assigns.
 
 ### 12.8 Source of Truth
 
@@ -259,8 +260,8 @@ Priority (highest wins):
 
 1. Actual Code & Config (`src/**`, `next.config.ts`, `tsconfig.json`, `package.json`, `vercel.json`)
 2. Database / Migrations (`supabase/migrations/*.sql`)
-3. QA Evidence (`QA_CHECKLIST.md`, manual smoke tests in commit messages)
-4. Project Documentation (`README.md`, `DEVELOPER_GUIDE.md`, `PROGRESS.md`, `AGENTS.md`, `SECURITY.md`)
+3. QA Evidence (`STATE.md` ملخص جودة المرحلة · `archive/QA_CHECKLIST.md` frozen at Phase 115, manual smoke tests in commit messages)
+4. Project Documentation (`README.md`, `DEVELOPER_GUIDE.md`, `STATE.md`, `AGENTS.md`, `SECURITY.md`)
 5. Conversation Context
 6. General Knowledge
 

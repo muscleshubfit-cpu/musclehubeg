@@ -69,7 +69,7 @@ function isArabicPath(pathname: string): boolean {
  * know which URL the user requested.
  *
  * IMPORTANT: calling `cookies()` and `headers()` opts the root layout
- * into dynamic rendering. This is acceptable — see PROGRESS.md H1 fix
+ * into dynamic rendering. This is acceptable — see archive/PROGRESS.md H1 fix
  * notes for the trade-off analysis.
  */
 async function resolveLocale(): Promise<{ lang: "en" | "ar"; dir: "ltr" | "rtl" }> {

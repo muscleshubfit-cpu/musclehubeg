@@ -13,7 +13,8 @@
 #
 # RULE (AGENTS.md §8): retiring anything = git rm in the SAME session
 # plus a clean run of this script. Comments/docs under docs/, AGENTS.md,
-# PROGRESS.md may narrate history — code may not reference it.
+# PROGRESS.md (archive-frozen since Phase 115) may narrate history —
+# code may not reference it.
 #
 # Usage:  bash scripts/check-stale-refs.sh          # human output
 #         bash scripts/check-stale-refs.sh --ci     # same, CI-framed

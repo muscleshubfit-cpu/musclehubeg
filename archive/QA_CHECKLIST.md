@@ -1,3 +1,5 @@
+> 🧊 **مجمّد (Phase 115 — أمر المالك «الأمر الخامس»):** الملف اتنقل بالكامل من جذر المشروع إلى archive/ — المصدر الرسمي الوحيد للحالة دلوقتي: `STATE.md` — المحتوى بالتحت verbatim كما كان لحظة التجميد.
+
 # QA_CHECKLIST.md — Verification Evidence
 
 > **Role:** Per AGENTS.md §12.8, this file is source-of-truth #3 (below code and migrations, above docs). It records what has been verified, when, and how.

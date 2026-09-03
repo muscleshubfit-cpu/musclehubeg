@@ -193,7 +193,7 @@ Any of the following:
   via the Supabase SQL Editor (see `AGENTS.md` §6).
 - After any schema change in production, the owner must run
   `NOTIFY pgrst, 'reload schema';` so PostgREST picks up the change.
-  (Phase 5 fixes followed this protocol — see `PROGRESS.md`.)
+  (Phase 5 fixes followed this protocol — see `archive/PROGRESS.md`.)
 - Schema changes are written as **idempotent** migrations so
   re-running them is safe (this matters because production may
   already have the change applied via ad-hoc SQL).
@@ -349,7 +349,7 @@ Cache headers (set in `vercel.json` + `next.config.ts`):
   `pro` (3) > `premium` (2) > `free` (0). `coaching` is treated
   separately — it grants EVO access equivalent to Premium but is NOT
   a higher membership tier. There is NO `elite` tier (an older doc
-  claim was incorrect — see `PROGRESS.md` for the discrepancy).
+  claim was incorrect — see `archive/PROGRESS.md` for the discrepancy).
 - **RLS:** every table in the database has RLS policies enforced.
   See `DEVELOPER_GUIDE.md` §4 for the per-table policy summary.
 - **`is_coach()` SQL function:** SECURITY DEFINER function used by
