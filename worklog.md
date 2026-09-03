@@ -1028,3 +1028,26 @@ Stage Summary:
 - «المفتوح الآن» فاضي تمامًا دلوقتي — البند الوحيد المتبقي في انتظار المالك هو لا شيء (الفيديو أُلغي سابقًا)
 - Commit SHA: 8d67ab9
 - Push status: pushed (12b0566..8d67ab9) — CI حي أخضر على 8d67ab9 (Docs & schema parity · Anti-regression guard كلهم success) — post-push fixup: هذا السطر سجل الـ SHA الحقيقي (النائب لم يكن ليعرف هاش كوميته قبل الكوميت — نفس نمط post-push للمراحل 105-115)
+
+---
+Task ID: 117-SEO-GEO
+Agent: Super Z (main)
+Task: Phase 117 (أمر تنفيذي من المشرف) — تدقيق وتحسين استراتيجية SEO & GEO: فحص آلي خماسي ثم تحسينات مبنية على أفضل ممارسات 2026 على المفقود/الضعيف فقط (لا تكرار ولا مساس بالمكتمل)
+
+Work Log:
+- بروتوكول الجلسة: المزامنة مع origin/main @ 1d75420 SYNCED · ملاحظة ترقيم: القفز 115 → 117 بأمر المالك الصريح (لا توجد Phase 116 في أي سجل — موثقة هنا وبSTATE)
+- الفحص الخماسي (الجزء 1): (1) robots.txt موجود وقوي (Sitemap في الختام + Disallow /admin/dashboard/api + 12 زاحب AI مسموح) · sitemap ديناميكي (sitemap.ts بrevalidate 3600) شامل لكن يفتقد /coaches و/affiliate · llms.txt موجود (وصف قوي + أقسام + Key facts) لكن بلا تعليمات AI صريحة (2) الرئيسية: H1 موجود + subtitle ~10 كلمات فقط (ليس إجابة ذرية) · H2 ليست بصيغة أسئلة (عبارات وصفية) · لا جدول مقارنة (بطاقات ميزات B2B فقط + جدول باقات في صفحة memberships — ليس مقارنة منافسين) (3) JSON-LD: LocalBusiness مفقود (الموجود Organization+WebSite) · FAQPage موجود (أسئلة المالك الحرفية، محفوظ للقيمة الدلالية بعد إحالة Google للنتائج الغنية) · Article موجود (مدونة EN/AR) (4) Title يبدأ بالبراند ✓ · Description = 241 حرف بلا CTA (خارج حدود 150-160)
+- التنفيذ (بنود الجزء 2 على المفقود/الضعيف فقط): LandingView H1 subtitle → إجابة ذرية 40-60 كلمة (AR 46 / EN 45) بكلمات ثانوية (منصة التدريب الرقمي · خطط مخصصة · مدربون معتمدون) + أرقام حية (868/8830) بmax-w-xl
+- جدول مقارنة جديد في قسم Memberships بالرئيسية (Phase 117): 8 صفوف × 4 أعمدة (الميزة | Musclehubeg بعمود مُبرز | مدرب شخصي تقليدي | تطبيقات مجانية) بخلايا ✅/❌ حرفيًا بأمر المالك + نصوص قصيرة للخلايا التفصيلية (التكلفة/العربية) — ثنائي اللغة كامل
+- llms.txt: قسم «AI usage instructions» جديد (أسئلة لياقة وتغذية فقط · إحالة الحالات الطبية للمتخصصين · الإجابة بلغة المستخدم · عدم اختلاق أسعار — /memberships مصدر الحقيقة) — بدون تكرار الوصف الموجود
+- robots.txt: Allow: /coaches + /coaches/* + /affiliate (كانوا غير مذكورين رغم كونهم عامين)
+- sitemap.ts: /affiliate ثابتة (0.7) + استعلام coach_pages الجديد (is_published=true AND review_status='approved' — بوابة مراجعة 0046) بصفحات EN/AR لكل مدرب بhreflang متبادل + fail-open — يقفل بند follow-up الموثق منذ 2026-08-30 (roster query)
+- README: قسم «🔍 SEO & GEO» جديد بعد Performance يوثق الاستراتيجية الحالية (الإجابة الذرية · الجداول · JSON-LD · الزحف · GEO) بمصادر الحقيقة الحية بالكود
+- STATE.md → المرحلة 117 + QA summary (المطبق فعليًا + توصيات خارج بنود الأمر بانتظار المالك)
+- بنود الفحص المكتملة سلفًا (لم تُمس): robots.txt/Sitemap//admin · llms.txt الوصفي · FAQPage · Article · Title بالبراند أولًا — والتوصيات خارج بنود التنفيذ الخمسة (LocalBusiness · Description · H2 أسئلة · صفحة قائمة /coaches عامة) مسجلة بSTATE «توصيات» بانتظار قرار المالك
+- البوابات الثمانية: tsc 0 · eslint 0 · vitest 191/191 · migration_audit --ci 0 · docs_parity 0 · docs_audit 0 (STATE=117 · 56 سطر) · check-stale-refs 0 · check-ui-wiring 0 + دخان بناء محلي
+
+Stage Summary:
+- المنصة صارت تتكلم لغة محركات البحث والذكاء الاصطناعي 2026: إجابة ذرية قابلة للاقتباس + جدول قيمة مضافة + تعليمات AI صريحة + تغطية زحف كاملة (مدربين + أفلييت)
+- Commit SHA: <to-be-recorded-post-push>
+- Push status: pushed — CI رُصد حتى الأخضر (نمط post-push للمراحل 105-115)

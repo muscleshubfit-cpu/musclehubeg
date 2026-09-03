@@ -30,6 +30,9 @@ Allow: /ar/memberships
 Allow: /meal-planner
 Allow: /coaching
 Allow: /evo
+Allow: /coaches
+Allow: /coaches/*
+Allow: /affiliate
 # FOR-COACHES — coach recruitment funnel (public, SEO-indexed)
 Allow: /for-coaches
 Allow: /ar/for-coaches

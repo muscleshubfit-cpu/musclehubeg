@@ -118,6 +118,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     },
     // Coaching (secondary feature — one section of the platform)
     { url: `${baseUrl}/coaching`, lastModified, changeFrequency: "monthly", priority: 0.8 },
+    // Phase 117 (owner executive order — SEO/GEO audit): affiliate program
+    // page added (public, SEO-indexed, robots-allowed).
+    { url: `${baseUrl}/affiliate`, lastModified, changeFrequency: "monthly", priority: 0.7 },
     {
       url: `${baseUrl}/memberships`,
       lastModified,
@@ -341,6 +344,57 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
             lastModified: postDate,
             changeFrequency: "monthly",
             priority: 0.6,
+          });
+        }
+      }
+    } catch {}
+  }
+
+  // Phase 117 (owner executive order — SEO/GEO audit): public coach pages.
+  // Closes the long-documented follow-up (comment at the top of the static
+  // block): /coaches/[slug] roster query. Visibility rule mirrors
+  // coach-landing-server.ts: is_published AND review_status 'approved'
+  // (the 0046 review gate — pending/rejected pages must NEVER be indexed).
+  // EN + AR mirrors exist for every coach slug (/ar/coaches/[slug] since
+  // Phase 74). Fail-open: DB error → sitemap simply skips coach pages.
+  if (supabaseUrl && supabaseKey) {
+    try {
+      const supabase = createClient(supabaseUrl, supabaseKey, {
+        auth: { persistSession: false, autoRefreshToken: false },
+      });
+      const { data: coachPages } = await supabase
+        .from("coach_pages")
+        .select("slug, updated_at")
+        .eq("is_published", true)
+        .eq("review_status", "approved");
+
+      if (coachPages) {
+        for (const page of coachPages) {
+          if (!page.slug) continue;
+          const pageDate = page.updated_at ? new Date(page.updated_at) : lastModified;
+          staticUrls.push({
+            url: `${baseUrl}/coaches/${page.slug}`,
+            lastModified: pageDate,
+            changeFrequency: "monthly",
+            priority: 0.6,
+            alternates: {
+              languages: {
+                en: `${baseUrl}/coaches/${page.slug}`,
+                ar: `${baseUrl}/ar/coaches/${page.slug}`,
+              },
+            },
+          });
+          staticUrls.push({
+            url: `${baseUrl}/ar/coaches/${page.slug}`,
+            lastModified: pageDate,
+            changeFrequency: "monthly",
+            priority: 0.6,
+            alternates: {
+              languages: {
+                en: `${baseUrl}/coaches/${page.slug}`,
+                ar: `${baseUrl}/ar/coaches/${page.slug}`,
+              },
+            },
           });
         }
       }

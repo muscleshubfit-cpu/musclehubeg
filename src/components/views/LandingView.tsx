@@ -346,6 +346,62 @@ export function LandingView() {
   ];
   const faqSchema = getFAQSchema(faqs);
 
+  // Owner executive order Phase 117 (2026-09-04 — SEO/GEO audit): homepage
+  // feature-comparison table vs traditional alternatives. ✅/❌ quick-scan
+  // cells per the owner's directive; the "traditional personal trainer"
+  // column surfaces the platform's added value. Cell values: "✅" | "❌" |
+  // short AR/EN text pair for partial/nuanced cells.
+  const comparisonRows: Array<{
+    featureAr: string;
+    featureEn: string;
+    us: string;
+    tradAr: string;
+    tradEn: string;
+    appsAr: string;
+    appsEn: string;
+  }> = [
+    {
+      featureAr: "مكتبة تمارين 868+ بشرح وافٍ",
+      featureEn: "868+ exercise library with full instructions",
+      us: "✅", tradAr: "❌", tradEn: "❌", appsAr: "جزئيًا", appsEn: "Partial",
+    },
+    {
+      featureAr: "قاعدة أغذية 8830+ بالسعرات والماكروز",
+      featureEn: "8,830+ food database with calories & macros",
+      us: "✅", tradAr: "❌", tradEn: "❌", appsAr: "❌", appsEn: "❌",
+    },
+    {
+      featureAr: "خطط تدريب وتغذية مخصصة",
+      featureEn: "Custom workout & nutrition plans",
+      us: "✅", tradAr: "✅", tradEn: "✅", appsAr: "خطط عامة فقط", appsEn: "Generic plans only",
+    },
+    {
+      featureAr: "متابعة من مدربين معتمدين",
+      featureEn: "Supervision by certified coaches",
+      us: "✅", tradAr: "✅", tradEn: "✅", appsAr: "❌", appsEn: "❌",
+    },
+    {
+      featureAr: "مساعد ذكاء اصطناعي متاح 24/7",
+      featureEn: "AI coach available 24/7",
+      us: "✅", tradAr: "❌", tradEn: "❌", appsAr: "❌", appsEn: "❌",
+    },
+    {
+      featureAr: "برامج جاهزة لكل مستوى",
+      featureEn: "Ready programs for every level",
+      us: "✅", tradAr: "❌", tradEn: "❌", appsAr: "محدودة", appsEn: "Limited",
+    },
+    {
+      featureAr: "دعم عربي كامل (RTL)",
+      featureEn: "Full Arabic support (RTL)",
+      us: "✅", tradAr: "حسب المدرب", tradEn: "Per coach", appsAr: "❌", appsEn: "❌",
+    },
+    {
+      featureAr: "التكلفة الشهرية",
+      featureEn: "Monthly cost",
+      us: "مجانًا / من $14.99", tradAr: "$20–50 للجلسة", tradEn: "$20–50/session", appsAr: "مجاني بإعلانات", appsEn: "Free with ads",
+    },
+  ];
+
   return (
     <div className="min-h-screen bg-white text-[#1d1d1f]">
       {/* FAQ Schema for SEO */}
@@ -366,10 +422,10 @@ export function LandingView() {
             <h1 className="text-4xl font-semibold leading-[1.05] tracking-tight md:text-6xl lg:text-7xl">
               {isAr ? "رحلتك الرياضية الكاملة.. في منصة واحدة" : "Your complete fitness platform."}
             </h1>
-            <p className="mx-auto mt-4 max-w-md text-lg font-normal leading-snug md:mx-0 md:text-xl" style={{ color: PALETTE.textSec }}>
+            <p className="mx-auto mt-4 max-w-xl text-base font-normal leading-relaxed md:mx-0 md:text-lg" style={{ color: PALETTE.textSec }}>
               {isAr
-                ? "تمارين، برامج تدريب، حاسبات، أكلات، ومدونة — في مكان واحد."
-                : "Exercises, programs, calculators, foods, and blog — all in one place."}
+                ? "منصة Musclehubeg للتدريب الرقمي: تجربة تدريب وتغذية مخصصة بالكامل — أكثر من 868 تمرينًا بشرح وافٍ، و8830 أكلة بالقيم الغذائية، برامج جاهزة لكل مستوى، وحاسبات لياقة مجانية. احصل على خطط مخصصة من مدربين معتمدين أو من مساعد الذكاء الاصطناعي EVO، وتابع تقدمك خطوة بخطوة في مكان واحد."
+                : "Musclehubeg is a complete digital training platform: a personalized workout and nutrition experience with 868+ exercises, 8,830+ foods, ready-made programs, and free calculators. Get custom plans from certified coaches or the EVO AI coach — everything you need to train, eat, and progress in one place."}
             </p>
             {/* Owner directive 2026-08-30: hero buttons = section navigation
                 for the WHOLE homepage (beautiful chips). EVO is a service
@@ -1090,6 +1146,55 @@ export function LandingView() {
                 {isAr ? "قارن كل العضويات" : "Compare all plans"}
                 <span className="rtl:rotate-180">›</span>
               </a>
+            </div>
+          </Reveal>
+
+          {/* Phase 117 (owner executive order — SEO/GEO): feature-comparison
+              table vs traditional alternatives. ✅/❌ cells per the owner's
+              directive; the Musclehubeg column is visually highlighted. */}
+          <Reveal delay={450}>
+            <div className="mt-12">
+              <h3 className="text-center text-2xl font-semibold tracking-tight md:text-3xl" style={{ color: PALETTE.textPrim }}>
+                {isAr ? "ليه Musclehubeg؟ مقارنة سريعة" : "Why Musclehubeg? A quick comparison"}
+              </h3>
+              <div className="mt-6 overflow-x-auto rounded-2xl" style={{ border: `1px solid ${PALETTE.border}` }}>
+                <table className="w-full min-w-[560px] text-sm">
+                  <thead>
+                    <tr style={{ backgroundColor: PALETTE.sectionGray }}>
+                      <th className="p-4 text-start text-xs font-medium" style={{ color: PALETTE.textSec }}>
+                        {isAr ? "الميزة" : "Feature"}
+                      </th>
+                      <th className="p-4 text-center text-xs font-semibold" style={{ color: PALETTE.brandDeep }}>
+                        Musclehubeg
+                      </th>
+                      <th className="p-4 text-center text-xs font-medium" style={{ color: PALETTE.textSec }}>
+                        {isAr ? "مدرب شخصي تقليدي" : "Traditional personal trainer"}
+                      </th>
+                      <th className="p-4 text-center text-xs font-medium" style={{ color: PALETTE.textSec }}>
+                        {isAr ? "تطبيقات مجانية" : "Free apps"}
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {comparisonRows.map((row, i) => (
+                      <tr key={i} style={{ borderTop: `1px solid ${PALETTE.border}99` }}>
+                        <td className="p-4 text-start font-medium" style={{ color: PALETTE.textPrim }}>
+                          {isAr ? row.featureAr : row.featureEn}
+                        </td>
+                        <td className="p-4 text-center" style={{ backgroundColor: `${PALETTE.brand}0d` }}>
+                          <span className="font-semibold" style={{ color: PALETTE.brandDeep }}>{row.us}</span>
+                        </td>
+                        <td className="p-4 text-center" style={{ color: PALETTE.textSec }}>
+                          {isAr ? row.tradAr : row.tradEn}
+                        </td>
+                        <td className="p-4 text-center" style={{ color: PALETTE.textSec }}>
+                          {isAr ? row.appsAr : row.appsEn}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </Reveal>
         </div>
