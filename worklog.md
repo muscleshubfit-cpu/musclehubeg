@@ -1009,5 +1009,5 @@ Work Log:
 
 Stage Summary:
 - README متطابق مع Phase 115: إحالة الحالة الراهنة لـ STATE.md بدون تكرار + قسم مساهمة بارز + هيكلية archive/ صحيحة + مشكلات مبسطة — البنود الخمسة للأمر التنفيذي نُفذت بالكامل
-- Commit SHA: <to-be-recorded-post-push>
-- Push status: pushed — CI رُصد حتى الأخضر (نمط post-push للمراحل 105-115)
+- Commit SHA: 728d69d
+- Push status: pushed (736f364..728d69d) — CI حي أخضر على 728d69d (Docs & schema parity · Anti-regression guard كلهم success) — post-push fixup: هذا السطر سجل الـ SHA الحقيقي (النائب لم يكن ليعرف هاش كوميته قبل الكوميت — نفس نمط post-push للمراحل 105-115)
