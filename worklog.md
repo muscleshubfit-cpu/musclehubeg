@@ -894,3 +894,4 @@ Stage Summary:
 - النشرة البريدية بقت تظهر مرة واحدة في الرئيسية (سيكشن 13 المستقل) — الفوتر نضف والازدواج اللي المالك شافه اتشال من جذوره
 - Commit SHA: (placeholder — post-push fixup يسجل الـSHA الحقيقي)
 - Push status: (placeholder — post-push fixup)
+- إصلاح CI عرضي في نفس الفريم: ووركفلو «Process AI jobs» المجدول قعد أحمر على e1fca38 — npm 10 arborist «Cannot read properties of null (reading 'edgesOut')» في Install dependencies (runner node 22 = npm 10 مدمج · الريبو ملفوش lockfile → npm install بيحل فريش · آخر نجاح 08:56 نفس اليوم على نفس ملف الاعتماديات · attempt 2 نفس الانهيار) · محليًا npm 11.17 dry-run بيحل نفس الشجرة exit 0 → خطوة «Bump npm (npm install -g npm@11)» قبل التثبيت في الـ4 ووركفلوهات المكشوفة (process-ai-jobs · blog-post-ar · blog-post-en · remediate-blog-images) + توثيق في QA/PROGRESS/STATE

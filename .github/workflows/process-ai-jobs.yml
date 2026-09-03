@@ -101,6 +101,13 @@ jobs:
           # v4 "Node 20 is deprecated" log warnings are gone, 2026-08-28d.)
           node-version: 22
 
+      # npm 11 REQUIRED: npm 10 (bundled with Node 22) crashes in arborist —
+      # «Cannot read properties of null (reading 'edgesOut')» — against the
+      # 2026-09-03 registry metadata (repo has NO lockfile → every install
+      # re-resolves fresh). npm 11.17 resolves the identical tree cleanly.
+      - name: Bump npm (10 arborist edgesOut crash — 2026-09-03 CI red)
+        run: npm install -g npm@11
+
       # NOTE: repo has NO package-lock.json → npm install (not npm ci)
       - name: Install dependencies
         run: npm install --no-audit --no-fund

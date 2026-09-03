@@ -14,6 +14,7 @@
 1. كارت النشرة من الفوتر اتشال من `LandingView.tsx` + تعليق يسجل القرار وتاريخه ومرجع اعتراض المالك.
 2. سيكشن 13 بقى السطح الوحيد للنشرة — تعليقه اتحدث إنه single newsletter surface.
 3. تعليق `NewsletterForm.tsx` القديم (كان بيقول «Lives in the site footer and on the homepage») اتحدث — الـvariant محفوظ لإعادة الاستخدام.
+4. **إصلاح CI عرضي في نفس الفريم:** الووركفلو المجدول «Process AI jobs» قعد أحمر على كوميت المرحلة — npm 10 (المدمج مع Node 22 على الـrunner) بيقع في arborist بـ«Cannot read properties of null (reading 'edgesOut')» مع metadata الريجستري بتاريخ 2026-09-03 (الريبو ملفوش lockfile فالتثبيت بيحل فريش كل مرة — وآخر نجاح 08:56 نفس اليوم على نفس ملف الاعتماديات) · محليًا npm 11.17 بيحل نفس الشجرة سليمة exit 0 → خطوة «Bump npm (npm install -g npm@11)» واحدة قبل التثبيت في الـ4 ووركفلوهات المكشوفة كلها (process-ai-jobs · blog-post-ar · blog-post-en · remediate-blog-images).
 
 **البوابات:** tsc 0 · eslint 0 · vitest 191/191 · migration_audit --ci 0 · docs_parity 0 · docs_audit 0 · check-stale-refs 0 · check-ui-wiring 0.
 
