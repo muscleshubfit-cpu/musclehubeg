@@ -7,7 +7,7 @@
 ## المرحلة الحالية
 
 - **المرحلة:** 108 — إبراز البوابات الآلية في وصف المشروع (قسم 🛡️ في README + إعادة صياغة GitHub About/topics عبر API)
-- **آخر كوميت متحقق منه:** fbb27f4 (Phase 107 + post-push fixes — CI خضرا 3/3 حيًا بالـ API: parity · guard · Supabase Preview)
+- **آخر كوميت متحقق منه:** 44ec74c (Phase 108 — quality-gates showcase · CI خضرا 3/3 حيًا بالـ API: parity · guard · Supabase Preview)
 - **البوابات وقتها:** tsc 0 · eslint 0 · vitest 191/191 · migration_audit --ci 0 · docs_parity 0 · docs_audit 0 · check-stale-refs 0 · check-ui-wiring 0
 - **الإنتاج:** musclehubeg.vercel.app حي · آخر ميجريشن مطبّق: 0069 (no-op توفيقي — الإنتاج مطابق للمرآة المثبتة حيًا 8/8)
 

@@ -851,4 +851,5 @@ Work Log:
 
 Stage Summary:
 - وصف المشروع بقى بيعرض القوة الهندسية مش المنتج بس: البوابات الخمس كلها موثقة بحوادثها الحقيقية في README وعلى About الريبو — إبراز مطلوب من المالك مباشرة
-- Commit SHA: (placeholder — يتسجل post-push زي 105/107)
+- Commit SHA: 44ec74c
+- Push status: pushed (fbb27f4..44ec74c) — CI حي أخضر 3/3 (Supabase Preview · guard · parity) — post-push fixup: this line recorded the real SHA
