@@ -6,7 +6,22 @@
 
 ---
 
-## Latest Verification — 2026-09-03 (Phase 108 — QUALITY-GATES SHOWCASE: owner «ضيف وصف البوابة الآلية فى وصف المشروع اعتقد دى ميذة قوية لازم تتعرض ، كذلك لو فى اى امور قوية زيها اعرضها برده» — README 🛡️ gates section + GitHub About/topics rewritten via API + Known Issues de-rotted)
+## Latest Verification — 2026-09-03 (Phase 109 — AR/SEO HOMEPAGE COPY: owner «تقدر تبعت الأوامر الأربعة بالترتيب من غير أي تعديل» on the full Arabic content+SEO plan — owner's verbatim Egyptian-dialect copy across every homepage surface + new primary CTA + meta/alt; الأوامر 2-3 verified live as pre-existing (homepage AR mirror 2026-08-30), not re-implemented)
+
+| Check | Result | How verified |
+|---|---|---|
+| Command 1 — i18n copy (real implementation) | ✅ | LandingView.tsx (the homepage's actual i18n surface): hero H1 «رحلتك الرياضية الكاملة.. في منصة واحدة» · ecosystem «مش مجرد موقع تمارين..» · EVO «مش شات بوت عادي، ده محرك أداء ذكي» · tools title + 4 cards verbatim names/descs · exercises/programs/foods/coaching/for-coaches/memberships/affiliate titles+bodies · FAQ 5 pairs verbatim (Vodafone Cash/InstaPay/PayPal · «كل الجمهور العربي مش لبلد معينة») — EN strings byte-identical, only AR sides + comments changed |
+| Command 1 — meta | ✅ | ar/layout.tsx title/description/OG/Twitter = owner's Meta Title «Musclehubeg \| منصة رياضية شاملة: تمارين وتغذية وكوتشينج اونلاين» + description verbatim ([EVO] notation → plain EVO) |
+| Command 1 — primary CTA | ✅ | New section 11.5 between affiliate & FAQ: heading «ابدأ رحلتك دلوقتي مجانًا.. مالكش عذر تأجل بعد اليوم» + button «جرّب المنصة مجانًا» → /ar/memberships (Free-tier home) — designed around the 2026-08-30 removal objection (no duplication, no EVO push) |
+| Command 2 — locale routing (live-verified, pre-existing) | ✅ | live curl /ar → 308→/ar 200 · <html lang="ar" dir="rtl"> · Arabic strings present in server HTML (SSR without JS) · reciprocal hreflang en/ar/x-default on both ((home)/layout.tsx + ar/page.tsx) · LanguageToggle MIRROR_ROUTES navigates /ar mirrors · EN paths unchanged |
+| Command 3 — JSON-LD (pre-existing, auto-extended) | ✅ | root layout Organization+WebSite (both routes) + LandingView FAQPage built from the same faqs array → updated automatically with owner's copy in both languages; live: 5 ld+json scripts on / and /ar |
+| Command 4 — alt text (real implementation) | ✅ | hero alt (ar) «منصة رياضية شاملة - تمارين وتغذية» · EVO alt (ar) «EVO مساعد اللياقة الذكي» — owner's suggested strings verbatim (main keyword inside alt); EN alts unchanged |
+| Docs parity §3.6 | ✅ UPDATED | STATE.md → Phase 109 / 28377db (post-push will advance it) · QA + PROGRESS Phase 109 sections · PROGRESS slimmed to cap (Phase 103b → archive/PROGRESS_ARCHIVE.md ملحق 2026-09-03 Phase 109, verbatim) · QA slimmed to cap (Phase 99-run → archive/QA_CHECKLIST_ARCHIVE.md, verbatim) · worklog Task 109 ×2 (repo + workspace) |
+| Gates after edits | ✅ | tsc 0 · eslint 0 · vitest 191/191 · migration_audit --ci 0 · docs_parity 0 · docs_audit 0 · check-stale-refs 0 · check-ui-wiring 0 |
+
+---
+
+## Previous Verification — 2026-09-03 (Phase 108 — QUALITY-GATES SHOWCASE: owner «ضيف وصف البوابة الآلية فى وصف المشروع اعتقد دى ميذة قوية لازم تتعرض ، كذلك لو فى اى امور قوية زيها اعرضها برده» — README 🛡️ gates section + GitHub About/topics rewritten via API + Known Issues de-rotted)
 
 | Check | Result | How verified |
 |---|---|---|
@@ -76,23 +91,9 @@
 | Live verification path | ✅ | RPC existence + callable probed live earlier (200); classification needs an admin session (test admin deleted — by design), so the owner's own /admin/clients view is the visual proof: أعضاء الموقع counter > 0, only truly-B2B clients under «عملاء مدربي B2B» |
 | Docs parity §3.6 | ✅ UPDATED | INDEX.md 0068 row + audit-count line · QA_CHECKLIST Phase 103b · PROGRESS Phase 103b + «آخر تحديث» · worklog Task 103b · AGENTS.md law text unchanged |
 
-## Previous Verification — 2026-09-03 (Phase 99-run — PIPELINE UNBLOCK: owner reported the last applied migration on Supabase was 0063 — «افحص ايه المشكلة وليه متعملش ميجريشن من جيتهب ل ٠٠٦٤ الى ٠٠٦٧ واصلح المشكلة». Root cause: 0064's first deploy failed 42703 on TWO phantom mirror columns and halted the whole pipeline — 0065/0067 never attempted. Fixed with live-verified columns and re-pushed)
-
-| Check | Result | How verified |
-|---|---|---|
-| Owner's report reproduced live | ✅ | live probes at diagnosis time: profiles.coach_kind → 42703 MISSING · site_coach_assignments → PGRST205 table not found · rpc get_admin_clients_paged → PGRST202 not found = 0067 (and 0064/0065 with it) had NEVER applied — exactly matching the owner's «آخر ميجريشن 0063» |
-| Root cause (two phantom columns in 0064) | ✅ | `create index … on public.coach_presence (user_id)` + `on public.progress_photos (user_id, taken_on desc)` — live probe (select=<col> → 42703): coach_presence has NO user_id (real: id · coach_id · last_seen · updated_at) and progress_photos has NO taken_on (real: id · user_id · photo_url · taken_at · created_at). The mirror types.ts is wrong for both ad-hoc tables (0063's IF-NOT-EXISTS backfill was a deliberate no-op on production, so its mirror-derived definitions never matched the live tables) — the same drift that hit 0066 v1 (owner's 42703) hit 0064 first and silently blocked EVERYTHING since Phase 99 |
-| Production impact of the block (documented) | ✅ | Phase 99 progress_photos RLS + 3 hot indexes: not live · Phase 100 plan_swaps strict RLS: not live · Phase 103 coach_kind + site_coach_assignments + get_admin_clients_paged/stats: not live → /admin/clients + /admin/site-assignments + coach-kind toggle were failing in production since the 2034648 deploy |
-| 0064 v2 fix | ✅ | index columns corrected to LIVE-verified ones: progress_photos (user_id, taken_at desc) · coach_presence (coach_id) — plan_swaps index unchanged (all 3 columns live-verified); RLS/policy parts untouched (progress_photos.user_id exists live — policies are valid); header v2 note documents the whole incident |
-| 0065 + 0067 audited against the LIVE schema before re-push | ✅ | every referenced column probed 200: plan_swaps.user_id/swap_type/created_at · coach_assignments.coach_id/client_id · subscriptions.client_id/tier/status/end_date/months/created_at · subscription_requests.status · profiles.id/email/full_name/phone/avatar_url/role/is_test_account · is_admin() RPC → 200 `true` live (0067's RLS boundary will work) — ZERO changes needed to either file |
-| Mirror drift recorded (NOT fixed here — Phase 104 candidates) | ℹ️ | app code written against the wrong mirror: data/progress.ts queries taken_on/file_path/note (live: taken_at/photo_url) and data/coach.ts queries user_id/status (live: coach_id) → the in-app photos list and presence indicator fail silently on production TODAY regardless of this fix; fixing them = separate owner-approved phase (they change app behavior, not just pipeline plumbing) |
-| Docs parity §3.6 | ✅ UPDATED | INDEX.md 0064 row (v2 note) · QA_CHECKLIST Phase 99-run · PROGRESS Phase 99-run + «آخر تحديث» · worklog Task 99-run · AGENTS.md law text unchanged |
-| Post-push live verification | ✅ APPLIED | ~100s after push: profiles.coach_kind → EXISTS · site_coach_assignments → table FOUND (401/42501 anon = the designed revoke-all-from-anon loud failure, NOT PGRST205 anymore) · rpc get_admin_clients_paged → EXISTS (200; callable) — one deployment applied 0064 v2 → 0065 → 0067 in order, so Phase 99/100 RLS + all Phase 103 surfaces are LIVE; /admin pages read via service-role API so the dormant authenticated SELECT grant on the roster table affects nothing today (Phase 104 will pair its browser consumer with a grant) |
-| 0066 v2 (manual, parallel) | ✅ DONE by owner | fresh login probe → HTTP 400 invalid-credentials = auth.users row GONE; the DO block is atomic so profiles + data cascades committed with it — the 0050 test admin is fully wiped (this also explains the transient is_admin=false/[RPC empty] readings during the same minute: probed with a token whose account was deleted mid-verification) |
-
 ---
 
-> 🗄️ **الأرشفة (Phase 82 + ملحق 2026-09-02):** الجداول الأقدم نُقلت إلى `archive/QA_CHECKLIST_ARCHIVE.md`. **ملحق 2026-09-03 (Phase 107):** كل ما قبل آخر 5 مراحل (102-run → 80) انضم للملحق — الملف ده سقفه 6 جداول بوابةً.
+> 🗄️ **الأرشفة (Phase 82 + ملحق 2026-09-02):** الجداول الأقدم نُقلت إلى `archive/QA_CHECKLIST_ARCHIVE.md`. **ملحق 2026-09-03 (Phase 107):** كل ما قبل آخر 5 مراحل (102-run → 80) انضم للملحق — الملف ده سقفه 6 جداول بوابةً. **ملحق 2026-09-03 (Phase 109):** جدول Phase 99-run انضم للملحق (السقف 6 اتمسّ بأقسام 109→103b).
 
 
 ## Verification Protocol

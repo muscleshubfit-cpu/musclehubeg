@@ -333,13 +333,16 @@ export function LandingView() {
 
   const blogHref = isCoach ? "/admin/blog" : isAr ? "/ar/blog" : "/blog";
 
-  // FAQ schema for SEO
+  // FAQ schema for SEO.
+  // Owner SEO content plan (2026-09-03): the 5 Arabic pairs below are the
+  // owner's verbatim copy (Egyptian-dialect refresh). They feed BOTH the
+  // visible accordion AND the FAQPage JSON-LD above (single source).
   const faqs = [
-    { q: isAr ? "هل أحتاج اشتراك لاستخدام الأدوات؟" : "Do I need a subscription to use the tools?", a: isAr ? "لا، كل الأدوات الستة (حاسبة سعرات، BMI، ماكروز، دهون، متتبع ماء، مخطط وجبات) مجانية تماماً بدون تسجيل." : "No, all six tools (calorie, BMI, macro, body fat, water tracker, meal planner) are completely free without signup." },
-    { q: isAr ? "ما الفرق بين Premium و Pro؟" : "What's the difference between Premium and Pro?", a: isAr ? "Premium ($14.99/شهر): EVO غير محدود، 4 خطط/شهر (بحد أسبوعي 1+1)، 50 نتيجة محفوظة. Pro ($29.99/شهر): 8 خطط/شهر (بحد أسبوعي 2+2)، 200 نتيجة، تحليل أنماط، بدون إعلانات." : "Premium ($14.99/mo): unlimited EVO, 4 plans/mo (weekly cap 1+1), 50 saved results. Pro ($29.99/mo): 8 plans/mo (weekly cap 2+2), 200 results, pattern analysis, ad-free." },
-    { q: isAr ? "هل يدعم PayPal؟" : "Does it support PayPal?", a: isAr ? "نعم، PayPal هو طريقة الدفع الرئيسية. متاح أيضاً الدفع اليدوي عبر InstaPay و Vodafone Cash." : "Yes, PayPal is the primary payment method. Manual payment via InstaPay and Vodafone Cash is also available." },
-    { q: isAr ? "كم عدد التمارين والأكلات؟" : "How many exercises and foods are there?", a: isAr ? "مكتبة 868 تمرين بصور وتعليمات ثنائية اللغة، و 8,830 أكلة بالسعرات والماكروز لكل 100 جرام." : "868 exercises with bilingual instructions and images, plus 8,830 foods with calories and macros per 100g." },
-    { q: isAr ? "هل الموقع يدعم العربية؟" : "Does the site support Arabic?", a: isAr ? "نعم، الموقع ثنائي اللغة (عربي/إنجليزي) مع دعم كامل لـ RTL، صفحات عربية mirror، ومدونة بمحتوى مستقل لكل لغة." : "Yes, fully bilingual (Arabic/English) with complete RTL support, Arabic mirror pages, and a blog with independent content per language." },
+    { q: isAr ? "هل محتاج اشتراك علشان أستخدم الأدوات؟" : "Do I need a subscription to use the tools?", a: isAr ? "لأ، كل الحاسبات (السعرات، الكتلة، الماكروز، الدهون) متاحة مجانًا وبدون تسجيل." : "No, all six tools (calorie, BMI, macro, body fat, water tracker, meal planner) are completely free without signup." },
+    { q: isAr ? "إيه الفرق بين Premium وPro؟" : "What's the difference between Premium and Pro?", a: isAr ? "Premium يديك EVO بلا حدود و4 خطط شهريًا، وPro يضيف خطط أكتر (8 شهريًا)، تبديلات أسبوعية، ونتائج محفوظة أكتر، بدون إعلانات." : "Premium ($14.99/mo): unlimited EVO, 4 plans/mo (weekly cap 1+1), 50 saved results. Pro ($29.99/mo): 8 plans/mo (weekly cap 2+2), 200 results, pattern analysis, ad-free." },
+    { q: isAr ? "ما هي طرق الدفع المتاحة؟" : "Does it support PayPal?", a: isAr ? "حاليًا فودافون كاش، إنستاباي، وPayPal — وهنضيف طرق دفع تانية قريبًا." : "Yes, PayPal is the primary payment method. Manual payment via InstaPay and Vodafone Cash is also available." },
+    { q: isAr ? "كام عدد التمارين والأطعمة المتاحة؟" : "How many exercises and foods are there?", a: isAr ? "أكتر من 868 تمرين و8830 نوع طعام، وبيزيد باستمرار." : "868 exercises with bilingual instructions and images, plus 8,830 foods with calories and macros per 100g." },
+    { q: isAr ? "هل المنصة بتدعم اللغة العربية؟" : "Does the site support Arabic?", a: isAr ? "أيوه بالكامل — النسخة العربية موجّهة لكل الجمهور العربي مش لبلد معينة، والنسخة الإنجليزية موجّهة للعالم كله." : "Yes, fully bilingual (Arabic/English) with complete RTL support, Arabic mirror pages, and a blog with independent content per language." },
   ];
   const faqSchema = getFAQSchema(faqs);
 
@@ -361,7 +364,7 @@ export function LandingView() {
           {/* Text — left side on desktop, centered on mobile */}
           <div className="text-center md:text-left">
             <h1 className="text-4xl font-semibold leading-[1.05] tracking-tight md:text-6xl lg:text-7xl">
-              {isAr ? "منصتك الرياضية الشاملة." : "Your complete fitness platform."}
+              {isAr ? "رحلتك الرياضية الكاملة.. في منصة واحدة" : "Your complete fitness platform."}
             </h1>
             <p className="mx-auto mt-4 max-w-md text-lg font-normal leading-snug md:mx-0 md:text-xl" style={{ color: PALETTE.textSec }}>
               {isAr
@@ -436,7 +439,7 @@ export function LandingView() {
           <div className="relative aspect-[3/2] w-full overflow-hidden rounded-3xl shadow-2xl">
             <Image
               src="/images/hero/hero-athlete.jpg"
-              alt={isAr ? "رياضي يعمل تمرين بايسبس" : "Athlete performing bicep curls"}
+              alt={isAr ? "منصة رياضية شاملة - تمارين وتغذية" : "Athlete performing bicep curls"}
               fill
               sizes="(max-width: 768px) 100vw, 50vw"
               className="object-cover"
@@ -455,9 +458,9 @@ export function LandingView() {
           <h2 className="mx-auto mt-4 max-w-4xl text-4xl font-semibold leading-[1.08] tracking-tight md:text-6xl lg:text-7xl" style={{ color: PALETTE.textPrim }}>
             {isAr ? (
               <>
-                ليست مجرد منصة لياقة.
+                مش مجرد موقع تمارين..
                 <br />
-                بل منظومة رياضية متكاملة.
+                منظومة رياضية متكاملة.
               </>
             ) : (
               <>
@@ -469,7 +472,7 @@ export function LandingView() {
           </h2>
           <p className="mx-auto mt-6 max-w-2xl text-lg font-normal leading-relaxed md:text-xl" style={{ color: PALETTE.textSec }}>
             {isAr
-              ? "مكتبة تمارين احترافية، برامج تدريب جاهزة، حاسبات لياقة مجانية، مكتبة أكلات بالسعرات، مدونة رياضية علمية، وكوتشينج أونلاين — كل ما تحتاجه في مكان واحد."
+              ? "مكتبة تمارين احترافية، برامج تدريب جاهزة، حاسبات لياقة مجانية، قاعدة بيانات أطعمة بالسعرات، مدونة علمية، وكوتشينج حقيقي — كل ده في مكان واحد يوفّر عليك وقتك وجهدك."
               : "Professional exercise library, ready workout programs, free fitness calculators, food database with calories, scientific sports blog, and online coaching — everything you need in one place."}
           </p>
         </div>
@@ -483,9 +486,9 @@ export function LandingView() {
             <h2 className="text-4xl font-semibold tracking-tight md:text-6xl" style={{ color: PALETTE.textPrim }}>
               EVO
             </h2>
-            <p className="mx-auto mt-3 max-w-md text-lg font-normal md:text-xl" style={{ color: PALETTE.textSec }}>
+            <p className="mx-auto mt-3 max-w-2xl text-lg font-normal md:text-xl" style={{ color: PALETTE.textSec }}>
               {isAr
-                ? "محرك أداء ذكي — مش مجرد شات بوت. اسأله أي حاجة رياضية وهو يوجّهك."
+                ? "مش شات بوت عادي، ده محرك أداء ذكي — اسأله في أي حاجة خاصة بالتمرين أو التغذية واحصل على إجابة فورية، متاح 24 ساعة يساعدك تاخد قرارك الصح وقت ما تحتاجه."
                 : "A smart performance engine — not just a chatbot. Ask it anything fitness-related."}
             </p>
             <div className="mt-6 flex flex-wrap items-center justify-center gap-4">
@@ -510,7 +513,7 @@ export function LandingView() {
           <div className="relative mt-10 aspect-[3/2] w-full overflow-hidden rounded-3xl">
             <Image
               src="/images/hero/evo-1.jpg"
-              alt={isAr ? "EVO — واجهة ذكاء اصطناعي" : "EVO — AI interface"}
+              alt={isAr ? "EVO مساعد اللياقة الذكي" : "EVO — AI interface"}
               fill
               sizes="(max-width: 1024px) 100vw, 1024px"
               className="object-cover"
@@ -527,7 +530,7 @@ export function LandingView() {
           <div className="text-center">
             <Reveal>
               <h2 className="text-3xl font-semibold tracking-tight md:text-5xl">
-                {isAr ? "أدوات مجانية" : "Free Tools"}
+                {isAr ? "أدوات مجانية تختصر عليك الحسابات" : "Free Tools"}
               </h2>
             </Reveal>
             <Reveal delay={100}>
@@ -538,10 +541,10 @@ export function LandingView() {
           </div>
           <div className="mt-10 grid grid-cols-1 gap-4 sm:grid-cols-2">
             {[
-              { slug: "calorie-calculator", nameAr: "حاسبة السعرات", nameEn: "Calorie Calculator", descAr: "احسب احتياجك اليومي", descEn: "Daily calorie needs", emoji: "🔥", color: "#ff9500", href: "/tools/calorie-calculator", image: "/images/tools/calorie-calculator.png" },
-              { slug: "bmi-calculator", nameAr: "حاسبة BMI", nameEn: "BMI Calculator", descAr: "هل وزنك مثالي؟", descEn: "Is your weight healthy?", emoji: "⚖️", color: "#0071e3", href: "/tools/bmi-calculator", image: "/images/tools/bmi-calculator.png" },
-              { slug: "macro-calculator", nameAr: "حاسبة الماكروز", nameEn: "Macro Calculator", descAr: "بروتين وكارب ودهون", descEn: "Protein, carbs, fat", emoji: "🥩", color: "#34c759", href: "/tools/macro-calculator", image: "/images/tools/macro-calculator.png" },
-              { slug: "body-fat-calculator", nameAr: "حاسبة الدهون", nameEn: "Body Fat %", descAr: "نسبة دهون جسمك", descEn: "Your body fat %", emoji: "📊", color: "#ff3b30", href: "/tools/body-fat-calculator", image: "/images/tools/body-fat-calculator.png" },
+              { slug: "calorie-calculator", nameAr: "حاسبة السعرات الحرارية", nameEn: "Calorie Calculator", descAr: "اعرف احتياجك اليومي بدقة بدون تسجيل.", descEn: "Daily calorie needs", emoji: "🔥", color: "#ff9500", href: "/tools/calorie-calculator", image: "/images/tools/calorie-calculator.png" },
+              { slug: "bmi-calculator", nameAr: "حاسبة كتلة الجسم BMI", nameEn: "BMI Calculator", descAr: "اعرف لو وزنك في المعدل الصحي.", descEn: "Is your weight healthy?", emoji: "⚖️", color: "#0071e3", href: "/tools/bmi-calculator", image: "/images/tools/bmi-calculator.png" },
+              { slug: "macro-calculator", nameAr: "حاسبة الماكروز", nameEn: "Macro Calculator", descAr: "وزّع بروتين وكارب ودهون يومك بسهولة.", descEn: "Protein, carbs, fat", emoji: "🥩", color: "#34c759", href: "/tools/macro-calculator", image: "/images/tools/macro-calculator.png" },
+              { slug: "body-fat-calculator", nameAr: "حاسبة نسبة الدهون", nameEn: "Body Fat %", descAr: "تابع تقدمك بمقاييس حقيقية مش بس بالميزان.", descEn: "Your body fat %", emoji: "📊", color: "#ff3b30", href: "/tools/body-fat-calculator", image: "/images/tools/body-fat-calculator.png" },
               { slug: "water-tracker", nameAr: "متتبع الماء", nameEn: "Water Tracker", descAr: "سجل كوبساتك يومياً", descEn: "Log your daily cups", emoji: "💧", color: "#00b8d9", href: "/tools/water-tracker", image: "/images/tools/water-tracker.png" },
               { slug: "meal-planner", nameAr: "مخطط الوجبات", nameEn: "Meal Planner", descAr: "ابني وجباتك بنفسك", descEn: "Build your own meals", emoji: "🍽️", color: "#8b5cf6", href: "/meal-planner", image: "/images/tools/meal-planner.png" },
             ].map((tool, i) => (
@@ -565,12 +568,12 @@ export function LandingView() {
           <div className="text-center">
             <Reveal>
               <h2 className="text-3xl font-semibold tracking-tight md:text-5xl">
-                {isAr ? "مكتبة التمارين" : "Exercise Library"}
+                {isAr ? "مكتبة تمارين تفوق 868 تمرين بشرح كامل" : "Exercise Library"}
               </h2>
             </Reveal>
             <Reveal delay={100}>
               <p className="mx-auto mt-3 max-w-md text-base font-normal md:text-lg" style={{ color: PALETTE.textSec }}>
-                {isAr ? "868+ تمرين بشرح كامل ومستوى الصعوبة." : "868+ exercises with full instructions and difficulty levels."}
+                {isAr ? "من الصدر للضهر للأرجل، كل عضلة ليها تمارينها بمستويات صعوبة تناسب المبتدئ والمحترف." : "868+ exercises with full instructions and difficulty levels."}
               </p>
             </Reveal>
           </div>
@@ -621,12 +624,12 @@ export function LandingView() {
           <div className="text-center">
             <Reveal>
               <h2 className="text-3xl font-semibold tracking-tight md:text-5xl">
-                {isAr ? "برامج تدريب جاهزة" : "Ready Workout Programs"}
+                {isAr ? "برامج تدريب جاهزة على مستواك وهدفك" : "Ready Workout Programs"}
               </h2>
             </Reveal>
             <Reveal delay={100}>
               <p className="mx-auto mt-3 max-w-md text-base font-normal md:text-lg" style={{ color: PALETTE.textSec }}>
-                {isAr ? "برامج كاملة حسب المستوى والهدف — منزل، جيم، أو معدات بسيطة." : "Complete programs by level and goal — home, gym, or minimal equipment."}
+                {isAr ? "سواء بدون معدات في البيت، أو في الجيم بمعدات كاملة، أو برنامج حرق دهون مكثف — اختار وابدأ فورًا بدون تخطيط زيادة." : "Complete programs by level and goal — home, gym, or minimal equipment."}
               </p>
             </Reveal>
           </div>
@@ -656,12 +659,12 @@ export function LandingView() {
           <div className="text-center">
             <Reveal>
               <h2 className="text-3xl font-semibold tracking-tight md:text-5xl">
-                {isAr ? "مكتبة الأكلات" : "Food Library"}
+                {isAr ? "قاعدة بيانات أكتر من 8830 نوع طعام" : "Food Library"}
               </h2>
             </Reveal>
             <Reveal delay={100}>
               <p className="mx-auto mt-3 max-w-md text-base font-normal md:text-lg" style={{ color: PALETTE.textSec }}>
-                {isAr ? "8830+ أكلة بالسعرات والماكروز + حاسبة جرامات." : "8830+ foods with calories and macros + grams calculator."}
+                {isAr ? "اعرف السعرات والماكروز لأي أكلة قبل ما تاكلها، من البروتين للكارب للدهون والفاكهة." : "8830+ foods with calories and macros + grams calculator."}
               </p>
             </Reveal>
           </div>
@@ -738,13 +741,13 @@ export function LandingView() {
             </Reveal>
             <Reveal delay={100}>
               <h2 className="mt-4 text-3xl font-semibold tracking-tight md:text-5xl" style={{ color: PALETTE.textPrim }}>
-                {isAr ? "مدربين وأخصائيين تغذية" : "Coaches & Nutrition Specialists"}
+                {isAr ? "كوتشينج حقيقي.. مش مجرد خطة PDF" : "Coaches & Nutrition Specialists"}
               </h2>
             </Reveal>
             <Reveal delay={150}>
-              <p className="mx-auto mt-4 max-w-md text-base font-normal md:text-lg" style={{ color: PALETTE.textSec }}>
+              <p className="mx-auto mt-4 max-w-2xl text-base font-normal md:text-lg" style={{ color: PALETTE.textSec }}>
                 {isAr
-                  ? "كوتش حقيقي بيتابعك خطوة بخطوة، ومعاه EVO AI شغال 24/7."
+                  ? "كوتش بيتابعك خطوة بخطوة، خطة تغذية وتمرين مخصصة على جسمك وهدفك، وتعديل مستمر حسب تقدمك، مع مساعد EVO شغال معاك 24 ساعة."
                   : "A real coach following you step by step, with EVO AI available 24/7."}
               </p>
             </Reveal>
@@ -873,13 +876,13 @@ export function LandingView() {
           </Reveal>
           <Reveal delay={100}>
             <h2 className="mt-4 text-3xl font-semibold tracking-tight text-white md:text-5xl">
-              {isAr ? "أنت مدرب؟ اعمل شغلك كله من مكان واحد." : "Are you a coach? Run your whole business from one place."}
+              {isAr ? "كوتش أو أخصائي تغذية؟ ابني بيزنسك على منصتنا" : "Are you a coach? Run your whole business from one place."}
             </h2>
           </Reveal>
           <Reveal delay={150}>
             <p className="mx-auto mt-4 max-w-xl text-base font-normal md:text-lg" style={{ color: "#A1A1A6" }}>
               {isAr
-                ? "سعر عميلك قرارك وحدك، وبتحصّل فلوسك بنفسك — والموقع بياخد رسوم ثابتة فقط، من غير أي نسبة من شغلك."
+                ? "سعرك بقرارك انت وتحصل فلوسك على طول — المنصة بتاخد رسم ثابت بس مش نسبة من شغلك، وكل الأدوات (868+ تمرين، 8830+ أكلة، ومساعد EVO) متاحة تحت تصرفك مع صفحتك الخاصة."
                 : "Your client's price is your call alone, and you collect your money yourself — the site charges a fixed fee only, never a percentage of your work."}
             </p>
           </Reveal>
@@ -928,13 +931,13 @@ export function LandingView() {
         <div className="mx-auto max-w-5xl">
           <Reveal>
             <h2 className="text-center text-3xl font-semibold tracking-tight md:text-5xl" style={{ color: PALETTE.textPrim }}>
-              {isAr ? "عضويات Musclehubeg المميزة." : "Musclehubeg Premium memberships."}
+              {isAr ? "اشتراكات تناسب كل مستوى" : "Musclehubeg Premium memberships."}
             </h2>
           </Reveal>
           <Reveal delay={150}>
-            <p className="mx-auto mt-4 max-w-md text-base font-normal md:text-lg" style={{ color: PALETTE.textSec }}>
+            <p className="mx-auto mt-4 max-w-2xl text-base font-normal md:text-lg" style={{ color: PALETTE.textSec }}>
               {isAr
-                ? "افتح القوة الكاملة للذكاء الاصطناعي بعضوية Premium أو Pro."
+                ? "ابدأ مجانًا بالأدوات الأساسية، أو ارقّي لـPremium أو Pro علشان تفتح كل إمكانيات EVO وخطط شخصية أكتر شهريًا."
                 : "Unlock the full power of AI with a Premium or Pro membership."}
             </p>
           </Reveal>
@@ -1111,13 +1114,13 @@ export function LandingView() {
             </Reveal>
             <Reveal delay={100}>
               <h2 className="mt-4 text-3xl font-semibold tracking-tight md:text-5xl" style={{ color: PALETTE.textPrim }}>
-                {isAr ? "حوّل تأثيرك إلى دخل." : "Turn your influence into income."}
+                {isAr ? "حوّل تأثيرك لدخل حقيقي (برنامج الأفلييت)" : "Turn your influence into income."}
               </h2>
             </Reveal>
             <Reveal delay={150}>
               <p className="mx-auto mt-4 max-w-xl text-base font-normal md:text-lg" style={{ color: PALETTE.textSec }}>
                 {isAr
-                  ? "شارك رابط الأفلييت الخاص فيك، واكسب عمولة 20% من كل اشتراك مؤهل يتم عن طريقه — تتبع آني للأرباح، والصرف من 10$."
+                  ? "شارك رابطك الخاص واكسب عمولة 20% من كل اشتراك، مع تتبّع دقيق وحد أدنى للسحب 10 دولار بس."
                   : "Share your personal affiliate link and earn a 20% commission on every qualified subscription — real-time tracking, $10 minimum payout."}
               </p>
             </Reveal>
@@ -1153,6 +1156,31 @@ export function LandingView() {
               </div>
             </Reveal>
           </div>
+      </section>
+
+      {/* ===================== 11.5 PRIMARY CTA (owner SEO plan 2026-09-03:
+          «دعوة لاتخاذ إجراء [CTA] الرئيسية» — verbatim AR copy. The 2026-08-30
+          removal objection was duplication + pushing EVO; this strip is the
+          single free-start message, no EVO push, and links to memberships
+          where the Free tier lives) ==== */}
+      <section className="bg-white px-4 py-16 md:py-20">
+        <Reveal>
+          <div className="mx-auto max-w-3xl rounded-3xl px-6 py-12 text-center md:py-16" style={{ backgroundColor: PALETTE.brandSoft }}>
+            <h2 className="mx-auto max-w-2xl text-3xl font-semibold leading-tight tracking-tight md:text-4xl" style={{ color: PALETTE.textPrim }}>
+              {isAr
+                ? "ابدأ رحلتك دلوقتي مجانًا.. مالكش عذر تأجل بعد اليوم"
+                : "Start your journey free today — no excuse to wait"}
+            </h2>
+            <a
+              href={isAr ? "/ar/memberships" : "/memberships"}
+              className="mt-8 inline-flex items-center gap-2 rounded-full px-9 py-4 text-base font-semibold text-white transition-all duration-300 hover:scale-[1.02]"
+              style={{ backgroundColor: PALETTE.brand, boxShadow: "0 8px 24px rgba(0, 113, 227, 0.35)" }}
+            >
+              {isAr ? "جرّب المنصة مجانًا" : "Try the platform free"}
+              <span className="rtl:rotate-180">›</span>
+            </a>
+          </div>
+        </Reveal>
       </section>
 
       {/* ===================== 12. FAQ (now the closing section — the old
