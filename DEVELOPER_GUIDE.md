@@ -1,7 +1,8 @@
 # Developer Guide — MuscleHub
 
-> **آخر تحديث:** 2026-08-25 (documentation consolidation per `docs/_AUDIT.md`)
+> **آخر تحديث:** 2026-09-03 (Phase 112 — أمر المالك: اختصار الملف وحذف الشرح التقني العميق إلى `docs/TECH_REFERENCE.md`)
 > **الجمهور المستهدف:** مطورين جدد ينضمون للمشروع، أو المطور الحالي كمرجع
+> **المرجع التقني العميق:** [`docs/TECH_REFERENCE.md`](./docs/TECH_REFERENCE.md) — بنية Supabase وقانون الميجريشنز وجداول القواعد الخاصة · شرح RLS التفصيلي (predicates · نمط الأدوار v2 · عوالم المال) · قائمة Shadcn كاملة بأسمائها · كل أكواد SQL المعقدة منظمة. الملف ده بيفضل مختصص: الإعداد والتدفقات والمراجع السريعة فقط.
 > **Note (Phase 7):** Several stale claims in this file were reconciled
 > against the actual source code. Look for `> **Phase 7 correction:**`
 > notes inline. See also `PROGRESS.md` § "Reconciled Status" for the
@@ -152,8 +153,8 @@ src/
 │   ├── layout.tsx               # Root layout (providers + analytics + PWA)
 │   └── metadata.ts              # SEO metadata شاملة
 ├── components/
-│   ├── ui/                      # 52 shadcn/ui component
-│   ├── views/                   # 33 page-level view (منها AdminExternalPlansView — توليد غير الأعضاء)
+│   ├── ui/                      # shadcn/ui primitives — القائمة الكاملة بالأسماء في docs/TECH_REFERENCE.md §3
+│   ├── views/                   # page-level views (منها AdminExternalPlansView — توليد غير الأعضاء)
 │   ├── blog/                    # مكونات المدونة
 │   ├── SiteHeader.tsx           # الهيدر + التنقل + الإشعارات
 │   ├── AppLayout.tsx            # سايدبار الأدوار (عضو/مدرب/أدمن — عناصر الأدمن isAdmin فقط)
@@ -249,68 +250,15 @@ src/
 
 ## 4. قاعدة البيانات + RLS
 
-### الجداول
-
-> **الحقيقة الحالية:** `src/lib/supabase/types.ts` (الأعمدة والعلاقات) +
-> `supabase/migrations/INDEX.md` (الترقيم والسجل) — الكود هو الحقيقة،
-> و`scripts/docs_audit.py` يمنع كتابة أعداد الجداول هنا (AGENTS.md §3.8).
+> **الشرح التقني العميق انتقل** (أمر المالك 2026-09-03 — Phase 112): [`docs/TECH_REFERENCE.md`](./docs/TECH_REFERENCE.md) — بنية Supabase (anon vs service-role · مرآة `types.ts` · بوابة الانجراف `migration_audit.py`) · قانون الميجريشنز (التسمية `YYYYMMDDHHMMSS_NNNN` · idempotency · RAW-SQL-LINK · نمط RUN_ON_SUPABASE) · جداول القواعد الخاصة (`ai_jobs` · `evo_chat_usage` · `evo_anon_usage` · تحصينات `subscriptions` · عائلة `coach_*`) · **شرح RLS التفصيلي** (دوال الـpredicates `is_coach`/`is_admin`/`is_coach_over`/`coach_of` · نمط الأدوار v2 · فصل عالمَي المال · تدفقات إضافة المدربين) · كل أكواد SQL المعقدة المذكورة في AGENTS.md مجمعة ومنظمة.
 >
-> **Phase 7 correction (2026-08-19) — historical:** the early hand
-> counts proved inaccurate and were corrected once, then the whole
-> counting approach was retired by the Phase-107 single-source law.
-> The three ad-hoc Phase-5 tables (`plan_swaps`, `progress_photos`,
-> `coach_presence`) were back-filled as real migrations (0063, closed
-> in Phase 99-run) — the old "not in any migration" note below is
-> RESOLVED and kept only as history.
-
-| الجدول | RLS Policy |
-|---|---|
-| `profiles` | Owner read/update; coach read all |
-| `subscriptions` | Self insert + coach insert/update/select; multi-tier per client |
-| `subscription_requests` | User inserts own; coach reviews all |
-| `notifications` | Self read/insert/update; coach read all |
-| `admin_notifications` | Coach-only (inserted via service_role bypass endpoint) |
-| `blog_posts` | Public read published; coach read/write all |
-| `saved_results` | Owner-only |
-| `meal_plans` | Owner-only |
-| `tool_leads` | Public insert; coach read/update |
-| `nutrition_questionnaires` | Owner + coach |
-| `fitness_questionnaires` | Owner + coach |
-| `progress_entries` | Owner + coach |
-| `progress_photos` | Owner + coach |
-| `plans` | Owner sees approved only; coach sees all |
-| `plan_swaps` | Owner + coach |
-| `support_tickets` | Owner + coach |
-| `ticket_messages` | Owner + coach |
-| `referrals` | Owner read own; coach read all |
-| `referral_earnings` | Owner read own; coach read all |
-| `referral_payouts` | Owner read own; coach read/approve all |
-| `blog_generation_queue` | Coach-only |
-| `coach_presence` | Public read; coach update own |
-
-### الدوال المُعرّفة (Database Functions)
-
-- `is_coach()` — SECURITY DEFINER function تتحقق من `role = 'coach'` (يستخدم في RLS policies)
-
-### Ad-hoc Phase-5 tables — RESOLVED (0063)
-
-> **Historical (closed):** these were created on the production
-> database via Supabase SQL Editor during Phase 5 and are now
-> formally back-filled as migrations (0063, verified live in Phase
-> 99-run + converged for fresh envs by 0069). The table below is the
-> historical purpose list; current columns live in `types.ts`.
-
-| Table | Purpose (historical) |
-|---|---|
-| `plan_swaps` | Daily swap usage tracking (used by PlansView) |
-| `progress_photos` | Progress photo references (used by ProgressView) |
-| `coach_presence` | Coach online status (live shape: coach_id/last_seen — Phase 105) |
-
-### Storage Buckets
-
-- `questionnaire-photos` — صور الاستبيانات
-- `progress-photos` — صور التقدم
-- `receipts` — إيصالات الدفع
+> **الحقيقة الحالية:** `src/lib/supabase/types.ts` (الأعمدة والعلاقات) +
+> `supabase/migrations/INDEX.md` (الترقيم والسجل) — الكود هو الحقيقة.
+> جدول جديد = ميجريشن جديدة بسياسات RLS الخاصة به + صف في `INDEX.md` +
+> تحديث المرآة في نفس الكوميت، والقواعد الخاصة تتوثق في
+> `TECH_REFERENCE.md` §1.4.
+>
+> **Storage buckets:** `questionnaire-photos` · `progress-photos` · `receipts` + باكت العام `coach-public` (التفاصيل: TECH_REFERENCE §1.5).
 
 ---
 

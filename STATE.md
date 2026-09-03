@@ -2,12 +2,12 @@
 
 > **قانون (AGENTS.md §3.6):** ده أول ملف أي وكيل يقرأه قبل أي شغل — وبيتحدث إلزاميًا في نفس الفريم اللي بيغيّر الحالة.
 > الملف محدود بـ 100 سطر بوابةً (`scripts/docs_audit.py`) — اكتب مضغوط.
-> **آخر تحديث:** 2026-09-03 (Phase 111)
+> **آخر تحديث:** 2026-09-03 (Phase 112)
 
 ## المرحلة الحالية
 
-- **المرحلة:** 111 — ملفات مرجعية بأمر المالك: `docs/TECH_REFERENCE.md` (Supabase/RLS + Shadcn + SQL من AGENTS.md — نسخ منظم والقانون لم يُمس) + `docs/CI_GATES.md` (شرح البوابات من README/AGENTS) + `CHANGELOG.md` فارغ في الجذر
-- **آخر كوميت متحقق منه:** aacbb4f (Phase 111 · CI حي أخضر: parity · guard على aacbb4f · docs-only — الكوميت ترويسته تقول الباقي)
+- **المرحلة:** 112 — اختصار واجهات التوثيق بأمر المالك («الأمر الثاني»): README 🛡️ → 3 سطور + رابط `docs/CI_GATES.md` بعبارة «للاطلاع على التفاصيل الكاملة» · DEVELOPER_GUIDE: جدول RLS الكامل (22 صف) + دوال DB + تاريخ ad-hoc + عدادات المكونات اتحطت ورابط `docs/TECH_REFERENCE.md` مكانها (ترويسة + شجرة §2 + §4 كامل)
+- **آخر كوميت متحقق منه:** f5d969c (Phase 111 post-push · CI حي أخضر على aacbb4f — post-push هيقدّمه للـSHA بتاع 112)
 - **البوابات وقتها:** tsc 0 · eslint 0 · vitest 191/191 · migration_audit --ci 0 · docs_parity 0 · docs_audit 0 · check-stale-refs 0 · check-ui-wiring 0
 - **الإنتاج:** musclehubeg.vercel.app حي · آخر ميجريشن مطبّق: 0069 (no-op توفيقي — الإنتاج مطابق للمرآة المثبتة حيًا 8/8)
 

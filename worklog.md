@@ -915,3 +915,24 @@ Stage Summary:
 - الملفات المرجعية الثلاثة عايشة في الريبو بترويسات منشأ واضحة — AGENTS.md/README.md سلامة كاملة — والمعرفة التقنية بقت منظمة في مكان واحد قابل للفهرسة
 - Commit SHA: aacbb4f
 - Push status: pushed (ccbe59b..aacbb4f) — CI حي أخضر على aacbb4f (Docs & schema parity · Anti-regression guard) — post-push fixup: this line recorded the real SHA
+
+---
+Task ID: 112
+Agent: Super Z (main)
+Task: Phase 112 — اختصار واجهات التوثيق («الأمر الثاني»): README CI Gates → 3 سطور + رابط docs/CI_GATES.md بعبارة «للاطلاع على التفاصيل الكاملة» · DEVELOPER_GUIDE: حذف الشرح التقني العميق (RLS، المكونات) واستبداله برابط docs/TECH_REFERENCE.md
+
+Work Log:
+- README 🛡️: جدول البوابات الخمسة بالحوادث + فقرة «ليه ده مهم» محفوظين حرفيًا في docs/CI_GATES.md من Phase 111 — المكان هنا بقى 3 سطور بالظبط: وصف التدقيق · «البوابات جوه الريبو بتسافر مع النسخة النظيفة + STATE.md دايمًا الحالة» · سطر الإحالة بالعبارة الحرفية «للاطلاع على التفاصيل الكاملة» → docs/CI_GATES.md · ترويسة README اتحدثت (Last updated → Phase 112)
+- DEVELOPER_GUIDE §4 اتنظف من الشرح العميق: جدول RLS لكل جدول · دوال DB · تاريخ ad-hoc Phase-5 · قائمة Storage → بلوك إحالة كامل على docs/TECH_REFERENCE.md (بنية Supabase + قانون الميجريشنز + جداول القواعد الخاصة + RLS الكامل §2 · قانون الجدول الجديد: ميجريشن بسياساته + INDEX.md + types.ts نفس الكوميت والقواعد الخاصة → §1.4 · Storage → §1.5)
+- DEVELOPER_GUIDE §2: عدادات المكونات القديمة («52 shadcn/ui component» · «33 page-level view») اتحطت — سطر ui/ بيحيل لقائمة TECH_REFERENCE §3 (المستخرجة من src/components/ui/)
+- DEVELOPER_GUIDE ترويسة: سطر جديد «المرجع التقني العميق → docs/TECH_REFERENCE.md» + آخر تحديث → Phase 112
+- rot موثق اندفعت معاه: صف «subscriptions: coach insert/update» (ميجريشن 0041 أسقطت سياسات المدربين منه) + تعريف is_coach() بصيغة ما قبل 0029 — الإحالة للمرجع الحي صححت السرد
+- صدق الإحالة اتراجع قبل الكتابة: TECH_REFERENCE §1-§4 يغطي كل حرف اتشال (البنية · القانون · الجداول الخاصة · RLS · Shadcn · SQL §4.1-4.13)
+- AGENTS.md لم يُمس بايت — تعليمة §7 «حدّث GUIDE § Database + RLS» بقت تمشي عبر مؤشر §4 (القرار مسجل هنا + QA)
+- طقس §3.6: STATE → مرحلة 112 · QA: Latest 112 (6 صفوف) + 111 بقت Previous + جدول 105 اتنقل حرفيًا للأرشيف (112→107) · PROGRESS: قسم 112 + قسم 106 اتنقل حرفيًا للملحق (112→107) + سطرا الملحق اتحدثوا — النقل بسكريبت خارجي بassert verbatim byte-identical
+- CHANGELOG.md فضل فارغ (0 بايت) بأمر Phase 111 — مش ضمن نطاق الأمر التاني
+
+Stage Summary:
+- README وDEVELOPER_GUIDE بقوا واجهات مختصرة بروابط صادقة للمراجع العميقة (CI_GATES/TECH_REFERENCE) — مفيش معرفة اتمسحت: كلها مترحلة ومنظمة من Phase 111
+- Commit SHA: (placeholder — post-push will record the real SHA)
+- Push status: (pending push)

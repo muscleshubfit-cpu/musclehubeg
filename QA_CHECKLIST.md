@@ -6,7 +6,20 @@
 
 ---
 
-## Latest Verification — 2026-09-03 (Phase 111 — OWNER-DIRECTED REFERENCE DOCS: «استخرج منه كل المعلومات التقنية التفصيلية… وانقلها مع تنظيمها» + «استخرج شرح البوابات الآلية… كاملاً» + «CHANGELOG.md فارغ الآن سنملؤه لاحقاً» — docs/TECH_REFERENCE.md + docs/CI_GATES.md + empty CHANGELOG.md)
+## Latest Verification — 2026-09-03 (Phase 112 — DOC INTERFACES SLIMMED («الأمر الثاني»): owner «اختصر شرح البوابات الآلية (CI Gates) إلى 3 سطور فقط، وضع رابطاً واضحاً لـ docs/CI_GATES.md مع عبارة للاطلاع على التفاصيل الكاملة» + «احذف أي شرح تقني عميق (RLS، المكونات) واستبدله برابط لـ docs/TECH_REFERENCE.md»)
+
+| Check | Result | How verified |
+|---|---|---|
+| README 🛡️ section → 3 lines + link | ✅ | the 5-gate table + narrative replaced by EXACTLY 3 lines (audit description · gates-live-in-repo + STATE.md pointer · «**للاطلاع على التفاصيل الكاملة** — قصة كل بوابة والحادثة اللي بنتها · سجل الـworkflows · أوامر التحقق القانونية» → [`docs/CI_GATES.md`](./docs/CI_GATES.md)); intro «see the 🛡️ section below» still valid; front-matter CI Gates line + Last updated → Phase 112 |
+| DEVELOPER_GUIDE deep tech removed → link | ✅ | §4 RLS deep-dive deleted (22-row per-table RLS table — partially STALE anyway: its «subscriptions: coach insert/update» row was dropped by 0041 · `is_coach()` def line was pre-0029 · ad-hoc history · storage list) + §2 ui/views stale counts («52 shadcn/ui component» · «33 page-level view») removed — replaced by TECH_REFERENCE.md pointers: header blockquote (المرجع التقني العميق) + tree comment → §3 inventory + §4 full pointer block (incl. new-table law: migration + INDEX.md + types.ts same commit, special rules → TECH_REFERENCE §1.4) |
+| Pointer honesty | ✅ | TECH_REFERENCE.md §1-§4 covers everything removed (Supabase architecture · migration law · special-rules grid · full RLS §2 · Shadcn names §3 sourced from src/components/ui/ · SQL §4.1-4.13) — verified by reading the file before pointing; CI_GATES.md holds the full README gates text since Phase 111 |
+| Scope discipline | ✅ | owner directive names exactly README (CI Gates) + DEVELOPER_GUIDE (RLS, المكونات) — AGENTS.md byte-identical (its §7 «update GUIDE § Database + RLS» instruction now routes through the §4 pointer, recorded in worklog) · no code/src/supabase changes · CHANGELOG.md stays EMPTY per Phase 111 order |
+| Docs parity §3.6 | ✅ UPDATED | STATE.md → Phase 112 · QA Latest = Phase 112 + 111 demoted Previous + 105 table moved VERBATIM to archive/QA_CHECKLIST_ARCHIVE.md (cap 6: 112→107) · PROGRESS Phase 112 section + 106 moved VERBATIM to archive/PROGRESS_ARCHIVE.md ملحق (cap 6: 112→107) · worklog Task 112 ×2 (repo + workspace) |
+| Gates after edits | ✅ | tsc 0 · eslint 0 · vitest 191/191 · migration_audit --ci 0 · docs_parity 0 · docs_audit 0 · check-stale-refs 0 · check-ui-wiring 0 |
+
+---
+
+## Previous Verification — 2026-09-03 (Phase 111 — OWNER-DIRECTED REFERENCE DOCS: «استخرج منه كل المعلومات التقنية التفصيلية… وانقلها مع تنظيمها» + «استخرج شرح البوابات الآلية… كاملاً» + «CHANGELOG.md فارغ الآن سنملؤه لاحقاً» — docs/TECH_REFERENCE.md + docs/CI_GATES.md + empty CHANGELOG.md)
 
 | Check | Result | How verified |
 |---|---|---|
@@ -79,23 +92,7 @@
 
 ---
 
-## Previous Verification — 2026-09-03 (Phase 105 — MIRROR TRUTH FIX: owner approved «go» on the 105 candidate recorded in Phase 104 — types.ts mirror + app paths corrected to the LIVE columns proven in 99-run + 0069 convergence migration + audit tool learns drop-column)
-
-| Check | Result | How verified |
-|---|---|---|
-| Mirror corrected to LIVE truth | ✅ | types.ts coach_presence = id · coach_id · last_seen · updated_at and progress_photos = id · user_id · photo_url · taken_at · created_at — the exact shapes proven column-by-column on production in Phase 99-run; inline comments cite the incident lineage (0066 v1 42703 · 0064 v1 pipeline halt) |
-| App paths un-silenced (the real user-facing fix) | ✅ | data/progress.ts: listPhotos orders by taken_at (was phantom taken_on → empty list live) + signed URLs from photo_url (was file_path); uploadPhoto inserts {user_id, photo_url, taken_at} (was file_path/taken_on/note → silent insert failure); data/coach.ts presence rewritten on coach_id/last_seen — online = last_seen ≤ 2min, offline = row delete (no status column exists); helpers currently UNCALLED (dormant legacy) so zero live-behavior risk |
-| UI honesty (ProgressView) | ✅ | photo note input REMOVED — it wrote to a phantom column and never persisted on production (lying UI); photo cards show taken_at date; delete passes photo_url as storage path; alt fixed; i18n key prog.photoNote left harmless-unused |
-| 0069 auto-migration (audit-honest convergence) | ✅ | `20260903173000_0069_legacy_tables_live_convergence.sql`: top-level SINGLE-LINE ALTERs (add if not exists ×4 + drop if exists ×5) so the line-oriented audit sees the effective shape + DO-block data copies gated on information_schema (the 0064 v1 lesson — never reference a column unconditionally) + drops AFTER copy; PRODUCTION = pure no-op (every guard false); FRESH = converges 0063's mirror-shaped tables to live truth; HONEST LIMITATION documented: fresh pipelines halt at 0064 v2 BEFORE reaching 0069 (indexes reference taken_at/coach_id which only exist from 0069) — clean installs need the bootstrap pre-step (clean-copy kit presented to owner, NOT executed yet per owner's «اعرض حلول قبل التنفيذ») |
-| Audit tool evolution (Phase 96 script) | ✅ | migration_audit.py now parses `alter table … drop column` (a later migration legitimately retires earlier columns — effective shape is what remains); rigorous full-output diff vs git-stashed BASELINE: **ONLY difference = files scanned 80→81** — zero new drift, coach_presence/progress_photos clean in BOTH states |
-| Gates | ✅ PASS | tsc 0 · eslint 0 · vitest 191/191 · migration_audit identical-to-baseline (81 files) · check-stale-refs exit 0 · zero phantom refs in src (remaining mentions are historical comments only) |
-| Live verification path | ✅ | member Progress photos page is the owner's visual proof (was silently empty/broken live, renders real rows now); presence helpers stay dormant (no callers); 0069 on production = VERIFY grid all no-op (probes match BEFORE/AFTER) |
-| Post-push live verification (0069 no-op) | ✅ 8/8 | read-only PostgREST probes on production ~2min after push (anon key re-extracted from the deployed bundle): coach_presence coach_id 200 · updated_at 200 · user_id 42703 ABSENT · status 42703 ABSENT — progress_photos photo_url 200 · taken_at 200 · file_path 42703 · note 42703 = production schema EXACTLY matches the corrected types.ts and 0069 touched nothing (owner can additionally see 0069 recorded in Dashboard → Database → Migrations) |
-| Docs parity §3.6 | ✅ UPDATED | INDEX.md 0069 row + heading 0001→0069 + counter + audit-log row · QA_CHECKLIST Phase 105 · PROGRESS Phase 105 + «آخر تحديث» · worklog Task 105 ×2 |
-
----
-
-> 🗄️ **الأرشفة (Phase 82 + ملحق 2026-09-02):** الجداول الأقدم نُقلت إلى `archive/QA_CHECKLIST_ARCHIVE.md`. **ملحق 2026-09-03 (Phase 107):** كل ما قبل آخر 5 مراحل (102-run → 80) انضم للملحق — الملف ده سقفه 6 جداول بوابةً. **ملحق 2026-09-03 (Phase 109):** جدول Phase 99-run انضم للملحق (السقف 6 اتمسّ بأقسام 109→103b). **ملحق 2026-09-03 (Phase 110):** جدول Phase 103b انضم للملحق (السقف 6 اتمسّ بأقسام 110→104). **ملحق 2026-09-03 (Phase 111):** جدول Phase 104 انضم للملحق (السقف 6 اتمسّ بأقسام 111→105).
+> 🗄️ **الأرشفة (Phase 82 + ملحق 2026-09-02):** الجداول الأقدم نُقلت إلى `archive/QA_CHECKLIST_ARCHIVE.md`. **ملحق 2026-09-03 (Phase 107):** كل ما قبل آخر 5 مراحل (102-run → 80) انضم للملحق — الملف ده سقفه 6 جداول بوابةً. **ملحق 2026-09-03 (Phase 109):** جدول Phase 99-run انضم للملحق (السقف 6 اتمسّ بأقسام 109→103b). **ملحق 2026-09-03 (Phase 110):** جدول Phase 103b انضم للملحق (السقف 6 اتمسّ بأقسام 110→104). **ملحق 2026-09-03 (Phase 111):** جدول Phase 104 انضم للملحق (السقف 6 اتمسّ بأقسام 111→105). **ملحق 2026-09-03 (Phase 112):** جدول Phase 105 انضم للملحق (السقف 6 اتمسّ بأقسام 112→107).
 
 
 ## Verification Protocol
