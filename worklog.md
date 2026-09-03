@@ -1049,5 +1049,5 @@ Work Log:
 
 Stage Summary:
 - المنصة صارت تتكلم لغة محركات البحث والذكاء الاصطناعي 2026: إجابة ذرية قابلة للاقتباس + جدول قيمة مضافة + تعليمات AI صريحة + تغطية زحف كاملة (مدربين + أفلييت)
-- Commit SHA: <to-be-recorded-post-push>
-- Push status: pushed — CI رُصد حتى الأخضر (نمط post-push للمراحل 105-115)
+- Commit SHA: 192f7c6
+- Push status: pushed (1d75420..192f7c6) — CI حي أخضر على 192f7c6 (Docs & schema parity · Anti-regression guard كلهم success) + تحقق إنتاجي حي (§3.7): build-info = 192f7c6 · الرئيسية EN/AR تُعرض بالإجابة الذرية والجدول المقارن في اللغتين · robots /coaches+/affiliate حية · llms تعليمات AI حية · sitemap الإنتاجي = 19,496 رابط منهم 6 روابط /coaches/ (مرايا EN/AR لصفحات المدربين المعتمدة) + /affiliate — post-push fixup: هذا السطر سجل الـ SHA الحقيقي (النائب لم يكن ليعرف هاش كوميته قبل الكوميت — نفس نمط post-push للمراحل 105-115)
