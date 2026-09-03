@@ -1,28 +1,15 @@
 # AGENTS.md — MuscleHubEG AI Agent Operating System
 
-> **Status:** Active — required reading for every AI agent (and human
-> contributor) before any commit, PR, or production change.
-> **Last updated:** 2026-09-03 (Phase 107 — knowledge operating system)
-> **Owner:** muscleshubfit@gmail.com (project owner + human supervisor)
+> **Status:** Active — required reading for every AI agent (and human contributor) before any commit, PR, or production change.
+> **Last updated:** 2026-09-03 (Phase 113 — slimmed per owner directive «الأمر الثالث»: every heading kept verbatim; long technical narratives delegated to `docs/TECH_REFERENCE.md`).
+> **Owner:** muscleshubfit@gmail.com (project owner + human supervisor).
+> **Deep technical detail** (Supabase · full RLS · migration law · special-rules tables · storage · Shadcn inventory · SQL snippets) lives in [`docs/TECH_REFERENCE.md`](docs/TECH_REFERENCE.md); the CI-gates narrative lives in [`docs/CI_GATES.md`](docs/CI_GATES.md). This file stays the LAW file.
 
 ---
 
 ## 1. Purpose
 
-This file defines the operating rules for AI agents working on the
-MuscleHubEG repository. It exists to make agent behavior **predictable,
-auditable, and safe** in a project that is:
-
-- **Public** as a Git repository (anyone can read the code).
-- **Proprietary** as a product (the code is NOT open source — see
-  `LICENSE`).
-- **Production-deployed** (real customers, real payments, real PII).
-- **Agent-assisted** (multiple AI agents operate on the codebase in
-  sequence or in parallel).
-
-Agents are **implementers and reviewers**, not autonomous product
-owners. They execute well-scoped tasks, document their work, and hand
-control back to a human supervisor.
+Operating rules for AI agents on MuscleHubEG: the repo is **public** as code, **proprietary** as a product, **production-deployed** (real customers, payments, PII) and **agent-assisted**. Agents are implementers and reviewers — never autonomous product owners: they execute well-scoped tasks, document the work, and hand control back to a human supervisor.
 
 ---
 
@@ -30,12 +17,11 @@ control back to a human supervisor.
 
 | Role | Who | Authority |
 |---|---|---|
-| **Project Owner / Human Supervisor** | `muscleshubfit@gmail.com` (Ahmed) | Final say on every change. Approves features, fixes, schema changes, security changes, deploys. |
-| **Technical Reviewer** | Any AI assistant the Owner designates for the active supervision session. The Owner relays reviewer commands to the Implementation Agent. (Supersedes the previous ChatGPT arrangement.) | Reviews proposals, drafts task commands, suggests alternatives, flags risks. Does NOT commit code directly. |
-| **Implementation Agent** | GML (this agent) + any sub-agent it delegates to. | Writes code, runs tests, updates docs, pushes commits. Every change must be reviewed/approved by the human supervisor before going to production. |
+| **Project Owner / Human Supervisor** | `muscleshubfit@gmail.com` (Ahmed) | Final say on every change. Approves features, fixes, schema, security, deploys. |
+| **Technical Reviewer** | Any AI assistant the Owner designates for the active session. | Reviews proposals, drafts task commands, flags risks. Does NOT commit code directly. |
+| **Implementation Agent** | GML (this agent) + any sub-agent it delegates to. | Writes code, runs tests, updates docs, pushes commits — every change reviewed/approved by the human supervisor. |
 
-The owner may, at their discretion, designate additional agents or
-reviewers. Until then, the table above is authoritative.
+The owner may designate additional agents or reviewers; until then the table above is authoritative.
 
 ---
 
@@ -43,55 +29,19 @@ reviewers. Until then, the table above is authoritative.
 
 ### 3.1 Inspect Before Modifying
 
-- **Read the actual source code, configuration, and migrations before
-  changing anything.** Documentation can lag behind implementation — the
-  source of truth hierarchy (§12.8) defines what wins.
-- If documentation conflicts with implementation, do NOT blindly follow
-  the documentation. Verify the implementation and document the
-  discrepancy in `PROGRESS.md` (or the appropriate file).
-- Quote file paths + line numbers in your commit messages and final
-  reports so the human reviewer can verify.
+Read the actual source, config, and migrations before changing anything — docs can lag (hierarchy: §12.8); on conflict verify the code and document the discrepancy in `PROGRESS.md`. Quote file paths + line numbers in commits and reports so the human reviewer can verify.
 
 ### 3.2 Do Not Expose Secrets
 
-- Never commit secrets, API keys, OAuth tokens, database connection
-  strings, service-role keys, or any credential to the repository.
-- Never paste a real key into a code comment, test fixture, README,
-  example, or chat message.
-- Never log secrets server-side. Audit `console.log` / `JSON.stringify`
-  calls before committing — they can leak through Vercel logs.
-- The `.env*` pattern is in `.gitignore`. If you ever need to add a
-  new secret-able env var, add it to `.env.example` with an EMPTY
-  value, and document its purpose in `SECURITY.md`.
-- If you suspect a secret was accidentally committed, stop, alert the
-  owner immediately, and do NOT push. The owner will rotate the secret
-  and clean history if needed.
+Never commit or paste credentials anywhere (code, comments, fixtures, docs, chat, server logs — Vercel logs leak). New env vars go into `.env.example` EMPTY + documented in `SECURITY.md`. Suspected leak → STOP, alert the owner, do NOT push.
 
 ### 3.3 Do Not Modify Production Data
 
-- Never run `DELETE`, `UPDATE`, `TRUNCATE`, or `DROP` against the
-  production Supabase database from an agent context.
-- Read-only queries (e.g. `SELECT count(*) FROM blog_posts`) are
-  allowed when necessary for verification, but should be avoided unless
-  the task explicitly asks for them.
-- Any required data migration must be:
-  1. Written as an idempotent SQL file under `supabase/migrations/` with
-     the next sequential number.
-  2. Tested locally or on a staging project.
-  3. Hand-applied by the owner on the production Supabase SQL Editor
-     (the owner runs the SQL; the agent only ships the file).
+No agent-run `DELETE` / `UPDATE` / `TRUNCATE` / `DROP` on production Supabase; read-only verification queries (e.g. `SELECT count(*) FROM blog_posts`) allowed when necessary. Data migrations ship as idempotent SQL files under `supabase/migrations/` that the OWNER applies by hand via the SQL Editor.
 
 ### 3.4 Do Not Invent Architecture
 
-- If a task asks for a feature that has no precedent in the codebase,
-  the agent MUST:
-  1. Propose the design in plain prose (no code) first.
-  2. Hand it to the owner / technical reviewer for sign-off.
-  3. Only implement after the design is approved.
-- Do not introduce a new state-management library, ORM, auth library,
-  payment provider, AI provider, or deployment target without explicit
-  owner approval. The current stack is documented in
-  `DEVELOPER_GUIDE.md` — stay inside it.
+No precedent in the codebase → propose the design in plain prose FIRST, get owner/reviewer sign-off, only then implement. Never introduce a new state/ORM/auth/payment/AI/deployment stack without explicit owner approval — the stack is documented in `DEVELOPER_GUIDE.md`; stay inside it.
 
 ### 3.5 Verify Changes
 
@@ -124,125 +74,19 @@ git status --short
 # Expected: empty (or only pre-existing drift)
 ```
 
-Additional rules:
-
-- For changes that touch API routes, smoke-test the route locally with
-  `curl` against the dev server before claiming success.
-- "It compiles" is not the same as "it works." Functional verification
-  > smoke test > type check.
+Additional rules: smoke-test touched API routes locally with `curl` before claiming success; "it compiles" is not "it works" — functional verification > smoke test > type check.
 
 ### 3.6 Session Protocol — STATE.md First (Owner directive 2026-09-03 — approved study «المنظومة المعرفية للمشروع كلها»)
 
-Every session/conversation MUST open with these steps before ANY
-claim, audit, or code change:
-
-0. **Read `STATE.md` (repo root)** — the official always-current
-   project state: current phase, last verified commit, open items,
-   owner-pending items, active prohibitions, and the source-of-truth
-   map. Takes ~30 seconds and prevents the stale-assumption class of
-   failures that broke this project repeatedly.
-1. `git fetch origin --quiet`, then read the last 3 `worklog.md`
-   entries and the last 5 commit subjects (`git log --oneline -5`).
-2. **Trust NO number in ANY doc.** Every count/range must come from
-   its single source (the map in `STATE.md`). Docs describe behavior;
-   they are not data.
-3. **Survival law:** the agent workspace is EPHEMERAL — it can be
-   wiped at any moment (this already lost Task 100/101 worklog records
-   and `src/app/api/upload/route.ts` from disk, twice, and had to be
-   discovered by accident). Any knowledge that must live =
-   `commit & push` in the SAME session that produced it.
-
-End-of-task duty: `STATE.md` MUST be refreshed in the same phase/commit
-that changes the state it describes (phase number, last verified
-commit, open/pending/prohibited items). A pushed change that leaves
-`STATE.md` stale is an INCOMPLETE change (same severity as §3.8).
+Every session opens with: (0) read `STATE.md` — the official always-current state (~30 s); (1) `git fetch origin --quiet` + last 3 `worklog.md` entries + last 5 commit subjects; (2) trust NO number in ANY doc — take it from its single source (the map in `STATE.md`); (3) survival law — the workspace is EPHEMERAL, so any knowledge that must live is committed & pushed in the SAME session. End-of-task duty: `STATE.md` is refreshed in the same phase/commit that changes the state it describes — a stale STATE.md is an INCOMPLETE change (same severity as §3.8).
 
 ### 3.7 Always Verify Against `origin/main` Before Any Decision or Report
 
-- **The local clone and the session/conversation memory are NOT sources
-  of truth.** They can lag behind, be stale, or be divergent from the
-  actual production state. Always treat `origin/main` on the remote
-  repository as the authoritative reference for the current project
-  state, and treat deployed production (live URLs, Vercel dashboard,
-  Supabase production) as the authoritative reference for the runtime
-  state.
-- Before **any** of the following actions, the agent MUST run
-  `git fetch origin --quiet` and verify that the local `HEAD` matches
-  `origin/main`:
-  - Claiming the project state (file existence, route count, feature
-    status, dependency presence, etc.) in any report or commit message.
-  - Starting work on a new task that depends on the current state of
-    files, schema, routes, or env vars.
-  - Producing a "what's there" / "what's missing" audit.
-  - Refusing a task because "the feature doesn't exist" — verify on
-    `origin/main`, not on the local clone.
-- If the local `HEAD` is behind `origin/main`, the local clone is
-  **stale**. Do NOT trust the local working tree as evidence. Either:
-  - Run `git pull --ff-only` (preferred) to fast-forward the local
-    branch, or
-  - Explicitly cite `git ls-tree -r origin/main --name-only` /
-    `git show origin/main:<path>` as the source of truth for any
-    claim about file existence or content.
-- If the local `HEAD` is ahead of `origin/main` (local-only commits) OR
-  the local working tree has uncommitted modifications, do NOT silently
-  reconcile them. Surface the discrepancy to the Owner in the report and
-  let the Owner decide whether to merge, rebase, or discard. Never run
-  `git reset --hard`, `git push --force`, or `git checkout -- .` to
-  "fix" a divergence without explicit Owner instruction.
-- The same rule applies to runtime / production state: before claiming
-  "feature X is live" or "route Y returns 200", the agent must verify
-  against the actual production URL (or have a verifiable record of a
-  recent successful request). Conversation memory and old commit
-  messages do not constitute verification.
-- This rule overrides any prior assumption in this document about
-  "the local clone reflecting the project state". When in doubt, fetch
-  and diff.
+The local clone and conversation memory are NOT sources of truth. Before any state claim, new task, audit, or refusal: `git fetch origin --quiet` and confirm HEAD == `origin/main`; behind → `git pull --ff-only` (or cite `git show origin/main:<path>`); ahead/dirty → surface to the Owner, never `reset --hard` / `push --force` / `checkout -- .` without explicit instruction. Runtime claims ("X is live", "Y returns 200") require verification against the production URL or a verifiable recent record — memory is not evidence.
 
 ### 3.8 Documentation Parity Law (Owner directive 2026-09-02 — «دايماً عدل التوثيقات وملفات هيكل المشروع علشان ميحصلش لغبطة» + Phase 107 single-source extension)
 
-- **Every code change ships with its documentation in the SAME phase.**
-  Documentation is never "later" — a pushed code change without its docs
-  update is an INCOMPLETE change.
-- Minimum per phase (append-only, newest on top):
-  1. `worklog.md` — new Task entry (Work Log + Stage Summary).
-  2. `QA_CHECKLIST.md` — new "Latest Verification" table; demote the
-     previous one to "Previous".
-  3. `PROGRESS.md` — new phase section + refresh the «آخر تحديث» line.
-  4. `STATE.md` — refresh phase / last-verified-commit / open items
-     (§3.6 end-of-task duty).
-- Additionally, WHENEVER the changed behavior is described elsewhere,
-  update that file in the same phase too:
-  - `README.md` — architecture / feature tables it touches.
-  - `DEVELOPER_GUIDE.md` — flows, API tables, performance tables.
-  - `AGENTS.md` — rules / topology statements.
-  - `src/app/api/build-info/route.ts` — the `aiTopology` label MUST
-    describe the CURRENT behavior in plain words. (Proof of why: this
-    label once said "EVO chat streams from Vercel" while the chat did
-    NOT stream — it caused owner confusion and needed a correction.)
-- **Single-source number law (Phase 107):** `README.md` and
-  `DEVELOPER_GUIDE.md` carry NO variable counts (SQL files, pages,
-  endpoints, views, components, registry ranges, "Total: N" lines) —
-  every such number lives in the CODE or in `supabase/migrations/
-  INDEX.md`, and `STATE.md` points to each source. The automated gate
-  `scripts/docs_audit.py` fails the push on ANY count claim in these
-  two files, on duplicate section numbers in `AGENTS.md` (this law was
-  born from a real duplicated §3.6), and on STATE/PROGRESS/QA phase
-  mismatches. Historical narrative stays valid — just phrase it
-  without drift-prone counters.
-- Wrong-but-confident docs are worse than missing docs: if a doc line
-  cannot be verified against code or a live check, fix it or delete it —
-  never leave it "because it sounds right".
-- Dead code (imported nowhere) and stale schema references count as
-  documentation debt: delete them in the same phase (git history
-  preserves them) so future agents never trip on them.
-- Documentation-only changes are allowed without code changes, but the
-  commit message must start with `docs:`.
-- Do not delete documentation history without a reason. If a section is
-  obsolete, move it to `archive/` (append-only) or mark it
-  `> **Deprecated (date):** reason` for one release cycle before
-  removing. Keep `PROGRESS.md` and `QA_CHECKLIST.md` slim: newest
-  phase sections only; everything older goes to `archive/`
-  (enforced by `docs_audit.py` section-count limits).
+Every code change ships its docs in the SAME phase — never "later". Minimum per phase (append-only, newest on top): `worklog.md` entry · `QA_CHECKLIST.md` Latest table (previous demoted) · `PROGRESS.md` section · `STATE.md` refresh (§3.6 duty) — plus every file describing the changed behavior (`README.md`, `DEVELOPER_GUIDE.md`, `AGENTS.md`, the `build-info` `aiTopology` label). **Single-source number law:** README/DEVELOPER_GUIDE carry ZERO variable counts — numbers live in the code or `supabase/migrations/INDEX.md`; `scripts/docs_audit.py` fails the push on any count there, on duplicate section numbers in this file, and on STATE/PROGRESS/QA phase mismatches. Wrong-but-confident docs are worse than missing docs — fix or delete; dead code and stale references are deleted in the same phase (git preserves). Docs-only changes are allowed; commit starts with `docs:`. Obsolete sections move to `archive/` (append-only) or carry a `> **Deprecated (date):** reason` marker; PROGRESS/QA stay slim under archive-enforced caps.
 
 ---
 
@@ -250,25 +94,17 @@ commit, open/pending/prohibited items). A pushed change that leaves
 
 A task is "Done" only when ALL of the following are true:
 
-- [ ] Code is written, formatted, and committed with a clear message.
-- [ ] Verification command set (§3.5) executed — all checks pass with
-      no new errors or warnings beyond pre-existing.
-- [ ] Affected routes / pages were smoke-tested locally.
-- [ ] Documentation is updated (`README`, `DEVELOPER_GUIDE`, `PROGRESS`,
-      `QA_CHECKLIST`, `SECURITY` as applicable).
-- [ ] `PROGRESS.md` reflects the new state (feature marked done, bug
-      marked fixed, etc.) with a date.
-- [ ] `STATE.md` refreshed (§3.6 end-of-task duty) when phase / open
-      items / prohibitions changed.
-- [ ] `worklog.md` gains a new entry following the template in §12.5.1.
-- [ ] No secrets, no customer data, no production-only config was
-      committed.
-- [ ] The change was pushed, and the human supervisor was notified for
-      production deployment.
-- [ ] The final report (§12.9) was filed.
+- [ ] Code written, formatted, committed with a clear message.
+- [ ] §3.5 command set executed — all checks pass, no new errors/warnings beyond pre-existing.
+- [ ] Affected routes/pages smoke-tested locally.
+- [ ] Documentation updated (§3.8 minimum set + every file describing the changed behavior).
+- [ ] `STATE.md` refreshed when phase / open items / prohibitions changed.
+- [ ] `worklog.md` gained a new entry per §12.5.1.
+- [ ] No secrets, no customer data, no production-only config committed.
+- [ ] Change pushed and the human supervisor notified for deployment.
+- [ ] Final report (§12.9) filed.
 
-"Do not claim PASS unless the acceptance criteria are actually met." —
-this rule is non-negotiable.
+"Do not claim PASS unless the acceptance criteria are actually met." — non-negotiable.
 
 ---
 
@@ -280,1206 +116,52 @@ this rule is non-negotiable.
 
 ## 6. Rules for Database / Schema Changes
 
-- Every schema change MUST be a numbered migration file under
-  `supabase/migrations/NNNN_description.sql`.
-- Migrations MUST be **idempotent** (use `CREATE TABLE IF NOT EXISTS`,
-  `ADD COLUMN IF NOT EXISTS`, etc.) so re-running them is safe.
-- Migrations MUST include RLS policies for any new table.
-- The agent MUST NOT apply migrations to production. The owner runs
-  them via the Supabase SQL Editor.
-- **RAW-SQL-LINK RULE (FIXED — BINDING FOR ALL CLIENTS/PROJECTS):**
-  whenever a task touches the database schema or produces SQL the
-  owner must execute manually, the agent MUST write ready-to-run SQL
-  and attach its RAW GitHub link in the format
-  `https://raw.githubusercontent.com/<org>/<repo>/<branch>/<path>`
-  so the owner can open it and paste it straight into the Supabase SQL
-  Editor with zero downloads. Describing the SQL without attaching the
-  runnable file + raw link is an INVALID delivery.
-- For every migration batch, additionally create ONE consolidated
-  paste-ready script `supabase/migrations/RUN_ON_SUPABASE_<IDs>.sql`
-  containing all steps, the closing `NOTIFY pgrst, 'reload schema';`,
-  and a VERIFY query block — following the existing
-  `RUN_ON_SUPABASE_*` pattern — and attach its raw link too.
-- After applying a migration, the owner MUST run
-  `NOTIFY pgrst, 'reload schema';` so PostgREST picks up the change.
-- If a migration introduces a column that previously was created
-  ad-hoc in production (as happened with `meal_plans`, `plan_swaps`,
-  `progress_photos`, `coach_presence` — see `PROGRESS.md` Phase 5),
-  the migration file MUST start with `IF NOT EXISTS` checks so it does
-  not break on re-run.
-- Update `DEVELOPER_GUIDE.md` § "Database + RLS" with the new table
-  count and list.
-- **MIGRATION INDEX LAW (Phase 96, owner directive «نقفل باب الاخطاء
-  القديمة»):** every new migration MUST (a) use the timestamped name
-  `YYYYMMDDHHMMSS_NNNN_<slug>.sql` — this is the only auto-apply format
-  the Supabase GitHub integration recognizes; (b) add its row to
-  `supabase/migrations/INDEX.md` in the same commit; (c) regenerate
-  `src/lib/supabase/types.ts` if the schema changed; (d) run
-  `python3 scripts/migration_audit.py` before pushing — it cross-checks
-  all migrations against `types.ts` and must report no NEW drift.
-  RENAMING existing migration files is FORBIDDEN (Phase 61 ledger
-  incident); known naming anomalies (0059 old-format manual, 0056
-  timestamped) are documented in INDEX.md — leave them as-is.
-  The Phase 5-era ad-hoc drift (plan_swaps, coach_presence,
-  progress_photos, referrals.last_seen) was closed by 0063 (no-op on
-  production) + `VERIFY_SCHEMA_DRIFT.sql` (owner read-only check).
+Every schema change = numbered migration under `supabase/migrations/` with the timestamped name `YYYYMMDDHHMMSS_NNNN_<slug>.sql` — **idempotent** (`IF NOT EXISTS`), **RLS policies for any new table in the same file**, NEVER applied to production by the agent (owner runs SQL), NEVER renamed after landing (Phase 61 incident). Manual-SQL deliveries MUST attach the RAW GitHub link of a ready-to-run file plus ONE consolidated `RUN_ON_SUPABASE_<IDs>.sql` (closing `NOTIFY pgrst, 'reload schema';` + VERIFY block) — describing SQL without the runnable file + raw link is an INVALID delivery. **MIGRATION INDEX LAW:** every new migration adds its row to `supabase/migrations/INDEX.md` and regenerates `src/lib/supabase/types.ts` in the same commit; `python3 scripts/migration_audit.py` must report no NEW drift before push. Full migration law + per-table rules + storage: [`docs/TECH_REFERENCE.md`](docs/TECH_REFERENCE.md) §1.2–§1.5.
 
 ---
 
 ## 7. Rules for Security-Sensitive Changes
 
-Any change that touches the following categories requires **explicit
-human approval before implementation**, not just after:
-
-- Authentication (`src/lib/auth-server.ts`, `src/middleware.ts`,
-  `src/app/auth/*`, Supabase Auth config).
-- Authorization / RLS policies (any migration that grants or revokes
-  access).
-- Payment logic (`src/app/api/tools/*`, `subscription_requests` table,
-  receipt review flow, coach approval flow).
-- AI provider key handling (`src/lib/ai-provider.ts`, the AI Settings
-  page, env var resolution).
-- Cookies, session tokens, OAuth callbacks.
-- CORS, CSP, HSTS, or any header in `vercel.json`.
-- Anything that processes PII (email, phone, photos, body metrics).
-- Anything that adds a new external HTTP call (new AI provider, new
-  payment gateway, new analytics endpoint).
-
-Process:
-1. Agent drafts the proposed change in prose (no code yet).
-2. Human supervisor + optional Technical Reviewer review (see §2).
-3. Agent implements the approved design.
-4. Agent runs `tsc`, `lint`, smoke test.
-5. Agent updates `SECURITY.md` to reflect any new policy.
-6. Agent commits with prefix `security:`.
+Explicit human approval BEFORE implementation (not just after) for: auth (`auth-server.ts`, `middleware.ts`, `auth/*`) · RLS policies · payment logic (`api/tools/*`, `subscription_requests`, receipts, coach approval) · AI key handling (`ai-provider.ts`, AI Settings) · cookies/sessions/OAuth callbacks · CORS/CSP/HSTS or any `vercel.json` header · PII processing · any new external HTTP call. Process: prose proposal → human review (§2) → implement → `tsc`/lint/smoke → `SECURITY.md` updated → commit prefix `security:`.
 
 ---
 
 ## 8. Rules for AI Functionality Changes
 
-> **Revised (2026-08-27, owner directive):** the provider set and call
-> paths were consolidated. This section now reflects the ACTUAL
-> architecture in `src/lib/ai-provider.ts`.
+> **Revised (2026-08-27, owner directive).** Slimmed 2026-09-03 (Phase 113, owner «الأمر الثالث»): every law keeps its name + binding core (one to two lines); the long narratives, SQL, and full tables live in the code and `docs/TECH_REFERENCE.md` (§12.8: code wins).
 
-- The AI provider layer (`src/lib/ai-provider.ts`) is the SINGLE source
-  of truth for how the app talks to AI providers. Do not duplicate
-  fetch logic in route handlers.
-- **Allowed providers: OpenRouter + Groq ONLY.** Direct Gemini SDK /
-  OpenAI / Anthropic / DeepSeek integrations are removed. To reach a
-  Google model, use its OpenRouter slug (e.g. `google/gemma-4-31b-it`).
-- Two execution paths exist by design:
-  - `callFreeAIFallbackChain()` — sequential interleaved strongest-first
-    chain (OpenRouter + Groq), budget-clamped so
-    `maxModels × timeoutMs ≤ 52s` (Vercel Hobby safe). Used by chat,
-    plans, articles, topics, research, admin tools.
-  - `callFreeOpenRouterRace()` — parallel fastest-wins via `Promise.any()`.
-    Used by swap only (speed-critical).
-  - Do not "simplify" by collapsing them — the trade-off is intentional.
-- **Native GitHub Actions execution (2026-08-27 owner directive):** the
-  scheduled blog pipeline runs INSIDE the Actions job via
-  `scripts/blog-runner/run-step.mts` (imports the same route handlers
-  in-process — no Vercel hop). In that context only,
-  `AI_CHAIN_TOTAL_BUDGET_MS` overrides the 52s clamp (workflow sets
-  180000) for full-length articles. AI keys come from GitHub Secrets;
-  EVO chat stays on Vercel streaming. Any new scheduled/batch AI work
-  MUST follow this native-GHA pattern instead of adding Vercel-capped
-  endpoints.
-- **Blog pipeline v3 — LANGUAGE SPLIT (2026-08-27 owner directive,
-  supersedes v2's coupled EN+AR runs):** six phases, each a route under
-  `/api/cron/blog/`: `p0-research` (keyword+FAQ+5-topic research for
-  EXACTLY ONE language — `?lang=en|ar` is REQUIRED; curated fallback
-  keeps runs alive) → `p1-outline` (model-ranked topic pick + hard
-  duplicate guard against that language's own archive, SEO title/
-  subtitle/meta/slug, 5-7 H2s, LSI list, 3-5 image plan) → `p2-content`
-  (1500-2500 words from the row's own outline) → `p3-images` (3-5
-  images) → `p4-review` (proofread/flow/dedup, keyword coverage,
-  conservative fact-guard — never invent citations, 2-4 internal links
-  from same-language posts only, ≤2 trusted external links, closing CTA;
-  deterministic FAQ section appended as a length safety net) →
-  `p5-publish` (pure code: inserts ONE blog_posts row in the row's
-  language; dynamic sitemap.ts auto-updates). ONE queue row == ONE
-  article in ONE language (`blog_generation_queue.language`, migration
-  RUN_ON_SUPABASE_0026_LANG_SPLIT.sql); bundles are FLAT:
-  `{research0, outline, content, images, review}`. Queue statuses are
-  now: researched→outlined→writing→written→images_done→reviewed→
-  published (+failed/skipped_duplicate). Scheduling: TWO independent
-  workflows — `blog-post-en.yml` (12:00/16:00/22:00 UTC = 08:00/12:00/
-  18:00 US-Eastern) and `blog-post-ar.yml` (05:00/11:00/18:00 UTC =
-  08:00/14:00/21:00 Cairo) = 3 articles/day per language at each
-  audience's optimal windows; concurrency groups `blog-pipeline-en` /
-  `blog-pipeline-ar` stay independent ON PURPOSE so the languages may
-  overlap. Legacy step1/step2a..step3 routes AND legacy dual-language
-  statuses (writing_en/en_written/writing_ar/ar_written) are retired.
-- **IMAGE MODESTY GUARD (hard owner rule):** every image prompt
-  anywhere in the product MUST include `IMAGE_MODESTY_SUFFIX`
-  (`src/lib/blog-pipeline.ts`): modest attire, no nudity, no revealing
-  or suggestive imagery, no women in revealing outfits.
-- **Whole-AI-system topology (2026-08-27 owner directive — all four
-  systems now run on ONE GitHub Actions queue):** every batch AI call in
-  the product is an `ai_jobs` row (migration 0024) processed natively by
-  `process-ai-jobs.yml` every 10 minutes via
-  `scripts/ai-jobs-runner/process.mts`. Job types:
-  `plan_nutrition | plan_workout | meal_regenerate | exercise_regenerate |
-  article_tool | social_post`. The ONLY exception is EVO chat, which stays
-  on Vercel streaming with the speed-first `INTERLEAVED_FAST_CHAIN`
-  (options.chain="fast"). Binding rules:
-    - PROVIDER BALANCE + DUAL-KEY POOL (2026-08-27 owner directive
-      "توازي/تبادل" after OpenRouter ~50/day free ceiling burned alone):
-      `callFreeAIFallbackChain` ALTERNATES which provider LEADS on every
-      successive call (parity counter — strongest-available-first within
-      each provider, so quality order is preserved). OpenRouter attempts
-      rotate across BOTH configured accounts (`OPENROUTER_API` = account #2,
-      `OPENROUTER_API_KEY` = account #1) round-robin; a 401/402/403/429
-      quota-style error retries the SAME model on the other account before
-      falling through the model ladder.
-    - `callAIWithFallback` is EXACT: one config → one provider, errors
-      surface honestly. NEVER reintroduce a silent cross-provider stage
-      inside it (it used to mask who actually answered and starve the
-      chain's ladder + key switch). All fallback policy lives in the chain.
-    - Vercel API routes may ENQUEUE jobs (`/api/ai/jobs`) but must NEVER
-      call a model directly. Retired (routes DELETED 2026-08-27, guard-enforced):
-      `/api/ai/plan`, `/api/ai/swap`, `/api/ai/regenerate-meal`,
-      `/api/ai/blog-tool`, `/api/ai/pick-topic`, `/api/ai/research-topic`,
-      `/api/ai/generate-article`, `/api/ai/generate-image`, and legacy cron
-      route `src/app/api/cron/generate-blog-post`. The v1 step name
-      `step1-pick` and component `AIGenerateModal` are equally banned.
-      `blog-admin.aiTool()` is neutered on purpose (throws) so nobody can
-      bypass the queue accidentally.
-    - New AI features = new job_type + processor entry in
-      `src/lib/ai-job-processors.ts` + a gate row in JOB_GATE. Never add
-      direct model calls to routes/components.
-    - Plans ship 2 structured alternatives per meal; exercise swaps are
-      chosen ONLY from a deterministic injury/equipment-filtered library
-      pool (AI ranks inside it — never invents substitutes).
-    - Payloads pass `sanitizeJobPayload()` whitelisting at enqueue;
-      browsers hold SELECT-own-row RLS only — ai_jobs writes are
-      service-role exclusive.
-    - Article DRAFTS inside blog editor use only the queued per-section
-      tools (`article_tool` / `social_post` via runAiJob); full-article
-      generation lives exclusively in the native GHA pipeline. In-editor
-      one-click bundle generation was REMOVED with AIGenerateModal.
-- **ANTI-REGRESSION LAW (2026-08-27, after two stale-code incidents):**
-    - Retiring ANYTHING (route / component / script / step name):
-      `git rm` it, sweep callers, fix comments — all in the SAME commit.
-      Zero tombstone files. THEN run `bash scripts/check-stale-refs.sh`
-      locally; it must exit 0 before push.
-    - `.github/workflows/guard-stale-refs.yml` re-scans every push/PR to
-      main and fails the build naming any reintroduced retired identifier.
-      Add genuinely-new retirements to BOTH the guard PATTERN and this §8.
-    - Production-truth protocol: when behavior seems to "revert", FIRST
-      open `/api/build-info` and compare `commitShort` with latest GitHub
-      main SHA. Mismatch = deploy lag/failure — never debug or re-edit
-      against a stale deployment.
-    - No resurrection branches: patch branches are never kept after their
-      reason expires — archive-tag them (`archive/*`), then delete.
-      Branch protection on `main`: force-push disabled (owner setting).
-- **UNIVERSAL MODEL SWITCHER COVERAGE (2026-08-27, owner directive
-  "نظام التبديل بين النماذج يتعمل لكل منظومة"):** every AI subsystem in
-  the platform rides ONE choke point (`callFreeAIFallbackChain`) and
-  passes its own observational `tag` so every log line and failure names
-  the subsystem + provider + model + key-pool event:
-    | System | `tag` |
-    |---|---|
-    | EVO chat (`/api/ai/chat`) | `evo-chat` (chain:"fast") |
-    | Plan generator | `plan:nutrition`, `plan:workout`, `plan:nutrition-alt`, `plan:json-normalize`, `plan:exercise-corrective` |
-    | Blog pipeline v3 (GHA) | `blog:pick-topic-<lang>`, `blog:outline-<lang>`, `blog:content-<lang>`, `blog:review-<lang>` |
-    | Admin article bundle libs | `article:en`, `article:ar`, `links-social` |
-    | Topic research / P0 research | `blog:topics-<lang>`, `blog:research` |
-    | External search simulation | `external-search` |
-    | Social posts | `social-posts:<lang>` |
-    | AI jobs runner | `ai-job:<tool>` |
-  - Switching policy lives ONLY inside the chain: dual OpenRouter keys
-    (`OPENROUTER_API` #2 + `OPENROUTER_API_KEY` #1, round-robin +
-    same-model account switch on quota/auth), Groq lead on alternating
-    calls, big-payload Groq guard (>~7.2k est tokens → openrouter-only),
-    one immediate identical retry on 200-empty responses. Consumers
-    NEVER choose providers or fetch provider URLs themselves.
-  - Any NEW AI consumer must import from `ai-provider.ts` AND register
-    its tag here; a bare provider fetch outside the chain is banned.
-  - Vercel-side prerequisite for the Vercel-hosted consumers: Production
-    env must also carry `OPENROUTER_API`, `OPENROUTER_API_KEY`,
-    `GROQ_API_KEY` (plus Supabase pair) so tagged switching works there
-    exactly as it does in GitHub Actions runners.
-- **IMAGE SAFETY LAW — PEOPLE-FREE AI IMAGERY (2026-08-27, owner hard
-  rule after live incident on two published posts):**
-    - ROOT CAUSE (proven from production URLs): the retired
-      `IMAGE_MODESTY_SUFFIX` injected NEGATION phrases ("no nudity",
-      "no cleavage", "no women …") into every diffusion prompt.
-      Diffusion models do NOT parse negation — those tokens acted as
-      positive attractors and DIRECTLY caused immodest renders, plus
-      drifted/off-topic subjects and Arabic prompts degrading flux.
-    - NEW POLICY (structural): AI blog images are PEOPLE-FREE objects &
-      scenes ONLY (equipment / food / interiors / flat vectors).
-      1) Single choke point `src/lib/image-safety.ts`:
-         `buildSafeImagePrompt()` sanitizes EVERY prompt — strips all
-         negation constructions, person words (EN+AR), NSFW vocabulary,
-         clothing wording (implies humans); prompts that described a
-         people scene are fully REWRITTEN to topical object scenes.
-      2) P1 outline instruction demands ENGLISH-only object subjects.
-      3) P3 image #1 = topical COVER anchored to focus keyword/title
-         (drives featured_image + og:image relevance).
-      4) The retired constant name is BANNED by guard-stale-refs;
-         unit tests in src/lib/__tests__/image-safety.test.ts replay the
-         EXACT incident prompts as permanent regression canaries.
-    - Remediation: `scripts/blog-runner/remediate-images.mts` +
-      `remediate-blog-images.yml` (workflow_dispatch) regenerate every
-      legacy Pollinations URL through the safe pipeline and rewrite
-      blog_posts.content/featured_image + queue bundles in DB.
-- **IMAGE SAFETY LAW v2 — SEMANTIC PERSON-SCENE ATTRACTORS (2026-08-28 — SUPERSEDED same day by IMAGE SOURCE LAW v3 when the AI generator was retired):**
-  live incident #2 on `/blog/12-week-periodized-muscle-building-plan`):**
-    - ROOT CAUSE (proven: production URL seed=29197): a prompt with ZERO
-      person tokens ("muscle building workout plan … for Intermediate
-      Lifters") STILL rendered a shirtless man. Diffusion models associate
-      fitness ACTION/program/physique nouns with training BODIES —
-      token-level sanitization cannot stop semantic attractors.
-    - LAW: `buildSafeImagePrompt()` now treats ANY subject carrying
-      person-scene semantics (workout / lifting / program / physique /
-      fat-burn / muscle-building vocabulary, EN + AR via
-      `promptHasPersonSemantics()`) as a people scene → REPLACED ENTIRELY
-      by a curated object scene. Program/plan topics get the planner-
-      notebook scene (rule sits ABOVE the muscle rule; first match wins).
-    - Style tails are IDEMPOTENT (a tail already inside the subject is
-      stripped before a fresh one is appended — fixes production doubled
-      "…high detail, …high detail" URLs).
-    - `promptHasPersonSemantics` is deliberately NOT part of
-      `promptHasBannedVocabulary` (curated scenes must never be refused
-      at the URL gate; no bare "row/rows" token — would match "row of
-      treadmills").
-    - Regression canaries: image-safety.test.ts §LAW v2 replays the exact
-      seed=29197 prompt; every curated scene must pass BOTH gates.
-- **IMAGE SCENE DIVERSITY LAW (2026-08-28 — SUPERSEDED same day by IMAGE SOURCE LAW v3; rotation now = search-result index):** owner: «كل الصور فى كل
-  المقالات عبارة عن نفس الصور ومعاد تغير اى تفصيلة داخلها»):**
-    - ROOT CAUSE: the curated-scene rewrite had only ~10 single scenes +
-      one fixed photo style → every article (and every position inside
-      an article) rendered the SAME composition with only seed noise.
-    - LAW: `src/lib/image-safety.ts` now carries a SCENE BANK — 10
-      themes × 5 concrete variants + 5 default variants (50 scenes),
-      plus 5 rotating photographic style tails. Selection is
-      DETERMINISTIC per `variationKey` (= `${articleId}-${position}`)
-      via djb2 hash: same article+position always renders the same
-      scene, but different articles/positions never collide.
-    - EVERY pipeline caller must thread a per-position variationKey:
-      p3-images (`${queueId}-cover` / `${queueId}-${n}`), remediation
-      runner (`${rowId}-cover` / `${rowId}-body-${n}`), embed backfill
-      (`${slug}-body-${n}`).
-    - `buildSafeImagePrompt(subject, type?, hint?, variationKey?)` is
-      the signature everywhere; without variationKey the classic
-      variant[0] is returned (backward compat, og:image stability).
-    - PROVIDER-SIDE GUARDS: every Pollinations URL now carries
-      `safe=true` (provider refuses NSFW renders — belt & braces under
-      the prompt law) and `enhance=false` (their server-side prompt
-      rewriting must never mutate our sanitized prompt).
-    - Bank authoring rules: objects/interiors only, still-life verbs,
-      ENGLISH only, zero person/action/clothing vocabulary — enforced
-      by test (every bank entry × both gates × sanitize idempotency).
-- **IMAGE SOURCE LAW v3 — PEXELS-FIRST REAL PHOTOGRAPHY (2026-08-28,
-  owner directive: «استبدل خطوه الصور تماما الى PEXELS_API_KEY داخل
-  GitHub Action ، الصور نستوردها ومع المتبع تتحول الى حجم خفيف بنظام
-  الموقع ، وغير نظام اختيار الصور بحيث يكون فى اشخاص عادى لكن لا عرى»):**
-    - Pollinations AI image GENERATION is RETIRED entirely — no
-      diffusion renders anywhere in the pipeline. Every blog image is
-      REAL stock photography: Pexels PRIMARY (PEXELS_API_KEY), Unsplash
-      / Pixabay failover (Pixabay enforces safesearch=true).
-    - PEOPLE POLICY v3: NORMAL PEOPLE ARE ALLOWED in photos (fitness
-      stock photography); NUDITY/immodesty is NOT. Enforcement layers:
-      (1) sanitizeImageQuery() strips NSFW vocabulary (EN+AR) and
-      negation constructions from every search query — people words
-      deliberately preserved; (2) hasNsfwVocabulary() screens every
-      result alt-text before picking; (3) Pixabay safesearch=true.
-    - LIGHTWEIGHT DELIVERY («حجم خفيف بنظام الموقع»): Pexels
-      src.landscape = 1200x627 auto=compress CDN URL, then the site's
-      next/image system converts to responsive WebP at the edge —
-      featured image, related cards, and blog listing cards all use
-      next/image with explicit `sizes`. remotePatterns already cover
-      images.pexels.com (+ images.unsplash.com, pixabay).
-    - DIVERSITY: search fetches 6 results; pickResultIndex(hashKey)
-      rotates the chosen result deterministically per
-      variationKey = (article, position) — stable per slot,
-      collision-free across posts.
-    - FAIL-FAST: remediate-images.mts aborts when PEXELS_API_KEY is
-      unset (never silently degrade posts to fallback-only imagery).
-      The key must exist BOTH in GitHub Actions secrets (runner
-      scripts) AND Vercel Production env (p3-images route).
-    - Canaries: image-safety.test.ts v3 suite (people-kept / NSFW
-      stripped / negations stripped / alt screening / rotation bounds
-      + spread). v1/v2 canary suites retired with the AI generator.
-- **BLOG BODY IMAGE RENDER LAW (2026-08-28, owner bug "الصورة داخل
-  المقال عبارة عن رابط مش صورة"):** `renderMarkdown()` (src/lib/blog.ts)
-  converts `![alt](url)` → `<img loading="lazy" class="my-6 w-full
-  rounded-2xl">` in a step 10.5 that runs BEFORE the link rule — with no
-  image rule the link regex consumed `[alt](url)` and every embedded
-  body image degraded to a bare text link. Unsafe schemes are dropped
-  entirely (XSS guard). Guarded by
-  `src/lib/__tests__/blog-markdown-images.test.ts`.
-- **EVO CHAT SURFACE & HISTORY LAW (2026-08-27, owner directive):** the
-  floating widget (`EvoFloatingWidget`) is the ONLY chat surface with EVO.
-    1) The old full-page `/chat` route is REMOVED; `next.config.ts`
-       permanently redirects `/chat → /evo`. Any CTA that used to link
-       there (landing, coaching, /evo page, profile quick links, AppLayout
-       nav, SiteHeader menu) must OPEN THE WIDGET instead — via
-       `openEvoFloatingChat()` (global `mhe:open-evo-chat` event exported
-       from `evo-chat-context.tsx`), never via a chat page link.
-    2) BACK-BUTTON LAW: with the drawer open, the browser/hardware Back
-       key CLOSES the drawer and never navigates the site. Enforced by the
-       `mheEvoChat` sentinel history entry pushed/popped in
-       `evo-chat-context.tsx`; `closeChat()` consumes the sentinel.
-    3) LINK PERSISTENCE: `chat_messages` has no links column — assistant
-       links ride INSIDE the persisted `body` as markdown bullets
-       (`src/lib/evo-chat-links.ts`: `buildPersistBody` /
-       `parsePersistedBody`, unit-tested canaries in
-       `src/lib/__tests__/evo-chat-links.test.ts`). Never persist
-       assistant messages without their links, and never render
-       assistant bubbles as raw text — `MessageText` renders
-       `[label](url)` as anchors.
-    4) HYDRATION GATE: persistence writes are gated on the initial load
-       completing (`hydrated` flag) — a mount-time write of an empty
-       state must never wipe stored history (StrictMode-safe).
-    5) The floating icon is ≥48px (owner: "كبر حجم الايقونة الطائرة
-       قليلاً" — currently 48px image in a 60px hit target).
-    6) SCROLL LAW (2026-08-27 owner report: "الشات بيفتح على بداية
-       المحادثة بدل من اخرها"): reopening the drawer MUST land on the
-       LATEST message, never the top. Enforced in `EvoFloatingWidget`
-       via a scroll-container ref + open-transition snap (instant
-       `scrollTo` bottom on open/restore, smooth-follow for new
-       messages). Never key the auto-scroll only on
-       `[messages, isTyping]` — it does not fire when the drawer opens
-       after history already loaded, and never use `scrollIntoView`
-       (it also scrolls the page behind the drawer).
-    7) PLATFORM TRUTH LAW (2026-08-27 owner report: EVO advertised a
-       non-existent "image generation tool"): the system prompt
-       (`/api/ai/chat` → `buildSystemPrompt`) contains a hard
-       capability whitelist (exercises/programs/foods/tools/blog/
-       coaching/memberships/this chat). EVO must say "I can't" and
-       stop when asked for anything else — NEVER invent or redirect to
-       a tool/feature that is not on the whitelist. Chat answers also
-       pass through `src/lib/evo-chat-format.ts`
-       (`sanitizeLatexToPlain` + `stripMarkdownSyntax`, unit-tested
-       canaries in `src/lib/__tests__/evo-chat-format.test.ts`) — the
-       chat renders plain text only; raw LaTeX (`\frac{4}{3}\pi
-       r^{3}`) and markdown syntax must never reach users again.
-- **AI SURFACE DEEP-AUDIT LAW (2026-08-28, owner directive «فحص أعمق
-  للازرار ولوحات الادارة مع المنظومة»):** every UI control that calls an
-  API endpoint MUST target a route that actually exists — verified by
-  diffing `fetch(…)` call sites against `src/app/api/**/route.ts`.
-    1) UPLOAD LAW: file uploads go through `POST /api/upload`
-       (requireUser, bucket allowlist questionnaire-photos/
-       progress-photos/receipts, MIME+5MB guards, storage path rebuilt
-       server-side under the caller's user id, service-role write) and
-       render through `GET /api/file?bucket&path` (owner-or-coach authed
-       streaming proxy — PRIVATE buckets get permanent same-origin URLs,
-       never expiring signed URLs). Buckets are created by
-       `supabase/migrations/RUN_ON_SUPABASE_0027_STORAGE_BUCKETS.sql`
-       (idempotent, no policies — service role bypasses RLS). Client
-       data-URL fallback in QuestionnairesView stays as a safety net.
-    2) ADMIN SIDEBAR COMPLETENESS (2026-08-29 role-model v2): AppLayout
-       `coachExtraLinks` must list EVERY `/admin/*` page (currently Tool
-       Leads + Saved Results) and is rendered for `isAdmin` ONLY — these
-       surfaces are admin-exclusive, never coach-visible.
-    3) AUDIT BASELINE (all verified wired 2026-08-28): 15 blog-editor AI
-       buttons → article_tool(11)+social_post(4) handled by
-       `src/lib/ai-job-processors.ts` via GHA runner; plan
-       generate/regenerate (plan_nutrition/plan_workout),
-       meal_regenerate, exercise_regenerate, payments review, receipts,
-       broadcasts, admin leads/referrals/saved-results/blog CRUD — all
-       consistent. Re-audit after ANY new button+endpoint pair.
-- **ROLE MODEL v2 LAW (2026-08-29, owner directive «فحص حالة الدخول بحساب
-  ادمن/كوتش … نفس ما يظهر للمستخدمين يظهر للادمن و نفس حدود الاستخدام وده
-  مش منطقى» + approved discussion answers):** `profiles.role` is the
-  THREE-value enum `client | coach | admin` (migrations
-  RUN_ON_SUPABASE_0029_ADMIN_ROLE_ALL_IN_ONE.sql — ONE paste, or
-  0029A + 0029B in that order; ALTER TYPE and its first use cannot
-  share one transaction — the all-in-one script splits them with an
-  explicit `commit;`). The semantics are NON-NEGOTIABLE:
-    1) STAFF = coach ∪ admin. `isCoach` in use-auth now means STAFF;
-       `is_staff` on `AuthUser` (auth-server) is the server twin.
-       SQL `is_coach()` was REDEFINED as `role IN ('coach','admin')` —
-       every existing RLS policy keeps working unchanged and the admin
-       inherits full coach data access. NEVER rewrite policies back to
-       `= 'coach'` only.
-    2) ADMIN-EXCLUSIVE surfaces: /admin/* (blog CMS, tool leads, saved
-       results, referrals admin) — AdminGate requires `role==='admin'`;
-       future coach accounts are bounced to /coach. AppLayout renders
-       blog/leads/saved-results/referrals-admin links for isAdmin only.
-    3) STAFF-BLOCKED client surfaces: /dashboard /plans /progress
-       /questionnaires /referral /support are CLIENT-only — AuthGate
-       redirects staff to /coach (ROLE SURFACE LAW: staff and consumers
-       never share a UI).
-    4) STAFF QUOTA EXEMPTION: staffHint (from auth.is_staff) short-
-       circuits checkEvoChatLimit / checkEvoPlanQuota /
-       checkAndRecordSwap to unlimited — platform staff are never
-       limited by consumer tiers on EVO either. Usage stays recorded.
-    5) NO SALES FUNNEL FOR STAFF: SiteHeader hides Paid Services
-       (Coaching/Memberships/EVO) + Affiliate groups from staff; the
-       profile page shows a ROLE badge (إدارة المنصة / مدرب معتمد),
-       never a membership card or upgrade CTA.
-    6) PROMOTION: coach_emails allowlist → role='coach' only (auto-
-       promote hardened to never downgrade an admin); the owner account
-       is admin (0029B promotes every pre-existing coach row). Adding a
-       coach = INSERT into coach_emails; adding an admin = manual SQL.
-    7) MULTI-COACH FOUNDATION (2026-08-29, owner-approved design —
-       BUILT in Phase 40, migration RUN_ON_SUPABASE_0030 — RUN AS THE
-       4-PART PASTE-FRIENDLY SPLIT, IN ORDER: 0030A schema → 0030B
-       client-RLS → 0030C admin-RLS+notifs → 0030D RPC+reload; the
-       combined RUN_ON_SUPABASE_0030_MULTI_COACH.sql is the byte-exact
-       REFERENCE COPY of the same statements, not meant for pasting):
-       `coach_assignments` (1 client ↔ 1 coach, client_id UNIQUE) is
-       the source of truth. `is_coach_over(client_id)` is THE client-
-       data RLS predicate (admin OR the assigned coach) — NEVER use
-       bare is_coach() for client data; admin-exclusive tables (tool
-       leads, blog, referrals admin, audit_log, coach_emails) are
-       locked to is_admin() (owner answer 6). New AND existing clients
-       auto-assign to the admin (general coach) until reassigned;
-       allowlisted staff emails are never assigned as clients. Coach
-       bell notifications route via admin_notifications.target_coach_id
-       (assigned coach of clientId → fallback admin; NEVER a broadcast)
-       and broadcast messaging is roster-scoped per coach. Admin-only
-       APIs (leads/saved-results/blog helpers/queue-health) use
-       requireAdmin(). PHASE 2B BUILT (migration 0031 — one-paste):
-       coach_pages (1:1 per coach, slug UNIQUE ^[a-z0-9-]{3,40}$,
-       is_published) powers the PUBLIC landing /coaches/[slug]
-       (server-side service-role fetch, published-only, proper 404,
-       NOT in any menu — the coach shares the URL himself, owner
-       answer 3; internal staff nav item صفحتي العامة is the only
-       entry). Coach edits via /coach/landing + /api/coach/landing
-       (GET/PUT, requireCoach, upsert on coach_id, slug-taken → 409).
-       Assignment UI is ADMIN-ONLY: /api/admin/assignments (GET staff
-       list + per-coach counts, PATCH {client_id, coach_id} upsert 1:1
-       with role checks) with TWO surfaces: the DEDICATED page
-       /admin/assignments (owner feedback «مفيش لسة طريقة لتعيين
-       المدربين» — staff cards + searchable client rows + per-client
-       coach picker, AdminGate-protected, sidebar entry تعيين المدربين
-       in coachExtraLinks) AND the quick المدرب column inside the
-       /coach clients table (isAdmin only).
-       Client "my coach" card (MyCoachCard on /dashboard) reads
-       coach_assignments + assigned coach profile — profiles select
-       policy was extended in 0031: a client may read ONLY his
-       assigned coach's row via coach_of(auth.uid()) = id. 0032 (i18n
-       follow-up, owner feedback «الموقع لغتين»): coach_pages gains
-       headline_en/bio_en/specialties_en and the landing is BILINGUAL
-       per the site mirror law — EN canonical /coaches/[slug] + AR
-       mirror /ar/coaches/[slug], SAME slug both sides, shared server
-       component CoachLandingContent (per-URL language, never
-       localStorage; hreflang en+ar+x-default=EN; on-page floating
-       LanguageToggle navigates the prefix swap). Cross-language
-       FALLBACK: empty EN copy renders the AR content and vice versa
-       (a one-language page works on both mirrors). Coach editor
-       صفحتي العامة has an English-optional section + EN/AR preview
-       links; PUT /api/coach/landing persists the EN columns (42703 →
-       run-0032 hint).
-       TEAM MANAGEMENT (owner feedback «ما فيش طريقه لتعيين المدرب نفسه
-       بمعنى اخر اضافه مدرب للموقع»): adding a coach is NO LONGER
-       manual SQL — /api/admin/staff (requireAdmin) POST {email,
-       full_name?} auto-picks the path: email registered as CLIENT →
-       instant promote; new email → Supabase auth.admin.inviteUserByEmail
-       (coach sets his own password via the emailed link; profile then
-       flipped to role='coach' server-side, service role bypasses the
-       0017 no-role-change RLS). BOTH paths upsert the email into
-       coach_emails so auto_promote_coach_if_allowed() keeps protecting
-       the role on every login. PATCH {user_id, action:"demote"} flips a
-       coach back to client ONLY when coach_assignments holds zero rows
-       for him (reassign first — no orphaned 1:1s) and NEVER for admins;
-       it deletes the allowlist row so 0017 cannot flip him back on next
-       login. UI lives ON /admin/assignments as a third section (add-
-       coach card + demote link on coach staff cards) — one page owns
-       the whole coach lifecycle: add → assign clients → demote.
-       CLIENT ATTRIBUTION + COACH FEES (owner model 2026-08-29, migration
-       0033 — «المدرب مسؤول عن جلب عملائه»: coaches pay a FIXED
-       per-client fee (not a %), bring their own clients, have NO claim
-       on site clients; site clients belong to the admin/general coach;
-       AFFILIATE IS SITE-CLIENTS-ONLY; coach dashboards/permissions/
-       usage-limits are a LATER phase): (a) the rebuilt
-       auto_assign_client_to_admin() trigger resolves signup metadata in
-       priority order — coach_id (personal invite) → coach_slug (landing
-       page signup via /auth?mode=signup&coach={slug}) → fallback admin;
-       both paths only accept a target whose role='coach'. (b) Google
-       OAuth signups carry no metadata → the mh_coach_slug 30-day cookie
-       (coach-cookie.ts, set by AuthView from the ?coach= param) is
-       claimed by CoachSlugClaimer (root layout, inside AuthProvider)
-       via POST /api/coach/claim — which reassigns ONLY while the client
-       is still with an admin (never poaches a real coach's client).
-       (c) Coach-side invite: POST /api/coach/clients/invite (requireCoach)
-       sends a Supabase invite with coach_id metadata; existing clients
-       are REFUSED (409) — only the admin reassigns (owner answer 2).
-       (d) coach_fees table (coach_id PK, fee_per_client, currency,
-       RLS admin-write/coach-read-own) + /api/admin/coach-fees
-       (GET/PATCH requireAdmin) power the admin fee table on
-       /admin/assignments: live count × fee total per coach. (e)
-       CoachView shows the «عملاؤك الخاصون فقط» badge + «+ دعوة عميل»
-       invite form for plain coaches; the admin's own view is unchanged.
-- **COACH ACTIVATION + OFFLINE PAYMENTS + COACH AI QUOTA (owner model
-  2026-08-29, migration 0034 — «تفعيل الاشتراكات لكل عميل بعد الدفع عن
-  طريق المدرب»): the coach collects OUTSIDE the site (cash / Vodafone
-  Cash / InstaPay / bank transfer) and activates the subscription
-  himself; the site never touches that money — it only RECORDS.**
-    (a) extend_subscription() is now GUARDED (0034 rebuild): only the
-        service role (PayPal capture/webhook, server routes), an ADMIN,
-        or the client's ASSIGNED COACH may call it — the old
-        any-authenticated-user self-upgrade hole is closed.
-    (b) POST /api/coach/subscriptions/activate {client_id, tier,
-        months, amount?, method?, note?} (staff only): coaches are
-        verified against coach_assignments, targets must be
-        role='client', tier ∈ premium|pro|coaching, months 1-12; the
-        route runs extend_subscription via service role, writes a
-        coach_payments ledger row (RLS: admin all · coach own · client
-        reads own), and notifies the client. It must stay the ONLY
-        writer of coach_payments.
-    (c) The subscription form in CoachClientView collects
-        amount/method/note; the ledger powers «سجل تفعيلات المدربين»
-        on /admin/assignments and the «مفعّلة بواسطة مدربك» receipt
-        line on the client dashboard (DashboardView).
-    (d) PLAN-BALANCE QUOTA (owner decrees 2026-09-01 + 2026-09-02):
-        plan generation draws from the CLIENT'S ONE balance — the same
-        pool the member's EVO chat spends from (evo_chat_usage +
-        done ai_jobs for this client). The client's TIER decides BOTH
-        windows: WEEKLY cap 1 nutrition + 1 workout (Pro 2+2,
-        Monday-anchored UTC — tier-limits.ts planWeeklyQuotaFor) AND
-        MONTHLY total 4 nutrition + 4 workout (Pro 8+8, resets on the
-        1st — planQuotaFor). Enforced in POST /api/ai/jobs for
-        role='coach' (ownership check vs coach_assignments +
-        checkClientPlanQuota; failed jobs never burn quota), in
-        /api/ai/chat for the member (checkEvoPlanQuota), and displayed
-        by GET /api/ai/quota + GET /api/coach/ai-usage (clientBalance).
-        The legacy separate coach-side 4/4 cap (0034
-        COACH_AI_PLAN_LIMIT) was REMOVED 2026-09-02 — it double-capped
-        the same pool and contradicted the one-balance law for Pro
-        clients. EDITING (meal/exercise regenerate, content edits) and
-        MANUAL plan uploads are UNLIMITED; admins unlimited.
-- **COACH WALLET + RECEIPT REVIEW + MONTHLY QUOTA (owner model
-  2026-08-29, migration 0035 — «اقتراحاتك موافق عليها لكن paymob و فورى
-  لاحقاً»: the coach pays THE SITE a monthly fixed fee per client from
-  a WALLET; top-ups via the site's existing rails — InstaPay /
-  Vodafone Cash / PayPal LINK (no fixed prices) — with receipt upload
-  and MANUAL admin crediting; Paymob/Fawry automation is a later
-  phase):**
-    (a) 0035 tables: coach_wallets (balance >= 0, RLS admin-all /
-        coach-read-own), coach_topup_requests (pending → approved |
-        rejected, receipt_path REQUIRED, RLS admin-all / coach
-        insert+read-own) and coach_wallet_transactions (signed-amount
-        audit ledger, RLS admin-all / coach-read-own). The ONLY wallet
-        writer is coach_adjust_wallet() — SECURITY DEFINER, service-
-        role/admin-guarded, row-locked, raises 'insufficient wallet
-        balance' instead of going negative.
-    (b) ACTIVATION GATE («المدرب يقدر يفعل اشتراك عميل فقط لو المدرب
-        دفع للموقع للعميل»): /api/coach/subscriptions/activate now
-        computes fee_per_client × months for role='coach', refuses
-        with 402 insufficient_wallet when the balance is short, DEBITS
-        atomically BEFORE extend_subscription and REFUNDS if the
-        activation fails. Fee 0/unset = free activation; ADMINS are
-        wallet-exempt. coach_payments stays the audit row of what the
-        coach collected from HIS client (never the site's cut).
-    (c) TOP-UP FLOW: POST /api/coach/wallet/topup (staff, receipt
-        mandatory, receipts bucket reuse) → admin reviews on
-        /admin/wallets (GET /api/admin/wallets; PATCH
-        /api/admin/wallets/topups approve=atomic credit + notify,
-        reject=reason + notify; POST /api/admin/wallets/adjust = manual
-        ± with mandatory note). Coach surface: /coach/wallet (محفظتي —
-        balance, the rails with QR, request form, history, ledger)
-        added to the staff nav; admin link محافظ المدربين in
-        coachExtraLinks. SITE_PAYMENT_CONTACTS holds the manual rails.
-    (d) MONTHLY QUOTA (owner: «العداد شهرى»): the coach AI quota now
-        counts only the CURRENT UTC CALENDAR MONTH's done jobs —
-        coachAiMonthStartISO() applied in BOTH /api/ai/jobs (enforce)
-        and /api/coach/ai-usage (readout). Editing + manual upload
-        stay unlimited; client tier limits unchanged.
-    (e) PAYPAL AUTOMATED TOP-UP (owner directive 2026-08-29: «PayPal
-        معمول ربط بـ API و ويب هوك بالفعل — نضيف دفع المدربين ويفعل بعد
-        الدفع الناجح ويضاف الرصيد الى محفظة المدرب؛ التفعيل اليدوى من
-        الادمن لوسائل دفع انستاباى وفودافون كاش»): create-order accepts
-        { purpose: 'wallet_topup', amountEgp } (staff-only, no fixed
-        prices — the coach types his own EGP amount; the server converts
-        to the USD charge via PAYPAL_USD_TO_EGP_RATE in coach-limits.ts,
-        the SINGLE source of truth for server math AND client display —
-        update that one constant when the rate drifts). capture-order
-        branches on custom_id.purpose: verifies user_id (IDOR) +
-        PayPal-captured USD vs egp_amount (± $0.02), then credits via
-        coach_adjust_wallet with a DETERMINISTIC UUID5 ledger ref
-        (payPalOrderRefUuid(orderId)) so retries/replays are idempotent,
-        inserts an auto-APPROVED coach_topup_requests row (receipt_path
-        '' — automated flow) and notifies the coach. The PayPal webhook
-        stays LOG-ONLY — it must NEVER credit (double-credit race).
-        InstaPay/Vodafone Cash remain the manual receipt rails in (c).
-    (f) COACH SELF-REGISTRATION (owner directive 2026-08-29: «التسجيل
-        الفورى» via the /for-coaches funnel): POST /api/coach/register
-        is PUBLIC (rate-limited 3/10min/IP, honeypot field `website`)
-        and creates the auth user SERVER-SIDE (email_confirm: true →
-        instant activation) — role is NEVER taken from client metadata:
-        the service role promotes the profile to 'coach' and upserts the
-        coach_emails allowlist (0017 auto-promote keeps protecting it),
-        then seeds a 0-balance coach_wallets row + welcome/admin
-        notifications. Migration 0036 HARDENS handle_new_user(): signup
-        metadata can never set a role — profiles are always born
-        'client' and staff roles are granted server-side only. Coach
-        authority covers HIS OWN clients only (never site clients);
-        client prices belong to the coach (he sets and collects them;
-        the site takes the FIXED activation fee from (a), never a
-        percentage); coaches may also subscribe to site memberships
-        (Premium/Pro) for the site's own features.
-    (g) COACH BOOST PACKAGE (owner directives 2026-08-30: pricing
-        «اسعار المدربين لكل عميل تتعمل ٣٠٠ الشهر / ٨٠٠ ٣ شهور»، «أعلن
-        معنا»، «دعم للمدربين غير دعم الموقع»، «دعم العملاء خاص بالمدرب»،
-        «معادا زر واتساب لن نضيفها»):
-        1) OWNER PRICING — per-client fees are PACKAGE-based in
-           coach-limits.ts (COACH_CLIENT_PACKAGES: 1mo=300, 3mo=800 EGP;
-           coachActivationCostEgp is the single debit calculator used by
-           /api/coach/subscriptions/activate). Package prices ALWAYS win
-           for 1/3 months; other durations stay linear on the coach's
-           admin-set fee_per_client (else 300/mo). Admins stay
-           wallet-exempt.
-        2) ADS («أعلن معنا») — coach_ads table (0037): fixed-duration
-           packages (COACH_AD_PACKAGES in coach-limits.ts — OWNER
-           TUNABLE, trial values set 2026-08-30: week=100, month=350,
-           quarter=900 EGP) paid by
-           ATOMIC wallet debit (coach_adjust_wallet, kind 'adjust') in
-           POST /api/coach/ads; debit-before-write with refund on
-           failure; buying while active EXTENDS ends_at. The ad is a
-           featured card on the homepage «مدربون مميزون» strip served by
-           the PUBLIC GET /api/coaches/featured (time-boxed, ends_at >
-           now). Admin visibility via admin_notifications.
-        3) PUBLIC PROFILE ENRICHMENT — coach_pages gains photo_url,
-           results_photos (jsonb ≤6), instagram/facebook/tiktok/youtube
-           (0037). Photos upload browser-direct to the PUBLIC
-           'coach-public' storage bucket (5 MB, jpg/png/webp, own
-           `<uid>/` folder enforced by storage RLS); the API only
-           accepts same-origin /storage/v1/object/public/coach-public/
-           paths or https:// URLs. Private-bucket avatar URLs 403 for
-           anonymous visitors — the public page therefore prefers
-           photo_url over profiles.avatar_url.
-        4) COACH SUPPORT CHANNEL — coach_support_messages (0037):
-           coach → site threads at /coach/help (staff nav «دعم
-           المدربين»); admin replies via /api/admin/coach-support
-           (AdminGate) + instant notification. CLIENT SUPPORT BELONGS
-           TO THE COACH — the site team supports coaches on platform
-           matters only; the legal pages (terms/privacy, AR+EN) carry
-           the full coach-liability disclaimer.
-        5) SHARE BUTTONS LAW — icons ARE allowed on share buttons;
-           the WhatsApp share target is REMOVED by owner decree
-           (CoachShareButtons: Facebook/X/Telegram + copy-link,
-           lucide icons). Page content sections remain text-only.
-        6) WHATSAPP CONTACT LAW (owner directive 2026-08-30: «زرار
-           تواصل واتساب يظهر للعملاء بعد تفعيل اشتراكهم — المدرب يضيف
-           رقم واتساب الخاص به») — the coach saves his own number in
-           the landing editor (coach_pages.whatsapp_phone, normalized
-           to international digits server-side). It is served ONLY
-           through /api/my/coach-whatsapp, which gates on the caller's
-           ACTIVE subscription (status='active' AND end_date > now) +
-           his coach_assignments row; MyCoachCard renders the button
-           from that response. The number NEVER appears on the public
-           landing page, in featured strips, or to any visitor, and it
-           is NOT a share target (see 5).
-        7) AFFILIATE EXCLUSION LAW (owner directive 2026-08-30: «لو
-           العميل مسجل فى الموقع واختار مدرب محدد يقدر يشترك لكن لا
-           يحتسب فى نظام الافيليت») — a client with a coach_assignments
-           row (coach landing signup, invite, or admin assignment) can
-           buy any site plan, but his payment NEVER generates affiliate
-           commission. The gate lives at the only two commission choke
-           points: reviewSubscriptionRequest() (manual receipt approval)
-           and serverProcessAffiliateCommission() in
-           /api/paypal/capture-order (automated PayPal). Both check
-           coach_assignments by client_id BEFORE the engine; a hit skips
-           the whole engine (no affiliate_transactions row, no
-           affiliate_commissions row, no referral_earnings, no
-           notification, referrals row simply stays pending). The coach
-           client activation route (/api/coach/subscriptions/activate)
-           never touched the affiliate system (wallet debit only).
-        8) ADMIN CLIENTS SPLIT LAW (owner directive 2026-08-30: «داش
-           بورد الادمن العملاء محتاج فصل بين عملاء المدربين وعملاء
-           الموقع») — the staff clients surface (CoachView, «العملاء»)
-           carries an ADMIN-ONLY top-level segment above the status
-           tabs: كل العملاء / عملاء المدربين (assigned_coach_id present)
-           / عملاء الموقع (no assignment), each with a live count,
-           filtering the table before search + status tabs. Coaches keep
-           their RLS-scoped list untouched (no segment control).
-        9) COACH CLIENT BOUNDARY LAW (owner reports 2026-08-30:
-           «المدرب شايف اشتراك العميل فى الموقع نفسه (عضويات الموقع)
-           ده خطأ» + «المدرب قدر يولد خطط للعميل بدون ما يدفع او يفعل
-           اشتراك العميل») — the coach's world is HIS coaching product
-           only; site memberships are invisible to him:
-           a) VISIBILITY: coach client surfaces (CoachView list + pills,
-              CoachClientView subscription tab) show coaching-tier data
-              ONLY for coach callers (admins keep the full picture,
-              incl. premium/pro pills + best-tier sub columns).
-           b) GENERATION GATE: plan generation (AI plan_nutrition/
-              plan_workout via /api/ai/jobs) AND manual plans
-              (/api/plans/normalize + addPlan) require the client to
-              carry an ACTIVE coaching subscription (status='active',
-              end_date>now) AND the caller to be his assigned coach —
-              enforced server-side (402 client_not_activated) AND at
-              the DB level (plans_insert_coach RLS, migration 0041).
-              Admins bypass (staff semantics).
-           c) ACTIVATION TIER: coaches activate ONLY tier='coaching'
-              ($6/$16 wallet debit); premium/pro are SITE memberships
-              sold on the site, never from the coach dashboard
-              (route returns 403 coach_tier_forbidden for coaches).
-           d) DB HARDENING (migration 0041): subscriptions RLS — coach
-              selects coaching rows only, direct insert/update revoked
-              (the old insert/update policy let a console user bypass
-              the wallet debit entirely); get_coach_client_list rebuilt
-              role-aware (sub_* columns coaching-only for coaches).
-        10) TERMINOLOGY LAW — SITE COACHING vs COACH SYSTEM (owner
-            decree 2026-08-30: «فى التباس هنا بين كوتشينج الموقع
-            وكوتشينج المدربين… لازم نعمل فصل مصطلحات… ويتم توثيقه
-            لعدم حدوث اى لبس مستقبلاً»). TWO different money worlds
-            that share the word «كوتشينج» — never mix them:
-            a) SITE COACHING / كوتشينج الموقع (B2C — ADMIN ONLY):
-               everything sold on /memberships (premium, pro, AND the
-               site's own coaching product — kept per owner answer
-               «أ»). Client pays THE SITE: PayPal = auto-activate
-               (capture-order), manual InstaPay/Vodafone Cash = receipt
-               uploaded in checkout → subscription_requests. Reviewed
-               ONLY by the admin at /admin/payments (AdminPaymentsView;
-               the old /coach/payments page is REMOVED). DB: 0043
-               dropped every coach RLS policy on subscription_requests
-               (select/update/delete = is_admin() only). The
-               payment_request notification routes to the admin, never
-               to the assigned coach. Data type: premium/pro rows are
-               subscription_type='membership'.
-            b) COACH SYSTEM / نظام المدربين (B2B — external, per coach):
-               the coach collects from HIS client OUTSIDE the site
-               (cash / Vodafone Cash / InstaPay), then activates from
-               the client page. The site NEVER touches that money — it
-               RECORDS it (amount/method/note in coach_payments) and
-               takes its fee from the coach WALLET: $6/client-month,
-               $16/3-months, debited per activation; repeated wallet
-               debits = duration extensions / renewals. Coaching tier
-               ONLY (0041 c). Coaches have NO payment-request surface;
-               their money screens are the client page + /coach/wallet.
-               Data type: coaching rows are subscription_type='coaching'.
-            c) DATE COMPUTATION LAW (owner: «فى خانتين لتاريخ البدء
-               والانتهاء بيحدّثوا يدوياً وده خطأ») — start/end dates are
-               NEVER hand-edited. Duration is picked from the existing
-               buttons and extend_subscription (0018 math) computes the
-               dates: active same-tier sub → months stack on the
-               remaining end_date; otherwise now → now+months. The UI
-               shows a computed PREVIEW only (CoachClientView, i18n
-               coach.datesAuto*); the old manual date inputs were
-               silently ignored by the API and are removed.
-            d) OLD-DATA REALIGNMENT (migration 0043): probe grid first
-               (pending requests by tier, coach-activated non-coaching
-               ledger rows, type mismatches), then subscription_type
-               normalized to the tier. History is preserved — no
-               destructive corrections.
-            e) COACHING-PAGE PRICE REVERT (owner decree 2026-08-30,
-               0046: «الأسعار اللى شيلتها هي الصحيحة والمربوطة مع باى
-               بال، والسعر الجديد ٣٩ هو الخطاء») — the /coaching page
-               keeps selling the ORIGINAL Starter ($20/mo) / Elite
-               ($40/mo) products; the 0045 unified $39.99/$359 cards on
-               that page were REVERTED. The $39.99 coaching product
-               stays ONLY on /memberships (law a). Invariant: clients
-               PAY the storefront price (plans.ts / memberships.ts —
-               never mix the two price systems), but subscription rows
-               are ALWAYS written under the canonical model tiers via
-               canonicalModelTier() (starter → premium, elite → pro) in
-               BOTH activation paths (PayPal capture-order service role
-               + admin approval). The 0045 DB guard
-               subscriptions_tier_model_guard therefore never rejects a
-               real payment, and price validation (M8) stays on the
-               ORIGINAL product id — Starter charges exactly $20.
-- **GLOBAL USD LAW (owner directive 2026-08-30: «التسعير يكون كله
-  بالدولار لكامل الموقع لأن الموقع عالمى وغير محدد لمصر — احسب فرق سعر
-  العملة، مثلا ٣٠٠ جنيه تصبح ٦ دولار») — fixed owner rate 50 EGP = $1:**
-  every platform-side money figure is USD ONLY.
-    1) SOURCE OF TRUTH: coach-limits.ts — COACH_CLIENT_PACKAGES
-       (1mo=$6, 3mo=$16) + coachActivationCostUsd() (renamed from
-       coachActivationCostEgp) + COACH_AD_PACKAGES (week=$2, month=$7,
-       quarter=$18). PayPal wallet top-ups are 1:1 USD (the coach types
-       USD, pays USD, is credited USD); the old PAYPAL_USD_TO_EGP_RATE /
-       paypalUsdFromEgp helpers are REMOVED.
-    2) SCHEMA (migration 0038): coach_ads.price_egp → price_usd (rename);
-       coach_wallets/coach_topup_requests/coach_fees currency → 'USD'
-       (defaults flipped too); existing EGP amounts (balances, topups,
-       ledger rows, fee_per_client) converted ONCE at ÷50, guarded on
-       price_egp existence so re-running can never double-convert.
-    3) LEGACY COMPAT: create-order accepts amountEgp (÷50) and
-       capture-order accepts a legacy egp_amount custom_id (÷50) so
-       pre-0038 in-flight orders never strand money.
-    4) DISPLAY LAW: user-facing money strings show `$X` / `USD` /
-       «دولار» — never EGP/ج.م. The coaching page EGP-equivalent
-       subtitles were removed; the site is worldwide, never
-       Egypt-specific.
-- **BRAND NAME LAW (owner directive 2026-08-30: «تاكد ان الاسم المكتوب
-  فى الموقع فى اى وصف او صفحات هو (Musclehubeg)»):** the site name is
-  written EXACTLY «Musclehubeg» in every user-visible string — metadata
-  titles/descriptions/OG, i18n copy, legal pages, landing pages,
-  affiliate content, AI-content prompts, PayPal order descriptions and
-  the public/ affiliate banner SVGs. Legacy spellings «MuscleHubEG» /
-  «MuscleHub Egypt» / «MuscleHub» are FORBIDDEN in new code. Lowercase
-  technical identifiers (musclehubeg.vercel.app, payment handles,
-  package name) are not brand text and stay as-is.
-- **USAGE LIMIT ENFORCEMENT LAW (2026-08-28, T-AI-DEEP-AUDIT-V2, owner
-  directive «توسع وعمق اكبر … والتأكد من ايفو وطبيعه عضوية المستخدم فى
-  حدود الاستخدام»):** every limit advertised in `memberships.ts` MUST be
-  enforced SERVER-SIDE at the only route that can consume it, and the
-  client UI MUST mirror the SAME resolved tier — display/enforcement
-  drift is a defect even when the server stays authoritative.
-    1) ENFORCEMENT MATRIX (verified 2026-08-28): evoChatDailyLimit →
-       `/api/ai/chat` (evo_chat_usage ledger, record-before-dispatch);
-       evoNutritionPlanLimit/evoWorkoutPlanLimit → `/api/ai/chat`
-       plan-creation intents via `evo-intent.ts` classification, counted
-       per domain (sources `plan_nutrition`/`plan_workout`) monthly-UTC;
-       evoSwapLimit → `/api/ai/jobs` enqueue (checkAndRecordSwap, weekly
-       Monday-anchored); mealPlannerMaxMeals/MaxSaved →
-       `/api/tools/save-meal-plan`; savedResultsLimit →
-       `/api/tools/save-result`; adsEnabled → AdSenseAd via
-       useMembershipTier. savedResultsExport/mealPlannerExport are
-       client-only by design (user's own data, no AI cost).
-    2) ANON THROTTLE: anonymous chat traffic is throttled SERVER-SIDE
-       per SALTED-SHA-256(client IP) in `evo_anon_usage` (migration 0028,
-       no policies — service-role only, no raw IPs stored) at the free
-       tier daily limit. Fail-open on ledger errors, graceful 501-style
-       degradation before the table exists.
-    3) CLIENT PARITY: EvoChatProvider resolves the tier
-       (useAuth + useMembershipTier) and exposes `dailyLimit: number |
-       null` — paid tiers are NEVER client-locked by the free 10/day
-       counter; quota UI keys off the resolved limit, not off "being
-       logged in". getSubscriptionForClient filters
-       `status='active' AND end_date>now()` (expired subs never look
-       paid client-side). getSwapUsage displays the SAME weekly window +
-       evoSwapLimit as /api/ai/jobs enforces (the retired starter/elite
-       `swapLimitFor` system must not be used for limits).
-    4) PLAN QUOTA vs SWAP QUOTA: plan-creation intents consume the
-       MONTHLY per-domain quota; swap/regenerate intents stay on the
-       WEEKLY /api/ai/jobs quota. Never double-count a message in both.
-       Changing any advertised number happens ONLY in memberships.ts.
-- **SCHEDULE HEALTH LAW (2026-08-27 incident):** GitHub's scheduler can
-  silently DE-REGISTER a repository's scheduled workflows — every
-  `schedule` trigger stops firing repo-wide while `push` / `dispatch`
-  runs keep working (this repo: last schedule fire 2026-08-26T16:39Z,
-  then 26+ hours of total silence; blog stuck at 2 posts vs the
-  6/day target; `process-ai-jobs.yml` had 0 runs since addition).
-    1) DETECT before anything else: any report of "the blog stopped
-       publishing" MUST start with a schedule forensics query —
-       `GET /actions/runs?event=schedule` for the last scheduled fire
-       timestamp — NOT with re-reading pipeline code.
-    2) REMEDY (both steps, in order): (a) re-enable every scheduled
-       workflow via `PUT /actions/workflows/{wf}/enable` (HTTP 204),
-       (b) push a touching commit that edits each affected workflow
-       file to force trigger re-registration with the scheduler.
-    3) BACKFILL: after any schedule outage, manually
-       `POST /actions/workflows/{wf}/dispatches` the blog pipelines so
-       the day's articles still publish — never leave a content day
-       empty waiting for the next cron slot.
-    4) VERIFY: confirm at least one scheduled run exists after the
-       remedy (next slots: AR 05/11/18 UTC, EN 12/16/22 UTC, ai-jobs
-       */10). If the next TWO slots per workflow still show no
-       scheduled fire, escalate with forensics — do not silently retry.
-    5) The 3-slots-per-day design doubles as schedule-outage retry:
-       a skipped slot self-heals at the next slot the same day — but
-       only if the scheduler itself is registered (see 1–2).
-    6) SCHEDULER-INDEPENDENT BACKSTOP (never trust GitHub's scheduler
-       alone): `/api/cron/dispatch-pipelines` (CRON_SECRET, fail-closed)
-       tops each language pipeline up to its daily quota by counting
-       today's PUBLISHING runs (failure/cancelled excluded — a failed
-       run consumed a slot without producing an article) and dispatching
-       only the missing difference; it also dispatches process-ai-jobs
-       when its last run is >15 min stale. `vercel.json` fires it daily
-       at 21:00 UTC (Hobby's remaining cron slot) as the guaranteed
-       6/day floor. Requires Vercel env `GITHUB_DISPATCH_TOKEN`
-       (fine-grained PAT, this repo only, Actions: Read and write) —
-       never commit the PAT into the repo (§3.2). Exact-slot stagger and
-       the ai-jobs worker cadence are restored by pointing an external
-       cron service (e.g. cron-job.org, every 10 min) at the same
-       endpoint — dedup makes extra firings safe.
-    7) QUOTA vs SCHEDULE forensics ordering: when a pipeline run fails
-       on `free-models-per-day` 429s (OpenRouter free tier, both
-       accounts, reset midnight UTC), do NOT retry — the day's quota is
-       spent, not the trigger. Sustainable 6/day requires owner credits
-       on OpenRouter ($10 → 1000 free requests/day/account) or stricter
-       per-article AI budgeting. Diagnose quota BEFORE touching
-       schedules; diagnose schedules (see 1) BEFORE touching code.
-- **PLAN JOB RECOVERY LAW (2026-08-28, T-4PILLAR-COMPLETE, owner
-  directive «تم ، ابنيهم الاول»):** every long-running AI queue job that
-  materializes into a USER-VISIBLE artifact (a `plans` draft row) must be
-  treated as SURVIVABLE state — the enqueueing tab closing, reloading, or
-  timing out must NEVER strand a finished job's result inside `ai_jobs`.
-    1) REGISTRY: CoachClientView persists every enqueued
-       plan_nutrition/plan_workout job in localStorage
-       (`mhe:pending-plan-jobs` — pure module `src/lib/plan-jobs.ts`,
-       24 h TTL, cap 40) and re-attaches a watcher on every mount.
-       Completion auto-saves the draft via addPlan and marks the job id
-       saved (`mhe:saved-plan-jobs`, cap 100) so recovery never
-       double-saves. The client-side swap watcher (`mhe:pending-swaps`)
-       remains the template for this pattern.
-    2) RECOVERY CARD: `/api/ai/jobs?limit` returns `payload` for OWN
-       rows so the ai-plans tab can resolve a finished plan job's
-       `payload.clientId`; finished jobs older than the 5-min
-       live-watcher grace and not saved/pending surface as a one-click
-       "حفظ كمسودة" recovery card. Any new plan-like job type MUST plug
-       into `selectRecoverablePlanJobs` (single filter choke point).
-    3) REGENERATION ORDER: a regenerate flow enqueues the replacement
-       FIRST and deletes the old draft only AFTER the new plan arrives
-       AND only if it is still `status='draft'` — a failed/late
-       generation must never destroy an existing (possibly approved)
-       plan.
-    4) STAFF QUOTA SEMANTICS: staff requesters (role `coach` OR `admin`)
-       bypass the weekly swap quota at `/api/ai/jobs` — meal/exercise
-       swaps are the staff's PLAN-EDITING tools, not client
-       self-service. The client-facing C16 weekly limits (free 0 ·
-       premium 3 · pro 6 · coaching 3) are untouched. Coach-side
-       exercise swap lives in PlanViewerModal edit mode (per-exercise
-       Wand2 button → exercise_regenerate → in-place replace → explicit
-       حفظ).
-- **EVENT-DRIVEN AI DISPATCH LAW (2026-08-28, T-PLAN-GEN-ARTICLEGEN,
-  owner «توليد الخطط لا يعمل» + «توليد المقالات للكوتش غير موجود»):**
-  the `ai_jobs` queue worker (`process-ai-jobs.yml`) is a GitHub cron —
-  and GitHub de-registered repo-wide scheduled workflows (forensics: the
-  every-10-min worker had exactly ONE run ever, a manual dispatch; the
-  Phase-18 API-enable remedy did NOT restore firing). Enqueue alone is
-  therefore NOT enough: **every enqueue path MUST push-trigger the
-  runner** via `src/lib/ai-runner-dispatch.ts` (`dispatchAiJobsRunner()`,
-  GitHub workflow-dispatch API, 8 s timeout, fail-open). The scheduler
-  cron and the daily Vercel `/api/cron/dispatch-pipelines` catch-up are
-  BACKSTOP layers, never the primary trigger. Requirements:
-    1) `POST /api/ai/jobs` answers with `runnerDispatched: boolean` +
-       `etaMinutes` (3 when pushed, 10 otherwise) — UIs surface the
-       honest ETA; a `false` push means only backstops remain and the
-       owner must check `GITHUB_DISPATCH_TOKEN` on the deployment.
-    2) `GITHUB_DISPATCH_TOKEN` (Vercel env, fine-grained PAT, this repo
-       only, Actions: Read and write) is a REQUIRED production secret
-       for interactive AI generation — its absence silently degrades the
-       queue to once-a-day processing.
-    3) Any NEW job type must be added in FOUR places: `AI_JOB_TYPES` +
-       `JOB_GATE` + `sanitizeJobPayload` (`ai-jobs.ts`), the processor
-       registry (`ai-job-processors.ts`), and — for required fields —
-       throw `JobPayloadError` (route maps it to HTTP 400, never 500).
-    4) COACH ARTICLE GENERATION is the restored `article_generate` queue
-       type (Phase-15's client-side generator deletion left coaches with
-       no generation entry; the old BlogAdminView banner pointed at a
-       dead button). Surface: BlogAdminView modal → enqueue → reload-
-       surviving watcher (`mhe:pending-article-job`, same pattern as
-       plan jobs) → sessionStorage hand-off (`mhe:ai-article-draft`) →
-       BlogEditorView `?ai=1` prefill with an explicit AI-provenance
-       banner. Drafts are NEVER auto-published; slug follows the M15
-       Latin-only law via `articleSlugFromTitle`.
-    5) TOPIC-AUTO LAW (2026-08-28b): `article_generate` topic is
-       OPTIONAL — an empty/short topic means the PROCESSOR picks the
-       title via `pickSmartTopic()` (`blog-topics.ts`), the SAME smart
-       topic brain the automated blog pipeline uses (AI pick in the
-       requested language, pillar rotation, curated per-language
-       fallbacks, duplicate-check against published posts). The
-       sanitizer must NEVER throw for a missing topic; the result carries
-       `autoTopic: true` + `focus_keyword` + `topic_rationale` for
-       provenance (owner: «مفروض يختار العنوان بنفس نظام التوليد»).
-    6) TYPE-ROTATION LAW (2026-08-28c, owner: «عايز يكون فى تدوير لنوع
-       المقالات»): auto-picked topics MUST rotate across the content
-       pillars. `pickSmartTopic` merges published posts AND recent DONE
-       `article_generate` results (`getRecentGeneratedTopics`) into the
-       rotation/duplicate state — a pillar just generated (even
-       unpublished) is excluded from the next auto-pick; with zero
-       history the pillar is randomized (cold start never pins the first
-       pillar). BlogAdminView exposes «نوع المقال» pills: "تدوير تلقائي"
-       (default, sends no category) or one pinned pillar; the picked
-       category flows into the draft prefill. The processor's article
-       call reserves maxTokens ≤ 5000 so prompt/4 + maxTokens + 800 stays
-       under the 7200 Groq-eligibility line — reserving 7000+ LOCKS the
-       job out of Groq (OpenRouter-only → free-pool 429 storms).
-    7) DRAFT MATERIALIZATION + HONEST RUN COLOR (2026-08-28d, owner:
-       «لم تنجح برده… بيفشل node 20 وبعد كده مبيكملش وبيطلع اشارة خضراء»):
-       (a) every completed `article_generate` MUST be materialized as a
-       blog_posts DRAFT (`materializeArticleDraft`, is_published=false,
-       source=ai:article_generate) — the result carries post_id and the
-       watcher routes to /admin/blog/:id; an article may NEVER live only
-       inside ai_jobs.result. (b) process.mts exits 1 when any job fails
-       permanently → the workflow turns RED; a GREEN run genuinely means
-       done=N failedPermanent=0. (c) GHA actions pinned to v5
-       (checkout/setup-node, Node 24 internals) — Node 20 deprecation
-       warnings in logs are HISTORY; node-version stays 22.
-    8) ARTICLE QUALITY FLOOR + ANTI-FORMULA (2026-08-28e, owner:
-       «مقال سيء ونفس العناوين الثابتة القديمة ومدة التوليد قصيرة جدا»):
-       (a) the article contract is 1100-1400 words MANDATORY with
-       6-9 ## sections, concrete numbers, common-mistakes + step-by-step
-       sections, and a non-generic hook; (b) each generation draws a
-       RANDOM opening archetype (scenario/question/statistic/mistake/
-       contrast) so consecutive drafts never share one skeleton;
-       (c) markdown under ~550 words throws QUALITY FLOOR → failJob
-       requeues (different lead model) → only deep drafts materialize —
-       a shallow 5-second draft can never land as done; (d) maxTokens
-       6000 keeps the chain Groq-eligible (≈6975 < 7200) while funding
-       the depth contract.       2026-08-28g BUNDLE PARITY (owner: «نرجع للمشكلة الاسبق… المقال
-       خرج مسوده بشكل سيء وناقص عناصر كتير» — docs-first review found the
-       coach generator produced a fraction of what blog-generate.ts's
-       ArticleBundle delivers): the generation contract now includes
-       (a) FAQ 4-6 Q&As persisted into blog_posts.faq_json — the public
-       article page renders it as a real FAQ section; (b) 2-3 INTERNAL
-       links woven from REAL published slugs (internalLinkCandidates,
-       same-language, offered to the model as ready [anchor](link) pairs
-       — insertLinksIntoArticle parity); (c) meta_title distinct from
-       title; floors: ≥750 words + ≥5 "## " sections (recalibrated
-       2026-08-28h: gpt-oss-120b hovers 728-880 — the 800 floor was a
-       coin-flip that burned run 33176102145's final attempt at 728),
-       prompt asks 900+ so accepted drafts stay deep.
-    9) OWNER IMAGE-SWAP LAW (2026-08-28f, «خلال الانتظار محتاج اقدر اعدل
-       الصور للمقال… لان احيانا الصور بتكون غير مناسبة»): the editor's
-       featured-image card carries «✨ اقترح صورة آمنة / 🔄 صورة مختلفة»
-       backed by POST /api/blog/suggest-image (coach-only) — a thin call
-       over the SAME v3.1 sourcing pipeline with an EXCLUDE list:
-       rejected URLs flow back (query-string-insensitive compare via
-       isExcludedImageUrl) so the same photo is NEVER suggested twice in
-       one session; candidates rotate via variationKey. Nothing is
-       written server-side — the editor applies the accepted candidate
-       to featured_image/cover_alt and saves with the post.
-   10) PROJECT-WIDE PREVENTION LAW (2026-08-28, owner: «محتاج اتاكد ان
-       مفيش مشاكل مشابهة تحصل مستقبلا فى المشروع كله مش المدونة بس لان
-       المشاكل شبة دى بتتكرر كتير فى مختلف الاماكن») — the recurring
-       incident classes are now PERMANENTLY guarded, project-wide:
-       (a) CLASS A (button → dead target): CI guard
-       `scripts/check-ui-wiring.sh` (in guard-stale-refs.yml) fails the
-       build on any literal fetch("/api/…") without a matching route file;
-       (b) CLASS B (type without processor / orphan processor / ungated
-       type): the same guard + ai-jobs-visibility.test.ts pin
-       AI_JOB_TYPES ↔ PROCESSORS ↔ JOB_GATE ↔ JOB_LABELS exact parity in
-       BOTH directions (TypeScript can't: PROCESSORS is Record<string,…>);
-       (c) CLASS C (dishonest success): every scripts/*-runner/* must
-       carry an explicit non-zero exit path (CI-enforced); (d) SILENT ROT:
-       GET /api/ai/queue-health (coach-only) exposes counts / oldest
-       queued age / last done / last successful GHA run + Arabic issue
-       list, surfaced as a live health line in the BlogAdminView AI
-       banner. DEFINITION OF DONE for any future feature: button → route
-       exists (CI), job → processor (CI + test), result has a VISIBLE
-       materialization, runner exits honestly (CI), docs updated in the
-       SAME commit.
-   11) RATE-LIMIT RESILIENCE LAW (2026-08-28h, run 33176102145 — owner:
-       «اعتقد الكوتا خلصت… لو ده السبب احنا عندنا مشكلة اكبر»): free-tier
-       429s are TRANSIENT (Groq TPM resets per minute; OpenRouter shared
-       pools refill) — a retry must OUTLIVE the window, not re-burn it.
-       The runner sleeps 70s after any rate-limit requeue before the next
-       claim; heavy article calls try maxModels 5 (five independent rate
-       buckets: nemotron/groq-120b/gemma-31b/groq-20b/gemma-26b) instead
-       of 3. Back-to-back retries dying inside one TPM window are a
-       runner bug, not provider fate.
-   12) QUALITY-FIRST LAW — OWNER GENERAL CONDITION (2026-08-28i, «قبل ما
-       اجرب عايز منضحيش بالجوده للمقالات او توليد الخطط نهائى ده شرط عام
-       لازم الجوده لاى شىء تكون اعلى جوده ممكنة لان ده هدف الموقع الاساسى»):
-       the site's PRIMARY goal is maximum quality for EVERYTHING.
-       (a) The ASK (generation prompt contract) is ALWAYS the maximum
-       bar — article 1100-1400 words + FAQ + internal links + self-check;
-       NEVER lowered for model convenience, rate survival, or speed.
-       Floors are rejection NETS below the ask, never the target.
-       (b) Model order = QUALITY order (strongest first); smaller models
-       are last-resort fallbacks and must never be promoted above stronger
-       ones. Resilience work (maxModels buckets, cooldowns) increases
-       AVAILABILITY of strong models — it never substitutes weak output.
-       (c) Plan generation carries the same contract: full-depth prompts,
-       multi-bucket chains (nutrition 5 / workout 4 + humane 35s window).
-       (d) Any change touching prompts, floors, or model order must
-       PRESERVE OR RAISE the ask — lowering requires explicit owner
-       approval in the same commit message.
-   13) SEO-SLUG + IMAGE BUNDLE LAW (2026-08-28i, owner incident
-       «خرج مسودة بدون صور و slug مكتوب فيه post-202608281422 وغيره من
-       مشاكل»): every article_generate draft lands COMPLETE.
-       (a) SLUG: the model produces an English SEO slug inside the JSON
-       contract (3-6 lowercase words translating the topic's MEANING —
-       Arabic titles are never transliterated into URLs); the
-       sanitizeModelSlug net enforces the M15 latin-only law and the dated
-       post-YYYYMMDDNNNN articleSlugFromTitle fallback is the LAST net
-       only (both model slug AND title latin core unusable).
-       (b) IMAGES: the same JSON contract carries image_queries (3-5
-       ENGLISH photo-search phrases — photo pipelines are
-       language-independent and Pexels results are far better in English
-       for AR posts, same choice as the automated pipeline's imagePlan).
-       fetchFeaturedImage (Pexels-first, NSFW/immodest-screened) resolves
-       them; images[0] = featured_image + cover_alt on the materialized
-       draft, images[1..] = embedBodyImages at ## section boundaries.
-       process-ai-jobs.yml passes PEXELS_API_KEY to the runner.
-       (c) GRACEFUL DEGRADE: image/slug enrichment can NEVER fail the
-       article — any failure lands the draft without images exactly as
-       the pre-fix flow (the «بدون صور» prompt line stays: the model must
-       not invent image URLs; real photos come only from the safe pipeline).
-       14) ONE-SLUG-LAW (2026-08-28j, owner: «مش مفروض ان التوليد التلقائي
-       وكذلك من لوحة الكوتش موحد؟ كذلك ادوات التحسين هل بتتبع نفس
-       النظام؟»): ALL slug logic lives ONLY in src/lib/slug.ts
-       (sanitizeModelSlug / slugifyAscii / articleSlugFromTitle /
-       resolveSlug). Before this law the same logic existed in FIVE
-       drifted copies (p5-publish local slugify, blog-pipeline inline
-       slugBase sanitize, ai-jobs-client articleSlugFromTitle,
-       ai-job-processors sanitizeModelSlug, blog-admin raw timestamp).
-       The slug-law canaries (src/lib/__tests__/slug-law.test.ts) read
-       the actual sources and FAIL THE BUILD if a local copy reappears —
-       the automated pipeline and the coach generator can never drift
-       apart again. Re-export bridges (ai-jobs-client,
-       ai-job-processors) keep historical import paths alive.
-       SIXTH DRIFT (2026-08-28k): the completion audit of «أدوات
-       التحسين» found a hidden local copy in BlogEditorView updateTitle
-       that KEPT ARABIC characters — an Arabic title auto-filled an
-       Arabic slug the M15 save gate then rejected. Migrated to
-       articleSlugFromTitle; the canary now also reads the editor source
-       with comments stripped (documenting the old pattern stays legal,
-       executing it fails the build). Improvement tools themselves are
-       TEXT TRANSFORMERS returning to a copy-only panel — slug/image
-       laws N/A; the M15 save gate remains the boundary verifier.
-       RECOVER-RESULTS LAW (2026-08-28, owner: «عملت تجربتين من
-       المكانين ولم يحدث شيء»): tool results are BACKGROUND jobs
-       landing 2-5 min after the click; the panel is memory-only, so
-       navigating during the wait stranded finished results in ai_jobs
-       with no way back (GHA forensics: run#14 done=3 SUCCESS — the
-       system worked, the UI lost the winnings). The editor now
-       hydrates DONE article_tool/social_post results (≤3h) from
-       GET /api/ai/jobs on mount + a manual «تحديث النتائج» button,
-       marked «نتيجة سابقة», with a 2-5 min ETA hint under the grid.
-       Formatting is unified (formatToolResult/formatSocialResult) so
-       fresh and recovered results render identically.
-       COPY-VS-DISPLAY LAW (2026-08-28, owner: «النسخ بياخد الرسالة
-       كلها مش المطلوب فقط»): aiResults entries carry {display, copy} —
-       the panel DISPLAYS the ♻️ recovered-header, 📝 change-notes and
-       social meta-suggestions (cta/image_idea/best_times), while the
-       «نسخ» button copies ONLY the paste-able deliverable (the tool
-       text itself / post_text+hashtags). One shaping function per
-       family serves fresh runs and recovery alike.
-       GUARD-COMMITMENT COROLLARY: a guard that is not COMMITTED is not
-       a guard — check-ui-wiring.sh was referenced by
-       guard-stale-refs.yml since b9c1d16 but the file itself was never
-       pushed (every CI run fell at that step until 2026-08-28j). Any
-       new script a workflow references must appear in the SAME commit.
-       ALL-RESULTS LAW (2026-08-28m, owner: «بيظهر نتيجتين فقط محتاج
-       يظهر كل النتايج»): the editor AI-results panel is an APPEND-ONLY
-       list, never a per-tool record — running the same tool twice MUST
-       yield two cards (keyed records silently overwrite). Every card
-       keeps {display, copy, label, time, recovered}; «مسح الكل» clears
-       the panel, «إغلاق» removes one card. Hydration covers the last 20
-       own jobs ≤24h and appends each recovered job as its OWN card.
-       runAiJob resolves {result, id}: callers mark the settled job id so
-       a manual refresh can NEVER duplicate a result just watched.
-       CLEAR-FAILED LAW (2026-08-28m, owner screenshot + «ضيف طريقة لمسحها
-       يدوى»): health alerts must be DISMISSIBLE — failed ai_jobs rows are
-       transient diagnostics, so DELETE /api/ai/queue-health (coach-only)
-       removes them and the banner recomputes honestly (stuck-queue issues
-       are never suppressed, they just reflect live rows). A red banner
-       with no clear path rots into wallpaper. 2026-08-28n hotfix (owner:
-       «مسح عمليات الفشل لم يعمل»): the handler MUST only ever answer
-       JSON (try/catch around everything) and delete via the app's proven
-       shape (select ids → .delete().in("id", …)) — the filtered
-       .delete(null, {count:"exact"}) variant died in production with a
-       NON-JSON error the client could only show as «clear failed».
-       PER-IMAGE-SWAP LAW (2026-08-28m, owner: «تبديل صورة المقال … محتاج
-       اضافة تبديل لكل صورة داخل المقال لوحدها»): image swap is not a
-       cover-only privilege — the PREVIEW segments markdown into blocks
-       (splitPreviewBlocks) and every standalone image line renders as a
-       first-class block with its own «🔄 بدّل الصورة» button going
-       through the SAME safe suggest-image pipeline as the cover,
-       replacing EXACTLY that occurrence via absolute content offsets
-       (sibling images never move). Unsafe URLs fall back to the
-       renderMarkdown path where they are stripped (one safety law).
-       CLEAR-PERSISTS LAW (2026-08-28n, owner: «مسح نتائج الادوات لم
-       يعمل»): dismissing tool results must SURVIVE re-hydration — the
-       panel hydrates from ai_jobs on every mount (24h window), so a
-       memory-only «مسح الكل»/«إغلاق» resurrects everything the owner
-       just cleared. Dismissed job ids persist in localStorage
-       (muscleshub.dismissedToolJobs); hydration and manual refresh skip
-       them. A clear button that only clears until the next navigation is
-       a broken clear button.
-- Never log the AI response in production code paths (it can contain
-  user PII or partial reasoning that should not be persisted).
-- Local fallbacks (`src/lib/ai-local.ts`) exist so the app degrades
-  gracefully when providers are down. Do not remove them.
-- Any change to the AI system prompt must be approved by the owner —
-  it directly affects user-facing tone and quality.
-- EVO chat quota accounting MUST stay server-side in the tamper-proof
-  `evo_chat_usage` ledger (migration 0022). Never count client-written
-  rows again.
+- **PROVIDER LAYER:** `src/lib/ai-provider.ts` is the SINGLE source of truth for AI calls — providers OpenRouter + Groq ONLY. Two intentional paths: `callFreeAIFallbackChain()` (sequential strongest-first, budget-clamped ≤52s on Vercel) and `callFreeOpenRouterRace()` (parallel fastest-wins, swap only) — never collapse or bypass them; consumers never fetch provider URLs themselves. Scheduled/batch AI work follows the native-GHA pattern (`scripts/blog-runner/run-step.mts` in-process; GHA-only `AI_CHAIN_TOTAL_BUDGET_MS` override), never new Vercel-capped endpoints.
+- **BLOG PIPELINE v3 — LANGUAGE SPLIT (supersedes v2):** six phases `p0-research → p1-outline → p2-content → p3-images → p4-review → p5-publish` under `/api/cron/blog/` with REQUIRED `?lang=en|ar`; one queue row == ONE article in ONE language; 3 slots/day/language via independent `blog-post-en.yml` / `blog-post-ar.yml` (concurrency groups independent on purpose). Legacy step1/step2a..step3 routes and dual-language statuses are retired.
+- **ai_jobs TOPOLOGY:** every batch AI call is an `ai_jobs` row (migration 0024) processed natively by `process-ai-jobs.yml` every 10 min via `scripts/ai-jobs-runner/process.mts`; types: `plan_nutrition | plan_workout | meal_regenerate | exercise_regenerate | article_tool | social_post`; the ONLY direct-model exception is EVO chat (Vercel streaming, chain "fast"). Vercel routes may ENQUEUE (`/api/ai/jobs`) but NEVER call a model; retired routes/components stay guard-banned. New AI feature = new job_type + processor entry in `ai-job-processors.ts` + JOB_GATE row. Browser: SELECT-own-row RLS only; writes service-role exclusive (TECH_REFERENCE §1.4).
+- **PROVIDER BALANCE + DUAL-KEY POOL:** the chain alternates the leading provider per call (parity counter), rotates BOTH OpenRouter accounts round-robin (`OPENROUTER_API` #2 + `OPENROUTER_API_KEY` #1), retries the SAME model on the other account on 401/402/403/429 before falling down the ladder; `callAIWithFallback` stays EXACT (one config → one provider, honest errors) — never a silent cross-provider stage inside it.
+- **UNIVERSAL MODEL SWITCHER COVERAGE:** every AI subsystem rides the chain with an observational `tag` naming subsystem+provider+model+key event — live registry is the code (`ai-provider.ts` + call sites); a bare provider fetch outside the chain is banned; new consumers import from `ai-provider.ts` AND register their tag; Vercel Production env carries the same keys as GHA secrets.
+- **IMAGE SAFETY v1/v2 (SUPERSEDED):** negation-suffix prompts FAILED (diffusion treats negation as attractor) and semantic person-scene attractors defeated token sanitization — the retired constant is BANNED by guard-stale-refs; canary suites replay the incident prompts.
+- **IMAGE SOURCE LAW v3 — PEXELS-FIRST (current):** AI image generation RETIRED; every blog image is REAL stock photography (Pexels primary + `PEXELS_API_KEY`, Unsplash/Pixabay failover, Pixabay safesearch=true). Normal people allowed, nudity/immodesty NOT: `sanitizeImageQuery()` strips NSFW (EN+AR) + negations, `hasNsfwVocabulary()` screens every alt-text; lightweight delivery via Pexels src.landscape + the site's next/image WebP system; deterministic rotation per `variationKey` (article, position); FAIL-FAST without the key (required in GHA secrets AND Vercel Production); canaries in `image-safety.test.ts` v3.
+- **BLOG BODY IMAGE RENDER LAW:** `renderMarkdown()` converts `![alt](url)` → lazy `<img>` BEFORE the link rule (else images degrade to bare links); unsafe schemes dropped (XSS guard) — guarded by `blog-markdown-images.test.ts`.
+- **EVO CHAT SURFACE & HISTORY LAW:** the floating widget is the ONLY EVO chat surface (`/chat` permanently redirects to `/evo`; CTAs open the widget via `openEvoFloatingChat()`); back-button CLOSES the drawer (sentinel history entry); assistant links persist INSIDE `body` markdown (`evo-chat-links.ts`) and render as anchors; persistence is hydration-gated (an empty mount-time write must never wipe history); reopening lands on the LATEST message (scroll-ref snap — never key on `[messages, isTyping]`, never `scrollIntoView`); system prompt carries a hard capability whitelist (EVO says "I can't" rather than inventing tools) and answers render plain text only (`evo-chat-format.ts`); floating icon ≥48px.
+- **AI SURFACE DEEP-AUDIT LAW:** every UI control calling an API must target an existing route (CI: `check-ui-wiring.sh`); uploads go through `POST /api/upload` + `GET /api/file` (bucket allowlist, MIME+5MB, server-rebuilt paths, service-role write, permanent same-origin URLs for private buckets — TECH_REFERENCE §1.5); AppLayout `coachExtraLinks` lists EVERY `/admin/*` page for isAdmin only; re-audit after ANY new button+endpoint pair.
+- **ROLE MODEL v2 LAW (migration 0029+):** `profiles.role` = `client | coach | admin`; STAFF = coach ∪ admin; `is_coach()` = `role IN ('coach','admin')` — NEVER rewrite policies back to `= 'coach'` only; client-data RLS uses `is_coach_over()` (TECH_REFERENCE §2.2). `/admin/*` is admin-exclusive (AdminGate); client surfaces are staff-blocked (ROLE SURFACE LAW); staff bypass consumer quotas; no sales funnel for staff; promotion via the `coach_emails` allowlist (never downgrades an admin) or manual SQL for admins. Multi-coach (0030–0033): `coach_assignments` is the 1:1 source of truth (auto-assign to admin until reassigned); coach_pages powers the bilingual public landing (0032); team management is one lifecycle on `/admin/assignments` + `/api/admin/staff` (add → assign → demote). Full flows: TECH_REFERENCE §2.
+- **COACH ACTIVATION + OFFLINE PAYMENTS (0034+):** the coach collects OUTSIDE the site and activates the subscription himself; the site NEVER touches that money — it RECORDS it (`coach_payments`). `extend_subscription()` is guarded (service role / admin / assigned coach only). `/api/coach/subscriptions/activate` verifies assignment + role, activates tier 'coaching' ONLY, debits the wallet atomically BEFORE extending (402 `insufficient_wallet`; admins wallet-exempt), refunds on failure. PLAN-BALANCE QUOTA: plan generation draws from the CLIENT'S one balance (evo_chat_usage + done ai_jobs) — weekly caps by tier AND monthly total (tier-limits.ts); editing + manual uploads UNLIMITED (legacy double cap removed 2026-09-02).
+- **COACH WALLET LAW (0035+):** `coach_adjust_wallet()` is the ONLY wallet writer (SECURITY DEFINER, row-locked, never negative). Top-ups: manual receipt review on `/admin/wallets` OR PayPal automated (purpose `wallet_topup`, USD 1:1, DETERMINISTIC UUID5 ledger ref — replays idempotent; the webhook stays LOG-ONLY, never credits). Monthly quota: coach AI usage counts only the CURRENT UTC calendar month. Self-registration PUBLIC (`/api/coach/register`, rate-limited + honeypot; role granted server-side only — 0036 hardened `handle_new_user()` so signup metadata can never set a role).
+- **COACH BOOST PACKAGE (0037+):** per-client fees are PACKAGE-based (COACH_CLIENT_PACKAGES + the single debit calculator in coach-limits.ts); coach ads by ATOMIC wallet debit (homepage «مدربون مميزون» strip); public profile enrichment via the coach-public bucket; coach-only support channel at `/coach/help` (client support belongs to the coach); share icons allowed but the WhatsApp share target is REMOVED by decree; the coach's WhatsApp number is served ONLY via `/api/my/coach-whatsapp` gated on ACTIVE subscription + assignment (never public, never a share target); affiliate commission EXCLUDED for any client with a `coach_assignments` row (both choke points); staff clients surface splits عملاء المدربين / عملاء الموقع.
+- **COACH CLIENT BOUNDARY + TERMINOLOGY LAW:** TWO money worlds share the word «كوتشينج» — SITE COACHING (B2C: sold on the site, admin-reviewed only — 0043 dropped every coach RLS policy on `subscription_requests`) vs COACH SYSTEM (B2B: coach collects outside, site records + takes its wallet fee; coaching tier only). Coaches never see site memberships (0041: subscriptions RLS hardened, direct insert/update revoked) and never generate plans without an ACTIVE coaching subscription + assignment (server 402 + DB RLS `plans_insert_coach`). Dates are NEVER hand-edited — `extend_subscription` (0018) computes/stacks them; UI shows a preview only. Coaching-page prices reverted to Starter $20 / Elite $40 (0046); subscription rows always written via `canonicalModelTier()` (starter → premium, elite → pro).
+- **GLOBAL USD LAW (0038):** fixed owner rate 50 EGP = $1 — every platform-side money figure is USD ONLY; source of truth `coach-limits.ts`; legacy EGP payloads accepted and ÷50 for compat; user-facing money strings never show EGP/ج.م.
+- **BRAND NAME LAW:** the site name is written EXACTLY «Musclehubeg» in every user-visible string (metadata, i18n, legal, landing, affiliate, AI prompts, PayPal descriptions); legacy spellings «MuscleHubEG» / «MuscleHub Egypt» / «MuscleHub» are FORBIDDEN in new code; lowercase technical identifiers stay as-is.
+- **USAGE LIMIT ENFORCEMENT LAW:** every limit advertised in `memberships.ts` MUST be enforced SERVER-SIDE at the only route that can consume it, and the client UI mirrors the SAME resolved tier — display/enforcement drift is a defect. Anonymous chat throttled SERVER-SIDE via salted-hash `evo_anon_usage` (fail-open on ledger errors). Plan intents consume the MONTHLY per-domain quota; swap/regenerate stays on the WEEKLY quota — never double-count one message in both; advertised numbers change ONLY in memberships.ts.
+- **SCHEDULE HEALTH LAW:** GitHub can silently DE-REGISTER scheduled workflows repo-wide — any "blog stopped" report starts with schedule forensics (`GET /actions/runs?event=schedule`), NOT code re-reading; remedy = re-enable every workflow + a touching commit to re-register. Backstop (never trust the scheduler alone): `/api/cron/dispatch-pipelines` (CRON_SECRET, fail-closed, daily 21:00 UTC) tops pipelines up to their publishing quota + re-dispatches a stale ai-jobs worker; requires `GITHUB_DISPATCH_TOKEN` (never committed — §3.2). Diagnose quota (429s) BEFORE schedules; schedules BEFORE code.
+- **PLAN JOB RECOVERY LAW:** queue jobs that materialize user-visible artifacts are SURVIVABLE state — enqueued plan jobs persist in localStorage (`src/lib/plan-jobs.ts`, 24h TTL) with mount-reattached watchers, finished jobs surface as one-click recovery cards (never double-saved); regeneration enqueues the replacement FIRST and deletes the old draft only after the new plan arrives and only while still a draft; staff requesters bypass the swap quota (plan-editing tools, not self-service).
+- **EVENT-DRIVEN AI DISPATCH LAW:** enqueue alone is NOT enough on a cron worker — every enqueue path push-triggers the runner (`src/lib/ai-runner-dispatch.ts`, fail-open); `POST /api/ai/jobs` answers honest `runnerDispatched` + `etaMinutes`; `GITHUB_DISPATCH_TOKEN` is a REQUIRED production secret. New job types register in FOUR places (AI_JOB_TYPES + JOB_GATE + sanitizeJobPayload + processor registry; required fields throw `JobPayloadError` → 400). Completed `article_generate` jobs are ALWAYS materialized as blog_posts DRAFTS (never only inside ai_jobs.result); auto topics use the smart-topic brain with pillar rotation; the runner exits NON-ZERO on permanent failure (GREEN == done=N failedPermanent=0); GHA actions pinned v5, node 22.
+- **ARTICLE QUALITY FLOOR + ANTI-FORMULA:** the ASK is always the maximum bar — 1100-1400 words, 6-9 sections, FAQ 4-6 persisted to faq_json, 2-3 real internal links, distinct meta_title; floors are rejection NETS below the ask (never the target); each generation draws a random opening archetype; shallow drafts requeue; lowering any contract requires explicit owner approval in the same commit message.
+- **QUALITY-FIRST LAW — OWNER GENERAL CONDITION:** maximum quality for EVERYTHING is the site's primary goal: prompts, floors, and model order preserve-or-raise the ask; smaller models are last-resort fallbacks never promoted above stronger ones; resilience work (multi-bucket chains, cooldowns) increases AVAILABILITY of strong models, never substitutes weak output.
+- **SEO-SLUG + IMAGE BUNDLE LAW:** every article_generate draft lands COMPLETE — model-produced English SEO slug (translates the MEANING, never transliterates; latin-only nets with the dated fallback as LAST net) + 3-5 ENGLISH image_queries resolved Pexels-first (images[0] = featured + cover_alt; images[1..] embedded at section boundaries); slug/image enrichment can NEVER fail the article (graceful degrade).
+- **ONE-SLUG-LAW:** ALL slug logic lives ONLY in `src/lib/slug.ts` — canaries read the sources and FAIL THE BUILD if a local copy reappears; improvement tools are text transformers (copy-only panel); the M15 save gate remains the boundary verifier.
+- **TOOL RESULTS UX LAWS (recovery · all-results · copy-vs-display · clear-failed · clear-persists · per-image-swap):** the editor AI-results panel is APPEND-ONLY (same tool twice = two cards) with DONE-job hydration (≤24h) + manual refresh; dismissed ids persist in localStorage (a clear that resurrects on navigation is broken); «نسخ» copies ONLY the paste-able deliverable; failed-row health alerts are dismissible via a JSON-only handler using the proven `.delete().in("id", ids)` shape; every standalone image block carries its own safe swap button replacing EXACTLY that occurrence through the same suggest-image pipeline.
+- **GUARD-COMMITMENT COROLLARY:** a guard that is not COMMITTED is not a guard — any script a workflow references must appear in the SAME commit.
+- **PROJECT-WIDE PREVENTION LAW:** the recurring incident classes are permanently guarded — button → dead target (`check-ui-wiring.sh`), type without processor / orphan processor (CI + ai-jobs-visibility.test.ts exact parity), dishonest success (explicit non-zero exit paths in every runner), silent rot (`/api/ai/queue-health`). Feature DoD: button → route exists (CI), job → processor (CI), visible materialization, honest runner exit, docs in the SAME commit.
+- **RATE-LIMIT RESILIENCE LAW:** free-tier 429s are TRANSIENT — retries must OUTLIVE the window, not re-burn it (70s sleep after a rate-limit requeue; heavy article calls try maxModels 5); back-to-back retries dying inside one TPM window are a runner bug, not provider fate.
+- Never log the AI response in production paths (PII / partial reasoning); local fallbacks (`src/lib/ai-local.ts`) stay for graceful degradation; any change to the AI system prompt requires owner approval; EVO chat quota accounting stays server-side in the tamper-proof `evo_chat_usage` ledger (migration 0022) — never client-written rows again.
 
-> **Deprecated (2026-08-27):** the previous note describing
-> `callFreeOpenRouter()` / `callFreeOpenRouterLimited()` as one of the two
-> canonical paths — those functions were removed as dead code and the
-> documented trade-off now lives in `callFreeAIFallbackChain`.
+> **Deprecated (2026-08-27):** the previous note describing `callFreeOpenRouter()` / `callFreeOpenRouterLimited()` as one of the two canonical paths — those functions were removed as dead code and the documented trade-off now lives in `callFreeAIFallbackChain`.
 
 ---
 
@@ -1491,52 +173,26 @@ Process:
 
 ## 10. Git & Commit Conventions
 
-- Branch off `main` for any non-trivial change. The owner may merge
-  feature branches or commit directly to `main` for small fixes.
-- Commit author email: `muscleshubfit@gmail.com`. The owner has this
-  configured locally — agents must use the same identity.
-- Commit message prefixes:
-  - `feat:` new feature
-  - `fix:` bug fix
-  - `docs:` documentation only
-  - `refactor:` no behavior change
-  - `security:` security-sensitive (requires pre-approval per §7)
-  - `chore:` tooling, deps, build config
-- Push to `origin` only after the local verification step (§3.5)
-  passes. If `tsc --noEmit` fails, do not push.
+- Branch off `main` for non-trivial changes; the owner may merge feature branches or commit directly to `main` for small fixes.
+- Commit author email: `muscleshubfit@gmail.com` — agents use the same identity.
+- Prefixes: `feat:` new feature · `fix:` bug fix · `docs:` documentation only · `refactor:` no behavior change · `security:` security-sensitive (pre-approved per §7) · `chore:` tooling, deps, build config.
+- Push to `origin` only after the local verification step (§3.5) passes — if `tsc --noEmit` fails, do not push.
 
 ---
 
 ## 11. When in Doubt
 
-- **Ask the human supervisor.** Ask early, not after a half-built
-  feature. The cost of one clarifying question is far lower than the
-  cost of a wrong direction.
-- **Cite the source.** When proposing a change, cite the exact file +
-  line + the current behavior you observed.
-- **Prefer reversible changes.** A new file is reversible. A dropped
-  column is not. Prefer the reversible option.
-- **Document assumptions.** If you assumed something the task did not
-  state, write it in the final report under "Potential risks" or
-  "Implementation findings" so the reviewer can challenge it.
+Ask the human supervisor — early, not after a half-built feature. Cite the exact file + line + observed behavior. Prefer reversible changes (a new file is reversible, a dropped column is not). Document assumptions in the final report under "Potential risks" / "Implementation findings".
 
 ---
 
 ## 12. Project Workflow Rules (Adopted 2026-08-21)
 
-> **Status:** Active binding policy — applies to every task from
-> 2026-08-21 onward. Cannot be changed except by explicit Owner
-> directive. These rules supplement §3 (Operating Rules) and §4
-> (Definition of Done); they do not replace them. Where these rules
-> conflict with an older section of this file, these rules win.
+> **Status:** Active binding policy — applies to every task from 2026-08-21 onward; changeable only by explicit Owner directive. These rules supplement §3 and §4; where they conflict with an older section of this file, these rules win.
 
 ### 12.1 Communication
 
-- Reports must be short and direct.
-- Do not repeat explanations or steps already executed.
-- Do not expand scope beyond the current task or reopen finished
-  tasks without a reason.
-- Only stop and ask the Owner when there is genuine ambiguity.
+Reports short and direct; no repeated explanations or already-executed steps; no scope expansion or reopening finished tasks without a reason; stop and ask the Owner only on genuine ambiguity.
 
 ### 12.2 Execution Flow
 
@@ -1546,45 +202,25 @@ Every task executes in this order inside the same task:
 IMPLEMENT → VALIDATE → DOCUMENT → COMMIT → PUSH
 ```
 
-Do NOT wait for a separate instruction to validate, document, commit,
-or push — unless the Owner explicitly asked to skip one of these steps
-(for example, "show me the report before commit").
+Do NOT wait for a separate instruction to validate, document, commit, or push — unless the Owner explicitly asked to skip one of these steps (for example, "show me the report before commit").
 
 ### 12.3 No Redundant Verification
 
-- Do not create a separate command to re-verify what was already
-  verified.
-- Verification results belong in the task's own report.
-- After a task succeeds, move directly to the next task.
+Do not create a separate command to re-verify what was already verified; results belong in the task's own report; after success, move directly to the next task.
 
 ### 12.4 Task Continuity
 
-- Do not redo completed steps.
-- Preserve the current task's state.
-- When multiple tasks are queued, advance automatically to the next
-  one after the current one completes.
-- Do not start a new task from memory or guessing — use the project's
-  actual state (code, migrations, docs, worklog).
+Do not redo completed steps; preserve the current task's state; with queued tasks, advance automatically; never start a new task from memory or guessing — use the project's actual state (code, migrations, docs, worklog).
 
 ### 12.5 Documentation
 
-- Document every completed task while executing it.
-- Use the existing documentation files (`PROGRESS.md`, `worklog.md`,
-  `AGENTS.md`, `DEVELOPER_GUIDE.md`, `SECURITY.md`, `QA_CHECKLIST.md`,
-  `README.md`).
-- Do not create a new documentation system if the existing one
-  suffices.
-- At the end of a large body of work, one comprehensive documentation
-  review pass is allowed to fix gaps or conflicts.
+Document every completed task while executing it, using the existing files (`PROGRESS.md`, `worklog.md`, `AGENTS.md`, `DEVELOPER_GUIDE.md`, `SECURITY.md`, `QA_CHECKLIST.md`, `README.md`) — no new documentation system if the existing one suffices; one comprehensive review pass is allowed at the end of a large body of work.
 
-> **Consolidated (2026-08-24):** executed via `docs/_AUDIT.md`. Do not
-> create new documentation files — except `STATE.md` (Phase 107,
-> owner-approved knowledge operating system; §3.6/§3.8).
+> **Consolidated (2026-08-24):** executed via `docs/_AUDIT.md`. Do not create new documentation files — except `STATE.md` (Phase 107, owner-approved knowledge operating system; §3.6/§3.8).
 
 #### 12.5.1 `worklog.md` Entry Template (Binding)
 
-Every task MUST append exactly one entry to `worklog.md` following
-this template. No free-form entries are allowed.
+Every task MUST append exactly one entry to `worklog.md` following this template. No free-form entries are allowed.
 
 ```markdown
 ---
@@ -1603,66 +239,28 @@ Stage Summary:
 - Push status: <pushed | not-pushed>
 ```
 
-Rules:
-
-- The `---` separator before each entry is mandatory (append-only log).
-- `Task ID` MUST be unique across the file — search before adding.
-- `Work Log` is bulleted, factual, and ordered chronologically.
-- `Stage Summary` includes the commit SHA and push status (matches
-  §12.9 Final Report fields).
+Rules: the `---` separator before each entry is mandatory (append-only log); `Task ID` MUST be unique across the file (search before adding); `Work Log` is bulleted, factual, chronological; `Stage Summary` includes the commit SHA and push status (matches §12.9).
 
 #### 12.5.2 Periodic Documentation Audit (Cadence)
 
-A full documentation audit MUST be performed at the following cadence:
-
-- **Monthly** — last week of every month.
-- **After any major feature addition** — within 7 days of deploy.
-- **After any force-push or major git operation** — within 24 hours.
-
-The audit verifies (per `docs/_AUDIT.md` methodology):
-
-1. All file counts in docs match actual `find` / `wc -l` results.
-2. No references to files that don't exist (e.g. `PROJECT_CONTEXT.md`,
-   `scripts/*.js` if missing).
-3. No duplicate commands across `AGENTS.md` §3.5 vs §4 vs
-   `QA_CHECKLIST.md` Verification Protocol.
-4. No deprecated sections still being cited by other sections.
-5. `Last updated` date in every doc file reflects the last commit
-   that touched it.
-6. Live site (`https://musclehubeg.vercel.app`) status code per
-   public route matches the route's documented status.
-
-Each audit's results are appended to `worklog.md` under Task ID
-`DOC-AUDIT-YYYY-MM-DD`.
+A full documentation audit MUST run: monthly (last week) · after any major feature addition (within 7 days) · after any force-push or major git operation (within 24 hours) — per `docs/_AUDIT.md`: doc counts vs actual `find`/`wc -l`, no references to missing files, no duplicate commands across §3.5/§4/QA, no deprecated sections still cited, true Last-updated dates, live route status codes matching docs. Results append to `worklog.md` under Task ID `DOC-AUDIT-YYYY-MM-DD`.
 
 ### 12.6 Duplicate Tasks
 
-- Treat **EVO AI** and **AI Chat** as ONE task: `EVO AI / AI Chat`.
-- Do not record the same function as two tasks under different names.
-- Before adding any task, check whether an equivalent task already
-  exists in the project.
+Treat EVO AI and AI Chat as ONE task (`EVO AI / AI Chat`); never record the same function as two tasks under different names; check whether an equivalent task already exists before adding any.
 
 ### 12.7 AI Master Roadmap
 
-- When building an AI task list, aggregate from: actual source code,
-  `PROGRESS.md`, `worklog.md`, `DEVELOPER_GUIDE.md`, and
-  conversations/context as needed.
-- Classify each task as: `COMPLETED` / `IN PROGRESS` / `DEFERRED` /
-  `NOT STARTED`.
-- Do NOT start implementation merely because a missing task was
-  discovered — stick to the task the Owner assigns.
+Aggregate AI task lists from actual source code, `PROGRESS.md`, `worklog.md`, `DEVELOPER_GUIDE.md`, and context; classify each task as `COMPLETED` / `IN PROGRESS` / `DEFERRED` / `NOT STARTED`; do NOT start implementation merely because a missing task was discovered — stick to the task the Owner assigns.
 
 ### 12.8 Source of Truth
 
 Priority (highest wins):
 
-1. Actual Code & Config (`src/**`, `next.config.ts`, `tsconfig.json`,
-   `package.json`, `vercel.json`)
+1. Actual Code & Config (`src/**`, `next.config.ts`, `tsconfig.json`, `package.json`, `vercel.json`)
 2. Database / Migrations (`supabase/migrations/*.sql`)
-3. QA Evidence (`QA_CHECKLIST.md`, manual smoke tests in commit
-   messages)
-4. Project Documentation (`README.md`, `DEVELOPER_GUIDE.md`,
-   `PROGRESS.md`, `AGENTS.md`, `SECURITY.md`)
+3. QA Evidence (`QA_CHECKLIST.md`, manual smoke tests in commit messages)
+4. Project Documentation (`README.md`, `DEVELOPER_GUIDE.md`, `PROGRESS.md`, `AGENTS.md`, `SECURITY.md`)
 5. Conversation Context
 6. General Knowledge
 
@@ -1670,29 +268,8 @@ If documentation conflicts with code, **code wins**.
 
 ### 12.9 Final Report
 
-After every task, deliver a brief report containing only:
-
-- What was done
-- Verification result
-- Commit SHA
-- Push status
-- Next task
-- Raw SQL links to run on Supabase (mandatory whenever the task
-  produced schema/DB changes — see §6 RAW-SQL-LINK RULE)
-- **PLAIN-STEP EXECUTION GUIDE (FIXED — BINDING FOR ALL CLIENTS/
-  PROJECTS):** whenever a task requires a MANUAL action from the Owner
-  (run SQL, trigger a workflow, set an env var, redeploy, click
-  anything in a dashboard), the final report MUST include a short,
-  numbered, plain-language walkthrough for each action: exact URL to
-  open → exact button/tab name → what to paste or select → what a
-  successful result looks like (expected output/screenshot hint) and
-  how to roll back if it fails. Assume non-technical reader. Avoid
-  jargon; if a technical term is unavoidable, define it inline.
-  Reporting a manual step without this guide is an INVALID delivery
-  (same severity as §6 without raw link).
+After every task: what was done · verification result · commit SHA · push status · next task · raw SQL links (mandatory for schema/DB tasks — §6). **PLAIN-STEP EXECUTION GUIDE (BINDING):** any task requiring a MANUAL owner action (run SQL, trigger a workflow, set an env var, redeploy, click anything) ships a short numbered plain-language walkthrough: exact URL → exact button/tab → what to paste/select → what success looks like → how to roll back. Assume a non-technical reader; reporting a manual step without this guide is an INVALID delivery (same severity as §6 without the raw link).
 
 ### 12.10 Out-of-Scope Prohibited
 
-- Do not add steps or improvements outside the current task's scope.
-- Do not wait for a new instruction to validate / document / commit /
-  push after task completion, unless the Owner asked otherwise.
+Do not add steps or improvements outside the current task's scope; do not wait for a new instruction to validate / document / commit / push after task completion, unless the Owner asked otherwise.

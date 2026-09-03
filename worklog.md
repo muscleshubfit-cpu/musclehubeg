@@ -936,3 +936,23 @@ Stage Summary:
 - README وDEVELOPER_GUIDE بقوا واجهات مختصرة بروابط صادقة للمراجع العميقة (CI_GATES/TECH_REFERENCE) — مفيش معرفة اتمسحت: كلها مترحلة ومنظمة من Phase 111
 - Commit SHA: 4f2b1ae
 - Push status: pushed (f5d969c..4f2b1ae) — CI حي أخضر على 4f2b1ae (Docs & schema parity · Anti-regression guard · Supabase Preview كلهم success) — post-push fixup: this line recorded the real SHA (the placeholder could not know its own commit hash before committing — same post-push pattern as 105/107/108/109/110/111)
+
+---
+Task ID: 113
+Agent: Super Z (main)
+Task: Phase 113 — تقليص AGENTS.md («الأمر الثالث»): من 1698 إلى أقل من 350 سطر مع الحفاظ على كل العناوين التي يفحصها CI حرفيًا + ملخصات سطر-سطرين وإحالات docs/TECH_REFERENCE.md للفقرات الطويلة + الحفاظ على الجزء التشغيلي verbatim + تشغيل البوابات الثمانية
+
+Work Log:
+- قراءة AGENTS.md كاملًا (1698 سطر) + قراءة بوابات الفحص الثلاثة (docs_audit · docs_parity · check-stale-refs) لتحديد ما يفحصه CI فعلًا: docs_audit E يفحص تكرار أرقام الأقسام فقط — الحفاظ على كل العناوين حرفيًا يحقق قاعدة المالك والبوابة معًا
+- AGENTS.md كُتب من جديد: 1698 → 275 سطر (-85%) — §8 (1124 سطر: قوانين الصور v1/v2/v3 · نمط الدور v2 · المحفظة · USD · البراند · الجدولة · التوزيع · الجودة) بقى ~60 سطرًا: كل قانون باسمه وتاريخه وجوهره الملزم في سطر-سطرين
+- الإحالات الصادقة اتراجعت قبل الكتابة: TECH_REFERENCE §1.2 قانون الميجريشنز · §1.4 الجداول الخاصة · §1.5 التخزين · §2 RLS/نمط الدور/عوالم المال/إضافة المدربين — إحالة كل حرف اتنقل لمكانه الفعلي؛ السجلات الحية (tags) أُحيلت للكود وفق §12.8
+- الجزء التشغيلي verbatim: §3.5 الأوامر القانونية · §12.5.1 قالب worklog · §12.8 هرمية الحقيقة · §12.2 التدفق · جدول الأدوار §2 — وتوثيق صادق: مفيش جدول /plan-/implement-/review ولا مثال محادثة في الملف (مراجع المالك بتقابل §3.5 + §12.2) — مفيش حاجة اتاخترعت
+- التحقق: diff grep '^#' HEAD vs الجديد = فاضي (32 عنوان حرفيًا) · مفيش تكرار أرقام أقسام · رابطا docs/ بيحلّوا على القرص · مفيش أي anchor AGENTS.md# في الريبو
+- البوابات الثمانية بعد التقليص: tsc 0 · eslint 0 · vitest 191/191 · migration_audit --ci 0 · docs_parity 0 · docs_audit 0 · check-stale-refs 0 · check-ui-wiring 0
+- طقس §3.6: STATE → مرحلة 113 · QA: Latest 113 (7 صفوف) + 112 بقت Previous + جدول 107 اتنقل حرفيًا للأرشيف (113→108) · PROGRESS: قسم 113 + قسم 107 اتنقل حرفيًا للملحق (113→108) + سطرا الملحق اتحدثوا — النقل بسكريبت بassert verbatim byte-identical
+- CHANGELOG.md فضل فارغ (0 بايت) بأمر Phase 111 — مش ضمن نطاق الأمر التالت
+
+Stage Summary:
+- ملف القوانين بقى 275 سطر (< 350 بهامش) بهيكل CI سليم 100% وروابط داخلية شغالة — المعرفة الطويلة عايشة في TECH_REFERENCE/الكود وفق هرمية §12.8، والقانون نفسه بقي ملزمًا بأسماء قوانينه كاملة
+- Commit SHA: (pending — recorded in post-push fixup)
+- Push status: pending

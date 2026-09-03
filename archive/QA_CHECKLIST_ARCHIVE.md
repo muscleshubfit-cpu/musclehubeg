@@ -1383,3 +1383,22 @@ Owner ask: «افحص داشبورد الادمن لان محتاج تنسيق �
 | Live verification path | ✅ | member Progress photos page is the owner's visual proof (was silently empty/broken live, renders real rows now); presence helpers stay dormant (no callers); 0069 on production = VERIFY grid all no-op (probes match BEFORE/AFTER) |
 | Post-push live verification (0069 no-op) | ✅ 8/8 | read-only PostgREST probes on production ~2min after push (anon key re-extracted from the deployed bundle): coach_presence coach_id 200 · updated_at 200 · user_id 42703 ABSENT · status 42703 ABSENT — progress_photos photo_url 200 · taken_at 200 · file_path 42703 · note 42703 = production schema EXACTLY matches the corrected types.ts and 0069 touched nothing (owner can additionally see 0069 recorded in Dashboard → Database → Migrations) |
 | Docs parity §3.6 | ✅ UPDATED | INDEX.md 0069 row + heading 0001→0069 + counter + audit-log row · QA_CHECKLIST Phase 105 · PROGRESS Phase 105 + «آخر تحديث» · worklog Task 105 ×2 |
+
+---
+
+> **ملحق 2026-09-03 (Phase 113):** جدول Phase 107 نُقل هنا حرفيًا من QA_CHECKLIST.md (طقس الأرشفة — السقف 6 جداول، الأقسام الحية 113→108).
+
+## Previous Verification — 2026-09-03 (Phase 107 — KNOWLEDGE OPERATING SYSTEM: owner «go» on the approved study after the earlier go-mixup — STATE.md + single-source number law + docs_audit gate + archive ritual; the law file itself carried a real duplicated §3.6 which this phase made impossible)
+
+| Check | Result | How verified |
+|---|---|---|
+| STATE.md created (the entry point) | ✅ | ≤100 lines (55 actual), required sections present (المرحلة/المفتوح/بانتظار المالك/الممنوعات/خريطة المصادر) · recorded commit 8b48ce7 is an ancestor of HEAD · linked from README front-door list |
+| AGENTS.md §3.6 duplicate (lines 134 + 191) FIXED | ✅ | §3.6 = Session Protocol (STATE first · last-3-worklog+5-commits · trust no number · GitHub-First survival law) · old §3.6 merged into §3.8 Parity Law (+docs: marker + archive/deprecation rules) · §3.1→§3.8 monotonic · docs_audit duplicate-guard live forever |
+| Single-source number law enforced as code | ✅ | SENSITIVITY PROOF both directions: docs_audit pre-strip caught 19 variable counts across README/GUIDE (incl. a hidden «66 endpoint» tree comment) → post-strip 0; README Database/Structure/Tech sections rephrased number-free (INDEX.md stays the documented range home) |
+| GUIDE stale-fact fixes beyond counts | ✅ | §4 tables section rewritten (the «22 جدول»/«3 ad-hoc» claim was YEARS stale; ad-hoc sub-section marked RESOLVED by 0063 with live shapes pointed to types.ts) · §8 blockquote + Total line now declare code-is-truth |
+| docs_audit.py gate (7 check families) | ✅ | A STATE size/sections · B state-commit ancestor-of-HEAD · C phase equality STATE=PROGRESS=QA · D number-free docs · E AGENTS duplicate sections · F slim living docs + archive pointers + exactly-one Latest · G STATE discoverability — wired as 3rd step in docs-parity-gate.yml |
+| docs_parity.py scope narrowed honestly | ✅ | README/GUIDE claims removed (number-free now), INDEX.md registry heading check retained; docstring documents the evolution |
+| Archive ritual executed | ✅ | PROGRESS 741→~110 lines (5 newest phases kept) · QA 414→~120 (Latest+4 Previous + protocol) · everything older moved VERBATIM to archive/* dated ملحق · archive headers amended to append-only ritual |
+| No migration / INDEX untouched | ✅ | docs-only phase — INDEX.md registry heading still matches newest NNNN (docs_parity 0) |
+| Code gates (run anyway) | ✅ | tsc 0 · eslint 0 · vitest 191/191 · migration_audit --ci 0 · check-stale-refs 0 |
+| Docs parity §3.6 | ✅ UPDATED | STATE.md new · QA/PROGRESS slimmed + Phase 107 sections · worklog Task 107 ×2 (repo + workspace) · AGENTS §3.6/§3.8/§4/§12.5 updated |

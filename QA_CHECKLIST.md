@@ -6,7 +6,21 @@
 
 ---
 
-## Latest Verification — 2026-09-03 (Phase 112 — DOC INTERFACES SLIMMED («الأمر الثاني»): owner «اختصر شرح البوابات الآلية (CI Gates) إلى 3 سطور فقط، وضع رابطاً واضحاً لـ docs/CI_GATES.md مع عبارة للاطلاع على التفاصيل الكاملة» + «احذف أي شرح تقني عميق (RLS، المكونات) واستبدله برابط لـ docs/TECH_REFERENCE.md»)
+## Latest Verification — 2026-09-03 (Phase 113 — LAW FILE SLIMMED («الأمر الثالث»): owner «قم بتحرير ملف AGENTS.md لتقليص حجمه بشكل كبير … لا تحذف أي عنوان رئيسي لأن CI يفحص وجودها … الفقرات الطويلة بملخص سطر أو سطرين ورابط docs/TECH_REFERENCE.md … الهدف أقل من 350 سطر»)
+
+| Check | Result | How verified |
+|---|---|---|
+| AGENTS.md 1698 → 275 lines (< 350 target) | ✅ | wc -l = 275 (-85%); file rewritten with one-to-two-line law summaries per the owner's «سطر أو سطرين» rule; §8 (the 1124-line monster) → ~60 lines keeping EVERY law name + date + binding core |
+| Every heading kept VERBATIM (CI structure 100%) | ✅ | diff of `grep '^#'` HEAD vs new = EMPTY (all 32 headings ##/###/#### byte-identical incl. §3.6/§3.7/§3.8 Arabic-quote headings) · docs_audit E uniqueness: no duplicate §N.N · the gate actually checks duplicate-section-numbers — structure both owner-verified and gate-verified |
+| Honest delegation to TECH_REFERENCE | ✅ | pointers only where the reference REALLY covers the removed bytes: migration law → §1.2, special-rules tables → §1.4, storage → §1.5, RLS/role-model/money-worlds/coach flows → §2, components live in §3 (code-sourced), SQL forms → §4; live-registries (model tags) point to the CODE per §12.8 (code wins) — no fake pointers; the long §8 narratives (image-safety evolution, multi-coach, wallet, dispatch laws) compressed to binding cores with code-file citations |
+| Operational core byte-identical | ✅ | §3.5 canonical command block + note verbatim · §12.5.1 worklog template verbatim · §12.8 hierarchy list verbatim · §2 roles table kept · §12.2 IMPLEMENT→VALIDATE→DOCUMENT→COMMIT→PUSH verbatim — the agent's operating instructions untouched; HONEST NOTE: the file carries NO /plan-/implement-/review table and NO conversation example (owner's references map to §3.5 + §12.2 in THIS repo) — nothing invented, existing examples were SQL/flow narratives now compressed per rule 2 |
+| Link integrity | ✅ | internal links docs/TECH_REFERENCE.md + docs/CI_GATES.md resolve on disk · zero `AGENTS.md#` anchor links exist repo-wide (nothing to break) · src/scripts §-references (§3.5/§8/§12.8…) stay valid — section numbers unchanged |
+| Docs parity §3.6 | ✅ UPDATED | STATE.md → Phase 113 · QA Latest = Phase 113 + 112 demoted Previous + 107 table moved VERBATIM to archive/QA_CHECKLIST_ARCHIVE.md (cap 6: 113→108) · PROGRESS Phase 113 section + 107 moved VERBATIM to archive/PROGRESS_ARCHIVE.md ملحق (cap 6: 113→108) · worklog Task 113 ×2 (repo + workspace) · CHANGELOG.md stays EMPTY per Phase 111 order |
+| Gates after edits | ✅ | tsc 0 · eslint 0 · vitest 191/191 · migration_audit --ci 0 · docs_parity 0 · docs_audit 0 · check-stale-refs 0 · check-ui-wiring 0 |
+
+---
+
+## Previous Verification — 2026-09-03 (Phase 112 — DOC INTERFACES SLIMMED («الأمر الثاني»): owner «اختصر شرح البوابات الآلية (CI Gates) إلى 3 سطور فقط، وضع رابطاً واضحاً لـ docs/CI_GATES.md مع عبارة للاطلاع على التفاصيل الكاملة» + «احذف أي شرح تقني عميق (RLS، المكونات) واستبدله برابط لـ docs/TECH_REFERENCE.md»)
 
 | Check | Result | How verified |
 |---|---|---|
@@ -75,24 +89,9 @@
 
 ---
 
-## Previous Verification — 2026-09-03 (Phase 107 — KNOWLEDGE OPERATING SYSTEM: owner «go» on the approved study after the earlier go-mixup — STATE.md + single-source number law + docs_audit gate + archive ritual; the law file itself carried a real duplicated §3.6 which this phase made impossible)
-
-| Check | Result | How verified |
-|---|---|---|
-| STATE.md created (the entry point) | ✅ | ≤100 lines (55 actual), required sections present (المرحلة/المفتوح/بانتظار المالك/الممنوعات/خريطة المصادر) · recorded commit 8b48ce7 is an ancestor of HEAD · linked from README front-door list |
-| AGENTS.md §3.6 duplicate (lines 134 + 191) FIXED | ✅ | §3.6 = Session Protocol (STATE first · last-3-worklog+5-commits · trust no number · GitHub-First survival law) · old §3.6 merged into §3.8 Parity Law (+docs: marker + archive/deprecation rules) · §3.1→§3.8 monotonic · docs_audit duplicate-guard live forever |
-| Single-source number law enforced as code | ✅ | SENSITIVITY PROOF both directions: docs_audit pre-strip caught 19 variable counts across README/GUIDE (incl. a hidden «66 endpoint» tree comment) → post-strip 0; README Database/Structure/Tech sections rephrased number-free (INDEX.md stays the documented range home) |
-| GUIDE stale-fact fixes beyond counts | ✅ | §4 tables section rewritten (the «22 جدول»/«3 ad-hoc» claim was YEARS stale; ad-hoc sub-section marked RESOLVED by 0063 with live shapes pointed to types.ts) · §8 blockquote + Total line now declare code-is-truth |
-| docs_audit.py gate (7 check families) | ✅ | A STATE size/sections · B state-commit ancestor-of-HEAD · C phase equality STATE=PROGRESS=QA · D number-free docs · E AGENTS duplicate sections · F slim living docs + archive pointers + exactly-one Latest · G STATE discoverability — wired as 3rd step in docs-parity-gate.yml |
-| docs_parity.py scope narrowed honestly | ✅ | README/GUIDE claims removed (number-free now), INDEX.md registry heading check retained; docstring documents the evolution |
-| Archive ritual executed | ✅ | PROGRESS 741→~110 lines (5 newest phases kept) · QA 414→~120 (Latest+4 Previous + protocol) · everything older moved VERBATIM to archive/* dated ملحق · archive headers amended to append-only ritual |
-| No migration / INDEX untouched | ✅ | docs-only phase — INDEX.md registry heading still matches newest NNNN (docs_parity 0) |
-| Code gates (run anyway) | ✅ | tsc 0 · eslint 0 · vitest 191/191 · migration_audit --ci 0 · check-stale-refs 0 |
-| Docs parity §3.6 | ✅ UPDATED | STATE.md new · QA/PROGRESS slimmed + Phase 107 sections · worklog Task 107 ×2 (repo + workspace) · AGENTS §3.6/§3.8/§4/§12.5 updated |
-
 ---
 
-> 🗄️ **الأرشفة (Phase 82 + ملحق 2026-09-02):** الجداول الأقدم نُقلت إلى `archive/QA_CHECKLIST_ARCHIVE.md`. **ملحق 2026-09-03 (Phase 107):** كل ما قبل آخر 5 مراحل (102-run → 80) انضم للملحق — الملف ده سقفه 6 جداول بوابةً. **ملحق 2026-09-03 (Phase 109):** جدول Phase 99-run انضم للملحق (السقف 6 اتمسّ بأقسام 109→103b). **ملحق 2026-09-03 (Phase 110):** جدول Phase 103b انضم للملحق (السقف 6 اتمسّ بأقسام 110→104). **ملحق 2026-09-03 (Phase 111):** جدول Phase 104 انضم للملحق (السقف 6 اتمسّ بأقسام 111→105). **ملحق 2026-09-03 (Phase 112):** جدول Phase 105 انضم للملحق (السقف 6 اتمسّ بأقسام 112→107).
+> 🗄️ **الأرشفة (Phase 82 + ملحق 2026-09-02):** الجداول الأقدم نُقلت إلى `archive/QA_CHECKLIST_ARCHIVE.md`. **ملحق 2026-09-03 (Phase 107):** كل ما قبل آخر 5 مراحل (102-run → 80) انضم للملحق — الملف ده سقفه 6 جداول بوابةً. **ملحق 2026-09-03 (Phase 109):** جدول Phase 99-run انضم للملحق (السقف 6 اتمسّ بأقسام 109→103b). **ملحق 2026-09-03 (Phase 110):** جدول Phase 103b انضم للملحق (السقف 6 اتمسّ بأقسام 110→104). **ملحق 2026-09-03 (Phase 111):** جدول Phase 104 انضم للملحق (السقف 6 اتمسّ بأقسام 111→105). **ملحق 2026-09-03 (Phase 112):** جدول Phase 105 انضم للملحق (السقف 6 اتمسّ بأقسام 112→107). **ملحق 2026-09-03 (Phase 113):** جدول Phase 107 انضم للملحق (السقف 6 اتمسّ بأقسام 113→108).
 
 
 ## Verification Protocol
