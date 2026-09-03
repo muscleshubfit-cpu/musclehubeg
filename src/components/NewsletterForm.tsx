@@ -104,7 +104,11 @@ export function NewsletterForm({ variant = "footer" }: { variant?: "footer" | "h
             <Mail className="h-6 w-6 text-[#0071e3]" />
           </span>
           <h2 className="mt-4 text-2xl font-semibold tracking-tight text-[#1d1d1f] md:text-3xl">
-            {isAr ? "النشرة البريدية المجانية" : "The free newsletter"}
+            {/* Phase 117 completion (owner directive 2026-09-04): homepage
+                H2s are question-form — this home variant renders on the
+                homepage; the compact footer variant below is a <p> and
+                stays a label. */}
+            {isAr ? "ما هي النشرة البريدية المجانية؟" : "What's in the free newsletter?"}
           </h2>
           <p className="mx-auto mt-2 max-w-md text-base font-normal text-[#6e6e73]">
             {isAr

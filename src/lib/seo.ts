@@ -27,6 +27,17 @@ const SITE_LOGO = `${SITE_URL}/logo.png`;
 /**
  * Organization schema — describes the company/site.
  * Used on all pages (in layout.tsx).
+ *
+ * Phase 117 completion (owner directive 2026-09-04): Organization is the
+ * FINAL schema choice INSTEAD of LocalBusiness — the owner confirmed
+ * there is no local business activity and the project is global.
+ * Owner-required fields: name · url · logo · description (short version
+ * of the homepage atomic answer) · sameAs. Deliberately NO address /
+ * phone / geo fields. sameAs carries ONLY the canonical site URL: a
+ * repo-wide search found no OWNED social profiles (facebook/twitter/t.me
+ * hits are share-button targets, not profiles) — the owner said to add
+ * social links "إن وجدت" (if found) and none exist. areaServed:
+ * Worldwide + knowsLanguage stay (global reach, not local presence).
  */
 export function getOrganizationSchema() {
   return {
@@ -36,7 +47,7 @@ export function getOrganizationSchema() {
     url: SITE_URL,
     logo: SITE_LOGO,
     description:
-      "منصة رياضية شاملة تقدم مكتبة تمارين، برامج تدريب جاهزة، حاسبات لياقة مجانية، مكتبة أكلات بالسعرات، ومدونة رياضية علمية.",
+      "منصة التدريب الرقمي المتكاملة: أكثر من 868 تمرينًا، 8830 أكلة بالقيم الغذائية، برامج جاهزة، حاسبات مجانية، ومدربون معتمدون مع ذكاء اصطناعي EVO.",
     sameAs: [
       "https://musclehubeg.vercel.app",
     ],

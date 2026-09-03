@@ -498,8 +498,13 @@ export function LandingView() {
         <div className="mx-auto max-w-5xl">
           {/* Text */}
           <div className="text-center">
+            {/* Phase 117 completion (owner directive 2026-09-04): homepage
+                H2s are question-form in both languages (ما هو/ما هي/إزاي/ليه/مين)
+                targeting question-shaped search queries. The 9.7 JOIN-A-COACH
+                H2 was already a question; the 11.5 primary-CTA strip stays
+                imperative (owner-verbatim CTA copy, 2026-09-03 directive). */}
             <h2 className="text-4xl font-semibold tracking-tight md:text-6xl" style={{ color: PALETTE.textPrim }}>
-              EVO
+              {isAr ? "ما هو EVO؟" : "What is EVO?"}
             </h2>
             <p className="mx-auto mt-3 max-w-2xl text-lg font-normal md:text-xl" style={{ color: PALETTE.textSec }}>
               {isAr
@@ -545,7 +550,7 @@ export function LandingView() {
           <div className="text-center">
             <Reveal>
               <h2 className="text-3xl font-semibold tracking-tight md:text-5xl">
-                {isAr ? "أدوات مجانية تختصر عليك الحسابات" : "Free Tools"}
+                {isAr ? "ما هي الأدوات المجانية اللي تختصر عليك الحسابات؟" : "What free tools can do the math for you?"}
               </h2>
             </Reveal>
             <Reveal delay={100}>
@@ -583,7 +588,7 @@ export function LandingView() {
           <div className="text-center">
             <Reveal>
               <h2 className="text-3xl font-semibold tracking-tight md:text-5xl">
-                {isAr ? "مكتبة تمارين تفوق 868 تمرين بشرح كامل" : "Exercise Library"}
+                {isAr ? "ما هي مكتبة التمارين اللي فيها أكثر من 868 تمرين؟" : "What's in the exercise library?"}
               </h2>
             </Reveal>
             <Reveal delay={100}>
@@ -639,7 +644,7 @@ export function LandingView() {
           <div className="text-center">
             <Reveal>
               <h2 className="text-3xl font-semibold tracking-tight md:text-5xl">
-                {isAr ? "برامج تدريب جاهزة على مستواك وهدفك" : "Ready Workout Programs"}
+                {isAr ? "ما هي برامج التدريب الجاهزة على مستواك وهدفك؟" : "What are the ready workout programs?"}
               </h2>
             </Reveal>
             <Reveal delay={100}>
@@ -674,7 +679,7 @@ export function LandingView() {
           <div className="text-center">
             <Reveal>
               <h2 className="text-3xl font-semibold tracking-tight md:text-5xl">
-                {isAr ? "قاعدة بيانات أكتر من 8830 نوع طعام" : "Food Library"}
+                {isAr ? "ما هي قاعدة بيانات الأكلات اللي فيها أكتر من 8830 نوع طعام؟" : "What's in the food database?"}
               </h2>
             </Reveal>
             <Reveal delay={100}>
@@ -714,7 +719,7 @@ export function LandingView() {
               <Reveal>
                 <div className="mb-6 flex items-end justify-between">
                   <h2 className="text-2xl font-semibold tracking-tight md:text-4xl">
-                    {isAr ? "أحدث المقالات" : "Latest Articles"}
+                    {isAr ? "ما هي أحدث المقالات؟" : "What are the latest articles?"}
                   </h2>
                   <a href={blogHref} className="text-sm font-medium transition-opacity hover:opacity-70" style={{ color: PALETTE.brandDeep }}>
                     {isAr ? "كل المقالات ›" : "View all ›"}
@@ -730,7 +735,7 @@ export function LandingView() {
                 <Reveal>
                   <div className="mb-6 flex items-end justify-between">
                     <h2 className="text-2xl font-semibold tracking-tight md:text-4xl">
-                      {isAr ? "مقالات مميزة" : "Featured Articles"}
+                      {isAr ? "ما هي المقالات المميزة؟" : "What are the featured articles?"}
                     </h2>
                   </div>
                 </Reveal>
@@ -756,7 +761,7 @@ export function LandingView() {
             </Reveal>
             <Reveal delay={100}>
               <h2 className="mt-4 text-3xl font-semibold tracking-tight md:text-5xl" style={{ color: PALETTE.textPrim }}>
-                {isAr ? "كوتشينج حقيقي.. مش مجرد خطة PDF" : "Coaches & Nutrition Specialists"}
+                {isAr ? "ليه الكوتشينج هنا حقيقي مش مجرد خطة PDF؟" : "Who are the coaches & nutrition specialists?"}
               </h2>
             </Reveal>
             <Reveal delay={150}>
@@ -825,7 +830,7 @@ export function LandingView() {
         <section className="bg-[#f5f5f7] px-4 py-12 md:py-20">
           <div className="mx-auto max-w-5xl">
             <h2 className="text-center text-3xl font-semibold tracking-tight md:text-4xl" style={{ color: PALETTE.textPrim }}>
-              {isAr ? "مدربون مميزون" : "Featured Coaches"}
+              {isAr ? "مين المدربون المميزون على المنصة؟" : "Who are the featured coaches?"}
             </h2>
             <p className="mx-auto mt-3 max-w-md text-center text-base font-normal" style={{ color: PALETTE.textSec }}>
               {isAr
@@ -946,7 +951,7 @@ export function LandingView() {
         <div className="mx-auto max-w-5xl">
           <Reveal>
             <h2 className="text-center text-3xl font-semibold tracking-tight md:text-5xl" style={{ color: PALETTE.textPrim }}>
-              {isAr ? "اشتراكات تناسب كل مستوى" : "Musclehubeg Premium memberships."}
+              {isAr ? "ما هي اشتراكات Musclehubeg اللي تناسب مستواك؟" : "Which Musclehubeg membership fits your level?"}
             </h2>
           </Reveal>
           <Reveal delay={150}>
@@ -1178,7 +1183,7 @@ export function LandingView() {
             </Reveal>
             <Reveal delay={100}>
               <h2 className="mt-4 text-3xl font-semibold tracking-tight md:text-5xl" style={{ color: PALETTE.textPrim }}>
-                {isAr ? "حوّل تأثيرك لدخل حقيقي (برنامج الأفلييت)" : "Turn your influence into income."}
+                {isAr ? "إزاي تحوّل تأثيرك لدخل حقيقي؟" : "How can you turn your influence into income?"}
               </h2>
             </Reveal>
             <Reveal delay={150}>
@@ -1255,7 +1260,7 @@ export function LandingView() {
         <div className="mx-auto max-w-3xl">
           <Reveal>
             <h2 className="text-center text-3xl font-semibold tracking-tight md:text-5xl">
-              {isAr ? "أسئلة شائعة." : "Questions?"}
+              {isAr ? "ما هي الأسئلة الشائعة عن Musclehubeg؟" : "Got questions about Musclehubeg?"}
             </h2>
           </Reveal>
           <Reveal delay={150}>

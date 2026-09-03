@@ -13,8 +13,13 @@ import type { Metadata, Viewport } from "next";
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://musclehubeg.vercel.app'),
   title: "Musclehubeg — Comprehensive Sports Platform | Exercises, Programs, Calculators & Nutrition",
+  // Phase 117 completion (owner directive 2026-09-04): meta description
+  // shortened to 150-160 chars (157) with a clear CTA — the previous
+  // 245-char version had no call to action and got truncated by search
+  // engines. The OG/Twitter descriptions stay longer-by-design (they
+  // target social-card surfaces, not SERP snippets).
   description:
-    "Musclehubeg is a comprehensive sports platform: 868+ exercise library, ready workout programs, free fitness calculators (calories, BMI, macros), food database with nutrition info, fitness blog, and online coaching with nutrition specialists.",
+    "Musclehubeg — the complete digital training platform: 868+ exercises, 8,830+ foods, ready programs, free calculators, and the EVO AI coach. Start free today!",
   keywords: [
     // Platform-level keywords (primary, English)
     "sports platform",

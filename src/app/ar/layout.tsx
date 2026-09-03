@@ -20,12 +20,17 @@ export const metadata: Metadata = {
     default: "Musclehubeg | منصة رياضية شاملة: تمارين وتغذية وكوتشينج اونلاين",
     template: "%s — Musclehubeg",
   },
+  // Phase 117 completion (owner directive 2026-09-04): meta description
+  // shortened to 150-160 chars (159) ending with the owner's verbatim CTA
+  // («ابدأ رحلتك الرياضية الآن مع منصة التدريب الرقمية المتكاملة») — the
+  // previous ~190-char version had no call to action. The three copies in
+  // this file stay identical (this file's established pattern).
   description:
-    "أكتر من 868 تمرين، حاسبات لياقة مجانية، قاعدة بيانات لأكتر من 8830 نوع طعام، برامج تدريب جاهزة، وكوتشينج حقيقي مع مساعد ذكي EVO يرد عليك في أي وقت. كل حاجة محتاجها في مكان واحد.",
+    "أكثر من 868 تمرينًا، 8830 أكلة بالقيم الغذائية، برامج جاهزة، حاسبات مجانية، ومدربون معتمدون مع EVO. ابدأ رحلتك الرياضية الآن مع منصة التدريب الرقمية المتكاملة.",
   openGraph: {
     title: "Musclehubeg | منصة رياضية شاملة: تمارين وتغذية وكوتشينج اونلاين",
     description:
-      "أكتر من 868 تمرين، حاسبات لياقة مجانية، قاعدة بيانات لأكتر من 8830 نوع طعام، برامج تدريب جاهزة، وكوتشينج حقيقي مع مساعد ذكي EVO يرد عليك في أي وقت. كل حاجة محتاجها في مكان واحد.",
+      "أكثر من 868 تمرينًا، 8830 أكلة بالقيم الغذائية، برامج جاهزة، حاسبات مجانية، ومدربون معتمدون مع EVO. ابدأ رحلتك الرياضية الآن مع منصة التدريب الرقمية المتكاملة.",
     siteName: "Musclehubeg",
     locale: "ar_EG",
     type: "website",
@@ -34,7 +39,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Musclehubeg | منصة رياضية شاملة: تمارين وتغذية وكوتشينج اونلاين",
     description:
-      "أكتر من 868 تمرين، حاسبات لياقة مجانية، قاعدة بيانات لأكتر من 8830 نوع طعام، برامج تدريب جاهزة، وكوتشينج حقيقي مع مساعد ذكي EVO يرد عليك في أي وقت. كل حاجة محتاجها في مكان واحد.",
+      "أكثر من 868 تمرينًا، 8830 أكلة بالقيم الغذائية، برامج جاهزة، حاسبات مجانية، ومدربون معتمدون مع EVO. ابدأ رحلتك الرياضية الآن مع منصة التدريب الرقمية المتكاملة.",
   },
   // NOTE: NO `alternates` here (homepage AR mirror follow-up, 2026-08-30).
   // Next.js metadata inheritance is field-level: an `alternates` block in
