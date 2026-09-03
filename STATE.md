@@ -7,7 +7,7 @@
 ## المرحلة الحالية
 
 - **المرحلة:** 113 — تقليص ملف القوانين بأمر المالك («الأمر الثالث»): AGENTS.md من 1698 إلى 275 سطر (< 350 الهدف) بكل العناوين الـ32 حرفيًا (CI-structure سليمة) · الفقرات الطويلة (RLS الكامل · SQL · قوائم) بقت ملخص سطر-سطرين + روابط `docs/TECH_REFERENCE.md` · الجزء التشغيلي (§3.5 أوامر · §12.5.1 قالب · §12.8 هرمية · §12.2 تدفق) verbatim
-- **آخر كوميت متحقق منه:** 4f2b1ae (Phase 112 · CI حي أخضر على 4f2b1ae: parity · guard · Supabase Preview — الكوميت ترويسته تقول الباقي)
+- **آخر كوميت متحقق منه:** 2d3424d (Phase 113 · CI حي أخضر على 2d3424d: parity · guard · Supabase Preview — الكوميت ترويسته تقول الباقي)
 - **البوابات وقتها:** tsc 0 · eslint 0 · vitest 191/191 · migration_audit --ci 0 · docs_parity 0 · docs_audit 0 · check-stale-refs 0 · check-ui-wiring 0
 - **الإنتاج:** musclehubeg.vercel.app حي · آخر ميجريشن مطبّق: 0069 (no-op توفيقي — الإنتاج مطابق للمرآة المثبتة حيًا 8/8)
 

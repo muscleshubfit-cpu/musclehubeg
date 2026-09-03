@@ -954,5 +954,5 @@ Work Log:
 
 Stage Summary:
 - ملف القوانين بقى 275 سطر (< 350 بهامش) بهيكل CI سليم 100% وروابط داخلية شغالة — المعرفة الطويلة عايشة في TECH_REFERENCE/الكود وفق هرمية §12.8، والقانون نفسه بقي ملزمًا بأسماء قوانينه كاملة
-- Commit SHA: (pending — recorded in post-push fixup)
-- Push status: pending
+- Commit SHA: 2d3424d
+- Push status: pushed (739d760..2d3424d) — CI حي أخضر على 2d3424d (Docs & schema parity · Anti-regression guard · Supabase Preview كلهم success) — post-push fixup: this line recorded the real SHA (the placeholder could not know its own commit hash before committing — same post-push pattern as 105/107/108/109/110/111/112)
