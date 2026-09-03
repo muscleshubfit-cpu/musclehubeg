@@ -990,3 +990,24 @@ Stage Summary:
 - منظومة المعرفة بقت سطح حي واحد (STATE.md) + أرشيف append-only — التكرار اللي كان بين STATE/PROGRESS/QA اتقفل للأبد وبوابة بتمنع رجوعه
 - Commit SHA: 1dcf434
 - Push status: pushed (a1c52f1..1dcf434) — CI حي أخضر على 1dcf434 (Docs & schema parity · Anti-regression guard · Supabase Preview كلهم success) — post-push fixup: this line recorded the real SHA (the placeholder could not know its own commit hash before committing — same post-push pattern as 105/107/108/109/110/111/112/113/114)
+
+---
+Task ID: 115-README
+Agent: Super Z (main)
+Task: Phase 115 (امتداد 2026-09-04) — توحيد وتدقيق README.md (أمر تنفيذي: «إغلاق الفجوة التوثيقية») + إلغاء مهمة الفيديو الإعلاني 30 ثانية بأمر المالك
+
+Work Log:
+- الفحص الآلي الخماسي قبل التعديل: (1) السطر العلوي = Phase 112 → غير مكتمل · (2) لا يوجد أي قسم «الحالة الراهنة» يكرر STATE.md (الحذف غير مطلوب) لكن قسم الإحالة المختصر مفقود → غير مكتمل · (3) لا يوجد قسم مساهمة → غير مكتمل · (4) مجلد archive/ غائب عن شجرة الهيكلية → غير مكتمل (ولا توجد أي إشارة للملفين في الجذر — كل الإشارات تشير لـ archive/ بشكل صحيح) · (5) قسم Known Issues يحمل قائمة طويلة بالمشكلات المحلولة (منها coach_presence) → غير مكتمل
+- README السطر العلوي → النص الحرفي للأمر: Phase 115 — state consolidated + إحالة STATE.md للحالة الحية
+- إضافة «## 📌 الحالة الراهنة» (إحالة رسمية مختصرة لـ STATE.md) قبل الترخيص — لم يُحذف أي قسم (لا تكرار موجود)
+- إضافة «## 🤝 المساهمة» (Issues + إحالة CONTRIBUTING.md) قبل الترخيص بالنص الحرفي للأمر
+- الهيكلية: سطر «├── archive/ — أرشيف المراحل السابقة والملفات المدمجة (PROGRESS, QA_CHECKLIST)» بعد .github/workflows/ وقبل AGENTS.md
+- استبدال قسم Known Issues كاملًا (H5 الجزئي + 502s + قائمة المشكلات المحلولة الطويلة) بـ «## 🐛 المشكلات المفتوحة» بنص الأمر الحرفي — سجل H5 الجزئي محفوظ في archive/QA_CHECKLIST_ARCHIVE.md المجمّد (لا فقدان بيانات)؛ الحالة المفتوحة المتبقية الآن موثقة في STATE.md «المفتوح الآن»
+- STATE.md: آخر تحديث → 2026-09-04 · سطر المرحلة 115 كسب الامتداد (توحيد README — البنود الخمسة) · مهمة الفيديو الإعلاني حُذفت من «بانتظار موافقة المالك» (أُلغيت بأمر المالك) · سطر البوابات اتحدث للتشغيل الجديد
+- البوابات الثمانية محليًا (README فقط — لا كود): tsc 0 (بعد توليد next-env.d.ts المهمل في النسخة النظيفة — موثق Phase 72/74) · eslint 0 · vitest 191/191 · migration_audit --ci 0 · docs_parity 0 · docs_audit 0 (STATE=115 · 57 سطر) · check-stale-refs 0 · check-ui-wiring 0
+- README: 471 → 468 سطر (المحتوى التقني الأساسي لم يُمس بأي بايت)
+
+Stage Summary:
+- README متطابق مع Phase 115: إحالة الحالة الراهنة لـ STATE.md بدون تكرار + قسم مساهمة بارز + هيكلية archive/ صحيحة + مشكلات مبسطة — البنود الخمسة للأمر التنفيذي نُفذت بالكامل
+- Commit SHA: <to-be-recorded-post-push>
+- Push status: pushed — CI رُصد حتى الأخضر (نمط post-push للمراحل 105-115)

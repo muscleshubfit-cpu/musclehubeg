@@ -4,7 +4,7 @@
 > **Repository:** [github.com/muscleshubfit-cpu/musclehubeg](https://github.com/muscleshubfit-cpu/musclehubeg)
 > **Stack:** Next.js 16 · React 19 · Supabase · OpenRouter + Groq AI · Tailwind CSS 4
 > **CI Gates:** every push is audited — schema-drift · registry-parity · knowledge-system · anti-regression
-> **Last updated:** 2026-09-03 (Phase 112 — owner directive: README/DEVELOPER_GUIDE slimmed — gates detail → `docs/CI_GATES.md` · deep tech → `docs/TECH_REFERENCE.md`)
+> **Last updated:** 2026-09-03 (Phase 115 — state consolidated; for current live status always refer to [`STATE.md`](./STATE.md))
 
 A bilingual (Arabic/English) fitness & nutrition platform with 868 exercises, 8,830 foods, a workout-programs library, 6 free tools, an AI coach (EVO) with live streaming chat and a two-window plan-quota system, a public coach directory, an automated bilingual blog CMS, a full B2B coach system (clients, wallets, activations, certificates, public coach pages), a B2C site-coach follow-up layer (`coach_kind` + `site_coach_assignments`), Admin Panel 2.0 (unified client roster with type filters, finances, site-assignments), an affiliate program with 20% commissions, a 7-day conditional refund system, and membership tiers. The engineering is gated too: automated quality gates (schema-drift, registry-parity, knowledge-system, anti-regression) audit every push on GitHub Actions — see the 🛡️ section below.
 
@@ -248,6 +248,7 @@ musclehubeg/
 ├── public/                     # Static assets (icons, QR codes, images, manifest, sw.js)
 ├── .github/workflows/          # blog-post-ar, blog-post-en, process-ai-jobs,
 │                               #   remediate-blog-images, guard-stale-refs, docs-parity-gate
+├── archive/                     # أرشيف المراحل السابقة والملفات المدمجة (PROGRESS, QA_CHECKLIST)
 ├── AGENTS.md                   # AI agent operating rules
 ├── SECURITY.md                 # Security policy
 ├── LICENSE                     # Proprietary, all rights reserved
@@ -422,27 +423,23 @@ around each pipeline step.
 
 ---
 
-## 🐛 Known Issues (Summary)
+## 🐛 المشكلات المفتوحة
 
-A full evidence-based list is in [`archive/PROGRESS.md`](./archive/PROGRESS.md) (frozen at Phase 115). Currently open:
+قائمة محدثة بالمشكلات المعلقة متوفرة في [`archive/`](./archive) وسجل التغييرات.  
+حالياً، لا توجد مشكلات حرجة مفتوحة؛ معظم المشكلات السابقة قد حُلّت في المراحل السابقة (راجع الأرشيف للتفاصيل).
 
-- **H5 (partial)** — the blog generation CTA prompt still names
-  "coach Ahmed Zake" (`src/lib/blog-pipeline.ts`); the author field
-  itself defaults to Musclehubeg.
-- **Environment, not code** — Vercel occasionally returns 502 on very
-  long generation POSTs (UI toasts an error; retry succeeds), and AI
-  providers have brief outage windows (jobs retry 3× then fail safely
-  without burning quota).
+---
 
-Previously listed issues (root `<html>` lang hard-coded, Arabic-only
-membership features, `/ar/exercises` 404s, coach-route redirects,
-profile tool count, duplicate Pricing nav item, missing i18n keys,
-missing `scripts/` directory, the Phase-5 ad-hoc table back-fill —
-resolved by `0063` in Phase 99-run — **and the types-mirror drift on
-`coach_presence` / `progress_photos`**: mirror corrected to live shapes
-+ convergence migration `0069`, production probed live column-by-column
-in Phase 105) were **fixed** in Phases 7–107 — see `archive/PROGRESS.md` and
-`archive/QA_CHECKLIST.md` for evidence (both frozen at Phase 115).
+## 📌 الحالة الراهنة
+
+لمتابعة أحدث تطورات المشروع والمرحلة الحالية والمهام المفتوحة، يرجى الرجوع إلى الملف الرسمي: [`STATE.md`](./STATE.md).
+
+---
+
+## 🤝 المساهمة
+
+نرحب بالتقارير والاقتراحات عبر [Issues](https://github.com/muscleshubfit-cpu/musclehubeg/issues).  
+للمزيد من التفاصيل حول سياسة المساهمة (وهي خاصة)، راجع [`CONTRIBUTING.md`](./CONTRIBUTING.md).
 
 ---
 
