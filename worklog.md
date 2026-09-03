@@ -913,5 +913,5 @@ Work Log:
 
 Stage Summary:
 - الملفات المرجعية الثلاثة عايشة في الريبو بترويسات منشأ واضحة — AGENTS.md/README.md سلامة كاملة — والمعرفة التقنية بقت منظمة في مكان واحد قابل للفهرسة
-- Commit SHA: (placeholder — post-push fixup)
-- Push status: (placeholder — post-push fixup)
+- Commit SHA: aacbb4f
+- Push status: pushed (ccbe59b..aacbb4f) — CI حي أخضر على aacbb4f (Docs & schema parity · Anti-regression guard) — post-push fixup: this line recorded the real SHA
