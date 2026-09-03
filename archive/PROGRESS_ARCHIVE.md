@@ -4091,3 +4091,22 @@ This commit makes `ads.txt` available on production. AdSense's crawler will fetc
 **البوابات:** tsc 0 · eslint 0 · vitest 191/191 · migration_audit بدون انجراف جديد.
 
 ---
+
+---
+
+## ملحق 2026-09-03 (Phase 110) — قسم Phase 104 منقول حرفيًا من PROGRESS.md (السقف 6 اتمسّ بأقسام 110→105)
+
+## 2026-09-03 — Phase 104: مزامنة الوثائق والوصف (docs-only) — «عايز اتاكد ان كل خصائص ومميزات المشروع مكتوبة فى وصف وهيكل المشروع بالظبط ، وصف الريبو مكتوب قديم محتاج يتعدل»
+
+**التدقيق (أرقام من الملفات مباشرة — مش من الذاكرة):** README كان متوقف عند «parity through Phase 81» رغم إن المشروع على Phase 103b — الأرقام القديمة كلها خلت: 82 صفحة (مش 76) · 69 API (مش 67) · 80 ملف SQL (مش 73، والخريطة الحقيقية 0001→0068 مش لحد 0062) · 31 views (مش 33) · 51 ui (مش 52) · وصف الريبو على GitHub لسه بيقول «Ahmed Zake Online Nutrition & Fitness Coaching Platform».
+
+**التنفيذ (docs-only — صفر كود):**
+1. README.md اتزامن بالكامل: مقدمة المنصة الكاملة + قسم «For Site Coaches (B2C)» الجديد + إعادة كتابة Platform & Admin على Admin Panel 2.0 (AdminShell · /admin/clients الموحدة بفلاتر النوع · finances · coaches roster · site-assignments) + Database Setup على عائلات التسمية الأربعة من INDEX.md + أسعار سنوية مُتحقق منها من memberships.ts ($119/$239/$359).
+2. مشكلة محلولة اتشالت من Known Issues («back-fill pending» مقفولة بـ 0063+0064/0065) — ومرشح مفتوح اتوثق بصدق كـ **Phase 105**: انجراف مرآة types.ts (coach_presence · progress.ts).
+3. وصف الريبو على GitHub (PATCH API → HTTP 200): الوصف الكامل للمنصة + 10 topics (fitness · nutrition · workout · nextjs · react · supabase · vercel · ai-coach · arabic · bilingual).
+4. metadata.json: شارة MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API اتشالت (Gemini مباشر متشال بأمر المالك 2026-08-27 — OpenRouter + Groq فقط).
+5. DEVELOPER_GUIDE §8: 67 → 69 endpoints + صفين الجداد (coach-kind · site-assignments).
+
+**البوابات:** docs-only → tsc/eslint/vitest لا ينطبق · check-stale-refs.sh → exit 0 نظيف · كل روابط README النسبية اتحققت إنها موجودة على القرص.
+
+---

@@ -875,3 +875,22 @@ Stage Summary:
 - الصفحة الرئيسية العربية بقت بنسخ المالك الحرفي كاملة (عامية مصرية متسقة) + CTA مجانية جديدة + meta/alt محسّنة SEO — والإنتاج هيستلمها تلقائيًا عبر Vercel مع الدفع
 - Commit SHA: 4c6b5ef
 - Push status: pushed (28377db..4c6b5ef) — CI حي أخضر 3/3 (Supabase Preview · guard · parity) — post-push fixup: this line recorded the real SHA + live verification: /ar يرجع 200 بكل علامات النسخ الجديد (12/12 فحص نصي) · FAQPage JSON-LD بالأسئلة الخمسة الجديدة حرفيًا للغتين · alt الجديدة ظاهرة في HTML · hrefLang en/ar/x-default + canonical /ar حية
+
+---
+Task ID: 110
+Agent: Super Z (main)
+Task: Phase 110 — إزالة ازدواج النشرة البريدية في الصفحة الرئيسية (owner: «النشرة البريدية المجانية مكررة فى الصفحة الرئيسية»)
+
+Work Log:
+- الجذر من الكود: LandingView.tsx كان بيرندر بلوكين للنشرة ورا بعض في الرئيسية — سيكشن 13 المستقل (variant="home" بعنوان «النشرة البريدية المجانية») + كارت بنفس العنوان جوه الفوتر (variant="footer") — الاتنين من Phase 72 (السيكشن طلب أصلي والفوتر كان ضيف «also»)
+- القرار على نفس نمط قرار المالك 2026-08-30 مع CTA الفوتر: الشيل من الفوتر والباقي السيكشن الغني — كارت الفوتر اتشال + تعليق إزالة باقتباس المالك وتاريخه
+- تعليق سيكشن 13 اتحدث: single newsletter surface since 2026-09-03 (نفس نمط إزالة CTA الفوتر 2026-08-30)
+- تعليق NewsletterForm.tsx القديم («Lives in the site footer and on the homepage») اتحدث — الـvariant محفوظ بدون تغيير API
+- فحص النطاق: variant="footer" بقى بدون أي استخدامات · المدونة مش متأثرة (ذكر النشرة فيها تعليق تاريخي بس) · مفيش اختبارات مربوطة بالنشرة
+- طقس §3.6: STATE → مرحلة 110 + كوميت متحقق 4c6b5ef · QA: Latest Phase 110 (6 صفوف أدلة) + 109 بقت Previous + جدول 103b اتنقل حرفيًا للأرشيف (6 جداول بالظبط 110→104) · PROGRESS: قسم 110 كامل + قسم 104 اتنقل حرفيًا للملحق (110→105) + سطر الملاحظة اتحدث
+- البوابات محليًا قبل الدفع: tsc 0 · eslint 0 · vitest 191/191 · migration_audit --ci 0 · docs_parity 0 · docs_audit 0 (STATE=PROGRESS=QA=110 · STATE 48 سطر) · check-stale-refs 0 · check-ui-wiring 0
+
+Stage Summary:
+- النشرة البريدية بقت تظهر مرة واحدة في الرئيسية (سيكشن 13 المستقل) — الفوتر نضف والازدواج اللي المالك شافه اتشال من جذوره
+- Commit SHA: (placeholder — post-push fixup يسجل الـSHA الحقيقي)
+- Push status: (placeholder — post-push fixup)

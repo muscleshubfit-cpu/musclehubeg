@@ -11,8 +11,11 @@ import {
 /**
  * NewsletterForm — Phase 72 (owner request)
  *
- * Daily/weekly newsletter subscription form. Lives in the site footer
- * (variant="footer") and on the homepage (variant="home").
+ * Daily/weekly newsletter subscription form. Lives on the homepage
+ * (variant="home") — the SINGLE newsletter surface since 2026-09-03, when
+ * the duplicate footer card was removed per owner («النشرة البريدية
+ * المجانية مكررة في الصفحة الرئيسية»). The compact variant="footer"
+ * styles are kept for potential reuse.
  *
  * On submit the subscriber is saved in the `tool_leads` table with
  * tool_slug="newsletter" and type="newsletter" (via POST /api/tools/lead).

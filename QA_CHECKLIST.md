@@ -6,7 +6,20 @@
 
 ---
 
-## Latest Verification — 2026-09-03 (Phase 109 — AR/SEO HOMEPAGE COPY: owner «تقدر تبعت الأوامر الأربعة بالترتيب من غير أي تعديل» on the full Arabic content+SEO plan — owner's verbatim Egyptian-dialect copy across every homepage surface + new primary CTA + meta/alt; الأوامر 2-3 verified live as pre-existing (homepage AR mirror 2026-08-30), not re-implemented)
+## Latest Verification — 2026-09-03 (Phase 110 — NEWSLETTER DEDUP: owner «النشرة البريدية المجانية مكررة فى الصفحة الرئيسية» — duplicate footer card removed, section 13 is the single newsletter surface, same dedup pattern as the 2026-08-30 footer CTA removal)
+
+| Check | Result | How verified |
+|---|---|---|
+| Duplication root-caused | ✅ | LandingView.tsx rendered TWO newsletter blocks on the homepage: section 13 standalone (variant="home", headline «النشرة البريدية المجانية») + a footer card with the SAME headline (variant="footer") stacked directly below — both added by Phase 72 (section = original owner request, footer = an "also" add-on) |
+| Footer duplicate removed (real implementation) | ✅ | footer `<NewsletterForm variant="footer" />` block deleted from LandingView.tsx + a removal comment citing the owner quote and date; section 13 comment updated to declare it the SINGLE newsletter surface since 2026-09-03 — same dedup pattern as the owner's own 2026-08-30 footer CTA strip removal (keep the rich standalone section, drop the footer echo) |
+| Stale doc comment fixed | ✅ | NewsletterForm.tsx header no longer claims "Lives in the site footer and on the homepage" — now documents homepage-only usage; the compact variant="footer" styles kept for potential reuse (no API churn) |
+| Scope discipline | ✅ | blog article page untouched (its newsletter mention is only a historical comment replacing an old block); no other surface renders NewsletterForm (grep: variant="footer" had zero remaining usages; no test references Newsletter) |
+| Docs parity §3.6 | ✅ UPDATED | STATE.md → Phase 110 · QA Latest = Phase 110 + 109 demoted Previous · PROGRESS Phase 110 section + 104 moved VERBATIM to archive/PROGRESS_ARCHIVE.md (cap 6: 110→105) · worklog Task 110 ×2 (repo + workspace) |
+| Gates after edits | ✅ | tsc 0 · eslint 0 · vitest 191/191 · migration_audit --ci 0 · docs_parity 0 · docs_audit 0 · check-stale-refs 0 · check-ui-wiring 0 |
+
+---
+
+## Previous Verification — 2026-09-03 (Phase 109 — AR/SEO HOMEPAGE COPY: owner «تقدر تبعت الأوامر الأربعة بالترتيب من غير أي تعديل» on the full Arabic content+SEO plan — owner's verbatim Egyptian-dialect copy across every homepage surface + new primary CTA + meta/alt; الأوامر 2-3 verified live as pre-existing (homepage AR mirror 2026-08-30), not re-implemented)
 
 | Check | Result | How verified |
 |---|---|---|
@@ -79,21 +92,9 @@
 | Docs-only scope | ✅ N/A code gates | zero src/supabase changes → tsc/eslint/vitest not applicable; the doc-relevant guard `scripts/check-stale-refs.sh` → exit 0 clean; every README relative link target verified to exist on disk |
 | Docs parity §3.6 | ✅ UPDATED | README.md · DEVELOPER_GUIDE §8 · metadata.json · GitHub About+topics · QA_CHECKLIST Phase 104 · PROGRESS Phase 104 + «آخر تحديث» · worklog Task 104 · INDEX.md untouched (no migration) |
 
-## Previous Verification — 2026-09-03 (Phase 103b — ADMIN CLIENT TYPE FIX: owner reported right after using the unified page — «فى خطاء ، جميع العملاء مكتوب عملاء b2b وده خطاء». Root cause proven in data + SQL, fixed by 0068 auto-migration + UI truth labels)
-
-| Check | Result | How verified |
-|---|---|---|
-| Owner's report root-caused (not guessed) | ✅ | `auto_assign_client_to_admin()` (0030A, read from the migration) + its backfill put EVERY client into coach_assignments with coach_id = THE ADMIN («followed by the general coach (admin)» — the mechanism behind the old /coach admin-mode listing); 0067 classified client_of_coach as `assigned_coach_id is not null` → true for every member → everyone «عميل مدرب B2B», member_site button ≈ 0 — exactly the owner's report |
-| 0068 auto-migration | ✅ | `20260903153000_0068_admin_client_type_fix.sql`: rebuilds get_admin_clients_paged (SAME 7-arg signature, returns + assigned_coach_role) and get_admin_clients_stats with `_has_b2b_coach = ca.coach_id is not null AND cp.role = 'coach'` — admin auto-assignment counts as member_site («متابعة الإدارة»), only assignments onto a real coach count as B2B clients; lifecycle math / search / sort / security-definer is_admin() boundary / grants unchanged; VERIFY grid expects \|1\|1\|1\|1\|1\| |
-| coach_assignments untouched (B2B money law) | ✅ | only the CLASSIFICATION reads the relation differently — wallet billing (fee_per_client × assigned rows) + affiliate attribution untouched; /admin/coaches roster unaffected (its p_type keys are role-based); 0047 RPCs untouched |
-| UI truth labels | ✅ | clients page: Row type + assigned_coach_role · typeOf() = B2B client only when assigned_coach_role==='coach' · the coach cell now shows «متابعة الإدارة: <name>» for admin-followed members instead of the false «كوتش B2B: <owner's own name>»; types.ts mirror updated (Function Returns + local Row) |
-| Gates | ✅ PASS | tsc 0 · eslint 0 · vitest 191/191 · migration_audit no NEW drift |
-| Live verification path | ✅ | RPC existence + callable probed live earlier (200); classification needs an admin session (test admin deleted — by design), so the owner's own /admin/clients view is the visual proof: أعضاء الموقع counter > 0, only truly-B2B clients under «عملاء مدربي B2B» |
-| Docs parity §3.6 | ✅ UPDATED | INDEX.md 0068 row + audit-count line · QA_CHECKLIST Phase 103b · PROGRESS Phase 103b + «آخر تحديث» · worklog Task 103b · AGENTS.md law text unchanged |
-
 ---
 
-> 🗄️ **الأرشفة (Phase 82 + ملحق 2026-09-02):** الجداول الأقدم نُقلت إلى `archive/QA_CHECKLIST_ARCHIVE.md`. **ملحق 2026-09-03 (Phase 107):** كل ما قبل آخر 5 مراحل (102-run → 80) انضم للملحق — الملف ده سقفه 6 جداول بوابةً. **ملحق 2026-09-03 (Phase 109):** جدول Phase 99-run انضم للملحق (السقف 6 اتمسّ بأقسام 109→103b).
+> 🗄️ **الأرشفة (Phase 82 + ملحق 2026-09-02):** الجداول الأقدم نُقلت إلى `archive/QA_CHECKLIST_ARCHIVE.md`. **ملحق 2026-09-03 (Phase 107):** كل ما قبل آخر 5 مراحل (102-run → 80) انضم للملحق — الملف ده سقفه 6 جداول بوابةً. **ملحق 2026-09-03 (Phase 109):** جدول Phase 99-run انضم للملحق (السقف 6 اتمسّ بأقسام 109→103b). **ملحق 2026-09-03 (Phase 110):** جدول Phase 103b انضم للملحق (السقف 6 اتمسّ بأقسام 110→104).
 
 
 ## Verification Protocol

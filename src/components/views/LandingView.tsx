@@ -1213,7 +1213,11 @@ export function LandingView() {
 
       {/* ===================== 13. NEWSLETTER — Phase 72 (owner request) ====
           Daily/weekly newsletter signup on the homepage. Saved in tool_leads
-          with type="newsletter" via /api/tools/lead. ===================== */}
+          with type="newsletter" via /api/tools/lead. Since 2026-09-03 this is
+          the SINGLE newsletter surface on the homepage — the duplicate footer
+          card right below was removed per owner («النشرة البريدية المجانية
+          مكررة في الصفحة الرئيسية»), same dedup pattern as the 2026-08-30
+          footer CTA removal. ===================== */}
       <section className="bg-white px-4 py-12 md:py-16">
         <div className="mx-auto max-w-2xl">
           <NewsletterForm variant="home" />
@@ -1223,14 +1227,13 @@ export function LandingView() {
       {/* ===================== FOOTER ===================== */}
       <footer className="border-t border-[#d2d2d7] bg-[#f5f5f7] px-4 py-10 text-[#6e6e73]">
         <div className="mx-auto max-w-6xl">
-          {/* Phase 72 (owner request): newsletter signup also lives in the footer */}
-          <div className="mb-8 rounded-3xl border border-[#d2d2d7] bg-white p-5 md:p-6">
-            <NewsletterForm variant="footer" />
-          </div>
-
-          {/* Removed (owner feedback 2026-08-30): «أنت مدرب؟» footer CTA strip —
-              it duplicated section 9.7 (same headline + same /for-coaches
-              link). The rich dark section is the single coach funnel entry. */}
+          {/* Removed (owner feedback 2026-09-03): footer newsletter card —
+              it duplicated section 13 directly above the footer («النشرة
+              البريدية المجانية مكررة في الصفحة الرئيسية»). Section 13 is the
+              single newsletter surface. Removed earlier (2026-08-30): «أنت
+              مدرب؟» footer CTA strip — it duplicated section 9.7 (same
+              headline + same /for-coaches link). The rich dark section is
+              the single coach funnel entry. */}
 
           <div className="grid gap-8 md:grid-cols-3 lg:grid-cols-5">
             {/* Brand */}
