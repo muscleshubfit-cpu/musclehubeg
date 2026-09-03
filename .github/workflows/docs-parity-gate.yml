@@ -40,8 +40,13 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Checkout repository
+      - name: Checkout repository (full history)
         uses: actions/checkout@v5
+        with:
+          fetch-depth: 0   # docs_audit B-check verifies STATE's recorded
+                           # commit is an ancestor of HEAD — a shallow
+                           # (depth-1) checkout lacks the parent objects
+                           # and would fail the gate falsely
 
       # INDEX.md registry heading must equal the filesystem truth
       # (newest NNNN). README/GUIDE are number-FREE by law — that side

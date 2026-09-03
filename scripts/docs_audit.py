@@ -94,10 +94,14 @@ elif m:
             cwd=REPO, check=True,
             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     except subprocess.CalledProcessError:
+        shallow = (REPO / ".git/shallow").exists()
+        hint = (" (shallow checkout detected — the gate needs full "
+                "history: use actions/checkout fetch-depth: 0)"
+                if shallow else
+                " (update STATE.md to a verified commit)")
         fail("B/state-commit",
              f"STATE.md commit {sha} is not an ancestor-or-equal of HEAD "
-             f"(the recorded state must never point forward — update "
-             f"STATE.md to a verified commit)")
+             f"— the recorded state must never point forward{hint}")
 
 # ------------------------------------------------------------------ C
 def phase_num(text: str, pattern: str) -> int | None:

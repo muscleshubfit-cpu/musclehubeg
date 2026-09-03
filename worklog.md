@@ -818,3 +818,17 @@ Stage Summary:
 - إصلاح صدق قديم كامن: ادعاء «22 جدول» و«3 جداول ad-hoc مش في ميجريشنز» في GUIDE كان غلط من زمن 0063 — اتصلح كتاريخ موسوم RESOLVED
 - Commit SHA: a0b776a
 - Push status: pushed (8b48ce7..a0b776a) — post-push fixup: this line recorded the real SHA
+
+---
+Task ID: 107-post
+Agent: Super Z (main)
+Task: Phase 107 post-push — first CI run of docs_audit FAILED (shallow checkout) → fixed
+
+Work Log:
+- CI على a0b776a: docs_parity ✅ لكن docs_audit ❌ — المحلي أخضر والفرق الوحيد: actions/checkout الافتراضي depth=1، فكوميت الحالة 8b48ce7 (الأب) مش موجود على الـ runner وفحص السلفية (git cat-file + merge-base) بيفشل كذب
+- إعادة إنتاج محليًا باستنساخ --depth 1: نفس الفشل بالظبط (إثبات الجذر)
+- الإصلاح المزدوج: fetch-depth: 0 في الـ workflow (تاريخ كامل — الريبو صغير) + رسالة تشخيص في docs_audit بتفرّق بين shallow والانجراف الحقيقي لو حصل تاني
+- الدرس المسجل: أي فحص git-تاريخي في CI لازم يُختبر ضد استنساخ سطحي — اتسجل هنا كأثر دائم
+
+Stage Summary:
+- البوابة الثلاثية (docs_parity + docs_audit + migration_audit) على CI بقت متوقعة خضرا بتاريخ كامل — الإصلاح في نفس الفريم زي ما القانون يطالب
