@@ -2,7 +2,7 @@
 
 > **Status:** Active — required reading for every AI agent (and human
 > contributor) before any commit, PR, or production change.
-> **Last updated:** 2026-08-25
+> **Last updated:** 2026-09-03 (Phase 107 — knowledge operating system)
 > **Owner:** muscleshubfit@gmail.com (project owner + human supervisor)
 
 ---
@@ -131,21 +131,31 @@ Additional rules:
 - "It compiles" is not the same as "it works." Functional verification
   > smoke test > type check.
 
-### 3.6 Update Documentation When Required
+### 3.6 Session Protocol — STATE.md First (Owner directive 2026-09-03 — approved study «المنظومة المعرفية للمشروع كلها»)
 
-- Any change that affects the public API surface (route count, env
-  vars, table schema, build command, deploy config) MUST be reflected
-  in the matching docs in the same PR/commit:
-  - `README.md` — user-facing summary
-  - `DEVELOPER_GUIDE.md` — developer onboarding
-  - `PROGRESS.md` — feature/bug tracker
-  - `QA_CHECKLIST.md` — verification evidence
-  - `SECURITY.md` — anything security-sensitive
-- Documentation-only changes are allowed without code changes, but the
-  agent must explicitly mark in the commit message: `docs: ...`.
-- Do not delete documentation history without a reason. If a section is
-  obsolete, mark it `> **Deprecated (date):** reason` and keep it for
-  one release cycle before removing.
+Every session/conversation MUST open with these steps before ANY
+claim, audit, or code change:
+
+0. **Read `STATE.md` (repo root)** — the official always-current
+   project state: current phase, last verified commit, open items,
+   owner-pending items, active prohibitions, and the source-of-truth
+   map. Takes ~30 seconds and prevents the stale-assumption class of
+   failures that broke this project repeatedly.
+1. `git fetch origin --quiet`, then read the last 3 `worklog.md`
+   entries and the last 5 commit subjects (`git log --oneline -5`).
+2. **Trust NO number in ANY doc.** Every count/range must come from
+   its single source (the map in `STATE.md`). Docs describe behavior;
+   they are not data.
+3. **Survival law:** the agent workspace is EPHEMERAL — it can be
+   wiped at any moment (this already lost Task 100/101 worklog records
+   and `src/app/api/upload/route.ts` from disk, twice, and had to be
+   discovered by accident). Any knowledge that must live =
+   `commit & push` in the SAME session that produced it.
+
+End-of-task duty: `STATE.md` MUST be refreshed in the same phase/commit
+that changes the state it describes (phase number, last verified
+commit, open/pending/prohibited items). A pushed change that leaves
+`STATE.md` stale is an INCOMPLETE change (same severity as §3.8).
 
 ### 3.7 Always Verify Against `origin/main` Before Any Decision or Report
 
@@ -188,7 +198,7 @@ Additional rules:
   "the local clone reflecting the project state". When in doubt, fetch
   and diff.
 
-### 3.6 Documentation Parity Law (Owner directive 2026-09-02 — «دايماً عدل التوثيقات وملفات هيكل المشروع علشان ميحصلش لغبطة»)
+### 3.8 Documentation Parity Law (Owner directive 2026-09-02 — «دايماً عدل التوثيقات وملفات هيكل المشروع علشان ميحصلش لغبطة» + Phase 107 single-source extension)
 
 - **Every code change ships with its documentation in the SAME phase.**
   Documentation is never "later" — a pushed code change without its docs
@@ -198,6 +208,8 @@ Additional rules:
   2. `QA_CHECKLIST.md` — new "Latest Verification" table; demote the
      previous one to "Previous".
   3. `PROGRESS.md` — new phase section + refresh the «آخر تحديث» line.
+  4. `STATE.md` — refresh phase / last-verified-commit / open items
+     (§3.6 end-of-task duty).
 - Additionally, WHENEVER the changed behavior is described elsewhere,
   update that file in the same phase too:
   - `README.md` — architecture / feature tables it touches.
@@ -207,12 +219,30 @@ Additional rules:
     describe the CURRENT behavior in plain words. (Proof of why: this
     label once said "EVO chat streams from Vercel" while the chat did
     NOT stream — it caused owner confusion and needed a correction.)
+- **Single-source number law (Phase 107):** `README.md` and
+  `DEVELOPER_GUIDE.md` carry NO variable counts (SQL files, pages,
+  endpoints, views, components, registry ranges, "Total: N" lines) —
+  every such number lives in the CODE or in `supabase/migrations/
+  INDEX.md`, and `STATE.md` points to each source. The automated gate
+  `scripts/docs_audit.py` fails the push on ANY count claim in these
+  two files, on duplicate section numbers in `AGENTS.md` (this law was
+  born from a real duplicated §3.6), and on STATE/PROGRESS/QA phase
+  mismatches. Historical narrative stays valid — just phrase it
+  without drift-prone counters.
 - Wrong-but-confident docs are worse than missing docs: if a doc line
   cannot be verified against code or a live check, fix it or delete it —
   never leave it "because it sounds right".
 - Dead code (imported nowhere) and stale schema references count as
   documentation debt: delete them in the same phase (git history
   preserves them) so future agents never trip on them.
+- Documentation-only changes are allowed without code changes, but the
+  commit message must start with `docs:`.
+- Do not delete documentation history without a reason. If a section is
+  obsolete, move it to `archive/` (append-only) or mark it
+  `> **Deprecated (date):** reason` for one release cycle before
+  removing. Keep `PROGRESS.md` and `QA_CHECKLIST.md` slim: newest
+  phase sections only; everything older goes to `archive/`
+  (enforced by `docs_audit.py` section-count limits).
 
 ---
 
@@ -228,6 +258,8 @@ A task is "Done" only when ALL of the following are true:
       `QA_CHECKLIST`, `SECURITY` as applicable).
 - [ ] `PROGRESS.md` reflects the new state (feature marked done, bug
       marked fixed, etc.) with a date.
+- [ ] `STATE.md` refreshed (§3.6 end-of-task duty) when phase / open
+      items / prohibitions changed.
 - [ ] `worklog.md` gains a new entry following the template in §12.5.1.
 - [ ] No secrets, no customer data, no production-only config was
       committed.
@@ -1546,7 +1578,8 @@ or push — unless the Owner explicitly asked to skip one of these steps
   review pass is allowed to fix gaps or conflicts.
 
 > **Consolidated (2026-08-24):** executed via `docs/_AUDIT.md`. Do not
-> create new documentation files.
+> create new documentation files — except `STATE.md` (Phase 107,
+> owner-approved knowledge operating system; §3.6/§3.8).
 
 #### 12.5.1 `worklog.md` Entry Template (Binding)
 

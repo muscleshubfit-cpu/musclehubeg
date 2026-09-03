@@ -3,6 +3,10 @@ name: Docs & schema parity gate
 # ============================================================
 # Phase 106 (2026-09-03) — owner: «عايز حل ثابت انها متحصلش تانى
 # خصوصاً ان ملفات التوثيق دايما بتسبب مشاكل»
+# Phase 107 (2026-09-03) — owner-approved knowledge operating
+# system: adds docs_audit.py (STATE.md integrity · single-source
+# number law for README/GUIDE · AGENTS.md duplicate-section guard ·
+# phase equality STATE/PROGRESS/QA · slim living docs + archive).
 #
 # Born from two real incident classes:
 #   1) Docs drift: README froze at Phase 81 while the product moved
@@ -39,12 +43,20 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v5
 
-      # Every count claimed in README / DEVELOPER_GUIDE / INDEX.md must
-      # equal the filesystem truth (pages · endpoints · SQL files ·
-      # views · ui components · registry range 0001→NNNN). A stale
-      # number — or a claim sentence edited away — fails the build.
-      - name: Documented counts vs filesystem (docs_parity.py)
+      # INDEX.md registry heading must equal the filesystem truth
+      # (newest NNNN). README/GUIDE are number-FREE by law — that side
+      # is enforced by docs_audit.py below.
+      - name: Migration registry vs filesystem (docs_parity.py)
         run: python3 scripts/docs_parity.py --ci
+
+      # Phase 107 knowledge gate: STATE.md integrity (≤100 lines ·
+      # required sections · recorded commit is an ancestor of HEAD),
+      # phase equality STATE/PROGRESS/QA, ZERO variable counts in
+      # README/DEVELOPER_GUIDE (single-source law §3.8), no duplicate
+      # section numbers in AGENTS.md (the duplicated §3.6 incident),
+      # slim living docs with archive pointers.
+      - name: Knowledge operating system gate (docs_audit.py)
+        run: python3 scripts/docs_audit.py --ci
 
       # Migrations ↔ types.ts mirror audit: fails on any NEW missing/
       # phantom table or column that is not part of the documented

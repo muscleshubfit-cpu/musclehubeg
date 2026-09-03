@@ -1,29 +1,25 @@
 #!/usr/bin/env python3
-"""Docs parity gate — README/DEVELOPER_GUIDE/INDEX claims vs filesystem truth.
+"""Migration registry parity gate — INDEX.md heading vs filesystem truth.
 
 Born from Phase 104 (README frozen at Phase 81 while the product had moved
 to 103b) and Phase 106 (owner: «عايز حل ثابت انها متحصلش تانى خصوصاً ان
 ملفات التوثيق دايما بتسبب مشاكل»).
 
-Every count claimed in the docs is re-derived from the filesystem on every
-push (see .github/workflows/docs-parity-gate.yml). If a claim is stale —
-or the claim sentence was edited away entirely — this gate FAILS, so docs
-can no longer drift silently.
+Scope EVOLVED in Phase 107 (owner-approved knowledge operating system):
+README/DEVELOPER_GUIDE were stripped of ALL variable counts under the
+AGENTS.md §3.8 single-source law, so guarding their claims here became
+moot — their number-freedom is now enforced by scripts/docs_audit.py
+(the docs-parity-gate.yml workflow runs BOTH). What remains here is the
+one registry claim DESIGNED to live in a doc: the INDEX.md numbering
+heading, re-derived from the filesystem on every push.
 
-Gated claims (every occurrence must match the filesystem):
-  README.md           **N SQL files** · N page.tsx · N API endpoints ·
-                      (N views) · N components) · 0001→NNNN
-  DEVELOPER_GUIDE.md  N endpoints
-  INDEX.md            «خريطة الترقيم 0001 → NNNN» heading == newest NNNN
-                      filename in supabase/migrations/
-
-Deliberately NOT gated: per-filename listing inside INDEX.md — §1 of that
-file documents the range-notation families BY DESIGN (Phase 106 verified:
-52 of the 81 SQL files are covered by range rows, not exact names).
+Gated claims:
+  INDEX.md  «خريطة الترقيم 0001 → NNNN» heading == newest NNNN filename
+            in supabase/migrations/
 
 Usage:  python3 scripts/docs_parity.py            # human report
         python3 scripts/docs_parity.py --ci       # GitHub Actions annotations
-Exit:   0 = all claims match · 1 = any stale/missing claim
+Exit:   0 = registry heading matches · 1 = stale/missing
 """
 import os
 import re
@@ -53,27 +49,12 @@ for f in sql_files:
 
 # ------------------------------------------------------------ claim specs
 # (file, label, regex, expected, hint, line_scope)
-# line_scope: a claim is only read from lines ALSO matching this regex —
-# it keeps TRUE HISTORICAL statements ("Phase 82 verified 67 endpoints",
-# audit-log row "الترقيم كامل 0001→0062") out of the gate while locking
-# the canonical current-state lines.
+# line_scope: a claim is only read from lines ALSO matching this regex.
+# Phase 107: README/GUIDE claims REMOVED — those docs are now number-FREE
+# (AGENTS.md §3.8 single-source law, enforced by scripts/docs_audit.py).
+# Only the INDEX.md registry heading remains — the single documented home
+# of the numbering range BY DESIGN (MIGRATION INDEX LAW).
 CLAIMS = [
-    ("README.md", "SQL files count", r"(\d+)\s+SQL files", sql_count,
-     "update every 'N SQL files' mention in README.md", None),
-    ("README.md", "page.tsx count", r"(\d+)\s+page\.tsx", pages,
-     "update the app/ tree comment in README.md", None),
-    ("README.md", "API endpoints count", r"(\d+)\s+API endpoints", endpoints,
-     "update the api/ tree comment in README.md", None),
-    ("README.md", "views count", r"\((\d+)\s+views\)", views,
-     "update the views/ tree comment in README.md", None),
-    ("README.md", "ui components count", r"(\d+)\s+components\)", ui,
-     "update the UI row of the tech table in README.md", None),
-    ("README.md", "migration registry range", r"0001\s*→\s*(\d{4})",
-     int(max_nnnn),
-     "update '0001→NNNN' registry mentions in README.md", None),
-    ("DEVELOPER_GUIDE.md", "API endpoints total", r"(\d+)\s+endpoints",
-     endpoints, "update the 'Total: N endpoints' line in DEVELOPER_GUIDE §8",
-     r"Total:"),
     ("supabase/migrations/INDEX.md", "registry heading range",
      r"0001\s*→\s*(\d{4})", int(max_nnnn),
      "update the «خريطة الترقيم 0001 → NNNN» heading in INDEX.md",
@@ -124,6 +105,7 @@ if failures:
           f"docs drifted from the filesystem (the Phase-104 incident class)")
     sys.exit(1)
 
-print("\n✓ all documented counts match the filesystem "
-      "(README · DEVELOPER_GUIDE · INDEX.md)")
+print("\n✓ migration registry heading matches the filesystem "
+      "(INDEX.md — the single documented home of the range; "
+      "README/GUIDE are number-free per docs_audit.py)")
 sys.exit(0)

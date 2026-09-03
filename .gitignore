@@ -50,13 +50,15 @@ pnpm-lock.yaml
 #   scripts/ai-jobs-runner     → whole-AI-system queue worker (process-ai-jobs.yml)
 #   scripts/check-stale-refs.sh → anti-regression guard (guard-stale-refs.yml)
 #   scripts/migration_audit.py → migrations ↔ types.ts audit (docs-parity-gate.yml)
-#   scripts/docs_parity.py     → docs-counts gate (docs-parity-gate.yml, Phase 106)
+#   scripts/docs_parity.py     → migration-registry gate (docs-parity-gate.yml, Phase 106)
+#   scripts/docs_audit.py      → knowledge-system gate (docs-parity-gate.yml, Phase 107)
 /scripts/*
 !/scripts/blog-runner/
 !/scripts/ai-jobs-runner/
 !/scripts/check-stale-refs.sh
 !/scripts/migration_audit.py
 !/scripts/docs_parity.py
+!/scripts/docs_audit.py
 /skills/
 /tests/
 /examples/

@@ -794,3 +794,27 @@ Work Log:
 Stage Summary:
 - انجراف التوثيق بقى مستحيل بصمت: كل push بيتفحص على GitHub نفسه — الأرقام من الملفات لاير، والمرآة تحت مراقبة exit-code
 - الملفات: scripts/docs_parity.py · scripts/migration_audit.py · .github/workflows/docs-parity-gate.yml · README · QA_CHECKLIST · PROGRESS · INDEX · worklog
+
+---
+Task ID: 107
+Agent: Super Z (main)
+Task: Phase 107 — منظومة معرفة المشروع (STATE.md + قانون المصدر الواحد + بوابة docs_audit + أرشفة PROGRESS/QA) — «go لتنفذيها» بعد اللخبطة اللي سبقت
+
+Work Log:
+- توضيح اللخبطة للمالك: الدراسة الشاملة (6 مكونات) ما كانتش منفذة — اللي اتنفذ باسم 106 كان بوابة docs-parity الأضيق، والـ go الجديد استُلم للمنظومة كاملة كـ Phase 107
+- إثبات حساسية البوابة قبل أي تجريد: docs_audit.py اصطاد 19 ادعاء رقمي متغير في README/GUIDE (منهم «66 endpoint» مخفي في شجرة GUIDE) — ثم صفر بعد التجريد
+- STATE.md جديد (47 سطر): المرحلة 107 + آخر كوميت متحقق 8b48ce7 + المفتوح (bootstrap + kit النسخة النظيفة) + بانتظار المالك (لا شيء) + الممنوعات (auth.users يدوي · OpenRouter+Groq فقط · ممنوع تعديل ميجريشنز مطبقة · ممنوع أرقام في README/GUIDE) + خريطة مصادر الحقيقة + بروتوكول الجلسة
+- AGENTS.md: §3.6 المكرر (سطر 134 + 191) اتعالج — §3.6 بقت Session Protocol (STATE أولًا · آخر 3 worklog + 5 كوميتات بعد fetch · ممنوع الوثوق برقم · قانون البقاء: commit&push نفس الجلسة) · القديم اندمج في §3.8 Documentation Parity Law + قانون المصدر الواحد + قواعد docs:/الأرشفة · §4 اكتمل ببوكس STATE · §12.5 باستثناء STATE الموثق
+- scripts/docs_audit.py (جديد): 7 عائلات فحص — A سلامة STATE (≤100 سطر + أقسام إلزامية) · B كوميت STATE سلف لـ HEAD (merge-base) · C تساوي المراحل STATE=PROGRESS=QA · D صفر أرقام متغيرة في README/GUIDE · E منع تكرار عناوين AGENTS · F ملفات حية نحيفة (سقف 6 أقسام/200 سطر) + مؤشرات الأرشيف + Latest واحد بالظبط · G STATE مربوط من README
+- scripts/docs_parity.py: نطاقه تحدد بصدق على INDEX.md (البيت الموثق الوحيد للنطاق) بعد ما README/GUIDE بقوا بلا أرقام — والـ docstring يسجل التطور
+- .github/workflows/docs-parity-gate.yml: docs_audit.py تالت step جنب docs_parity وmigration_audit — البوابة شغالة على GitHub نفسه مستقلة عن أي جلسة
+- README: تجريد كامل (Database Setup · شجرة المشروع · Tech Stack · قائمة الوثائق) + STATE.md اتضاف للقائمة الأمامية
+- DEVELOPER_GUIDE: §8 Total بقى «عمدًا غير مكتوب — الكود هو الحقيقة» · §4 الجداول اتكتبت من جديد (ادعاء «22 جدول» كان متقادم سنين + قسم الـ ad-hoc اتعلّم RESOLVED بـ 0063/0069 مع الإشارة لـ types.ts)
+- أرشفة حرفية: PROGRESS 741→118 سطر (آخر 5 مراحل + مؤشرات) · QA 414→108 (Latest جديد + 4 Previous + البروتوكول) · كله اتضاف لـ archive/* بملحق مؤرخ ورؤوس الأرشيف اتعمت لطقس append-only
+- البوابات: tsc 0 · eslint 0 · vitest 191/191 · migration_audit --ci 0 · docs_parity 0 · docs_audit 0 · check-stale-refs 0
+
+Stage Summary:
+- المنظومة المعرفية بقت كود مش أمل: بوابة CI بتفشل عند أي رجوع للفوضى (أرقام في README · تضارب مراحل · تكرار عناوين · تضخم ملفات حية) — والحالة الرسمية STATE.md أول ملف يتقري في أي جلسة
+- إصلاح صدق قديم كامن: ادعاء «22 جدول» و«3 جداول ad-hoc مش في ميجريشنز» في GUIDE كان غلط من زمن 0063 — اتصلح كتاريخ موسوم RESOLVED
+- Commit SHA: <this-commit>
+- Push status: pushed

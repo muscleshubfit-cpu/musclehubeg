@@ -3,7 +3,7 @@
 > **Live:** [musclehubeg.vercel.app](https://musclehubeg.vercel.app)
 > **Repository:** [github.com/muscleshubfit-cpu/musclehubeg](https://github.com/muscleshubfit-cpu/musclehubeg)
 > **Stack:** Next.js 16 · React 19 · Supabase · OpenRouter + Groq AI · Tailwind CSS 4
-> **Last updated:** 2026-09-03 (docs↔code parity through Phase 103b)
+> **Last updated:** 2026-09-03 (Phase 107 — knowledge operating system: STATE.md + single-source number law + docs_audit gate)
 
 A bilingual (Arabic/English) fitness & nutrition platform with 868 exercises, 8,830 foods, a workout-programs library, 6 free tools, an AI coach (EVO) with live streaming chat and a two-window plan-quota system, a public coach directory, an automated bilingual blog CMS, a full B2B coach system (clients, wallets, activations, certificates, public coach pages), a B2C site-coach follow-up layer (`coach_kind` + `site_coach_assignments`), Admin Panel 2.0 (unified client roster with type filters, finances, site-assignments), an affiliate program with 20% commissions, a 7-day conditional refund system, and membership tiers.
 
@@ -77,9 +77,10 @@ CRON_SECRET=your-cron-secret
 
 ### Database Setup
 
-`supabase/migrations/` contains **81 SQL files** in four naming
-families (see [`supabase/migrations/INDEX.md`](./supabase/migrations/INDEX.md) — the
-binding registry). The numbering map currently runs **0001 → 0069**:
+`supabase/migrations/` holds the versioned migration registry in four
+naming families (see [`supabase/migrations/INDEX.md`](./supabase/migrations/INDEX.md) — the
+binding registry). The numbering map lives in INDEX.md — it is the
+single documented home of the registry range:
 
 | Family | Example | Applied by |
 |---|---|---|
@@ -88,8 +89,8 @@ binding registry). The numbering map currently runs **0001 → 0069**:
 | `RUN_ON_SUPABASE_*` | `RUN_ON_SUPABASE_0066_DELETE_TEST_ADMIN_ACCOUNT.sql` | Manual only (SQL Editor) — never auto-applied |
 | `VERIFY_*.sql` | `VERIFY_SCHEMA_DRIFT.sql` | Manual, read-only verification scripts |
 
-For a fresh project: run the numeric files first (`0001…0005`), then the
-dated files in timestamp order (`2026…0057` → `2026…0068`), then
+For a fresh project: run the numeric family first, then the dated
+family in timestamp order, then
 `NOTIFY pgrst, 'reload schema';` to refresh the PostgREST schema cache —
 or just `supabase db push` with the CLI. Manual `RUN_ON_SUPABASE_*`
 scripts are applied only when the corresponding legacy feature is needed.
@@ -151,7 +152,7 @@ columns froze the ledger at 0063 and silently held back 0064→0067
 ```
 musclehubeg/
 ├── src/
-│   ├── app/                    # Next.js App Router — 82 page.tsx files
+│   ├── app/                    # Next.js App Router (page count = code truth)
 │   │   ├── (app)/              # Authenticated routes (dashboard, coach, plans, progress…)
 │   │   ├── (home)/             # Landing page route group
 │   │   ├── admin/              # ADMIN-ONLY — Admin Panel 2.0 with dedicated AdminShell
@@ -166,7 +167,7 @@ musclehubeg/
 │   │   │                       #   accounts (legacy redirects), assignments, blog CMS,
 │   │   │                       #   coach-pages, coach-support, coach-system, referrals,
 │   │   │                       #   leads, saved-results, wallets, external-plans
-│   │   ├── api/                # 69 API endpoints (68 route.ts + og-image route.tsx) — see DEVELOPER_GUIDE §8
+│   │   ├── api/                # API endpoints — see DEVELOPER_GUIDE §8 (count = code truth)
 │   │   ├── ar/                 # Full Arabic RTL mirror (blog, exercises, foods, programs,
 │   │   │                       #   coaches, for-coaches, memberships, faq…)
 │   │   ├── affiliate/          # Affiliate program page (7-step program, 20% commission)
@@ -186,8 +187,8 @@ musclehubeg/
 │   │   ├── layout.tsx          # Root layout (providers, analytics, ads, PWA)
 │   │   └── metadata.ts         # Site-wide SEO metadata
 │   ├── components/
-│   │   ├── ui/                 # shadcn/ui primitives (51 files, new-york style)
-│   │   ├── views/              # Page-level views (31 views)
+│   │   ├── ui/                 # shadcn/ui primitives (new-york style)
+│   │   ├── views/              # Page-level views
 │   │   ├── admin/              # AdminShell (sidebar + mobile button grid + live badges)
 │   │   │                       #   + admin/ui.tsx shared primitives (StatTile, badges, tabs…)
 │   │   ├── blog/               # Blog article + list components
@@ -229,13 +230,14 @@ musclehubeg/
 │   │   └── ...
 │   ├── middleware.ts            # Session refresh + Content-Language header + locale-aware lang/dir
 ├── supabase/
-│   └── migrations/             # 81 SQL files (0001→0069 registry in INDEX.md; manual
+│   └── migrations/             # Versioned migration registry (INDEX.md is binding; manual
 │                               #   RUN_ON_SUPABASE_* + VERIFY_* scripts included)
 ├── scripts/                    # ai-jobs-runner (GHA), blog-runner (GHA), migration_audit.py
-│                               #   (schema-drift gate, Phase 96), docs_parity.py (docs-counts
-│                               #   gate, Phase 106), check-stale-refs.sh
+│                               #   (schema-drift gate, Phase 96), docs_parity.py (registry
+│                               #   gate, Phase 106), docs_audit.py (knowledge gate, Phase 107),
+│                               #   check-stale-refs.sh
 ├── public/                     # Static assets (icons, QR codes, images, manifest, sw.js)
-├── .github/workflows/          # 6 workflows: blog-post-ar, blog-post-en, process-ai-jobs,
+├── .github/workflows/          # blog-post-ar, blog-post-en, process-ai-jobs,
 │                               #   remediate-blog-images, guard-stale-refs, docs-parity-gate
 ├── AGENTS.md                   # AI agent operating rules
 ├── SECURITY.md                 # Security policy
@@ -305,7 +307,7 @@ musclehubeg/
 | Layer | Technology |
 |---|---|
 | **Framework** | Next.js 16 (App Router) |
-| **UI** | React 19, Tailwind CSS 4, shadcn/ui (new-york style, 51 components) |
+| **UI** | React 19, Tailwind CSS 4, shadcn/ui (new-york style) |
 | **Backend** | Supabase (Postgres, Auth, Storage, RLS + GitHub-integration auto-migrations) |
 | **AI** | OpenRouter + Groq ONLY — unified layer (`src/lib/ai-provider.ts`), interleaved strongest-chain + Promise.any race + SSE streaming, budget-clamped ≤52s |
 | **Charts** | Recharts 3 (lazy-loaded) |
@@ -322,9 +324,10 @@ musclehubeg/
 
 ## 📊 Database
 
-**81 SQL files** across four naming families (see
-[`supabase/migrations/INDEX.md`](./supabase/migrations/INDEX.md)) with the
-numbering map running **0001 → 0069**. All auto-applied families carry
+The database evolves through a versioned migration registry in four
+naming families (see
+[`supabase/migrations/INDEX.md`](./supabase/migrations/INDEX.md) — the
+single documented home of the numbering range). All auto-applied families carry
 Row Level Security (RLS) policies — hardened progressively (Phases
 99–100: strict RLS for `progress_photos` and the tamper-proof
 `plan_swaps` usage ledger, with table-level revokes for loud failures).
@@ -451,12 +454,13 @@ See [`LICENSE`](./LICENSE) for the full proprietary terms.
 
 ## 📋 Additional Documentation
 
+- [`STATE.md`](./STATE.md) — **الحالة الرسمية الحالية** (أول ملف يُقرأ في أي جلسة — AGENTS.md §3.6)
 - [`AGENTS.md`](./AGENTS.md) — AI agent operating rules (required reading)
 - [`SECURITY.md`](./SECURITY.md) — Security policy
 - [`PROGRESS.md`](./PROGRESS.md) — Recent phases snapshot (older phases archived in `archive/`)
 - [`DEVELOPER_GUIDE.md`](./DEVELOPER_GUIDE.md) — Developer onboarding + architecture details
 - [`QA_CHECKLIST.md`](./QA_CHECKLIST.md) — Verification evidence + QA protocol (older evidence archived)
-- [`supabase/migrations/INDEX.md`](./supabase/migrations/INDEX.md) — Binding migration registry (0001→0069) + naming laws
+- [`supabase/migrations/INDEX.md`](./supabase/migrations/INDEX.md) — Binding migration registry + naming laws
 - [`docs/`](./docs/) — SEO frameworks (CWV thresholds, E-E-A-T, schema reference) + historical audits
 - [`.env.example`](./.env.example) — Environment variables reference
 - [`worklog.md`](./worklog.md) — Per-agent change log (older entries archived in `archive/`)

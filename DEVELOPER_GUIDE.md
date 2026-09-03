@@ -130,7 +130,7 @@ src/
 │   │   ├── referrals/           # إدارة الإحالات
 │   │   ├── saved-results/       # نتائج محفوظة لكل المستخدمين
 │   │   └── wallets/             # محافظ المدربين (طلبات الشحن + تعديل يدوي)
-│   ├── api/                     # API Routes (66 endpoint — route.ts)
+│   ├── api/                     # API Routes (count = code truth — see §8)
 │   │   ├── ai/                  # AI (chat, jobs الطابير + quota, queue-health)
 │   │   ├── admin/               # Admin (external-plans, accounts, wallets, refunds, staff, blog, …)
 │   │   ├── coach/               # B2B (clients/invite, wallet, subscriptions/activate, support, …)
@@ -249,20 +249,19 @@ src/
 
 ## 4. قاعدة البيانات + RLS
 
-### الجداول (22 جدول مُعرّفة في migrations + 3 مُستخدمة في الكود بدون migration)
+### الجداول
 
-> **Phase 7 correction (2026-08-19):** The previous count of "20 tables"
-> was inaccurate. The actual state (re-verified 2026-08-25):
-> - **22 tables** are formally defined via `CREATE TABLE` in
->   migrations `0001` → `0016`.
-> - **3 additional tables** (`plan_swaps`, `progress_photos`,
->   `coach_presence`) are referenced in `src/lib/data/` and were
->   created ad-hoc on the production database during Phase 5 via
->   Supabase SQL Editor. They are NOT in any migration file — this
->   is technical debt that should be back-filled as migrations.
+> **الحقيقة الحالية:** `src/lib/supabase/types.ts` (الأعمدة والعلاقات) +
+> `supabase/migrations/INDEX.md` (الترقيم والسجل) — الكود هو الحقيقة،
+> و`scripts/docs_audit.py` يمنع كتابة أعداد الجداول هنا (AGENTS.md §3.8).
 >
-> The 22 migration-defined tables are listed below. The 3 ad-hoc
-> tables follow in a separate sub-section.
+> **Phase 7 correction (2026-08-19) — historical:** the early hand
+> counts proved inaccurate and were corrected once, then the whole
+> counting approach was retired by the Phase-107 single-source law.
+> The three ad-hoc Phase-5 tables (`plan_swaps`, `progress_photos`,
+> `coach_presence`) were back-filled as real migrations (0063, closed
+> in Phase 99-run) — the old "not in any migration" note below is
+> RESOLVED and kept only as history.
 
 | الجدول | RLS Policy |
 |---|---|
@@ -293,20 +292,19 @@ src/
 
 - `is_coach()` — SECURITY DEFINER function تتحقق من `role = 'coach'` (يستخدم في RLS policies)
 
-### Tables used in code but NOT in migrations (Phase 5 ad-hoc)
+### Ad-hoc Phase-5 tables — RESOLVED (0063)
 
-> These were created on the production database via Supabase SQL
-> Editor during Phase 5. SQL scripts are referenced in `PROGRESS.md`
-> Phase 5 section.
+> **Historical (closed):** these were created on the production
+> database via Supabase SQL Editor during Phase 5 and are now
+> formally back-filled as migrations (0063, verified live in Phase
+> 99-run + converged for fresh envs by 0069). The table below is the
+> historical purpose list; current columns live in `types.ts`.
 
-| Table | Purpose |
+| Table | Purpose (historical) |
 |---|---|
 | `plan_swaps` | Daily swap usage tracking (used by PlansView) |
 | `progress_photos` | Progress photo references (used by ProgressView) |
-| `coach_presence` | Coach online status |
-
-> **Action item:** Back-fill these as migration files so a fresh
-> Supabase project can be set up from migrations alone.
+| `coach_presence` | Coach online status (live shape: coach_id/last_seen — Phase 105) |
 
 ### Storage Buckets
 
@@ -452,12 +450,12 @@ State tracked in blog_generation_queue table (one row per language).
 
 ## 8. API Routes Reference
 
-> **Phase 82 parity fix (2026-09-02) + Phase 104 docs-parity (2026-09-03):**
-> The previous table listed 36 routes (many of them retired); Phase 82
-> verified **67 endpoints**, and Phase 103 added two more — the verified
-> count is now **69 endpoints** (68 `route.ts` + 1 `route.tsx` for the
-> OG image). Verified by `find src/app/api -name "route.ts*" | wc -l`
-> and by per-file extraction of exported handlers + auth guards.
+> **Phase 82 parity fix (2026-09-02) + Phase 104 docs-parity (2026-09-03)
+> + Phase 107 single-source law:** the table below was rebuilt from the
+> code and re-verified per file (exported handlers + auth guards). This
+> doc deliberately carries NO endpoint totals — the live count is
+> whatever `find src/app/api -name "route.ts*" | wc -l` says, and
+> `scripts/docs_audit.py` fails any total written here (AGENTS.md §3.8).
 
 | Route | Method | Auth | الوظيفة |
 |---|---|---|---|
@@ -531,7 +529,7 @@ State tracked in blog_generation_queue table (one row per language).
 | `/api/tools/saved-results` | GET/DELETE | User | إدارة النتائج المحفوظة |
 | `/api/upload` | POST | User | رفع ملف للتخزين (حدود + تعقيم) |
 
-**Total: 69 endpoints** (68 `route.ts` + 1 `route.tsx`) — verified 2026-09-03 (Phase 104 docs-parity).
+**Total:** عمدًا غير مكتوب — الكود هو الحقيقة (`find src/app/api -name "route.ts*" | wc -l`)، والبوابة `scripts/docs_audit.py` تمنع كتابة أي إجمالي هنا (AGENTS.md §3.8 — Phase 107).
 
 ---
 
