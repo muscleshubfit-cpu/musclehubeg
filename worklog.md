@@ -816,5 +816,5 @@ Work Log:
 Stage Summary:
 - المنظومة المعرفية بقت كود مش أمل: بوابة CI بتفشل عند أي رجوع للفوضى (أرقام في README · تضارب مراحل · تكرار عناوين · تضخم ملفات حية) — والحالة الرسمية STATE.md أول ملف يتقري في أي جلسة
 - إصلاح صدق قديم كامن: ادعاء «22 جدول» و«3 جداول ad-hoc مش في ميجريشنز» في GUIDE كان غلط من زمن 0063 — اتصلح كتاريخ موسوم RESOLVED
-- Commit SHA: <this-commit>
-- Push status: pushed
+- Commit SHA: a0b776a
+- Push status: pushed (8b48ce7..a0b776a) — post-push fixup: this line recorded the real SHA
