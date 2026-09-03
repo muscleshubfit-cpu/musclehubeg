@@ -1026,5 +1026,5 @@ Work Log:
 
 Stage Summary:
 - «المفتوح الآن» فاضي تمامًا دلوقتي — البند الوحيد المتبقي في انتظار المالك هو لا شيء (الفيديو أُلغي سابقًا)
-- Commit SHA: <to-be-recorded-post-push>
-- Push status: pushed — CI رُصد حتى الأخضر (نمط post-push للمراحل 105-115)
+- Commit SHA: 8d67ab9
+- Push status: pushed (12b0566..8d67ab9) — CI حي أخضر على 8d67ab9 (Docs & schema parity · Anti-regression guard كلهم success) — post-push fixup: هذا السطر سجل الـ SHA الحقيقي (النائب لم يكن ليعرف هاش كوميته قبل الكوميت — نفس نمط post-push للمراحل 105-115)
