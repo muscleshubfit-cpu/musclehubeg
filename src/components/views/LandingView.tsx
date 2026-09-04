@@ -9,7 +9,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { listBlogPosts, getCategoryLabel, type BlogPost } from "@/lib/blog";
+import { listBlogPosts, getCategoryLabel, selectHomeBlogCarousels, type BlogPost } from "@/lib/blog";
 import { EXERCISES } from "@/lib/exercises";
 import { SiteHeader } from "@/components/SiteHeader";
 import { NewsletterForm } from "@/components/NewsletterForm";
@@ -290,26 +290,16 @@ export function LandingView() {
   useEffect(() => {
     (async () => {
       const posts = await listBlogPosts(lang);
-      // Split posts across the two carousels WITHOUT ever repeating a post.
-      // (Audit 2026-08-30: the old fill-from-latest logic could show the same
-      // article in BOTH "Latest" and "Featured".) Latest takes the first
-      // half (up to 8); Featured takes a daily-random pick from the rest.
-      const latestCount = Math.min(8, Math.ceil(posts.length / 2));
-      const latest = posts.slice(0, latestCount);
+      // Phase 118 (owner directive 2026-09-04): the old in-block "daily
+      // shuffle" was seed-invariant (the daily seed added the SAME constant
+      // to every post's char-code sum, so the order never changed) and the
+      // featured pool was permanently locked to posts outside latest —
+      // the featured carousel showed the same posts for weeks. Selection is
+      // now delegated to selectHomeBlogCarousels (src/lib/blog.ts): featured
+      // excludes ONLY what the latest carousel shows at this moment and
+      // rotates deterministically every UTC day through the whole pool.
+      const { latest, featured } = selectHomeBlogCarousels(posts);
       setLatestPosts(latest);
-
-      // Featured: random selection (different from latest, changes daily)
-      // Use date-based seed so it changes daily but is consistent within a day
-      const today = new Date().toISOString().split("T")[0];
-      const seed = today.split("-").join("").split("").reduce((a, b) => a + Number(b), 0);
-      const shuffled = [...posts].sort((a, b) => {
-        const hashA = (a.id + seed).split("").reduce((acc, c) => acc + c.charCodeAt(0), 0);
-        const hashB = (b.id + seed).split("").reduce((acc, c) => acc + c.charCodeAt(0), 0);
-        return hashA - hashB;
-      });
-      // Featured draws ONLY from non-latest posts → no duplicates possible.
-      const latestIds = new Set(latest.map((p) => p.id));
-      const featured = shuffled.filter((p) => !latestIds.has(p.id)).slice(0, 6);
       setFeaturedPosts(featured);
     })();
   }, [lang]);
