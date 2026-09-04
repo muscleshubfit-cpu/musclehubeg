@@ -3,14 +3,20 @@ name: Auto-publish EN article (pipeline v3 — language-split)
 # ============================================================
 # PIPELINE V3 (2026-08-27) — FULL LANGUAGE SEPARATION:
 #   One workflow per language, one article per run, independent
-#   topics, independent queues. 3 runs/day for English.
+#   topics, independent queues.
 #
-# ENGLISH PUBLISH WINDOWS (owner directive: best posting times;
-# anchored to US Eastern — the largest English fitness audience):
+# PHASE 119 (owner directive 2026-09-04): exactly ONE EN article
+#   per day + ONE AR article per day, at DIFFERENT times, each
+#   anchored to its audience's geography (EN → US Eastern · AR →
+#   Cairo — the 2026-08-27 owner-approved anchors). Of the three
+#   former EN windows the EVENING one is kept: max spread from the
+#   AR morning slot (05:00 UTC vs 22:00 UTC = 17h apart).
+#
+# ENGLISH DAILY SLOT:
 #   cron (UTC)     US Eastern (EDT, UTC-4)   Rationale
-#   12:00    →     08:00 ET                  morning coffee scroll
-#   16:00    →     12:00 ET                  lunch-break peak
 #   22:00    →     18:00 ET                  after-work / evening peak
+#   NOTE: when the US drops DST in winter (EST, UTC-5), the local time
+#   shifts one hour EARLIER (17:00) — still the evening peak.
 #
 # Env PIPELINE_LANG=en is REQUIRED — P0 refuses to guess the language.
 # AI chain: OpenRouter dual-key pool + Groq interleaved strongest-first,
@@ -19,9 +25,7 @@ name: Auto-publish EN article (pipeline v3 — language-split)
 
 on:
   schedule:
-    - cron: "0 12 * * *"  # 08:00 ET
-    - cron: "0 16 * * *"  # 12:00 ET
-    - cron: "0 22 * * *"  # 18:00 ET
+    - cron: "0 22 * * *"  # 18:00 ET (EDT) — the single daily EN slot (Phase 119)
   workflow_dispatch: {}
 
 # SCHEDULE-RE-REGISTRATION 2026-08-27: GitHub silently stopped firing ALL

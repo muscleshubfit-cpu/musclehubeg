@@ -37,7 +37,7 @@
 | Anti-regression guard | `guard-stale-refs.yml` | يشغّل `check-stale-refs.sh` + `check-ui-wiring.sh` مع كل push/PR |
 | Supabase Preview | (تكامل Supabase GitHub، مش ملفنا) | تطبيق الميجريشنز على preview مع كل push — الفشل يوقف الخط |
 | Process AI jobs | `process-ai-jobs.yml` | عامل طابور `ai_jobs` (جدولة + dispatch) — بيفشل بصدق لو أي job فشل نهائيًا |
-| Auto-publish AR / EN article | `blog-post-ar.yml` / `blog-post-en.yml` | خط أنابيب المدونة v3 منفصل اللغات (3 فتحات يومية لكل لغة) |
+| Auto-publish AR / EN article | `blog-post-ar.yml` / `blog-post-en.yml` | خط أنابيب المدونة v3 منفصل اللغات (فتحة يومية واحدة لكل لغة — Phase 119) |
 | Remediate blog images | `remediate-blog-images.yml` | إعادة توليد صور المقالات القديمة عبر خط السلامة (workflow_dispatch) |
 
 > قواعد ملزمة للمهام الجديدة على البوابات: أي سكربت ي referenced بـworkflow لازم يتدفع **في نفس الكوميت** (مناعة الجدولة/الحارس — «حارس مش متكمّم مش حارس»)، وأي تعديل يلمس التشغيل يُختبر بـdispatch يدوي قبل الاعتماد عليه.
@@ -60,7 +60,7 @@ git status --short        # 6. شجرة العمل نظيفة
 
 - **قانون مكافحة الانحدار (§8):** إيقاف أي شيء (route/component/script/step) = `git rm` + كنس المستدعين + تصحيح التعليقات في **نفس الكوميت**، صفر ملفات شواهد قبور، ثم `check-stale-refs.sh` يطلع 0 قبل الدفع؛ والحارس يعيد الفحص على كل دفعة. عند «سلوك رجع للوراء» افتح `/api/build-info` وقارن `commitShort` بأحدث SHA على main — عدم تطابق = تأخر/فشل deploy، ممنوع تصحيح كود ضد deploy قديم.
 - **لون التشغيل الصادق (§8):** أي runner داخل `scripts/*-runner/*` لازم يحمل مسار exit غير صفرى صريح (مفروض بـCI) — تشغيل أخضر معنى الحقيقي الوحيد: `done=N failedPermanent=0`.
-- **مناعة الجدولة (SCHEDULE HEALTH LAW):** جدول جيت هاب ممكن يسجّل خروج صامت لكل workflows المجدولة — أي بلاغ «المدونة واقفة» بيبدأ بجنائيات الجدولة (`GET /actions/runs?event=schedule`) مش بإعادة قراءة كود الأنابيب؛ والعلاج: تمكين كل workflow + كوميت يلمس ملفاتها لإعادة التسجيل؛ والظهر المستقل: `/api/cron/dispatch-pipelines` (فشل مغلق، CRON_SECRET) بيكمّل حصة اليوم الناقصة يوميًا 21:00 UTC.
+- **مناعة الجدولة (SCHEDULE HEALTH LAW):** جدول جيت هاب ممكن يسجّل خروج صامت لكل workflows المجدولة — أي بلاغ «المدونة واقفة» بيبدأ بجنائيات الجدولة (`GET /actions/runs?event=schedule`) مش بإعادة قراءة كود الأنابيب؛ والعلاج: تمكين كل workflow + كوميت يلمس ملفاتها لإعادة التسجيل؛ والظهر المستقل: `/api/cron/dispatch-pipelines` (فشل مغلق، CRON_SECRET) بيكمّل حصة اليوم الناقصة (مقال واحد لكل لغة — Phase 119) يوميًا 23:00 UTC (بعد فتحتَي اليوم لكل لغة).
 - **حادثة Phase 110 الموثقة (2026-09-03):** worker الـAI قعد أحمر على «Install dependencies» بانهيار npm 10 arborist (`Cannot read properties of null (reading 'edgesOut')`) ضد metadata الريجستري بتاريخ اليوم — الريبو بلا lockfile فالتثبيت بيحل فريش كل مرة، وnpm 11.17 حل نفس الشجرة سليمة محليًا → خطوة «Bump npm (npm install -g npm@11)» اتضافت قبل التثبيت في كل الـworkflows المكشوفة الأربعة. الدرس: فشل «Install dependencies» في CI يُشخّص كطبقة بنية تحتية أولًا قبل الشك في كوميت الكود.
 
 ## 5. فلسفة البوابات في سطر

@@ -3,15 +3,20 @@ name: Auto-publish AR article (pipeline v3 — language-split)
 # ============================================================
 # PIPELINE V3 (2026-08-27) — FULL LANGUAGE SEPARATION:
 #   One workflow per language, one article per run, independent
-#   topics, independent queues. 3 runs/day for Arabic.
+#   topics, independent queues.
 #
-# ARABIC PUBLISH WINDOWS (owner directive: best posting times):
-#   cron (UTC)     Cairo (EEST, UTC+3, current DST)   Rationale
-#   05:00    →     08:00 صباحًا                        morning phone scroll / commute
-#   11:00    →     14:00 ظهرًا                         lunch-break peak
-#   18:00    →     21:00 مساءً                         prime-time evening peak
-#   NOTE: when Egypt drops DST in winter (+2), local times shift one
-#   hour EARLIER (07/13/20) — still inside good windows; adjust then if needed.
+# PHASE 119 (owner directive 2026-09-04): exactly ONE AR article
+#   per day + ONE EN article per day, at DIFFERENT times, each
+#   anchored to its audience's geography (AR → Cairo · EN → US
+#   Eastern — the 2026-08-27 owner-approved anchors). Of the three
+#   former AR windows the MORNING one is kept: first slot of the
+#   day (morning phone scroll + a full day of indexing ahead).
+#
+# ARABIC DAILY SLOT:
+#   cron (UTC)     Cairo (EEST, UTC+3, current DST)
+#   05:00    →     08:00 صباحًا   (morning phone scroll / commute)
+#   NOTE: when Egypt drops DST in winter (+2), the local time shifts
+#   one hour EARLIER (07:00) — still the morning window; adjust then if needed.
 #
 # Env PIPELINE_LANG=ar is REQUIRED — P0 refuses to guess the language.
 # AI chain: OpenRouter dual-key pool + Groq interleaved strongest-first,
@@ -20,9 +25,7 @@ name: Auto-publish AR article (pipeline v3 — language-split)
 
 on:
   schedule:
-    - cron: "0 5 * * *"   # 08:00 Cairo
-    - cron: "0 11 * * *"  # 14:00 Cairo
-    - cron: "0 18 * * *"  # 21:00 Cairo
+    - cron: "0 5 * * *"   # 08:00 Cairo (EEST) — the single daily AR slot (Phase 119)
   workflow_dispatch: {}
 
 # SCHEDULE-RE-REGISTRATION 2026-08-27: see blog-post-en.yml comment and

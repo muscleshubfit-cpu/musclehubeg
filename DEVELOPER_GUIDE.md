@@ -136,7 +136,7 @@ src/
 │   │   ├── admin/               # Admin (external-plans, accounts, wallets, refunds, staff, blog, …)
 │   │   ├── coach/               # B2B (clients/invite, wallet, subscriptions/activate, support, …)
 │   │   ├── tools/               # Tool endpoints (save-result, save-meal-plan, lead, …)
-│   │   ├── cron/                # Cron (dispatch-pipelines 21:00 UTC + blog p0-p5 + progress-reminder)
+│   │   ├── cron/                # Cron (dispatch-pipelines 23:00 UTC + blog p0-p5 + progress-reminder)
 │   │   ├── paypal/              # PayPal (create-order, capture-order, webhook)
 │   │   └── …                    # send-email, food-search, og-image, build-info, …
 │   ├── ar/                      # النسخة العربية (mirror)
@@ -378,18 +378,19 @@ Coach → /admin/blog/new → "Generate with AI" button
 
 ```
 GitHub Actions — TWO language workflows (ONE run == ONE article in ONE language):
-  blog-post-en.yml  12:00/16:00/22:00 UTC  = 3 EN articles/day
-  blog-post-ar.yml  05:00/11:00/18:00 UTC  = 3 AR articles/day
-  → TOTAL 6 articles/day
+  blog-post-en.yml  22:00 UTC  = 1 EN article/day (18:00 US Eastern — evening peak)
+  blog-post-ar.yml  05:00 UTC  = 1 AR article/day (08:00 Cairo EEST — morning window)
+  → TOTAL 2 articles/day — different times per audience geography (Phase 119)
 
 Each run drives that language's queue row through the pipeline steps
   (all CRON_SECRET-authed):
   p0-research → p1-outline → p2-content → p3-images → p4-review → p5-publish
   Row statuses: researched→outlined→writing→written→images_done→reviewed→published
 
-Vercel cron /api/cron/dispatch-pipelines (daily 21:00 UTC) TOPS UP any
-  missed slots only (counts successful runs today vs expected-through-now;
-  failure/cancelled runs don't count) — it never exceeds the 3+3 quota.
+Vercel cron /api/cron/dispatch-pipelines (daily 23:00 UTC — AFTER both daily
+  slots) TOPS UP any missed slots only (counts successful runs today vs
+  expected-through-now; failure/cancelled runs don't count) — it never
+  exceeds the 1+1 quota (Phase 119: one article per language per day).
 
 State tracked in blog_generation_queue table (one row per language).
 ```
@@ -452,7 +453,7 @@ State tracked in blog_generation_queue table (one row per language).
 | `/api/cron/blog/p3-images` | GET | Cron (CRON_SECRET) | الصور (مرحلة 3) |
 | `/api/cron/blog/p4-review` | GET | Cron (CRON_SECRET) | المراجعة (مرحلة 4) |
 | `/api/cron/blog/p5-publish` | GET | Cron (CRON_SECRET) | النشر (مرحلة 5) |
-| `/api/cron/dispatch-pipelines` | GET | Cron (CRON_SECRET) | الموزع اليومي 21:00 UTC (مدونة + مهام AI + إشعارات) |
+| `/api/cron/dispatch-pipelines` | GET | Cron (CRON_SECRET) | الموزع اليومي 23:00 UTC (مدونة + مهام AI + إشعارات) |
 | `/api/cron/progress-reminder` | GET | Cron (CRON_SECRET) | تذكير التقدم الأسبوعي (الأحد 07:00 UTC) |
 | `/api/exercise-image` | GET | Public | بروكسي صور التمارين |
 | `/api/file` | GET | User | قراءة ملف من التخزين للمستخدم المصرّح |
@@ -559,8 +560,9 @@ State tracked in blog_generation_queue table (one row per language).
 ### GitHub Actions (التدفق الآلي للمدونة — pipeline v3 فصل اللغات)
 
 منذ 2026-08-27 يوجد ورك فلو مستقل لكل لغة، مقال واحد في كل تشغيل:
-- `.github/workflows/blog-post-ar.yml` — 3 مقالات عربية يوميًا (05:00 / 11:00 / 18:00 UTC = 08:00 / 14:00 / 21:00 بتوقيت القاهرة صيفًا)
-- `.github/workflows/blog-post-en.yml` — 3 مقالات إنجليزية يوميًا (12:00 / 16:00 / 22:00 UTC = 08:00 / 12:00 / 18:00 بتوقيت شرق أمريكا)
+- `.github/workflows/blog-post-ar.yml` — مقال عربي واحد يوميًا (05:00 UTC = 08:00 بتوقيت القاهرة صيفًا — نافذة الصباح؛ تصبح 07:00 شتاءً)
+- `.github/workflows/blog-post-en.yml` — مقال إنجليزي واحد يوميًا (22:00 UTC = 18:00 بتوقيت شرق أمريكا — ذروة ما بعد العمل؛ تصبح 17:00 شتاءً)
+- المرحلة 119 (أمر المالك 2026-09-04): مقال واحد لكل لغة يوميًا في مواعيد مختلفة حسب التوقيت الجغرافي لجمهور كل لغة — كانت 3+3 يوميًا قبلها
 - الخطوات P0…P5 تُنفَّذ أصليًا داخل الأكشن عبر `scripts/blog-runner/run-step.mts`
 - متطلبات Secrets: `CRON_SECRET`, `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `GROQ_API_KEY` + واحد من `OPENROUTER_API` أو `OPENROUTER_API_KEY` (يمكن الاثنين — تدوير مزدوج)
 - اللغة تُمرَّر عبر `PIPELINE_LANG` (ar/en) — خطوة P0 ترفض العمل بدونها

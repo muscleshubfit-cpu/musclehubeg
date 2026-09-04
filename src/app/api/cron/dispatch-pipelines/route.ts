@@ -12,11 +12,16 @@ export const maxDuration = 60;
  * makes blog production independent of GitHub's scheduler:
  *
  *   Vercel cron (or an external cron service) hits this endpoint and it
- *   TOPS UP each language pipeline to its daily quota:
- *     EN slots 12/16/22 UTC · AR slots 05/11/18 UTC (same as the GHA crons)
+ *   TOPS UP each language pipeline to its daily quota (Phase 119 —
+ *   owner directive 2026-09-04: exactly ONE article per language per
+ *   day, at different geography-anchored times):
+ *     EN slot 22 UTC (18:00 US Eastern) · AR slot 05 UTC (08:00 Cairo, EEST)
  *   A workflow is dispatched only when GitHub has NOT already run it today
  *   enough times (any event counts — manual/GitHub-scheduled/Vercel runs
  *   all count, because every run publishes exactly one article).
+ *
+ *   The Vercel cron fires at 23:00 UTC (AFTER both daily slots) so a
+ *   missed slot in EITHER language can be topped up on the same day.
  *
  * It also rescues the every-10-minutes ai-jobs worker when its last run is
  * stale (>15 min) — meaningful when an external cron calls this endpoint
@@ -37,8 +42,12 @@ const REPO = "muscleshubfit-cpu/musclehubeg";
 const EN_WORKFLOW = "blog-post-en.yml";
 const AR_WORKFLOW = "blog-post-ar.yml";
 const AI_JOBS_WORKFLOW = "process-ai-jobs.yml";
-const EN_SLOTS = [12, 16, 22];
-const AR_SLOTS = [5, 11, 18];
+// Phase 119 (owner directive 2026-09-04): ONE slot per language per day,
+// different times per audience geography — EN 22:00 UTC (18:00 US Eastern,
+// evening peak) · AR 05:00 UTC (08:00 Cairo EEST, morning window).
+// Matches the GHA cron schedules exactly (the backstop never exceeds quota).
+const EN_SLOTS = [22];
+const AR_SLOTS = [5];
 const AI_JOBS_STALE_MS = 15 * 60 * 1000;
 
 type DispatchCheck = {
