@@ -250,7 +250,7 @@ src/
 
 ## 4. قاعدة البيانات + RLS
 
-> **الشرح التقني العميق انتقل** (أمر المالك 2026-09-03 — Phase 112): [`docs/TECH_REFERENCE.md`](./docs/TECH_REFERENCE.md) — بنية Supabase (anon vs service-role · مرآة `types.ts` · بوابة الانجراف `migration_audit.py`) · قانون الميجريشنز (التسمية `YYYYMMDDHHMMSS_NNNN` · idempotency · RAW-SQL-LINK · نمط RUN_ON_SUPABASE) · جداول القواعد الخاصة (`ai_jobs` · `evo_chat_usage` · `evo_anon_usage` · تحصينات `subscriptions` · عائلة `coach_*`) · **شرح RLS التفصيلي** (دوال الـpredicates `is_coach`/`is_admin`/`is_coach_over`/`coach_of` · نمط الأدوار v2 · فصل عالمَي المال · تدفقات إضافة المدربين) · كل أكواد SQL المعقدة المذكورة في AGENTS.md مجمعة ومنظمة.
+> **الشرح التقني العميق انتقل** (أمر المالك 2026-09-03 — Phase 112): [`docs/TECH_REFERENCE.md`](./docs/TECH_REFERENCE.md) — بنية Supabase (anon vs service-role · مرآة `types.ts` · بوابة الانجراف `migration_audit.py`) · قانون الميجريشنز (التسمية `YYYYMMDDHHMMSS_NNNN` · التطبيق تلقائي عبر تكامل Supabase–GitHub عند الهبوط على main — تصحيح المرحلة 120 · idempotency · RAW-SQL-LINK للمسار اليدوي · نمط RUN_ON_SUPABASE) · جداول القواعد الخاصة (`ai_jobs` · `evo_chat_usage` · `evo_anon_usage` · تحصينات `subscriptions` · عائلة `coach_*`) · **شرح RLS التفصيلي** (دوال الـpredicates `is_coach`/`is_admin`/`is_coach_over`/`coach_of` · نمط الأدوار v2 · فصل عالمَي المال · تدفقات إضافة المدربين) · كل أكواد SQL المعقدة المذكورة في AGENTS.md مجمعة ومنظمة.
 >
 > **الحقيقة الحالية:** `src/lib/supabase/types.ts` (الأعمدة والعلاقات) +
 > `supabase/migrations/INDEX.md` (الترقيم والسجل) — الكود هو الحقيقة.
