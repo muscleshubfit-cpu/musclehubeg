@@ -1206,5 +1206,5 @@ Work Log:
 Stage Summary:
 - البراند Alkemos شامل الآن: كود حي + أصول بصرية + بيانات (ميجريشن 0070 تلقائية عند الدفع) + وثائق — والمحميات الوظيفية (ريبوز GitHub/project_id/الإيميلات/301 الدومين القديم) سليمة عن قصد
 - المتبقي على المالك (دقائق): إصلاح Supabase site_url من Dashboard (بلاغ جوجل) · ثم اختبار تسجيل جوجل مرة واحدة · GSC: طلب فهرسة محتوى Alkemos الجديد
-- Commit SHA: (كوميت هذه المرحلة نفسه — 121)
-- Push status: في نفس الجلسة (قانون البقاء §3.6)
+- Commit SHA: a3e2bfc
+- Push status: PUSHED — a4e0af6..a3e2bfc main→main 2026-09-06 · CI على رأس الدفعة: stale-refs ✓ + docs-parity ✓ · تحقق إنتاجي: build-info=a3e2bfc · 56/56 مقالة author=Alkemos وصفر بقايا قديمة في كل الأعمدة (PostgREST حي) · اللوجو الجديد حي (81KB) · صفحات المقالات اتحدثت بعد ISR (300 ثانية) · الميجريشن 0070 تطبقت تلقائيًا عبر تكامل Supabase-GitHub
