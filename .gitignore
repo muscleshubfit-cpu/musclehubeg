@@ -52,6 +52,8 @@ pnpm-lock.yaml
 #   scripts/migration_audit.py → migrations ↔ types.ts audit (docs-parity-gate.yml)
 #   scripts/docs_parity.py     → migration-registry gate (docs-parity-gate.yml, Phase 106)
 #   scripts/docs_audit.py      → knowledge-system gate (docs-parity-gate.yml, Phase 107)
+#   scripts/db-backup.mjs      → daily DB snapshot (db-backup.yml, 2026-09-05)
+#   scripts/db-restore.mjs     → snapshot restore tool (db-backup.yml docs)
 /scripts/*
 !/scripts/blog-runner/
 !/scripts/ai-jobs-runner/
@@ -59,6 +61,8 @@ pnpm-lock.yaml
 !/scripts/migration_audit.py
 !/scripts/docs_parity.py
 !/scripts/docs_audit.py
+!/scripts/db-backup.mjs
+!/scripts/db-restore.mjs
 /skills/
 /tests/
 /examples/

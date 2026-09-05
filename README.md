@@ -375,6 +375,29 @@ Key tables:
 > `coach_presence`) are now IN the migration registry: back-filled by
 > `0063`, RLS-hardened by `0064`/`0065` (closed Phase 99-run, 2026-09-03).
 
+### Backups (free-tier replacement for Supabase paid backups)
+
+The Supabase free plan ships **no scheduled backups** — so a dedicated
+GitHub workflow (`.github/workflows/db-backup.yml`) takes over:
+
+- **What**: a full JSON snapshot of every public table + `auth.users`
+  export, written by `scripts/db-backup.mjs` (PostgREST pagination,
+  deterministic ordering so git diffs show only real changes).
+- **Where**: the **private** repo `muscleshubfit-cpu/musclehubeg-backups`
+  (snapshots contain user PII — they must never land in this public repo
+  or in public artifacts). Layout: `snapshots/<date>/tables/<table>.json`
+  + `manifest.json` + `auth_users.json`.
+- **When**: daily after the morning article lands, plus a manual
+  **Run workflow** button (Actions → DB backup). Each day is a commit →
+  point-in-time recovery (a row deleted today is in yesterday's snapshot).
+- **Restore**: `scripts/db-restore.mjs` — dry-run by default, `--apply`
+  upserts rows back (`on_conflict=id` merge, nothing deleted). Passwords
+  are not exportable — restored users use "forgot password".
+- **Not covered**: Supabase Storage files (progress photos etc.) —
+  they live outside the database.
+- **Secrets used**: `NEXT_PUBLIC_SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY`
+  (existing) and `BACKUP_REPO_TOKEN` (push access to the private repo).
+
 ---
 
 ## 🌍 Languages

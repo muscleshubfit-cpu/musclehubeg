@@ -1,0 +1,90 @@
+# Daily DB backup → private repo (2026-09-05).
+#
+# WHY: the Supabase FREE plan ships no scheduled backups (verified
+# live: backups=[]). This job snapshots every public table + auth
+# users via the service-role key and commits the JSON to the PRIVATE
+# repo muscleshubfit-cpu/musclehubeg-backups — point-in-time recovery
+# for accidents (row deleted, table dropped, bad migration).
+#
+# PII: snapshots contain emails/names. They must NEVER go to the
+# public code repo or GitHub artifacts (public downloads). Only the
+# private repo above.
+#
+# Schedule: 05:30 UTC daily — AFTER the 05:00 UTC AR article and the
+# previous day's 22:00 UTC EN article (captures both same-day), and
+# BEFORE any human morning traffic.
+#
+# Restore: scripts/db-restore.mjs in the main repo (dry-run default).
+name: DB backup (daily snapshot → private musclehubeg-backups)
+
+on:
+  schedule:
+    - cron: "30 5 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: db-backup
+  cancel-in-progress: false
+
+permissions:
+  contents: read # main repo: script only; data goes to the private repo
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout main repo (for the script)
+        uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Dump all tables + auth users
+        env:
+          SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          DB_BACKUP_TRIGGER: ${{ github.event_name }}
+        run: node scripts/db-backup.mjs "$RUNNER_TEMP/backup"
+
+      - name: Fail loudly if any table failed
+        run: |
+          FAILED=$(python3 -c "import json; m=json.load(open('$RUNNER_TEMP/backup/manifest.json')); print(m['totals']['failed'])")
+          if [ "$FAILED" != "0" ]; then
+            echo "::error::$FAILED table(s) failed to dump — see the job log (WARN lines) and manifest.json"
+            exit 1
+          fi
+
+      - name: Checkout private backup repo
+        uses: actions/checkout@v4
+        with:
+          repository: muscleshubfit-cpu/musclehubeg-backups
+          token: ${{ secrets.BACKUP_REPO_TOKEN }}
+          path: backup-repo
+
+      - name: Commit today's snapshot
+        run: |
+          DATE=$(date -u +%F)
+          mkdir -p "backup-repo/snapshots/$DATE"
+          cp -r "$RUNNER_TEMP/backup/." "backup-repo/snapshots/$DATE/"
+          cd backup-repo
+          git config user.name "musclehubeg-backup-bot"
+          git config user.email "actions@github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No changes since the last snapshot — nothing to commit."
+          else
+            ROWS=$(python3 -c "import json; print(json.load(open('snapshots/$DATE/manifest.json'))['totals']['rows'])")
+            git commit -m "snapshot $DATE ($ROWS rows)"
+            git push
+            echo "Snapshot pushed: snapshots/$DATE"
+          fi
+
+      - name: Snapshot summary
+        run: |
+          python3 - << 'EOF'
+          import json
+          m = json.load(open(f"backup-repo/snapshots/{__import__('datetime').datetime.utcnow().date()}/manifest.json"))
+          print(f"backup summary: {m['totals']['tables']} tables · {m['totals']['rows']} rows · {m['totals']['bytes']//1024} KB · auth_users={m.get('authUsers',{}).get('rows','?')}")
+          EOF
