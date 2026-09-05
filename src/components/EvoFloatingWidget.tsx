@@ -72,7 +72,14 @@ function MessageText({ content }: { content: string }) {
     last = m.index + m[0].length;
   }
   if (last < content.length) parts.push(content.slice(last));
-  return <p className="text-sm font-normal leading-relaxed whitespace-pre-wrap">{parts}</p>;
+  // dir="auto": each message renders by its own first strong character —
+  // Arabic messages flow RTL, English LTR, so mixed AR/EN text keeps its
+  // logical word order instead of scrambling between the two directions.
+  return (
+    <p dir="auto" className="text-sm font-normal leading-relaxed whitespace-pre-wrap">
+      {parts}
+    </p>
+  );
 }
 
 export function EvoFloatingWidget() {
@@ -381,7 +388,7 @@ export function EvoFloatingWidget() {
                         }`}
                       >
                         {msg.role === "user" ? (
-                          <p className="text-sm font-normal leading-relaxed whitespace-pre-wrap">
+                          <p dir="auto" className="text-sm font-normal leading-relaxed whitespace-pre-wrap">
                             {msg.content}
                           </p>
                         ) : (
@@ -481,6 +488,7 @@ export function EvoFloatingWidget() {
               <form onSubmit={handleSubmit} className="flex items-center gap-2">
                 <input
                   ref={inputRef}
+                  dir="auto"
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   placeholder={

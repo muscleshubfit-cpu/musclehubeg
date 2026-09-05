@@ -125,6 +125,7 @@ export function SupportView() {
  <Label htmlFor="subject">{t("support.subject")}</Label>
  <Input
  id="subject"
+ dir="auto"
  value={subject}
  onChange={(e) => setSubject(e.target.value)}
  className="mt-1.5"
@@ -134,6 +135,7 @@ export function SupportView() {
  <Label htmlFor="message">{t("support.message")}</Label>
  <Textarea
  id="message"
+ dir="auto"
  value={message}
  onChange={(e) => setMessage(e.target.value)}
  className="mt-1.5 min-h-32"
@@ -215,6 +217,7 @@ function TicketDetail({ ticket, onClose }: { ticket: SupportTicket; onClose: () 
  return (
  <div key={m.id} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
  <div
+ dir="auto"
  className={`max-w-[80%] rounded-2xl px-3 py-2 text-sm ${
  mine ? "bg-primary text-primary-foreground" : "bg-muted text-foreground"
  }`}
@@ -227,6 +230,7 @@ function TicketDetail({ ticket, onClose }: { ticket: SupportTicket; onClose: () 
  </div>
  <div className="mt-3 flex gap-2 border-t border-border pt-3">
  <Input
+ dir="auto"
  value={input}
  onChange={(e) => setInput(e.target.value)}
  onKeyDown={(e) => e.key === "Enter" && send()}
