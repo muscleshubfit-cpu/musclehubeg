@@ -1,71 +1,24 @@
 /**
  * Foods Library — database of foods with full nutrition info.
  *
- * Each food has:
- *   - slug (URL-friendly ID)
- *   - name (Arabic + English)
- *   - category (protein, carb, fat, vegetable, fruit, dairy, nuts, snack, drink)
- *   - serving size (default, e.g. "100g" or "1 medium")
- *   - nutrition per 100g: calories, protein, carbs, fat, fiber, sugar
- *   - image URL (Unsplash — specific photo IDs, verified)
- *   - tags (e.g. "high-protein", "low-carb", "keto-friendly")
+ * SERVER-ONLY (performance audit 2026-09-05): this module carries the
+ * full 8,830-food array (~3.6MB). Importing it from any client
+ * component ships the entire database to the browser. Client code must
+ * import types/labels/calculateNutrition from "./foods-shared" (tiny)
+ * or receive data as props from a server component. `import
+ * "server-only"` below makes any accidental client import FAIL at
+ * build time instead of silently bloating the bundle.
+ *
+ * Types, CATEGORY_LABELS, TAG_LABELS, POPULAR_TAGS, FOODS_COUNT and
+ * calculateNutrition live in ./foods-shared and are re-exported here
+ * for server-side callers (backward compatible).
  */
 
-export type FoodCategory =
-  | "protein"
-  | "carb"
-  | "fat"
-  | "vegetable"
-  | "fruit"
-  | "dairy"
-  | "nuts"
-  | "snack"
-  | "drink";
+import "server-only";
 
-export type Food = {
-  slug: string;
-  nameAr: string;
-  nameEn: string;
-  category: FoodCategory;
-  per100g: {
-    calories: number;
-    protein: number;
-    carbs: number;
-    fat: number;
-    fiber: number;
-    sugar: number;
-  };
-  defaultServingAr: string;
-  defaultServingEn: string;
-  defaultGrams: number;
-  tags: string[];
-};
+import type { Food, FoodCategory } from "./foods-shared";
 
-export const CATEGORY_LABELS: Record<FoodCategory, { ar: string; en: string; emoji: string; image: string }> = {
-  protein: { ar: "بروتين", en: "Protein", emoji: "🥩", image: "/images/categories/foods/protein.png" },
-  carb: { ar: "كارب", en: "Carbs", emoji: "🍚", image: "/images/categories/foods/carb.png" },
-  fat: { ar: "دهون", en: "Fats", emoji: "🥑", image: "/images/categories/foods/fat.png" },
-  vegetable: { ar: "خضار", en: "Vegetables", emoji: "🥦", image: "/images/categories/foods/vegetable.png" },
-  fruit: { ar: "فواكه", en: "Fruits", emoji: "🍎", image: "/images/categories/foods/fruit.png" },
-  dairy: { ar: "ألبان", en: "Dairy", emoji: "🥛", image: "/images/categories/foods/dairy.png" },
-  nuts: { ar: "مكسرات", en: "Nuts", emoji: "🥜", image: "/images/categories/foods/nuts.png" },
-  snack: { ar: "سناك", en: "Snacks", emoji: "🍫", image: "/images/categories/foods/snack.png" },
-  drink: { ar: "مشروبات", en: "Drinks", emoji: "☕", image: "/images/categories/foods/drink.png" },
-};
-
-export const TAG_LABELS: Record<string, { ar: string; en: string; color: string }> = {
-  "high-protein": { ar: "عالي البروتين", en: "High Protein", color: "#0071e3" },
-  "low-carb": { ar: "قليل الكارب", en: "Low Carb", color: "#34c759" },
-  "keto-friendly": { ar: "كيتو", en: "Keto", color: "#ff9500" },
-  vegan: { ar: "نباتي", en: "Vegan", color: "#34c759" },
-  vegetarian: { ar: "vegetarian", en: "Vegetarian", color: "#34c759" },
-  "low-fat": { ar: "قليل الدهون", en: "Low Fat", color: "#0071e3" },
-  "high-fiber": { ar: "عالي الألياف", en: "High Fiber", color: "#8b5cf6" },
-  "no-cook": { ar: "بدون طبخ", en: "No Cook", color: "#6e6e73" },
-  "quick-prep": { ar: "تحضير سريع", en: "Quick Prep", color: "#ff9500" },
-  "good-for-cutting": { ar: "للتخسيس", en: "For Cutting", color: "#ff3b30" },
-  "good-for-bulking": { ar: "للتضخيم", en: "For Bulking", color: "#0071e3" },
-};
+export * from "./foods-shared";
 
 export const FOODS: Food[] = [
   // ==================== PROTEIN (12) ====================
@@ -97268,19 +97221,8 @@ export function filterFoods(params: {
   return result;
 }
 
-export function calculateNutrition(food: Food, grams: number) {
-  if (!grams || grams <= 0 || isNaN(grams)) return null;
-  const factor = grams / 100;
-  return {
-    grams,
-    calories: Math.round(food.per100g.calories * factor),
-    protein: Math.round(food.per100g.protein * factor * 10) / 10,
-    carbs: Math.round(food.per100g.carbs * factor * 10) / 10,
-    fat: Math.round(food.per100g.fat * factor * 10) / 10,
-    fiber: Math.round(food.per100g.fiber * factor * 10) / 10,
-    sugar: Math.round(food.per100g.sugar * factor * 10) / 10,
-  };
-}
+// calculateNutrition moved to ./foods-shared (pure function) and
+// re-exported above via `export *`.
 
 export function findFoodsForMacroTarget(
   target: "protein" | "carbs" | "fat" | "calories",

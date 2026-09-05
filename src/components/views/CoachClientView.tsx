@@ -55,7 +55,7 @@ import {
 import { getTier, type Duration, type TierId } from "@/lib/plans";
 import { MEMBERSHIPS } from "@/lib/memberships";
 import { resolveExerciseImage, getExerciseImage, getExerciseImages, getFallbackSVG } from "@/lib/exercise-images";
-import { EXERCISES } from "@/lib/exercises";
+import { useExerciseLookup } from "@/lib/exercise-lookup";
 import { HealthMetricsDashboard } from "@/components/HealthMetricsDashboard";
 import { toast } from "sonner";
 import { runAiJob, enqueueAiJobClient, getAiJob } from "@/lib/ai-jobs-client";
@@ -1606,6 +1606,9 @@ function QuestionnaireCard({
 
 function PlanViewerModal({ plan, onClose, onRegenerate }: { plan: Plan; onClose: () => void; onRegenerate?: () => void }) {
  const { t } = useI18n();
+ // BUNDLE LAW (2026-09-05): the 1.6MB exercises array was imported at
+ // module scope — now lazy-loaded mini records (session-cached).
+ const EXERCISES = useExerciseLookup();
  const [editMode, setEditMode] = useState(false);
  const [title, setTitle] = useState(plan.title);
  const [notes, setNotes] = useState(plan.notes || "");

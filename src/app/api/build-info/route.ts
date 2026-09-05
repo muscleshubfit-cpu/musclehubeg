@@ -38,7 +38,10 @@ export async function GET() {
     {
       ok: true,
       service: "musclehubeg",
-      aiTopology: "native-github-actions-v2 (EVO chat token-streams via SSE from Vercel — Phase 89; heavy AI jobs on GitHub Actions)",
+      // Deploy-beacon contract kept (commit/commitShort/branch) — used by
+      // the owner's live-verification workflow. The internal AI topology
+      // string was removed (audit H4, 2026-09-05): deploy verification
+      // never needed it, and it handed architectural details to anyone.
       commit,
       commitShort: commit ? commit.slice(0, 7) : null,
       branch,

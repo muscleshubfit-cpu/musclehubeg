@@ -217,3 +217,35 @@ export async function listPublishedPostsForFeed(
     return [];
   }
 }
+
+/**
+ * Full published posts for the blog LIST page (server-side).
+ *
+ * SSR fix (H1, performance audit 2026-09-05): /blog used to render an
+ * empty shell and fetch posts client-side after hydration — crawlers
+ * saw zero articles and LCP waited on a second round trip. The server
+ * pages now fetch the full list here and pass it as `initialPosts`.
+ */
+export async function listPublishedPostsForListPage(
+  lang: "en" | "ar",
+): Promise<BlogPost[]> {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!supabaseUrl || !supabaseAnonKey) return [];
+
+  try {
+    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+    const { data, error } = await supabase
+      .from("blog_posts")
+      .select("*")
+      .eq("is_published", true)
+      .eq("language", lang)
+      .order("published_at", { ascending: false });
+    if (error) return [];
+    return (data ?? []) as BlogPost[];
+  } catch {
+    return [];
+  }
+}

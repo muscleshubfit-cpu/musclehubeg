@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { getProgramBySlug } from "@/lib/workout-programs";
+import { getExerciseMinisBySlugs } from "@/lib/exercises";
 import { getBreadcrumbSchema } from "@/lib/seo";
 import ProgramDetailClient from "./ProgramDetailClient";
 
@@ -77,6 +78,14 @@ export default async function Page({
       ])
     : null;
 
+  // Resolve the program's exercise slugs into mini records server-side
+  // (bundle law 2026-09-05) so ProgramDetailClient needs no data import.
+  const exerciseIndex = program
+    ? getExerciseMinisBySlugs(
+        program.days.flatMap((d) => d.exercises.map((ex) => ex.exerciseSlug)),
+      )
+    : {};
+
   return (
     <>
       {breadcrumbSchema && (
@@ -85,7 +94,10 @@ export default async function Page({
           dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
         />
       )}
-      <ProgramDetailClient program={program ?? null} />
+      <ProgramDetailClient
+        program={program ?? null}
+        exerciseIndex={exerciseIndex}
+      />
     </>
   );
 }

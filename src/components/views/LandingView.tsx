@@ -10,7 +10,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { listBlogPosts, getCategoryLabel, selectHomeBlogCarousels, type BlogPost } from "@/lib/blog";
-import { EXERCISES } from "@/lib/exercises";
+import { EXERCISES_COUNT, EXERCISE_CATEGORY_COUNTS } from "@/lib/exercises-shared";
 import { SiteHeader } from "@/components/SiteHeader";
 import { NewsletterForm } from "@/components/NewsletterForm";
 import { getFAQSchema } from "@/lib/seo";
@@ -607,7 +607,7 @@ export function LandingView() {
             ].map((cat) => (
               <Reveal key={cat.slug}>
                 <LandingExerciseCategoryCard
-                  cat={{ ...cat, count: EXERCISES.filter((e) => e.category === cat.slug).length }}
+                  cat={{ ...cat, count: EXERCISE_CATEGORY_COUNTS[cat.slug] ?? 0 }}
                   isAr={isAr}
                 />
               </Reveal>
@@ -624,7 +624,7 @@ export function LandingView() {
                 <span className="text-3xl">🏋️</span>
                 <span className="mt-2 text-base font-semibold">{isAr ? "كل التمارين" : "All Exercises"}</span>
                 <span className="mt-1 text-xs font-normal" style={{ color: "#A1A1A6" }}>
-                  {EXERCISES.length}+ {isAr ? "تمرين" : "exercises"}
+                  {EXERCISES_COUNT.toLocaleString()}+ {isAr ? "تمرين" : "exercises"}
                 </span>
               </a>
             </Reveal>

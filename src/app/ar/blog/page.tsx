@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { BlogListPage } from "@/components/blog/BlogListPage";
+import { listPublishedPostsForListPage } from "@/lib/blog-server";
 
 const SITE_URL = "https://musclehubeg.vercel.app";
 
@@ -25,6 +26,12 @@ export const metadata: Metadata = {
   },
 };
 
-export default function Page() {
- return <BlogListPage lang="ar" />;
+export default async function Page() {
+ // SSR fix (H1, audit 2026-09-05) — server-fetched posts seeded into
+ // the first render (same as the EN list page).
+ const initialPosts = await listPublishedPostsForListPage("ar");
+ return <BlogListPage lang="ar" initialPosts={initialPosts} />;
 }
+
+// ISR — 5 min freshness (same cadence as the EN list page).
+export const revalidate = 300;

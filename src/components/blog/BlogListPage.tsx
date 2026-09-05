@@ -6,21 +6,36 @@ import { SiteHeader } from "@/components/SiteHeader";
 import { useEffect, useState } from "react";
 import { listBlogPosts, BLOG_CATEGORIES, getCategoryLabel, type BlogPost } from "@/lib/blog";
 
-export function BlogListPage({ lang }: { lang: "en" | "ar" }) {
+export function BlogListPage({
+  lang,
+  initialPosts,
+}: {
+  lang: "en" | "ar";
+  /** Server-fetched posts (SSR, H1 audit fix) — seed the first render. */
+  initialPosts?: BlogPost[];
+}) {
   const isAr = lang === "ar";
-  const [posts, setPosts] = useState<BlogPost[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [posts, setPosts] = useState<BlogPost[]>(initialPosts ?? []);
+  const [loading, setLoading] = useState(!initialPosts);
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("all");
 
   useEffect(() => {
     (async () => {
+      // SSR seed (H1 audit fix): the default view (all categories, no
+      // search) is fully covered by the server-provided posts — no
+      // network round trip until the user actually filters.
+      if (initialPosts && category === "all" && !search) {
+        setPosts(initialPosts);
+        setLoading(false);
+        return;
+      }
       setLoading(true);
       const data = await listBlogPosts(lang, category, search);
       setPosts(data);
       setLoading(false);
     })();
-  }, [lang, category, search]);
+  }, [lang, category, search, initialPosts]);
 
   return (
     <div className="flex min-h-screen flex-col bg-white text-[#1d1d1f]">

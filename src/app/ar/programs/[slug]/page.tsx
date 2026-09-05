@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { getProgramBySlug, WORKOUT_PROGRAMS } from "@/lib/workout-programs";
+import { getExerciseMinisBySlugs } from "@/lib/exercises";
 import { getBreadcrumbSchema } from "@/lib/seo";
 import ProgramDetailClient from "@/app/programs/[slug]/ProgramDetailClient";
 
@@ -89,7 +90,17 @@ export default async function Page({
           dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
         />
       )}
-      <ProgramDetailClient program={program ?? null} lang="ar" />
+      <ProgramDetailClient
+        program={program ?? null}
+        exerciseIndex={
+          program
+            ? getExerciseMinisBySlugs(
+                program.days.flatMap((d) => d.exercises.map((ex) => ex.exerciseSlug)),
+              )
+            : {}
+        }
+        lang="ar"
+      />
     </>
   );
 }

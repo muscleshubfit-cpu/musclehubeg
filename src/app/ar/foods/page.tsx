@@ -1,22 +1,17 @@
 import type { Metadata } from "next";
-import FoodsPage from "@/app/foods/page";
+import { FoodsExplorer } from "@/components/foods/FoodsExplorer";
+import { parseFoodsQuery } from "@/components/foods/url";
 
 const SITE_URL = "https://musclehubeg.vercel.app";
 
 /**
- * Arabic mirror of /foods.
+ * Arabic mirror of /foods — SERVER-RENDERED (same 2026-09-05 audit).
  *
- * Passes `lang="ar"` to force Arabic rendering, regardless of the user's
- * localStorage language preference. This matches the established pattern
- * used by `/ar/blog/page.tsx` → `<BlogListPage lang="ar" />`.
- *
- * The page is wrapped by `src/app/ar/layout.tsx`'s `<div dir="rtl" lang="ar">`
- * for proper RTL rendering, and by `src/middleware.ts`'s `Content-Language:
- * ar-EG` header for crawler language attribution.
- *
- * Homepage AR mirror follow-up (2026-08-30): own title + canonical +
- * hreflang so Google indexes THIS url (the ar/layout alternates block was
- * removed — it leaked the homepage signals onto every /ar/* child).
+ * Passes `lang="ar"` to force Arabic rendering regardless of the
+ * browser's stored language preference. Wrapped by
+ * `src/app/ar/layout.tsx`'s `<div dir="rtl" lang="ar">` for proper RTL,
+ * and by `src/middleware.ts`'s `Content-Language: ar-EG` header for
+ * crawler language attribution.
  */
 export const metadata: Metadata = {
   title: "قاعدة بيانات الأكلات",
@@ -32,6 +27,11 @@ export const metadata: Metadata = {
   },
 };
 
-export default function Page() {
-  return <FoodsPage lang="ar" />;
+export default async function Page({
+  searchParams,
+}: {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const sp = (await searchParams) ?? {};
+  return <FoodsExplorer lang="ar" query={parseFoodsQuery(sp)} />;
 }

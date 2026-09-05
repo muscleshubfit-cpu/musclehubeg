@@ -12,7 +12,7 @@ import {
   type WorkoutProgram,
 } from "@/lib/workout-programs";
 import { getExerciseImages, getFallbackSVG } from "@/lib/exercise-images";
-import { EXERCISES } from "@/lib/exercises";
+import type { ExerciseMini } from "@/lib/exercises-shared";
 import { ArrowLeft, Clock, Calendar, Dumbbell, Coffee } from "lucide-react";
 import Image from "next/image";
 import { ImageWithFallback } from "@/components/ui/image-with-fallback";
@@ -26,9 +26,12 @@ import { ImageWithFallback } from "@/components/ui/image-with-fallback";
  */
 export default function ProgramDetailClient({
   program,
+  exerciseIndex,
   lang: langProp,
 }: {
   program: WorkoutProgram | null;
+  /** slug → mini exercise record — resolved server-side (image/category lookup). */
+  exerciseIndex?: Record<string, ExerciseMini>;
   lang?: Lang;
 }) {
   const { lang: ctxLang } = useI18n();
@@ -198,7 +201,9 @@ export default function ProgramDetailClient({
                   <div className="mt-4 space-y-2">
                     {day.exercises.map((ex, i) => {
                       // Try to find the exercise in our DB to get its image
-                      const exerciseData = EXERCISES.find((e) => e.slug === ex.exerciseSlug);
+                      // Server-resolved exercise mini record (prop) — the
+                      // 868-exercise array never ships to the browser.
+                      const exerciseData = exerciseIndex?.[ex.exerciseSlug];
                       const imgUrls = exerciseData ? getExerciseImages(exerciseData.imageKey) : [];
                       return (
                         <a

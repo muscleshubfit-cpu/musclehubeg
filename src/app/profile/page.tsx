@@ -13,8 +13,8 @@ import { supabase } from "@/lib/supabase/client";
 import { compressImageFile } from "@/lib/image-compress";
 import type { Database } from "@/lib/supabase/types";
 import { MEMBERSHIPS, getLimits, type MembershipTier } from "@/lib/memberships";
-import { EXERCISES } from "@/lib/exercises";
-import { FOODS } from "@/lib/foods";
+import { EXERCISES_COUNT } from "@/lib/exercises-shared";
+import { FOODS_COUNT } from "@/lib/foods-shared";
 import { WORKOUT_PROGRAMS } from "@/lib/workout-programs";
 import {
   User,
@@ -277,10 +277,13 @@ export default function ProfilePage() {
     );
   }
 
-  // Stats cards — M4 fix: dynamic counts from actual datasets
+  // Stats cards — counts come from the shared constants (test-enforced
+  // against the real arrays). BUNDLE LAW (2026-09-05): importing the
+  // 3.6MB foods.ts + 1.6MB exercises.ts here just to read two numbers
+  // shipped ~5MB of dead data to every profile visitor.
   const stats = [
-    { icon: Dumbbell, label: isAr ? "تمارين" : "Exercises", value: `${EXERCISES.length}+`, color: "#0071e3" },
-    { icon: Apple, label: isAr ? "أكلات" : "Foods", value: `${FOODS.length.toLocaleString()}+`, color: "#34c759" },
+    { icon: Dumbbell, label: isAr ? "تمارين" : "Exercises", value: `${EXERCISES_COUNT}+`, color: "#0071e3" },
+    { icon: Apple, label: isAr ? "أكلات" : "Foods", value: `${FOODS_COUNT.toLocaleString()}+`, color: "#34c759" },
     { icon: Calculator, label: isAr ? "أدوات" : "Tools", value: "6", color: "#ff9500" },
     { icon: FileText, label: isAr ? "برامج" : "Programs", value: `${WORKOUT_PROGRAMS.length}`, color: "#8b5cf6" },
   ];

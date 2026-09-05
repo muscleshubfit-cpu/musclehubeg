@@ -7019,3 +7019,29 @@ export function filterExercises(params: {
 export function getRelatedExercises(exercise: Exercise, limit = 3): Exercise[] {
   return EXERCISES.filter((e) => e.category === exercise.category && e.slug !== exercise.slug).slice(0, limit);
 }
+
+/**
+ * SERVER helper (bundle law 2026-09-05): resolves a set of exercise
+ * slugs into MINI records (slug/name/category/imageKey) for client
+ * components that only need display data (program detail pages).
+ * Keeps the full array server-side while clients receive a tiny map.
+ */
+export function getExerciseMinisBySlugs(
+  slugs: Iterable<string>,
+): Record<string, { slug: string; nameAr: string; nameEn: string; category: ExerciseCategory; imageKey: string }> {
+  const wanted = new Set(slugs);
+  const out: Record<string, { slug: string; nameAr: string; nameEn: string; category: ExerciseCategory; imageKey: string }> = {};
+  for (const e of EXERCISES) {
+    if (wanted.has(e.slug)) {
+      out[e.slug] = {
+        slug: e.slug,
+        nameAr: e.nameAr,
+        nameEn: e.nameEn,
+        category: e.category,
+        imageKey: e.imageKey,
+      };
+      if (wanted.size === Object.keys(out).length) break;
+    }
+  }
+  return out;
+}

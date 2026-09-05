@@ -1,30 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { validateEmailStrict } from "@/lib/email-validation";
+import { rateLimit } from "@/lib/rate-limit";
 
 /**
- * #2 fix: simple in-memory rate limiting for public endpoint.
- * Limits: 5 requests per IP per 10 minutes (prevents lead spam).
- * Note: this is per-instance (Vercel serverless may have multiple
- * instances), but it raises the bar significantly for casual abuse.
- * For production-grade rate limiting, use Upstash Redis.
+ * H3 (audit 2026-09-05): rate limiting now goes through
+ * src/lib/rate-limit.ts — Upstash Redis when
+ * UPSTASH_REDIS_REST_URL/TOKEN are configured (shared across ALL
+ * serverless instances, survives cold starts), in-memory fallback
+ * otherwise. Same limits as before: 5 requests per IP per 10 min.
  */
 const RATE_LIMIT_WINDOW = 10 * 60 * 1000; // 10 minutes
 const RATE_LIMIT_MAX = 5; // 5 requests per window per IP
-const ipRequests = new Map<string, { count: number; resetAt: number }>();
 
-function checkRateLimit(ip: string): { allowed: boolean; remaining: number; resetAt: number } {
-  const now = Date.now();
-  const entry = ipRequests.get(ip);
-  if (!entry || now > entry.resetAt) {
-    ipRequests.set(ip, { count: 1, resetAt: now + RATE_LIMIT_WINDOW });
-    return { allowed: true, remaining: RATE_LIMIT_MAX - 1, resetAt: now + RATE_LIMIT_WINDOW };
-  }
-  if (entry.count >= RATE_LIMIT_MAX) {
-    return { allowed: false, remaining: 0, resetAt: entry.resetAt };
-  }
-  entry.count++;
-  return { allowed: true, remaining: RATE_LIMIT_MAX - entry.count, resetAt: entry.resetAt };
+function checkRateLimit(ip: string): Promise<{ allowed: boolean; remaining: number; resetAt: number }> {
+  return rateLimit(`lead:ip:${ip}`, RATE_LIMIT_MAX, RATE_LIMIT_WINDOW);
 }
 
 /**
@@ -54,16 +44,16 @@ function checkRateLimit(ip: string): { allowed: boolean; remaining: number; rese
 export async function POST(request: NextRequest) {
   // #2 fix: rate limit check
   const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
-  const rateLimit = checkRateLimit(ip);
-  if (!rateLimit.allowed) {
+  const rl = await checkRateLimit(ip);
+  if (!rl.allowed) {
     return NextResponse.json(
       { error: "Too many requests. Please try again later." },
       {
         status: 429,
         headers: {
-          "Retry-After": String(Math.ceil((rateLimit.resetAt - Date.now()) / 1000)),
+          "Retry-After": String(Math.ceil((rl.resetAt - Date.now()) / 1000)),
           "X-RateLimit-Remaining": "0",
-          "X-RateLimit-Reset": String(rateLimit.resetAt),
+          "X-RateLimit-Reset": String(rl.resetAt),
         },
       },
     );

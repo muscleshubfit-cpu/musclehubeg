@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { getExerciseBySlug, EXERCISES, EQUIPMENT_LABELS, LEVEL_LABELS } from "@/lib/exercises";
+import { getExerciseBySlug, getRelatedExercises, EXERCISES, EQUIPMENT_LABELS, LEVEL_LABELS } from "@/lib/exercises";
 import { getHowToSchema, getBreadcrumbSchema } from "@/lib/seo";
 import ExerciseDetailClient from "@/app/exercises/[slug]/ExerciseDetailClient";
 
@@ -113,7 +113,12 @@ export default async function Page({
           dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
         />
       )}
-      <ExerciseDetailClient exercise={exercise ?? null} slug={slug} lang="ar" />
+      <ExerciseDetailClient
+        exercise={exercise ?? null}
+        slug={slug}
+        related={exercise ? getRelatedExercises(exercise) : []}
+        lang="ar"
+      />
     </>
   );
 }

@@ -11,7 +11,7 @@ import { ReferralCookieChecker } from "@/components/ReferralCookieChecker";
 import { CoachSlugClaimer } from "@/components/CoachSlugClaimer";
 import { CookieConsent } from "@/components/CookieConsent";
 import { EvoChatProvider } from "@/lib/evo-chat-context";
-import { EvoFloatingWidget } from "@/components/EvoFloatingWidget";
+import { EvoWidgetLazy } from "@/components/EvoWidgetLazy";
 import { getOrganizationSchema, getWebSiteSchema } from "@/lib/seo";
 import { metadata, viewport } from "./metadata";
 
@@ -166,8 +166,10 @@ export default async function RootLayout({
               <div id="main-content-skip">
                 <Suspense fallback={null}>{children}</Suspense>
               </div>
-              {/* EVO Floating Widget — appears on all pages */}
-              <EvoFloatingWidget />
+              {/* EVO Floating Widget — lazy (H5 audit 2026-09-05): loads
+                  after first paint via requestIdleCallback, off the critical
+                  path of every page. Provider stays eager (light). */}
+              <EvoWidgetLazy />
             </EvoChatProvider>
           </AuthProvider>
         </I18nProvider>

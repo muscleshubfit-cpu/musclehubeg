@@ -5,18 +5,20 @@ import { useI18n, type Lang } from "@/lib/i18n";
 import { SiteHeader } from "@/components/SiteHeader";
 import { ShareButtons } from "@/components/ShareButtons";
 import {
-  getRelatedFoods,
   calculateNutrition,
   CATEGORY_LABELS,
   TAG_LABELS,
   type Food,
-} from "@/lib/foods";
+} from "@/lib/foods-shared";
 import { ArrowLeft, Calculator, Target } from "lucide-react";
 
 /**
  * Client component for food detail page.
- * Receives the food as a prop from the server component
- * (which generates metadata + JSON-LD schemas server-side).
+ * Receives the food (and its related foods) as props from the server
+ * component (which generates metadata + JSON-LD schemas server-side).
+ * BUNDLE LAW (2026-09-05): imports come from foods-shared (tiny) — the
+ * full 8,830-food array is server-only; `related` is computed on the
+ * server and passed as a prop so this component never needs the array.
  * Accepts an optional `lang` prop — the /ar/foods/[slug] mirror passes
  * lang="ar" to force Arabic rendering (ProgramDetailClient pattern).
  * Internal links stay inside the current language's URL space so the
@@ -26,9 +28,11 @@ import { ArrowLeft, Calculator, Target } from "lucide-react";
  */
 export default function FoodDetailClient({
   food,
+  related: relatedProp,
   lang: langProp,
 }: {
   food: Food | null;
+  related?: Food[];
   lang?: Lang;
 }) {
   const { lang: ctxLang } = useI18n();
@@ -69,7 +73,8 @@ export default function FoodDetailClient({
   }
 
   const nutrition = calculateNutrition(food, grams);
-  const related = getRelatedFoods(food);
+  // Server-computed related foods (prop) — no client data dependency.
+  const related = relatedProp ?? [];
   const categoryLabel = isAr ? CATEGORY_LABELS[food.category].ar : CATEGORY_LABELS[food.category].en;
 
   // Quick gram presets

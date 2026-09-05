@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { getFoodBySlug } from "@/lib/foods";
+import { getFoodBySlug, getRelatedFoods } from "@/lib/foods";
 import { getBreadcrumbSchema } from "@/lib/seo";
 import FoodDetailClient from "./FoodDetailClient";
 
@@ -112,7 +112,10 @@ export default async function Page({
           dangerouslySetInnerHTML={{ __html: JSON.stringify(nutritionSchema) }}
         />
       )}
-      <FoodDetailClient food={food ?? null} />
+      <FoodDetailClient
+        food={food ?? null}
+        related={food ? getRelatedFoods(food) : []}
+      />
     </>
   );
 }

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import ExercisesPage from "@/app/exercises/page";
+import { ExercisesExplorer } from "@/components/exercises/ExercisesExplorer";
+import { parseExercisesQuery } from "@/components/exercises/url";
 
 const SITE_URL = "https://musclehubeg.vercel.app";
 
@@ -32,6 +33,11 @@ export const metadata: Metadata = {
   },
 };
 
-export default function Page() {
-  return <ExercisesPage lang="ar" />;
+export default async function Page({
+  searchParams,
+}: {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const sp = (await searchParams) ?? {};
+  return <ExercisesExplorer lang="ar" query={parseExercisesQuery(sp)} />;
 }

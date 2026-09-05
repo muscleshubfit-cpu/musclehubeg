@@ -5,20 +5,22 @@ import { SiteHeader } from "@/components/SiteHeader";
 import { ShareButtons } from "@/components/ShareButtons";
 import { getExerciseImages, getFallbackSVG } from "@/lib/exercise-images";
 import {
-  getRelatedExercises,
   CATEGORY_LABELS,
   EQUIPMENT_LABELS,
   LEVEL_LABELS,
   type Exercise,
-} from "@/lib/exercises";
+} from "@/lib/exercises-shared";
 import { ArrowLeft, Dumbbell, Target, AlertCircle, CheckCircle2 } from "lucide-react";
 import Image from "next/image";
 import { ImageWithFallback } from "@/components/ui/image-with-fallback";
 
 /**
  * Client component for exercise detail page.
- * Receives the exercise + slug as props from the server component
- * (which generates metadata + JSON-LD schemas server-side).
+ * Receives the exercise (+ related exercises) as props from the server
+ * component (which generates metadata + JSON-LD schemas server-side).
+ * BUNDLE LAW (2026-09-05): labels/types come from exercises-shared
+ * (tiny); the full 868-exercise array is server-only — `related` is
+ * computed server-side and passed as a prop.
  * Accepts an optional `lang` prop — the /ar/exercises/[slug] mirror
  * passes lang="ar" to force Arabic rendering (ProgramDetailClient
  * pattern). Internal links stay inside the current language's URL
@@ -29,10 +31,12 @@ import { ImageWithFallback } from "@/components/ui/image-with-fallback";
 export default function ExerciseDetailClient({
   exercise,
   slug,
+  related: relatedProp,
   lang: langProp,
 }: {
   exercise: Exercise | null;
   slug: string;
+  related?: Exercise[];
   lang?: Lang;
 }) {
   const { lang: ctxLang } = useI18n();
@@ -61,7 +65,8 @@ export default function ExerciseDetailClient({
 
   const imgUrls = getExerciseImages(exercise.imageKey);
   const imgUrl = imgUrls[0] || null;
-  const related = getRelatedExercises(exercise);
+  // Server-computed related exercises (prop) — no client data dependency.
+  const related = relatedProp ?? [];
   const categoryLabel = isAr ? CATEGORY_LABELS[exercise.category].ar : CATEGORY_LABELS[exercise.category].en;
   const levelLabel = isAr ? LEVEL_LABELS[exercise.level].ar : LEVEL_LABELS[exercise.level].en;
   const equipmentLabel = isAr ? EQUIPMENT_LABELS[exercise.equipment].ar : EQUIPMENT_LABELS[exercise.equipment].en;

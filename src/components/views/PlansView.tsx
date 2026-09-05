@@ -16,7 +16,7 @@ import type { AiJobRow } from "@/lib/ai-jobs";
 import type { Plan, Json } from "@/lib/supabase/types";
 import { enqueueAiJobClient, getAiJob } from "@/lib/ai-jobs-client";
 import { resolveExerciseImage, getExerciseImage, getExerciseImages, getFallbackSVG } from "@/lib/exercise-images";
-import { EXERCISES } from "@/lib/exercises";
+import { useExerciseLookup } from "@/lib/exercise-lookup";
 import { ImageWithFallback } from "@/components/ui/image-with-fallback";
 import { toast } from "sonner";
 
@@ -80,6 +80,9 @@ type SwapUsage = Awaited<ReturnType<typeof getSwapUsage>>;
 export function PlansView() {
  const { t } = useI18n();
  const { profile } = useAuth();
+ // BUNDLE LAW (2026-09-05): the 1.6MB exercises array was imported at
+ // module scope — now lazy-loaded mini records (session-cached).
+ const EXERCISES = useExerciseLookup();
  const [plans, setPlans] = useState<Plan[]>([]);
  const [loading, setLoading] = useState(true);
  const [active, setActive] = useState<Plan | null>(null);
@@ -871,6 +874,8 @@ function MealContent({ content, onSwap, swapLoading, planId, isSwapPending }: { 
 
 function WorkoutContent({ content, onSwap, swapLoading, planId, isSwapPending }: { content: WorkoutPlanContent; onSwap: (d: number, e: number) => void; swapLoading: string | null; planId: string; isSwapPending: (kind: "meal" | "exercise", planId: string, i1: number, i2?: number) => boolean }) {
  const { t, lang } = useI18n();
+ // BUNDLE LAW (2026-09-05): lazy mini records replace the 1.6MB array import.
+ const EXERCISES = useExerciseLookup();
  const isAr = lang === "ar";
  return (
  <div className="space-y-4">
