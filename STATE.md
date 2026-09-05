@@ -3,20 +3,19 @@
 > **قانون (AGENTS.md §3.6):** ده أول ملف أي وكيل يقرأه قبل أي شغل — وبيتحدث إلزاميًا في نفس الفريم اللي بيغيّر الحالة.
 > الملف محدود بـ 100 سطر بوابةً (`scripts/docs_audit.py`) — اكتب مضغوط.
 > **قانون التوحيد (Phase 115 — أمر المالك «الأمر الخامس»):** الملف ده هو **المصدر الرسمي والوحيد** لحالة المشروع الحية — `PROGRESS.md` و`QA_CHECKLIST.md` اندمجوا هنا واتجمدوا حرفيًا في `archive/` (التاريخ الكامل هناك + `worklog.md`).
-> **آخر تحديث:** 2026-09-06 (المرحلة 121 — إعادة التسمية الشاملة للبراند Musclehubeg → Alkemos في الكود والأصول والبيانات)
+> **آخر تحديث:** 2026-09-06 (المرحلة 122 — لوجو المالك النهائي بالخوذة السبارتية 3D + سلوجان Forge Your Legendary Strength)
 
 ## المرحلة الحالية
 
-- **المرحلة:** 121 — إعادة التسمية الشاملة Musclehubeg → Alkemos (أمر المالك 2026-09-06 «ابدأ التغيير» بعد إطلاق alkemos.com وإضافة AdSense): (1) الكود: 139 ملفًا حيًّا/487 سطرًا عبر سلسلة استبدال مرتبة حساسة لحالة الأحرف (المحميات الوظيفية: مسارات ريبو GitHub `muscleshubfit-cpu/musclehubeg` + `musclehubeg-backups` + `project_id` في config.toml + إيميلات muscleshubfit — كلها بلا تطابق ممكن) · التاريخ المجمّد (migrations/archive/worklog) لم يُمس (2) الأصول البصرية: لوجو/أيقونات/favicon جديدة بنفس لغة الهوية (أسود + فضي معدني + أزرق كهربائي #00AAFF) بمونوجرام A باربل بدل MH (cairosvg + 2x supersampling، VLM QA 8/10) (3) **ميجريشن 0070** تلقائية (بيانات فقط، idempotent، slug محمي): إعادة تسمية صفوف البراند في blog_posts (نصوص + keywords/tags + author وDEFAULT من 'MuscleHub' إلى 'Alkemos') + مسح محكوم على notifications/coach_pages/external_plans/plans + روابط musclehubeg.vercel.app→alkemos.com (4) LICENSE حُدث بالعلامة الجديدة مع إبقاء القديمة محمية كعلامات سابقة (5) AdSense: ads.txt حي ومطابق pub-8658364692422583 (تحقق سابق + بلاغ المالك)
-- **بلاغ OAuth المالك (2026-09-06):** تسجيل الدخول بجوجل ينتهي على `wyopqryzfjifyeyvyxfy.supabase.co` — الكود سليم 100% (signInWithGoogle يستخدم window.location.origin · middleware PKCE/@supabase/ssr · /auth/callback حي 307) · NEXT_PUBLIC_SITE_URL=https://alkemos.com في Vercel — **الجذر = تكوين Supabase Auth نفسه (site_url ارتدّ مجددًا بعد نشر a4e0af6 — نمط تكرار موثق منذ المرحلة 119)** — الإصلاح: Supabase Dashboard → Authentication → URL Configuration: Site URL=https://alkemos.com + Redirect URLs تشمل alkemos.com/** — توكن Management API غير متوفر بالجلسة (نُفذ بالإصلاح اليدوي أو بمعتمد جديد)
+- **المرحلة:** 122 — لوجو المالك النهائي + السلوجان الرسمي (أمر المالك 2026-09-06 «ده اللوجو الجديد اضيفه للموقع» + «Forge Your Legendary Strength سلوجان»): (1) لوجو الخوذة السبارتية المعدنية 3D من تصميم المالك (رفعه مباشرة للريبو — حُذف الملف المصدر بعد التطبيق بأمر صريح) يحل محل لوجو المرحلة 121: logo.png 768×512 شفاف (342KB — كان أسود مصمت 81KB يتوه في الهيدر الأبيض) (2) الأيقونات كلها من قصّة الخوذة على بادج داكن #1d1d1f (الوضع المنفرد يختفي على الخلفيات الداكنة — مُتحقق VLM): icon-512/192/32 · favicon.png/ico · apple-touch-icon (3) سلوجان الفوتر: «Forge Your Legendary Strength.» / «اصنع قوّتك الأسطورية.» (بدل «منصة رياضية شاملة») (4) logo.svg القديم بقى غير مُشار إليه (كل المراجع logo.png — أُبقي بلا ضرر)
+- **البلاغ الموازي مُغلق:** إصلاح Supabase Auth نُفذ فعليًا عبر Management API (توكن المالك): site_url=alkemos.com + uri_allow_list بمسار alkemos.com/auth/callback صراحةً (القانون: PATCH يتطلب uri_allow_list كـ string مفصولة بفواصل — حقل redirect_urls يُرفض صامتًا — سبب «الارتداد» التاريخي) · GSC تم · PayPal تم · إعلانات ads.txt حية
 - **آخر كوميت متحقق منه:** a3e2bfc (المرحلة 121 — إعادة التسمية الشاملة: CI أخضر على رأسه [stale-refs ✓ + docs-parity ✓] + تحقق إنتاجي: build-info يعرض a3e2bfc · 56/56 مقالة author=Alkemos وصفر بقايا براند قديم في كل أعمدة blog_posts عبر PostgREST · العنوان/manifest/لوجو الجديد (81KB) كلها حية) — دُفع a4e0af6..a3e2bfc main→main 2026-09-06 · الميجريشن 0070 تطبقت تلقائيًا عبر تكامل Supabase-GitHub (مُثبت بالبيانات الحية)
-- **البوابات الثمانية محليًا (تشغيل المرحلة 121):** tsc 0 · eslint 0 · vitest 213/213 · migration_audit --ci PASS (0070 بلا انجراف جديد — بيانات فقط) · docs_parity 0 (newest NNNN=0070 مسجل) · docs_audit 0 · check-stale-refs 0 · check-ui-wiring 0 · next build ✓ (تشغيل هذه الجلسة)
-- **الإنتاج:** alkemos.com حي · آخر ميجريشن مطبّق: 0070 بعد الدفع (بيانات فقط) · AdSense ads.txt حي ومطابق
+- **البوابات الثمانية محليًا (تشغيل المرحلة 122):** tsc 0 · eslint 0 · vitest 213/213 · migration_audit --ci PASS (بلا ميجريشن جديدة) · docs_parity 0 · docs_audit 0 · check-stale-refs 0 · check-ui-wiring 0 · next build ✓ (تشغيل هذه الجلسة)
+- **الإنتاج:** alkemos.com حي · آخر ميجريشن مطبّق: 0070 (لا جديد بالمرحلة 122 — أصول+نص فقط) · AdSense ads.txt حي
 
 ## المفتوح الآن
 
-- رصد Supabase site_url بعد إصلاح المالك (نمط الارتداد موثق — لو ارتد مرة أخرى بعد نشر: Dashboard → Auth → URL Configuration)
-- (اختبار تسجيل جوجل مرة واحدة بعد إصلاح site_url — التعليمات مسلمة للمالك)
+- (اختبار تسجيل جوجل مرة واحدة بعد إصلاح site_url — تكوين Auth مُصلح عبر Management API بالفعل)
 
 ## بانتظار موافقة المالك
 
@@ -31,12 +30,11 @@
 - ممنوع إحياء `PROGRESS.md`/`QA_CHECKLIST.md` في الجذر — اتجمدوا في archive/ بأمر Phase 115 (بوابة docs_audit F بتفشل الدفع)
 - slug العمود لا يُمس أبدًا في أي إعادة تسمية (قانون ثبات الروابط — المرحلة 121)
 
-## ملخص جودة المرحلة (QA — Phase 121)
+## ملخص جودة المرحلة (QA — Phase 122)
 
-- **نطاق الاستبدال (قبل):** 764 سطر مرجع براند في الريبو؛ البعد: صفر مراجع في الملفات الحية خارج المحميات الوظيفية (تحقق rg بعد السكريبت) — سلسلة الاستبدال: MuscleHubFit→MuscleHubEG→MusclehubEG→Musclehubeg→MUSCLEHUBEG→مسافات EG→lowercase→MuscleHub→Musclehub→MUSCLEHUB→musclehub (الأطول أولًا دائمًا)
-- **الأصول:** نفس نظام الألوان/التاجلاين «TRAIN. FUEL. TRANSFORM.» — logo.png 1536×1024 (81KB مقابل 245KB قديم) · icon-512/192 · apple-touch 180 · favicon.png 64 + ico 16 · logo.svg (شارة متحركة)
-- **الميجريشن 0070:** بيانات فقط (types.ts لم يتغير — migration_audit بلا تأثير) · محكومة بـ ILIKE guards (إعادة تشغيل = صفر صفوف) · jsonb عبر ::text سلسلة ثم ::jsonb · regex PostgreSQL يعكس سلسلة الكود بنفس الترتيب
-- **البوابات محليًا (المرحلة 121):** tsc 0 · eslint 0 · vitest 213/213 · migration_audit --ci PASS · docs_parity 0 · docs_audit 0 · check-stale-refs 0 · check-ui-wiring 0 · CHANGELOG.md باقٍ فارغًا بأمر Phase 111
+- **الأصول:** لوجو المالك 3D (1536×1024 شفاف → نُشر 768×512/342KB لأغراض الأداء مع الحفاظ على الجودة لكل الاستخدامات: هيدر 36px/OG fallback) · أيقونات الخوذة: قصّة bbox (400,100)-(720,560) بحشوة maskable-safe 24% على بادج #1d1d1f — VLM: الخوذة واضحة على البادج في 192/48px، والوضع المنفرد يختفي على الأسود (لذا البادج حصريًا) · favicon.ico ببادج بلا تدوير
+- **السلوجان:** فوتر ثنائي اللغة «Forge Your Legendary Strength.»/«اصنع قوّتك الأسطورية.» (سطر واحد — بلا تغييرات SEO)
+- **البوابات محليًا (المرحلة 122):** tsc 0 · eslint 0 · vitest 213/213 · migration_audit --ci PASS · docs_parity 0 · docs_audit 0 · check-stale-refs 0 · check-ui-wiring 0 · CHANGELOG.md باقٍ فارغًا بأمر Phase 111
 
 ## خريطة مصادر الحقيقة (ممنوع الوثوق برقم من غير مصدره)
 

@@ -1208,3 +1208,21 @@ Stage Summary:
 - المتبقي على المالك (دقائق): إصلاح Supabase site_url من Dashboard (بلاغ جوجل) · ثم اختبار تسجيل جوجل مرة واحدة · GSC: طلب فهرسة محتوى Alkemos الجديد
 - Commit SHA: a3e2bfc
 - Push status: PUSHED — a4e0af6..a3e2bfc main→main 2026-09-06 · CI على رأس الدفعة: stale-refs ✓ + docs-parity ✓ · تحقق إنتاجي: build-info=a3e2bfc · 56/56 مقالة author=Alkemos وصفر بقايا قديمة في كل الأعمدة (PostgREST حي) · اللوجو الجديد حي (81KB) · صفحات المقالات اتحدثت بعد ISR (300 ثانية) · الميجريشن 0070 تطبقت تلقائيًا عبر تكامل Supabase-GitHub
+
+---
+Task ID: 123-OWNER-LOGO-FINAL
+Agent: Super Z (main)
+Task: أمر المالك 2026-09-06 — تطبيق اللوجو النهائي من تصميمه (خوذة سبارتية 3D) + السلوجان الرسمي «Forge Your Legendary Strength» + حذف ملف المصدر من الريبو
+
+Work Log:
+- المالك رفع اللوجو النهائي مباشرة إلى main (commit fd7cfb1 — file_00000000329c81f4ab8603d51b42181a.png) بعد فشل قناة الرفع بالشات 4 مرات
+- تحليل المصدر: 1536×1024 RGBA شفاف (66% شفافية) — خوذة سبارتية معدنية 3D + ALKEMOS ببازل + ظل يوناني منعكس + تاجلاين داخلي ANCIENT STRENGTH • MODERN SCIENCE — تصميم المالك القرار النهائي
+- logo.png: 768×512 (342KB محسّن) خلفية شفافة — يحل مشكلة اللوجو السابق (أسود مصمت يتوه في الهيدر الأبيض) — المراجع الخمسة كلها logo.png (هيدر/OG fallback/seo.ts/blog)
+- الأيقونات: قصّ الخوذة bbox مُحسّن بالألفا (400,100)-(720,560) على بادج داكن #1d1d1f بحشوة 24% (maskable-safe) — قرار مُتحقق VLM: الوضع المنفرد للخوذة يختفي على الخلفيات الداكنة (تباين جزئي)، البادج واضح في 192/48px — favicon.ico ببادج بلا تدوير
+- السلوجان الرسمي: فوتر الصفحة الرئيسية «Forge Your Legendary Strength.» / «اصنع قوّتك الأسطورية.» (سطر واحد ثنائي اللغة — بلا تغييرات SEO بالوصف)
+- حذف ملف المصدر من الريبو بأمر المالك الصريح (محفوظ خارج الريبو في download/)
+- البوابات (المرحلة 122): tsc 0 · eslint 0 · vitest 213/213 · migration_audit --ci PASS (بلا ميجريشن) · docs_parity 0 · docs_audit 0 · check-stale-refs 0 · check-ui-wiring 0 · next build ✓
+
+Stage Summary:
+- الهوية النهائية حية: لوجو المالك + أيقونات الخوذة + السلوجان الرسمي — المرحلة 122
+- ملاحظة أمان مسجلة: تاجلاين داخل صورة اللوجو (ANCIENT STRENGTH • MODERN SCIENCE) مختلف عن سلوجان الموقع النصي (Forge Your Legendary Strength) — بقرار المالك الضمني (الصورة كما رفعها والنص بأمره)

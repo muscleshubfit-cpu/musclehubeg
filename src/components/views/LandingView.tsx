@@ -1303,7 +1303,7 @@ export function LandingView() {
             {/* Brand */}
             <div>
               <p className="text-sm font-semibold text-[#1d1d1f]">Alkemos</p>
-              <p className="mt-2 text-xs font-normal">{isAr ? "منصة رياضية شاملة." : "Comprehensive sports platform."}</p>
+              <p className="mt-2 text-xs font-normal">{isAr ? "اصنع قوّتك الأسطورية." : "Forge Your Legendary Strength."}</p>
               <p className="mt-3 text-[10px] font-normal text-[#8e8e93]">{isAr ? "© 2026 جميع الحقوق محفوظة" : "© 2026 All rights reserved"}</p>
             </div>
 
