@@ -408,18 +408,18 @@ export async function reviewAndEnhance(
   // signals. Each run draws one of five closing CTA directives.
   const CTA_VARIANTS: Record<"en" | "ar", string[]> = {
     en: [
-      "Append a closing Call-to-Action paragraph inviting the reader to explore Musclehubeg's personalized online coaching with coach Ahmed Zake.",
-      "Append a closing Call-to-Action paragraph inviting the reader to try Musclehubeg's free tools (calorie calculator, meal planner) before considering coaching.",
-      "Append a closing Call-to-Action paragraph inviting the reader to join the Musclehubeg coaching program and get a plan built around their goal, schedule, and food preferences.",
-      "Append a closing Call-to-Action paragraph inviting the reader to follow Musclehubeg for weekly evidence-based fitness & nutrition guides.",
-      "Append a closing Call-to-Action paragraph inviting the reader to take the next step with Musclehubeg — whether reading a related guide or starting a tailored plan.",
+      "Append a closing Call-to-Action paragraph inviting the reader to explore Alkemos's personalized online coaching with coach Ahmed Zake.",
+      "Append a closing Call-to-Action paragraph inviting the reader to try Alkemos's free tools (calorie calculator, meal planner) before considering coaching.",
+      "Append a closing Call-to-Action paragraph inviting the reader to join the Alkemos coaching program and get a plan built around their goal, schedule, and food preferences.",
+      "Append a closing Call-to-Action paragraph inviting the reader to follow Alkemos for weekly evidence-based fitness & nutrition guides.",
+      "Append a closing Call-to-Action paragraph inviting the reader to take the next step with Alkemos — whether reading a related guide or starting a tailored plan.",
     ],
     ar: [
-      "أضف فقرة ختامية تدعو القارئ لتجربة الكوتشينج أونلاين المخصص من Musclehubeg مع الكابتن أحمد زكي.",
-      "أضف فقرة ختامية تدعو القارئ لتجربة الأدوات المجانية على Musclehubeg (حاسبة السعرات، مخطط الوجبات) قبل التفكير في الكوتشينج.",
-      "أضف فقرة ختامية تدعو القارئ للانضمام لبرنامج الكوتشينج في Musclehubeg للحصول على خطة مبنية على هدفه وجدوله وأكله المفضل.",
-      "أضف فقرة ختامية تدعو القارئ لمتابعة Musclehubeg لكل أسبوع أدلة جديدة في اللياقة والتغذية مبنية على العلم.",
-      "أضف فقرة ختامية تدعو القارئ لاتخاذ الخطوة التالية مع Musclehubeg — إما قراءة دليل ذي صلة أو بدء خطة مخصصة له.",
+      "أضف فقرة ختامية تدعو القارئ لتجربة الكوتشينج أونلاين المخصص من Alkemos مع الكابتن أحمد زكي.",
+      "أضف فقرة ختامية تدعو القارئ لتجربة الأدوات المجانية على Alkemos (حاسبة السعرات، مخطط الوجبات) قبل التفكير في الكوتشينج.",
+      "أضف فقرة ختامية تدعو القارئ للانضمام لبرنامج الكوتشينج في Alkemos للحصول على خطة مبنية على هدفه وجدوله وأكله المفضل.",
+      "أضف فقرة ختامية تدعو القارئ لمتابعة Alkemos لكل أسبوع أدلة جديدة في اللياقة والتغذية مبنية على العلم.",
+      "أضف فقرة ختامية تدعو القارئ لاتخاذ الخطوة التالية مع Alkemos — إما قراءة دليل ذي صلة أو بدء خطة مخصصة له.",
     ],
   };
   const ctaInstruction =

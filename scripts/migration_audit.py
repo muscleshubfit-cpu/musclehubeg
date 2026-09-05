@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Migration files ↔ generated types.ts parity audit (MuscleHub EG).
+"""Migration files ↔ generated types.ts parity audit (Alkemos).
 
 Checks:
   1. Tables defined in migrations but MISSING from types.ts

@@ -9,7 +9,7 @@
  */
 
 export const FAQS_EN = [
-  { q: "What is Musclehubeg?", a: "A human optimization platform combining the EVO AI engine with a massive exercise and food database for personalized plans and smart tracking." },
+  { q: "What is Alkemos?", a: "A human optimization platform combining the EVO AI engine with a massive exercise and food database for personalized plans and smart tracking." },
   { q: "Who is EVO?", a: "EVO is the AI performance engine. It reads your data and goal, builds personalized nutrition and workout plans, and suggests smart swaps. Available to all members with tier-based limits." },
   { q: "Is there a human coach?", a: "EVO is an AI coach. If you want human supervision, there's a separate human coaching section you can book via the coaching page." },
   { q: "How many weekly swaps?", a: "Free: 0. Premium: 3 swaps/week. Pro: 6/week. Coaching: 3/week. Resets every Monday." },
@@ -21,7 +21,7 @@ export const FAQS_EN = [
 ];
 
 export const FAQS_AR = [
-  { q: "ما هي منصة Musclehubeg؟", a: "منصة متكاملة لللياقة والتغذية تجمع بين محرك الذكاء الاصطناعي EVO وقاعدة بيانات ضخمة للتمارين والأطعمة لتقديم خطط مخصصة وتتبع ذكي لكل مستخدم." },
+  { q: "ما هي منصة Alkemos؟", a: "منصة متكاملة لللياقة والتغذية تجمع بين محرك الذكاء الاصطناعي EVO وقاعدة بيانات ضخمة للتمارين والأطعمة لتقديم خطط مخصصة وتتبع ذكي لكل مستخدم." },
   { q: "ما هو EVO؟", a: "EVO هو محرك الأداء الذكي في المنصة. يقرأ بياناتك وهدفك، ويبني لك خطط تغذية وتمارين مخصصة، ويقترح تبديلات ذكية. متاح لجميع الأعضاء وفق حدود العضوية." },
   { q: "هل يوجد مدرب بشري؟", a: "EVO هو مدرب ذكاء اصطناعي. إذا كنت ترغب في متابعة بشرية مباشرة، يتوفر قسم منفصل للكوتشينج البشري يمكنك حجزه عبر صفحة الكوتشينج." },
   { q: "كم عدد الاستبدالات أسبوعياً؟", a: "الباقة المجانية: لا يوجد. Premium: 3 استبدالات أسبوعياً. Pro: 6 أسبوعياً. Coaching: 3 أسبوعياً. يتم التجديد كل اثنين." },

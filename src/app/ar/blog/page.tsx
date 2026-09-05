@@ -15,7 +15,7 @@ const SITE_URL = "https://alkemos.com";
 export const metadata: Metadata = {
   title: "المدونة الرياضية",
   description:
-    "مقالات رياضية وتغذية علمية بالعربية — تمارين، تغذية، مكملات، وصحة من فريق Musclehubeg.",
+    "مقالات رياضية وتغذية علمية بالعربية — تمارين، تغذية، مكملات، وصحة من فريق Alkemos.",
   alternates: {
     canonical: "/ar/blog",
     languages: {

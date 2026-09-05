@@ -23,12 +23,12 @@ export async function generateMetadata({
 
   if (!program) {
     return {
-      title: "Program Not Found — Musclehubeg",
+      title: "Program Not Found — Alkemos",
       robots: { index: false, follow: false },
     };
   }
 
-  const title = `${program.nameEn} — Workout Program | Musclehubeg`;
+  const title = `${program.nameEn} — Workout Program | Alkemos`;
   const description = `${program.nameEn}: ${program.descriptionEn} ${program.days.length}-day ${program.level} program for ${program.goal}. ${program.location}.`;
   const url = `https://alkemos.com/programs/${program.slug}`;
 
@@ -44,7 +44,7 @@ export async function generateMetadata({
       title,
       description,
       images: [{ url: program.image, width: 1200, height: 630 }],
-      siteName: "Musclehubeg",
+      siteName: "Alkemos",
       locale: "en_US",
     },
     twitter: {

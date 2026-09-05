@@ -1,4 +1,4 @@
-# Navigation Map — MuscleHubEG
+# Navigation Map — Alkemos
 
 > ⚠️ **HISTORICAL SNAPSHOT (2026-08-25)** — point-in-time audit; some ⚠️ items
 > listed here have since been FIXED (see PROGRESS.md Phases 71-81).
@@ -70,7 +70,7 @@ Statuses:
 
 | # | Label | Location | Destination | Status |
 |---|---|---|---|---|
-| 1 | Logo (MuscleHubEG) | `SiteHeader.tsx:218-221` | `navigate("landing")` → `/` | ✅ |
+| 1 | Logo (Alkemos) | `SiteHeader.tsx:218-221` | `navigate("landing")` → `/` | ✅ |
 | 2 | Home / الرئيسية | `SiteHeader.tsx:94-98` | `navigate("landing")` → `/` | ✅ |
 | 3 | Exercises / مكتبة التمارين | `SiteHeader.tsx:104-108` | `href="/exercises"` → `/exercises` (page exists) | ✅ |
 | 4 | Programs / برامج التدريب | `SiteHeader.tsx:111-115` | `href="/programs"` → `/programs` (page exists) | ✅ |

@@ -17,9 +17,9 @@ import { COACH_FAQ_AR } from "@/app/for-coaches/content";
 const SITE_URL = "https://alkemos.com";
 
 export const metadata: Metadata = {
-  title: "انضم كمدرب في Musclehubeg — درِّب عملاءك بأسعارك وفلوسك في إيدك",
+  title: "انضم كمدرب في Alkemos — درِّب عملاءك بأسعارك وفلوسك في إيدك",
   description:
-    "سجّل كوتش أو أخصائي تغذية على Musclehubeg مجانًا: منصة كاملة لإدارة عملائك أنت، خطط تغذية وتمارين بالذكاء الاصطناعي، تحدد سعرك بنفسك وتحصّل من عملائك مباشرة بدون أي نسبة — رسم تفعيل شهري ثابت فقط. تفعيل فوري.",
+    "سجّل كوتش أو أخصائي تغذية على Alkemos مجانًا: منصة كاملة لإدارة عملائك أنت، خطط تغذية وتمارين بالذكاء الاصطناعي، تحدد سعرك بنفسك وتحصّل من عملائك مباشرة بدون أي نسبة — رسم تفعيل شهري ثابت فقط. تفعيل فوري.",
   keywords: [
     "انضم كمدرب",
     "تسجيل مدرب",
@@ -42,11 +42,11 @@ export const metadata: Metadata = {
     },
   },
   openGraph: {
-    title: "انضم كمدرب في Musclehubeg — درِّب عملاءك بأسعارك وفلوسك في إيدك",
+    title: "انضم كمدرب في Alkemos — درِّب عملاءك بأسعارك وفلوسك في إيدك",
     description:
       "منصة كاملة للكوتشات: إدارة عملائك، خطط بالذكاء الاصطناعي، أسعارك بتحددها وتحصّل بنفسك — بدون أي نسبة من دخلك. سجّل مجانًا بتفعيل فوري.",
     url: `${SITE_URL}/ar/for-coaches`,
-    siteName: "Musclehubeg",
+    siteName: "Alkemos",
     locale: "ar_EG",
     type: "website",
     images: [
@@ -54,13 +54,13 @@ export const metadata: Metadata = {
         url: `${SITE_URL}/images/coach-portrait.jpg`,
         width: 1122,
         height: 1402,
-        alt: "انضم كمدرب في Musclehubeg",
+        alt: "انضم كمدرب في Alkemos",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "انضم كمدرب في Musclehubeg — عملاؤك بأسعارك وفلوسك في إيدك",
+    title: "انضم كمدرب في Alkemos — عملاؤك بأسعارك وفلوسك في إيدك",
     description:
       "إدارة عملاء، خطط AI، أسعارك إنت اللي بتحددها وتحصّل بنفسك — بدون نسبة. سجّل مجانًا.",
     images: [`${SITE_URL}/images/coach-portrait.jpg`],
@@ -69,7 +69,7 @@ export const metadata: Metadata = {
 
 const faqSchema = getFAQSchema(COACH_FAQ_AR);
 const breadcrumbSchema = getBreadcrumbSchema([
-  { name: "Musclehubeg", url: SITE_URL },
+  { name: "Alkemos", url: SITE_URL },
   { name: "انضم كمدرب", url: `${SITE_URL}/ar/for-coaches` },
 ]);
 

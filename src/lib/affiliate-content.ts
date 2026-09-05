@@ -7,7 +7,7 @@
  *     user HTML.
  *   - Dynamic values (affiliate URL, banner URL) are escaped before
  *     insertion to prevent XSS.
- *   - The brand name "Musclehubeg" is intentionally never translated.
+ *   - The brand name "Alkemos" is intentionally never translated.
  *
  * SECURITY:
  *   - escapeHtml() is applied to all dynamic strings before they are
@@ -204,8 +204,8 @@ export function buildBannerEmbedHtml(
   const safeHref = escapeHtml(affiliateUrl);
   const safeSrc = escapeHtml(getBannerUrl(format, lang));
   const alt = lang === "ar"
-    ? "Musclehubeg — منصة اللياقة والتغذية الذكية. ابدأ مجانًا."
-    : "Musclehubeg — Your AI fitness & nutrition coach. Start free.";
+    ? "Alkemos — منصة اللياقة والتغذية الذكية. ابدأ مجانًا."
+    : "Alkemos — Your AI fitness & nutrition coach. Start free.";
 
   return [
     `<a href="${safeHref}" target="_blank" rel="noopener noreferrer">`,
@@ -302,7 +302,7 @@ export function buildPromoCopy(
     switch (template.id) {
       case "instagram_facebook":
         return [
-          "🎯 لو بتدور على طريقة أذكى للتدريب والتغذية، Musclehubeg هي المنصة اللي هتدعمك فيها خطوة بخطوة.",
+          "🎯 لو بتدور على طريقة أذكى للتدريب والتغذية، Alkemos هي المنصة اللي هتدعمك فيها خطوة بخطوة.",
           "",
           "✅ خطة أكلك وتمارينك مخصصة لهدفك",
           "✅ تتبع تقدمك أسبوعيًا بالصور والمقاسات",
@@ -312,7 +312,7 @@ export function buildPromoCopy(
           "جربها بنفسك من خلال رابطي 👇",
           url,
           "",
-          "#لياقة #تغذية #تدريب #كوتشينج #Musclehubeg",
+          "#لياقة #تغذية #تدريب #كوتشينج #Alkemos",
           "",
           "(إفصاح: الرابط ده affiliate link — أقدر أكسب عمولة من عمليات الشراء المؤهلة.)",
         ].join("\n");
@@ -321,7 +321,7 @@ export function buildPromoCopy(
         return [
           "إيه الأخبار؟ 👋",
           "",
-          "حابب أشاركك Musclehubeg — منصة لياقة وتغذية بذكاء اصطناعي.",
+          "حابب أشاركك Alkemos — منصة لياقة وتغذية بذكاء اصطناعي.",
           "بتديك خطط أكل وتمارين حسب هدفك + كوتش AI يرد عليك في أي وقت + تتبع تقدم أسبوعي.",
           "",
           "لو مهتم، سجل من رابطي:",
@@ -334,10 +334,10 @@ export function buildPromoCopy(
         return [
           "بتدور على طريقة أذكى للتغذية والتدريب؟ 💪",
           "",
-          "Musclehubeg بتعطيك خطط مخصصة + كوتش AI + تتبع تقدم. جرّب:",
+          "Alkemos بتعطيك خطط مخصصة + كوتش AI + تتبع تقدم. جرّب:",
           url,
           "",
-          "#لياقة #تغذية #Musclehubeg",
+          "#لياقة #تغذية #Alkemos",
           "(رابط affiliate — ممكن أكسب عمولة من الشراء المؤهل.)",
         ].join("\n");
 
@@ -345,7 +345,7 @@ export function buildPromoCopy(
         return [
           "بناء عادات صحية حقيقية مش موضوع ساعة في الجيم. ده موضوع استمرارية، وعقلانية في الأكل، وتتبع صادق للتقدم.",
           "",
-          "عرفت Musclehubeg من فترة وقررت أجربها. إليك ليه حسّيت إنها مختلفة:",
+          "عرفت Alkemos من فترة وقررت أجربها. إليك ليه حسّيت إنها مختلفة:",
           "",
           "1️⃣ خطط مخصصة فعلاً: مش PDF عام. الخطط بتتعمل حسب وزنك، هدفك، equipment اللي عندك، وأكلاتك المفضلة.",
           "2️⃣ كوتش AI متاح 24/7: مفيش انتظار لرد. اسأل في أي وقت عن بديل أكل، طريقة تمرين، أو تعديل خطتك.",
@@ -363,7 +363,7 @@ export function buildPromoCopy(
       case "story_caption":
         return [
           "بتدور على كوتش لياقة وتغذية ذكي؟ 💪",
-          "Musclehubeg — خطط مخصصة + كوتش AI + تتبع تقدم.",
+          "Alkemos — خطط مخصصة + كوتش AI + تتبع تقدم.",
           "جرّب:",
           url,
           "(رابط affiliate)",
@@ -375,7 +375,7 @@ export function buildPromoCopy(
   switch (template.id) {
     case "instagram_facebook":
       return [
-        "🎯 If you've been looking for a smarter way to train and eat, Musclehubeg is the platform that supports you every step of the way.",
+        "🎯 If you've been looking for a smarter way to train and eat, Alkemos is the platform that supports you every step of the way.",
         "",
         "✅ Personalized meal and training plans for your goal",
         "✅ Weekly progress tracking with photos and measurements",
@@ -385,7 +385,7 @@ export function buildPromoCopy(
         "Try it for yourself through my link 👇",
         url,
         "",
-        "#fitness #nutrition #training #coaching #Musclehubeg",
+        "#fitness #nutrition #training #coaching #Alkemos",
         "",
         "(Disclosure: This is an affiliate link — I may earn a commission from qualifying purchases.)",
       ].join("\n");
@@ -394,7 +394,7 @@ export function buildPromoCopy(
       return [
         "Hey 👋",
         "",
-        "Wanted to share Musclehubeg with you — an AI-powered fitness and nutrition platform.",
+        "Wanted to share Alkemos with you — an AI-powered fitness and nutrition platform.",
         "It gives you personalized meal + training plans, a 24/7 AI coach, and weekly progress tracking.",
         "",
         "If you're interested, sign up through my link:",
@@ -407,10 +407,10 @@ export function buildPromoCopy(
       return [
         "Looking for a smarter way to train and eat? 💪",
         "",
-        "Musclehubeg gives you personalized plans + an AI coach + progress tracking. Try it:",
+        "Alkemos gives you personalized plans + an AI coach + progress tracking. Try it:",
         url,
         "",
-        "#fitness #nutrition #Musclehubeg",
+        "#fitness #nutrition #Alkemos",
         "(Affiliate link — I may earn a commission on qualifying purchases.)",
       ].join("\n");
 
@@ -418,7 +418,7 @@ export function buildPromoCopy(
       return [
         "Building real healthy habits isn't about an hour in the gym. It's about consistency, sane eating, and honest progress tracking.",
         "",
-        "I discovered Musclehubeg a while ago and decided to give it a try. Here's why it felt different:",
+        "I discovered Alkemos a while ago and decided to give it a try. Here's why it felt different:",
         "",
         "1️⃣ Truly personalized plans: not a generic PDF. Plans are built around your weight, your goal, your equipment, and the foods you actually like.",
         "2️⃣ A 24/7 AI coach: no waiting for a reply. Ask anytime about food swaps, exercise form, or plan adjustments.",
@@ -436,7 +436,7 @@ export function buildPromoCopy(
     case "story_caption":
       return [
         "Looking for a smart fitness + nutrition coach? 💪",
-        "Musclehubeg — personalized plans + AI coach + progress tracking.",
+        "Alkemos — personalized plans + AI coach + progress tracking.",
         "Try it:",
         url,
         "(Affiliate link)",

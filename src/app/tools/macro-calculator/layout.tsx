@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Macro Calculator | Musclehubeg — Calculate Protein, Carbs & Fat",
+  title: "Macro Calculator | Alkemos — Calculate Protein, Carbs & Fat",
   description:
     "Calculate your daily macro needs (protein, carbohydrates, fat) based on your calories and goals. Free and accurate macro calculator.",
   keywords: [
@@ -16,7 +16,7 @@ export const metadata: Metadata = {
     canonical: "https://alkemos.com/tools/macro-calculator",
   },
   openGraph: {
-    title: "Macro Calculator | Musclehubeg",
+    title: "Macro Calculator | Alkemos",
     description: "Calculate your daily protein, carbs, and fat needs for free.",
     type: "website",
     locale: "en_US",

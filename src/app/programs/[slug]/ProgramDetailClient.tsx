@@ -273,8 +273,8 @@ export default function ProgramDetailClient({
           </h2>
           <p className="mt-2 text-sm font-normal text-[#6e6e73]">
             {isAr
-              ? "منصة Musclehubeg بتعمل خطط مخصصة بناءً على أهدافك ومستواك."
-              : "Musclehubeg creates personalized plans based on your goals and level."}
+              ? "منصة Alkemos بتعمل خطط مخصصة بناءً على أهدافك ومستواك."
+              : "Alkemos creates personalized plans based on your goals and level."}
           </p>
           <a
             href="/memberships"

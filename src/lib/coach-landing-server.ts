@@ -251,5 +251,5 @@ export function resolveLandingCopy(
 
 /** Fallback display name when the profile has no full_name yet. */
 export function coachDisplayName(data: CoachLandingData, lang: "en" | "ar"): string {
-  return data.coach_name || (lang === "ar" ? "مدرب Musclehubeg" : "Musclehubeg coach");
+  return data.coach_name || (lang === "ar" ? "مدرب Alkemos" : "Alkemos coach");
 }

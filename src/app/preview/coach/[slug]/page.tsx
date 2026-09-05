@@ -30,7 +30,7 @@ export const dynamic = "force-dynamic"; // session-aware — never cache/ISR
 export const runtime = "nodejs";
 
 export const metadata: Metadata = {
-  title: "Preview — Musclehubeg",
+  title: "Preview — Alkemos",
   robots: { index: false, follow: false },
 };
 

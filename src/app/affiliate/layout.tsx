@@ -11,11 +11,11 @@ import type { Metadata } from "next";
  * I18nProvider's localStorage/browser detection).
  */
 export const metadata: Metadata = {
-  title: "Musclehubeg Affiliate Program — Turn Your Influence Into Income",
+  title: "Alkemos Affiliate Program — Turn Your Influence Into Income",
   description:
-    "Join the Musclehubeg Affiliate Program, share smarter fitness and nutrition solutions, and earn commissions from eligible purchases made through your personal Affiliate link.",
+    "Join the Alkemos Affiliate Program, share smarter fitness and nutrition solutions, and earn commissions from eligible purchases made through your personal Affiliate link.",
   keywords: [
-    "Musclehubeg affiliate program",
+    "Alkemos affiliate program",
     "fitness affiliate program",
     "nutrition affiliate program",
     "earn commission fitness",
@@ -27,18 +27,18 @@ export const metadata: Metadata = {
     "sports affiliate program",
   ],
   openGraph: {
-    title: "Musclehubeg Affiliate Program — Turn Your Influence Into Income",
+    title: "Alkemos Affiliate Program — Turn Your Influence Into Income",
     description:
-      "Share Musclehubeg with people who trust your recommendations and earn commissions from eligible purchases.",
+      "Share Alkemos with people who trust your recommendations and earn commissions from eligible purchases.",
     type: "website",
     url: "https://alkemos.com/affiliate",
-    siteName: "Musclehubeg",
+    siteName: "Alkemos",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Musclehubeg Affiliate Program — Turn Your Influence Into Income",
+    title: "Alkemos Affiliate Program — Turn Your Influence Into Income",
     description:
-      "Share Musclehubeg with people who trust your recommendations and earn commissions from eligible purchases.",
+      "Share Alkemos with people who trust your recommendations and earn commissions from eligible purchases.",
   },
   alternates: {
     canonical: "https://alkemos.com/affiliate",

@@ -10,7 +10,7 @@ import type { Metadata } from "next";
  * mirror exists for this page.
  */
 export const metadata: Metadata = {
-  title: "Water Tracker | Musclehubeg — Daily Hydration Goal & Reminder",
+  title: "Water Tracker | Alkemos — Daily Hydration Goal & Reminder",
   description:
     "Track your daily water intake for free: get a smart hydration goal based on your body weight (35 ml × kg), log every cup, keep your history, and build the habit of staying hydrated.",
   keywords: [
@@ -25,7 +25,7 @@ export const metadata: Metadata = {
     canonical: "/tools/water-tracker",
   },
   openGraph: {
-    title: "Water Tracker | Musclehubeg",
+    title: "Water Tracker | Alkemos",
     description:
       "Smart daily hydration goal from your body weight, cup logging, and history — free water tracker.",
     type: "website",

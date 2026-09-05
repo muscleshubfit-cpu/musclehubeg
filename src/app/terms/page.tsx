@@ -9,9 +9,9 @@ import { SiteHeader } from "@/components/SiteHeader";
  * No hreflang: no /ar mirror exists for this page.
  */
 export const metadata: Metadata = {
-  title: "Terms & Conditions | Musclehubeg — Rules of Using the Platform",
+  title: "Terms & Conditions | Alkemos — Rules of Using the Platform",
   description:
-    "The official terms for using Musclehubeg: accounts and eligibility, memberships and billing, payments and refunds, acceptable use, health disclaimer, and liability limits.",
+    "The official terms for using Alkemos: accounts and eligibility, memberships and billing, payments and refunds, acceptable use, health disclaimer, and liability limits.",
   alternates: {
     canonical: "/terms",
   },

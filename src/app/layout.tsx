@@ -123,8 +123,8 @@ export default async function RootLayout({
         <link rel="dns-prefetch" href="https://randomuser.me" />
         {/* RSS autodiscovery (Phase 86) — site-wide feed links so readers,
             aggregators and AI engines discover the 6-articles/day pipeline */}
-        <link rel="alternate" type="application/rss+xml" title="Musclehubeg Blog (English)" href="/rss.xml" />
-        <link rel="alternate" type="application/rss+xml" title="مدونة Musclehubeg (عربي)" href="/ar/rss.xml" />
+        <link rel="alternate" type="application/rss+xml" title="Alkemos Blog (English)" href="/rss.xml" />
+        <link rel="alternate" type="application/rss+xml" title="مدونة Alkemos (عربي)" href="/ar/rss.xml" />
         <link rel="preconnect" href="https://api.qrserver.com" />
         <link rel="dns-prefetch" href="https://api.qrserver.com" />
         <link rel="preconnect" href="https://images.unsplash.com" />

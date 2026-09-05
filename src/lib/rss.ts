@@ -78,7 +78,7 @@ export async function buildRss(channel: RssChannel): Promise<string> {
     <language>${channel.language}</language>
     <lastBuildDate>${lastBuild}</lastBuildDate>
     <atom:link href="${esc(channel.selfUrl)}" rel="self" type="application/rss+xml" />
-    <generator>Musclehubeg (Next.js)</generator>
+    <generator>Alkemos (Next.js)</generator>
 ${items}
   </channel>
 </rss>`;

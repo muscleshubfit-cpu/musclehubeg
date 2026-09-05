@@ -27,12 +27,12 @@ export async function generateMetadata({
 
   if (!food) {
     return {
-      title: "Food Not Found — Musclehubeg",
+      title: "Food Not Found — Alkemos",
       robots: { index: false, follow: false },
     };
   }
 
-  const title = `${food.nameEn} — Calories, Macros & Nutrition per 100g | Musclehubeg`;
+  const title = `${food.nameEn} — Calories, Macros & Nutrition per 100g | Alkemos`;
   const description = `${food.nameEn} nutrition facts: ${food.per100g.calories} kcal, ${food.per100g.protein}g protein, ${food.per100g.carbs}g carbs, ${food.per100g.fat}g fat per 100g. Default serving: ${food.defaultServingEn} (${food.defaultGrams}g).`;
   const url = `https://alkemos.com/foods/${food.slug}`;
 
@@ -54,7 +54,7 @@ export async function generateMetadata({
       url,
       title,
       description,
-      siteName: "Musclehubeg",
+      siteName: "Alkemos",
       locale: "en_US",
     },
     twitter: {

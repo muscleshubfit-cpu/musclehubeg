@@ -100,8 +100,8 @@ export function MembershipPromo({ isAr }: { isAr: boolean }) {
       </h2>
       <p className="mx-auto mt-3 max-w-xl text-base font-normal text-[#a1a1a6] md:text-lg">
         {isAr
-          ? "اشترك في عضوية Musclehubeg: خطط تدريب وتغذية مخصصة، متابعة مع مدربين معتمدين، وكل الأدوات البريميوم بدون إعلانات."
-          : "Join a Musclehubeg membership: personalized training and nutrition plans, certified coach follow-up, and all premium tools ad-free."}
+          ? "اشترك في عضوية Alkemos: خطط تدريب وتغذية مخصصة، متابعة مع مدربين معتمدين، وكل الأدوات البريميوم بدون إعلانات."
+          : "Join a Alkemos membership: personalized training and nutrition plans, certified coach follow-up, and all premium tools ad-free."}
       </p>
       <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
         <a

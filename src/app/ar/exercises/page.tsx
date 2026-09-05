@@ -22,7 +22,7 @@ const SITE_URL = "https://alkemos.com";
 export const metadata: Metadata = {
   title: "مكتبة التمارين",
   description:
-    "مكتبة 868+ تمرين بالصور والشرح ثنائي اللغة ومستويات الصعوبة — عضلات، أجهزة، وتمارين منزلية على Musclehubeg.",
+    "مكتبة 868+ تمرين بالصور والشرح ثنائي اللغة ومستويات الصعوبة — عضلات، أجهزة، وتمارين منزلية على Alkemos.",
   alternates: {
     canonical: "/ar/exercises",
     languages: {

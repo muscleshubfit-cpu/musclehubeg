@@ -101,7 +101,7 @@ export function ReferralView() {
     // Facebook's sharer.php only accepts a URL — it ignores custom text
     // (Facebook deprecated the `quote=` parameter). The preview is rendered
     // from the page's Open Graph metadata. We share the URL; the OG tags
-    // on the homepage accurately describe Musclehubeg as a comprehensive
+    // on the homepage accurately describe Alkemos as a comprehensive
     // sports platform with exercises, programs, calculators, and coaching.
     window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(referralLink)}`, "_blank");
   };
@@ -125,7 +125,7 @@ export function ReferralView() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `musclehubeg-affiliate-qr.png`;
+      a.download = `alkemos-affiliate-qr.png`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);

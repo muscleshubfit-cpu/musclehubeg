@@ -221,8 +221,8 @@ ${isAr ? "محتوى المقال" : "Article body"}:
 ${content.slice(0, isAr ? 12_000 : 14_000)}`;
 
   const sys = isAr
-    ? "أنت محرر لغوي وخبير SEO لموقع Musclehubeg الرياضي. تلتزم حرفياً بتعليمات الإخراج."
-    : "You are Musclehubeg's senior editor & SEO specialist. Follow output instructions literally.";
+    ? "أنت محرر لغوي وخبير SEO لموقع Alkemos الرياضي. تلتزم حرفياً بتعليمات الإخراج."
+    : "You are Alkemos's senior editor & SEO specialist. Follow output instructions literally.";
 
   // Sentinel instructions reused by the three big-text transforms.
   const sentinelRule = isAr
@@ -289,8 +289,8 @@ ${MARKER_NOTES}
 
     case "cta":
       prompt = isAr
-        ? `اكتب 3 دعوات لاتخاذ إجراء (CTA) مقنعة خاصة بـ Musclehubeg بناءً على المقال.\n\n${articleContext}\n\nأعد شكلاً حرفياً:\n${MARKER_MAIN}\n1. ...\n2. ...\n3. ...\n${MARKER_NOTES}\n- ملاحظات`
-        : `Write 3 persuasive CTAs for Musclehubeg from this article.\n\n${articleContext}\n\nReply exactly:\n${MARKER_MAIN}\n1. ...\n2. ...\n3. ...\n${MARKER_NOTES}\n- notes`;
+        ? `اكتب 3 دعوات لاتخاذ إجراء (CTA) مقنعة خاصة بـ Alkemos بناءً على المقال.\n\n${articleContext}\n\nأعد شكلاً حرفياً:\n${MARKER_MAIN}\n1. ...\n2. ...\n3. ...\n${MARKER_NOTES}\n- ملاحظات`
+        : `Write 3 persuasive CTAs for Alkemos from this article.\n\n${articleContext}\n\nReply exactly:\n${MARKER_MAIN}\n1. ...\n2. ...\n3. ...\n${MARKER_NOTES}\n- notes`;
       break;
 
     case "image_prompt":
@@ -596,7 +596,7 @@ async function materializeArticleDraft(r: {
     featured_image: r.featured_image || "",
     cover_alt: r.cover_alt || "",
     reading_time: Math.max(1, Math.round(words / 200)),
-    author: "Musclehubeg",
+    author: "Alkemos",
     is_published: false, // NEVER auto-publish — coach reviews first
     published_at: null,
     created_at: now,
@@ -698,8 +698,8 @@ async function runArticleGenerate(payload: Record<string, unknown>) {
   }
 
   const sys = isAr
-    ? "أنت كاتب محتوى رياضي خبير لموقع Musclehubeg (مدونة لياقة وتغذية مصرية). تكتب بالعربية الفصحى المبسّطة بنبرة تحفيزية عملية، وتلتزم حرفياً بتعليمات الإخراج JSON. تكتب بعمق وتفصيل — المقالات السطحية القصيرة مرفوضة."
-    : "You are Musclehubeg's senior fitness & nutrition content writer (Egyptian fitness blog). Write in clear, practical English and follow the JSON output contract literally. Write with depth and detail — shallow short articles are rejected.";
+    ? "أنت كاتب محتوى رياضي خبير لموقع Alkemos (مدونة لياقة وتغذية مصرية). تكتب بالعربية الفصحى المبسّطة بنبرة تحفيزية عملية، وتلتزم حرفياً بتعليمات الإخراج JSON. تكتب بعمق وتفصيل — المقالات السطحية القصيرة مرفوضة."
+    : "You are Alkemos's senior fitness & nutrition content writer (Egyptian fitness blog). Write in clear, practical English and follow the JSON output contract literally. Write with depth and detail — shallow short articles are rejected.";
 
   // ANTI-FORMULA OPENING (owner: «نفس العناوين الثابتة القديمة ومقال سيء»):
   // every generation draws a random structural archetype so consecutive

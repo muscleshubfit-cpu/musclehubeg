@@ -130,7 +130,7 @@ export async function GET(request: NextRequest) {
       // all migrations) — the old code selected a phantom `lang`, which
       // made PostgREST reject the ENTIRE query (hidden for years by an
       // `any` annotation). Site language is URL-locale based; the old
-      // ternary's own fallback branch was "ar" (MuscleHub EG core
+      // ternary's own fallback branch was "ar" (Alkemos core
       // audience) — the AR text below IS that designed fallback, with
       // the unreachable EN branch removed as dead code.
       const name = client?.full_name || "";

@@ -40,16 +40,16 @@ export async function generateMetadata({
 
   if (!data) {
     return {
-      title: "Page not found — Musclehubeg",
+      title: "Page not found — Alkemos",
       robots: { index: false, follow: false },
     };
   }
 
   const copy = resolveLandingCopy(data, "en");
   const name = coachDisplayName(data, "en");
-  const title = `${name} — ${copy.headline || "Certified coach on Musclehubeg"}`;
+  const title = `${name} — ${copy.headline || "Certified coach on Alkemos"}`;
   const description =
-    copy.bio.slice(0, 160) || `Book private coaching with ${name} on Musclehubeg`;
+    copy.bio.slice(0, 160) || `Book private coaching with ${name} on Alkemos`;
 
   return {
     title,
@@ -67,7 +67,7 @@ export async function generateMetadata({
       url: `${SITE_URL}/coaches/${slug}`,
       title,
       description,
-      siteName: "Musclehubeg",
+      siteName: "Alkemos",
       locale: "en_US",
     },
   };

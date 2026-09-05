@@ -206,8 +206,8 @@ export async function createPayPalOrder(
   // it is the ONLY reason capture-order can tell a subscription from a
   // wallet top-up. Keep both shapes backward-compatible.
   const description = isTopup
-    ? `Musclehubeg wallet top-up (${context.usdAmount} USD)`
-    : `Musclehubeg ${context.planTier} subscription (${context.durationMonths} month${context.durationMonths === 1 ? "" : "s"})`;
+    ? `Alkemos wallet top-up (${context.usdAmount} USD)`
+    : `Alkemos ${context.planTier} subscription (${context.durationMonths} month${context.durationMonths === 1 ? "" : "s"})`;
 
   const customId = isTopup
     ? JSON.stringify({
@@ -242,7 +242,7 @@ export async function createPayPalOrder(
     ],
     // application_context controls the PayPal checkout experience
     application_context: {
-      brand_name: "Musclehubeg",
+      brand_name: "Alkemos",
       landing_page: "NO_PREFERENCE", // PayPal chooses Login or Signup
       user_action: "PAY_NOW",
       shipping_preference: "NO_SHIPPING", // digital subscription — no shipping

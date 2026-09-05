@@ -9,9 +9,9 @@ import { StaticPageView } from "@/components/views/StaticPageView";
  * declares the real Arabic twin instead of nothing.
  */
 export const metadata: Metadata = {
-  title: "About Musclehubeg — Our Mission, Story & Team",
+  title: "About Alkemos — Our Mission, Story & Team",
   description:
-    "Musclehubeg is an Egyptian sports platform with an 868+ exercise library, ready workout programs, free fitness calculators, a food database, the EVO AI coach, and online coaching — our mission is to make expert-level fitness accessible to everyone.",
+    "Alkemos is an Egyptian sports platform with an 868+ exercise library, ready workout programs, free fitness calculators, a food database, the EVO AI coach, and online coaching — our mission is to make expert-level fitness accessible to everyone.",
   alternates: {
     canonical: "/about",
     languages: {

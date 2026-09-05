@@ -86,7 +86,7 @@ function buildPrompt(input: SocialPostInput): string {
     : "";
 
   if (isAr) {
-    return `أنت خبير تسويق محتوى لياقة لمنصة Musclehubeg. أنشئ منشوراً جاهزاً للنشر.
+    return `أنت خبير تسويق محتوى لياقة لمنصة Alkemos. أنشئ منشوراً جاهزاً للنشر.
 
 مصدر المحتوى:
 ${sourceTitle ? `عنوان المقال: ${sourceTitle}\n` : ""}${topicLine}
@@ -112,7 +112,7 @@ ${linkNote}
 }`;
   }
 
-  return `You are a fitness content marketing expert for Musclehubeg. Create a ready-to-publish social media post.
+  return `You are a fitness content marketing expert for Alkemos. Create a ready-to-publish social media post.
 
 Source material:
 ${sourceTitle ? `Article title: ${sourceTitle}\n` : ""}${topicLine}

@@ -347,7 +347,7 @@ export function embedBodyImages(
     out.push(line);
     const img = byHeading.get(i);
     if (img && !markdown.includes(img.url)) {
-      const alt = (img.alt || "Musclehubeg").replace(/[[\]]/g, "").trim() || "Musclehubeg";
+      const alt = (img.alt || "Alkemos").replace(/[[\]]/g, "").trim() || "Alkemos";
       out.push("");
       out.push(`![${alt}](${img.url})`);
       out.push("");

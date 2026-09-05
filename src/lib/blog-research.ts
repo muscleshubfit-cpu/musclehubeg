@@ -42,10 +42,10 @@ export type Phase0Result = {
 };
 
 const NICHE_EN =
-  "online fitness & nutrition coaching (Musclehubeg): workouts, muscle building, fat loss, healthy eating, supplements, recovery";
+  "online fitness & nutrition coaching (Alkemos): workouts, muscle building, fat loss, healthy eating, supplements, recovery";
 
 const NICHE_AR =
-  "التدريب والتغذية الرياضية عبر الإنترنت (Musclehubeg): التمارين، بناء العضلات، حرق الدهون، الأكل الصحي، المكملات، الاستشفاء";
+  "التدريب والتغذية الرياضية عبر الإنترنت (Alkemos): التمارين، بناء العضلات، حرق الدهون، الأكل الصحي، المكملات، الاستشفاء";
 
 export function parseJSONLoose<T>(text: string): T | null {
   try {

@@ -46,9 +46,9 @@ export async function GET(): Promise<Response> {
     )
     .join("\n");
 
-  const body = `# Musclehubeg (llms-full)
+  const body = `# Alkemos (llms-full)
 
-> Musclehubeg is a bilingual (English/Arabic) fitness and nutrition platform for the Egyptian and Arab market: an 868+ exercise library with form instructions, ready workout programs, a food database with per-100g nutrition for 8,830+ foods, six free fitness calculators, an AI meal planner, the EVO AI coach, and human online coaching. This file extends the short /llms.txt with the latest articles per language.
+> Alkemos is a bilingual (English/Arabic) fitness and nutrition platform for the Egyptian and Arab market: an 868+ exercise library with form instructions, ready workout programs, a food database with per-100g nutrition for 8,830+ foods, six free fitness calculators, an AI meal planner, the EVO AI coach, and human online coaching. This file extends the short /llms.txt with the latest articles per language.
 
 - Platform: ${SITE}
 - Arabic homepage: ${SITE}/ar
@@ -73,7 +73,7 @@ export async function GET(): Promise<Response> {
 - Payment methods: PayPal (automatic), InstaPay, Vodafone Cash (manual receipt review within 24h)
 - Bilingual platform: every main section has an Arabic mirror under /ar/*; hreflang en/ar/x-default declared on every page
 - Ships as a PWA (installable on mobile) with full RTL support
-- Content license: all content owned by Musclehubeg; citing facts with a link is welcome
+- Content license: all content owned by Alkemos; citing facts with a link is welcome
 
 ## Latest English articles
 

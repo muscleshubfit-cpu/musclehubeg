@@ -56,7 +56,7 @@ export function StaticPageView({ page }: { page: "about" | "privacy" | "terms" |
       </main>
 
       <footer className="mt-auto border-t border-[#d2d2d7] py-6 text-center text-xs font-normal text-[#6e6e73]">
-        © {new Date().getFullYear()} Musclehubeg. {isAr ? "كل الحقوق محفوظة." : "All rights reserved."}
+        © {new Date().getFullYear()} Alkemos. {isAr ? "كل الحقوق محفوظة." : "All rights reserved."}
       </footer>
  </div>
  );
@@ -67,22 +67,22 @@ function getContent(page: string, isAr: boolean) {
 
  if (page === "about") {
  return isAr ? {
- title: "عن Musclehubeg",
+ title: "عن Alkemos",
  updated: `آخر تحديث: ${date}`,
  sections: [
- { heading: "من نحن", paragraphs: ["Musclehubeg هي منصة تحسين أداء بشري بالذكاء الاصطناعي. نجمع بين محرك الذكاء الاصطناعي EVO وقاعدة بيانات ضخمة لتمارين (٨٦٨+) وأكلات (٨٬٨٣٠+) لتقديم تجربة لياقة وتغذية لا مثيل لها.", "تأسست Musclehubeg برؤية بسيطة: المستقبل ليس إنسان ضد AI، بل إنسان + AI. نحن نؤمن بأن أفضل النتائج تأتي من الجمع بين حكمة الإنسان وذكاء الآلة."] },
+ { heading: "من نحن", paragraphs: ["Alkemos هي منصة تحسين أداء بشري بالذكاء الاصطناعي. نجمع بين محرك الذكاء الاصطناعي EVO وقاعدة بيانات ضخمة لتمارين (٨٦٨+) وأكلات (٨٬٨٣٠+) لتقديم تجربة لياقة وتغذية لا مثيل لها.", "تأسست Alkemos برؤية بسيطة: المستقبل ليس إنسان ضد AI، بل إنسان + AI. نحن نؤمن بأن أفضل النتائج تأتي من الجمع بين حكمة الإنسان وذكاء الآلة."] },
  { heading: "رؤيتنا", paragraphs: ["أن نكون المنصة الأولى للكوتشينج الرياضي والتغذوي في العالم العربي، ونقدم تجربة عالمية المستوى لكل عضو."] },
  { heading: "EVO — محرك الأداء الذكي", paragraphs: ["EVO ليس شات بوت عادي. بل محرك ذكاء اصطناعي يقرأ بياناتك وهدفك، يبني لك خطط تغذية وتمارين مخصصة، ويقترح تبديلات ذكية للوجبات والتمارين. متاح لجميع الأعضاء مع حدود حسب العضوية."] },
- { heading: "العضويات", paragraphs: ["Musclehubeg تقدم 3 باقات: مجاني (وصول محدود)، بريميوم $14.99/شهر أو $119/سنة (EVO غير محدود + خطط شهرية)، برو $29.99/شهر أو $239/سنة (حدود مضاعفة + بدون إعلانات). وكوتشينج بشري منفصل بـ $39.99/شهر أو $359/سنة للمهتمين بمتابعة فردية."] },
+ { heading: "العضويات", paragraphs: ["Alkemos تقدم 3 باقات: مجاني (وصول محدود)، بريميوم $14.99/شهر أو $119/سنة (EVO غير محدود + خطط شهرية)، برو $29.99/شهر أو $239/سنة (حدود مضاعفة + بدون إعلانات). وكوتشينج بشري منفصل بـ $39.99/شهر أو $359/سنة للمهتمين بمتابعة فردية."] },
  ],
  } : {
- title: "About Musclehubeg",
+ title: "About Alkemos",
  updated: `Last updated: ${date}`,
  sections: [
- { heading: "Who We Are", paragraphs: ["Musclehubeg is an AI-powered human optimization platform. We combine the EVO AI engine with a massive database of exercises (868+) and foods (8,830+) to deliver an unmatched fitness and nutrition experience.", "Musclehubeg was founded on a simple vision: the future isn't Human vs AI, it's Human + AI. We believe the best results come from combining human wisdom with machine intelligence."] },
+ { heading: "Who We Are", paragraphs: ["Alkemos is an AI-powered human optimization platform. We combine the EVO AI engine with a massive database of exercises (868+) and foods (8,830+) to deliver an unmatched fitness and nutrition experience.", "Alkemos was founded on a simple vision: the future isn't Human vs AI, it's Human + AI. We believe the best results come from combining human wisdom with machine intelligence."] },
  { heading: "Our Vision", paragraphs: ["To be the leading fitness and nutrition platform in the Arab world, delivering a world-class experience to every member."] },
  { heading: "EVO — The AI Performance Engine", paragraphs: ["EVO is not a regular chatbot. It's an AI engine that reads your data and goal, builds personalized nutrition and workout plans, and suggests smart meal and exercise swaps. Available to all members with tier-based limits."] },
- { heading: "Memberships", paragraphs: ["Musclehubeg offers 3 tiers: Free (limited access), Premium $14.99/mo or $119/yr (unlimited EVO + monthly plans), Pro $29.99/mo or $239/yr (doubled limits + no ads). Human coaching is available separately at $39.99/mo or $359/yr for those who want 1-on-1 supervision."] },
+ { heading: "Memberships", paragraphs: ["Alkemos offers 3 tiers: Free (limited access), Premium $14.99/mo or $119/yr (unlimited EVO + monthly plans), Pro $29.99/mo or $239/yr (doubled limits + no ads). Human coaching is available separately at $39.99/mo or $359/yr for those who want 1-on-1 supervision."] },
  ],
  };
  }
@@ -120,26 +120,26 @@ function getContent(page: string, isAr: boolean) {
  title: "الشروط والأحكام",
  updated: `آخر تحديث: ${date}`,
  sections: [
- { heading: "قبول الشروط", paragraphs: ["باستخدامك لموقع Musclehubeg، فإنك توافق على هذه الشروط والأحكام. إذا لم توافق، يرجى عدم استخدام الموقع."] },
- { heading: "الاشتراك", paragraphs: ["الاشتراك في Musclehubeg يمنحك وصول لخطط مخصصة، مساعد ذكي، وتتبع تقدم. الأسعار موضحة في صفحة الأسعار.", "يمكنك عدم التجديد في أي وقت. لا توجد عقود ملزمة."] },
- { heading: "الخطط المخصصة", paragraphs: ["الخطط الغذائية والتدريبية مولّدة بالذكاء الاصطناعي ومراجعة من الكوتش. النتائج تختلف من شخص لآخر حسب الالتزام والجينات.", "Musclehubeg لا يقدم نصائح طبية. استشر طبيبك قبل بدء أي برنامج غذائي أو رياضي."] },
+ { heading: "قبول الشروط", paragraphs: ["باستخدامك لموقع Alkemos، فإنك توافق على هذه الشروط والأحكام. إذا لم توافق، يرجى عدم استخدام الموقع."] },
+ { heading: "الاشتراك", paragraphs: ["الاشتراك في Alkemos يمنحك وصول لخطط مخصصة، مساعد ذكي، وتتبع تقدم. الأسعار موضحة في صفحة الأسعار.", "يمكنك عدم التجديد في أي وقت. لا توجد عقود ملزمة."] },
+ { heading: "الخطط المخصصة", paragraphs: ["الخطط الغذائية والتدريبية مولّدة بالذكاء الاصطناعي ومراجعة من الكوتش. النتائج تختلف من شخص لآخر حسب الالتزام والجينات.", "Alkemos لا يقدم نصائح طبية. استشر طبيبك قبل بدء أي برنامج غذائي أو رياضي."] },
  { heading: "التبديلات", paragraphs: ["حد التبديلات الأسبوعي يعتمد على باقتك:", "مجاني: لا يوجد. Premium: 3 تبديلات/أسبوع. Pro: 6 تبديلات/أسبوع. Coaching: 3 تبديلات/أسبوع.", "التبديلات تتجدد كل اثنين."] },
- { heading: "المسؤولية", paragraphs: ["منصة Musclehubeg غير مسؤولة عن أي إصابة أو ضرر صحي ناتج عن اتباع البرنامج دون استشارة طبية."] },
- { heading: "مسؤولية المدربين وعملائهم", paragraphs: ["Musclehubeg منصة تقنية تسهّل تواصل المدربين مع عملائهم وتدير أدوات العمل فقط — والموقع ليس طرفًا في العلاقة بين المدرب وعميله.", "كل مدرب هو المسؤول الوحيد والمكتمل عن نصائحه وخططه وتوصياته وأي محتوى ينشره على صفحته العامة (بما في ذلك صوره وصور عملائه وروابطه)، وعن تحصيل مبالغ عملائه وتعاملاته معهم خارج المنصة.", "دعم العملاء مسؤولية المدرب نفسه — فريق الموقع يدعم المدربين في شؤون المنصة فقط (المحفظة، التفعيل، الإعلانات، الصفحات العامة). الموقع غير مسؤول عن أي نزاع أو مطالبة أو ضرر ينشأ بين المدرب وعميله، والمسؤولية بالكامل على كل مدرب تجاه عملائه."] },
- { heading: "الملكية الفكرية", paragraphs: ["جميع المحتويات (الخطط، المقالات، التصميم) مملوكة لـ Musclehubeg ولا يجوز نسخها أو إعادة استخدامها."] },
+ { heading: "المسؤولية", paragraphs: ["منصة Alkemos غير مسؤولة عن أي إصابة أو ضرر صحي ناتج عن اتباع البرنامج دون استشارة طبية."] },
+ { heading: "مسؤولية المدربين وعملائهم", paragraphs: ["Alkemos منصة تقنية تسهّل تواصل المدربين مع عملائهم وتدير أدوات العمل فقط — والموقع ليس طرفًا في العلاقة بين المدرب وعميله.", "كل مدرب هو المسؤول الوحيد والمكتمل عن نصائحه وخططه وتوصياته وأي محتوى ينشره على صفحته العامة (بما في ذلك صوره وصور عملائه وروابطه)، وعن تحصيل مبالغ عملائه وتعاملاته معهم خارج المنصة.", "دعم العملاء مسؤولية المدرب نفسه — فريق الموقع يدعم المدربين في شؤون المنصة فقط (المحفظة، التفعيل، الإعلانات، الصفحات العامة). الموقع غير مسؤول عن أي نزاع أو مطالبة أو ضرر ينشأ بين المدرب وعميله، والمسؤولية بالكامل على كل مدرب تجاه عملائه."] },
+ { heading: "الملكية الفكرية", paragraphs: ["جميع المحتويات (الخطط، المقالات، التصميم) مملوكة لـ Alkemos ولا يجوز نسخها أو إعادة استخدامها."] },
  { heading: "تعديل الشروط", paragraphs: ["نحتفظ بحق تعديل هذه الشروط في أي وقت. سيتم إشعار المستخدمين بالتغييرات الجوهرية."] },
  ],
  } : {
  title: "Terms & Conditions",
  updated: `Last updated: ${date}`,
  sections: [
- { heading: "Acceptance", paragraphs: ["By using Musclehubeg, you agree to these terms. If you disagree, please do not use the site."] },
- { heading: "Subscription", paragraphs: ["Subscribing to Musclehubeg grants access to personalized plans, AI assistant, and progress tracking. Prices are listed on the pricing page.", "You can choose not to renew at any time. No binding contracts."] },
- { heading: "Personalized Plans", paragraphs: ["Nutrition and workout plans are AI-generated and reviewed by the coach. Results vary by individual based on adherence and genetics.", "Musclehubeg does not provide medical advice. Consult your doctor before starting any nutrition or exercise program."] },
+ { heading: "Acceptance", paragraphs: ["By using Alkemos, you agree to these terms. If you disagree, please do not use the site."] },
+ { heading: "Subscription", paragraphs: ["Subscribing to Alkemos grants access to personalized plans, AI assistant, and progress tracking. Prices are listed on the pricing page.", "You can choose not to renew at any time. No binding contracts."] },
+ { heading: "Personalized Plans", paragraphs: ["Nutrition and workout plans are AI-generated and reviewed by the coach. Results vary by individual based on adherence and genetics.", "Alkemos does not provide medical advice. Consult your doctor before starting any nutrition or exercise program."] },
  { heading: "Swaps", paragraphs: ["Weekly swap limits depend on your plan:", "Free: none. Premium: 3 swaps/week. Pro: 6 swaps/week. Coaching: 3 swaps/week.", "Swaps reset every Monday."] },
- { heading: "Liability", paragraphs: ["Musclehubeg is not liable for any injury or health damage resulting from following the program without medical consultation."] },
- { heading: "Coach & Client Responsibility", paragraphs: ["Musclehubeg is a technology platform that facilitates the relationship between coaches and their clients and manages the work tools — the site is not a party to the coach–client relationship.", "Each coach is the sole and full party responsible for his advice, plans, recommendations and any content he publishes on his public page (including his photos, his clients' photos and his links), and for collecting his clients' payments and his dealings with them outside the platform.", "Client support is the coach's own responsibility — the site team supports coaches on platform matters only (wallet, activation, ads, public pages). The site is not liable for any dispute, claim or damage arising between a coach and his client; responsibility rests entirely on each coach towards his clients."] },
- { heading: "Intellectual Property", paragraphs: ["All content (plans, articles, design) is owned by Musclehubeg and may not be copied or reused."] },
+ { heading: "Liability", paragraphs: ["Alkemos is not liable for any injury or health damage resulting from following the program without medical consultation."] },
+ { heading: "Coach & Client Responsibility", paragraphs: ["Alkemos is a technology platform that facilitates the relationship between coaches and their clients and manages the work tools — the site is not a party to the coach–client relationship.", "Each coach is the sole and full party responsible for his advice, plans, recommendations and any content he publishes on his public page (including his photos, his clients' photos and his links), and for collecting his clients' payments and his dealings with them outside the platform.", "Client support is the coach's own responsibility — the site team supports coaches on platform matters only (wallet, activation, ads, public pages). The site is not liable for any dispute, claim or damage arising between a coach and his client; responsibility rests entirely on each coach towards his clients."] },
+ { heading: "Intellectual Property", paragraphs: ["All content (plans, articles, design) is owned by Alkemos and may not be copied or reused."] },
  { heading: "Changes to Terms", paragraphs: ["We reserve the right to modify these terms at any time. Users will be notified of significant changes."] },
  ],
  };
@@ -150,7 +150,7 @@ function getContent(page: string, isAr: boolean) {
  title: "الأسئلة الشائعة",
  updated: `آخر تحديث: ${date}`,
  sections: [
- { heading: "ما هو Musclehubeg؟", paragraphs: ["منصة تحسين أداء بشري تجمع بين محرك الذكاء الاصطناعي EVO وقاعدة بيانات ضخمة (تمارين وأكلات) لتقديم خطط مخصصة وتتبع ذكي."] },
+ { heading: "ما هو Alkemos؟", paragraphs: ["منصة تحسين أداء بشري تجمع بين محرك الذكاء الاصطناعي EVO وقاعدة بيانات ضخمة (تمارين وأكلات) لتقديم خطط مخصصة وتتبع ذكي."] },
  { heading: "من هو EVO؟", paragraphs: ["EVO هو محرك الأداء الذكي. يقرأ بياناتك وهدفك، يبني لك خطط تغذية وتمارين مخصصة، ويقترح تبديلات ذكية. متاح لجميع الأعضاء مع حدود حسب العضوية."] },
  { heading: "هل فيه كوتش بشري؟", paragraphs: ["EVO هو كوتش ذكاء اصطناعي. لو حابب متابعة بشرية، فيه قسم كوتشينج بشري منفصل يمكنك حجزه عبر صفحة الكوتشينج."] },
  { heading: "كم تبديل أسبوعياً مسموح؟", paragraphs: ["الباقة المجانية: لا يوجد. Premium: 3 تبديلات أسبوعياً. Pro: 6 تبديلات أسبوعياً. Coaching: 3 تبديلات أسبوعياً. تتجدد كل اثنين."] },
@@ -164,7 +164,7 @@ function getContent(page: string, isAr: boolean) {
  title: "Frequently Asked Questions",
  updated: `Last updated: ${date}`,
  sections: [
- { heading: "What is Musclehubeg?", paragraphs: ["A human optimization platform combining the EVO AI engine with a massive exercise and food database for personalized plans and smart tracking."] },
+ { heading: "What is Alkemos?", paragraphs: ["A human optimization platform combining the EVO AI engine with a massive exercise and food database for personalized plans and smart tracking."] },
  { heading: "Who is EVO?", paragraphs: ["EVO is the AI performance engine. It reads your data and goal, builds personalized nutrition and workout plans, and suggests smart swaps. Available to all members with tier-based limits."] },
  { heading: "Is there a human coach?", paragraphs: ["EVO is an AI coach. If you want human supervision, there's a separate human coaching section you can book via the coaching page."] },
  { heading: "How many weekly swaps?", paragraphs: ["Free: 0. Premium: 3 swaps/week. Pro: 6 swaps/week. Coaching: 3 swaps/week. Resets every Monday."] },

@@ -1186,3 +1186,25 @@ Stage Summary:
 - 813→45 ديبلويمنت والاستخدام ينخفض خلال ~24 ساعة (لوحة Vercel تتحدث بتأخير)؛ الموقع سليم طوال العملية — الخيار B وحده نُفذ كما طلب المالك
 - Commit SHA: (بدون كوميت مستقل — عملية Vercel خارج الريبو؛ سُجلت ضمن دفعة المرحلة 120 حفظًا لقانون البقاء §3.6)
 - Push status: نفس دفعة المرحلة 120
+
+---
+Task ID: 122-REBRAND-ALKEMOS
+Agent: Super Z (main)
+Task: أمر المالك 2026-09-06 — «ابدأ التغيير» (إعادة التسمية الشاملة Musclehubeg → Alkemos بعد إطلاق alkemos.com وإضافة AdSense) + بلاغ مواز: تسجيل جوجل ينتهي على رابط سوبابيز
+
+Work Log:
+- التشخيص المسبق (قبل أي استبدال): 764 سطر مرجع براند بالريبو (116 ملف src · 44 ميجريشن تاريخية · 13 public · 6 archive) — المتغيرات: Musclehubeg (السائد) · MuscleHubEG · MuscleHub · musclehubeg · MUSCLEHUBEG · MUSCLEHUBEG — صفر أشكال عربية (ماسكل/موسكل)
+- سكريبت الاستبدال المدقق: سلسلة مرتبة حساسة لحالة الأحرف (الأطول/الأخص أولًا: MuscleHubFit→MuscleHubEG→MusclehubEG→Musclehubeg→MUSCLEHUBEG→مسافات EG→lowercase→MuscleHub→Musclehub→MUSCLEHUB→musclehub) مع حارسات sentinel للمحميات الوظيفية: مسار ريبو GitHub (muscleshubfit-cpu/musclehubeg) · ريبو النسخ (musclehubeg-backups) · الإيميلات muscleshubfit/speerr (لا تحتوي musclehub أصلًا) — التنفيذ: 139 ملفًا حيًّا / 487 سطرًا، والتاريخ المجمّد (migrations/archive/worklog) لم يُمس بأمر القوانين (ممنوع تعديل المطبق + archive مجمدة 115)
+- LICENSE (بلا امتداد — استثناه السكريبت فأُصلح يدويًا): العنوان → ALKEMOS + سطر Project يسجل التحويل + العلامات القديمة بقيت محمية كعلامات سابقة للمالك نفسه + تاريخ تحديث
+- الأصول البصرية المولدة بالسكريبت (cairosvg + supersampling 2x): تحليل VLM للوجو القديم أولًا (MUSCLEHUBEG فضي+HUBEG أزرق + مونوجرام MH بباربل + تاجلاين TRAIN. FUEL. TRANSFORM. على أسود) ثم تصميم مطابق للغة الهوية بمونوجرام A جديد (قائمتان حادتان + الباربل كعارضة) — النواتج: logo.png 1536×1024 (81KB مقابل 245KB) · icon-512/192 · apple-touch-icon 180 · favicon.png 64 · icon-32 · favicon.ico 16 · logo.svg (نفس بنية الشارة المتحركة z-breathe) — فحص VLM بعد التوليد: إملاء صحيح/مركزية/توازن (8/10) + تحسينا وفق الملاحظات (توسيع قدمي A + تنعيم التدرجات)
+- الميجريشن 0070 (بيانات فقط · idempotent · تلقائية عبر تكامل Supabase-GitHub): blog_posts (سلاسل regexp_replace بنفس ترتيب سلسلة الكود على title/excerpt/content/meta_*/focus_keyword/cover_alt + faq_json/schema_json عبر ::text→::jsonb + keywords/tags عنصرًا-عنصرًا + author='Alkemos' وتغيير DEFAULT من 'MuscleHub' (0013) إلى 'Alkemos') + مسح محكوم ILIKE على notifications/coach_pages/external_plans/plans + استبدال روابط musclehubeg.vercel.app→alkemos.com قبل السلسلة العامة — slug لا يُمس (ثبات الروابط) · regex المستخدمة لا تطابق muscleshubfit/الإيميلات أبدًا (لا تحتوي musclehub)
+- فحص السلامة الزائد: specialties في coach_pages نصّ (مش text[] — اتأكدت من types.ts قبل كتابة ARRAY() خاطئة) · faq_json/schema_json=jsonb من 0002 · plans.content/external_plans.content=jsonb
+- OAuth (بلاغ المالك): الكود بريء 100% — signInWithGoogle يبني redirectTo من window.location.origin (alkemos.com) · middleware يزامن PKCE عبر @supabase/ssr · /auth/callback حي (307 مُتحقق حيًّا) · NEXT_PUBLIC_SITE_URL=https://alkemos.com (plain في Vercel) — الجذر = تكوين Supabase Auth (site_url ارتدّ مجددًا — نمط موثق منذ المرحلة 119 بعد كل نشر) — الإصلاح مسلم للمالك (Dashboard → Auth → URL Configuration) لأن توكن Management API غير متوفر بالجلسة، مع عرض تنفيذه فورًا لو قُدّم المعتمد
+- البوابات (تشغيل المرحلة 121): tsc 0 · eslint 0 · vitest 213/213 · migration_audit --ci PASS (0070 بلا انجراف) · docs_parity 0 (newest NNNN=0070) · docs_audit 0 (STATE=121 · 59 سطر) · check-stale-refs 0 · check-ui-wiring 0 · next build ✓
+- الوثائق وفق القوانين: INDEX.md (+0070 في الخريطة والسجل) · STATE.md (المرحلة 121) · README (قسم إعادة التسمية وفق قانون FEATURE README §3.8) · CHANGELOG باقٍ فارغًا (أمر 111)
+
+Stage Summary:
+- البراند Alkemos شامل الآن: كود حي + أصول بصرية + بيانات (ميجريشن 0070 تلقائية عند الدفع) + وثائق — والمحميات الوظيفية (ريبوز GitHub/project_id/الإيميلات/301 الدومين القديم) سليمة عن قصد
+- المتبقي على المالك (دقائق): إصلاح Supabase site_url من Dashboard (بلاغ جوجل) · ثم اختبار تسجيل جوجل مرة واحدة · GSC: طلب فهرسة محتوى Alkemos الجديد
+- Commit SHA: (كوميت هذه المرحلة نفسه — 121)
+- Push status: في نفس الجلسة (قانون البقاء §3.6)

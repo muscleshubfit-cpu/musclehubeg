@@ -408,7 +408,7 @@ export function PlansView() {
 <div class="brand">
  <div class="brand-logo">MH</div>
  <div>
- <div class="brand-name">Musclehubeg</div>
+ <div class="brand-name">Alkemos</div>
  <div class="brand-tag">كوتش أونلاين للتغذية واللياقة | alkemos.com</div>
  </div>
 </div>
@@ -519,7 +519,7 @@ export function PlansView() {
  }
  }
  }
- html += `<div class="footer">© ${new Date().getFullYear()} Musclehubeg | alkemos.com<br>هذا التقرير مُعد لأغراض إرشادية — يُرجى استشارة طبيب مختص قبل بدء أي نظام غذائي أو تناول مكملات.</div>`;
+ html += `<div class="footer">© ${new Date().getFullYear()} Alkemos | alkemos.com<br>هذا التقرير مُعد لأغراض إرشادية — يُرجى استشارة طبيب مختص قبل بدء أي نظام غذائي أو تناول مكملات.</div>`;
  html += `</body></html>`;
  w.document.write(html);
  w.document.close();

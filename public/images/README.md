@@ -1,6 +1,6 @@
 # Project Images
 
-This folder contains all images used by the Musclehubeg project.
+This folder contains all images used by the Alkemos project.
 
 ## Where to Upload Your Images
 

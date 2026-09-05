@@ -1,8 +1,8 @@
-MUSCLEHUBEG — PROPRIETARY SOFTWARE LICENSE
+ALKEMOS — PROPRIETARY SOFTWARE LICENSE
 
-Effective Date: 2026-08-19
+Effective Date: 2026-08-19 (updated 2026-09-06 — brand renamed to Alkemos)
 Copyright Holder: muscleshubfit@gmail.com (the "Owner")
-Project: MuscleHubEG (publicly branded "MuscleHub")
+Project: Alkemos (formerly MuscleHubEG, publicly branded "MuscleHub")
 Repository: https://github.com/muscleshubfit-cpu/musclehubeg
 
 ----------------------------------------------------------------------
@@ -11,8 +11,9 @@ Repository: https://github.com/muscleshubfit-cpu/musclehubeg
 
    This software and its associated source code, documentation,
    database schema, AI prompts, blog content, exercise dataset
-   curation, food database curation, UI design, brand name "MuscleHub"
-   and "MuscleHubEG", the EVO coach persona, and all marketing copy
+   curation, food database curation, UI design, brand name "Alkemos"
+   (including the former marks "MuscleHub" and "MuscleHubEG"), the EVO
+   coach persona, and all marketing copy
    (collectively, the "Software") are the proprietary and confidential
    property of the Owner.
 
@@ -76,9 +77,10 @@ Repository: https://github.com/muscleshubfit-cpu/musclehubeg
    (d) Redistributing the Software, in whole or in part, in source or
        binary form, including via fork, mirror, package registry
        publication, or bundled distribution;
-   (e) Using the Software's brand name "MuscleHub", "MuscleHubEG",
-       "EVO", or any confusingly similar mark to identify, market, or
-       promote any product or service other than the original project;
+   (e) Using the Software's brand name "Alkemos", "MuscleHub",
+       "MuscleHubEG", "EVO", or any confusingly similar mark to identify,
+       market, or promote any product or service other than the original
+       project;
    (f) Reverse engineering, decompiling, or disassembling any compiled
        or obfuscated portions of the Software;
    (g) Using the Software to train, fine-tune, or evaluate automated

@@ -17,8 +17,8 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: {
-    default: "Musclehubeg | منصة رياضية شاملة: تمارين وتغذية وكوتشينج اونلاين",
-    template: "%s — Musclehubeg",
+    default: "Alkemos | منصة رياضية شاملة: تمارين وتغذية وكوتشينج اونلاين",
+    template: "%s — Alkemos",
   },
   // Phase 117 completion (owner directive 2026-09-04): meta description
   // shortened to 150-160 chars (159) ending with the owner's verbatim CTA
@@ -28,16 +28,16 @@ export const metadata: Metadata = {
   description:
     "أكثر من 868 تمرينًا، 8830 أكلة بالقيم الغذائية، برامج جاهزة، حاسبات مجانية، ومدربون معتمدون مع EVO. ابدأ رحلتك الرياضية الآن مع منصة التدريب الرقمية المتكاملة.",
   openGraph: {
-    title: "Musclehubeg | منصة رياضية شاملة: تمارين وتغذية وكوتشينج اونلاين",
+    title: "Alkemos | منصة رياضية شاملة: تمارين وتغذية وكوتشينج اونلاين",
     description:
       "أكثر من 868 تمرينًا، 8830 أكلة بالقيم الغذائية، برامج جاهزة، حاسبات مجانية، ومدربون معتمدون مع EVO. ابدأ رحلتك الرياضية الآن مع منصة التدريب الرقمية المتكاملة.",
-    siteName: "Musclehubeg",
+    siteName: "Alkemos",
     locale: "ar_EG",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Musclehubeg | منصة رياضية شاملة: تمارين وتغذية وكوتشينج اونلاين",
+    title: "Alkemos | منصة رياضية شاملة: تمارين وتغذية وكوتشينج اونلاين",
     description:
       "أكثر من 868 تمرينًا، 8830 أكلة بالقيم الغذائية، برامج جاهزة، حاسبات مجانية، ومدربون معتمدون مع EVO. ابدأ رحلتك الرياضية الآن مع منصة التدريب الرقمية المتكاملة.",
   },

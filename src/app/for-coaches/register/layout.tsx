@@ -14,14 +14,14 @@ const SITE = "https://alkemos.com";
 const PAGE_URL = `${SITE}/for-coaches/register`;
 
 export const metadata: Metadata = {
-  title: "Coach registration — create your free Musclehubeg account",
+  title: "Coach registration — create your free Alkemos account",
   description:
-    "Register as a coach on Musclehubeg in one minute: instant activation, add your clients, set your own prices and collect directly — zero commission from your income.",
+    "Register as a coach on Alkemos in one minute: instant activation, add your clients, set your own prices and collect directly — zero commission from your income.",
   keywords: [
     "coach sign up",
     "register as a coach",
     "online coaching platform",
-    "Musclehubeg coach",
+    "Alkemos coach",
   ],
   alternates: {
     canonical: PAGE_URL,
@@ -32,17 +32,17 @@ export const metadata: Metadata = {
     },
   },
   openGraph: {
-    title: "Coach registration — Musclehubeg",
+    title: "Coach registration — Alkemos",
     description:
       "Create your free coach account — instant activation, your clients at your prices, your money in your hands.",
     url: PAGE_URL,
-    siteName: "Musclehubeg",
+    siteName: "Alkemos",
     locale: "en_US",
     type: "website",
   },
   twitter: {
     card: "summary",
-    title: "Coach registration — Musclehubeg",
+    title: "Coach registration — Alkemos",
     description: "Create your free coach account — instant activation.",
   },
   robots: { index: true, follow: true },

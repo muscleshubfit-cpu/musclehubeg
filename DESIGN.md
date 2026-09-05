@@ -1,4 +1,4 @@
-# MuscleHubEG — Design System Documentation
+# Alkemos — Design System Documentation
 
 > **Last updated:** 2026-08-26 (added §2.2 — unified PALETTE const with WCAG AAA contrast)
 > **Status:** Active — binding reference for all UI/UX decisions
@@ -8,7 +8,7 @@
 
 ## 1. Design Philosophy
 
-MuscleHubEG follows an **Apple-inspired premium aesthetic** — clean,
+Alkemos follows an **Apple-inspired premium aesthetic** — clean,
 minimal, focused on content clarity. The design prioritizes:
 
 1. **Whitespace** — generous padding, no visual clutter
@@ -248,7 +248,7 @@ Used when search/filter yields no results.
 
 | Group | Items |
 |---|---|
-| Brand | MuscleHubEG + tagline + copyright |
+| Brand | Alkemos + tagline + copyright |
 | Paid Services | Coaching + Memberships + EVO AI Coach |
 | Affiliate & Referral | Affiliate Program + Referral Dashboard |
 | Tools | 6 individual tools |
@@ -366,7 +366,7 @@ All `<img>` tags use `loading="lazy"` to avoid blocking initial render.
 - **Arabic:** `lang="ar" dir="rtl"` — RTL layout handled by Tailwind's
   `rtl:` variant + logical properties (`ps-`, `pe-`, `start`, `end`)
 - **Language toggle:** in header (always visible)
-- **Brand name:** "MuscleHubEG" is never translated
+- **Brand name:** "Alkemos" is never translated
 
 ---
 

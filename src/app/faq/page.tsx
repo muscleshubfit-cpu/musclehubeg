@@ -14,9 +14,9 @@ import { FAQS_EN, FAQS_AR } from "@/lib/faq-content";
  */
 
 export const metadata: Metadata = {
-  title: "الأسئلة الشائعة — Musclehubeg | دليل شامل للمنصة",
+  title: "الأسئلة الشائعة — Alkemos | دليل شامل للمنصة",
   description:
-    "إجابات على أكثر الأسئلة شيوعاً حول Musclehubeg: كيف يعمل محرك EVO الذكي، باقات العضوية، طرق الدفع، أمان البيانات، دعم اللغة العربية، والجدول الزمني للنتائج.",
+    "إجابات على أكثر الأسئلة شيوعاً حول Alkemos: كيف يعمل محرك EVO الذكي، باقات العضوية، طرق الدفع، أمان البيانات، دعم اللغة العربية، والجدول الزمني للنتائج.",
   alternates: {
     canonical: "https://alkemos.com/faq",
     languages: {
@@ -26,9 +26,9 @@ export const metadata: Metadata = {
     },
   },
   openGraph: {
-    title: "الأسئلة الشائعة — Musclehubeg",
+    title: "الأسئلة الشائعة — Alkemos",
     description:
-      "إجابات شاملة حول منصة Musclehubeg: محرك EVO الذكي، العضويات، الدفع، الأمان، والمزيد.",
+      "إجابات شاملة حول منصة Alkemos: محرك EVO الذكي، العضويات، الدفع، الأمان، والمزيد.",
     url: "https://alkemos.com/faq",
     type: "website",
     locale: "ar_EG",

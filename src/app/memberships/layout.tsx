@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Memberships | Musclehubeg — Premium & Pro Plans",
+  title: "Memberships | Alkemos — Premium & Pro Plans",
   description:
-    "Choose your Musclehubeg membership: Free, Premium ($14.99/mo or $119/yr), or Pro ($29.99/mo or $239/yr). Unlock unlimited EVO AI, meal planner, workout plan generation, and higher limits.",
+    "Choose your Alkemos membership: Free, Premium ($14.99/mo or $119/yr), or Pro ($29.99/mo or $239/yr). Unlock unlimited EVO AI, meal planner, workout plan generation, and higher limits.",
   keywords: [
     "membership",
     "premium",
@@ -15,7 +15,7 @@ export const metadata: Metadata = {
     "workout plans",
   ],
   openGraph: {
-    title: "Musclehubeg Memberships — Premium & Pro Plans",
+    title: "Alkemos Memberships — Premium & Pro Plans",
     description:
       "Unlock unlimited EVO AI, meal planner, workout generation, and more.",
     type: "website",
@@ -40,11 +40,11 @@ export default function MembershipsLayout({
   // GEO (2026-08-30): OfferCatalog with the storefront prices (source of
   // truth: src/lib/memberships.ts MEMBERSHIPS — matches what the page
   // displays). Machine-readable pricing for Google rich results and AI
-  // answer engines ("how much is musclehubeg premium?").
+  // answer engines ("how much is alkemos premium?").
   const offerCatalogSchema = {
     "@context": "https://schema.org",
     "@type": "OfferCatalog",
-    name: "Musclehubeg Membership Plans",
+    name: "Alkemos Membership Plans",
     url: "https://alkemos.com/memberships",
     itemListElement: [
       {

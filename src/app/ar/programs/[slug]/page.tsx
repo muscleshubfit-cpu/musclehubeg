@@ -24,12 +24,12 @@ export async function generateMetadata({
 
   if (!program) {
     return {
-      title: "البرنامج غير موجود — Musclehubeg",
+      title: "البرنامج غير موجود — Alkemos",
       robots: { index: false, follow: false },
     };
   }
 
-  const title = `${program.nameAr} — برنامج تدريب | Musclehubeg`;
+  const title = `${program.nameAr} — برنامج تدريب | Alkemos`;
   const description = `${program.nameAr}: ${program.descriptionAr}`;
   const url = `${SITE_URL}/ar/programs/${program.slug}`;
 
@@ -50,7 +50,7 @@ export async function generateMetadata({
       title,
       description,
       images: [{ url: program.image, width: 1200, height: 630 }],
-      siteName: "Musclehubeg",
+      siteName: "Alkemos",
       locale: "ar_EG",
     },
     twitter: {

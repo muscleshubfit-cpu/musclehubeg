@@ -1,25 +1,25 @@
 import type { Metadata, Viewport } from "next";
 
 /**
- * Site-wide metadata for Musclehubeg.
+ * Site-wide metadata for Alkemos.
  *
  * English is the PRIMARY language (targeting English-speaking audience).
  * Arabic is secondary (supported via language toggle).
  *
- * Strategy: Position Musclehubeg as a comprehensive sports & wellness platform
+ * Strategy: Position Alkemos as a comprehensive sports & wellness platform
  * (not just a coaching site). Keywords cover all platform features:
  * exercises, programs, tools, food library, blog.
  */
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://alkemos.com'),
-  title: "Musclehubeg — Comprehensive Sports Platform | Exercises, Programs, Calculators & Nutrition",
+  title: "Alkemos — Comprehensive Sports Platform | Exercises, Programs, Calculators & Nutrition",
   // Phase 117 completion (owner directive 2026-09-04): meta description
   // shortened to 150-160 chars (157) with a clear CTA — the previous
   // 245-char version had no call to action and got truncated by search
   // engines. The OG/Twitter descriptions stay longer-by-design (they
   // target social-card surfaces, not SERP snippets).
   description:
-    "Musclehubeg — the complete digital training platform: 868+ exercises, 8,830+ foods, ready programs, free calculators, and the EVO AI coach. Start free today!",
+    "Alkemos — the complete digital training platform: 868+ exercises, 8,830+ foods, ready programs, free calculators, and the EVO AI coach. Start free today!",
   keywords: [
     // Platform-level keywords (primary, English)
     "sports platform",
@@ -68,9 +68,9 @@ export const metadata: Metadata = {
     "كوتشينج أونلاين",
     "تغذية رياضية",
     // Brand
-    "Musclehubeg",
+    "Alkemos",
   ],
-  authors: [{ name: "Musclehubeg" }],
+  authors: [{ name: "Alkemos" }],
   manifest: "/manifest.json",
   icons: {
     icon: [
@@ -83,14 +83,14 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "Musclehubeg",
+    title: "Alkemos",
   },
   openGraph: {
-    title: "Musclehubeg — Comprehensive Sports Platform",
+    title: "Alkemos — Comprehensive Sports Platform",
     description:
       "868+ exercises, workout programs, free fitness calculators, food database, fitness blog, and online coaching. Everything you need for your fitness journey in one place.",
     type: "website",
-    siteName: "Musclehubeg",
+    siteName: "Alkemos",
     locale: "en_US",
     url: "https://alkemos.com",
     images: [
@@ -98,13 +98,13 @@ export const metadata: Metadata = {
         url: "/logo.png",
         width: 1200,
         height: 630,
-        alt: "Musclehubeg — Comprehensive Sports Platform",
+        alt: "Alkemos — Comprehensive Sports Platform",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Musclehubeg — Comprehensive Sports Platform",
+    title: "Alkemos — Comprehensive Sports Platform",
     description:
       "Exercises, workout programs, fitness calculators, food database, fitness blog, and online coaching.",
     images: ["/logo.png"],

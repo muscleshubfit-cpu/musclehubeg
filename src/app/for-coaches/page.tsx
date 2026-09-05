@@ -41,8 +41,8 @@ export default function ForCoachesPage() {
   const REGISTER_HREF = isAr ? `/ar${REGISTER_HREF_BASE}` : REGISTER_HREF_BASE;
 
   const shareMsg = isAr
-    ? "اشتغل كوتش على Musclehubeg — عملاؤك بأسعارك وفلوسك في إيدك:"
-    : "Coach on Musclehubeg — your clients, your prices, your money:";
+    ? "اشتغل كوتش على Alkemos — عملاؤك بأسعارك وفلوسك في إيدك:"
+    : "Coach on Alkemos — your clients, your prices, your money:";
 
   return (
     <div className="min-h-screen bg-white text-[#1d1d1f]">
@@ -71,8 +71,8 @@ export default function ForCoachesPage() {
           </h1>
           <p className="mt-4 max-w-xl text-base font-normal leading-relaxed text-[#6e6e73] md:text-lg">
             {isAr
-              ? "Musclehubeg بيديك منصة كاملة تدير شغلك بيها: خطط تغذية وتمارين بالذكاء الاصطناعي، متابعة تقدم لكل عميل، وصفحة عامة باسمك. أنت اللي بتحدد سعر اشتراك عميلك، وأنت اللي بتقبض منه — المنصة مش بتاخد منك أي نسبة."
-              : "Musclehubeg gives you a complete platform to run your business: AI-generated nutrition and workout plans, progress tracking for every client, and your own public page. You set each client's price and you get paid directly — the site never takes a cut."}
+              ? "Alkemos بيديك منصة كاملة تدير شغلك بيها: خطط تغذية وتمارين بالذكاء الاصطناعي، متابعة تقدم لكل عميل، وصفحة عامة باسمك. أنت اللي بتحدد سعر اشتراك عميلك، وأنت اللي بتقبض منه — المنصة مش بتاخد منك أي نسبة."
+              : "Alkemos gives you a complete platform to run your business: AI-generated nutrition and workout plans, progress tracking for every client, and your own public page. You set each client's price and you get paid directly — the site never takes a cut."}
           </p>
           <div className="mt-7 flex flex-wrap items-center gap-4">
             <Link
@@ -196,8 +196,8 @@ export default function ForCoachesPage() {
             </h2>
             <p className="mt-4 text-base leading-relaxed text-[#6e6e73]">
               {isAr
-                ? "المدرب في Musclehubeg شريك مش موظف. عملاؤك على المنصة عملاؤك أنت — مش عملاء الموقع — وصلاحيات إدارتهم كلها في إيدك: استبياناتهم، خططهم، تقدمهم، ودعمهم. والشات الذكي (EVO) بيشتغل في خدمة شغلك أنت مع عملائك، مش بيقدّم كوتشينج لعملاء من عند المنصة."
-                : "A coach on Musclehubeg is a partner, not an employee. Your clients on the platform are YOUR clients — not the site's — and every management tool is in your hands: their questionnaires, plans, progress, and support. The AI chat (EVO) works for YOUR business with YOUR clients — the site never coaches them behind your back."}
+                ? "المدرب في Alkemos شريك مش موظف. عملاؤك على المنصة عملاؤك أنت — مش عملاء الموقع — وصلاحيات إدارتهم كلها في إيدك: استبياناتهم، خططهم، تقدمهم، ودعمهم. والشات الذكي (EVO) بيشتغل في خدمة شغلك أنت مع عملائك، مش بيقدّم كوتشينج لعملاء من عند المنصة."
+                : "A coach on Alkemos is a partner, not an employee. Your clients on the platform are YOUR clients — not the site's — and every management tool is in your hands: their questionnaires, plans, progress, and support. The AI chat (EVO) works for YOUR business with YOUR clients — the site never coaches them behind your back."}
             </p>
             <ul className="mt-6 space-y-3">
               {[

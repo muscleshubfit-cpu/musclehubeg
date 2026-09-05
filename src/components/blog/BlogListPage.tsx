@@ -45,12 +45,12 @@ export function BlogListPage({
         {/* Hero */}
         <div className="mb-12 text-center">
           <h1 className="text-4xl font-semibold tracking-tight md:text-6xl">
-            {isAr ? "مدونة Musclehubeg" : "Musclehubeg Blog"}
+            {isAr ? "مدونة Alkemos" : "Alkemos Blog"}
           </h1>
           <p className="mx-auto mt-6 max-w-xl text-lg font-normal text-[#6e6e73] md:text-xl">
             {isAr
-              ? "نصائح وإرشادات علمية للتغذية واللياقة من فريق Musclehubeg"
-              : "Science-backed nutrition and fitness tips from the Musclehubeg team"}
+              ? "نصائح وإرشادات علمية للتغذية واللياقة من فريق Alkemos"
+              : "Science-backed nutrition and fitness tips from the Alkemos team"}
           </p>
         </div>
 
@@ -138,7 +138,7 @@ export function BlogListPage({
       </main>
 
       <footer className="mt-auto border-t border-[#d2d2d7] py-6 text-center text-xs font-normal text-[#6e6e73]">
-        © {new Date().getFullYear()} Musclehubeg. {isAr ? "كل الحقوق محفوظة." : "All rights reserved."}
+        © {new Date().getFullYear()} Alkemos. {isAr ? "كل الحقوق محفوظة." : "All rights reserved."}
       </footer>
     </div>
   );

@@ -183,9 +183,9 @@ export const SITE_PAYMENT_CONTACTS: Record<
   CoachTopupMethod,
   { value: string; qr?: string; link?: string }
 > = {
-  instapay: { value: "musclehub@instapay", qr: "/qr-instapay.png" },
+  instapay: { value: "alkemos@instapay", qr: "/qr-instapay.png" },
   vodafone_cash: { value: "01000000000", qr: "/qr-vodafone.png" },
-  paypal: { value: "https://paypal.me/musclehub", link: "https://paypal.me/musclehub" },
+  paypal: { value: "https://paypal.me/alkemos", link: "https://paypal.me/alkemos" },
 };
 
 /** Wallet ledger kinds (mirrors 0035 coach_wallet_transactions.kind). */

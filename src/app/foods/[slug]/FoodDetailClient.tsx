@@ -359,7 +359,7 @@ export default function FoodDetailClient({
             {isAr ? "شارك الأكلة دي" : "Share this food"}
           </p>
           <ShareButtons
-            title={isAr ? `${food.nameAr} | Musclehubeg` : `${food.nameEn} | Musclehubeg`}
+            title={isAr ? `${food.nameAr} | Alkemos` : `${food.nameEn} | Alkemos`}
             text={isAr ? `${food.per100g.calories} سعرة و ${food.per100g.protein}g بروتين لكل 100g` : `${food.per100g.calories} cal and ${food.per100g.protein}g protein per 100g`}
           />
         </div>

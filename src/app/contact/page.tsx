@@ -8,9 +8,9 @@ import { ContactView } from "@/components/views/ContactView";
  * No hreflang: no /ar mirror exists for this page.
  */
 export const metadata: Metadata = {
-  title: "Contact Us | Musclehubeg — Support, Feedback & Partnerships",
+  title: "Contact Us | Alkemos — Support, Feedback & Partnerships",
   description:
-    "Reach the Musclehubeg team: technical support, account and payment questions, feedback, or partnership requests. Send us a message and we usually reply within 24 hours.",
+    "Reach the Alkemos team: technical support, account and payment questions, feedback, or partnership requests. Send us a message and we usually reply within 24 hours.",
   alternates: {
     canonical: "/contact",
   },

@@ -19,9 +19,9 @@ const SITE = "https://alkemos.com";
 const PAGE_URL = `${SITE}/for-coaches`;
 
 export const metadata: Metadata = {
-  title: "Coach on Musclehubeg — your clients, your prices, your money",
+  title: "Coach on Alkemos — your clients, your prices, your money",
   description:
-    "Register as a coach or nutrition specialist on Musclehubeg for free: a complete platform to run your own clients, AI-generated nutrition & workout plans, your pricing and direct collection — zero commission, a fixed monthly activation fee only. Instant activation.",
+    "Register as a coach or nutrition specialist on Alkemos for free: a complete platform to run your own clients, AI-generated nutrition & workout plans, your pricing and direct collection — zero commission, a fixed monthly activation fee only. Instant activation.",
   keywords: [
     "join as a coach",
     "coach registration",
@@ -29,7 +29,7 @@ export const metadata: Metadata = {
     "personal trainer platform",
     "manage fitness clients",
     "AI meal plans for clients",
-    "Musclehubeg coach",
+    "Alkemos coach",
   ],
   alternates: {
     canonical: PAGE_URL,
@@ -40,11 +40,11 @@ export const metadata: Metadata = {
     },
   },
   openGraph: {
-    title: "Coach on Musclehubeg — your clients, your prices, your money",
+    title: "Coach on Alkemos — your clients, your prices, your money",
     description:
       "A complete coach platform: client management, AI plans, your pricing, direct payments — zero commission. Register free with instant activation.",
     url: PAGE_URL,
-    siteName: "Musclehubeg",
+    siteName: "Alkemos",
     locale: "en_US",
     type: "website",
     images: [
@@ -52,13 +52,13 @@ export const metadata: Metadata = {
         url: `${SITE}/images/coach-portrait.jpg`,
         width: 1122,
         height: 1402,
-        alt: "Coach on Musclehubeg",
+        alt: "Coach on Alkemos",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Coach on Musclehubeg — your clients, your prices, your money",
+    title: "Coach on Alkemos — your clients, your prices, your money",
     description:
       "Client management, AI plans, your pricing with zero commission. Register free.",
     images: [`${SITE}/images/coach-portrait.jpg`],
@@ -67,7 +67,7 @@ export const metadata: Metadata = {
 
 const faqSchema = getFAQSchema(COACH_FAQ_EN);
 const breadcrumbSchema = getBreadcrumbSchema([
-  { name: "Musclehubeg", url: SITE },
+  { name: "Alkemos", url: SITE },
   { name: "For coaches", url: PAGE_URL },
 ]);
 

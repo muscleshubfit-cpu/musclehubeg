@@ -6,7 +6,7 @@ import type { Metadata } from "next";
  * Arabic mirrors (/ar/exercises) have their own layout with Arabic metadata.
  */
 export const metadata: Metadata = {
-  title: "Exercise Library | Musclehubeg",
+  title: "Exercise Library | Alkemos",
   description:
     "Browse 868+ exercises with full instructions, target muscles, and difficulty level. Exercises for chest, back, shoulders, legs, biceps, triceps, core, and cardio.",
   keywords: [
@@ -29,7 +29,7 @@ export const metadata: Metadata = {
     },
   },
   openGraph: {
-    title: "Exercise Library | Musclehubeg",
+    title: "Exercise Library | Alkemos",
     description: "Browse 868+ exercises with full instructions and difficulty levels.",
     type: "website",
     locale: "en_US",

@@ -349,7 +349,7 @@ export function seedLocalData() {
  [coachId]: {
  id: coachId,
  email: "ahmed@coach.app",
- full_name: "Musclehubeg Coach",
+ full_name: "Alkemos Coach",
  phone: "+20 100 000 0000",
  role: "coach",
  coach_kind: "b2b",

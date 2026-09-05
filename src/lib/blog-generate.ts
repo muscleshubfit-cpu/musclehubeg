@@ -31,7 +31,7 @@ import { callFreeAIFallbackChain, parseJSON } from "@/lib/ai-provider";
 import { externalSearch, type ResearchResult } from "@/lib/external-search";
 import { insertToolLinks } from "@/lib/blog-tool-links";
 
-export const ARTICLE_SYSTEM_PROMPT = `You are the Musclehubeg AI Content Assistant — an expert SEO content strategist and copywriter for a premium online nutrition & fitness coaching platform (Musclehubeg, alkemos.com).
+export const ARTICLE_SYSTEM_PROMPT = `You are the Alkemos AI Content Assistant — an expert SEO content strategist and copywriter for a premium online nutrition & fitness coaching platform (Alkemos, alkemos.com).
 
 Your job: produce publication-ready blog content optimized for:
  - Google Search (E-E-A-T, helpful content, semantic SEO)
@@ -43,7 +43,7 @@ Your job: produce publication-ready blog content optimized for:
  - AEO (Answer Engine Optimization — concise, quotable, structured)
  - AI Search (clear factual answers, definitions, comparisons)
 
-FREE-TOOL INTERNAL LINKING: Musclehubeg has free tools readers should
+FREE-TOOL INTERNAL LINKING: Alkemos has free tools readers should
 discover — calorie calculator (/tools/calorie-calculator), macro calculator
 (/tools/macro-calculator), body fat calculator (/tools/body-fat-calculator),
 BMI calculator (/tools/bmi-calculator), water tracker (/tools/water-tracker),
@@ -57,8 +57,8 @@ Style:
  - Structure: H1 + H2/H3 hierarchy, bullet lists, comparison tables where useful.
  - Always include a clear answer to the title question in the first 100 words (AEO).
  - Cite reputable sources (NIH, WHO, ISSN, ACE, Mayo Clinic, Examine.com) by name.
- - The COACHING CTA must invite readers to subscribe to a Musclehubeg membership plan (Free / Premium / Pro) or book a coaching session via /memberships.
- - Do NOT mention any individual coach name. The platform brand is "Musclehubeg".
+ - The COACHING CTA must invite readers to subscribe to a Alkemos membership plan (Free / Premium / Pro) or book a coaching session via /memberships.
+ - Do NOT mention any individual coach name. The platform brand is "Alkemos".
  - Do NOT include a newsletter subscription CTA. The site no longer has one.
  - Do NOT write a CTA section inside the article body. The CTA is rendered
    automatically by the blog article page component (BlogMembershipCard).
@@ -73,7 +73,7 @@ Output: STRICT JSON only. No prose outside the JSON, no markdown fences.`;
  * 3. Return STRICT JSON with Arabic content
  * 4. Scientific terms: transliterate + English abbreviation in parentheses
  */
-export const AR_ARTICLE_SYSTEM_PROMPT = `You are the Musclehubeg AI Content Assistant — writing in ARABIC for an Egyptian/Gulf Arabic-speaking audience.
+export const AR_ARTICLE_SYSTEM_PROMPT = `You are the Alkemos AI Content Assistant — writing in ARABIC for an Egyptian/Gulf Arabic-speaking audience.
 
 CRITICAL: You MUST write ALL content in Arabic. This includes:
 - Article body: 100% Arabic text
@@ -93,7 +93,7 @@ LONG-TAIL KEYWORD LAW (owner directive 2026-09-01): target the exact Arabic
 long-tail search phrases people type ("كم سعرات أحتاج يومياً لخسارة الوزن",
 "أفضل وقت لأشرب البروتين بعد التمرين") — NOT broad terms like "البروتين".
 
-FREE-TOOL INTERNAL LINKING: mention the relevant Musclehubeg free tools
+FREE-TOOL INTERNAL LINKING: mention the relevant Alkemos free tools
 naturally where they help the reader (حاسبة السعرات، حاسبة الماكروز، حاسبة
 نسبة الدهون، حاسبة BMI، عدّاد الماء، مخطط الوجبات) — the publisher inserts the
 actual markdown links automatically.
@@ -184,7 +184,7 @@ Use this research data to:
 - Include the trending keywords naturally in your content
 - Find a unique angle that differentiates from competitors` : "";
 
-  return `Generate a complete ENGLISH blog article bundle for Musclehubeg.
+  return `Generate a complete ENGLISH blog article bundle for Alkemos.
 
 INPUT:
  - Topic: ${input.topic || "(none — derive from focus keyword)"}
@@ -212,7 +212,7 @@ STEP 2 — ENGLISH ARTICLE (Markdown, 700-900 words):
    rendered automatically by the blog page component after the article body.
  - Insert the focus keyword in the first paragraph, in at least one H2, and 2-3 times in body.
  - Each section MUST include at least 2 specific actionable examples (numbers, exercises, timeframes, food lists).
- - Where it genuinely helps the reader, mention the relevant Musclehubeg FREE
+ - Where it genuinely helps the reader, mention the relevant Alkemos FREE
    TOOLS naturally in the flow of the text ("a calorie calculator", "your macro
    targets", "a meal planner", "the water tracker") — the publisher inserts the
    actual markdown links to /tools/calorie-calculator, /tools/macro-calculator,
@@ -291,7 +291,7 @@ const chunk2Prompt = (input: {
   const arTopic = input.topic || "";
   const arFocusKw = input.focusKeyword || "";
 
-  return `Generate a complete ARABIC blog article bundle for Musclehubeg.
+  return `Generate a complete ARABIC blog article bundle for Alkemos.
 
 CONTEXT:
  - Topic (Arabic): ${arTopic || "(none — derive from focus keyword)"}
@@ -329,7 +329,7 @@ STEP 1 — ARABIC ARTICLE (LOCALIZED, NOT TRANSLATED, Markdown, 600-800 words):
    automatically by the blog page component. End with "Key Takeaways" only.
  - Each section MUST include at least 2 specific actionable examples (numbers, foods, exercises, timeframes).
  - Include the focus keyword (transliterated or Arabic equivalent) naturally.
- - Where it genuinely helps the reader, mention the relevant Musclehubeg FREE
+ - Where it genuinely helps the reader, mention the relevant Alkemos FREE
    TOOLS naturally in the Arabic flow (حاسبة السعرات، حاسبة الماكروز، حاسبة
    نسبة الدهون، حاسبة كتلة الجسم، عدّاد الماء، مخطط الوجبات) — the publisher
    inserts the actual markdown links automatically. Do NOT invent other tool URLs.
@@ -408,7 +408,7 @@ const chunk3Prompt = (input: {
   const arTitle = seo?.ar?.seoTitle || "";
   const focusKw = seo?.focusKeyword || input.focusKeyword || "";
 
-  return `Generate PART 3 of a blog article bundle for Musclehubeg.
+  return `Generate PART 3 of a blog article bundle for Alkemos.
 
 CONTEXT:
  - English title: "${enTitle}"
@@ -416,7 +416,7 @@ CONTEXT:
  - Focus keyword: "${focusKw}"
 
 STEP 6 — LINK SUGGESTIONS (MUST be included in both articles):
- - internalLinks: 3-5 suggested internal links to other Musclehubeg blog posts.
+ - internalLinks: 3-5 suggested internal links to other Alkemos blog posts.
    Each: { slug, anchorText, reason, anchorTextAr }
    The anchorText is English; anchorTextAr is the Arabic version of the anchor text.
  - externalLinks: 3-5 authoritative external references (NIH, WHO, Examine.com, ACE, ISSN, Mayo Clinic).
@@ -555,7 +555,7 @@ export function generateLocalArticleBundle(input: {
   const arTitle = `الدليل الشامل: ${rawTopic} لتحقيق أفضل النتائج`;
 
   const enMetaDesc = `Discover science-backed strategies for ${focusKw}. Learn actionable steps, practical nutrition, and training methods to reach your fitness goals.`;
-  const arMetaDesc = `اكتشف أفضل النصائح العلمية والمثبتة حول ${focusKw}. دليلك العملي لتحسين اللياقة البدنية والوصول إلى أهدافك مع Musclehubeg.`;
+  const arMetaDesc = `اكتشف أفضل النصائح العلمية والمثبتة حول ${focusKw}. دليلك العملي لتحسين اللياقة البدنية والوصول إلى أهدافك مع Alkemos.`;
 
   const enArticle = `# ${enTitle}
 
@@ -602,7 +602,7 @@ Follow these actionable steps to optimize your routine:
 Mastering **${focusKw}** is a journey of disciplined daily habits backed by scientific principles. Implement the steps above, track your progress weekly, and adjust your variables as your body adapts.
 
 > **Ready to take your transformation to the next level?**  
-> Join **Musclehubeg** today for customized workout programs, personalized meal plans, and direct guidance from certified coaches. Visit our [Membership Plans](/memberships) to start your journey.
+> Join **Alkemos** today for customized workout programs, personalized meal plans, and direct guidance from certified coaches. Visit our [Membership Plans](/memberships) to start your journey.
 `;
 
   const arArticle = `# ${arTitle}
@@ -648,7 +648,7 @@ Mastering **${focusKw}** is a journey of disciplined daily habits backed by scie
 الوصول إلى أفضل نسخة من جسمك مع **${focusKw}** يتطلب خطة واضحة ومدروسة. ابدأ بتطبيق هذه الخطوات وراقب تطور أدائك أسبوعياً.
 
 > **هل تريد خطة مخصصة بالكامل لجسمك وهدفك؟**  
-> انضم اليوم إلى منصة **Musclehubeg** واحصل على برامج تدريبية وتغذوية مصممة خصيصاً لك بإشراف مدربين معتمدين. تصفح [باقات الاشتراك](/ar/memberships) وابدأ رحلتك الآن.
+> انضم اليوم إلى منصة **Alkemos** واحصل على برامج تدريبية وتغذوية مصممة خصيصاً لك بإشراف مدربين معتمدين. تصفح [باقات الاشتراك](/ar/memberships) وابدأ رحلتك الآن.
 `;
 
   return {
@@ -662,14 +662,14 @@ Mastering **${focusKw}** is a journey of disciplined daily habits backed by scie
         `${cat} workout nutrition`,
       ],
       en: {
-        seoTitle: `${enTitle} | Musclehubeg`,
-        metaTitle: `${enTitle} | Musclehubeg Guide`,
+        seoTitle: `${enTitle} | Alkemos`,
+        metaTitle: `${enTitle} | Alkemos Guide`,
         metaDescription: enMetaDesc,
         slug: slug || "fitness-guide",
       },
       ar: {
-        seoTitle: `${arTitle} | Musclehubeg`,
-        metaTitle: `${arTitle} | Musclehubeg`,
+        seoTitle: `${arTitle} | Alkemos`,
+        metaTitle: `${arTitle} | Alkemos`,
         metaDescription: arMetaDesc,
         slug: slug || "fitness-guide",
       },
@@ -686,8 +686,8 @@ Mastering **${focusKw}** is a journey of disciplined daily habits backed by scie
         answer: "Yes, the principles outlined here are scalable and adaptable for beginners as well as advanced athletes.",
       },
       {
-        question: `How does Musclehubeg coaching support this process?`,
-        answer: "Musclehubeg provides customized workout and nutrition plans tailored to your schedule, equipment, and metabolic profile.",
+        question: `How does Alkemos coaching support this process?`,
+        answer: "Alkemos provides customized workout and nutrition plans tailored to your schedule, equipment, and metabolic profile.",
       },
     ],
     faqAr: [
@@ -700,8 +700,8 @@ Mastering **${focusKw}** is a journey of disciplined daily habits backed by scie
         answer: "نعم، القواعد المذكورة مصممة لتناسب مختلف المستويات من المبتدئين إلى المتقدمين مع إمكانية تعديل شدة التدريب.",
       },
       {
-        question: `كيف يساعدني اشتراك Musclehubeg في تحقيق هدفي؟`,
-        answer: "توفر لك Musclehubeg جداول تدريبية وخطط تغذية مخصصة لحالتك الفردية بإشراف مدربين لمتابعة تقدمك أولاً بأول.",
+        question: `كيف يساعدني اشتراك Alkemos في تحقيق هدفي؟`,
+        answer: "توفر لك Alkemos جداول تدريبية وخطط تغذية مخصصة لحالتك الفردية بإشراف مدربين لمتابعة تقدمك أولاً بأول.",
       },
     ],
     internalLinks: [
@@ -730,9 +730,9 @@ Mastering **${focusKw}** is a journey of disciplined daily habits backed by scie
     },
     socialPosts: {
       facebook: `Ready to elevate your fitness journey? Here is your complete science-backed guide to ${focusKw}.\n\nCheck out the full article on our blog!\n\nRegistration link in the first comment 👇`,
-      linkedin: `Evidence-based insights on ${focusKw}: how progressive overload and balanced macronutrients drive sustainable transformation. Full breakdown on Musclehubeg blog.`,
+      linkedin: `Evidence-based insights on ${focusKw}: how progressive overload and balanced macronutrients drive sustainable transformation. Full breakdown on Alkemos blog.`,
       instagram: `Transform your body with evidence-based methods! 💥 Key takeaways for ${focusKw} inside our latest blog guide. Link in bio!`,
-      x: `Master ${focusKw} with science-backed principles. Check out our latest comprehensive guide on Musclehubeg! 🏋️‍♂️💪`,
+      x: `Master ${focusKw} with science-backed principles. Check out our latest comprehensive guide on Alkemos! 🏋️‍♂️💪`,
     },
     estimatedReadingTime: 5,
     source: "local-structured-generator",
@@ -1037,7 +1037,7 @@ export async function generateLinksAndSocial(
   const enExcerpt = englishArticle.split(/\s+/).slice(0, 500).join(" ");
   const arExcerpt = arabicArticle.split(/\s+/).slice(0, 500).join(" ");
 
-  const prompt = `Generate PART 3 of a blog article bundle for Musclehubeg.
+  const prompt = `Generate PART 3 of a blog article bundle for Alkemos.
 
 CONTEXT:
  - English title: "${enTitle}"
@@ -1051,7 +1051,7 @@ ARABIC ARTICLE EXCERPT (for matching anchor text):
 ${arExcerpt}
 
 STEP 6 — LINK SUGGESTIONS (MUST be included in both articles):
- - internalLinks: 3-5 suggested internal links to other Musclehubeg blog posts.
+ - internalLinks: 3-5 suggested internal links to other Alkemos blog posts.
    Each: { slug, anchorText, reason, anchorTextAr }
    IMPORTANT: Choose anchorText that actually appears in the article excerpts above.
    The anchorText is English; anchorTextAr is the Arabic version of the anchor text.

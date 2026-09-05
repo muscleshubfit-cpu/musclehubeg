@@ -1,4 +1,4 @@
-# Musclehubeg — robots.txt
+# Alkemos — robots.txt
 # Allow all public pages, block private/authenticated pages
 
 User-agent: *

@@ -38,16 +38,16 @@ export async function generateMetadata({
 
   if (!data) {
     return {
-      title: "الصفحة غير موجودة — Musclehubeg",
+      title: "الصفحة غير موجودة — Alkemos",
       robots: { index: false, follow: false },
     };
   }
 
   const copy = resolveLandingCopy(data, "ar");
   const name = coachDisplayName(data, "ar");
-  const title = `${name} — ${copy.headline || "مدرب معتمد على Musclehubeg"}`;
+  const title = `${name} — ${copy.headline || "مدرب معتمد على Alkemos"}`;
   const description =
-    copy.bio.slice(0, 160) || `احجز متابعة خاصة مع ${name} على Musclehubeg`;
+    copy.bio.slice(0, 160) || `احجز متابعة خاصة مع ${name} على Alkemos`;
 
   return {
     title,
@@ -65,7 +65,7 @@ export async function generateMetadata({
       url: `${SITE_URL}/ar/coaches/${slug}`,
       title,
       description,
-      siteName: "Musclehubeg",
+      siteName: "Alkemos",
       locale: "ar_EG",
     },
   };

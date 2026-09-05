@@ -326,7 +326,7 @@ export function CheckoutView({ tier, months }: { tier: TierId | MembershipTier; 
       });
       setDone(true);
       toast.success(
-        isAr ? "تم إرسال طلب الاشتراك! راجعه فريق Musclehubeg قريباً." : "Subscription request sent!",
+        isAr ? "تم إرسال طلب الاشتراك! راجعه فريق Alkemos قريباً." : "Subscription request sent!",
       );
       setTimeout(() => navigate("dashboard"), 3000);
     } catch (e) {
@@ -346,7 +346,7 @@ export function CheckoutView({ tier, months }: { tier: TierId | MembershipTier; 
           className="text-lg font-semibold tracking-tight"
           onClick={() => navigate("memberships")}
         >
-          Musclehubeg
+          Alkemos
           <span className="text-[#0071e3]">EG</span>
         </button>
         <LanguageToggle />
@@ -389,8 +389,8 @@ export function CheckoutView({ tier, months }: { tier: TierId | MembershipTier; 
             </h2>
             <p className="mt-3 text-base font-normal text-[#6e6e73]">
               {isAr
-                ? "استلمنا طلب اشتراكك وإيصال الدفع. راجعه فريق Musclehubeg قريباً وسيتم تفعيل اشتراكك. ستصللك إشعار فور التفعيل."
-                : "We received your subscription request and payment receipt. The Musclehubeg team will review and activate your subscription shortly. You'll be notified once it's active."}
+                ? "استلمنا طلب اشتراكك وإيصال الدفع. راجعه فريق Alkemos قريباً وسيتم تفعيل اشتراكك. ستصللك إشعار فور التفعيل."
+                : "We received your subscription request and payment receipt. The Alkemos team will review and activate your subscription shortly. You'll be notified once it's active."}
             </p>
             <button
               onClick={() => navigate("dashboard")}
@@ -555,7 +555,7 @@ export function CheckoutView({ tier, months }: { tier: TierId | MembershipTier; 
                         {isAr ? "امسح الكود للدفع" : "Scan QR to pay"}
                       </p>
                       <p className="mt-2 font-mono text-sm font-semibold" dir="ltr">
-                        {method === "instapay" ? "musclehub@instapay" : "01000000000"}
+                        {method === "instapay" ? "alkemos@instapay" : "01000000000"}
                       </p>
                     </div>
 
@@ -645,7 +645,7 @@ export function CheckoutView({ tier, months }: { tier: TierId | MembershipTier; 
       </main>
 
       <footer className="mt-auto border-t border-border py-8 text-center text-sm text-muted-foreground">
-        © {new Date().getFullYear()} Musclehubeg. {isAr ? "كل الحقوق محفوظة." : "All rights reserved."}
+        © {new Date().getFullYear()} Alkemos. {isAr ? "كل الحقوق محفوظة." : "All rights reserved."}
       </footer>
     </div>
   );

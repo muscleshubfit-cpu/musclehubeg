@@ -4,15 +4,15 @@ import type { Metadata } from "next";
  * AR MIRROR of /for-coaches/register — SEO layout.
  * Arabic-first metadata + reciprocal hreflang with the EN page
  * (src/app/for-coaches/register/layout.tsx). Indexed deliberately:
- * coaches searching «تسجيل مدرب musclehub» land straight on the form.
+ * coaches searching «تسجيل مدرب alkemos» land straight on the form.
  */
 
 const SITE_URL = "https://alkemos.com";
 
 export const metadata: Metadata = {
-  title: "تسجيل مدرب — أنشئ حسابك المجاني على Musclehubeg",
+  title: "تسجيل مدرب — أنشئ حسابك المجاني على Alkemos",
   description:
-    "سجّل كمدرب على Musclehubeg في دقيقة: تفعيل فوري بدون انتظار، أضف عملاءك وحدد أسعارك بنفسك واحصل منهم مباشرة — بدون أي نسبة من دخلك.",
+    "سجّل كمدرب على Alkemos في دقيقة: تفعيل فوري بدون انتظار، أضف عملاءك وحدد أسعارك بنفسك واحصل منهم مباشرة — بدون أي نسبة من دخلك.",
   keywords: ["تسجيل مدرب", "انشاء حساب كوتش", "انضم كمدرب"],
   alternates: {
     canonical: `${SITE_URL}/ar/for-coaches/register`,
@@ -23,17 +23,17 @@ export const metadata: Metadata = {
     },
   },
   openGraph: {
-    title: "تسجيل مدرب — Musclehubeg",
+    title: "تسجيل مدرب — Alkemos",
     description:
       "أنشئ حسابك كمدرب مجانًا — تفعيل فوري، عملاؤك بأسعارك، وفلوسك في إيدك.",
     url: `${SITE_URL}/ar/for-coaches/register`,
-    siteName: "Musclehubeg",
+    siteName: "Alkemos",
     locale: "ar_EG",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "تسجيل مدرب — Musclehubeg",
+    title: "تسجيل مدرب — Alkemos",
     description: "أنشئ حسابك كمدرب مجانًا — تفعيل فوري، بدون أي نسبة من دخلك.",
   },
   robots: { index: true, follow: true },

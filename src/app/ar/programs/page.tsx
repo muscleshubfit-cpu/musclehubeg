@@ -16,7 +16,7 @@ const SITE_URL = "https://alkemos.com";
 export const metadata: Metadata = {
   title: "برامج التدريب",
   description:
-    "برامج تدريب جاهزة لكل المستويات والأهداف — برامج منزلية بدون معدات، برامج دمبل، وبرامج جيم كاملة بالجدول الأسبوعي وشرح كل تمرين على Musclehubeg.",
+    "برامج تدريب جاهزة لكل المستويات والأهداف — برامج منزلية بدون معدات، برامج دمبل، وبرامج جيم كاملة بالجدول الأسبوعي وشرح كل تمرين على Alkemos.",
   alternates: {
     canonical: "/ar/programs",
     languages: {

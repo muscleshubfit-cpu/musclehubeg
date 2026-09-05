@@ -1,5 +1,5 @@
 /**
- * Membership tiers for Musclehubeg platform.
+ * Membership tiers for Alkemos platform.
  *
  * 4 levels (prices updated 2026 to cover Vercel + Supabase + AI +
  * Lemon Squeezy 5%+$0.50 payment fees + profit margin):

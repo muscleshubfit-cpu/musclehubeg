@@ -37,7 +37,7 @@ export async function GET() {
   return NextResponse.json(
     {
       ok: true,
-      service: "musclehubeg",
+      service: "alkemos",
       // Deploy-beacon contract kept (commit/commitShort/branch) — used by
       // the owner's live-verification workflow. The internal AI topology
       // string was removed (audit H4, 2026-09-05): deploy verification

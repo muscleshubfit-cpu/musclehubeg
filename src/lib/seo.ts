@@ -21,7 +21,7 @@
  */
 
 const SITE_URL = "https://alkemos.com";
-const SITE_NAME = "Musclehubeg";
+const SITE_NAME = "Alkemos";
 const SITE_LOGO = `${SITE_URL}/logo.png`;
 
 /**

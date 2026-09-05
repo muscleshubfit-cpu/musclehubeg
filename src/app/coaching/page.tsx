@@ -179,7 +179,7 @@ export default function CoachingPage() {
             <div className="relative mt-8 aspect-[3/2] w-full overflow-hidden rounded-3xl shadow-2xl">
               <Image
                 src="/images/hero/coaching-1.jpg"
-                alt={isAr ? "منصة Musclehubeg الذكية" : "Musclehubeg smart platform"}
+                alt={isAr ? "منصة Alkemos الذكية" : "Alkemos smart platform"}
                 fill
                 className="object-cover"
                 loading="eager"
@@ -319,17 +319,17 @@ export default function CoachingPage() {
             </Reveal>
             <Reveal delay={150}>
               <p className="mx-auto mt-4 max-w-xl text-center text-lg font-normal text-[#6e6e73] md:text-xl">
-                {isAr ? "+500 عميل غيّروا حياتهم مع Musclehubeg." : "500+ clients transformed their lives with Musclehubeg."}
+                {isAr ? "+500 عميل غيّروا حياتهم مع Alkemos." : "500+ clients transformed their lives with Alkemos."}
               </p>
             </Reveal>
 
-            {/* Musclehubeg brand mark — above the marquee */}
+            {/* Alkemos brand mark — above the marquee */}
             <Reveal delay={200}>
               <div className="mt-10 flex flex-col items-center">
                 <div className="grid h-20 w-20 place-items-center rounded-full bg-[#0071e3] text-3xl font-bold text-white ring-4 ring-white shadow-lg">
                   M
                 </div>
-                <p className="mt-3 text-sm font-semibold">Musclehubeg</p>
+                <p className="mt-3 text-sm font-semibold">Alkemos</p>
                 <p className="text-xs font-normal text-[#6e6e73]">
                   {isAr ? "منصة لياقة وتغذية أونلاين" : "Online Fitness & Nutrition Platform"}
                 </p>
@@ -473,7 +473,7 @@ export default function CoachingPage() {
             <Reveal delay={150}>
               <Accordion type="single" collapsible className="mt-12">
                 {[
-                  { q: isAr ? "ما هو الكوتشينج في Musclehubeg؟" : "What is Musclehubeg coaching?", a: isAr ? "كوتشينج أونلاين مع مدربين وأخصائيين تغذية محترفين. خطط مخصصة + EVO AI + متابعة شخصية." : "Online coaching with professional coaches and nutrition specialists. Personalized plans + EVO AI + personal follow-up." },
+                  { q: isAr ? "ما هو الكوتشينج في Alkemos؟" : "What is Alkemos coaching?", a: isAr ? "كوتشينج أونلاين مع مدربين وأخصائيين تغذية محترفين. خطط مخصصة + EVO AI + متابعة شخصية." : "Online coaching with professional coaches and nutrition specialists. Personalized plans + EVO AI + personal follow-up." },
                   { q: isAr ? "من هو EVO؟" : "Who is EVO?", a: isAr ? "محرك الأداء الذكي. مش شات بوت — بيرد على أسئلتك، يبني لك خطط، ويقدر يحفظها في لوحة خططك مع إمكانية استبدال الوجبات والتمارين." : "The intelligent performance engine. Not a chatbot — it answers your questions, builds plans, and can save them to your plans dashboard with meal/exercise swaps." },
                   { q: isAr ? "هل الخطط مخصصة؟" : "Are plans personalized?", a: isAr ? "نعم، كل خطة بتتبني من استبياناتك على يد مدرب بشري، وتقدر تطلب استبدالات من خطتك في أي وقت." : "Yes, every plan is built from your questionnaires by a human coach, and you can request swaps anytime." },
                   { q: isAr ? "هل المدربين حقيقيين؟" : "Are the coaches real?", a: isAr ? "نعم، المدربين حقيقيين ويراجعون خططك بنفسهم." : "Yes, real coaches review your plans personally." },
@@ -522,7 +522,7 @@ export default function CoachingPage() {
               {isAr ? "شارك صفحة الكوتشينج" : "Share coaching page"}
             </p>
             <ShareButtons
-              title={isAr ? "كوتشينج أونلاين | Musclehubeg" : "Online Coaching | Musclehubeg"}
+              title={isAr ? "كوتشينج أونلاين | Alkemos" : "Online Coaching | Alkemos"}
               text={isAr ? "مدربين وأخصائيين تغذية + EVO AI. خطط مخصصة ومتابعة شخصية." : "Coaches & nutrition specialists + EVO AI. Personalized plans and personal follow-up."}
             />
           </div>

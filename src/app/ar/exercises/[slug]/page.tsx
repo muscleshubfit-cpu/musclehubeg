@@ -35,8 +35,8 @@ export async function generateMetadata({
     };
   }
 
-  // NOTE: no "| Musclehubeg" suffix — the /ar layout title template appends
-  // the brand automatically (avoids "— Musclehubeg — Musclehubeg").
+  // NOTE: no "| Alkemos" suffix — the /ar layout title template appends
+  // the brand automatically (avoids "— Alkemos — Alkemos").
   const title = `${exercise.nameAr} — طريقة الأداء الصحيحة والخطوات`;
   const description = `تعلّم كيف تؤدي تمرين ${exercise.nameAr} بأداء صحيح. العضلات المستهدفة: ${exercise.primaryMuscles.join("، ")}. المعدات: ${EQUIPMENT_LABELS[exercise.equipment].ar}. المستوى: ${LEVEL_LABELS[exercise.level].ar}.`;
   const url = `${SITE_URL}/ar/exercises/${exercise.slug}`;
@@ -57,7 +57,7 @@ export async function generateMetadata({
       url,
       title,
       description,
-      siteName: "Musclehubeg",
+      siteName: "Alkemos",
       locale: "ar_EG",
     },
     twitter: {

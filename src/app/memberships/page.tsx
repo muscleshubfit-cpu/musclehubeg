@@ -48,7 +48,7 @@ export default function MembershipsPage({ lang: langProp }: { lang?: Lang } = {}
         {/* Hero */}
         <div className="text-center">
           <h1 className="text-3xl font-semibold tracking-tight md:text-5xl">
-            {isAr ? "عضويات Musclehubeg" : "Musclehubeg Memberships"}
+            {isAr ? "عضويات Alkemos" : "Alkemos Memberships"}
           </h1>
           <p className="mx-auto mt-3 max-w-md text-base font-normal text-[#6e6e73] md:text-lg">
             {isAr
@@ -364,7 +364,7 @@ export default function MembershipsPage({ lang: langProp }: { lang?: Lang } = {}
           <p className="text-sm font-medium">
             {isAr ? "شارك صفحة العضويات" : "Share memberships page"}
           </p>
-          <ShareButtons title={isAr ? "عضويات Musclehubeg" : "Musclehubeg Memberships"} />
+          <ShareButtons title={isAr ? "عضويات Alkemos" : "Alkemos Memberships"} />
         </div>
       </main>
     </div>

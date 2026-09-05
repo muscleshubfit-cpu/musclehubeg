@@ -344,11 +344,11 @@ export function SiteHeader({ variant = "landing" }: { variant?: "landing" | "app
           <button
             onClick={() => navigate("landing")}
             className="flex items-center gap-2"
-            aria-label="Musclehubeg"
+            aria-label="Alkemos"
           >
             <Image
               src="/logo.png"
-              alt="Musclehubeg"
+              alt="Alkemos"
               width={120}
               height={80}
               priority
@@ -356,7 +356,7 @@ export function SiteHeader({ variant = "landing" }: { variant?: "landing" | "app
             />
             <Image
               src="/icon-192.png"
-              alt="Musclehubeg"
+              alt="Alkemos"
               width={36}
               height={36}
               priority
@@ -445,7 +445,7 @@ export function SiteHeader({ variant = "landing" }: { variant?: "landing" | "app
         >
           {/* Drawer header */}
           <div className="flex h-16 items-center justify-between border-b border-[#d2d2d7] px-4">
-            <span className="text-base font-semibold">Musclehubeg</span>
+            <span className="text-base font-semibold">Alkemos</span>
             <button
               onClick={() => setOpen(false)}
               className="flex h-10 w-10 items-center justify-center rounded-lg text-[#1d1d1f] hover:bg-[#f5f5f7]"
@@ -572,7 +572,7 @@ export function SiteHeader({ variant = "landing" }: { variant?: "landing" | "app
 
           {/* Footer */}
           <div className="border-t border-[#d2d2d7] px-4 py-3 text-center text-xs font-normal text-[#6e6e73]">
-            <p>© {new Date().getFullYear()} Musclehubeg</p>
+            <p>© {new Date().getFullYear()} Alkemos</p>
           </div>
         </aside>
       </div>

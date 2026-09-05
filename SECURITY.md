@@ -1,18 +1,18 @@
-# SECURITY.md — MuscleHubEG Security Policy
+# SECURITY.md — Alkemos Security Policy
 
 > **Last updated:** 2026-08-23
 > **Owner:** muscleshubfit@gmail.com
 > **Reporting security issues:** see §8 below.
 
 This document defines the security posture, secrets policy, and rules
-for AI agents working on the MuscleHubEG codebase. It complements
+for AI agents working on the Alkemos codebase. It complements
 `AGENTS.md` (operating rules) and `DEVELOPER_GUIDE.md` (architecture).
 
 ---
 
 ## 1. Threat Model Summary
 
-MuscleHubEG is a public-codebase, production-deployed web app that
+Alkemos is a public-codebase, production-deployed web app that
 handles:
 
 - User authentication (email/password + Google OAuth).
@@ -202,7 +202,7 @@ Any of the following:
 
 ## 7. Personal Data Policy
 
-MuscleHubEG processes the following categories of personal data:
+Alkemos processes the following categories of personal data:
 
 | Category | Examples | Storage | Retention |
 |---|---|---|---|
@@ -240,13 +240,13 @@ MuscleHubEG processes the following categories of personal data:
 
 ## 8. Security Vulnerability Reporting
 
-If you discover a security vulnerability in MuscleHubEG:
+If you discover a security vulnerability in Alkemos:
 
 1. **DO NOT open a public GitHub issue.** The repository is public
    and an attacker could exploit the vulnerability before a fix is
    deployed.
 2. Email the owner directly at `muscleshubfit@gmail.com` with the
-   subject line `[SECURITY] MuscleHubEG — <short summary>`.
+   subject line `[SECURITY] Alkemos — <short summary>`.
 3. Include:
    - Affected file(s) / route(s) / component(s).
    - A minimal proof-of-concept (curl commands, request bodies,

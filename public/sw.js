@@ -1,4 +1,4 @@
-// Musclehubeg Service Worker
+// Alkemos Service Worker
 // Caches static assets for offline use + enables PWA install.
 //
 // IMPORTANT: navigation requests (HTML pages) are ALWAYS served network-first
@@ -6,7 +6,7 @@
 // static assets (_next/static/*, images, manifest) are cache-first.
 
 const CACHE_VERSION = "v3";
-const CACHE_NAME = `musclehubeg-${CACHE_VERSION}`;
+const CACHE_NAME = `alkemos-${CACHE_VERSION}`;
 const APP_SHELL = [
   "/",
   "/manifest.json",
@@ -101,7 +101,7 @@ self.addEventListener("fetch", (event) => {
 
 // Push notifications
 self.addEventListener("push", (event) => {
-  let data = { title: "Musclehubeg", body: "عندك إشعار جديد" };
+  let data = { title: "Alkemos", body: "عندك إشعار جديد" };
   try {
     if (event.data) data = event.data.json();
   } catch {}

@@ -22,7 +22,7 @@ const SITE_URL = "https://alkemos.com";
 export const metadata: Metadata = {
   title: "العضويات والباقات",
   description:
-    "باقات Musclehubeg: مجاني، Premium ($14.99)، Pro ($29.99)، وكوتشينج ($39.99) — EVO غير محدود، خطط تدريب وتغذية، ومتابعة أسبوعية.",
+    "باقات Alkemos: مجاني، Premium ($14.99)، Pro ($29.99)، وكوتشينج ($39.99) — EVO غير محدود، خطط تدريب وتغذية، ومتابعة أسبوعية.",
   alternates: {
     canonical: "/ar/memberships",
     languages: {

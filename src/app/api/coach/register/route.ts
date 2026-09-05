@@ -295,7 +295,7 @@ export async function POST(request: NextRequest) {
 
   await coachBell({
     type: "coach_welcome",
-    title: "أهلًا بك كوتش في Musclehubeg!",
+    title: "أهلًا بك كوتش في Alkemos!",
     body:
       "حسابك اتفعّل. ابدأ بإضافة عملائك، حدّد أسعارك بنفسك، وجهّز محفظتك لتفعيل اشتراكاتهم.",
     link: "/coach",

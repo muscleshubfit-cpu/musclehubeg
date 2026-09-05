@@ -14,7 +14,7 @@ import { fetchBlogForOG } from "@/lib/blog-server";
  *
  * Design:
  *   - Dark gradient background (#1d1d1f → #0071e3)
- *   - Musclehubeg logo + brand mark top-left
+ *   - Alkemos logo + brand mark top-left
  *   - Article title centered (auto-fit font size based on length)
  *   - Article description (truncated to 120 chars)
  *   - Site URL "alkemos.com" footer
@@ -31,7 +31,7 @@ export async function GET(
   const lang = (request.nextUrl.searchParams.get("lang") as "en" | "ar") || "en";
 
   // Defaults if post not found
-  let title = "Musclehubeg — Fitness & Nutrition Platform";
+  let title = "Alkemos — Fitness & Nutrition Platform";
   let description = "AI-powered fitness & nutrition coaching platform";
 
   try {
@@ -88,7 +88,7 @@ export async function GET(
             M
           </div>
           <div style={{ fontSize: 32, fontWeight: 700, letterSpacing: -0.5 }}>
-            Musclehubeg
+            Alkemos
           </div>
         </div>
 
@@ -129,7 +129,7 @@ export async function GET(
           }}
         >
           <div>alkemos.com</div>
-          <div>{lang === "ar" ? "مدونة Musclehubeg" : "Musclehubeg Blog"}</div>
+          <div>{lang === "ar" ? "مدونة Alkemos" : "Alkemos Blog"}</div>
         </div>
       </div>
     ),

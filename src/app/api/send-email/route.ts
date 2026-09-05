@@ -334,7 +334,7 @@ function buildEmailHtml(
   <div style="max-width:600px;margin:0 auto;padding:24px 16px;" dir="${dir}">
 
     <div style="background:#1d1d1f;border-radius:18px 18px 0 0;padding:28px 24px;text-align:center;">
-      <div style="color:#ffffff;font-size:22px;font-weight:700;letter-spacing:0.3px;">Musclehubeg</div>
+      <div style="color:#ffffff;font-size:22px;font-weight:700;letter-spacing:0.3px;">Alkemos</div>
       <div style="color:#a1a1a6;font-size:14px;margin-top:6px;">${esc(toolName)}</div>
     </div>
 
@@ -356,7 +356,7 @@ function buildEmailHtml(
         <a href="${SITE_URL}"
           style="display:inline-block;background:#0071e3;color:#ffffff;text-decoration:none;
           padding:14px 36px;border-radius:999px;font-weight:600;font-size:15px;">
-          ${isAr ? "ابدأ رحلتك مع Musclehubeg" : "Start your journey at Musclehubeg"}
+          ${isAr ? "ابدأ رحلتك مع Alkemos" : "Start your journey at Alkemos"}
         </a>
       </div>
     </div>
@@ -364,9 +364,9 @@ function buildEmailHtml(
     <div style="background:#1d1d1f;border-radius:0 0 18px 18px;padding:20px 24px;text-align:center;">
       <p style="margin:0;color:#8e8e93;font-size:12px;line-height:1.8;">
         ${isAr
-          ? `وصلتك هذه الرسالة لأنك طلبت نتائجك من ${esc(toolName)} على موقع Musclehubeg.`
-          : `You received this email because you requested your ${esc(toolName)} results on Musclehubeg.`}<br />
-        © 2026 Musclehubeg — ${isAr ? "كل الحقوق محفوظة" : "All rights reserved"}
+          ? `وصلتك هذه الرسالة لأنك طلبت نتائجك من ${esc(toolName)} على موقع Alkemos.`
+          : `You received this email because you requested your ${esc(toolName)} results on Alkemos.`}<br />
+        © 2026 Alkemos — ${isAr ? "كل الحقوق محفوظة" : "All rights reserved"}
       </p>
     </div>
 
@@ -543,7 +543,7 @@ export async function POST(request: NextRequest) {
 
     const isAr = lang === "ar";
     const toolName = isAr ? TOOL_NAMES[tool_slug as ToolSlug].ar : TOOL_NAMES[tool_slug as ToolSlug].en;
-    const from = process.env.EMAIL_FROM ?? `Musclehubeg <${user}>`;
+    const from = process.env.EMAIL_FROM ?? `Alkemos <${user}>`;
     const replyTo = process.env.EMAIL_REPLY_TO || undefined;
 
     await transporter.sendMail({
@@ -551,8 +551,8 @@ export async function POST(request: NextRequest) {
       to: email,
       replyTo,
       subject: isAr
-        ? `نتائجك من ${toolName} — Musclehubeg`
-        : `Your ${toolName} results — Musclehubeg`,
+        ? `نتائجك من ${toolName} — Alkemos`
+        : `Your ${toolName} results — Alkemos`,
       html: buildEmailHtml(tool_slug as ToolSlug, name, result_json, isAr),
       text: buildEmailText(tool_slug as ToolSlug, name, result_json, isAr),
     });

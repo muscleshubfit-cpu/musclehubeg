@@ -36,8 +36,8 @@ export async function generateMetadata({
     };
   }
 
-  // NOTE: no "| Musclehubeg" suffix — the /ar layout title template appends
-  // the brand automatically (avoids "— Musclehubeg — Musclehubeg").
+  // NOTE: no "| Alkemos" suffix — the /ar layout title template appends
+  // the brand automatically (avoids "— Alkemos — Alkemos").
   const title = `${food.nameAr} — السعرات والماكروز لكل 100 جرام`;
   const description = `القيمة الغذائية لـ ${food.nameAr}: ${food.per100g.calories} سعرة، ${food.per100g.protein} جرام بروتين، ${food.per100g.carbs} جرام كارب، ${food.per100g.fat} جرام دهون لكل 100 جرام. الحصة الافتراضية: ${food.defaultServingAr} (${food.defaultGrams} جرام).`;
   const url = `${SITE_URL}/ar/foods/${food.slug}`;
@@ -58,7 +58,7 @@ export async function generateMetadata({
       url,
       title,
       description,
-      siteName: "Musclehubeg",
+      siteName: "Alkemos",
       locale: "ar_EG",
     },
     twitter: {

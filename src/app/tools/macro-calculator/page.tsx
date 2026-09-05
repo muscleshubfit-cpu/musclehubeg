@@ -136,8 +136,8 @@ export default function MacroCalculatorPage() {
               <ShareButtons
                 title={
                   isAr
-                    ? `ماكروزي: بروتين ${result.protein_g}g · كارب ${result.carbs_g}g · دهون ${result.fat_g}g | Musclehubeg`
-                    : `My macros: Protein ${result.protein_g}g · Carbs ${result.carbs_g}g · Fat ${result.fat_g}g | Musclehubeg`
+                    ? `ماكروزي: بروتين ${result.protein_g}g · كارب ${result.carbs_g}g · دهون ${result.fat_g}g | Alkemos`
+                    : `My macros: Protein ${result.protein_g}g · Carbs ${result.carbs_g}g · Fat ${result.fat_g}g | Alkemos`
                 }
               />
             </div>

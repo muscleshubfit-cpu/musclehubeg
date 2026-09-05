@@ -5,7 +5,7 @@ import { SiteHeader } from "@/components/SiteHeader";
  * Public Affiliate Program page.
  *
  * Renders fully in English when the active language is English, and fully
- * in Arabic when the active language is Arabic. The brand name "Musclehubeg"
+ * in Arabic when the active language is Arabic. The brand name "Alkemos"
  * is intentionally never translated.
  *
  * The page is fully public (no auth required). Two CTAs:
@@ -517,7 +517,7 @@ export function AffiliateProgramView() {
 
       {/* ─── Footer ─── */}
       <footer className="mt-auto border-t border-[#d2d2d7] py-6 text-center text-xs font-normal text-[#6e6e73]">
-        © {new Date().getFullYear()} Musclehubeg. {isAr ? "كل الحقوق محفوظة." : "All rights reserved."}
+        © {new Date().getFullYear()} Alkemos. {isAr ? "كل الحقوق محفوظة." : "All rights reserved."}
       </footer>
     </div>
   );
@@ -552,7 +552,7 @@ type Copy = {
       rateSuffix: string;
       body: string;
       renewalNote: string;
-      /** Owner: concrete commission examples on real Musclehubeg plans (Premium/Pro/Coaching) */
+      /** Owner: concrete commission examples on real Alkemos plans (Premium/Pro/Coaching) */
       examplesTitle: string;
       examples: { label: string; price: string; earn: string }[];
     };
@@ -575,7 +575,7 @@ function getCopy(isAr: boolean): Copy {
       hero: {
         headline: "حوّل تأثيرك إلى دخل.",
         supporting:
-          "شارك Musclehubeg مع الناس اللي بيثقوا في توصياتك. ساعدهم يتدربوا بطريقة أذكى، يأكلوا أحسن، ويحققوا تقدم حقيقي — واكسب عمولة من عمليات الشراء المؤهلة اللي تتم عبر رابط الأفلييت بتاعك.",
+          "شارك Alkemos مع الناس اللي بيثقوا في توصياتك. ساعدهم يتدربوا بطريقة أذكى، يأكلوا أحسن، ويحققوا تقدم حقيقي — واكسب عمولة من عمليات الشراء المؤهلة اللي تتم عبر رابط الأفلييت بتاعك.",
         ctaPrimary: "احصل على رابط الأفلييت بتاعك",
         ctaSecondary: "ابدأ المشاركة",
       },
@@ -586,7 +586,7 @@ function getCopy(isAr: boolean): Copy {
         { value: "آني", label: "تتبع الأرباح بشفافية" },
       ],
       why: {
-        title: "ليه تبقى أفلييت لـ Musclehubeg؟",
+        title: "ليه تبقى أفلييت لـ Alkemos؟",
         subtitle:
           "أنت بتركز على اللي أنت بتعرف تعمله: التوصية بمنصة بتثق فيها. الباقي علينا.",
         cards: [
@@ -604,11 +604,11 @@ function getCopy(isAr: boolean): Copy {
           },
           {
             title: "مفيش دعم عملاء",
-            body: "فريق Musclehubeg هو اللي بيتعامل مع كل أسئلة العملاء وطلباتهم.",
+            body: "فريق Alkemos هو اللي بيتعامل مع كل أسئلة العملاء وطلباتهم.",
           },
         ],
         pitch:
-          "أنت بتشارك Musclehubeg. Musclehubeg بيتكفل بتجربة المنتج والعميل. أنت بتكسب عمولات مؤهلة.",
+          "أنت بتشارك Alkemos. Alkemos بيتكفل بتجربة المنتج والعميل. أنت بتكسب عمولات مؤهلة.",
         disclosure:
           "مفيش وعود بأرقام دخل. الأرباح بتعتمد على حجم وجودة جمهورك ونوع التحويلات.",
       },
@@ -662,7 +662,7 @@ function getCopy(isAr: boolean): Copy {
         steps: [
           {
             title: "احصل على رابطك",
-            body: "سجّل حساب في Musclehubeg وهتلاقي رابط الأفلييت الشخصي بتاعك جاهز في لوحتك — انسخه أو حمّل QR Code.",
+            body: "سجّل حساب في Alkemos وهتلاقي رابط الأفلييت الشخصي بتاعك جاهز في لوحتك — انسخه أو حمّل QR Code.",
           },
           {
             title: "شارك رابطك",
@@ -712,7 +712,7 @@ function getCopy(isAr: boolean): Copy {
       finalCta: {
         title: "جاهز تبدأ؟",
         body:
-          "سجّل حساب في Musclehubeg، روح على قسم الأفلييت في لوحتك، وابدأ المشاركة خلال دقايق.",
+          "سجّل حساب في Alkemos، روح على قسم الأفلييت في لوحتك، وابدأ المشاركة خلال دقايق.",
         disclosure:
           "المشاركة في برنامج الأفلييت بتخضع لشروط الاستخدام. نحتفظ بحق إيقاف أي حساب بيخالف سياسات السبام أو الإساءة.",
       },
@@ -723,7 +723,7 @@ function getCopy(isAr: boolean): Copy {
     hero: {
       headline: "TURN YOUR INFLUENCE INTO INCOME.",
       supporting:
-        "Share Musclehubeg with people who trust your recommendations. Help them train smarter, eat better, and make meaningful progress — while earning commissions from eligible purchases made through your Affiliate link.",
+        "Share Alkemos with people who trust your recommendations. Help them train smarter, eat better, and make meaningful progress — while earning commissions from eligible purchases made through your Affiliate link.",
       ctaPrimary: "GET YOUR AFFILIATE LINK",
       ctaSecondary: "START SHARING",
     },
@@ -734,7 +734,7 @@ function getCopy(isAr: boolean): Copy {
       { value: "Real-time", label: "Transparent earnings dashboard" },
     ],
     why: {
-      title: "WHY BECOME A MUSCLEHUBEG AFFILIATE?",
+      title: "WHY BECOME A ALKEMOS AFFILIATE?",
       subtitle:
         "You focus on what you do best: recommending a platform you trust. We handle the rest.",
       cards: [
@@ -752,11 +752,11 @@ function getCopy(isAr: boolean): Copy {
         },
         {
           title: "No customer support",
-          body: "The Musclehubeg team handles every customer question and request.",
+          body: "The Alkemos team handles every customer question and request.",
         },
       ],
       pitch:
-        "You share Musclehubeg. Musclehubeg handles the product and customer experience. You earn eligible commissions.",
+        "You share Alkemos. Alkemos handles the product and customer experience. You earn eligible commissions.",
       disclosure:
         "No guaranteed income. Earnings depend on the size and quality of your audience and the conversions you drive.",
     },
@@ -811,7 +811,7 @@ function getCopy(isAr: boolean): Copy {
         {
           title: "Get your link",
           body:
-            "Sign up on Musclehubeg and your personal Affiliate link is ready in your dashboard — copy it or download its QR code.",
+            "Sign up on Alkemos and your personal Affiliate link is ready in your dashboard — copy it or download its QR code.",
         },
         {
           title: "Share your link",
@@ -861,7 +861,7 @@ function getCopy(isAr: boolean): Copy {
     finalCta: {
       title: "READY TO START?",
       body:
-        "Sign up for a Musclehubeg account, visit the Affiliate section in your dashboard, and start sharing in minutes.",
+        "Sign up for a Alkemos account, visit the Affiliate section in your dashboard, and start sharing in minutes.",
       disclosure:
         "Participation in the Affiliate Program is subject to our Terms of Use. We reserve the right to suspend any account that violates our spam or abuse policies.",
     },

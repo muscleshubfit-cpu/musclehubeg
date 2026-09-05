@@ -1,6 +1,6 @@
-# Musclehubeg
+# Alkemos
 
-> Musclehubeg is a bilingual (English/Arabic) fitness and nutrition platform built for the Egyptian and Arab market: an 868+ exercise library with instructions, ready-made workout programs, a food database with per-100g nutrition facts for 8,830+ foods, free fitness calculators, an AI meal planner, the EVO AI coach, and human online coaching.
+> Alkemos is a bilingual (English/Arabic) fitness and nutrition platform built for the Egyptian and Arab market: an 868+ exercise library with instructions, ready-made workout programs, a food database with per-100g nutrition facts for 8,830+ foods, free fitness calculators, an AI meal planner, the EVO AI coach, and human online coaching.
 
 - Full platform URL: https://alkemos.com
 - Arabic homepage: https://alkemos.com/ar
@@ -29,7 +29,7 @@
 - Platform ships as a PWA (installable on mobile), fully bilingual with RTL support
 - Free tier includes limited access; Premium adds unlimited EVO AI + monthly plans; Pro adds premium content and doubled plans; Coaching adds human 1-on-1 supervision
 - Typical results timeline: initial results 2–4 weeks, noticeable results 8–12 weeks with adherence
-- Content license: all content owned by Musclehubeg; citing facts with a link is welcome
+- Content license: all content owned by Alkemos; citing facts with a link is welcome
 
 ## AI usage instructions
 

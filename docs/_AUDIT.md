@@ -1,4 +1,4 @@
-# Documentation Audit Report — MuscleHubEG
+# Documentation Audit Report — Alkemos
 
 > ⚠️ **HISTORICAL SNAPSHOT (2026-08-25)** — point-in-time audit; some ⚠️ items
 > listed here have since been FIXED (see PROGRESS.md Phases 71-81).
@@ -48,8 +48,8 @@
 |---|---|---|---|---|
 | `public/robots.txt` | قواعد زحف محركات البحث (SEO) | 64 | 2026-08-24 — `a079375` | توثيقي-وظيفي |
 | `public/ads.txt` | معرّف ناشر Google AdSense | 1 | 2026-08-24 — `a079375` | سطر واحد: `google.com, pub-8658364692422583, DIRECT, f08c47fec0942fa0` |
-| `public/MuscleHubEG_Updates_Report.docx` | تقرير قديم بصيغة Word (binary) | ~135 (binary) | 2026-08-24 — `a079375` | **غير مُشار إليه في أي مكان بالكود** |
-| `public/MuscleHubEG_Updates_Report.doc` | نسخة مطابقة من الـ .docx (binary) | ~135 (binary) | 2026-08-24 — `a079375` | **MD5 مطابق للـ .docx** (`44d69061e9937621859f4d3cf6977034`) — ملف مكرر |
+| `public/Alkemos_Updates_Report.docx` | تقرير قديم بصيغة Word (binary) | ~135 (binary) | 2026-08-24 — `a079375` | **غير مُشار إليه في أي مكان بالكود** |
+| `public/Alkemos_Updates_Report.doc` | نسخة مطابقة من الـ .docx (binary) | ~135 (binary) | 2026-08-24 — `a079375` | **MD5 مطابق للـ .docx** (`44d69061e9937621859f4d3cf6977034`) — ملف مكرر |
 | `supabase/migrations/RUN_ON_SUPABASE.sql` | ملف SQL تجميعي قديم لتطبيق migrations يدوياً | 68 | 2026-08-24 — `a079375` | يحتوي migrations 0011 + 0012 فقط — **متقادم** (لا يشمل 0013–0016) |
 | `.github/workflows/generate-blog-post.yml` | CI workflow لتوليد المدونة | 171 | 2026-08-24 — `a079375` | توثيقي-وظيفي |
 
@@ -138,8 +138,8 @@
 
 ### 2.8 النسختان المكررتان من تقرير الـ Word
 
-- `public/MuscleHubEG_Updates_Report.docx`
-- `public/MuscleHubEG_Updates_Report.doc`
+- `public/Alkemos_Updates_Report.docx`
+- `public/Alkemos_Updates_Report.doc`
 
 MD5 للملفين مطابق (`44d69061e9937621859f4d3cf6977034`). الملفان متطابقان بايت-بايت (6785 bytes لكل منهما). لا يوجد أي إشارة لأي منهما في أي ملف بالكود.
 
@@ -468,7 +468,7 @@ MD5 للملفين مطابق (`44d69061e9937621859f4d3cf6977034`). الملفا
 
 ### 4.2 ملفات ميتة (orphaned)
 
-- **`public/MuscleHubEG_Updates_Report.docx`** + **`public/MuscleHubEG_Updates_Report.doc`** — ملفان ثنائيان (6785 bytes لكل منهما)، **MD5 مطابق**، لا يوجد أي إشارة لأي منهما في الكود (`grep -rn "MuscleHubEG_Updates_Report" .` لا نتائج). يبدوان نسخة قديمة من تقرير تم نسيانه في `public/`.
+- **`public/Alkemos_Updates_Report.docx`** + **`public/Alkemos_Updates_Report.doc`** — ملفان ثنائيان (6785 bytes لكل منهما)، **MD5 مطابق**، لا يوجد أي إشارة لأي منهما في الكود (`grep -rn "Alkemos_Updates_Report" .` لا نتائج). يبدوان نسخة قديمة من تقرير تم نسيانه في `public/`.
 
 ### 4.3 مسارات مكسورة (broken paths)
 
@@ -476,12 +476,12 @@ MD5 للملفين مطابق (`44d69061e9937621859f4d3cf6977034`). الملفا
 
 | الملف | السطر | المسار المكسور |
 |---|---|---|
-| `DEVELOPER_GUIDE.md` | 284 | `/home/z/my-project/download/MuscleHubEG_Database_Fix_v4.sql` |
-| `DEVELOPER_GUIDE.md` | 688 | `/home/z/my-project/download/MuscleHubEG_Database_Fix_v4.sql` |
-| `DEVELOPER_GUIDE.md` | 689 | `/home/z/my-project/download/MuscleHubEG_Fix_support_tickets_status.sql` |
-| `PROGRESS.md` | 256 | `/home/z/my-project/download/MuscleHubEG_Database_Fix_v4.sql` |
-| `PROGRESS.md` | 740 | `/home/z/my-project/download/MuscleHubEG_Database_Fix_v4.sql` |
-| `PROGRESS.md` | 741 | `/home/z/my-project/download/MuscleHubEG_Fix_support_tickets_status.sql` |
+| `DEVELOPER_GUIDE.md` | 284 | `/home/z/my-project/download/Alkemos_Database_Fix_v4.sql` |
+| `DEVELOPER_GUIDE.md` | 688 | `/home/z/my-project/download/Alkemos_Database_Fix_v4.sql` |
+| `DEVELOPER_GUIDE.md` | 689 | `/home/z/my-project/download/Alkemos_Fix_support_tickets_status.sql` |
+| `PROGRESS.md` | 256 | `/home/z/my-project/download/Alkemos_Database_Fix_v4.sql` |
+| `PROGRESS.md` | 740 | `/home/z/my-project/download/Alkemos_Database_Fix_v4.sql` |
+| `PROGRESS.md` | 741 | `/home/z/my-project/download/Alkemos_Fix_support_tickets_status.sql` |
 | `SECURITY.md` | 187 | `/home/z/my-project/download/` |
 
 هذه مسارات محلية على جهاز مطور واحد، غير موجودة في الـ repo. لا يمكن لأي مساهم آخر الوصول إليها.
@@ -530,7 +530,7 @@ MD5 للملفين مطابق (`44d69061e9937621859f4d3cf6977034`). الملفا
 
 - الملف يحتوي فقط على migrations 0011 + 0012.
 - migrations 0013 → 0016 غير موجودة فيه.
-- التعليق الافتتاحي يقول "MuscleHub" (البراند القديم) بدلاً من "MuscleHubEG".
+- التعليق الافتتاحي يقول "Alkemos" (البراند القديم) بدلاً من "Alkemos".
 - الملف يبدو أنه كان ملف "concat-and-run" مؤقت، نُسي ولم يُحدَّث.
 
 ### 4.6 أقسام Deprecated في AGENTS.md
@@ -605,9 +605,9 @@ MD5 للملفين مطابق (`44d69061e9937621859f4d3cf6977034`). الملفا
 | `worklog.md` | **يبقى كما هو** | سجل append-only تاريخي؛ التناقضات في عدد الصفحات (78/79) طبيعية بين commits المختلفة ولا تحتاج تصحيح |
 | `public/robots.txt` | **يبقى** — مع حذف `Allow: /pricing` (سطر 11) | الـ route محذوف، إبقاؤه في robots.txt يُضلّل الـ crawlers |
 | `public/ads.txt` | **يبقى كما هو** | سطر واحد، صحيح، وظيفي |
-| `public/MuscleHubEG_Updates_Report.docx` | **يُحذف** — ملف ثنائي، غير مُشار إليه في أي مكان، مكرر (MD5 مطابق لـ .doc) | orphan dead binary |
-| `public/MuscleHubEG_Updates_Report.doc` | **يُحذف** — نفس السبب، MD5 مطابق للـ .docx | orphan dead binary |
-| `supabase/migrations/RUN_ON_SUPABASE.sql` | **يُؤرشف في `archive/`** أو **يُحذف** | متقادم (يحتوي 0011 + 0012 فقط، لا يشمل 0013–0016)، تعليق الافتتاحية يقول "MuscleHub" (براند قديم) |
+| `public/Alkemos_Updates_Report.docx` | **يُحذف** — ملف ثنائي، غير مُشار إليه في أي مكان، مكرر (MD5 مطابق لـ .doc) | orphan dead binary |
+| `public/Alkemos_Updates_Report.doc` | **يُحذف** — نفس السبب، MD5 مطابق للـ .docx | orphan dead binary |
+| `supabase/migrations/RUN_ON_SUPABASE.sql` | **يُؤرشف في `archive/`** أو **يُحذف** | متقادم (يحتوي 0011 + 0012 فقط، لا يشمل 0013–0016)، تعليق الافتتاحية يقول "Alkemos" (براند قديم) |
 | `.env.example` | **يبقى** — مع: (1) حذف قسم Z.ai كاملاً (سطر 57–72، 5 env vars لم تعد مستخدمة)، (2) إزالة الإشارة لـ `/admin/ai-settings` (سطر 26 — الصفحة غير موجودة) | يوثّق env vars لمكتبة محذوفة (z-ai-web-dev-sdk) + يُشار لـ route غير موجود |
 | `.github/workflows/generate-blog-post.yml` | **يبقى كما هو** | functional config، لا مشاكل |
 | `LICENSE` | **يبقى كما هو** (functional config) | لا مشاكل |
@@ -623,7 +623,7 @@ MD5 للملفين مطابق (`44d69061e9937621859f4d3cf6977034`). الملفا
 ### 6.1 شجرة الملفات المقترحة (توثيق فقط)
 
 ```
-musclehubeg/
+alkemos/
 ├── AGENTS.md                         # قواعد تشغيل الـ AI agents (مُحدَّث — بلا أقسام Deprecated)
 ├── README.md                         # الملخص المواجه للمستخدم (مُحدَّث — أرقام صحيحة)
 ├── DEVELOPER_GUIDE.md                # دليل المطور (مُحدَّث — بلا مسارات مكسورة)
@@ -636,8 +636,8 @@ musclehubeg/
 ├── public/
 │   ├── robots.txt                    # (مُحدَّث — بلا Allow: /pricing)
 │   ├── ads.txt                       # (يبقى كما هو)
-│   └── [DELETED] MuscleHubEG_Updates_Report.docx   # ← حذف
-│   └── [DELETED] MuscleHubEG_Updates_Report.doc    # ← حذف
+│   └── [DELETED] Alkemos_Updates_Report.docx   # ← حذف
+│   └── [DELETED] Alkemos_Updates_Report.doc    # ← حذف
 ├── archive/                          # ← يُستحدث
 │   └── RUN_ON_SUPABASE.sql           # ← يُنقل من supabase/migrations/ إلى هنا
 ├── supabase/
@@ -662,7 +662,7 @@ musclehubeg/
 
 | الفئة | عدد الملفات المتأثرة |
 |---|---|
-| ملفات تُحذف | 3 (`MuscleHubEG_Updates_Report.docx` + `.doc` + `RUN_ON_SUPABASE.sql` يُؤرشف) |
+| ملفات تُحذف | 3 (`Alkemos_Updates_Report.docx` + `.doc` + `RUN_ON_SUPABASE.sql` يُؤرشف) |
 | ملفات تُحدَّث بدون تغيير هيكلي | 7 (`AGENTS.md`, `README.md`, `DEVELOPER_GUIDE.md`, `PROGRESS.md`, `QA_CHECKLIST.md`, `SECURITY.md`, `public/robots.txt`) |
 | ملفات تُستحدث | 1 أو 2 (`PROJECT_CONTEXT.md` إن اختار المالك الاستحداث، + `archive/` directory) |
 | ملفات تُضاف إلى `package.json` تنظيف | 1 (حذف script الـ `compress-images`) |
@@ -681,7 +681,7 @@ musclehubeg/
 4. `find src/components/ui -name "*.tsx" | wc -l` → 51
 5. `find src/components/views -name "*.tsx" | wc -l` → 25
 6. `ls supabase/migrations/*.sql | grep -v RUN_ON | wc -l` → 16
-7. `md5sum public/MuscleHubEG_Updates_Report.*` → تطابق
+7. `md5sum public/Alkemos_Updates_Report.*` → تطابق
 8. `git ls-tree -r origin/main --name-only | grep PROJECT_CONTEXT` → لا نتائج
 9. `git log --all --oneline -- scripts/` → لا نتائج (مجلد `scripts/` لم يُلتزم أبداً)
 10. `grep -i "z-ai" package.json` → لا نتائج (z-ai-web-dev-sdk أُزيل)

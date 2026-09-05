@@ -16,7 +16,7 @@ const SITE_URL = "https://alkemos.com";
 export const metadata: Metadata = {
   title: "قاعدة بيانات الأكلات",
   description:
-    "أكلة 8,830+ بالسعرات والماكروز لكل 100 جرام — ابحث، فلتر، واحسب جرامك على Musclehubeg.",
+    "أكلة 8,830+ بالسعرات والماكروز لكل 100 جرام — ابحث، فلتر، واحسب جرامك على Alkemos.",
   alternates: {
     canonical: "/ar/foods",
     languages: {

@@ -79,7 +79,7 @@ export async function GET(request: NextRequest) {
       const offRes = await fetch(offUrl, {
         signal: AbortSignal.timeout(8000),
         headers: {
-          "User-Agent": "MuscleHubEG/1.0 (https://alkemos.com; contact via site support)",
+          "User-Agent": "Alkemos/1.0 (https://alkemos.com; contact via site support)",
           Accept: "application/json",
         },
       });

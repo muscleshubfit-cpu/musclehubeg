@@ -25,12 +25,12 @@ export async function generateMetadata({
 
   if (!exercise) {
     return {
-      title: "Exercise Not Found — Musclehubeg",
+      title: "Exercise Not Found — Alkemos",
       robots: { index: false, follow: false },
     };
   }
 
-  const title = `${exercise.nameEn} — Proper Form & Instructions | Musclehubeg`;
+  const title = `${exercise.nameEn} — Proper Form & Instructions | Alkemos`;
   const description = `Learn how to perform ${exercise.nameEn} with proper form. Target muscles: ${exercise.primaryMuscles.join(", ")}. Equipment: ${EQUIPMENT_LABELS[exercise.equipment].en}. Level: ${LEVEL_LABELS[exercise.level].en}.`;
   const url = `https://alkemos.com/exercises/${exercise.slug}`;
 
@@ -52,7 +52,7 @@ export async function generateMetadata({
       url,
       title,
       description,
-      siteName: "Musclehubeg",
+      siteName: "Alkemos",
       locale: "en_US",
     },
     twitter: {

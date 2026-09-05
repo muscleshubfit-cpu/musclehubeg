@@ -92,14 +92,14 @@ type HeroNavItem = {
 };
 
 const HERO_NAV: HeroNavItem[] = [
-  { id: "memberships", labelEn: "Memberships", labelAr: "العضويات", titleEn: "Musclehubeg Premium memberships", titleAr: "عضويات Musclehubeg المميزة", icon: Crown, color: "#0071e3", primary: true },
+  { id: "memberships", labelEn: "Memberships", labelAr: "العضويات", titleEn: "Alkemos Premium memberships", titleAr: "عضويات Alkemos المميزة", icon: Crown, color: "#0071e3", primary: true },
   { id: "tools", labelEn: "Free Tools", labelAr: "أدوات مجانية", titleEn: "6 free fitness & nutrition calculators", titleAr: "6 حاسبات مجانية بدون تسجيل", icon: Calculator, color: "#ff9500" },
   { id: "exercises", labelEn: "Exercises", labelAr: "التمارين", titleEn: "868+ exercise library", titleAr: "مكتبة 868+ تمرين", icon: Dumbbell, color: "#34c759" },
   { id: "programs", labelEn: "Programs", labelAr: "البرامج", titleEn: "Ready-made workout programs", titleAr: "برامج تدريب جاهزة", icon: ClipboardList, color: "#5856d6" },
   { id: "foods", labelEn: "Foods", labelAr: "الأكلات", titleEn: "8,830+ foods with calories & macros", titleAr: "8,830+ أكلة بالسعرات والماكروز", icon: Salad, color: "#ff2d55" },
   { id: "blog", labelEn: "Blog", labelAr: "المدونة", titleEn: "Scientific fitness articles", titleAr: "مقالات رياضية علمية", icon: BookOpen, color: "#00b8d9", needsPosts: true },
   { id: "coaching", labelEn: "Coaching", labelAr: "الكوتشينج", titleEn: "Online coaching with real coaches", titleAr: "كوتشينج أونلاين مع مدربين حقيقيين", icon: Users, color: "#af52de" },
-  { id: "for-coaches", labelEn: "For Coaches", labelAr: "كن مدرباً", titleEn: "Run your coaching business on Musclehubeg", titleAr: "اعمل شغلك كله من مكان واحد", icon: Briefcase, color: "#1d1d1f" },
+  { id: "for-coaches", labelEn: "For Coaches", labelAr: "كن مدرباً", titleEn: "Run your coaching business on Alkemos", titleAr: "اعمل شغلك كله من مكان واحد", icon: Briefcase, color: "#1d1d1f" },
   { id: "evo", labelEn: "EVO", labelAr: "EVO", titleEn: "Smart performance engine — included in memberships", titleAr: "محرك أداء ذكي — داخل الاشتراكات", icon: Bot, color: "#0071e3" },
   { id: "affiliate", labelEn: "Affiliate", labelAr: "الأفلييت", titleEn: "Earn 20% commission as an affiliate", titleAr: "اكسب عمولة 20% كأفلييت", icon: Megaphone, color: "#ff9500" },
   { id: "faq", labelEn: "FAQ", labelAr: "أسئلة شائعة", titleEn: "Frequently asked questions", titleAr: "أسئلة شائعة", icon: CircleHelp, color: "#8e8e93" },
@@ -400,8 +400,8 @@ export function LandingView() {
             </h1>
             <p className="mx-auto mt-4 max-w-xl text-base font-normal leading-relaxed md:mx-0 md:text-lg" style={{ color: PALETTE.textSec }}>
               {isAr
-                ? "منصة Musclehubeg للتدريب الرقمي مش مجرد موقع تمارين — دي منظومة رياضية متكاملة: أكثر من 868 تمرينًا بشرح وافٍ، 8830 أكلة بالقيم الغذائية، برامج جاهزة لكل مستوى، حاسبات لياقة مجانية، مدونة علمية، وكوتشينج حقيقي. احصل على خطط مخصصة من مدربين معتمدين أو ذكاء اصطناعي EVO، وتابع تقدمك خطوة بخطوة — كل ما تحتاجه في مكان واحد يوفر عليك وقتك وجهدك."
-                : "Musclehubeg is more than a fitness website — it's a complete digital training platform and sports ecosystem: 868+ exercises with full instructions, 8,830+ foods with nutrition data, ready-made programs for every level, free fitness calculators, a scientific blog, and real online coaching. Get custom plans from certified coaches or the EVO AI, and track your progress step by step — everything you need in one place, saving you time and effort."}
+                ? "منصة Alkemos للتدريب الرقمي مش مجرد موقع تمارين — دي منظومة رياضية متكاملة: أكثر من 868 تمرينًا بشرح وافٍ، 8830 أكلة بالقيم الغذائية، برامج جاهزة لكل مستوى، حاسبات لياقة مجانية، مدونة علمية، وكوتشينج حقيقي. احصل على خطط مخصصة من مدربين معتمدين أو ذكاء اصطناعي EVO، وتابع تقدمك خطوة بخطوة — كل ما تحتاجه في مكان واحد يوفر عليك وقتك وجهدك."
+                : "Alkemos is more than a fitness website — it's a complete digital training platform and sports ecosystem: 868+ exercises with full instructions, 8,830+ foods with nutrition data, ready-made programs for every level, free fitness calculators, a scientific blog, and real online coaching. Get custom plans from certified coaches or the EVO AI, and track your progress step by step — everything you need in one place, saving you time and effort."}
             </p>
             {/* Owner directive 2026-08-30: hero buttons = section navigation
                 for the WHOLE homepage (beautiful chips). EVO is a service
@@ -481,7 +481,7 @@ export function LandingView() {
         </div>
       </section>
 
-      {/* (removed: "What is Musclehubeg?" section — Phase 117 correction 2026-09-04, owner directive: duplicated the hero; best phrases merged into the hero subtitle above, CenteredSection deleted as now-unused) */}
+      {/* (removed: "What is Alkemos?" section — Phase 117 correction 2026-09-04, owner directive: duplicated the hero; best phrases merged into the hero subtitle above, CenteredSection deleted as now-unused) */}
 
       {/* ===================== 3. EVO PREVIEW ===================== */}
       <section id="evo" className="scroll-mt-20 px-4 py-16 md:py-24" style={{ backgroundColor: PALETTE.sectionGray, color: PALETTE.textPrim }}>
@@ -1110,11 +1110,11 @@ export function LandingView() {
 
           {/* Phase 117 (owner executive order — SEO/GEO): feature-comparison
               table vs traditional alternatives. ✅/❌ cells per the owner's
-              directive; the Musclehubeg column is visually highlighted. */}
+              directive; the Alkemos column is visually highlighted. */}
           <Reveal delay={450}>
             <div className="mt-12">
               <h3 className="text-center text-2xl font-semibold tracking-tight md:text-3xl" style={{ color: PALETTE.textPrim }}>
-                {isAr ? "ليه Musclehubeg؟ مقارنة سريعة" : "Why Musclehubeg? A quick comparison"}
+                {isAr ? "ليه Alkemos؟ مقارنة سريعة" : "Why Alkemos? A quick comparison"}
               </h3>
               <div className="mt-6 overflow-x-auto rounded-2xl" style={{ border: `1px solid ${PALETTE.border}` }}>
                 <table className="w-full min-w-[560px] text-sm">
@@ -1124,7 +1124,7 @@ export function LandingView() {
                         {isAr ? "الميزة" : "Feature"}
                       </th>
                       <th className="p-4 text-center text-xs font-semibold" style={{ color: PALETTE.brandDeep }}>
-                        Musclehubeg
+                        Alkemos
                       </th>
                       <th className="p-4 text-center text-xs font-medium" style={{ color: PALETTE.textSec }}>
                         {isAr ? "مدرب شخصي تقليدي" : "Traditional personal trainer"}
@@ -1302,7 +1302,7 @@ export function LandingView() {
           <div className="grid gap-8 md:grid-cols-3 lg:grid-cols-5">
             {/* Brand */}
             <div>
-              <p className="text-sm font-semibold text-[#1d1d1f]">Musclehubeg</p>
+              <p className="text-sm font-semibold text-[#1d1d1f]">Alkemos</p>
               <p className="mt-2 text-xs font-normal">{isAr ? "منصة رياضية شاملة." : "Comprehensive sports platform."}</p>
               <p className="mt-3 text-[10px] font-normal text-[#8e8e93]">{isAr ? "© 2026 جميع الحقوق محفوظة" : "© 2026 All rights reserved"}</p>
             </div>

@@ -9,9 +9,9 @@ import type { Metadata } from "next";
  * tool pages). No hreflang: no /ar mirror exists for this page.
  */
 export const metadata: Metadata = {
-  title: "Meal Planner | Musclehubeg — Build & Download Custom Meal Plans",
+  title: "Meal Planner | Alkemos — Build & Download Custom Meal Plans",
   description:
-    "Create a personalized meal plan in minutes: search the Musclehubeg food database, set your portions and calories, save plans as bookmarks, and download or export the final plan for free.",
+    "Create a personalized meal plan in minutes: search the Alkemos food database, set your portions and calories, save plans as bookmarks, and download or export the final plan for free.",
   keywords: [
     "meal planner",
     "custom meal plan",
@@ -24,7 +24,7 @@ export const metadata: Metadata = {
     canonical: "/meal-planner",
   },
   openGraph: {
-    title: "Meal Planner | Musclehubeg",
+    title: "Meal Planner | Alkemos",
     description:
       "Build a personalized meal plan from the full food database and download it for free.",
     type: "website",

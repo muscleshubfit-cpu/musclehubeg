@@ -1,4 +1,4 @@
-# Developer Guide — MuscleHub
+# Developer Guide — Alkemos
 
 > **آخر تحديث:** 2026-09-03 (Phase 112 — أمر المالك: اختصار الملف وحذف الشرح التقني العميق إلى `docs/TECH_REFERENCE.md`)
 > **الجمهور المستهدف:** مطورين جدد ينضمون للمشروع، أو المطور الحالي كمرجع
@@ -41,7 +41,7 @@ git --version    # أي إصدار حديث
 
 ```bash
 git clone https://github.com/muscleshubfit-cpu/musclehubeg.git
-cd musclehubeg
+cd alkemos
 bun install
 ```
 

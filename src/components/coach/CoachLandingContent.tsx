@@ -266,7 +266,7 @@ export function CoachLandingContent({
 
       {/* Branding footer */}
       <footer className="border-t border-[#d2d2d7] py-10 text-center">
-        <p className="text-sm font-semibold tracking-tight text-[#1d1d1f]">Musclehubeg</p>
+        <p className="text-sm font-semibold tracking-tight text-[#1d1d1f]">Alkemos</p>
         <p className="mt-1 text-xs font-normal text-[#6e6e73]">
           {isAr ? (
             <>

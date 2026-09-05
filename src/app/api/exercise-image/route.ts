@@ -98,7 +98,7 @@ async function fetchExerciseImage(name: string): Promise<string | null> {
  const searchRes = await fetch(searchUrl, {
  headers: {
  Accept: "application/json",
- "User-Agent": "Musclehubeg/1.0 (fitness coaching platform)",
+ "User-Agent": "Alkemos/1.0 (fitness coaching platform)",
  },
  signal: AbortSignal.timeout(8000),
  });
@@ -142,7 +142,7 @@ async function fetchExerciseImage(name: string): Promise<string | null> {
  const imgRes = await fetch(imgUrl, {
  headers: {
  Accept: "application/json",
- "User-Agent": "Musclehubeg/1.0 (fitness coaching platform)",
+ "User-Agent": "Alkemos/1.0 (fitness coaching platform)",
  },
  signal: AbortSignal.timeout(8000),
  });

@@ -266,7 +266,7 @@ export async function callAI(
         ...(cfg.provider === "openrouter"
           ? {
               "HTTP-Referer": "https://alkemos.com",
-              "X-Title": "Musclehubeg Blog CMS",
+              "X-Title": "Alkemos Blog CMS",
             }
           : {}),
       },
@@ -389,7 +389,7 @@ export async function callAIStream(
         ...(cfg.provider === "openrouter"
           ? {
               "HTTP-Referer": "https://alkemos.com",
-              "X-Title": "Musclehubeg EVO Chat",
+              "X-Title": "Alkemos EVO Chat",
             }
           : {}),
       },

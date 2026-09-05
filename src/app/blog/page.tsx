@@ -16,7 +16,7 @@ const SITE_URL = "https://alkemos.com";
 export const metadata: Metadata = {
   title: "Fitness & Nutrition Blog",
   description:
-    "Science-based workout, nutrition, and supplement articles from the Musclehubeg team — English editions.",
+    "Science-based workout, nutrition, and supplement articles from the Alkemos team — English editions.",
   alternates: {
     canonical: "/blog",
     languages: {

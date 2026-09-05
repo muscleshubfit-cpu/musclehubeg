@@ -16,9 +16,9 @@ const SITE_URL = "https://alkemos.com";
  * (en→/about, ar→/ar/about, x-default→/about) is declared on BOTH sides.
  */
 export const metadata: Metadata = {
-  title: "عن Musclehubeg — من نحن، رؤيتنا ورسالتنا",
+  title: "عن Alkemos — من نحن، رؤيتنا ورسالتنا",
   description:
-    "تعرّف على Musclehubeg: المنصة الرياضية المصرية التي تجمع مكتبة تمرين تضم أكثر من 868 تمريناً، وبرامج تدريب جاهزة، وحاسبات لياقة مجانية، وقاعدة أطعمة، ومساعد EVO الذكي، وكوتشينج أونلاين — رسالتنا أن نجعل اللياقة بمستوى الخبراء في متناول الجميع.",
+    "تعرّف على Alkemos: المنصة الرياضية المصرية التي تجمع مكتبة تمرين تضم أكثر من 868 تمريناً، وبرامج تدريب جاهزة، وحاسبات لياقة مجانية، وقاعدة أطعمة، ومساعد EVO الذكي، وكوتشينج أونلاين — رسالتنا أن نجعل اللياقة بمستوى الخبراء في متناول الجميع.",
   alternates: {
     canonical: `${SITE_URL}/ar/about`,
     languages: {
@@ -28,7 +28,7 @@ export const metadata: Metadata = {
     },
   },
   openGraph: {
-    title: "عن Musclehubeg — من نحن، رؤيتنا ورسالتنا",
+    title: "عن Alkemos — من نحن، رؤيتنا ورسالتنا",
     description:
       "منصة رياضية متكاملة: 868+ تمرين، برامج جاهزة، حاسبات مجانية، قاعدة أطعمة، ومدرب ذكاء اصطناعي EVO.",
     url: `${SITE_URL}/ar/about`,

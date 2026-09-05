@@ -11,10 +11,10 @@ export const dynamic = "force-static";
 
 export async function GET(): Promise<Response> {
   const xml = await buildRss({
-    title: "مدونة Musclehubeg — اللياقة والتغذية",
+    title: "مدونة Alkemos — اللياقة والتغذية",
     link: `${RSS_SITE_URL}/ar/blog`,
     description:
-      "مقالات تدريب وتغذية علمية من فريق Musclehubeg: خطط تمرين، حرق الدهون، بناء العضلات، وأكل صحي.",
+      "مقالات تدريب وتغذية علمية من فريق Alkemos: خطط تمرين، حرق الدهون، بناء العضلات، وأكل صحي.",
     language: "ar",
     selfUrl: `${RSS_SITE_URL}/ar/rss.xml`,
     lang: "ar",
