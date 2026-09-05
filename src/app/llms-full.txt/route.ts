@@ -19,7 +19,7 @@ export const dynamic = "force-static";
 const SITE =
   process.env.NEXT_PUBLIC_SITE_URL ||
   process.env.NEXT_PUBLIC_APP_URL ||
-  "https://musclehubeg.vercel.app";
+  "https://alkemos.com";
 
 const RECENT_PER_LANG = 30;
 

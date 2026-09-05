@@ -25,7 +25,7 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function siteUrl(): string {
   return (
-    process.env.NEXT_PUBLIC_SITE_URL || "https://musclehubeg.vercel.app"
+    process.env.NEXT_PUBLIC_SITE_URL || "https://alkemos.com"
   ).replace(/\/$/, "");
 }
 

@@ -28,7 +28,7 @@ export const metadata: Metadata = {
     description:
       "Build a personalized meal plan from the full food database and download it for free.",
     type: "website",
-    url: "https://musclehubeg.vercel.app/meal-planner",
+    url: "https://alkemos.com/meal-planner",
   },
 };
 

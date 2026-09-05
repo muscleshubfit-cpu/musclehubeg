@@ -18,14 +18,14 @@ export const metadata: Metadata = {
     "fitness plan",
   ],
   alternates: {
-    canonical: "https://musclehubeg.vercel.app/programs",
+    canonical: "https://alkemos.com/programs",
   },
   openGraph: {
     title: "Workout Programs | Musclehubeg",
     description: "Ready-made workout programs for all levels and goals.",
     type: "website",
     locale: "en_US",
-    url: "https://musclehubeg.vercel.app/programs",
+    url: "https://alkemos.com/programs",
   },
 };
 

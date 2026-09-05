@@ -7,7 +7,7 @@ import type { Metadata } from "next";
  * coaches searching «تسجيل مدرب musclehub» land straight on the form.
  */
 
-const SITE_URL = "https://musclehubeg.vercel.app";
+const SITE_URL = "https://alkemos.com";
 
 export const metadata: Metadata = {
   title: "تسجيل مدرب — أنشئ حسابك المجاني على Musclehubeg",

@@ -42,7 +42,7 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "wger.de" },
       { protocol: "https", hostname: "raw.githubusercontent.com" },
       { protocol: "https", hostname: "images.pexels.com" },
-      { protocol: "https", hostname: "musclehubeg.vercel.app" },
+      { protocol: "https", hostname: "alkemos.com" },
       // Blog image pipeline (2026-08-28): Pexels is the PRIMARY featured
       // image source (real photography, people OK / NSFW screened) and
       // Pixabay a fallback. NOTE Phase 97: with images.unoptimized=true

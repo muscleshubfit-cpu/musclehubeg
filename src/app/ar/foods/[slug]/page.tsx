@@ -3,7 +3,7 @@ import { getFoodBySlug, getRelatedFoods } from "@/lib/foods";
 import { getBreadcrumbSchema } from "@/lib/seo";
 import FoodDetailClient from "@/app/foods/[slug]/FoodDetailClient";
 
-const SITE_URL = "https://musclehubeg.vercel.app";
+const SITE_URL = "https://alkemos.com";
 
 /**
  * Arabic mirror of /foods/[slug] — SEO 404 FIX (2026-09-01).

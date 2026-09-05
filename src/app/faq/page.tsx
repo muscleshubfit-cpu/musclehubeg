@@ -18,18 +18,18 @@ export const metadata: Metadata = {
   description:
     "إجابات على أكثر الأسئلة شيوعاً حول Musclehubeg: كيف يعمل محرك EVO الذكي، باقات العضوية، طرق الدفع، أمان البيانات، دعم اللغة العربية، والجدول الزمني للنتائج.",
   alternates: {
-    canonical: "https://musclehubeg.vercel.app/faq",
+    canonical: "https://alkemos.com/faq",
     languages: {
-      "en": "https://musclehubeg.vercel.app/faq",
-      "ar": "https://musclehubeg.vercel.app/ar/faq",
-      "x-default": "https://musclehubeg.vercel.app/faq",
+      "en": "https://alkemos.com/faq",
+      "ar": "https://alkemos.com/ar/faq",
+      "x-default": "https://alkemos.com/faq",
     },
   },
   openGraph: {
     title: "الأسئلة الشائعة — Musclehubeg",
     description:
       "إجابات شاملة حول منصة Musclehubeg: محرك EVO الذكي، العضويات، الدفع، الأمان، والمزيد.",
-    url: "https://musclehubeg.vercel.app/faq",
+    url: "https://alkemos.com/faq",
     type: "website",
     locale: "ar_EG",
   },

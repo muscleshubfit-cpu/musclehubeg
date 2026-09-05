@@ -21,7 +21,7 @@ import { listPublishedPostsForFeed, type BlogFeedItem } from "@/lib/blog-server"
 export const RSS_SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL ||
   process.env.NEXT_PUBLIC_APP_URL ||
-  "https://musclehubeg.vercel.app";
+  "https://alkemos.com";
 
 /** Max items per feed — keep payloads light for crawlers. */
 const MAX_ITEMS = 50;

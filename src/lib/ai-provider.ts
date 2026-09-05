@@ -265,7 +265,7 @@ export async function callAI(
         // OpenRouter recommends these optional headers for attribution.
         ...(cfg.provider === "openrouter"
           ? {
-              "HTTP-Referer": "https://musclehubeg.vercel.app",
+              "HTTP-Referer": "https://alkemos.com",
               "X-Title": "Musclehubeg Blog CMS",
             }
           : {}),
@@ -388,7 +388,7 @@ export async function callAIStream(
         Authorization: `Bearer ${cfg.apiKey}`,
         ...(cfg.provider === "openrouter"
           ? {
-              "HTTP-Referer": "https://musclehubeg.vercel.app",
+              "HTTP-Referer": "https://alkemos.com",
               "X-Title": "Musclehubeg EVO Chat",
             }
           : {}),

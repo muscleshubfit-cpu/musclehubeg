@@ -18,13 +18,13 @@ export const metadata: Metadata = {
     "macro calculator",
   ],
   alternates: {
-    canonical: "https://musclehubeg.vercel.app/foods",
+    canonical: "https://alkemos.com/foods",
     // Homepage AR mirror follow-up (2026-08-30): declare the Arabic mirror
     // (src/app/ar/foods/page.tsx declares the reciprocal pair).
     languages: {
-      en: "https://musclehubeg.vercel.app/foods",
-      ar: "https://musclehubeg.vercel.app/ar/foods",
-      "x-default": "https://musclehubeg.vercel.app/foods",
+      en: "https://alkemos.com/foods",
+      ar: "https://alkemos.com/ar/foods",
+      "x-default": "https://alkemos.com/foods",
     },
   },
   openGraph: {
@@ -32,7 +32,7 @@ export const metadata: Metadata = {
     description: "Complete food database with calories and macros. Search, filter, and calculate grams.",
     type: "website",
     locale: "en_US",
-    url: "https://musclehubeg.vercel.app/foods",
+    url: "https://alkemos.com/foods",
   },
 };
 

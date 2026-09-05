@@ -15,9 +15,9 @@ export const metadata: Metadata = {
   alternates: {
     canonical: "/about",
     languages: {
-      en: "https://musclehubeg.vercel.app/about",
-      ar: "https://musclehubeg.vercel.app/ar/about",
-      "x-default": "https://musclehubeg.vercel.app/about",
+      en: "https://alkemos.com/about",
+      ar: "https://alkemos.com/ar/about",
+      "x-default": "https://alkemos.com/about",
     },
   },
 };

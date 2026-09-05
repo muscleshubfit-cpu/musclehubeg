@@ -19,11 +19,11 @@ import type { Metadata } from "next";
  */
 export const metadata: Metadata = {
   alternates: {
-    canonical: "https://musclehubeg.vercel.app",
+    canonical: "https://alkemos.com",
     languages: {
-      en: "https://musclehubeg.vercel.app",
-      ar: "https://musclehubeg.vercel.app/ar",
-      "x-default": "https://musclehubeg.vercel.app",
+      en: "https://alkemos.com",
+      ar: "https://alkemos.com/ar",
+      "x-default": "https://alkemos.com",
     },
   },
 };

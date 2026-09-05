@@ -23,10 +23,10 @@ export const metadata: Metadata = {
       "An intelligent engine that builds personalized plans from your data and suggests smart swaps. Free for everyone.",
     type: "website",
     locale: "en_US",
-    url: "https://musclehubeg.vercel.app/evo",
+    url: "https://alkemos.com/evo",
   },
   alternates: {
-    canonical: "https://musclehubeg.vercel.app/evo",
+    canonical: "https://alkemos.com/evo",
   },
 };
 

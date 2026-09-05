@@ -17,14 +17,14 @@ export const metadata: Metadata = {
     "protein calculator",
   ],
   alternates: {
-    canonical: "https://musclehubeg.vercel.app/tools/calorie-calculator",
+    canonical: "https://alkemos.com/tools/calorie-calculator",
   },
   openGraph: {
     title: "Calorie Calculator | Musclehubeg",
     description: "Calculate your daily calorie needs and macros for free.",
     type: "website",
     locale: "en_US",
-    url: "https://musclehubeg.vercel.app/tools/calorie-calculator",
+    url: "https://alkemos.com/tools/calorie-calculator",
   },
   twitter: {
     card: "summary_large_image",

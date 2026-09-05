@@ -19,13 +19,13 @@ export const metadata: Metadata = {
     "leg exercises",
   ],
   alternates: {
-    canonical: "https://musclehubeg.vercel.app/exercises",
+    canonical: "https://alkemos.com/exercises",
     // Homepage AR mirror follow-up (2026-08-30): declare the Arabic mirror
     // (src/app/ar/exercises/page.tsx declares the reciprocal pair).
     languages: {
-      en: "https://musclehubeg.vercel.app/exercises",
-      ar: "https://musclehubeg.vercel.app/ar/exercises",
-      "x-default": "https://musclehubeg.vercel.app/exercises",
+      en: "https://alkemos.com/exercises",
+      ar: "https://alkemos.com/ar/exercises",
+      "x-default": "https://alkemos.com/exercises",
     },
   },
   openGraph: {
@@ -33,7 +33,7 @@ export const metadata: Metadata = {
     description: "Browse 868+ exercises with full instructions and difficulty levels.",
     type: "website",
     locale: "en_US",
-    url: "https://musclehubeg.vercel.app/exercises",
+    url: "https://alkemos.com/exercises",
   },
 };
 

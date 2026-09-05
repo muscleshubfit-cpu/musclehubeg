@@ -38,7 +38,7 @@ export async function generateMetadata({
       // has an AR counterpart (and vice versa). x-default = EN (primary).
       languages: {
         "en": og.articleUrl,
-        "ar": `https://musclehubeg.vercel.app/ar/blog/${slug}`,
+        "ar": `https://alkemos.com/ar/blog/${slug}`,
         "x-default": og.articleUrl,
       },
     },

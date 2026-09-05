@@ -29,7 +29,7 @@ export const metadata: Metadata = {
     description:
       "Smart daily hydration goal from your body weight, cup logging, and history — free water tracker.",
     type: "website",
-    url: "https://musclehubeg.vercel.app/tools/water-tracker",
+    url: "https://alkemos.com/tools/water-tracker",
   },
 };
 

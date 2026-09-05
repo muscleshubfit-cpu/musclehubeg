@@ -31,7 +31,7 @@ export const metadata: Metadata = {
     description:
       "Share Musclehubeg with people who trust your recommendations and earn commissions from eligible purchases.",
     type: "website",
-    url: "https://musclehubeg.vercel.app/affiliate",
+    url: "https://alkemos.com/affiliate",
     siteName: "Musclehubeg",
   },
   twitter: {
@@ -41,10 +41,10 @@ export const metadata: Metadata = {
       "Share Musclehubeg with people who trust your recommendations and earn commissions from eligible purchases.",
   },
   alternates: {
-    canonical: "https://musclehubeg.vercel.app/affiliate",
+    canonical: "https://alkemos.com/affiliate",
     languages: {
-      "en-US": "https://musclehubeg.vercel.app/affiliate",
-      "ar-EG": "https://musclehubeg.vercel.app/affiliate",
+      "en-US": "https://alkemos.com/affiliate",
+      "ar-EG": "https://alkemos.com/affiliate",
     },
   },
   robots: {

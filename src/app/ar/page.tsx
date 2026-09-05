@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { LandingView } from "@/components/views/LandingView";
 
-const SITE_URL = "https://musclehubeg.vercel.app";
+const SITE_URL = "https://alkemos.com";
 
 /**
  * Arabic home page — REAL page (was: redirect("/")).

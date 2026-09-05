@@ -107,4 +107,4 @@ Allow: /
 User-agent: YouBot
 Allow: /
 
-Sitemap: https://musclehubeg.vercel.app/sitemap.xml
+Sitemap: https://alkemos.com/sitemap.xml

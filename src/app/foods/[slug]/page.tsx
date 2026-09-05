@@ -34,7 +34,7 @@ export async function generateMetadata({
 
   const title = `${food.nameEn} — Calories, Macros & Nutrition per 100g | Musclehubeg`;
   const description = `${food.nameEn} nutrition facts: ${food.per100g.calories} kcal, ${food.per100g.protein}g protein, ${food.per100g.carbs}g carbs, ${food.per100g.fat}g fat per 100g. Default serving: ${food.defaultServingEn} (${food.defaultGrams}g).`;
-  const url = `https://musclehubeg.vercel.app/foods/${food.slug}`;
+  const url = `https://alkemos.com/foods/${food.slug}`;
 
   return {
     title,
@@ -45,7 +45,7 @@ export async function generateMetadata({
       // mirror /ar/foods/[slug] (which declares the same pair).
       languages: {
         en: url,
-        ar: `https://musclehubeg.vercel.app/ar/foods/${food.slug}`,
+        ar: `https://alkemos.com/ar/foods/${food.slug}`,
         "x-default": url,
       },
     },

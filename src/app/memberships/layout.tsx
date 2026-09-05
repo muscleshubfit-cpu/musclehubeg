@@ -21,13 +21,13 @@ export const metadata: Metadata = {
     type: "website",
   },
   alternates: {
-    canonical: "https://musclehubeg.vercel.app/memberships",
+    canonical: "https://alkemos.com/memberships",
     // Homepage AR mirror follow-up (2026-08-30): declare the Arabic mirror
     // (src/app/ar/memberships/page.tsx declares the reciprocal pair).
     languages: {
-      en: "https://musclehubeg.vercel.app/memberships",
-      ar: "https://musclehubeg.vercel.app/ar/memberships",
-      "x-default": "https://musclehubeg.vercel.app/memberships",
+      en: "https://alkemos.com/memberships",
+      ar: "https://alkemos.com/ar/memberships",
+      "x-default": "https://alkemos.com/memberships",
     },
   },
 };
@@ -45,7 +45,7 @@ export default function MembershipsLayout({
     "@context": "https://schema.org",
     "@type": "OfferCatalog",
     name: "Musclehubeg Membership Plans",
-    url: "https://musclehubeg.vercel.app/memberships",
+    url: "https://alkemos.com/memberships",
     itemListElement: [
       {
         "@type": "Offer",
@@ -53,7 +53,7 @@ export default function MembershipsLayout({
         description: "Limited access to the platform basics.",
         price: "0",
         priceCurrency: "USD",
-        url: "https://musclehubeg.vercel.app/memberships",
+        url: "https://alkemos.com/memberships",
       },
       {
         "@type": "Offer",
@@ -62,7 +62,7 @@ export default function MembershipsLayout({
           "Unlimited EVO AI coach + monthly meal & workout plans. $14.99/month or $119/year.",
         price: "14.99",
         priceCurrency: "USD",
-        url: "https://musclehubeg.vercel.app/memberships",
+        url: "https://alkemos.com/memberships",
       },
       {
         "@type": "Offer",
@@ -71,7 +71,7 @@ export default function MembershipsLayout({
           "No ads + doubled plan limits. $29.99/month or $239/year.",
         price: "29.99",
         priceCurrency: "USD",
-        url: "https://musclehubeg.vercel.app/memberships",
+        url: "https://alkemos.com/memberships",
       },
       {
         "@type": "Offer",
@@ -80,7 +80,7 @@ export default function MembershipsLayout({
           "Human 1-on-1 coaching with a nutrition specialist. $39.99/month or $359/year.",
         price: "39.99",
         priceCurrency: "USD",
-        url: "https://musclehubeg.vercel.app/coaching",
+        url: "https://alkemos.com/coaching",
       },
     ],
   };

@@ -32,7 +32,7 @@ export async function generateMetadata({
 
   const title = `${exercise.nameEn} — Proper Form & Instructions | Musclehubeg`;
   const description = `Learn how to perform ${exercise.nameEn} with proper form. Target muscles: ${exercise.primaryMuscles.join(", ")}. Equipment: ${EQUIPMENT_LABELS[exercise.equipment].en}. Level: ${LEVEL_LABELS[exercise.level].en}.`;
-  const url = `https://musclehubeg.vercel.app/exercises/${exercise.slug}`;
+  const url = `https://alkemos.com/exercises/${exercise.slug}`;
 
   return {
     title,
@@ -43,7 +43,7 @@ export async function generateMetadata({
       // mirror /ar/exercises/[slug] (which declares the same pair).
       languages: {
         en: url,
-        ar: `https://musclehubeg.vercel.app/ar/exercises/${exercise.slug}`,
+        ar: `https://alkemos.com/ar/exercises/${exercise.slug}`,
         "x-default": url,
       },
     },

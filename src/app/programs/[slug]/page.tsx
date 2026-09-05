@@ -30,7 +30,7 @@ export async function generateMetadata({
 
   const title = `${program.nameEn} — Workout Program | Musclehubeg`;
   const description = `${program.nameEn}: ${program.descriptionEn} ${program.days.length}-day ${program.level} program for ${program.goal}. ${program.location}.`;
-  const url = `https://musclehubeg.vercel.app/programs/${program.slug}`;
+  const url = `https://alkemos.com/programs/${program.slug}`;
 
   return {
     title,

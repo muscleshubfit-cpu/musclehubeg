@@ -1,6 +1,6 @@
 # MuscleHubEG — Comprehensive Sports Platform
 
-> **Live:** [musclehubeg.vercel.app](https://musclehubeg.vercel.app)
+> **Live:** [alkemos.com](https://alkemos.com)
 > **Repository:** [github.com/muscleshubfit-cpu/musclehubeg](https://github.com/muscleshubfit-cpu/musclehubeg)
 > **Stack:** Next.js 16 · React 19 · Supabase · OpenRouter + Groq AI · Tailwind CSS 4
 > **CI Gates:** every push is audited — schema-drift · registry-parity · knowledge-system · anti-regression

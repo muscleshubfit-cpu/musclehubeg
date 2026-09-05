@@ -94,7 +94,7 @@ const fetchBlogForOGUncached = async (
       .maybeSingle();
     if (!data) return null;
 
-    const baseUrl = "https://musclehubeg.vercel.app";
+    const baseUrl = "https://alkemos.com";
     const articleUrl = `${baseUrl}${lang === "ar" ? "/ar/blog" : "/blog"}/${data.slug}`;
     return {
       title: data.meta_title || data.title,

@@ -12,14 +12,14 @@ export const metadata: Metadata = {
     "body composition",
   ],
   alternates: {
-    canonical: "https://musclehubeg.vercel.app/tools/body-fat-calculator",
+    canonical: "https://alkemos.com/tools/body-fat-calculator",
   },
   openGraph: {
     title: "Body Fat Calculator | Musclehubeg",
     description: "Calculate your body fat percentage for free using the Navy Method.",
     type: "website",
     locale: "en_US",
-    url: "https://musclehubeg.vercel.app/tools/body-fat-calculator",
+    url: "https://alkemos.com/tools/body-fat-calculator",
   },
 };
 

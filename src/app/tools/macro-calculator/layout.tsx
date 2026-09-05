@@ -13,14 +13,14 @@ export const metadata: Metadata = {
     "daily macros",
   ],
   alternates: {
-    canonical: "https://musclehubeg.vercel.app/tools/macro-calculator",
+    canonical: "https://alkemos.com/tools/macro-calculator",
   },
   openGraph: {
     title: "Macro Calculator | Musclehubeg",
     description: "Calculate your daily protein, carbs, and fat needs for free.",
     type: "website",
     locale: "en_US",
-    url: "https://musclehubeg.vercel.app/tools/macro-calculator",
+    url: "https://alkemos.com/tools/macro-calculator",
   },
 };
 

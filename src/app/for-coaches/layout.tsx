@@ -15,7 +15,7 @@ import { COACH_FAQ_EN } from "./content";
  * JSON-LD: FAQPage (EN questions on the EN side) + BreadcrumbList.
  */
 
-const SITE = "https://musclehubeg.vercel.app";
+const SITE = "https://alkemos.com";
 const PAGE_URL = `${SITE}/for-coaches`;
 
 export const metadata: Metadata = {

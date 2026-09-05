@@ -20,7 +20,7 @@
  * Reference: docs/SEO-SCHEMA-REFERENCE.md (from claude-seo project)
  */
 
-const SITE_URL = "https://musclehubeg.vercel.app";
+const SITE_URL = "https://alkemos.com";
 const SITE_NAME = "Musclehubeg";
 const SITE_LOGO = `${SITE_URL}/logo.png`;
 
@@ -49,7 +49,7 @@ export function getOrganizationSchema() {
     description:
       "منصة التدريب الرقمي المتكاملة: أكثر من 868 تمرينًا، 8830 أكلة بالقيم الغذائية، برامج جاهزة، حاسبات مجانية، ومدربون معتمدون مع ذكاء اصطناعي EVO.",
     sameAs: [
-      "https://musclehubeg.vercel.app",
+      "https://alkemos.com",
     ],
     areaServed: "Worldwide",
     knowsLanguage: ["ar", "en"],

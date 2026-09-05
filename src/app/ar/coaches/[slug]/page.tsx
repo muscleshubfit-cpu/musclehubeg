@@ -26,7 +26,7 @@ import {
 export const revalidate = 300; // 5 min ISR — landing copy changes rarely
 export const runtime = "nodejs";
 
-const SITE_URL = "https://musclehubeg.vercel.app";
+const SITE_URL = "https://alkemos.com";
 
 export async function generateMetadata({
   params,

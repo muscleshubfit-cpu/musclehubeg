@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { StaticPageView } from "@/components/views/StaticPageView";
 
-const SITE_URL = "https://musclehubeg.vercel.app";
+const SITE_URL = "https://alkemos.com";
 
 /**
  * Arabic mirror of /about.

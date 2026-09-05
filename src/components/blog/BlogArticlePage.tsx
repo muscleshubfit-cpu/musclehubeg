@@ -89,13 +89,13 @@ export function BlogArticlePage({
 
   const toc = parseTableOfContents(post.content);
   const htmlContent = renderMarkdown(post.content);
-  const baseUrl = "https://musclehubeg.vercel.app";
+  const baseUrl = "https://alkemos.com";
   const articleUrl = `${baseUrl}${isAr ? "/ar/blog" : "/blog"}/${post.slug}`;
   const linkedUrl = linked ? `${baseUrl}${linked.language === "ar" ? "/ar/blog" : "/blog"}/${linked.slug}` : null;
 
   const shareTitle = post.meta_title || post.title;
   const shareDescription = post.meta_description || post.excerpt || "";
-  const shareImage = post.featured_image || "https://musclehubeg.vercel.app/logo.png";
+  const shareImage = post.featured_image || "https://alkemos.com/logo.png";
 
   return (
     <div className="flex min-h-screen flex-col bg-white text-[#1d1d1f]" dir={isAr ? "rtl" : "ltr"}>

@@ -11,7 +11,7 @@ import type { Metadata, Viewport } from "next";
  * exercises, programs, tools, food library, blog.
  */
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://musclehubeg.vercel.app'),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://alkemos.com'),
   title: "Musclehubeg — Comprehensive Sports Platform | Exercises, Programs, Calculators & Nutrition",
   // Phase 117 completion (owner directive 2026-09-04): meta description
   // shortened to 150-160 chars (157) with a clear CTA — the previous
@@ -92,7 +92,7 @@ export const metadata: Metadata = {
     type: "website",
     siteName: "Musclehubeg",
     locale: "en_US",
-    url: "https://musclehubeg.vercel.app",
+    url: "https://alkemos.com",
     images: [
       {
         url: "/logo.png",

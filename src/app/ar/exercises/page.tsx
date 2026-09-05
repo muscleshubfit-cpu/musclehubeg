@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { ExercisesExplorer } from "@/components/exercises/ExercisesExplorer";
 import { parseExercisesQuery } from "@/components/exercises/url";
 
-const SITE_URL = "https://musclehubeg.vercel.app";
+const SITE_URL = "https://alkemos.com";
 
 /**
  * Arabic mirror of /exercises.

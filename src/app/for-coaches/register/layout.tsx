@@ -10,7 +10,7 @@ import type { Metadata } from "next";
  * this is a public recruitment surface, owner-approved).
  */
 
-const SITE = "https://musclehubeg.vercel.app";
+const SITE = "https://alkemos.com";
 const PAGE_URL = `${SITE}/for-coaches/register`;
 
 export const metadata: Metadata = {

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { BlogListPage } from "@/components/blog/BlogListPage";
 import { listPublishedPostsForListPage } from "@/lib/blog-server";
 
-const SITE_URL = "https://musclehubeg.vercel.app";
+const SITE_URL = "https://alkemos.com";
 
 /**
  * Arabic mirror of /blog — Arabic-language blog list (independent AR

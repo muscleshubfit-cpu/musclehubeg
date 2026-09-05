@@ -100,6 +100,6 @@ export function xmlResponse(xml: string): Response {
 
 export function siteUrl(): string {
   return (
-    process.env.NEXT_PUBLIC_SITE_URL || "https://musclehubeg.vercel.app"
+    process.env.NEXT_PUBLIC_SITE_URL || "https://alkemos.com"
   );
 }

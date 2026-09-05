@@ -13,14 +13,14 @@ export const metadata: Metadata = {
     "healthy weight",
   ],
   alternates: {
-    canonical: "https://musclehubeg.vercel.app/tools/bmi-calculator",
+    canonical: "https://alkemos.com/tools/bmi-calculator",
   },
   openGraph: {
     title: "BMI Calculator | Musclehubeg",
     description: "Calculate your Body Mass Index (BMI) for free and find your ideal weight.",
     type: "website",
     locale: "en_US",
-    url: "https://musclehubeg.vercel.app/tools/bmi-calculator",
+    url: "https://alkemos.com/tools/bmi-calculator",
   },
 };
 

@@ -35,7 +35,7 @@ export function CoachShareButtons({ message, url, labels }: Props) {
     url ||
     (typeof window !== "undefined"
       ? window.location.href
-      : "https://musclehubeg.vercel.app/for-coaches");
+      : "https://alkemos.com/for-coaches");
   const enc = encodeURIComponent;
 
   const links = [

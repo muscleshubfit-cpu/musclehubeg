@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import MembershipsPage from "@/app/memberships/page";
 
-const SITE_URL = "https://musclehubeg.vercel.app";
+const SITE_URL = "https://alkemos.com";
 
 /**
  * Arabic mirror of /memberships.

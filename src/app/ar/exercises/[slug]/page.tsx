@@ -3,7 +3,7 @@ import { getExerciseBySlug, getRelatedExercises, EXERCISES, EQUIPMENT_LABELS, LE
 import { getHowToSchema, getBreadcrumbSchema } from "@/lib/seo";
 import ExerciseDetailClient from "@/app/exercises/[slug]/ExerciseDetailClient";
 
-const SITE_URL = "https://musclehubeg.vercel.app";
+const SITE_URL = "https://alkemos.com";
 
 /**
  * Arabic mirror of /exercises/[slug] — SEO 404 FIX (2026-09-01).

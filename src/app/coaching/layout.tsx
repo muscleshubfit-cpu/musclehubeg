@@ -23,10 +23,10 @@ export const metadata: Metadata = {
       "Personalized meal plans, adaptive workouts, personal follow-up, and EVO AI available 24/7.",
     type: "website",
     locale: "en_US",
-    url: "https://musclehubeg.vercel.app/coaching",
+    url: "https://alkemos.com/coaching",
   },
   alternates: {
-    canonical: "https://musclehubeg.vercel.app/coaching",
+    canonical: "https://alkemos.com/coaching",
   },
 };
 

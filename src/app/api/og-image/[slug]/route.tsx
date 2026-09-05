@@ -17,7 +17,7 @@ import { fetchBlogForOG } from "@/lib/blog-server";
  *   - Musclehubeg logo + brand mark top-left
  *   - Article title centered (auto-fit font size based on length)
  *   - Article description (truncated to 120 chars)
- *   - Site URL "musclehubeg.vercel.app" footer
+ *   - Site URL "alkemos.com" footer
  */
 
 export const runtime = "edge";
@@ -128,7 +128,7 @@ export async function GET(
             opacity: 0.7,
           }}
         >
-          <div>musclehubeg.vercel.app</div>
+          <div>alkemos.com</div>
           <div>{lang === "ar" ? "مدونة Musclehubeg" : "Musclehubeg Blog"}</div>
         </div>
       </div>

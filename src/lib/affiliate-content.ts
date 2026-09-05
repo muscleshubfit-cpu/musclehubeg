@@ -31,15 +31,15 @@ import { COMMISSION_RATE, COOKIE_DURATION_DAYS } from "@/lib/referral";
  *   1. NEXT_PUBLIC_APP_URL env (Vercel injects this — always the production
  *      URL on Vercel deployments)
  *   2. NEXT_PUBLIC_SITE_URL env
- *   3. https://musclehubeg.vercel.app (production fallback)
+ *   3. https://alkemos.com (production fallback)
  *
  * IMPORTANT: Affiliate/referral links MUST always point to the production
- * domain (musclehubeg.vercel.app), NOT to the current window.location.origin.
+ * domain (alkemos.com), NOT to the current window.location.origin.
  * If we used window.location.origin in a preview/dev environment, the
  * shared affiliate link would point to localhost:3000 or a preview URL —
  * breaking attribution (the ?ref=CODE cookie would be set on the wrong
  * domain) and confusing the recipient (they'd see a different site than
- * the marketed musclehubeg.vercel.app).
+ * the marketed alkemos.com).
  *
  * The banner SVG URLs (getBannerUrl) also use this origin so that HTML
  * embed codes pasted on external websites load the banner from the
@@ -49,7 +49,7 @@ export function getSiteOrigin(): string {
   const env =
     process.env.NEXT_PUBLIC_APP_URL ||
     process.env.NEXT_PUBLIC_SITE_URL ||
-    "https://musclehubeg.vercel.app";
+    "https://alkemos.com";
   return env.replace(/\/$/, "");
 }
 

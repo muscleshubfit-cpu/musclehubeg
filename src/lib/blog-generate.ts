@@ -31,7 +31,7 @@ import { callFreeAIFallbackChain, parseJSON } from "@/lib/ai-provider";
 import { externalSearch, type ResearchResult } from "@/lib/external-search";
 import { insertToolLinks } from "@/lib/blog-tool-links";
 
-export const ARTICLE_SYSTEM_PROMPT = `You are the Musclehubeg AI Content Assistant — an expert SEO content strategist and copywriter for a premium online nutrition & fitness coaching platform (Musclehubeg, musclehubeg.vercel.app).
+export const ARTICLE_SYSTEM_PROMPT = `You are the Musclehubeg AI Content Assistant — an expert SEO content strategist and copywriter for a premium online nutrition & fitness coaching platform (Musclehubeg, alkemos.com).
 
 Your job: produce publication-ready blog content optimized for:
  - Google Search (E-E-A-T, helpful content, semantic SEO)

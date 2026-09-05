@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { FoodsExplorer } from "@/components/foods/FoodsExplorer";
 import { parseFoodsQuery } from "@/components/foods/url";
 
-const SITE_URL = "https://musclehubeg.vercel.app";
+const SITE_URL = "https://alkemos.com";
 
 /**
  * Arabic mirror of /foods — SERVER-RENDERED (same 2026-09-05 audit).

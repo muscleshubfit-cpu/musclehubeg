@@ -17,14 +17,14 @@ export const metadata: Metadata = {
     "water tracker",
   ],
   alternates: {
-    canonical: "https://musclehubeg.vercel.app/tools",
+    canonical: "https://alkemos.com/tools",
   },
   openGraph: {
     title: "Free Fitness Tools | Musclehubeg",
     description: "Free fitness and nutrition calculators for your journey.",
     type: "website",
     locale: "en_US",
-    url: "https://musclehubeg.vercel.app/tools",
+    url: "https://alkemos.com/tools",
   },
 };
 

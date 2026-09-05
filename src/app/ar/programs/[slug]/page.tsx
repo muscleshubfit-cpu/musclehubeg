@@ -4,7 +4,7 @@ import { getExerciseMinisBySlugs } from "@/lib/exercises";
 import { getBreadcrumbSchema } from "@/lib/seo";
 import ProgramDetailClient from "@/app/programs/[slug]/ProgramDetailClient";
 
-const SITE_URL = "https://musclehubeg.vercel.app";
+const SITE_URL = "https://alkemos.com";
 
 /**
  * Arabic mirror of /programs/[slug].

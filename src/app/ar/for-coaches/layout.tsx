@@ -14,7 +14,7 @@ import { COACH_FAQ_AR } from "@/app/for-coaches/content";
  * for non-Google answer engines per site convention.
  */
 
-const SITE_URL = "https://musclehubeg.vercel.app";
+const SITE_URL = "https://alkemos.com";
 
 export const metadata: Metadata = {
   title: "انضم كمدرب في Musclehubeg — درِّب عملاءك بأسعارك وفلوسك في إيدك",

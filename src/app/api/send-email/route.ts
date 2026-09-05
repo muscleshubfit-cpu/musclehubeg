@@ -69,10 +69,10 @@ const DAILY_WINDOW = 24 * 60 * 60 * 1000;
 const DAILY_EMAIL_LIMIT = 100;
 
 /**
- * Site link used inside the emails (owner: live domain = musclehubeg.vercel.app).
+ * Site link used inside the emails (owner: live domain = alkemos.com).
  * Set NEXT_PUBLIC_SITE_URL on Vercel to switch every email link at once.
  */
-const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || "https://musclehubeg.vercel.app").replace(/\/$/, "");
+const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || "https://alkemos.com").replace(/\/$/, "");
 
 function checkEmailLimit(email: string): boolean {
   const now = Date.now();
