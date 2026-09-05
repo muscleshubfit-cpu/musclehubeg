@@ -62,8 +62,16 @@ function memoryLimit(
 async function upstashCommand(
   commands: (string | number)[][],
 ): Promise<unknown[] | null> {
+  const url = upstashUrl().replace(/\/+$/, "");
+  // Endpoint routing (verified live 2026-09-05 on flowing-sunbeam-103898):
+  // the ROOT path accepts a SINGLE command array (["PING"]) but REJECTS
+  // a nested/pipeline array with 400 "unsupported arg type: json.Delim".
+  // Pipelined commands must go to the dedicated /pipeline path.
+  // (Forgetting this made the whole feature silently fall back to the
+  // in-memory Map even with env vars set — caught by live verification.)
+  const endpoint = commands.length === 1 ? url : `${url}/pipeline`;
   try {
-    const res = await fetch(upstashUrl(), {
+    const res = await fetch(endpoint, {
       method: "POST",
       headers: {
         authorization: `Bearer ${upstashToken()}`,

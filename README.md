@@ -82,6 +82,15 @@ NEXT_PUBLIC_GA_ID=G-XXXXXXXXXX
 NEXT_PUBLIC_SITE_URL=https://your-domain.com
 COACH_EMAILS=coach@example.com,admin@example.com
 CRON_SECRET=your-cron-secret
+
+# === Optional: distributed rate limiting (Upstash Redis free tier) ===
+# When set, public API endpoints (lead capture, email, coach register)
+# share fixed-window rate-limit counters across ALL serverless
+# instances via Upstash's REST API. Without these, limiting falls back
+# to a per-instance in-memory Map (resets on cold starts).
+# Console: https://console.upstash.com → Create Database → REST API section
+UPSTASH_REDIS_REST_URL=https://your-cache.upstash.io
+UPSTASH_REDIS_REST_TOKEN=your-rest-token
 ```
 
 ### Database Setup
