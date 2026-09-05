@@ -347,10 +347,10 @@ export function SiteHeader({ variant = "landing" }: { variant?: "landing" | "app
             aria-label="Alkemos"
           >
             <Image
-              src="/logo.png"
+              src="/logo-header.png"
               alt="Alkemos"
-              width={120}
-              height={80}
+              width={700}
+              height={144}
               priority
               className="hidden h-9 w-auto object-contain md:block"
             />
