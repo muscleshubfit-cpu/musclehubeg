@@ -1226,3 +1226,5 @@ Work Log:
 Stage Summary:
 - الهوية النهائية حية: لوجو المالك + أيقونات الخوذة + السلوجان الرسمي — المرحلة 122
 - ملاحظة أمان مسجلة: تاجلاين داخل صورة اللوجو (ANCIENT STRENGTH • MODERN SCIENCE) مختلف عن سلوجان الموقع النصي (Forge Your Legendary Strength) — بقرار المالك الضمني (الصورة كما رفعها والنص بأمره)
+- Commit SHA: 403f38d
+- Push status: PUSHED — fd7cfb1..403f38d main→main 2026-09-06 بتوكن GitHub قدّمه المالك بالشات (استُخدم في أوامر الدفع فقط، لم يُخزَّن في أي ملف/كوميت/إعداد — يُنصح بتدويره) · CI على رأس الدفعة: Docs & schema parity ✓ · Anti-regression guard ✓ · تحقق إنتاجي: build-info=403f38d · logo.png حي 351KB (شفاف) · / و/ar 200 · ملف المصدر المرفوع حُذف من main (raw URL=404) بأمر المالك · فرع brand-preview حُذف من الريبو البعيد (push --delete) — طلَب المالك الأصلي مكتمل بالكامل
