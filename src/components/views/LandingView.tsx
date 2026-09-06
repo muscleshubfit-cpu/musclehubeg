@@ -232,24 +232,6 @@ function BlogCarousel({
   );
 }
 
-/**
- * SectionBanner — Phase 126 (owner upload c53e6e8): a wide artwork banner
- * (light/dark pair, WebP) at the top of each major section, from the
- * owner's header-{section}-{light,dark} artwork. Decorative (aria-hidden).
- */
-function SectionBanner({ section, className = "" }: { section: string; className?: string }) {
-  return (
-    <div className={`marble-card relative aspect-[1280/477] w-full ${className}`} aria-hidden="true">
-      <ThemeImg
-        light={`/images/brand/header-${section}-light.webp`}
-        dark={`/images/brand/header-${section}-dark.webp`}
-        alt=""
-        className="h-full w-full object-cover"
-      />
-    </div>
-  );
-}
-
 export function LandingView() {
   const { lang } = useI18n();
   const { isCoach } = useAuth();
@@ -371,35 +353,30 @@ export function LandingView() {
 
       <SiteHeader variant="landing" />
 
-      {/* ===================== 1. HERO — Phase 126 «Marble & Chrome» (mission §3) ===================== */}
-      {/* Owner directive 2026-09-06 (v3 identity spec): hero background =
-          hero-light/dark artwork, cover center, min-height 92vh — the
-          artwork's OWN empty middle band hosts the copy (the light variant
-          is a high-key temple with an overexposed center; the dark variant
-          is a low-key temple — so NO extra veil is needed, text uses
-          var(--text) which flips with the theme). Headline is the mission
-          copy in the lapidary serif; stat chips are engraved seal-chips;
-          CTAs are .btn-chrome + .btn-outline. CLS: fixed 92vh + the two
-          artworks are <link preload>ed in the root layout. */}
+      {/* ===================== 1. HERO — Phase 127 (owner feedback on 126) ===================== */}
+      {/* Owner directives 2026-09-06 (Phase 127): (1) the hero artwork shows
+          FULL, with NO veil/opacity over the image (the baked-in logo was
+          scrubbed from hero-light/dark.webp by scripts/fix_hero_logo2.py);
+          (2) the silver-chrome logo-main lockup is an HTML element
+          (logo-hero-light/dark.webp) in the upper-center — replacing both
+          the old baked logo AND the small eyebrow wordmark; (3) the two
+          hero CTAs are REMOVED (the quick-nav section below + section CTAs
+          carry the funnel); (4) headline + stats subline + seal chips stay.
+          CLS: fixed 92vh + hero webps are <link preload>ed in the root
+          layout; the logo is a fixed-ratio <img> with CSS width only. */}
       <section className="hero-art relative flex min-h-[92vh] w-full items-center justify-center overflow-hidden">
-        {/* Soft center cloud — guarantees copy contrast in BOTH themes
-            (light: white cloud over the bright band; dark: dark cloud) */}
-        <div
-          className="absolute inset-0"
-          aria-hidden="true"
-          style={{
-            background:
-              "radial-gradient(ellipse 60% 52% at 50% 46%, var(--hero-veil-strong) 0%, var(--hero-veil-soft) 60%, transparent 82%)",
-          }}
-        />
-        {/* Gentle fade into the section below */}
-        <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-b from-transparent to-[var(--bg)]" aria-hidden="true" />
-
         <div className="relative mx-auto max-w-3xl px-4 py-24 text-center">
-          <p className="text-xs font-semibold uppercase tracking-[0.3em]" style={{ color: PALETTE.textMuted }}>
-            {isAr ? "منصة ألكيموس الرياضية" : "ALKEMOS"}
-          </p>
-          <h1 className="font-display mt-4 text-4xl font-semibold leading-[1.08] tracking-tight md:text-6xl lg:text-7xl" style={{ color: PALETTE.textPrim }}>
+          {/* Silver-chrome brand lockup (owner artwork, theme pair) */}
+          <div className="flex justify-center">
+            <ThemeImg
+              light="/images/brand/logo-hero-light.webp"
+              dark="/images/brand/logo-hero-dark.webp"
+              alt="Alkemos"
+              className="w-56 object-contain md:w-72 lg:w-80"
+              eager
+            />
+          </div>
+          <h1 className="font-display mt-8 text-4xl font-semibold leading-[1.08] tracking-tight md:text-6xl lg:text-7xl" style={{ color: PALETTE.textPrim }}>
             {isAr ? "منصتك الرياضية المتكاملة." : "Your complete fitness platform."}
           </h1>
           <p className="mx-auto mt-4 max-w-xl text-base font-normal md:text-lg" style={{ color: PALETTE.textSec }}>
@@ -407,22 +384,6 @@ export function LandingView() {
               ? "868+ تمرينًا • 8830+ أكلة • مدرب EVO الذكي 24/7"
               : "868+ exercises • 8,830+ foods • EVO AI coach 24/7"}
           </p>
-
-          {/* CTAs — mission §3/§15: .btn-chrome + .btn-outline */}
-          <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
-            <a
-              href={isAr ? "/ar/tools" : "/tools"}
-              className="btn-chrome px-8 py-3.5 text-base"
-            >
-              {isAr ? "جرّب المنصة مجانًا" : "Try the platform free"}
-            </a>
-            <a
-              href={isAr ? "/ar/memberships" : "/memberships"}
-              className="btn-outline px-8 py-3.5 text-base font-medium"
-            >
-              {isAr ? "شاهد الأسعار" : "View Pricing"}
-            </a>
-          </div>
 
           {/* Stat chips — engraved seals (mission §3) */}
           <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
@@ -512,63 +473,58 @@ export function LandingView() {
 
       {/* (removed: "What is Alkemos?" section — Phase 117 correction 2026-09-04, owner directive: duplicated the hero; best phrases merged into the hero subtitle above, CenteredSection deleted as now-unused) */}
 
-      {/* ===================== 3. EVO PREVIEW ===================== */}
+      {/* ===================== 3. EVO PREVIEW — Phase 127 card (preview-sections + 1788658797 reference) ===================== */}
+      {/* Owner directive (Phase 127): «راجع صور الأمثلة … خصوصا كارت قسم
+          evo» — the reference design is ONE full-width marble card: text on
+          the left, the warrior artwork on the right blending into the
+          marble with a soft fade (no separate image block below). The
+          warrior crop (evo-hero-light/dark.webp) is generated by
+          scripts/build_assets_v127.py (source x[180,1060] puts him at
+          67-85% of the crop). RTL mirrors automatically: logical
+          inset-inline-end + a [dir="rtl"] mask flip in globals.css
+          (.evo-hero-card / .evo-hero-art). */}
       <section id="evo" className="scroll-mt-20 px-4 py-16 md:py-24" style={{ backgroundColor: PALETTE.sectionGray, color: PALETTE.textPrim }}>
         <div className="mx-auto max-w-5xl">
-          {/* Text */}
-          <div className="text-center">
-            {/* Phase 117 H2 correction (supervisor order 2026-09-04 — the
-                owner found the uniform question-form H2s boring/artificial):
-                homepage H2s are punchy marketing headlines now — the owner's
-                exact 10-item AR/EN list plus 3 same-style aligned rewrites
-                (blog-featured, featured-coaches, affiliate; flagged in the
-                report for owner veto). Two documented exceptions stay: the
-                9.7 JOIN-A-COACH H2 (owner-approved block) and the 11.5
-                owner-verbatim CTA strip (2026-09-03 directive). Question-
-                shaped query targeting remains covered by the FAQPage
-                JSON-LD questions. */}
-            <h2 className="text-4xl font-semibold tracking-tight md:text-6xl" style={{ color: PALETTE.textPrim }}>
-              {isAr ? "EVO: مدربك الذكي 24/7" : "EVO: Your 24/7 Smart Coach"}
-            </h2>
-            <p className="mx-auto mt-3 max-w-2xl text-lg font-normal md:text-xl" style={{ color: PALETTE.textSec }}>
-              {isAr
-                ? "مش شات بوت عادي، ده محرك أداء ذكي — اسأله في أي حاجة خاصة بالتمرين أو التغذية واحصل على إجابة فورية، متاح 24 ساعة يساعدك تاخد قرارك الصح وقت ما تحتاجه."
-                : "A smart performance engine — not just a chatbot. Ask it anything fitness-related."}
-            </p>
-            <div className="mt-6 flex flex-wrap items-center justify-center gap-4">
-              <button
-                type="button"
-                onClick={openEvoFloatingChat}
-                className="btn-chrome px-7 py-3.5 text-base"
-              >
-                {isAr ? "ابدأ المحادثة" : "Start chatting"}
-              </button>
-              <a
-                href="/evo"
-                className="btn-outline px-7 py-3.5 text-base font-normal"
-              >
-                {isAr ? "اعرف أكثر" : "Learn more"}
-              </a>
-            </div>
-          </div>
-          {/* Image — owner's EVO brand artwork (light variant, WebP 134KB) */}
-          <div className="marble-card relative mt-10 aspect-video w-full">
-            <div className="absolute inset-0" aria-hidden="true">
+          <div className="evo-hero-card marble-card relative w-full">
+            {/* Warrior artwork — right side (left in RTL), fading into the marble */}
+            <div className="evo-hero-art" aria-hidden="true">
               <ThemeImg
-                light="/images/brand/evo-card-light.webp"
-                dark="/images/brand/evo-card-dark.webp"
+                light="/images/brand/evo-hero-light.webp"
+                dark="/images/brand/evo-hero-dark.webp"
                 alt=""
                 className="h-full w-full object-cover"
               />
             </div>
-            <Image
-              src="/images/brand/evo-card-light.webp"
-              alt={isAr ? "محارب EVO — مساعد اللياقة الذكي من Alkemos" : "EVO warrior — Alkemos smart fitness assistant"}
-              fill
-              sizes="(max-width: 1024px) 100vw, 1024px"
-              className="object-cover"
-              loading="lazy"
-            />
+            {/* Text column — keeps clear of the solid part of the art */}
+            <div className="relative z-10 flex min-h-[340px] flex-col justify-center gap-4 p-7 md:min-h-[420px] md:p-10 lg:max-w-[56%]">
+              <div>
+                {/* Phase 117 H2 correction (supervisor order 2026-09-04):
+                    punchy marketing headline, not a question. */}
+                <h2 className="text-3xl font-semibold tracking-tight md:text-5xl" style={{ color: PALETTE.textPrim }}>
+                  {isAr ? "EVO: مدربك الذكي 24/7" : "EVO: Your 24/7 Smart Coach"}
+                </h2>
+                <p className="mt-3 max-w-xl text-base font-normal md:text-lg" style={{ color: PALETTE.textSec }}>
+                  {isAr
+                    ? "مش شات بوت عادي، ده محرك أداء ذكي — اسأله في أي حاجة خاصة بالتمرين أو التغذية واحصل على إجابة فورية، متاح 24 ساعة يساعدك تاخد قرارك الصح وقت ما تحتاجه."
+                    : "A smart performance engine — not just a chatbot. Ask it anything fitness-related and get an instant answer, 24/7, exactly when you need it."}
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center gap-4">
+                <button
+                  type="button"
+                  onClick={openEvoFloatingChat}
+                  className="btn-chrome px-7 py-3.5 text-base"
+                >
+                  {isAr ? "ابدأ المحادثة" : "Start chatting"}
+                </button>
+                <a
+                  href="/evo"
+                  className="btn-outline px-7 py-3.5 text-base font-normal"
+                >
+                  {isAr ? "اعرف أكثر" : "Learn more"}
+                </a>
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -577,7 +533,6 @@ export function LandingView() {
       {/* ===================== 4. FREE TOOLS ===================== */}
       <section id="tools" className="scroll-mt-20 bg-[var(--tint)] px-4 py-12 md:py-20">
         <div className="mx-auto max-w-4xl">
-          <SectionBanner section="tools" className="mb-10" />
           <div className="text-center">
             <Reveal>
               <h2 className="text-3xl font-semibold tracking-tight md:text-5xl">
@@ -617,7 +572,6 @@ export function LandingView() {
       {/* ===================== 5. EXERCISE LIBRARY ===================== */}
       <section id="exercises" className="scroll-mt-20 bg-[var(--bg)] px-4 py-12 md:py-20">
         <div className="mx-auto max-w-4xl">
-          <SectionBanner section="exercises" className="mb-10" />
           <div className="text-center">
             <Reveal>
               <h2 className="text-3xl font-semibold tracking-tight md:text-5xl">
@@ -674,7 +628,6 @@ export function LandingView() {
       {/* ===================== 6. WORKOUT PROGRAMS ===================== */}
       <section id="programs" className="scroll-mt-20 bg-[var(--tint)] px-4 py-12 md:py-20">
         <div className="mx-auto max-w-5xl">
-          <SectionBanner section="programs" className="mb-10" />
           <div className="text-center">
             <Reveal>
               <h2 className="text-3xl font-semibold tracking-tight md:text-5xl">
@@ -712,7 +665,6 @@ export function LandingView() {
       {/* ===================== 7. FOOD LIBRARY ===================== */}
       <section id="foods" className="scroll-mt-20 bg-[var(--bg)] px-4 py-12 md:py-20">
         <div className="mx-auto max-w-5xl">
-          <SectionBanner section="foods" className="mb-10" />
           <div className="text-center">
             <Reveal>
               <h2 className="text-3xl font-semibold tracking-tight md:text-5xl">
@@ -753,7 +705,6 @@ export function LandingView() {
       <div className="meander-divider" aria-hidden="true" />
         <section id="blog" className="scroll-mt-20 bg-[var(--tint)] px-4 py-12 md:py-20">
           <div className="mx-auto max-w-6xl">
-            <SectionBanner section="blog" className="mb-10" />
             {/* Latest Posts — carousel with light cards */}
             <div>
               <Reveal>
@@ -978,7 +929,6 @@ export function LandingView() {
       {/* ===================== 10. Premium Memberships ===================== */}
       <section id="memberships" className="scroll-mt-20 px-4 py-12 md:py-20" style={{ backgroundColor: PALETTE.sectionGray }}>
         <div className="mx-auto max-w-5xl">
-          <SectionBanner section="pricing" className="mb-10" />
           <Reveal>
             <h2 className="text-center text-3xl font-semibold tracking-tight md:text-5xl" style={{ color: PALETTE.textPrim }}>
               {isAr ? "اختر الباقة المناسبة لك" : "Choose the Right Plan for You"}

@@ -152,6 +152,9 @@ export default async function RootLayout({
             fetch hint it gets). */}
         <link rel="preload" as="image" href="/images/brand/hero-light.webp" />
         <link rel="preload" as="image" href="/images/brand/hero-dark.webp" />
+        {/* Phase 127 — the hero chrome logo is an <img> now (above the fold);
+            the light variant is the default-theme LCP-adjacent fetch. */}
+        <link rel="preload" as="image" href="/images/brand/logo-hero-light.webp" />
       </head>
       <body className="antialiased bg-background text-foreground">
         {/* Phase 126 — theme no-flash script: runs before first paint (first

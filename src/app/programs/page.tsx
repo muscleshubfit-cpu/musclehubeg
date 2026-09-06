@@ -3,6 +3,7 @@
 import { useState, useMemo } from "react";
 import { useI18n, type Lang } from "@/lib/i18n";
 import { SiteHeader } from "@/components/SiteHeader";
+import { PageBanner } from "@/components/PageBanner";
 import {
   WORKOUT_PROGRAMS,
   LOCATION_LABELS,
@@ -44,16 +45,19 @@ export default function ProgramsPage({ lang: langProp }: { lang?: Lang } = {}) {
   const base = isAr ? "/ar/programs" : "/programs";
 
   return (
-    <div className="min-h-screen bg-white text-[#1d1d1f]">
+    <div className="min-h-screen bg-[var(--bg)] text-[var(--text)]">
       <SiteHeader variant="landing" />
 
       <main className="mx-auto max-w-6xl px-4 py-12 md:py-16">
+        {/* Owner artwork page banner (Phase 127 — 12 header images are PAGE banners) */}
+        <PageBanner section="programs" className="mb-10" />
+
         {/* Header */}
         <div className="text-center">
           <h1 className="text-3xl font-semibold tracking-tight md:text-5xl">
             {isAr ? "برامج التدريب" : "Workout Programs"}
           </h1>
-          <p className="mx-auto mt-3 max-w-md text-base font-normal text-[#6e6e73] md:text-lg">
+          <p className="mx-auto mt-3 max-w-md text-base font-normal text-[var(--muted-foreground)] md:text-lg">
             {isAr
               ? "برامج تدريبية جاهزة لكل المستويات والأهداف — منزل، جيم، أو معدات بسيطة."
               : "Ready-to-use training programs for all levels and goals — home, gym, or minimal equipment."}
@@ -65,7 +69,7 @@ export default function ProgramsPage({ lang: langProp }: { lang?: Lang } = {}) {
           {/* Search */}
           <div className="relative">
             <svg
-              className="absolute start-3 top-1/2 h-5 w-5 -translate-y-1/2 text-[#6e6e73]"
+              className="absolute start-3 top-1/2 h-5 w-5 -translate-y-1/2 text-[var(--muted-foreground)]"
               viewBox="0 0 20 20"
               fill="currentColor"
             >
@@ -75,13 +79,13 @@ export default function ProgramsPage({ lang: langProp }: { lang?: Lang } = {}) {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder={isAr ? "ابحث عن برنامج..." : "Search programs..."}
-              className="w-full rounded-full border border-[#d2d2d7] bg-[#f5f5f7] ps-11 pe-4 py-3 text-base font-normal outline-none focus:border-[#0071e3]"
+              className="w-full rounded-full border border-[var(--edge)] bg-[var(--tint)] ps-11 pe-4 py-3 text-base font-normal outline-none focus:border-[var(--chrome-edge)]"
             />
           </div>
 
           {/* Location pills */}
           <div>
-            <p className="mb-2 text-xs font-medium text-[#6e6e73]">
+            <p className="mb-2 text-xs font-medium text-[var(--muted-foreground)]">
               {isAr ? "مكان التمرين" : "Workout Location"}
             </p>
             <div className="flex flex-wrap gap-2">
@@ -91,13 +95,13 @@ export default function ProgramsPage({ lang: langProp }: { lang?: Lang } = {}) {
                   onClick={() => setLocation(loc)}
                   className={`rounded-full px-4 py-2 text-sm font-normal transition-all ${
                     location === loc
-                      ? "bg-[#1d1d1f] text-white"
-                      : "bg-[#f5f5f7] text-[#6e6e73] hover:text-[#1d1d1f]"
+                      ? "bg-[var(--text)] text-[var(--bg)]"
+                      : "bg-[var(--tint)] text-[var(--muted-foreground)] hover:text-[var(--text)]"
                   }`}
                 >
                   {loc === "all"
                     ? isAr ? "الكل" : "All"
-                    : `${LOCATION_LABELS[loc].emoji} ${isAr ? LOCATION_LABELS[loc].ar : LOCATION_LABELS[loc].en}`}
+                    : `${isAr ? LOCATION_LABELS[loc].ar : LOCATION_LABELS[loc].en}`}
                 </button>
               ))}
             </div>
@@ -106,13 +110,13 @@ export default function ProgramsPage({ lang: langProp }: { lang?: Lang } = {}) {
           {/* Level + Goal filters */}
           <div className="flex flex-wrap gap-4">
             <div className="flex-1 min-w-[180px]">
-              <label className="mb-1.5 block text-xs font-medium text-[#6e6e73]">
+              <label className="mb-1.5 block text-xs font-medium text-[var(--muted-foreground)]">
                 {isAr ? "المستوى" : "Level"}
               </label>
               <select
                 value={level}
                 onChange={(e) => setLevel(e.target.value as ProgramLevel | "all")}
-                className="w-full rounded-xl border border-[#d2d2d7] bg-white px-3 py-2 text-sm font-normal outline-none focus:border-[#0071e3]"
+                className="w-full rounded-xl border border-[var(--edge)] bg-[var(--card)] px-3 py-2 text-sm font-normal outline-none focus:border-[var(--chrome-edge)]"
               >
                 {levels.map((lv) => (
                   <option key={lv} value={lv}>
@@ -124,13 +128,13 @@ export default function ProgramsPage({ lang: langProp }: { lang?: Lang } = {}) {
               </select>
             </div>
             <div className="flex-1 min-w-[180px]">
-              <label className="mb-1.5 block text-xs font-medium text-[#6e6e73]">
+              <label className="mb-1.5 block text-xs font-medium text-[var(--muted-foreground)]">
                 {isAr ? "الهدف" : "Goal"}
               </label>
               <select
                 value={goal}
                 onChange={(e) => setGoal(e.target.value as ProgramGoal | "all")}
-                className="w-full rounded-xl border border-[#d2d2d7] bg-white px-3 py-2 text-sm font-normal outline-none focus:border-[#0071e3]"
+                className="w-full rounded-xl border border-[var(--edge)] bg-[var(--card)] px-3 py-2 text-sm font-normal outline-none focus:border-[var(--chrome-edge)]"
               >
                 {goals.map((g) => (
                   <option key={g} value={g}>
@@ -145,14 +149,14 @@ export default function ProgramsPage({ lang: langProp }: { lang?: Lang } = {}) {
         </div>
 
         {/* Results count */}
-        <p className="mt-6 text-sm font-normal text-[#6e6e73]">
+        <p className="mt-6 text-sm font-normal text-[var(--muted-foreground)]">
           {filtered.length} {isAr ? "برنامج" : "programs"}
         </p>
 
         {/* Programs grid */}
         {filtered.length === 0 ? (
-          <div className="mt-10 rounded-3xl bg-[#f5f5f7] p-12 text-center">
-            <p className="text-base font-normal text-[#6e6e73]">
+          <div className="marble-card mt-10 p-12 text-center">
+            <p className="text-base font-normal text-[var(--muted-foreground)]">
               {isAr ? "مفيش برامج مطابقة لبحثك" : "No programs match your search"}
             </p>
           </div>
@@ -162,10 +166,10 @@ export default function ProgramsPage({ lang: langProp }: { lang?: Lang } = {}) {
               <a
                 key={program.slug}
                 href={`${base}/${program.slug}`}
-                className="group overflow-hidden rounded-3xl bg-[#f5f5f7] transition-opacity hover:opacity-90"
+                className="marble-card group overflow-hidden transition-transform duration-300 hover:-translate-y-0.5"
               >
                 {/* Image */}
-                <div className="relative aspect-[4/3] w-full overflow-hidden bg-white">
+                <div className="relative aspect-[4/3] w-full overflow-hidden bg-[var(--card)]">
                   <Image
                     src={program.image}
                     alt={isAr ? program.imageAltAr : program.imageAltEn}
@@ -177,31 +181,25 @@ export default function ProgramsPage({ lang: langProp }: { lang?: Lang } = {}) {
                 {/* Content */}
                 <div className="p-5">
                   <div className="flex flex-wrap items-center gap-1.5">
-                    <span className="rounded-full bg-[#0071e3]/10 px-2 py-0.5 text-[10px] font-medium text-[#0071e3]">
-                      {LOCATION_LABELS[program.location].emoji} {isAr ? LOCATION_LABELS[program.location].ar : LOCATION_LABELS[program.location].en}
+                    <span className="seal-chip">
+                      {isAr ? LOCATION_LABELS[program.location].ar : LOCATION_LABELS[program.location].en}
                     </span>
-                    <span
-                      className="rounded-full px-2 py-0.5 text-[10px] font-medium"
-                      style={{
-                        backgroundColor: `${LEVEL_LABELS[program.level].color}15`,
-                        color: LEVEL_LABELS[program.level].color,
-                      }}
-                    >
+                    <span className="seal-chip">
                       {isAr ? LEVEL_LABELS[program.level].ar : LEVEL_LABELS[program.level].en}
                     </span>
                   </div>
                   <h3 className="mt-2 text-lg font-semibold tracking-tight">
                     {isAr ? program.nameAr : program.nameEn}
                   </h3>
-                  <p className="mt-1 line-clamp-2 text-xs font-normal text-[#6e6e73]">
+                  <p className="mt-1 line-clamp-2 text-xs font-normal text-[var(--muted-foreground)]">
                     {isAr ? program.descriptionAr : program.descriptionEn}
                   </p>
-                  <div className="mt-3 flex items-center gap-3 text-xs font-normal text-[#6e6e73]">
+                  <div className="mt-3 flex items-center gap-3 text-xs font-normal text-[var(--muted-foreground)]">
                     <span>{program.durationWeeks} {isAr ? "أسابيع" : "weeks"}</span>
                     <span>·</span>
                     <span>{program.daysPerWeek} {isAr ? "أيام/أسبوع" : "days/week"}</span>
                   </div>
-                  <p className="mt-3 text-sm font-normal text-[#0071e3]">
+                  <p className="chrome-text mt-3 text-sm font-semibold">
                     {isAr ? "اعرف أكثر ›" : "Learn more ›"}
                   </p>
                 </div>

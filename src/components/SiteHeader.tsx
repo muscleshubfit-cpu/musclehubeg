@@ -346,7 +346,10 @@ export function SiteHeader({ variant = "landing" }: { variant?: "landing" | "app
             variant === "app" && "max-w-6xl",
           )}
         >
-          {/* Left: hamburger + chrome CTA (mission §1: CTA button = .btn-chrome) */}
+          {/* Left: hamburger — Phase 127 (owner directive 2026-09-06): the
+              «Start now» chrome CTA was REMOVED from the navbar by the
+              owner's explicit request (the hero + section CTAs carry the
+              funnel now; the navbar stays navigation-only). */}
           <div className="flex items-center gap-2">
             <button
               onClick={() => setOpen(true)}
@@ -355,12 +358,6 @@ export function SiteHeader({ variant = "landing" }: { variant?: "landing" | "app
             >
               <Menu className="h-5 w-5" />
             </button>
-            <a
-              href="/memberships"
-              className="btn-chrome hidden px-5 py-1.5 text-sm lg:inline-flex"
-            >
-              {isAr ? "ابدأ الآن" : "Start now"}
-            </a>
           </div>
 
           {/* Center: logo — absolutely centered so side groups never push it.

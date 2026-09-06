@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { SiteHeader } from "@/components/SiteHeader";
+import { PageBanner } from "@/components/PageBanner";
 import { SearchX } from "lucide-react";
 import { ImageWithFallback } from "@/components/ui/image-with-fallback";
 import { ServerPagination } from "@/components/ServerPagination";
@@ -74,21 +75,24 @@ export function ExercisesExplorer({
     query.cat !== "all" || query.eq !== "all" || query.lv !== "all" || query.q !== "";
 
   return (
-    <div className="min-h-screen bg-white text-[#1d1d1f]">
+    <div className="min-h-screen bg-[var(--bg)] text-[var(--text)]">
       <SiteHeader variant="landing" />
 
       <main className="mx-auto max-w-6xl px-4 py-12 md:py-16">
+        {/* Owner artwork page banner (Phase 127 — 12 header images are PAGE banners) */}
+        <PageBanner section="exercises" className="mb-10" />
+
         {/* Header */}
         <div className="text-center">
           <h1 className="text-3xl font-semibold tracking-tight md:text-5xl">
             {isAr ? "مكتبة التمارين" : "Exercise Library"}
           </h1>
-          <p className="mx-auto mt-3 max-w-md text-base font-normal text-[#6e6e73] md:text-lg">
+          <p className="mx-auto mt-3 max-w-md text-base font-normal text-[var(--muted-foreground)] md:text-lg">
             {isAr
               ? "تصفّح تمارين احترافية مع شرح كامل، عضلات مستهدفة، ومستوى الصعوبة."
               : "Browse professional exercises with full instructions, target muscles, and difficulty levels."}
           </p>
-          <p className="mt-2 text-sm font-normal text-[#86868b]">
+          <p className="mt-2 text-sm font-normal text-[var(--muted-foreground)] opacity-80">
             {EXERCISES_COUNT.toLocaleString(isAr ? "ar-EG" : "en-US")}{" "}
             {isAr ? "تمرين" : "exercises"}
           </p>
@@ -117,21 +121,21 @@ export function ExercisesExplorer({
         </div>
 
         {/* Results count — anchor for scroll-back on page change */}
-        <p id="results-top" className="mt-6 scroll-mt-24 text-sm font-normal text-[#6e6e73]">
+        <p id="results-top" className="mt-6 scroll-mt-24 text-sm font-normal text-[var(--muted-foreground)]">
           {filtered.length.toLocaleString(isAr ? "ar-EG" : "en-US")}{" "}
           {isAr ? "تمرين" : "exercises"}
         </p>
 
         {/* Exercises grid — server-rendered */}
         {filtered.length === 0 ? (
-          <div className="mt-10 rounded-3xl bg-[#f5f5f7] p-12 text-center">
-            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-[#0071e3]/10">
-              <SearchX className="h-8 w-8 text-[#0071e3]" aria-hidden="true" />
+          <div className="mt-10 marble-card p-12 text-center">
+            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-[var(--tint)] border border-[var(--edge)]">
+              <SearchX className="h-8 w-8 text-[var(--muted-foreground)]" aria-hidden="true" />
             </div>
             <h3 className="mt-4 text-lg font-semibold">
               {isAr ? "لم نجد نتائج" : "No results found"}
             </h3>
-            <p className="mx-auto mt-2 max-w-sm text-sm text-[#6e6e73]">
+            <p className="mx-auto mt-2 max-w-sm text-sm text-[var(--muted-foreground)]">
               {isAr ? "جرّب تغيير الفلاتر أو البحث بكلمة مختلفة" : "Try adjusting your filters or search term"}
             </p>
             {hasFilters && (
@@ -152,10 +156,10 @@ export function ExercisesExplorer({
                   <a
                     key={exercise.slug}
                     href={`${base}/${exercise.slug}`}
-                    className="card-hover group overflow-hidden rounded-3xl bg-[#f5f5f7]"
+                    className="card-hover group overflow-hidden marble-card"
                   >
                     {/* Images — show both side by side */}
-                    <div className="relative aspect-[4/3] w-full overflow-hidden bg-white">
+                    <div className="relative aspect-[4/3] w-full overflow-hidden bg-[var(--card)]">
                       {imgUrls.length > 0 ? (
                         <div className="grid h-full grid-cols-2 gap-0.5">
                           {imgUrls.slice(0, 2).map((url, idx) => (
@@ -182,7 +186,7 @@ export function ExercisesExplorer({
                     {/* Content */}
                     <div className="p-5">
                       <div className="flex items-center gap-2">
-                        <span className="rounded-full bg-[#0071e3]/10 px-2 py-0.5 text-[10px] font-medium text-[#0071e3]">
+                        <span className="seal-chip">
                           {isAr ? CATEGORY_LABELS[exercise.category].ar : CATEGORY_LABELS[exercise.category].en}
                         </span>
                         <span
@@ -198,11 +202,11 @@ export function ExercisesExplorer({
                       <h3 className="mt-2 text-lg font-semibold tracking-tight">
                         {isAr ? exercise.nameAr : exercise.nameEn}
                       </h3>
-                      <p className="mt-1 text-xs font-normal text-[#6e6e73]">
+                      <p className="mt-1 text-xs font-normal text-[var(--muted-foreground)]">
                         {isAr ? "المعدات: " : "Equipment: "}
                         {isAr ? EQUIPMENT_LABELS[exercise.equipment].ar : EQUIPMENT_LABELS[exercise.equipment].en}
                       </p>
-                      <p className="mt-3 text-sm font-normal text-[#0071e3]">
+                      <p className="mt-3 chrome-text text-sm font-semibold">
                         {isAr ? "اعرف أكثر ›" : "Learn more ›"}
                       </p>
                     </div>
@@ -250,12 +254,12 @@ function ExerciseCategoryPill({
       aria-current={isActive ? "true" : undefined}
       className={`group flex w-20 flex-col items-center gap-2 rounded-2xl p-2 transition-all ${
         isActive
-          ? "bg-[#1d1d1f] text-white ring-2 ring-[#0071e3] ring-offset-2"
-          : "bg-[#f5f5f7] text-[#6e6e73] hover:bg-white hover:text-[#1d1d1f] hover:ring-1 hover:ring-[#d2d2d7]"
+          ? "bg-[var(--text)] text-[var(--bg)] ring-2 ring-[var(--chrome-edge)] ring-offset-2"
+          : "bg-[var(--tint)] text-[var(--muted-foreground)] hover:bg-[var(--card)] hover:text-[var(--text)] hover:ring-1 hover:ring-[var(--edge)]"
       }`}
     >
       {isAll ? (
-        <span className="flex h-16 w-16 items-center justify-center rounded-xl bg-[#0071e3] text-white text-sm font-bold">
+        <span className="flex h-16 w-16 items-center justify-center rounded-xl bg-[var(--text)] text-[var(--bg)] text-sm font-bold">
           {isAr ? "الكل" : "All"}
         </span>
       ) : (
@@ -266,7 +270,7 @@ function ExerciseCategoryPill({
             fill
             className="rounded-xl object-cover ring-1 ring-black/5"
             fallbackElement={
-              <span className="flex h-16 w-16 items-center justify-center rounded-xl bg-[#0071e3]/10 text-2xl">
+              <span className="flex h-16 w-16 items-center justify-center rounded-xl bg-[var(--tint)] text-2xl">
                 {CATEGORY_LABELS[cat].emoji}
               </span>
             }

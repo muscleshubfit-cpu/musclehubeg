@@ -1333,3 +1333,25 @@ Stage Summary:
 - الهوية الجديدة «الرخام والكروم» حية محليًا بنمطي light/dark مع تبديل تلقائي بالنظام + زر يدوي ثلاثي الحالات — وشيتات مقارنة DIFF_* للتسليم جاهزة
 - Commit SHA: cb45899 (الهوية) + 74cee58 (بانرات الأقسام بعد rebase على رفع المالك المتأخر c53e6e8)
 - Push status: PUSHED — c53e6e8..74cee58 main→main 2026-09-06 (انقطاع شبكة مؤقت اتجاوز) · تحقق إنتاجي: build-info=74cee58 · كل الأصول 200 (hero 48/78KB · أيقونات · لوجوهات · ماندر · بانرات · فايفيكون) · HTML الحي فيه no-flash script + hero-art + btn-chrome + seal-chip + meander-divider + logo-navbar · /ar 200 · لقطات VLM حية: لايت/دارك/موبايل/عربي كلها PASS (متطابقة بنيويًا + حلقة توهج --ai في الدارك) · شيتات المقارنة للتسليم: download/alkemos-signoff/ (DIFF_* × 4 + LIVE_* × 6)
+
+---
+Task ID: 129-OWNER-FEEDBACK-PHASE127
+Agent: Super Z (main)
+Task: بلاغ المالك على المرحلة 126 (2026-09-06): «شغل رائع — تعديلات مطلوبة: الغاء زر start now من الهيدر · الغاء الزرارين فى الهيرو · مسح اللوجو الحالى من صورة الهيرو واضافة اللوجو الفضى كروم · اظهار صورة الهيرو كاملة وبدون شفافية · مسح اسم الموقع الصغير فى بداية نص الهيرو · الصور الجديدة (12) للصفحات وليس الرئيسية · راجع صور الامثلة (preview-sections-light و1788658797) خصوصا كارت قسم evo · طبق التصميم على الموقع بالكامل وحدث ملفات التوثيق وdesign.md»
+
+Work Log:
+- أصول (scripts/build_assets_v127.py + fix_hero_logo2.py بعد فشل مسارين): (1) hero-light/dark.webp 37/66KB — مسح اللوجو المخبوز (الكلمة+اليونانية+التاجلاين) بقناع سطوعي معاير (داكن<238 على فاتح / ساطع>62 على داكن — كل المكونات≥300px) + inpaint بالاستيفاء العمودي بين أنكور نظيف أعلى/أسفل — VLM: لا لوجو/لا أثر/خلفية طبيعية PASS × السمتين (جربنا diffusion blur وTELEA قبلها — بقع مرئية، والاستيفاء العمودي هو الفائز) (2) logo-hero-light/dark.webp 96/84KB — اللوجو الفضي كروم شفاف من logo-main (flood-fill + فك مزج الحواف) — VLM مقروء على السمتين (3) evo-hero-light/dark.webp 43/54KB — قصّة المحارب x[180,1060] فيضعونه 67-85% من القصّة (بعد تحليل عمودي+VLM أن المحارب بمركز ~50% بالكادر)
+- SiteHeader: زر «Start now» أُلغي — النافبار تنقّل فقط (لوجو + ثيم + لغة + حساب)
+- الهيرو (LandingView): حذف الـeyebrow «ALKEMOS» + حذف زرّي CT + حذف radial veil وتلاشي الأسفل (الصورة كاملة بلا أي حجاب — مُتحقق DOM: قسم الهيرو ابن واحد فقط) + ThemeImg لوجو الكروم w-56→w-80 أعلى الوسط + preload لوجو الهيرو بالروت + حذف توكنز --hero-veil من globals
+- كارت EVO (بمرجع preview-sections-light + 1788658797): كارت marble-card واحد بعرض القسم — عمود نص (H2 + وصف + زرا chrome/outline) + المحارب evo-hero absolute بـ60% عرض (78% موبايل) مع mask fade يذوب في الرخام — [dir=rtl] يقلب الجانب والقناع تلقائيًا (inset-inline-end + mask flip) — VLM: ترتيب النص/المحارج + اندماج ناعم PASS × السمتين
+- البانرات: SectionBanner ومسح استعمالاته الستة من الرئيسية — مكوّن جديد src/components/PageBanner.tsx (server-safe، زوج <img> CSS-switch) في أعلى /tools · /exercises(+ar) · /programs(+ar) · /foods(+ar) · /blog(+ar) · /memberships(+ar = header-pricing) — الـ12 صورة المالك صارت رؤوس الصفحات بأمره الصريح
+- تطبيق الهوية على الصفحات: /tools كروت marble-card بأيقونات محفورة (calories/bmi/macros/bodyfat/hydration/mealplanner/dumbbell/protein) — إلغاء الإيموجي fallback والبلاطات الملونة · /memberships: أسعار chrome-text + Pro داكن بحلقة كروم 2px + غار Popular (إلغاء ⭐) + جدول مقارنة بأختام محفورة وأعمدة متوازنة + كوتشينج باند رخامي داكن (إلغاء البنفسجي) + CTAs كلها btn-chrome/btn-outline · /programs + ProgramDetailClient: توكنز var() + إلغاء إيموجي LOCATION_LABELS من العرض + seal-chips · ExercisesExplorer/FoodsExplorer/Filters: صفر #0071e3 (كان 31 استخدامًا) + بطاقات/حبوب/حدود بالتوكنز
+- الوثائق: DESIGN.md إعادة كتابة كاملة (هوية الرخام والكروم: توكنز/وصفات btn-chrome/marble-card/seal-chip/chrome-text/evo-hero-card/PageBanner + نظام الأصول الـ38 أيقونة + قوانين صفر-إيموجي/صفر-أزرق + بروتوكول تحقق) · STATE.md المرحلة 127
+- البوابات (المرحلة 127): tsc 0 · eslint 0 · vitest 213/213 · migration_audit --ci PASS (بلا ميجريشن) · docs_parity 0 · docs_audit 0 · check-stale-refs 0 · check-ui-wiring 0 · next build ✓
+- QA محلي (خادم إنتاجي :3779 + agent-browser): 13 لقطة (light/dark/mobile/AR/6 صفحات/صفحتان دارك/عربي) — VLM: النافبار بلا Start now · اللوجو الكروم فوق العنوان · لا أزرار/لا eyebrow بالهيرو · البانرات أعلى الصفحات الستة داخل إطار رخامي · الدارك يعرض نسخ الدارك للبانرات · الموبايل سليم بلا overflow · العربي RTL واللوجو LTR — كلها PASS
+
+Stage Summary:
+- الثمانية تعديلات المطلوبة منفذة كاملة: هيدر نظيف · هيرو بصورة كاملة ولوجو كروم HTML · كارت EVO بمرجع المعاينات · بانرات الصفحات على الصفحات · هوية مطبقة على الصفحات الستة (صفر إيموجي/صفر أزرق) · DESIGN.md وSTATE محدثة
+- شيتات التسليم: download/alkemos-signoff/127/ (DIFF_hero_{light,dark} + DIFF_evo_{light,mockup} + SHEET_page_banners)
+- Commit SHA: (يُدفع الآن — يُسجل أدناه بعد الدفع)
+- Push status: (يُحدَّث بعد الدفع والتحقق الإنتاجي)

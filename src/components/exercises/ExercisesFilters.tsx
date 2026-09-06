@@ -76,7 +76,7 @@ export function ExercisesFilters({
       {/* Search */}
       <div className="relative">
         <svg
-          className="absolute start-3 top-1/2 h-5 w-5 -translate-y-1/2 text-[#6e6e73]"
+          className="absolute start-3 top-1/2 h-5 w-5 -translate-y-1/2 text-[var(--muted-foreground)]"
           viewBox="0 0 20 20"
           fill="currentColor"
           aria-hidden="true"
@@ -89,21 +89,21 @@ export function ExercisesFilters({
           onChange={(e) => setSearch(e.target.value)}
           placeholder={isAr ? "ابحث عن تمرين..." : "Search exercises..."}
           aria-label={isAr ? "ابحث في مكتبة التمارين" : "Search the exercise library"}
-          className="w-full rounded-full border border-[#d2d2d7] bg-[#f5f5f7] ps-11 pe-4 py-3 text-base font-normal outline-none focus:border-[#0071e3]"
+          className="w-full rounded-full border border-[var(--edge)] bg-[var(--tint)] ps-11 pe-4 py-3 text-base font-normal outline-none focus:border-[var(--chrome-edge)]"
         />
       </div>
 
       {/* Equipment + Level filters — navigate on change */}
       <div className="flex flex-wrap gap-4">
         <div className="flex-1 min-w-[180px]">
-          <label htmlFor="exercise-equipment" className="mb-1.5 block text-xs font-medium text-[#6e6e73]">
+          <label htmlFor="exercise-equipment" className="mb-1.5 block text-xs font-medium text-[var(--muted-foreground)]">
             {isAr ? "المعدات" : "Equipment"}
           </label>
           <select
             id="exercise-equipment"
             value={query.eq}
             onChange={(e) => goto({ eq: e.target.value })}
-            className="w-full rounded-xl border border-[#d2d2d7] bg-white px-3 py-2 text-sm font-normal outline-none focus:border-[#0071e3]"
+            className="w-full rounded-xl border border-[var(--edge)] bg-[var(--card)] px-3 py-2 text-sm font-normal outline-none focus:border-[var(--chrome-edge)]"
           >
             {EQUIPMENT_OPTIONS.map((eq) => (
               <option key={eq} value={eq}>
@@ -115,14 +115,14 @@ export function ExercisesFilters({
           </select>
         </div>
         <div className="flex-1 min-w-[180px]">
-          <label htmlFor="exercise-level" className="mb-1.5 block text-xs font-medium text-[#6e6e73]">
+          <label htmlFor="exercise-level" className="mb-1.5 block text-xs font-medium text-[var(--muted-foreground)]">
             {isAr ? "المستوى" : "Level"}
           </label>
           <select
             id="exercise-level"
             value={query.lv}
             onChange={(e) => goto({ lv: e.target.value })}
-            className="w-full rounded-xl border border-[#d2d2d7] bg-white px-3 py-2 text-sm font-normal outline-none focus:border-[#0071e3]"
+            className="w-full rounded-xl border border-[var(--edge)] bg-[var(--card)] px-3 py-2 text-sm font-normal outline-none focus:border-[var(--chrome-edge)]"
           >
             {LEVEL_OPTIONS.map((lv) => (
               <option key={lv} value={lv}>

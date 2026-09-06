@@ -197,8 +197,6 @@
   --tint: #F5F6F8;
   --navbar-bg: rgba(255, 255, 255, 0.72);
   --hero-img: url("/images/brand/hero-light.webp");
-  --hero-veil-strong: rgba(255, 255, 255, 0.55);
-  --hero-veil-soft: rgba(255, 255, 255, 0.25);
   --marble-img: url("/images/brand/texture-marble-light.webp");
   --meander-img: url("/images/brand/divider-meander-light.webp");
   --prog-backdrop: url("/images/brand/evo-card-light.webp");
@@ -240,8 +238,6 @@
   --card: #141518;
   --navbar-bg: rgba(11, 11, 13, 0.72);
   --hero-img: url("/images/brand/hero-dark.webp");
-  --hero-veil-strong: rgba(11, 11, 13, 0.5);
-  --hero-veil-soft: rgba(11, 11, 13, 0.22);
   --marble-img: url("/images/brand/texture-marble-dark.webp");
   --meander-img: url("/images/brand/divider-meander-dark.webp");
   --prog-backdrop: url("/images/brand/evo-card-dark.webp");
@@ -372,6 +368,44 @@
   background-image: var(--hero-img);
   background-size: cover;
   background-position: center;
+}
+
+/* === EVO section card — Phase 127 (preview-sections reference) ===
+   One full-width marble card: text left, warrior art right fading into
+   the marble. RTL mirrors via logical inset-inline-end + mask flip. */
+.evo-hero-card { display: flex; }
+.evo-hero-art {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-end: 0;
+  width: 60%;
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(to left, #000 52%, rgba(0, 0, 0, 0.28) 78%, transparent 100%);
+  mask-image: linear-gradient(to left, #000 52%, rgba(0, 0, 0, 0.28) 78%, transparent 100%);
+}
+.evo-hero-art img {
+  height: 100%;
+  width: 100%;
+  object-fit: cover;
+  object-position: 75% 30%;
+}
+[dir="rtl"] .evo-hero-art {
+  -webkit-mask-image: linear-gradient(to right, #000 52%, rgba(0, 0, 0, 0.28) 78%, transparent 100%);
+  mask-image: linear-gradient(to right, #000 52%, rgba(0, 0, 0, 0.28) 78%, transparent 100%);
+}
+[dir="rtl"] .evo-hero-art img { object-position: 25% 30%; }
+@media (max-width: 767px) {
+  /* Mobile: art widens with a longer fade so the text column stays on
+     clean marble; card height shrinks. */
+  .evo-hero-art {
+    width: 78%;
+    -webkit-mask-image: linear-gradient(to left, #000 40%, rgba(0, 0, 0, 0.2) 65%, transparent 92%);
+    mask-image: linear-gradient(to left, #000 40%, rgba(0, 0, 0, 0.2) 65%, transparent 92%);
+  }
+  [dir="rtl"] .evo-hero-art {
+    -webkit-mask-image: linear-gradient(to right, #000 40%, rgba(0, 0, 0, 0.2) 65%, transparent 92%);
+    mask-image: linear-gradient(to right, #000 40%, rgba(0, 0, 0, 0.2) 65%, transparent 92%);
+  }
 }
 
 /* Navbar chrome — mission §1 */

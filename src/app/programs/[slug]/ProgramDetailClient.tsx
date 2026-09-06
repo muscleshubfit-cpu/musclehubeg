@@ -44,7 +44,7 @@ export default function ProgramDetailClient({
 
   if (!program) {
     return (
-      <div className="min-h-screen bg-white text-[#1d1d1f]">
+      <div className="min-h-screen bg-[var(--bg)] text-[var(--text)]">
         <SiteHeader variant="landing" />
         <main className="mx-auto max-w-2xl px-4 py-20 text-center">
           <h1 className="text-3xl font-semibold tracking-tight">
@@ -52,7 +52,7 @@ export default function ProgramDetailClient({
           </h1>
           <a
             href={base}
-            className="mt-6 inline-block rounded-full bg-[#0071e3] px-6 py-2.5 text-sm font-normal text-white"
+            className="mt-6 inline-block rounded-full btn-chrome px-6 py-2.5 text-sm"
           >
             {isAr ? "العودة للبرامج" : "Back to programs"}
           </a>
@@ -69,15 +69,15 @@ export default function ProgramDetailClient({
   const shareText = isAr ? program.descriptionAr : program.descriptionEn;
 
   return (
-    <div className="min-h-screen bg-white text-[#1d1d1f]">
+    <div className="min-h-screen bg-[var(--bg)] text-[var(--text)]">
       <SiteHeader variant="landing" />
 
       <main className="mx-auto max-w-4xl px-4 py-8 md:py-12">
         {/* #17 fix: visible breadcrumb trail */}
-        <nav aria-label="breadcrumb" className="mb-6 flex items-center gap-1.5 text-sm text-[#6e6e73]">
-          <a href="/" className="hover:text-[#0071e3]">{isAr ? "الرئيسية" : "Home"}</a>
+        <nav aria-label="breadcrumb" className="mb-6 flex items-center gap-1.5 text-sm text-[var(--muted-foreground)]">
+          <a href="/" className="hover:opacity-70">{isAr ? "الرئيسية" : "Home"}</a>
           <span className="text-[#d2d2d7]">›</span>
-          <a href={base} className="hover:text-[#0071e3]">{isAr ? "البرامج" : "Programs"}</a>
+          <a href={base} className="hover:opacity-70">{isAr ? "البرامج" : "Programs"}</a>
           <span className="text-[#d2d2d7]">›</span>
           <span className="font-medium text-[#1d1d1f]">{isAr ? program.nameAr : program.nameEn}</span>
         </nav>
@@ -94,8 +94,8 @@ export default function ProgramDetailClient({
           </div>
           <div className="p-6 md:p-8">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="rounded-full bg-[#0071e3]/10 px-3 py-1 text-xs font-medium text-[#0071e3]">
-                {LOCATION_LABELS[program.location].emoji} {locationLabel}
+              <span className="rounded-full seal-chip px-3 py-1">
+                {locationLabel}
               </span>
               <span
                 className="rounded-full px-3 py-1 text-xs font-medium"
@@ -106,7 +106,7 @@ export default function ProgramDetailClient({
               >
                 {levelLabel}
               </span>
-              <span className="rounded-full bg-[#6e6e73]/10 px-3 py-1 text-xs font-medium text-[#6e6e73]">
+              <span className="rounded-full bg-[#6e6e73]/10 px-3 py-1 text-xs font-medium text-[var(--muted-foreground)]">
                 {goalLabel}
               </span>
             </div>
@@ -114,16 +114,16 @@ export default function ProgramDetailClient({
             <h1 className="mt-4 text-3xl font-semibold tracking-tight md:text-4xl">
               {isAr ? program.nameAr : program.nameEn}
             </h1>
-            <p className="mt-2 text-base font-normal text-[#6e6e73]" dir="auto">
+            <p className="mt-2 text-base font-normal text-[var(--muted-foreground)]" dir="auto">
               {isAr ? program.descriptionEn : program.descriptionAr}
             </p>
 
             {/* Stats */}
             <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3">
-              <div className="rounded-2xl bg-white p-4">
+              <div className="rounded-2xl bg-[var(--card)] border border-[var(--edge)] p-4">
                 <div className="flex items-center gap-2">
-                  <Clock className="h-4 w-4 text-[#0071e3]" />
-                  <span className="text-xs font-medium text-[#6e6e73]">
+                  <Clock className="h-4 w-4 text-[var(--muted-2)]" />
+                  <span className="text-xs font-medium text-[var(--muted-foreground)]">
                     {isAr ? "المدة" : "Duration"}
                   </span>
                 </div>
@@ -131,10 +131,10 @@ export default function ProgramDetailClient({
                   {program.durationWeeks} {isAr ? "أسابيع" : "weeks"}
                 </p>
               </div>
-              <div className="rounded-2xl bg-white p-4">
+              <div className="rounded-2xl bg-[var(--card)] border border-[var(--edge)] p-4">
                 <div className="flex items-center gap-2">
-                  <Calendar className="h-4 w-4 text-[#0071e3]" />
-                  <span className="text-xs font-medium text-[#6e6e73]">
+                  <Calendar className="h-4 w-4 text-[var(--muted-2)]" />
+                  <span className="text-xs font-medium text-[var(--muted-foreground)]">
                     {isAr ? "التكرار" : "Frequency"}
                   </span>
                 </div>
@@ -142,10 +142,10 @@ export default function ProgramDetailClient({
                   {program.daysPerWeek} {isAr ? "أيام/أسبوع" : "days/week"}
                 </p>
               </div>
-              <div className="col-span-2 rounded-2xl bg-white p-4 sm:col-span-1">
+              <div className="col-span-2 rounded-2xl bg-[var(--card)] border border-[var(--edge)] p-4 sm:col-span-1">
                 <div className="flex items-center gap-2">
-                  <Dumbbell className="h-4 w-4 text-[#0071e3]" />
-                  <span className="text-xs font-medium text-[#6e6e73]">
+                  <Dumbbell className="h-4 w-4 text-[var(--muted-2)]" />
+                  <span className="text-xs font-medium text-[var(--muted-foreground)]">
                     {isAr ? "الهدف" : "Goal"}
                   </span>
                 </div>
@@ -190,7 +190,7 @@ export default function ProgramDetailClient({
                     </div>
                   </div>
                   {!day.isRest && (
-                    <span className="rounded-full bg-white px-3 py-1 text-xs font-medium text-[#6e6e73]">
+                    <span className="rounded-full bg-white px-3 py-1 text-xs font-medium text-[var(--muted-foreground)]">
                       {day.exercises.length} {isAr ? "تمارين" : "exercises"}
                     </span>
                   )}
@@ -233,13 +233,13 @@ export default function ProgramDetailClient({
                               <p className="truncate text-sm font-medium">
                                 {isAr ? ex.nameAr : ex.nameEn}
                               </p>
-                              <p className="mt-0.5 text-xs font-normal text-[#6e6e73]">
+                              <p className="mt-0.5 text-xs font-normal text-[var(--muted-foreground)]">
                                 {ex.sets} × {ex.reps}
                               </p>
                             </div>
                             {/* Rest */}
                             <div className="shrink-0 text-end">
-                              <p className="text-xs font-normal text-[#6e6e73]">
+                              <p className="text-xs font-normal text-[var(--muted-foreground)]">
                                 {isAr ? "راحة" : "Rest"}
                               </p>
                               <p className="text-xs font-medium" dir="ltr">
@@ -271,7 +271,7 @@ export default function ProgramDetailClient({
           <h2 className="text-xl font-semibold tracking-tight md:text-2xl">
             {isAr ? "عايز خطة مخصصة ليك؟" : "Want a personalized plan?"}
           </h2>
-          <p className="mt-2 text-sm font-normal text-[#6e6e73]">
+          <p className="mt-2 text-sm font-normal text-[var(--muted-foreground)]">
             {isAr
               ? "منصة Alkemos بتعمل خطط مخصصة بناءً على أهدافك ومستواك."
               : "Alkemos creates personalized plans based on your goals and level."}
@@ -308,7 +308,7 @@ export default function ProgramDetailClient({
                   </div>
                   <div className="p-3">
                     <p className="text-sm font-semibold">{isAr ? rel.nameAr : rel.nameEn}</p>
-                    <p className="mt-0.5 text-xs font-normal text-[#6e6e73]">
+                    <p className="mt-0.5 text-xs font-normal text-[var(--muted-foreground)]">
                       {isAr ? LEVEL_LABELS[rel.level].ar : LEVEL_LABELS[rel.level].en} · {rel.durationWeeks} {isAr ? "أسابيع" : "wks"}
                     </p>
                   </div>

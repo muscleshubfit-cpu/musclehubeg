@@ -72,7 +72,7 @@ export function FoodsFilters({
       {/* Search */}
       <div className="relative">
         <svg
-          className="absolute start-3 top-1/2 h-5 w-5 -translate-y-1/2 text-[#6e6e73]"
+          className="absolute start-3 top-1/2 h-5 w-5 -translate-y-1/2 text-[var(--muted-foreground)]"
           viewBox="0 0 20 20"
           fill="currentColor"
           aria-hidden="true"
@@ -85,20 +85,20 @@ export function FoodsFilters({
           onChange={(e) => setSearch(e.target.value)}
           placeholder={isAr ? "ابحث عن أكلة..." : "Search foods..."}
           aria-label={isAr ? "ابحث في مكتبة الأكلات" : "Search the food library"}
-          className="w-full rounded-full border border-[#d2d2d7] bg-[#f5f5f7] ps-11 pe-4 py-3 text-base font-normal outline-none focus:border-[#0071e3]"
+          className="w-full rounded-full border border-[var(--edge)] bg-[var(--tint)] ps-11 pe-4 py-3 text-base font-normal outline-none focus:border-[var(--chrome-edge)]"
         />
       </div>
 
       {/* Advanced filters — <details> keeps this zero-JS until opened */}
       <details className="group">
-        <summary className="cursor-pointer text-sm font-normal text-[#0071e3] hover:opacity-70 [&::-webkit-details-marker]:hidden">
+        <summary className="cursor-pointer text-sm font-semibold text-[var(--text)] hover:opacity-70 [&::-webkit-details-marker]:hidden">
           {isAr ? "فلاتر متقدمة (ماكروز)" : "Advanced filters (macros)"}
           <span className="ms-1 inline-block group-open:hidden">▼</span>
           <span className="ms-1 hidden group-open:inline">▲</span>
         </summary>
-        <div className="mt-3 grid grid-cols-1 gap-3 rounded-2xl bg-[#f5f5f7] p-4 sm:grid-cols-3">
+        <div className="mt-3 grid grid-cols-1 gap-3 rounded-2xl bg-[var(--tint)] p-4 border border-[var(--edge)] sm:grid-cols-3">
           <div>
-            <label className="mb-1 block text-xs font-medium text-[#6e6e73]" htmlFor="food-min-protein">
+            <label className="mb-1 block text-xs font-medium text-[var(--muted-foreground)]" htmlFor="food-min-protein">
               {isAr ? "حد أدنى للبروتين (g/100g)" : "Min protein (g/100g)"}
             </label>
             <input
@@ -108,11 +108,11 @@ export function FoodsFilters({
               value={minProtein}
               onChange={(e) => setMinProtein(e.target.value)}
               placeholder="0"
-              className="w-full rounded-lg border border-[#d2d2d7] bg-white px-3 py-2 text-sm font-normal outline-none focus:border-[#0071e3]"
+              className="w-full rounded-lg border border-[var(--edge)] bg-[var(--card)] px-3 py-2 text-sm font-normal outline-none focus:border-[var(--chrome-edge)]"
             />
           </div>
           <div>
-            <label className="mb-1 block text-xs font-medium text-[#6e6e73]" htmlFor="food-max-carbs">
+            <label className="mb-1 block text-xs font-medium text-[var(--muted-foreground)]" htmlFor="food-max-carbs">
               {isAr ? "حد أقصى للكارب (g/100g)" : "Max carbs (g/100g)"}
             </label>
             <input
@@ -122,11 +122,11 @@ export function FoodsFilters({
               value={maxCarbs}
               onChange={(e) => setMaxCarbs(e.target.value)}
               placeholder="100"
-              className="w-full rounded-lg border border-[#d2d2d7] bg-white px-3 py-2 text-sm font-normal outline-none focus:border-[#0071e3]"
+              className="w-full rounded-lg border border-[var(--edge)] bg-[var(--card)] px-3 py-2 text-sm font-normal outline-none focus:border-[var(--chrome-edge)]"
             />
           </div>
           <div>
-            <label className="mb-1 block text-xs font-medium text-[#6e6e73]" htmlFor="food-max-calories">
+            <label className="mb-1 block text-xs font-medium text-[var(--muted-foreground)]" htmlFor="food-max-calories">
               {isAr ? "حد أقصى للسعرات (kcal/100g)" : "Max calories (kcal/100g)"}
             </label>
             <input
@@ -136,7 +136,7 @@ export function FoodsFilters({
               value={maxCalories}
               onChange={(e) => setMaxCalories(e.target.value)}
               placeholder="500"
-              className="w-full rounded-lg border border-[#d2d2d7] bg-white px-3 py-2 text-sm font-normal outline-none focus:border-[#0071e3]"
+              className="w-full rounded-lg border border-[var(--edge)] bg-[var(--card)] px-3 py-2 text-sm font-normal outline-none focus:border-[var(--chrome-edge)]"
             />
           </div>
         </div>

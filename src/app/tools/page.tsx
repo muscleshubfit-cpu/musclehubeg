@@ -2,10 +2,11 @@
 
 import { useI18n } from "@/lib/i18n";
 import { SiteHeader } from "@/components/SiteHeader";
-import { ImageWithFallback } from "@/components/ui/image-with-fallback";
+import { PageBanner } from "@/components/PageBanner";
+import { EngravedIcon } from "@/components/ThemeImg";
 
-// Each tool has a local AI-generated thumbnail (Apple iPhone style).
-// Emojis are kept as fallback (shown if the image fails to load).
+// Phase 127 «Marble & Chrome» identity: engraved icon pairs (mission §6
+// zero-emoji law) replace the old Apple-style emoji-fallback tiles.
 const tools = [
   {
     slug: "calorie-calculator",
@@ -13,9 +14,7 @@ const tools = [
     nameEn: "Calorie Calculator",
     descAr: "احسب احتياجك اليومي من السعرات والماكروز",
     descEn: "Calculate daily calories and macros",
-    emoji: "🔥",
-    color: "#ff9500",
-    image: "/images/tools/calorie-calculator.png",
+    icon: "calories",
   },
   {
     slug: "bmi-calculator",
@@ -23,9 +22,7 @@ const tools = [
     nameEn: "BMI Calculator",
     descAr: "اعرف هل وزنك مثالي أم زائد",
     descEn: "Check if your weight is healthy",
-    emoji: "⚖️",
-    color: "#0071e3",
-    image: "/images/tools/bmi-calculator.png",
+    icon: "bmi",
   },
   {
     slug: "macro-calculator",
@@ -33,9 +30,7 @@ const tools = [
     nameEn: "Macro Calculator",
     descAr: "وزّع سعراتك على بروتين وكارب ودهون",
     descEn: "Split calories into protein, carbs, fat",
-    emoji: "🥩",
-    color: "#34c759",
-    image: "/images/tools/macro-calculator.png",
+    icon: "macros",
   },
   {
     slug: "body-fat-calculator",
@@ -43,9 +38,7 @@ const tools = [
     nameEn: "Body Fat Calculator",
     descAr: "احسب نسبة الدهون في جسمك",
     descEn: "Calculate your body fat percentage",
-    emoji: "📊",
-    color: "#ff3b30",
-    image: "/images/tools/body-fat-calculator.png",
+    icon: "bodyfat",
   },
   {
     slug: "water-tracker",
@@ -53,9 +46,7 @@ const tools = [
     nameEn: "Water Tracker",
     descAr: "حدد هدفك وسجل كوبساتك يومياً",
     descEn: "Set your goal and log your cups daily",
-    emoji: "💧",
-    color: "#00b8d9",
-    image: "/images/tools/water-tracker.png",
+    icon: "hydration",
   },
   {
     slug: "/meal-planner",
@@ -63,9 +54,7 @@ const tools = [
     nameEn: "Meal Planner",
     descAr: "ابني وجباتك من ٨٨٣٠+ أكلة وشوف الماكروز",
     descEn: "Build meals from 8,830+ foods and track macros",
-    emoji: "🍽️",
-    color: "#8b5cf6",
-    image: "/images/tools/meal-planner.png",
+    icon: "mealplanner",
   },
   // DELIVERY 0050: content libraries cross-linked from the tools hub
   {
@@ -74,9 +63,7 @@ const tools = [
     nameEn: "Exercise Library",
     descAr: "868+ تمرين بالصور والشرح والمستويات",
     descEn: "868+ exercises with images and guides",
-    emoji: "💪",
-    color: "#0071e3",
-    image: "/images/tools/exercises.png",
+    icon: "dumbbell",
   },
   {
     slug: "/foods",
@@ -84,9 +71,7 @@ const tools = [
     nameEn: "Food Library",
     descAr: "8,830+ أكلة بالسعرات والماكروز",
     descEn: "8,830+ foods with calories and macros",
-    emoji: "🥗",
-    color: "#34c759",
-    image: "/images/tools/foods.png",
+    icon: "protein",
   },
 ];
 
@@ -95,15 +80,19 @@ export default function ToolsPage() {
   const isAr = lang === "ar";
 
   return (
-    <div className="min-h-screen bg-white text-[#1d1d1f]">
+    <div className="min-h-screen bg-[var(--bg)] text-[var(--text)]">
       <SiteHeader variant="landing" />
 
       <main className="mx-auto max-w-4xl px-4 py-12 md:py-16">
+        {/* Owner artwork page banner (Phase 127: the 12 header images are
+            PAGE banners, not homepage section banners) */}
+        <PageBanner section="tools" className="mb-10" />
+
         <div className="text-center">
           <h1 className="text-3xl font-semibold tracking-tight md:text-5xl">
             {isAr ? "الأدوات المجانية" : "Free Tools"}
           </h1>
-          <p className="mx-auto mt-3 max-w-md text-base font-normal text-[#6e6e73] md:text-lg">
+          <p className="mx-auto mt-3 max-w-md text-base font-normal text-[var(--muted-foreground)] md:text-lg">
             {isAr
               ? "حاسبات لياقة وتغذية مجانية لمساعدتك في رحلتك."
               : "Free fitness and nutrition calculators for your journey."}
@@ -120,33 +109,31 @@ export default function ToolsPage() {
   );
 }
 
-function ToolCard({ tool, isAr }: { tool: typeof tools[number]; isAr: boolean }) {
+function ToolCard({ tool, isAr }: { tool: (typeof tools)[number]; isAr: boolean }) {
   return (
     <a
       href={tool.slug.startsWith("/") ? tool.slug : `/tools/${tool.slug}`}
-      className="group flex items-center gap-4 rounded-3xl bg-[#f5f5f7] p-6 transition-opacity hover:opacity-90"
+      className="marble-card group flex items-center gap-4 p-6 transition-transform duration-300 hover:-translate-y-0.5"
     >
-      <span
-        className="relative grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-2xl text-2xl"
-        style={{ backgroundColor: `${tool.color}15` }}
-      >
-        <ImageWithFallback
-          src={tool.image}
-          alt={isAr ? tool.nameAr : tool.nameEn}
-          fill
-          className="object-cover"
-          fallbackElement={<span>{tool.emoji}</span>}
-        />
-      </span>
+      {/* Engraved icon pair (Phase 127 identity — replaces emoji tiles) */}
+      <EngravedIcon
+        name={tool.icon}
+        alt={isAr ? tool.nameAr : tool.nameEn}
+        size={56}
+        className="h-14 w-14 shrink-0"
+      />
       <div className="min-w-0 flex-1">
-        <h3 className="text-lg font-semibold tracking-tight">
+        <h3 className="text-lg font-semibold tracking-tight text-[var(--text)]">
           {isAr ? tool.nameAr : tool.nameEn}
         </h3>
-        <p className="mt-1 text-sm font-normal text-[#6e6e73]">
+        <p className="mt-1 text-sm font-normal text-[var(--muted-foreground)]">
           {isAr ? tool.descAr : tool.descEn}
         </p>
       </div>
-      <span className="text-2xl text-[#6e6e73]">›</span>
+      {/* Chrome arrow (mission §6) */}
+      <span className="chrome-text shrink-0 text-2xl font-semibold" aria-hidden="true">
+        ›
+      </span>
     </a>
   );
 }

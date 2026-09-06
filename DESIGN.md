@@ -1,6 +1,6 @@
 # Alkemos — Design System Documentation
 
-> **Last updated:** 2026-08-26 (added §2.2 — unified PALETTE const with WCAG AAA contrast)
+> **Last updated:** 2026-09-06 (Phase 127 — owner feedback pass on the Marble & Chrome identity: hero rework, page banners, EVO reference card, site-wide application)
 > **Status:** Active — binding reference for all UI/UX decisions
 > **Audience:** AI agents, developers, designers
 
@@ -8,99 +8,79 @@
 
 ## 1. Design Philosophy
 
-Alkemos follows an **Apple-inspired premium aesthetic** — clean,
-minimal, focused on content clarity. The design prioritizes:
+Alkemos runs the **«Marble & Chrome»** identity (owner directive, Phase 126 + 127):
+a monochrome marble-and-metal system inspired by classical Greek
+architecture, rendered with modern layout discipline. Every surface is
+either pristine marble (light theme) or dark honed stone (dark theme);
+every accent is chrome (brushed-metal gradient). The ONLY chromatic
+exception is `--ai` cyan, reserved strictly for AI-assistant surfaces.
 
-1. **Whitespace** — generous padding, no visual clutter
-2. **Hierarchy** — clear visual priority via size, color, and weight
-3. **Consistency** — same patterns repeated across all pages
-4. **Performance** — no unnecessary animations or heavy assets
-5. **Accessibility** — WCAG AA compliant, `prefers-reduced-motion` respected
+Core laws:
+
+1. **Monochrome by default** — `--bg` / `--text` / `--muted` + the chrome
+   gradient carry the whole design. No blue/green/purple accents outside
+   semantic status colors deep inside the app (destructive/success only).
+2. **Zero emoji in DOM** on marketing + hub surfaces — icons come from the
+   owner's engraved icon sheets (see §6). (Phase 127 removed the last
+   emoji renders from /tools, /programs, /memberships.)
+3. **Theme parity** — light and dark are the SAME structure, only tokens
+   flip (`[data-theme="dark"]`). No element may exist in one theme only.
+4. **Zero pure-black / pure-white borders** — borders use `--edge` /
+   `--chrome-edge`, never `#000`/`#fff`.
+5. **Performance** — fixed-ratio media (no CLS), WebP method=6, no heavy
+   animations, `prefers-reduced-motion` respected.
 
 ---
 
-## 2. Color System
+## 2. Identity Tokens (globals.css — single source of truth)
 
-All colors are defined in `src/app/globals.css` as CSS variables and mapped
-to Tailwind utility classes via `tailwind.config.ts`.
+### 2.1 Core palette
 
-### Primary Palette
-
-| Variable | Hex | Tailwind | Usage |
+| Variable | Light | Dark | Usage |
 |---|---|---|---|
-| `--background` | `#ffffff` | `bg-white` | Page background |
-| `--foreground` | `#1d1d1f` | `text-[#1d1d1f]` | Primary text |
-| `--primary` | `#0071e3` | `bg-[#0071e3]` | CTA buttons, links, accents |
-| `--secondary` | `#f5f5f7` | `bg-[#f5f5f7]` | Section backgrounds, card backgrounds |
-| `--muted-foreground` | `#6e6e73` | `text-[#6e6e73]` | Secondary text |
-| `--border` | `#d2d2d7` | `border-[#d2d2d7]` | Borders, dividers |
-| `--destructive` | `#ff3b30` | `text-[#ff3b30]` | Errors, delete actions |
-| `--success` | `#34c759` | `text-[#34c759]` | Success states, protein macros |
-| `--warning` | `#ff9500` | `text-[#ff9500]` | Warnings, intermediate level |
+| `--bg` | `#FFFFFF` | `#0B0B0D` | Page background |
+| `--text` | `#0B0B0D` | `#F5F5F7` | Primary text / solid action color |
+| `--muted` / `--muted-foreground` | `#6B7075` | `#9BA0A6` | Secondary text |
+| `--muted-2` | `#4A5260` | `#B9BEC4` | Body copy on tinted surfaces |
+| `--tint` | `#F5F6F8` | `#121316` | Soft section / chip background |
+| `--card` | `#ffffff` | `#141518` | Card surface |
+| `--edge` | `#E4E6E9` | `#26292E` | Hairline borders |
+| `--ai` | `#38C7FF` | `#45D6FF` | **AI-assistant elements ONLY** |
 
-### Category Accent Colors
+### 2.2 Chrome system
 
-| Category | Color | Usage |
+| Variable | Light | Dark |
 |---|---|---|
-| Exercise: chest | `#0071e3` | Blue |
-| Exercise: back | `#0090e3` | Light blue |
-| Exercise: shoulders | `#00b8d9` | Cyan |
-| Exercise: legs | `#34c759` | Green |
-| Exercise: biceps | `#5ac8fa` | Sky |
-| Exercise: triceps | `#007aff` | iOS blue |
-| Exercise: core | `#ff9500` | Orange |
-| Exercise: cardio | `#ff3b30` | Red |
-| Food: protein | `#ff6b6b` | Coral |
-| Food: carb | `#ffa94d` | Amber |
-| Food: fat | `#69db7c` | Light green |
-| Food: vegetable | `#38d9a9` | Teal |
-| Food: fruit | `#ff8787` | Pink |
-| Food: dairy | `#a9b5c1` | Gray-blue |
-| Food: nuts | `#d9943a` | Bronze |
-| Food: snack | `#9775fa` | Purple |
-| Food: drink | `#5c7cfa` | Indigo |
+| `--chrome` | `linear-gradient(145deg,#FDFDFD 0%,#C9CED3 35%,#878E94 50%,#E6E9EC 70%,#9AA0A6 100%)` | same |
+| `--chrome-edge` | `#7D8388` | `#4A5056` |
+| `--border-chrome` | `1px solid #C9CED3` | `1px solid #3A3F45` |
+| `--shadow` | `0 8px 24px rgba(11,11,13,.06)` | `0 0 0 1px rgba(255,255,255,.04), 0 12px 32px rgba(0,0,0,.5)` |
+| `--radius-chrome` | `14px` | `14px` |
 
-### 2.2 Unified PALETTE Const (landing page + future surfaces)
+### 2.3 Artwork-backed tokens
 
-> **Added 2026-08-26** — Extracted from the Gemini "Ask Gemini" card palette
-> and extended across the entire landing page. Defined in
-> `src/components/views/LandingView.tsx` (lines 22-50).
->
-> **Why a separate const?** The Primary Palette (§2.1) lives in
-> `globals.css` as CSS variables for shadcn/ui and global Tailwind classes.
-> The `PALETTE` const covers surface-level accent tokens that need to be
-> applied as inline `style={{ ... }}` (because Tailwind cannot express
-> dynamic opacity in `box-shadow` or `border` reliably when paired with
-> inline `onMouseEnter` hover handlers). The two systems are
-> **complementary** — neither replaces the other.
+`--hero-img`, `--marble-img`, `--meander-img`, `--prog-backdrop`,
+`--navbar-bg` — CSS `url()` pairs that flip with the theme (zero hydration
+flicker; the browser swaps by `data-theme`, no JS image-src churn).
 
-| Token | Hex | Role | Contrast on `surface` | WCAG |
-|---|---|---|---|---|
-| `surface` | `#FDFCFE` | Card surface — pure white | — | — |
-| `tint` | `#F5F7FC` | Card surface — cool white-blue (secondary cards) | — | — |
-| `halo` | `#E9F2FD` | Hover halo (box-shadow tint) | — | — |
-| `blue` | `#CAE3FA` | Decorative blue (button gradients) | — | — |
-| `blueDeep` | `#C9E4FC` | Decorative blue (deeper accent) | — | — |
-| `textPrim` | `#1D252E` | h1/h2/h3 — dark blue (not pure black) | 15.0:1 | ✅ AAA |
-| `textSec` | `#4A5260` | Descriptions / body text | 7.5:1 | ✅ AAA |
-| `textMuted` | `#6E6E73` | Footer / legal / non-essential text only | 4.5:1 on `#f5f5f7` | ⚠️ AA (accepted for legal text) |
-| `brand` | `#0071e3` | Solid button background only | — | — |
-| `brandDeep` | `#0F5BB5` | Text links on light bg | 7.3:1 | ✅ AAA |
-| `brandSoft` | `#E9F2FD` | Badge / pill background | — | — |
-| `border` | `#D2D2D7` | Apple gray border | — | — |
-| `sectionWhite` | `#FFFFFF` | Section background (alternating) | — | — |
-| `sectionGray` | `#F5F5F7` | Section background (alternating) | — | — |
-| `sectionDark` | `#1D1D1F` | Hero / featured-blog dark surface | — | — |
+### 2.4 Theme engine
 
-**Usage rule:** prefer `PALETTE.*` tokens for any element on the landing
-page that needs inline styling (hover effects, dynamic shadows, price pills,
-badges). For static Tailwind classes (e.g. `bg-white`, `text-[#1d1d1f]`),
-the Primary Palette (§2.1) remains authoritative.
+- `data-theme="light|dark"` on `<html>`, stamped pre-paint by the
+  `#alkemos-theme-init` inline script (root layout) — manual choice
+  (localStorage `alkemos-theme`) or OS `prefers-color-scheme`.
+- `ThemeToggle` cycles light → dark → system and follows the OS live
+  while in system mode.
+- `--ai` cyan is EXCLUSIVELY for AI surfaces (EVO widget/chat/glow ring).
+  Never use it for links, CTAs, or decoration.
 
-**Backward compatibility:** the const alias `const CARD = PALETTE;`
-preserves references in legacy helper components (`LandingToolCard`,
-`LandingExerciseCategoryCard`, `LandingProgramCard`,
-`LandingFoodCategoryCard`). New code should use `PALETTE.*` directly.
+### 2.5 Dark-compatibility shim (Phase 126)
+
+Legacy Apple-light utility classes on secondary surfaces
+(`bg-white`, `bg-[#f5f5f7]`, `text-[#1d1d1f]`, `text-[#6e6e73]`,
+`border-[#d2d2d7]`) are remapped to identity tokens **in dark mode only**
+(globals.css). Light mode is untouched. New code MUST NOT use these
+classes — use the `var(--…)` tokens directly (Phase 127 converted all
+six hub pages: tools / exercises / programs / foods / blog / memberships).
 
 ---
 
@@ -110,278 +90,179 @@ preserves references in legacy helper components (`LandingToolCard`,
 
 | Context | Font Family | Source |
 |---|---|---|
-| English (primary) | **Inter** | `@fontsource/inter` |
-| Arabic (primary) | **Cairo** | `@fontsource/cairo` |
-| Monospace | `ui-monospace` | System |
+| Display (headings, EN) | **Playfair Display** 500/600/700 | `@fontsource/playfair-display` → `--font-display` |
+| Body (EN) | **Inter** | `@fontsource/inter` |
+| Arabic | **Cairo** | `@fontsource/cairo` (same scale; Arabic never uses the serif) |
+
+The lapidary serif (`font-display` / default `h1–h4`) is the "engraved in
+stone" voice. Arabic headings keep Cairo per owner directive §16 — Arabic
+readability beats stylistic mirroring.
 
 ### Font Sizes (Tailwind scale)
 
 | Element | Mobile | Desktop |
 |---|---|---|
-| Page title (h1) | `text-3xl` (30px) | `text-5xl` (48px) |
-| Section title (h2) | `text-2xl` (24px) | `text-4xl` (36px) |
-| Card title (h3) | `text-lg` (18px) | `text-lg` (18px) |
-| Body text | `text-sm` (14px) | `text-base` (16px) |
-| Caption/label | `text-xs` (12px) | `text-xs` (12px) |
-| Micro label | `text-[10px]` (10px) | `text-[10px]` (10px) |
+| Hero title | `text-4xl` | `md:text-6xl lg:text-7xl` |
+| Page title (h1) | `text-3xl` | `md:text-5xl` |
+| Section title (h2) | `text-2xl/3xl` | `md:text-4xl/5xl` |
+| Card title (h3) | `text-lg` | `text-lg` |
+| Body text | `text-sm/base` | `text-base/lg` |
 
 ### Font Weights
 
-| Weight | Tailwind | Usage |
-|---|---|---|
-| Normal (400) | `font-normal` | Body text, descriptions |
-| Medium (500) | `font-medium` | Labels, buttons |
-| Semibold (600) | `font-semibold` | Card titles, subheadings |
-| Bold (700) | `font-bold` | Hero titles, emphasis |
+Normal (400) body · Semibold (600) titles & chrome buttons · Bold (700)
+prices/stat numbers.
 
 ---
 
-## 4. Layout & Spacing
+## 4. Core Recipes (CSS classes in globals.css)
+
+| Class | Recipe | Use |
+|---|---|---|
+| `.btn-chrome` | chrome gradient bg + `#0B0B0D` text + 1px `--chrome-edge` + radius 999px + 600 weight | ALL primary CTAs |
+| `.btn-outline` | transparent + 1px `--text` border + `--text` + radius 999px | Secondary CTAs |
+| `.marble-card` | `--card` bg + `--border-chrome` + radius 14 + `--shadow` + marble texture `::before` at 5% (dark 7%) | Every card surface |
+| `.seal-chip` | chrome-border pill, small-caps tracking, `--muted-foreground`, translucent card bg | Stat seals, tags, badges |
+| `.chrome-text` | chrome gradient clipped to text (lightened ramp in dark) | Numbers, prices, "Learn more ›" links |
+| `.meander-divider` | Greek-key band, repeat-x, 28px, opacity .85 | Section separators |
+| `.navbar-chrome` | sticky, `--navbar-bg` + blur(12px) + chrome bottom border | Site header |
+| `.evo-hero-card` / `.evo-hero-art` | Phase 127 EVO section card — text left, warrior art right with a mask fade into the marble; `[dir=rtl]` flips the mask | Homepage EVO section |
+| `.hero-art` | CSS background pair (light/dark artwork) at 92vh, cover center | Homepage hero |
+
+**Buttons law:** there are exactly TWO button styles on marketing/hub
+surfaces — `.btn-chrome` (primary) and `.btn-outline` (secondary). No
+blue buttons, no gradients besides chrome.
+
+---
+
+## 5. Layout & Spacing
 
 ### Container Widths
 
-| Context | Max width | Tailwind |
-|---|---|---|
-| Landing page | `max-w-6xl` (72rem) | `mx-auto max-w-6xl px-4` |
-| App pages | `max-w-6xl` (72rem) | `mx-auto max-w-6xl px-4` |
-| Article body | `max-w-3xl` (48rem) | `mx-auto max-w-3xl px-4` |
-| Form width | `max-w-md` (28rem) | `mx-auto max-w-md` |
+| Context | Max width |
+|---|---|
+| Landing sections | `max-w-4xl` – `max-w-6xl` (per section) |
+| Hub pages | `max-w-4xl` (tools) / `max-w-6xl` (explorers, memberships, blog) |
+| Article body | `max-w-3xl` |
 
 ### Section Padding
 
-| Context | Mobile | Desktop |
-|---|---|---|
-| Section vertical | `py-12` (48px) | `md:py-20` (80px) |
-| Card internal | `p-5` or `p-6` | same |
-| Card grid gap | `gap-4` (16px) | same |
-| Pill gap | `gap-3` (12px) | same |
+Section vertical `py-12` / `md:py-20` · card internal `p-5–p-8` · grid gap
+`gap-4` (cards) / `gap-3` (pills).
 
 ### Border Radius
 
-| Element | Radius | Tailwind |
-|---|---|---|
-| Cards | `1.5rem` | `rounded-3xl` |
-| Pills/buttons | `9999px` | `rounded-full` |
-| Small cards | `1rem` | `rounded-2xl` |
-| Images (thumbnails) | `0.75rem` | `rounded-xl` |
-| Input fields | `0.5rem` | `rounded-lg` |
+Cards `var(--radius-chrome)` = 14px (marble-card) · pills/buttons `9999px`
+· small inner cards `rounded-2xl`.
 
 ---
 
-## 5. Component Patterns
+## 6. Brand Asset System (`public/images/brand/`)
 
-### 5.1 Category Pill (card-style tile)
+All artwork comes from the owner's generated sets (v3 upload, archived at
+`download/alkemos-brand/v3/`; rebuilt by `scripts/build_assets_v3.py` and
+Phase 127's `scripts/build_assets_v127.py` + `fix_hero_logo2.py`):
 
-Used on `/exercises` and `/foods` for category selection.
-
-```
-┌──────────────────┐
-│                  │
-│   [64×64 image]  │  ← rounded-xl, object-cover, ring-1 ring-black/5
-│                  │
-│   Category name  │  ← text-[11px] font-medium leading-tight
-└──────────────────┘
-```
-
-- Container: `w-20 flex flex-col items-center gap-2 rounded-2xl p-2`
-- Active state: `bg-[#1d1d1f] text-white ring-2 ring-[#0071e3] ring-offset-2`
-- Inactive: `bg-[#f5f5f7] text-[#6e6e73] hover:bg-white`
-- Image error: conditional rendering with emoji fallback (no `display:none`)
-
-### 5.2 Content Card
-
-Used for exercise, food, and program listings.
-
-```
-┌────────────────────────────┐
-│  ┌──────────────────────┐  │
-│  │                      │  │  ← aspect-[4/3] (exercises) or aspect-square (foods)
-│  │    Image / Thumbnail  │  │
-│  │                      │  │
-│  └──────────────────────┘  │
-│  ┌──────────────────────┐  │
-│  │ [Category] [Level]   │  │  ← pill badges
-│  │ Exercise Name        │  │  ← text-lg font-semibold
-│  │ Equipment: Barbell   │  │  ← text-xs text-muted
-│  │ Learn more ›         │  │  ← text-sm text-primary
-│  └──────────────────────┘  │
-└────────────────────────────┘
-```
-
-- Container: `card-hover group overflow-hidden rounded-3xl bg-[#f5f5f7]`
-- Hover: `translateY(-4px) + box-shadow: 0 12px 32px rgba(0,0,0,0.08)`
-
-### 5.3 Empty State
-
-Used when search/filter yields no results.
-
-```
-┌────────────────────────────────┐
-│           ┌─────┐              │
-│           │ 🔍  │              │  ← lucide SearchX icon in bg-primary/10 circle
-│           └─────┘              │
-│       No results found         │  ← text-lg font-semibold
-│  Try adjusting your filters    │  ← text-sm text-muted
-│       [Reset filters]          │  ← bg-foreground text-white rounded-full
-└────────────────────────────────┘
-```
-
-### 5.4 Header Drawer (navigation menu)
-
-7 grouped sections in a slide-in drawer:
-
-1. Home
-2. Paid Services (Coaching + Memberships + EVO)
-3. Affiliate
-4. Tools (expandable dropdown)
-5. Resources (Exercises + Programs + Foods + Blog)
-6. My Account (authenticated)
-7. Coach Admin (if isCoach)
-
-- Drawer width: `85vw max-w-sm`
-- Items: `rounded-lg px-3 py-2.5 text-sm`
-- Active group header: `text-[10px] uppercase tracking-wider text-muted`
-
-### 5.5 Footer
-
-5 groups in a responsive grid + horizontal Legal & Basic row:
-
-| Group | Items |
+| Asset | Purpose |
 |---|---|
-| Brand | Alkemos + tagline + copyright |
-| Paid Services | Coaching + Memberships + EVO AI Coach |
-| Affiliate & Referral | Affiliate Program + Referral Dashboard |
-| Tools | 6 individual tools |
-| Resources | Exercises + Programs + Foods + Blog |
-| Legal & Basic (bottom row) | About + Contact + FAQ + Privacy + Terms |
+| `hero-light/dark.webp` (1280×713) | Homepage hero background — **logo scrubbed off the artwork (Phase 127): the chrome logo is an HTML element instead** |
+| `logo-hero-light/dark.webp` (760px) | Silver-chrome hero lockup (from `logo-main-*`) — displayed full-opacity, upper-center |
+| `logo-navbar-light/dark.png` | Horizontal navbar logo (36px height) |
+| `logo-footer-white.png` | White mono lockup for the always-dark footer |
+| `mark-helmet.png` | Helmet mark (favicon set, comparison-table column head) |
+| `header-{section}-{light,dark}.webp` (1280×477) | **The owner's 12 PAGE banners** (tools / exercises / programs / foods / blog / pricing) — rendered via `<PageBanner section="…" />` at the top of each hub page (Phase 127: NOT homepage section banners) |
+| `evo-card-light/dark.webp` | Programs-card stadium backdrop (12% blur) + EVO page art |
+| `evo-hero-light/dark.webp` (640×675) | Phase 127 EVO section warrior crop (warrior at 67–85% of crop width) |
+| `evo-widget-light/dark.webp` (480×480) | Widget/avatar bust (72% fill) |
+| `texture-marble-light/dark.webp` | Marble texture layer (5%/7% on cards, footer) |
+| `divider-meander-light/dark.webp` | Greek-key repeating band |
+| `icons/<name>-{light,dark}.webp` (200×200) | **38 engraved icons** — the ONLY icon set on marketing/hub surfaces (calories, bmi, macros, bodyfat, hydration, mealplanner, dumbbell, house, rack, runner, protein, carbs, fats, fruits, scroll, laurel, evo, checkseal, doric…) |
+
+### Icon usage
+
+- `EngravedIcon name="calories"` renders the light+dark pair (CSS picks).
+- Lucide icons remain INSIDE the logged-in app only (drawer, dashboard).
+- Category emoji fallbacks were removed in Phase 127 (zero-emoji law).
 
 ---
 
-## 6. Animation System
+## 7. Page Recipes
 
-Defined in `src/app/globals.css`. All animations respect
-`prefers-reduced-motion: reduce`.
+### 7.1 Homepage hero (Phase 127)
 
-| Class | Effect | Duration | Usage |
-|---|---|---|---|
-| `animate-fade-in-up` | Opacity 0→1 + translateY 16px→0 | 0.5s ease-out | Page entrances |
-| `card-hover` | translateY -4px + box-shadow on hover | 0.3s ease | Content cards |
-| `skeleton-shimmer` | Gradient background slide | 1.5s infinite | Skeleton loaders |
-| `group-hover:scale-105` | Image zoom on card hover | 0.5s | Program/food images |
+Full-bleed `hero-art` background (92vh, no veil — artwork at full
+opacity), content centered: chrome logo lockup (`w-56` mobile → `w-80`
+desktop) → serif H1 → stats subline → 3 seal chips. **No CTA buttons, no
+eyebrow wordmark** (owner directive: buttons moved out; the quick-nav
+section below the hero carries navigation).
 
-### `prefers-reduced-motion`
+### 7.2 Hub page header (Phase 127)
 
-```css
-@media (prefers-reduced-motion: reduce) {
-  .animate-fade-in-up,
-  .card-hover,
-  .skeleton-shimmer {
-    animation: none !important;
-    transition: none !important;
-  }
-}
-```
+`<SiteHeader variant="landing" />` → `<main>` opens with
+`<PageBanner section="{tools|exercises|programs|foods|blog|pricing}" />`
+(a 1280×477 owner artwork strip in a marble-card frame, `mb-10`) → h1 +
+subline. Works in server components (plain `<img>` pair).
 
----
+### 7.3 EVO section card (Phase 127 — reference: preview-sections)
 
-## 7. Image System
+One full-width `marble-card.evo-hero-card`: text column left (h2 + copy +
+`.btn-chrome` + `.btn-outline`), warrior art absolutely positioned on the
+inline-end side (60% width desktop / 78% mobile) fading into the marble
+via CSS `mask-image`; `[dir=rtl]` mirrors art + mask.
 
-### 7.1 AI-Generated Images (Apple iPhone style)
+### 7.4 Pricing cards
 
-All category/tool/program thumbnails are AI-generated (z-ai image generation)
-in a consistent style:
+`marble-card` surfaces; Pro = dark `#0B0B0D` card with a 2px chrome
+gradient ring (border-box trick) + laurel "Popular" seal-chip; prices in
+`.chrome-text`; CTAs `.btn-chrome`.
 
-- **Style:** "Premium product photography, Apple iPhone style, minimal white
-  background, soft studio lighting, high detail, professional product
-  photography, ultra clean, white seamless background"
-- **Size:** 1024×1024 PNG
-- **Avg size:** 70-100 KB per image
+### 7.5 Comparison tables
 
-### 7.2 Image Inventory
+Alkemos/Pro column highlighted with `--tint` + `--border-chrome` inset;
+"yes" = engraved `checkseal` icon; "no" = muted `×` at opacity .5.
 
-| Folder | Count | Purpose |
-|---|---|---|
-| `/public/images/categories/foods/` | 9 | Food category thumbnails |
-| `/public/images/categories/exercises/` | 8 | Exercise category thumbnails |
-| `/public/images/tools/` | 6 | Tool listing thumbnails |
-| `/public/images/programs/` | 7 | Workout program thumbnails |
-| `/public/images/` (root) | 19 | Hero/marketing photos (existing JPGs) |
-| **Total** | **49** | |
+### 7.6 Footer (always dark)
 
-### 7.3 Image URL Convention
-
-- Local images: always start with `/images/...` (absolute path from public root)
-- External images: `https://...` (only for yuhonas individual exercise photos)
-- The `getExerciseImageUrl()` function handles both local (`/`) and external
-  (`http`) paths — it passes local paths through without modification.
-
-### 7.4 Fallback Pattern
-
-All images use **conditional rendering** (not `display: none`) for emoji
-fallback. This is better for SEO and accessibility:
-
-```tsx
-const [imgError, setImgError] = useState(false);
-
-{imgError ? (
-  <span className="text-2xl">{emoji}</span>
-) : (
-  <img src={src} onError={() => setImgError(true)} />
-)}
-```
+`.footer-marble` (#0B0B0D + marble-dark texture) + `.footer-meander-top`
+band on the top edge + white mono logo + light muted links (custom CSS
+overrides the app link color inside the footer).
 
 ---
 
-## 8. Performance Patterns
+## 8. Bilingual Support (EN/AR)
 
-### 8.1 Incremental Rendering
-
-Pages with large datasets use pagination + infinite scroll:
-
-| Page | Dataset size | Page size | Mechanism |
-|---|---|---|---|
-| `/exercises` | 868 | 48 | scroll + "Load more" button |
-| `/foods` | 8,830 | 60 | scroll + "Load more" button |
-
-### 8.2 Deferred Filtering
-
-`/foods` uses `useDeferredValue` to keep the search input responsive even
-when filtering 8,830 items:
-
-```tsx
-const filtered = useMemo(() => filterFoods({...}), [...]);
-const deferredFiltered = useDeferredValue(filtered);
-// Render uses deferredFiltered — input stays responsive
-```
-
-### 8.3 Lazy Image Loading
-
-All `<img>` tags use `loading="lazy"` to avoid blocking initial render.
+- Full RTL mirroring via `dir="rtl"` + logical properties
+  (`ps/pe/ms/me`, `start/end`, `inset-inline-end`). The EVO card art and
+  mask flip with `[dir=rtl]`.
+- **Logo lockups stay LTR** (brand artwork is language-neutral).
+- Arabic keeps Cairo at the same type scale; no serif for Arabic.
+- AR mirrors: `/ar/{exercises,foods,programs,blog,memberships,…}` share
+  the EN components with `lang="ar"` — banners/theme/logo pairs are
+  language-independent.
 
 ---
 
-## 9. Bilingual Support (EN/AR)
+## 9. Performance Patterns
 
-- **Default language:** English (`lang="en" dir="ltr"`)
-- **Arabic:** `lang="ar" dir="rtl"` — RTL layout handled by Tailwind's
-  `rtl:` variant + logical properties (`ps-`, `pe-`, `start`, `end`)
-- **Language toggle:** in header (always visible)
-- **Brand name:** "Alkemos" is never translated
+- Hero artworks `<link rel="preload">`ed in the root layout (no CLS — the
+  hero is a fixed 92vh CSS background); hero logo light variant preloaded.
+- Theme image pairs: both variants in DOM, CSS shows one — zero JS churn.
+- Hub page banners lazy-decode; engraved icons `loading="lazy"`.
+- Server components render grids/pills/pagination (explorers) — client
+  JS only for search/filter islands.
+- All brand raster shipped as WebP method=6 (sources 1.5–2MB → 20–130KB).
 
 ---
 
 ## 10. Verification Protocol
 
-After any UI change, verify (per `AGENTS.md` §3.5):
+Before any UI change ships:
 
-```bash
-npx tsc --noEmit     # 0 errors
-npx eslint .         # 0 errors (≤6 pre-existing warnings)
-npx next build       # exit 0, all 78 routes registered
-```
-
-After deploying, verify on Live:
-- No horizontal scroll on 390px viewport
-- No white screens on any route
-- Images load correctly (check `/exercises` category pills + `/foods` pills)
-- Empty state appears when filtering yields 0 results
+1. **Structure parity** light vs dark (same DOM, tokens flip only).
+2. **Zero emoji** in rendered DOM on marketing/hub surfaces.
+3. **No legacy accent colors** — `#0071e3`, `#34c759`, `#8b5cf6` must not
+   appear on hub/marketing surfaces (grep the diff).
+4. VLM screenshot pass (light + dark + AR + 390px mobile) against the
+   owner's preview references.
+5. Full gate suite: `tsc` 0 · `eslint` 0 · `vitest` · `next build` ·
+   docs/stale-ref/ui-wiring guards.

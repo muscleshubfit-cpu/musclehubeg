@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { SiteHeader } from "@/components/SiteHeader";
+import { PageBanner } from "@/components/PageBanner";
 import { SearchX } from "lucide-react";
 import { ImageWithFallback } from "@/components/ui/image-with-fallback";
 import { ServerPagination } from "@/components/ServerPagination";
@@ -78,21 +79,24 @@ export function FoodsExplorer({
     query.maxcal !== "";
 
   return (
-    <div className="min-h-screen bg-white text-[#1d1d1f]">
+    <div className="min-h-screen bg-[var(--bg)] text-[var(--text)]">
       <SiteHeader variant="landing" />
 
       <main className="mx-auto max-w-6xl px-4 py-12 md:py-16">
+        {/* Owner artwork page banner (Phase 127 — 12 header images are PAGE banners) */}
+        <PageBanner section="foods" className="mb-10" />
+
         {/* Header */}
         <div className="text-center">
           <h1 className="text-3xl font-semibold tracking-tight md:text-5xl">
             {isAr ? "مكتبة الأكلات" : "Food Library"}
           </h1>
-          <p className="mx-auto mt-3 max-w-md text-base font-normal text-[#6e6e73] md:text-lg">
+          <p className="mx-auto mt-3 max-w-md text-base font-normal text-[var(--muted-foreground)] md:text-lg">
             {isAr
               ? "ابحث عن الأكلات، شوف السعرات والماكروز، واحسب الجرامات اللي محتاجها."
               : "Search foods, see calories and macros, and calculate the grams you need."}
           </p>
-          <p className="mt-2 text-sm font-normal text-[#86868b]">
+          <p className="mt-2 text-sm font-normal text-[var(--muted-foreground)] opacity-80">
             {FOODS_COUNT.toLocaleString(isAr ? "ar-EG" : "en-US")}{" "}
             {isAr ? "أكلة" : "foods"}
           </p>
@@ -121,7 +125,7 @@ export function FoodsExplorer({
 
           {/* Tags — plain links; clicking a tag toggles it in the URL */}
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-xs font-medium text-[#6e6e73]">
+            <span className="text-xs font-medium text-[var(--muted-foreground)]">
               {isAr ? "تصفية:" : "Filter:"}
             </span>
             {POPULAR_TAGS.map((tag) => {
@@ -137,7 +141,7 @@ export function FoodsExplorer({
                   className={`rounded-full px-3 py-1 text-xs font-medium transition-all ${
                     active
                       ? "text-white"
-                      : "bg-[#f5f5f7] text-[#6e6e73] hover:text-[#1d1d1f]"
+                      : "bg-[var(--tint)] text-[var(--muted-foreground)] hover:text-[var(--text)]"
                   }`}
                   style={
                     active
@@ -153,21 +157,21 @@ export function FoodsExplorer({
         </div>
 
         {/* Results count — anchor for scroll-back on page change */}
-        <p id="results-top" className="mt-6 scroll-mt-24 text-sm font-normal text-[#6e6e73]">
+        <p id="results-top" className="mt-6 scroll-mt-24 text-sm font-normal text-[var(--muted-foreground)]">
           {filtered.length.toLocaleString(isAr ? "ar-EG" : "en-US")}{" "}
           {isAr ? "أكلة" : "foods"}
         </p>
 
         {/* Foods grid — server-rendered */}
         {filtered.length === 0 ? (
-          <div className="mt-10 rounded-3xl bg-[#f5f5f7] p-12 text-center">
-            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-[#0071e3]/10">
-              <SearchX className="h-8 w-8 text-[#0071e3]" aria-hidden="true" />
+          <div className="mt-10 marble-card p-12 text-center">
+            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-[var(--tint)] border border-[var(--edge)]">
+              <SearchX className="h-8 w-8 text-[var(--muted-foreground)]" aria-hidden="true" />
             </div>
             <h3 className="mt-4 text-lg font-semibold">
               {isAr ? "لم نجد نتائج" : "No results found"}
             </h3>
-            <p className="mx-auto mt-2 max-w-sm text-sm text-[#6e6e73]">
+            <p className="mx-auto mt-2 max-w-sm text-sm text-[var(--muted-foreground)]">
               {isAr ? "جرّب تغيير الفلاتر أو البحث بكلمة مختلفة" : "Try adjusting your filters or search term"}
             </p>
             {hasFilters && (
@@ -186,11 +190,11 @@ export function FoodsExplorer({
                 <a
                   key={food.slug}
                   href={`${base}/${food.slug}`}
-                  className="card-hover group rounded-3xl bg-[#f5f5f7]"
+                  className="card-hover group marble-card"
                 >
                   {/* Content */}
                   <div className="p-3">
-                    <span className="text-[10px] font-medium text-[#6e6e73]">
+                    <span className="text-[10px] font-medium text-[var(--muted-foreground)]">
                       {isAr ? CATEGORY_LABELS[food.category].ar : CATEGORY_LABELS[food.category].en}
                     </span>
                     <h3 className="mt-1 text-sm font-semibold tracking-tight">
@@ -199,8 +203,8 @@ export function FoodsExplorer({
                     {/* Macros per 100g */}
                     <div className="mt-2 grid grid-cols-3 gap-1 text-[10px] font-normal">
                       <div className="rounded bg-white px-1 py-0.5 text-center">
-                        <span className="font-semibold text-[#0071e3]">{food.per100g.calories}</span>
-                        <span className="text-[#6e6e73]"> kcal</span>
+                        <span className="font-semibold text-[var(--text)]">{food.per100g.calories}</span>
+                        <span className="text-[var(--muted-foreground)]"> kcal</span>
                       </div>
                       <div className="rounded bg-white px-1 py-0.5 text-center">
                         <span className="font-semibold text-[#34c759]">{food.per100g.protein}g</span>
@@ -253,12 +257,12 @@ function FoodsCategoryPill({
       aria-current={isActive ? "true" : undefined}
       className={`group flex w-20 flex-col items-center gap-2 rounded-2xl p-2 transition-all ${
         isActive
-          ? "bg-[#1d1d1f] text-white ring-2 ring-[#0071e3] ring-offset-2"
-          : "bg-[#f5f5f7] text-[#6e6e73] hover:bg-white hover:text-[#1d1d1f] hover:ring-1 hover:ring-[#d2d2d7]"
+          ? "bg-[var(--text)] text-[var(--bg)] ring-2 ring-[var(--chrome-edge)] ring-offset-2"
+          : "bg-[var(--tint)] text-[var(--muted-foreground)] hover:bg-[var(--card)] hover:text-[var(--text)] hover:ring-1 hover:ring-[var(--edge)]"
       }`}
     >
       {isAll ? (
-        <span className="flex h-16 w-16 items-center justify-center rounded-xl bg-[#0071e3] text-white text-sm font-bold">
+        <span className="flex h-16 w-16 items-center justify-center rounded-xl bg-[var(--text)] text-[var(--bg)] text-sm font-bold">
           {isAr ? "الكل" : "All"}
         </span>
       ) : (
@@ -269,7 +273,7 @@ function FoodsCategoryPill({
             fill
             className="rounded-xl object-cover ring-1 ring-black/5"
             fallbackElement={
-              <span className="flex h-16 w-16 items-center justify-center rounded-xl bg-[#0071e3]/10 text-2xl">
+              <span className="flex h-16 w-16 items-center justify-center rounded-xl bg-[var(--tint)] text-2xl">
                 {CATEGORY_LABELS[cat].emoji}
               </span>
             }
