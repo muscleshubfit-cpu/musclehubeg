@@ -10,6 +10,7 @@ import { GoogleIcon } from "@/components/GoogleIcon";
 import { useNav } from "@/hooks/use-nav";
 import { useAuth } from "@/hooks/use-auth";
 import { isSupabaseConfigured } from "@/lib/supabase/client";
+import { passwordBreachCount } from "@/lib/password-breach";
 import { safeNext } from "@/lib/safe-redirect";
 import { setCoachSlugCookie, clearCoachSlugCookie, getCoachSlugCookie } from "@/lib/coach-cookie";
 import { toast } from "sonner";
@@ -64,6 +65,28 @@ export function AuthView({ mode, next, coach }: { mode: "login" | "signup"; next
     setLoading(true);
     try {
       if (isSignup) {
+        // Phase 134: mirror the server's password_min_length=8 client-side
+        // (LOGIN keeps no minLength so legacy 6-7 char passwords still work).
+        if (password.length < 8) {
+          toast.error(
+            isAr
+              ? "كلمة المرور يجب أن تكون 8 أحرف على الأقل"
+              : "Password must be at least 8 characters",
+          );
+          return;
+        }
+        // Phase 134: block known-breached passwords (HIBP k-anonymity —
+        // only the first 5 SHA-1 chars leave the device; fail-open so
+        // signup availability never depends on a third-party API).
+        const breaches = await passwordBreachCount(password);
+        if (breaches > 0) {
+          toast.error(
+            isAr
+              ? "كلمة المرور هذه ظهرت في تسريبات بيانات معروفة — اختر كلمة مرور أخرى"
+              : "This password appeared in known data breaches — choose a different one",
+          );
+          return;
+        }
         const { error, needsConfirmation: needsConf } = await signUp(
           email,
           password,
@@ -270,7 +293,7 @@ export function AuthView({ mode, next, coach }: { mode: "login" | "signup"; next
                   id="password"
                   type="password"
                   required
-                  minLength={6}
+                  minLength={isSignup ? 8 : undefined}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"

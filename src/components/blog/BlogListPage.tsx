@@ -5,7 +5,7 @@ import { SiteHeader } from "@/components/SiteHeader";
 import { PageBanner } from "@/components/PageBanner";
 
 import { useEffect, useState } from "react";
-import { listBlogPosts, BLOG_CATEGORIES, getCategoryLabel, type BlogPost } from "@/lib/blog";
+import { listBlogPosts, BLOG_CATEGORIES, getCategoryLabel, type BlogPostCard } from "@/lib/blog";
 
 export function BlogListPage({
   lang,
@@ -13,10 +13,10 @@ export function BlogListPage({
 }: {
   lang: "en" | "ar";
   /** Server-fetched posts (SSR, H1 audit fix) — seed the first render. */
-  initialPosts?: BlogPost[];
+  initialPosts?: BlogPostCard[];
 }) {
   const isAr = lang === "ar";
-  const [posts, setPosts] = useState<BlogPost[]>(initialPosts ?? []);
+  const [posts, setPosts] = useState<BlogPostCard[]>(initialPosts ?? []);
   const [loading, setLoading] = useState(!initialPosts);
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("all");

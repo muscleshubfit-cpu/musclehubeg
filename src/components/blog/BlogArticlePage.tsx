@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import { SiteHeader } from "@/components/SiteHeader";
-import { getBlogPost, getRelatedPosts, getLinkedPost, parseTableOfContents, renderMarkdown, getCategoryLabel, type BlogPost, type BlogFaq } from "@/lib/blog";
+import { getBlogPost, getRelatedPosts, getLinkedPost, parseTableOfContents, renderMarkdown, getCategoryLabel, type BlogPost, type BlogPostCard, type BlogFaq } from "@/lib/blog";
 import { BlogMembershipCard, SocialShare, ReadingProgress, TableOfContents } from "./BlogComponents";
 import { AdSenseAd } from "@/components/AdSenseAd";
 
@@ -21,8 +21,8 @@ export function BlogArticlePage({
   // If provided, use it immediately (server-rendered content in initial HTML).
   // If not (e.g. fallback), fetch client-side as before.
   const [post, setPost] = useState<BlogPost | null>(initialPost ?? null);
-  const [linked, setLinked] = useState<BlogPost | null>(null);
-  const [related, setRelated] = useState<BlogPost[]>([]);
+  const [linked, setLinked] = useState<BlogPostCard | null>(null);
+  const [related, setRelated] = useState<BlogPostCard[]>([]);
   const [loading, setLoading] = useState(!initialPost);
   const [showCTA, setShowCTA] = useState(false);
 

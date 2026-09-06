@@ -16,7 +16,7 @@ import {
 import { Marquee } from "@/components/ui/3d-testimonials";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
-import { listBlogPosts, getCategoryLabel, type BlogPost } from "@/lib/blog";
+import { listBlogPosts, getCategoryLabel, type BlogPostCard } from "@/lib/blog";
 import { Dumbbell, Apple, BarChart3, Bot, Check, ArrowRight, Sparkles } from "lucide-react";
 import Image from "next/image";
 
@@ -88,7 +88,7 @@ export default function CoachingPage() {
   const router = useRouter();
   const { profile } = useAuth();
   const isAr = lang === "ar";
-  const [latestPosts, setLatestPosts] = useState<BlogPost[]>([]);
+  const [latestPosts, setLatestPosts] = useState<BlogPostCard[]>([]);
 
   // Smooth scroll to pricing section
   const scrollToPricing = () => {

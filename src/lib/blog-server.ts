@@ -1,6 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { unstable_cache } from "next/cache";
-import type { BlogPost, BlogFaq } from "./blog";
+import type { BlogPost, BlogPostCard, BlogFaq } from "./blog";
 
 /**
  * Server-side blog helpers — for route handlers and server components.
@@ -228,7 +228,7 @@ export async function listPublishedPostsForFeed(
  */
 export async function listPublishedPostsForListPage(
   lang: "en" | "ar",
-): Promise<BlogPost[]> {
+): Promise<BlogPostCard[]> {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   if (!supabaseUrl || !supabaseAnonKey) return [];
@@ -237,14 +237,20 @@ export async function listPublishedPostsForListPage(
     const supabase = createClient(supabaseUrl, supabaseAnonKey, {
       auth: { persistSession: false, autoRefreshToken: false },
     });
+    // Phase 134 (perf): card fields ONLY. The previous select("*") pulled
+    // every article's full `content` (10-30KB each) into the /blog RSC
+    // payload — 476KB of HTML for a list of cards. Article bodies are
+    // fetched per-slug by fetchBlogPostFull on the article route.
     const { data, error } = await supabase
       .from("blog_posts")
-      .select("*")
+      .select(
+        "id, language, title, slug, excerpt, focus_keyword, keywords, category, tags, featured_image, cover_alt, reading_time, author, published_at, created_at",
+      )
       .eq("is_published", true)
       .eq("language", lang)
       .order("published_at", { ascending: false });
     if (error) return [];
-    return (data ?? []) as BlogPost[];
+    return (data ?? []) as BlogPostCard[];
   } catch {
     return [];
   }

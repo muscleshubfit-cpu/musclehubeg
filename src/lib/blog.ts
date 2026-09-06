@@ -77,17 +77,48 @@ export function normalizeCategory(categoryId: string | undefined | null): string
  return SYNONYMS[id] || "nutrition";
 }
 
+/**
+ * Phase 134 (perf): the LIST/CARD shape — everything the blog list,
+ * landing "latest articles" and coaching sections actually render.
+ * Deliberately EXCLUDES the heavy fields (`content` ~10-30KB per post,
+ * `schema_json`, `faq_json`) so list queries never ship article bodies.
+ * The /blog HTML was 476KB precisely because the list selected "*" and
+ * serialized 27 full articles into the RSC payload.
+ */
+export type BlogPostCard = Pick<
+  BlogPost,
+  | "id"
+  | "language"
+  | "title"
+  | "slug"
+  | "excerpt"
+  | "focus_keyword"
+  | "keywords"
+  | "category"
+  | "tags"
+  | "featured_image"
+  | "cover_alt"
+  | "reading_time"
+  | "author"
+  | "published_at"
+  | "created_at"
+>;
+
 export function getCategoryLabel(categoryId: string, lang: "en" | "ar"): string {
  const cat = BLOG_CATEGORIES.find((c) => c.id === categoryId);
  return cat ? (lang === "ar" ? cat.ar : cat.en) : categoryId;
 }
 
-export async function listBlogPosts(lang: "en" | "ar", category?: string, search?: string): Promise<BlogPost[]> {
+export async function listBlogPosts(lang: "en" | "ar", category?: string, search?: string): Promise<BlogPostCard[]> {
  if (!isSupabaseConfigured || !supabase) return [];
  try {
+  // Phase 134: card fields only — `content`/`schema_json`/`faq_json` are
+  // for the ARTICLE page (fetched per-slug), never for lists.
   let query = supabase
   .from("blog_posts")
-  .select("*")
+  .select(
+    "id, language, title, slug, excerpt, focus_keyword, keywords, category, tags, featured_image, cover_alt, reading_time, author, published_at, created_at",
+  )
   .eq("is_published", true)
   .eq("language", lang)
   .order("published_at", { ascending: false });
@@ -101,7 +132,7 @@ export async function listBlogPosts(lang: "en" | "ar", category?: string, search
   return [];
   }
 
-  let posts = (data ?? []) as BlogPost[];
+  let posts = (data ?? []) as BlogPostCard[];
 
   // Client-side search (Supabase text search requires pg_trgm)
   if (search && search.trim()) {
@@ -145,12 +176,18 @@ export async function getBlogPost(lang: "en" | "ar", slug: string): Promise<Blog
  }
 }
 
-export async function getRelatedPosts(post: BlogPost, limit = 3): Promise<BlogPost[]> {
+export async function getRelatedPosts(
+ post: Pick<BlogPost, "id" | "language" | "category">,
+ limit = 3,
+): Promise<BlogPostCard[]> {
  if (!isSupabaseConfigured || !supabase) return [];
  try {
+  // Phase 134: card fields only (list context — bodies never ship here).
   const { data, error } = await supabase
   .from("blog_posts")
-  .select("*")
+  .select(
+    "id, language, title, slug, excerpt, focus_keyword, keywords, category, tags, featured_image, cover_alt, reading_time, author, published_at, created_at",
+  )
   .eq("is_published", true)
   .eq("language", post.language)
   .eq("category", post.category)
@@ -160,18 +197,23 @@ export async function getRelatedPosts(post: BlogPost, limit = 3): Promise<BlogPo
   if (error) {
   return [];
   }
-  return (data ?? []) as BlogPost[];
+  return (data ?? []) as BlogPostCard[];
  } catch {
   return [];
  }
 }
 
-export async function getLinkedPost(post: BlogPost): Promise<BlogPost | null> {
+export async function getLinkedPost(
+ post: Pick<BlogPost, "linked_post_id">,
+): Promise<BlogPostCard | null> {
  if (!post.linked_post_id || !isSupabaseConfigured || !supabase) return null;
  try {
+  // Phase 134: card fields only — the linked teaser renders title + link.
   const { data, error } = await supabase
   .from("blog_posts")
-  .select("*")
+  .select(
+    "id, language, title, slug, excerpt, focus_keyword, keywords, category, tags, featured_image, cover_alt, reading_time, author, published_at, created_at",
+  )
   .eq("id", post.linked_post_id)
   .eq("is_published", true)
   .maybeSingle();
@@ -179,7 +221,7 @@ export async function getLinkedPost(post: BlogPost): Promise<BlogPost | null> {
   if (error) {
   return null;
   }
-  return (data as BlogPost) || null;
+  return (data as BlogPostCard) || null;
  } catch {
   return null;
  }
@@ -224,9 +266,9 @@ export const HOME_FEATURED_COUNT = 6;
  * use the default (days since Unix epoch, UTC).
  */
 export function selectHomeBlogCarousels(
- posts: BlogPost[],
+ posts: BlogPostCard[],
  dayIndex: number = Math.floor(Date.now() / 86_400_000),
-): { latest: BlogPost[]; featured: BlogPost[] } {
+): { latest: BlogPostCard[]; featured: BlogPostCard[] } {
  // Newest-first, defensively — listBlogPosts already sorts desc by
  // published_at; nulls fall back to created_at so no post is dropped.
  const sorted = [...posts].sort((a, b) => {

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin, isSupabaseAdminConfigured } from "@/lib/supabase/admin";
 import { rateLimit, clientIp } from "@/lib/rate-limit";
+import { passwordBreachCount } from "@/lib/password-breach";
 
 /**
  * COACH SELF-REGISTRATION (owner-approved «التسجيل الفورى», 2026-08-29).
@@ -112,6 +113,18 @@ export async function POST(request: NextRequest) {
       {
         error: "weak_password",
         message: "كلمة السر لازم تكون 8 حروف أو أكتر",
+      },
+      { status: 400 },
+    );
+  }
+  // Phase 134: reject known-breached passwords server-side too (HIBP
+  // k-anonymity, fail-open — availability never depends on the API).
+  if ((await passwordBreachCount(password)) > 0) {
+    return NextResponse.json(
+      {
+        error: "breached_password",
+        message:
+          "كلمة السر دي ظهرت في تسريبات معروفة — اختر كلمة سر أقوى",
       },
       { status: 400 },
     );

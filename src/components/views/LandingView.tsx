@@ -9,7 +9,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { listBlogPosts, getCategoryLabel, selectHomeBlogCarousels, type BlogPost } from "@/lib/blog";
+import { listBlogPosts, getCategoryLabel, selectHomeBlogCarousels, type BlogPostCard } from "@/lib/blog";
 import { EXERCISES_COUNT, EXERCISE_CATEGORY_COUNTS } from "@/lib/exercises-shared";
 import { SiteHeader } from "@/components/SiteHeader";
 import { NewsletterForm } from "@/components/NewsletterForm";
@@ -123,7 +123,7 @@ function BlogCarousel({
   variant = "latest",
   isAr,
 }: {
-  posts: BlogPost[];
+  posts: BlogPostCard[];
   variant?: "latest" | "featured";
   isAr: boolean;
 }) {
@@ -236,8 +236,8 @@ export function LandingView() {
   const { isCoach } = useAuth();
   const isAr = lang === "ar";
 
-  const [latestPosts, setLatestPosts] = useState<BlogPost[]>([]);
-  const [featuredPosts, setFeaturedPosts] = useState<BlogPost[]>([]);
+  const [latestPosts, setLatestPosts] = useState<BlogPostCard[]>([]);
+  const [featuredPosts, setFeaturedPosts] = useState<BlogPostCard[]>([]);
   // 0037 «أعلن معنا» — coaches with a running ad (homepage featured strip)
   type FeaturedCoach = { slug: string | null; name: string; headline: string; photo: string | null };
   const [featuredCoaches, setFeaturedCoaches] = useState<FeaturedCoach[]>([]);
