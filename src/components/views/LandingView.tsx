@@ -389,25 +389,41 @@ export function LandingView() {
       <SiteHeader variant="landing" />
 
       {/* ===================== 1. HERO — owner artwork background + centered brand text ===================== */}
-      {/* Owner directive 2026-09-06: the new brand hero artwork (Greek temple +
-          barbell, light variant) becomes the section BACKGROUND at low opacity
-          with white gradient veils so the text keeps full contrast. Hero copy
-          now leads with the official brand slogan (identity + SEO: the keyword
-          paragraph below stays, title tag unchanged). */}
+      {/* Owner directive 2026-09-06 (rev. Phase 125): the brand hero artwork
+          (Greek temple + barbell, light variant) is the section background at
+          a CLEARLY VISIBLE opacity (0.55 — the first 0.22 pass was "too
+          transparent to notice") and object-contain so the FULL wide scene
+          shows on every screen (cover cropped most of it on mobile).
+          Readability is kept by a soft radial white CLOUD behind the text
+          block only — the artwork stays fully visible around it. Hero copy
+          leads with the official brand slogan (identity + SEO: the keyword
+          paragraph stays, title tag unchanged). */}
       <section className="relative overflow-hidden bg-gradient-to-b from-white via-[#f5f5f7]/30 to-white">
-        {/* Background artwork — decorative, hidden from assistive tech */}
-        <div className="absolute inset-0" aria-hidden="true">
+        {/* Background artwork — decorative, hidden from assistive tech.
+            object-contain: the whole 16:9 scene is always visible (owner:
+            "doesn't show completely in mobile mode"). */}
+        <div className="absolute inset-0 flex items-center justify-center" aria-hidden="true">
           <Image
             src="/images/brand/hero-bg-light.webp"
             alt=""
             fill
             sizes="100vw"
-            className="object-cover opacity-[0.22]"
+            className="object-contain opacity-[0.55]"
             priority
           />
         </div>
-        {/* Readability veils — keep dark text fully legible over the artwork */}
-        <div className="absolute inset-0 bg-gradient-to-b from-white/75 via-white/35 to-white/85" aria-hidden="true" />
+        {/* Soft white cloud BEHIND the text block — dark copy keeps full
+            contrast while the artwork reads clearly everywhere else */}
+        <div
+          className="absolute inset-0"
+          aria-hidden="true"
+          style={{
+            background:
+              "radial-gradient(ellipse 62% 55% at 50% 45%, rgba(255,255,255,0.93) 0%, rgba(255,255,255,0.55) 58%, rgba(255,255,255,0) 80%)",
+          }}
+        />
+        {/* Gentle fade into the section below */}
+        <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-b from-transparent to-white" aria-hidden="true" />
 
         <div className="relative mx-auto max-w-3xl px-4 py-16 text-center md:py-28">
           {/* Text — centered on all screens */}
@@ -423,16 +439,25 @@ export function LandingView() {
                 ? "منصة Alkemos للتدريب الرقمي مش مجرد موقع تمارين — دي منظومة رياضية متكاملة: أكثر من 868 تمرينًا بشرح وافٍ، 8830 أكلة بالقيم الغذائية، برامج جاهزة لكل مستوى، حاسبات لياقة مجانية، مدونة علمية، وكوتشينج حقيقي. احصل على خطط مخصصة من مدربين معتمدين أو ذكاء اصطناعي EVO، وتابع تقدمك خطوة بخطوة — كل ما تحتاجه في مكان واحد يوفر عليك وقتك وجهدك."
                 : "Alkemos is more than a fitness website — it's a complete digital training platform and sports ecosystem: 868+ exercises with full instructions, 8,830+ foods with nutrition data, ready-made programs for every level, free fitness calculators, a scientific blog, and real online coaching. Get custom plans from certified coaches or the EVO AI, and track your progress step by step — everything you need in one place, saving you time and effort."}
             </p>
-            {/* Owner directive 2026-08-30: hero buttons = section navigation
-                for the WHOLE homepage (beautiful chips). EVO is a service
-                inside subscriptions — not a hero CTA — so it's just one chip
-                among all sections. Memberships keeps the single filled
-                primary chip; all chips smooth-scroll to their section id. */}
-            <nav aria-label={isAr ? "التنقل بين أقسام الصفحة" : "Jump to a section"} className="mt-8">
-              <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: PALETTE.textMuted }}>
-                {isAr ? "استكشف أقسام الموقع" : "Explore the site"}
-              </p>
-              <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
+            {/* (Phase 125, owner directive: the section-navigation chips moved
+                OUT of the hero into their own section directly below it —
+                keeps the hero clean and the artwork clearly visible.) */}
+          </div>
+        </div>
+      </section>
+
+      {/* ===================== 2. SECTION QUICK-NAV — owner directive Phase 125: hero buttons moved below the hero ===================== */}
+      {/* Owner directive 2026-08-30 (rev. 2026-09-06): hero buttons = section
+          navigation for the WHOLE homepage (beautiful chips). EVO is a service
+          inside subscriptions — not a hero CTA — so it's just one chip among
+          all sections. Memberships keeps the single filled primary chip; all
+          chips smooth-scroll to their section id. */}
+      <section className="px-4 pb-10 pt-2 md:pb-14" style={{ backgroundColor: PALETTE.sectionWhite }}>
+        <nav aria-label={isAr ? "التنقل بين أقسام الصفحة" : "Jump to a section"} className="mx-auto max-w-4xl text-center">
+          <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: PALETTE.textMuted }}>
+            {isAr ? "استكشف أقسام الموقع" : "Explore the site"}
+          </p>
+          <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
                 {HERO_NAV.filter((s) => !s.needsPosts || latestPosts.length > 0).map((s) => {
                   const Icon = s.icon;
                   const isPrimary = !!s.primary;
@@ -484,9 +509,7 @@ export function LandingView() {
                   );
                 })}
               </div>
-            </nav>
-          </div>
-        </div>
+        </nav>
       </section>
 
       {/* (removed: "What is Alkemos?" section — Phase 117 correction 2026-09-04, owner directive: duplicated the hero; best phrases merged into the hero subtitle above, CenteredSection deleted as now-unused) */}

@@ -353,7 +353,11 @@ export function SiteHeader({ variant = "landing" }: { variant?: "landing" | "app
             </button>
           </div>
 
-          {/* Center: logo — absolutely centered so side groups never push it */}
+          {/* Center: logo — absolutely centered so side groups never push it.
+              Phase 125 (owner directive): the FULL logo (helmet + wordmark)
+              shows on MOBILE too — logo-header-mobile.png (224×72, displayed
+              36px tall) replaces the icon-192 helmet-only square that read
+              as "just the helmet". Desktop keeps logo-header.png h-10. */}
           <div className="pointer-events-none absolute inset-x-0 flex justify-center">
             <button
               onClick={() => navigate("landing")}
@@ -369,12 +373,12 @@ export function SiteHeader({ variant = "landing" }: { variant?: "landing" | "app
                 className="hidden h-10 w-auto object-contain md:block"
               />
               <Image
-                src="/icon-192.png"
+                src="/logo-header-mobile.png"
                 alt="Alkemos"
-                width={36}
-                height={36}
+                width={224}
+                height={72}
                 priority
-                className="h-9 w-9 rounded-lg object-contain md:hidden"
+                className="h-9 w-auto object-contain md:hidden"
               />
             </button>
           </div>
@@ -449,9 +453,26 @@ export function SiteHeader({ variant = "landing" }: { variant?: "landing" | "app
           aria-modal="true"
           aria-label={isAr ? "القائمة الرئيسية" : "Main menu"}
         >
-          {/* Drawer header */}
+          {/* Drawer header — Phase 125 (owner directive): the navbar logo
+              image replaces the plain "Alkemos" text; tapping it goes home. */}
           <div className="flex h-16 items-center justify-between border-b border-[#d2d2d7] px-4">
-            <span className="text-base font-semibold">Alkemos</span>
+            <button
+              onClick={() => {
+                setOpen(false);
+                navigate("landing");
+              }}
+              className="flex items-center"
+              aria-label="Alkemos"
+            >
+              <Image
+                src="/logo-header.png"
+                alt="Alkemos"
+                width={112}
+                height={36}
+                className="h-9 w-auto object-contain"
+                priority
+              />
+            </button>
             <button
               onClick={() => setOpen(false)}
               className="flex h-10 w-10 items-center justify-center rounded-lg text-[#1d1d1f] hover:bg-[#f5f5f7]"
