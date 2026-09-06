@@ -1440,3 +1440,23 @@ Stage Summary:
 - Commit SHA: 70a1444
 - Push status: PUSHED — d6d20c5..70a1444 main→main 2026-09-06 · Vercel READY (dpl_3rjWskLqTuNiV9QGVFjd7s5nkL4g) · تحقق إنتاجي: build-info=70a1444 ✓ · الرئيسية 200 · cron 401 · upload/file 401 بلا جلسة · logo 55KB حي · صفر hreflang معلق بالمدونة · الخرائط كلها 200
 - متبقٍ (يدوي/لاحق): DMARC على Cloudflare قيد التنفيذ بالمرحلة نفسها · تدوير مفاتيح المنصات الأربعة على المالك (شاركها بالدردشة) · تفعيل CSP Enforcement بعد مراجعة تقارير Report-Only
+
+---
+Task ID: 134
+Agent: main (Super Z)
+Task: Phase 134 — إغلاق البنود المتبقية من التدقيق العميق (بنود لا تحتاج DB) بعد تأكيد المالك: لا مزود بريد (البريد muscleshubfit@gmail.com)
+
+Work Log:
+- DNS (Cloudflare API، تحقق DoH حي): SPF `v=spf1 -all` + DMARC `p=reject; sp=reject; adkim=s; aspf=s; fo=1` (ترقية من p=none) + DKIM فارغ `*._domainkey` + MX null (RFC 7505) + تفويض تقارير Gmail — alkemos.com صار نطاقًا غير مرسل بالكامل والانتحال يُرفض
+- Supabase Auth (Management API): password_min_length 6→8 (PATCH 200 ✓) — password_hibp_enabled رُفض 402 (ميزة Pro) → بديل مجاني في الكود
+- HIBP k-anonymity في الكود: `src/lib/password-breach.ts` جديدة (fail-open · secure context) — مربطة بـ AuthView (عميل) + /api/coach/register (خادم) + minlength=8 بالتسجيل فقط (الدخول بلا حد)
+- حمية المدونة: نوع `BlogPostCard` + حذف select("*") من listBlogPosts/listPublishedPostsForListPage/getRelatedPosts/getLinkedPost (المحتوى الكامل كان يُشحن في قوائم 27 مقالًا) — /blog HTML 476KB→134KB
+- CSP: ترويسة مفروضة جديدة `frame-ancestors 'self'; base-uri 'self'; object-src 'none'; form-action 'self'` (صفر مخاطر كسر) + RO الكاملة باقية وأضافت api.pwnedpasswords.com
+- Vercel env: حذف RESEND_API_KEY (صفر استخدام · بلا مزود بريد) — OPENROUTER_API/KEY ليستا مكررتين بل dual-key pool فلم تُمسس
+- STATE.md المرحلة 134 + هذا المدخل
+
+Stage Summary:
+- Commit SHA: 570d09f — دُفع 6c0543f..570d09f main→main · Vercel READY dpl_du8DThanRuT9wvS93u5woudAE7sN (sha 570d09f4)
+- تحقق حي: ترويستا CSP المزدوجة · /blog=134KB · coach/register بكلمة مسربة 400 breached_password · minlength=8 بالتسجيل/null بالدخول · تعداد تخزين مجهول [] في 8 دلاء · 17 صفحة 200 · cron 401 · DNS مقفل عبر DoH
+- البوابات: tsc 0 · eslint 0 · vitest 213/213 · next build ✓ · بلا ميجريشن (لا تغيير DB)
+- متبقٍ يدوي على المالك: تدوير مفاتيح المنصات الأربعة · قاعدة CF Rate Limiting (بلا صلاحية بالرمز) · فرض CSP الكاملة بعد مراجعة تقارير RO بأسبوع

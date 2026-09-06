@@ -3,18 +3,21 @@
 > **قانون (AGENTS.md §3.6):** ده أول ملف أي وكيل يقرأه قبل أي شغل — وبيتحدث إلزاميًا في نفس الفريم اللي بيغيّر الحالة.
 > الملف محدود بـ 100 سطر بوابةً (`scripts/docs_audit.py`) — اكتب مضغوط.
 > **قانون التوحيد (Phase 115 — أمر المالك «الأمر الخامس»):** الملف ده هو **المصدر الرسمي والوحيد** لحالة المشروع الحية — `PROGRESS.md` و`QA_CHECKLIST.md` اندمجوا هنا واتجمدوا حرفيًا في `archive/` (التاريخ الكامل هناك + `worklog.md`).
-> **آخر تحديث:** 2026-09-07 (المرحلة 133 — تدقيق أمني عميق شامل + إصلاحات حرجة: ثغرة قراءة التخزين المجهولة (مثبتة عمليًا وأُغلقت) · إدراج الاشتراكات الذاتي · fail-closed على 24 مسار إداري · حدود رفع موزعة · إصلاحات SEO)
+> **آخر تحديث:** 2026-09-07 (المرحلة 134 — بنود ما بعد التدقيق المتبقية: تعتيم بريد النطاق DNS بالكامل (SPF -all · DMARC p=reject صارم · DKIM فارغ · MX null — النطاق غير مرسل، البريد عبر Gmail) · حماية كلمات المرور HIBP + حد 8 · حمية حمولة المدونة 476KB→134KB · فرض CSP جزئي حي · حذف RESEND_API_KEY الميت)
 
 ## المرحلة الحالية
 
-- **المرحلة:** 133 — تدقيق أمني عميق (كود + إنتاج + Vercel/Supabase/Cloudflare) وإصلاحات منفذة: (1) **ثغرة حرجة مغلقة على الإنتاج قبل الكود:** سياستا التخزين التاريخيتان «Public can read photos»/«Authenticated can upload photos» كانتا تكشفان 7 دلوات خاصة (إيصالات/صور استبيانات/ملفات خطط) لأي زائر مجهول بمفتاح anon — أثبت التدقيق عمليًا (تعداد ملفات حقيقية) ثم نُفذ الإصلاح SQL مباشرة: حذف السياستين + سياسات ملكية questionnaire-photos (مسار الأفاتار) + subscriptions INSERT=is_admin() فقط (كان أي مستخدم يسجل لنفسه اشتراك pro نشط مجانًا) + progress-photos خاص + حدود 5/10MB وMIME لكل الدلول + توثيق coach_presence — مطابق في ميجريشن 0071 (2) **fail-closed (H1):** بوابة authRequired جديدة في auth-server.ts (المفتاح الخدمي موجود ⇒ المصادقة إلزامية حتى لو فُقدت متغيرات المصادقة العامة) مطبقة على 24 مسارًا إداريًا + إصلاح isCoach الفارغ بـ/api/file + إلزام مستخدم بـ/api/upload (3) **حدود الرفع (H2):** Rate-limit 30/10د لكل مستخدم + سقف 200 ملف + تحقق magic-bytes للنوع (4) **Rate-limit موزع (H3):** send-email/coach-register عبر Upstash (كان Map ذاكرية تت reset بالكولد ستارت) + clientIp() يأخذ آخر قفزة XFF (5) **M2-M7:** سقف result_json 10KB · timingSafeEqual لمسارات cron الثمانية (cron-auth.ts) · jsonLd() يحصّن 26 موقع حقن JSON-LD (6) **SEO:** hreflang المدونة معلق بالكامل (التحقق الحي: 27EN/32AR صفر أزواج) فأزيل من صفحات المقالات · ترميز affiliate en/ar+x-default · noindex لصفحات /coaches · lastmod الثابت حُذف من خرائط الأدوات · مدونة lastmod=greatest(published,updated) · logo.png 877KB→55KB بقص 1200×630 · preload الهيرو صار للرئيسية فقط · CSP-RO أضيف PayPal لscript-src
-- **آخر كوميت متحقق منه:** 70a1444 (المرحلة 133 — build-info=commitShort 70a1444 حي · النشر Vercel READY dpl_3rjWskLqTuNiV9QGVFjd7s5nkL4g · الرئيسية/العربية 200 · cron 401 · /api/upload و/api/file بلا جلسة = 401 (fail-closed يعمل حيًا) · logo.png حي 55KB (كان 877KB) · صفحة مقال 200 وصفر hreflang معلق · الخرائط الست + robots + rss كلها 200 · الرؤوس الأمنية سليمة) — دُفع d6d20c5..70a1444 main→main 2026-09-06 · سابقه: 95a486e (المرحلة 132)
-- **البوابات الثمانية محليًا (تشغيل المرحلة 132):** tsc 0 · eslint 0 · vitest 213/213 · migration_audit --ci PASS (بلا ميجريشن) · docs_parity 0 · docs_audit 0 · check-stale-refs 0 · check-ui-wiring 0 · next build ✓
-- **الإنتاج:** alkemos.com حي · آخر ميجريشن مطبّق: 0071 (المرحلة 133 — طُبّق يدويًا أولًا على الإنتاج 2026-09-07 ثم انعكس ملفًا — تحقق حي: تعداد التخزين المجهول يعيد [] فارغًا وأفاتار المستخدم الحقيقي ما زال 200) · AdSense ads.txt حي · **Cloudflare نشط:** Full Strict + بروكسي A/www + Smart Tiered Cache + HTTP/3 + Early Hints · **قانون الكاش:** /images/brand/* وsw.js بـ max-age=0 must-revalidate و/images/* عام 86400 وsw v4 network-first + تسجيل ?v=4 — **أصل جديد logo-footer-black.png** ياخد purge مسار /images/brand/ بعد الدفع (ترويسته must-revalidate فالكاش احتياطي فقط)
+- **المرحلة:** 134 — إغلاق البنود المتبقية من التدقيق (بلا تغيير DB): (1) **تعتيم بريد النطاق (M5):** alkemos.com لا يرسل بريدًا أبدًا (بلا SMTP مخصص — Supabase المدمج يرسل من نطاقه؛ المالك على Gmail) → DNS على Cloudflare: SPF `v=spf1 -all` · DMARC `p=reject; sp=reject; adkim=s; aspf=s` · DKIM فارغ `*._domainkey` · MX null (RFC 7505) · تفويض تقارير DMARC لـ Gmail — انتحال no-reply@alkemos.com يُرفض لدى المستقبِلين الآن (2) **كلمات المرور (M6):** password_min_length 6→8 حي على Supabase Auth (hibp المدمج ميزة Pro فرُفض 402 → بديل مجاني في الكود: `password-breach.ts` فحص HIBP k-anonymity عميلًا في AuthView وخادمًا في coach/register — fail-open) + minlength=8 في التسجيل فقط (الدخول بلا حد كي لا تُقفل كلمات 6-7 القديمة) (3) **حمية المدونة (P4):** نوع `BlogPostCard` — استعلامات القوائم (listBlogPosts/listPublishedPostsForListPage/getRelatedPosts/getLinkedPost) تشحق حقول البطاقة فقط بلا content/schema_json/faq_json: HTML /blog 476KB→134KB (‑72%) · المقالات per-slug كما كانت (4) **CSP (M3):** ترويسة مفروضة حية `frame-ancestors 'self'; base-uri 'self'; object-src 'none'; form-action 'self'` (صفر مخاطر كسر) + السياسة الكاملة باقية Report-Over-Only وأضافت api.pwnedpasswords.com لـ connect-src — الفرض الكامل مؤجل لتقارير RO (5) **بيئة Vercel:** حذف RESEND_API_KEY الميت (صفر استخدام — المالك بلا مزود بريد) — OPENROUTER_API/KEY **ليستا مكررتين** بل مجموعة مفاتيح مزدوجة (حسابان يتناوبان — قرار مالك 2026-08-27) فلا تُمسان
+- **آخر كوميت متحقق منه:** 570d09f (المرحلة 134) — دُفع 6c0543f..570d09f main→main 2026-09-07 · النشر dpl_du8DThanRuT9wvS93u5woudAE7sN READY (production · sha 570d09f4) · تحقق حي: /blog=134KB · ترويستا CSP المزدوجة · POST coach/register بكلمة مسربة → 400 breached_password · minlength=8 بالتسجيل و null بالدخول · تعداد التخزين المجهول [] في 8 دلاء · 17 صفحة 200 · cron 401 — سابقه: 70a1444 (المرحلة 133)
+- **البوابات محليًا (المرحلة 134):** tsc 0 · eslint 0 · vitest 213/213 · next build ✓ (بلا ميجريشن — لا تغيير DB)
+- **الإنتاج:** alkemos.com حي · آخر ميجريشن مطبّق: 0071 · Auth حي: password_min_length=8 · **DNS مقفل (تحقق DoH حي):** SPF ‑all · DMARC reject صارم · DKIM فارغ · MX null · AdSense ads.txt حي · **Cloudflare نشط:** Full Strict + بروكسي A/www + Smart Tiered Cache + HTTP/3 + Early Hints · **قانون الكاش:** /images/brand/* وsw.js بـ max-age=0 must-revalidate و/images/* عام 86400 وsw v4 network-first + تسجيل ?v=4
 
 ## المفتوح الآن
 
-- (لا شيء — اختبار المالك للمتصفح العادي بعد هذا الإصلاح: أول تحميل بعد التفعيل قد يعمل reload تلقائي مرة واحدة عند تفعيل sw v4 — سلوك مقصود)
+- **يدوي (المالك) — إلزامي:** تدوير مفاتيح المنصات الأربعة المشتركة بالدردشة (GitHub PAT · Vercel · Supabase · Cloudflare)
+- **يدوي:** قاعدة Rate Limiting على Cloudflare (الرمز بلا صلاحية التعديل — الخطوات بتقرير المرحلة 134)
+- **لاحق:** فرض CSP الكاملة بعد مراجعة تقارير RO: Vercel Dashboard → Deployments → Functions Logs → فلتر `csp-report` — لو صفر تقارير لأسبوع انقل قيمة RO للترويسة المفروضة وأضف paypal + google-analytics لـ connect-src
+- (أول تحميل بعد التفعيل قد يعمل reload تلقائي مرة عند تفعيل sw v4 — سلوك مقصود)
 
 ## بانتظار موافقة المالك
 
@@ -29,11 +32,14 @@
 - ممنوع إحياء `PROGRESS.md`/`QA_CHECKLIST.md` في الجذر — اتجمدوا في archive/ بأمر Phase 115 (بوابة docs_audit F بتفشل الدفع)
 - slug العمود لا يُمس أبدًا في أي إعادة تسمية (قانون ثبات الروابط — المرحلة 121)
 
-## ملخص جودة المرحلة (QA — Phase 133)
+## ملخص جودة المرحلة (QA — Phase 134)
 
-- **إثبات إغلاق الثغرة (حي):** نفس مفتاح anon المستخرج من حزمة JS الحية: تعداد receipts/questionnaire-photos يعيد [] (كان يعرض أسماء ملفات حقيقية) · رفع مجهول 401/400 · أفاتار موجود 200 (بلا كسر) · رابط عام progress-photos محجوب
-- **البوابات (المرحلة 133):** tsc 0 · eslint 0 · vitest 213/213 · migration_audit --ci PASS · docs_parity 0 · docs_audit 0 · check-stale-refs 0 · check-ui-wiring 0 · next build ✓ (كله محليًا قبل الدفع)
-- **حجم التغيير:** 68+ ملفًا · ميجريشن 0071 · logo.png 877KB→55KB · بلا تغيير أعمدة DB (types.ts سليم)
+- **تحقق حي عبر DoH:** TXT alkemos.com = SPF `v=spf1 -all` · TXT _dmarc = `p=reject; sp=reject; adkim=s; aspf=s` · TXT *._domainkey = `v=DKIM1; p=` · تفويض تقارير Gmail حي
+- **HIBP حي:** POST /api/coach/register بكلمة `password123` → 400 `breached_password` · التسجيل `minlength=8` والدخول بلا حد
+- **المدونة حية:** /blog HTML 134KB (كان 476KB) · TTFB 39ms · 27 بطاقة · صفر أخطاء متصفح (agent-browser) · مقال 200/30KB
+- **أمان التخزين (إعادة إثبات بعد 570d09f):** تعداد مجهول بمفتاح anon من الحزمة الحية → [] في 8 دلاء
+- **CSP:** ترويستا مفروضة + RO معًا (curl -I مثبت) · 17 صفحة 200 · admin/cron/upload 401/405
+- **البوابات:** tsc 0 · eslint 0 · vitest 213/213 · next build ✓ · 10 ملفات · +157/‑29 · بلا ميجريشن
 
 ## خريطة مصادر الحقيقة (ممنوع الوثوق برقم من غير مصدره)
 
