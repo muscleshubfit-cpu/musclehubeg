@@ -11,7 +11,7 @@
 - **البلاغ الموازي مُغلق:** إصلاح Supabase Auth نُفذ فعليًا عبر Management API (توكن المالك): site_url=alkemos.com + uri_allow_list بمسار alkemos.com/auth/callback صراحةً (القانون: PATCH يتطلب uri_allow_list كـ string مفصولة بفواصل — حقل redirect_urls يُرفض صامتًا — سبب «الارتداد» التاريخي) · GSC تم · PayPal تم · إعلانات ads.txt حية
 - **آخر كوميت متحقق منه:** 403f38d (المرحلة 122 — لوجو المالك + السلوجان: CI أخضر [stale-refs ✓ + docs-parity ✓] + تحقق إنتاجي build-info=403f38d · logo.png حي 351KB شفاف · ملف المصدر المرفوع حُذف (raw=404) · فرع brand-preview حُذف) — دُفع fd7cfb1..403f38d main→main 2026-09-06 بتوكن GitHub قدّمه المالك (لم يُخزّن — يُنصح بتدويره)
 - **البوابات الثمانية محليًا (تشغيل المرحلة 123):** tsc 0 · eslint 0 · vitest 213/213 · migration_audit --ci PASS (بلا ميجريشن جديدة) · docs_parity 0 · docs_audit 0 · check-stale-refs 0 · check-ui-wiring 0 · next build ✓ (تشغيل هذه الجلسة)
-- **الإنتاج:** alkemos.com حي · آخر ميجريشن مطبّق: 0070 (لا جديد بالمرحلة 122 — أصول+نص فقط) · AdSense ads.txt حي
+- **الإنتاج:** alkemos.com حي · آخر ميجريشن مطبّق: 0070 (لا جديد بالمرحلة 122 — أصول+نص فقط) · AdSense ads.txt حي · **Cloudflare نشط من 2026-09-06 (Task 125):** Full Strict + بروكسي A/www + Smart Tiered Cache + HTTP/3 + Early Hints + Rocket Loader OFF — كاش ثابت HIT مُتحقق، API طازج، OAuth/PayPal سليمان، وتحذير «Invalid Configuration» بلوحة Vercel متوقع وطبيعي · إعدادات لم تُطبق لأذونات التوكن (سليمة افتراضيًا): Cache Rules و Bot Fight Mode=OFF افتراضيًا
 
 ## المفتوح الآن
 
