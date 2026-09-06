@@ -1249,3 +1249,22 @@ Stage Summary:
 - Push status: (يُحدَّث بعد الدفع)
 - Commit SHA: a606c5d
 - Push status: PUSHED — 89ee9e5..a606c5d main→main 2026-09-06 · تحقق إنتاجي: build-info=a606c5d · logo-header.png حي 148KB · icon-192.png حي 8.4KB (الظلية الفاتحة) · favicon.ico حي 3.5KB · / 200 — ملاحظة للمالك: قد يلزم مسح كاش المتصفح أو فتح الموقع بوضع التصفح الخفي لرؤية الأيقونة الجديدة (الأصول القديمة مخزنة مؤقتًا على الجهاز)
+
+---
+Task ID: 125-CLOUDFLARE-ACTIVATION
+Agent: Super Z (main)
+Task: أمر المالك 2026-09-06 «حاليا نرجع الى cloud flare ايه الاعدادات المطلوبة للاستفاده منه فى السرعه والحمايا» — تفعيل Cloudflare بالكامل عبر API (توكن cfut_… قدّمه المالك: استُخدم في أوامر API فقط عبر متغير بيئة، لم يُخزَّن في أي ملف/كوميت — يُنصح بتدويره بعد الجلسة)
+
+Work Log:
+- الفحص المسبق: النطاق على NS كلاودفلير لكن سجلات A/CNAME رمادية (DNS Only — صفر CDN/حماية) → خطة التنفيذ بالترتيب الحرج: SSL Full Strict قبل البروكسي لتفادي حلقة التحويل التاريخية (CF يكلم Vercel بـ HTTP فيرد 308 — تتكرر للأبد)
+- سكريبت scripts/cf_setup.py (خارج الريبو): 1) SSL=strict 2) بروكسي A alkemos.com + CNAME www 3) 10 إعدادات 4) Tiered Cache 5) محاولة Cache Rules/Bot 6) Purge
+- المطبق بنجاح (12/15): SSL Full (Strict) ✓ · بروكسي السجلين ✓ · Always Use HTTPS ✓ · Automatic HTTPS Rewrites ✓ · Min TLS 1.2 ✓ · HTTP/3 ✓ · Early Hints ✓ · Rocket Loader OFF (أمان Hydration لـ Next.js) ✓ · Browser Cache TTL=Respect Existing ✓ · Security Level=Medium ✓ · Smart Tiered Cache ✓ (صيغة "on" النصية — boolean يُرفض) · Purge ✓
+- المرفوض بأذونات التوكن (بلا ضرر — مُتحقق حيًا): Cache Rules (تحتاج Zone Rulesets:Edit — الأمان سليم افتراضيًا: استجابات no-store/private لا تُخزَّن أبدًا و /api/ يرسل no-store — build-info عاد بالكوميت الأحدث فعلًا) · Bot Management (Bot Fight Mode افتراضيًا OFF — لو المالك فعّله يدويًا يومًا: يتحدَّث من Security→Bots) · رسالة TXT المتوقعة (سجل جوجل لا يُبروكسي بطبيعته)
+- الاختبارات الحية بعد التفعيل (كلها عبر HKG edge): صفر حلقة تحويل (final=200 redirects=0) · cf-ray/server:cloudflare حاضران · www 301→apex عبر CF · Early Hints يعمل فعليًا (HTTP 103 في الاستجابة!) · logo.png cf-cache-status=HIT (كاش الحافة يعمل) · /api/build-info طازج (d9777e3 — غير مخزّن) · /auth/callback 307 سليم (لا ارتداد) · PayPal webhook 405 (حي ويستقبل POST فقط) · سكريبت AdSense حاضر في الصفحة
+- DNS العام: alkemos.com → 104.21.75.201/172.67.181.84 (حافة كلاودفلير) — الكاش القديم لـ www زال بعد ثوانٍ
+
+Stage Summary:
+- كلاودفلير حي: سرعة (كاش ثابت HIT + Tiered Cache + HTTP/3 + Early Hints فعلي) وحماية (WAF ضمن Medium + إخفاء IP الأصل + Full Strict) — مع صفر انقطاع (لا حلقة، OAuth/PayPal/AdSense سليمة)
+- ملاحظة متوقعة: لوحة Vercel ستعرض تحذير «Invalid Configuration» على النطاق — طبيعي وموثق، الترافيك يعمل (مُتحقق حيًا)
+- Commit SHA: (عملية بنية تحتية خارج الكود — يُسجل فقط هذا الإدخال)
+- Push status: (دفعة الوثائق أدناه)
