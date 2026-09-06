@@ -94,9 +94,40 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
+        // Service worker — must ALWAYS revalidate: the browser's SW update
+        // check consults the HTTP cache for /sw.js; a cached copy would keep
+        // running the previous phase's worker for up to 24h. Phase 128 cache
+        // fix (owner: «الكاش أصبح صعب التحديث») — sw.js left the 24h group
+        // below and got its own always-revalidate rule (mirrored in
+        // vercel.json).
+        source: "/sw.js",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=0, must-revalidate",
+          },
+        ],
+      },
+      {
+        // Brand artwork pair changes between phases but KEEPS its filenames
+        // (/images/brand/hero-light.webp etc.) — browsers must revalidate it
+        // on every load. Phase 128 cache fix: the old blanket
+        // "/images/* immutable max-age=1y" (vercel.json) is exactly why the
+        // owner saw the previous phase's hero in a normal browser for days
+        // while incognito always showed the new one. (Also in vercel.json.)
+        source: "/images/brand/:path*",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=0, must-revalidate",
+          },
+        ],
+      },
+      {
         // Long-cache static assets (including ads.txt — served to Google's
         // AdSense crawler, same Cache-Control as robots.txt/sitemap.xml).
-        source: "/(sitemap.xml|robots.txt|ads.txt|manifest.json|sw.js|favicon.ico|favicon.png|logo.png|logo.svg|icon-32.png|icon-192.png|icon-512.png|apple-touch-icon.png)",
+        // NOTE: sw.js is NOT here anymore (see its dedicated rule above).
+        source: "/(sitemap.xml|robots.txt|ads.txt|manifest.json|favicon.ico|favicon.png|logo.png|logo.svg|icon-32.png|icon-192.png|icon-512.png|apple-touch-icon.png)",
         headers: [
           {
             key: "Cache-Control",

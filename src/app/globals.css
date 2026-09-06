@@ -370,6 +370,35 @@
   background-position: center;
 }
 
+/* === Phase 128 — hero artwork mode switch (owner feedback) ===
+   «صورة الهيرو لسة مش كاملة، الجناب مش موجونه» + «فراغ كبير بين الهيدر
+   والهيرو»: background-size:cover crops BOTH sides whenever the viewport
+   is narrower than the artwork ratio (1280×713) — on phones that's 50%+
+   of the artwork gone, and the 92vh + centered content left a big blank
+   strip under the navbar. Fix — two modes, switched purely by viewport
+   aspect ratio:
+     • aspect > 3/2 (laptops/desktops/phone-landscape): the classic cover
+       background + vertically-centered overlay content (side crop ≤10%,
+       imperceptible). .hero-art-flow is display:none.
+     • aspect ≤ 3/2 (phones + tablets portrait/landscape): background
+       image OFF; the artwork renders IN FLOW (.hero-art-flow block, the
+       <img> in LandingView) at natural aspect — the complete image, sides
+       intact, starting directly under the navbar. Content flows below. */
+.hero-art-flow { display: none; }
+@media (min-aspect-ratio: 1501/1000) {
+  .hero-art {
+    display: flex;
+    min-height: 92vh;
+    align-items: center;
+    justify-content: center;
+  }
+  .hero-art-flow { display: none; }
+}
+@media (max-aspect-ratio: 3/2) {
+  .hero-art { background-image: none; }
+  .hero-art-flow { display: block; }
+}
+
 /* === EVO section card — Phase 127 (preview-sections reference) ===
    One full-width marble card: text left, warrior art right fading into
    the marble. RTL mirrors via logical inset-inline-end + mask flip. */

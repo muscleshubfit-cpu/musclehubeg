@@ -58,10 +58,12 @@ function NotificationBellHeader({ isAdmin = false }: { isAdmin?: boolean }) {
 /**
  * Site header — Apple-style clean bar.
  *
- * Layout: [LOGO] ........ [LANG] [LOGIN/LOGOUT] [MENU]
+ * Layout: [MENU] [THEME] ...... [LOGO] ...... [LANG] [LOGIN/LOGOUT] [BELL]
  *
  * Language toggle + Login/Logout are in the header bar (always visible).
- * The hamburger opens a slide-in drawer for full navigation.
+ * The theme toggle sits on the menu side (Phase 128 owner directive — it
+ * used to hug the centered logo on the actions side). The hamburger opens
+ * a slide-in drawer for full navigation.
  */
 export function SiteHeader({ variant = "landing" }: { variant?: "landing" | "app" }) {
   const { t, lang } = useI18n();
@@ -346,10 +348,13 @@ export function SiteHeader({ variant = "landing" }: { variant?: "landing" | "app
             variant === "app" && "max-w-6xl",
           )}
         >
-          {/* Left: hamburger — Phase 127 (owner directive 2026-09-06): the
-              «Start now» chrome CTA was REMOVED from the navbar by the
-              owner's explicit request (the hero + section CTAs carry the
-              funnel now; the navbar stays navigation-only). */}
+          {/* Left: hamburger + theme toggle — Phase 128 (owner directive
+              2026-09-06): «زر التبيدل للوضع الداكن ملتصق باللوجو انقلة الى
+              الجانب الاخر» — ThemeToggle moved from the right action group
+              (where it sat right beside the centered logo) to the menu
+              side. Bar layout: [menu][theme] …… logo …… [lang][bell][account].
+              Phase 127 note: the «Start now» chrome CTA stays REMOVED (owner
+              request) — the navbar is navigation-only. */}
           <div className="flex items-center gap-2">
             <button
               onClick={() => setOpen(true)}
@@ -358,6 +363,8 @@ export function SiteHeader({ variant = "landing" }: { variant?: "landing" | "app
             >
               <Menu className="h-5 w-5" />
             </button>
+            {/* Phase 126 — light/dark/auto cycle (moved here Phase 128) */}
+            <ThemeToggle />
           </div>
 
           {/* Center: logo — absolutely centered so side groups never push it.
@@ -381,11 +388,9 @@ export function SiteHeader({ variant = "landing" }: { variant?: "landing" | "app
             </button>
           </div>
 
-          {/* Right side: Theme toggle + Language + Notifications + Account */}
+          {/* Right side: Language + Notifications + Account (theme toggle
+              moved to the menu side — Phase 128 owner directive) */}
           <div className="flex items-center gap-2 md:gap-3">
-            {/* Phase 126 — light/dark/auto cycle */}
-            <ThemeToggle />
-
             {/* Language toggle — always visible */}
             <LanguageToggle />
 

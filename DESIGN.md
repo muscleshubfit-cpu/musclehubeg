@@ -184,17 +184,48 @@ Phase 127's `scripts/build_assets_v127.py` + `fix_hero_logo2.py`):
 - Lucide icons remain INSIDE the logged-in app only (drawer, dashboard).
 - Category emoji fallbacks were removed in Phase 127 (zero-emoji law).
 
+### Cache law (Phase 128)
+
+Brand artwork files CHANGE CONTENT between phases but KEEP their
+filenames — so they must NEVER be long-cached in browsers:
+
+- `/images/brand/*` and `/sw.js` → `Cache-Control: public, max-age=0,
+  must-revalidate` (next.config.ts + vercel.json; the brand rule comes
+  after the generic `/images/*` rule so it wins).
+- Other `/images/*` → `public, max-age=86400` (no `immutable`, no 1-year).
+- `/_next/static/*` stays `immutable` 1-year (content-hashed — safe).
+- `sw.js` itself is registered as `/sw.js?v=N` (bump with CACHE_VERSION)
+  so SW updates jump over any stale HTTP-cache copy; the worker is
+  network-first for everything non-hashed and posts `SW_UPDATED` → the
+  page reloads once when a new worker activates.
+
 ---
 
 ## 7. Page Recipes
 
-### 7.1 Homepage hero (Phase 127)
+### 7.1 Homepage hero (Phase 127 + 128 responsive law)
 
-Full-bleed `hero-art` background (92vh, no veil — artwork at full
-opacity), content centered: chrome logo lockup (`w-56` mobile → `w-80`
-desktop) → serif H1 → stats subline → 3 seal chips. **No CTA buttons, no
-eyebrow wordmark** (owner directive: buttons moved out; the quick-nav
-section below the hero carries navigation).
+TWO modes, switched purely by viewport aspect ratio (globals.css
+`.hero-art` / `.hero-art-flow`):
+
+- **aspect ≤ 3/2** (phones + tablets): the artwork is an IN-FLOW `<img>`
+  (`hero-art-flow`, ThemeImg pair at natural 1280×713 aspect, full width)
+  starting directly under the navbar — the complete image, sides intact,
+  zero header gap; content column flows below (`pb-12 pt-6 md:py-24`).
+- **aspect > 3/2** (laptops/desktops): full-bleed `hero-art` cover
+  background (92vh, no veil — artwork at full opacity) with centered
+  content: chrome logo lockup (`w-56` mobile → `w-80` desktop) → serif H1 →
+  stats subline → 3 seal chips. **No CTA buttons, no eyebrow wordmark**
+  (owner directive: buttons moved out; the quick-nav section below the
+  hero carries navigation).
+
+Law: `background-size: cover` crops the artwork's sides on any viewport
+narrower than the artwork ratio — brand hero art must never rely on cover
+below the 3/2 aspect switch.
+
+**Navbar bar (Phase 128):** `[menu][theme] …… logo …… [lang][bell][account]`
+— the theme toggle lives on the MENU side (owner directive: it used to hug
+the centered logo); RTL mirrors automatically.
 
 ### 7.2 Hub page header (Phase 127)
 
@@ -203,12 +234,14 @@ section below the hero carries navigation).
 (a 1280×477 owner artwork strip in a marble-card frame, `mb-10`) → h1 +
 subline. Works in server components (plain `<img>` pair).
 
-### 7.3 EVO section card (Phase 127 — reference: preview-sections)
+### 7.3 EVO section card (Phase 127 + 128)
 
-One full-width `marble-card.evo-hero-card`: text column left (h2 + copy +
-`.btn-chrome` + `.btn-outline`), warrior art absolutely positioned on the
-inline-end side (60% width desktop / 78% mobile) fading into the marble
-via CSS `mask-image`; `[dir=rtl]` mirrors art + mask.
+One full-width `marble-card.evo-hero-card`: text column left (**h2 ONLY —
+the descriptive paragraph was removed by owner directive «امسح الوصف
+واكتفى بالعنوان» + `.btn-chrome` + `.btn-outline`**), warrior art
+absolutely positioned on the inline-end side (60% width desktop / 78%
+mobile) fading into the marble via CSS `mask-image`; `[dir=rtl]` mirrors
+art + mask.
 
 ### 7.4 Pricing cards
 
@@ -218,8 +251,13 @@ gradient ring (border-box trick) + laurel "Popular" seal-chip; prices in
 
 ### 7.5 Comparison tables
 
-Alkemos/Pro column highlighted with `--tint` + `--border-chrome` inset;
+Alkemos column highlighted with `--tint` + `--border-chrome` inset;
 "yes" = engraved `checkseal` icon; "no" = muted `×` at opacity .5.
+
+**Mobile (<md, Phase 128):** tables never fit — render stacked per-feature
+cards instead (one `marble-card` per row: feature name, then three
+label:value rows with the Alkemos row highlighted). Cell rendering is
+shared between modes (`renderCmpValue` in LandingView).
 
 ### 7.6 Footer (always dark)
 

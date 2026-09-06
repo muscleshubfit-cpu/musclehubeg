@@ -1,18 +1,28 @@
 // Alkemos Service Worker
 // Caches static assets for offline use + enables PWA install.
 //
-// IMPORTANT: navigation requests (HTML pages) are ALWAYS served network-first
-// and NEVER cached, so users always see the latest deployed version. Only
-// static assets (_next/static/*, images, manifest) are cache-first.
+// IMPORTANT: navigation requests (HTML pages) are ALWAYS served network-only
+// and NEVER cached, so users always see the latest deployed version.
+//
+// v4 (Phase 128 — owner-reported "cache hard to update"): brand artwork
+// files keep their NAMES across phases while their CONTENT changes, so the
+// old v3 stale-while-revalidate branch kept answering /images/* from Cache
+// Storage on first load — the owner kept seeing the previous phase's hero
+// in a normal browser (incognito was always fresh). v4 is NETWORK-FIRST for
+// every non-hashed same-origin asset: the live version wins whenever the
+// user is online, and the cache copy is only an offline fallback. Only
+// content-hashed /_next/static/* chunks stay cache-first (immutable by
+// construction).
 
-const CACHE_VERSION = "v3";
+const CACHE_VERSION = "v4";
 const CACHE_NAME = `alkemos-${CACHE_VERSION}`;
 const APP_SHELL = [
-  "/",
   "/manifest.json",
   "/icon-192.png",
   "/icon-512.png",
 ];
+// (v4: "/" removed from the precache — HTML is never served from the cache,
+// so precaching it only stored a stale copy for nothing.)
 
 // Install: cache app shell + skip waiting so the new SW activates immediately.
 self.addEventListener("install", (event) => {
@@ -41,11 +51,14 @@ self.addEventListener("activate", (event) => {
   });
 });
 
-// Fetch strategy:
+// Fetch strategy (v4 — Phase 128 cache fix):
 //   - navigation requests (HTML pages): network-only, never cached
 //   - API routes: bypass SW entirely
-//   - _next/static/* and other static assets: cache-first
-//   - everything else: stale-while-revalidate
+//   - _next/static/* (content-hashed chunks): cache-first — immutable
+//   - everything else (images, manifest, icons): NETWORK-FIRST — the
+//     cache copy is only an offline fallback. (v3 answered these from
+//     Cache Storage first — stale-while-revalidate — which served the
+//     PREVIOUS phase's brand artwork after every deploy.)
 self.addEventListener("fetch", (event) => {
   const { request } = event;
   const url = new URL(request.url);
@@ -84,18 +97,18 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Other same-origin GETs (images, manifest, etc.): stale-while-revalidate.
+  // Other same-origin GETs (images, manifest, etc.): NETWORK-FIRST with the
+  // cache as an offline fallback only (Phase 128 fix — see header comment).
   event.respondWith(
-    caches.match(request).then((cached) => {
-      const networkFetch = fetch(request).then((response) => {
+    fetch(request)
+      .then((response) => {
         if (response.ok) {
           const copy = response.clone();
           caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
         }
         return response;
-      }).catch(() => cached);
-      return cached || networkFetch;
-    })
+      })
+      .catch(() => caches.match(request))
   );
 });
 

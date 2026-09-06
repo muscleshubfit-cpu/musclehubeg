@@ -197,10 +197,22 @@ export default async function RootLayout({
           {`
             if ('serviceWorker' in navigator) {
               window.addEventListener('load', function() {
-                navigator.serviceWorker.register('/sw.js').then(function(reg) {
+                // Phase 128 cache fix: register with a version query so the
+                // browser fetches the NEW worker immediately even if an old
+                // /sw.js copy is still sitting in the HTTP cache (the update
+                // check would otherwise reuse it for up to 24h). Keep this
+                // query in sync with CACHE_VERSION in public/sw.js (now v4).
+                navigator.serviceWorker.register('/sw.js?v=4').then(function(reg) {
                   console.log('[PWA] Service Worker registered');
                 }).catch(function(e) {
                   console.warn('[PWA] SW registration failed:', e);
+                });
+                // Phase 128 cache fix: when a NEW worker activates, it posts
+                // SW_UPDATED to every client — reload once so all open tabs
+                // pick up the fresh HTML + assets immediately (the old v3
+                // worker kept serving stale brand artwork from Cache Storage).
+                navigator.serviceWorker.addEventListener('message', function(e) {
+                  if (e.data && e.data.type === 'SW_UPDATED') { location.reload(); }
                 });
               });
             }
