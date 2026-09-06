@@ -1420,3 +1420,23 @@ Stage Summary:
 - أسطح التطبيق خلف الدخول (dashboard/coach/admin/referral) لسة على shim المرحلة 126 للدارك — إعادة تنسيق اللايت مستقبلًا
 - Commit SHA: 95a486e
 - Push status: PUSHED — a21f922..95a486e main→main 2026-09-06 · تحقق إنتاجي: build-info=commitShort 95a486e ✓ · logo-footer-black.png حي 200 ✓ · لقطات VLM إنتاجية للفوتر (لايت رخام فاتح+كتابة سوداء+لوجو أسود / دارك رخام أسود+كتابة بيضاء+لوجو أبيض) PASS — شيتات LIVE-footer-* في download/alkemos-signoff/132/ · أصل جديد واحد فقط (بلا أسماء متبدلة) فلا purge إلزامي — ترويسة /images/brand/* أصلاً must-revalidate
+
+---
+Task ID: 133-SECURITY-AUDIT-HARDENING
+Agent: Super Z (main)
+Task: فحص أمني عميق شامل (كود + إنتاج + Vercel/Supabase/Cloudflare) بطلب المالك 2026-09-07 «اعمل فحص عميق جدا ودقيق… واقترح الاصلاحات» ثم «ابدأ بعمل خطة اصلاح شاملة وأبدأ التنفيذ»
+
+Work Log:
+- التدقيق: استنساخ + 3 وكالات فحص متوازية (أمان المسارات / RLS وقاعدة البيانات / SEO والأداء) + فحص حي للمنصات عبر APIs + استعلامات SQL مباشرة عبر Management API + استخراج مفتاح anon من حزمة JS الحية وإثبات عملي للثغرة
+- إصلاح إنتاجي فوري (قبل الكود): حذف سياستي «Public can read photos» و«Authenticated can upload photos» (كانتا تكشفان receipts/questionnaire-photos/plan-pdfs/meal-plans/workout-plans/ticket-attachments/progress-photos لمجهول) + سياسات ملكية questionnaire-photos الثلاث (قبل الحذف — مسار الأفاتار) + subscriptions INSERT=is_admin() + progress-photos خاص + حدود 5/10MB وMIME + heic/heif
+- إثبات الإغلاق حيًا: تعداد receipts/questionnaire-photos يعيد [] (كان يعرض أسماء ملفات حقيقية) · أفاتار مستخدم حقيقي ما زال 200 · INSERT مجهول مرفوض
+- الكود (68+ ملفًا): authRequired في auth-server.ts (H1 fail-closed — مطبق على 24 مسارًا) · إصلاح isCoach الفارغ بـ/api/file · تحصين /api/upload (rate 30/10د + سقف 200 ملف + magic bytes) · send-email/coach-register عبر Upstash + clientIp آخر قفزة XFF (H3) · سقف result_json 10KB (M2) · cron-auth.ts بمقارنة زمنية ثابتة ×8 (M6) · jsonLd() في seo.ts ×26 موقع حقن (M7) · إزالة hreflang المدونة المعلق (C1 — التحقق الحي: صفر أزواج EN/AR) · affiliate en/ar+x-default (H2) · noindex صفحات /coaches (H3) · حذف lastmod العائم من 3 خرائط + greatest(published,updated) لخريطة المدونة (M1/M4) · logo.png 877KB→55KB ب1200×630 (M2/P3) · preload هيرو للرئيسية فقط (P2) · CSP-RO أضاف PayPal domains
+- ميجريشن 0071 يعكس الإصلاحات الإنتاجية (idempotent) + INDEX.md حدّث لـ 0001→0071 + STATE.md المرحلة 133
+- البوابات محليًا قبل الدفع: tsc 0 · eslint 0 · vitest 213/213 · migration_audit --ci PASS · docs_parity 0 · docs_audit 0 · check-stale-refs 0 · check-ui-wiring 0 · next build ✓
+
+Stage Summary:
+- الثغرة الحرجة (قراءة مجهولة لكل الدلوات الخاصة) مغلقة ومثبتة الإغلاق حيًا قبل دفع أي كود
+- ثغرة التفعيل الذاتي للاشتراكات مغلقة · 24 مسارًا إداريًا صاروا fail-closed · حدود إساءة الرفع والإيميل والتسجيل موزعة عبر Upstash
+- Commit SHA: 70a1444
+- Push status: PUSHED — d6d20c5..70a1444 main→main 2026-09-06 · Vercel READY (dpl_3rjWskLqTuNiV9QGVFjd7s5nkL4g) · تحقق إنتاجي: build-info=70a1444 ✓ · الرئيسية 200 · cron 401 · upload/file 401 بلا جلسة · logo 55KB حي · صفر hreflang معلق بالمدونة · الخرائط كلها 200
+- متبقٍ (يدوي/لاحق): DMARC على Cloudflare قيد التنفيذ بالمرحلة نفسها · تدوير مفاتيح المنصات الأربعة على المالك (شاركها بالدردشة) · تفعيل CSP Enforcement بعد مراجعة تقارير Report-Only
