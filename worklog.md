@@ -1308,3 +1308,27 @@ Stage Summary:
 - كل نقاط بلاغ المالك الستة منفذة من أصوله الأصلية (صفر إعادة تصميم): هيرو واضح وكامل موبايلًا · لوجو كامل بالهيدر والقائمة · ودجت EVO وش كامل متناسب · فايفيكن=اللوجو · الأزرار قسم مستقل تحت الهيرو
 - Commit SHA: cbf5bce
 - Push status: PUSHED — b3e9906..cbf5bce main→main 2026-09-06 · تحقق إنتاجي: build-info=cbf5bce · logo-header-mobile.png حي 31KB · قسم الأزرار المستقل تحت الهيرو · الهيرو object-contain@0.55 + radial veil في الـHTML الحي · تنظيف كاش كلاودفلير للمسارات المتبدلة (الودجت كان متأخر 41KB→24.6KB طازج) · لقطات VLM حية: موبايل (لوجو كامل مركزي + معبد كامل واضح + ووش EVO كامل) وديسكتوب (المشهد كامل والنص مقروء) والدرج (لوجو navbar صورة) — كلها PASS
+
+---
+Task ID: 128-MARBLE-CHROME-IDENTITY
+Agent: Super Z (main)
+Task: أمر المالك 2026-09-06 (v3): «جميع الصور مرفوعة على الريبو — MISSION: Apply the new Alkemos visual identity (Light + Dark, auto-switch with system + manual toggle)» — 17 بندًا + معايير قبول + 4 معاينات مرجعية
+
+Work Log:
+- المصدر: 24 صورة 1664×928 بجذر الريبو (commit 0183cdd) — مؤرشفة download/alkemos-brand/v3/ ثم حُذفت من الجذر (النمط المعتمد)
+- خط الأنابيب scripts/build_assets_v3.py: hero-light/dark 1280×713 WebP 47/76KB · evo-card 126/142KB · رخام 832×464 3/23KB · لوجو navbar light/dark شفاف h=120 · لوجو فوتر أبيض (المحتوى الأبيض في logo-mono-black.png — تسمية المالك معكوسة عن المحتوى، الفوتر الداكن ياخد الأبيض) · mark-helmet 512 شفاف → favicon.ico(16/32/48)/png/icon-32/192/512/apple-touch · مقسّمات ماندر: كشف الباند + دورية autocorrelation (57px × 29 فترة) + ألفا بمسافة اللون → repeat-x h=56 · ودجت EVO 480×480 72% fill لكل سمة · **38 أيقونة محفورة**: الورقة الفاتحة 5 صفوف (R3 جزئي rack + R4 فيه protein بـC1) والداكنة 5 صفوف بترتيب مختلف تمامًا — خرائط مستقلة لكل ورقة + قسمة الخلية المركّبة R4C2 (زيتون يسار/قمح يمين) — إصلاح بقايا التسميات بضبط بانداات R4=534 وتجاوز خاص لخلية protein (544)
+- بنية الثيم: globals.css توكنز المهمة حرفيًا في :root/[data-theme=dark] + إعادة توجيه توكنز shadcn القديمة (background/card/muted/border/ring…) فتتغير كل مكونات الموقع تلقائيًا · سكريبت no-flash أول body (localStorage أو prefers-color-scheme) · زر ThemeToggle يدور light→dark→system + تتبع حي للنظام في system · preload لهيروَي المهمة (منع CLS — الهيرو CSS background)
+- الخط: @fontsource/playfair-display 500/600/700 → --font-display للعناوين (Lapidary serif) — العربية تفضل Cairo (أمر المهمة §16)
+- Navbar (§1): navbar-chrome (sticky + blur12 + rgba .72 + حد كروم سفلي) · لوجو المالك light/dark ThemeImg (زوج صور يبدله CSS — صفر وميض hydration) 36px · CTA «Start now» btn-chrome · زر الثيم + اللغة + الحساب يمينًا · القائمة الجانبية بلوجو navbar
+- Hero (§3): hero-art CSS background من var(--hero-img) cover center min-h-92vh + حجاب radial (var(--hero-veil-*)) · H1 «Your complete fitness platform.»/«منصتك الرياضية المتكاملة.» serif · subline الإحصائيات · btn-chrome «Try the platform free» + btn-outline «View Pricing» · 3 seal-chip محفورة (868/8830/EVO)
+- الأقسام: أزرار CTA كلها .btn-chrome/.btn-outline · كروت marble-card (رخام 5% + حد كروم + radius 14) · الأدوات: 6 أيقونات محفورة (اللهب/الميزان/الماكرو/الدهون/الماء/الطبق) + سهم كرومي · التمارين: 7 فئات بأيقونة عمود دوري + رقم chrome-gradient (84/114/125/297/78/71/99 = مصدر الحقيقة exercises-shared) + بطاقة «كل التمارين» كروم بأيقونة الدمبل (§7) · البرامج: خلفية ملعب باهتة (evo-card 12% blur) + شارة غار للمستوى + house/rack/runner (§8) · الأكلات: protein(علبة)/carbs(قمح)/fats(أفوكادو)/fruits(زيتون) (§9) · المدونة: حد علوي كروم + تاغ small-caps + أيقونة scroll (§10) · جدول المقارنة: خوذة mark-helmet على رأس عمود Alkemos + تمييز + ختم checkseal محفور للـ✅ + × خافت 0.5 للـ❌ (§11) · الأسعار: بطاقات رخامية + أسعار chrome-text + Pro داكن بحلقة كروم 2px (gradient border) + غار «Popular» (§12) · الأفلييت/الكوتشينج: أختام محفورة 20%/30/$10 (§13)
+- الفوتر (§14): داكن دائمًا #0B0B0D + رخام داكن + ماندر على الحافة العلويا + لوجو أبيض + روابط فاتحة (css مخصص)
+- الودجت (§5): أفاتار ThemeImg 56px دائري + توهج var(--ai) حلقة 2px في الدارك + الدرج بأسطح متغيرة و--ai لعناصر AI فقط · صفحة /evo كذلك
+- **Dark-Shim:** [data-theme=dark] يعيد توجيه أدوات Tailwind القديمة (bg-white/bg-[#f5f5f7]/text-[#1d1d1f]/text-[#6e6e73]/border-[#d2d2d7]) للتوكنز — الصفحات الثانوية (/tools /memberships …) داكنة سليمة (VLM تحقق) بلا تعديل مئات الملفات — اللايت بمساس صفر
+- صفر إيموجي في DOM: بيانات الأدوات/التمارين/البرامج/الأكلات + جدول المقارنة ✅❌ → أيقونات محفورة/رموز نصية
+- البوابات (المرحلة 126): tsc 0 · eslint 0 · vitest 213/213 · migration_audit --ci PASS (بلا ميجريشن) · docs_parity 0 · docs_audit 0 · check-stale-refs 0 · check-ui-wiring 0 · next build ✓
+
+Stage Summary:
+- الهوية الجديدة «الرخام والكروم» حية محليًا بنمطي light/dark مع تبديل تلقائي بالنظام + زر يدوي ثلاثي الحالات — وشيتات مقارنة DIFF_* للتسليم جاهزة
+- Commit SHA: (يُسجل بعد الدفع أدناه)
+- Push status: (يُحدَّث بعد الدفع)

@@ -69,8 +69,8 @@ export function NewsletterForm({ variant = "footer" }: { variant?: "footer" | "h
 
   const inputClasses =
     variant === "home"
-      ? "w-full rounded-full border border-[#d2d2d7] bg-white px-5 py-3 text-base font-normal outline-none focus:border-[#0071e3]"
-      : "w-full rounded-xl border border-[#d2d2d7] bg-white px-4 py-3 text-sm font-normal outline-none focus:border-[#0071e3]";
+      ? "w-full rounded-full border bg-[var(--bg)] px-5 py-3 text-base font-normal outline-none focus:border-[var(--chrome-edge)]"
+      : "w-full rounded-xl border bg-[var(--bg)] px-4 py-3 text-sm font-normal outline-none focus:border-[var(--chrome-edge)]";
 
   // ---- Success state ----
   if (done) {
@@ -82,10 +82,10 @@ export function NewsletterForm({ variant = "footer" }: { variant?: "footer" | "h
       >
         <CheckCircle2 className="h-5 w-5 shrink-0 text-[#34c759]" />
         <div>
-          <p className={`font-medium text-[#1d1d1f] ${variant === "home" ? "text-base" : "text-sm"}`}>
+          <p className={`font-medium text-[var(--text)] ${variant === "home" ? "text-base" : "text-sm"}`}>
             {isAr ? "تم الاشتراك بنجاح!" : "You're subscribed!"}
           </p>
-          <p className="mt-0.5 text-xs font-normal text-[#6e6e73]">
+          <p className="mt-0.5 text-xs font-normal text-[var(--muted-foreground)]">
             {isAr
               ? "ستصلك أحدث النصائح والعروض أولاً بأول — مجاناً."
               : "You'll receive our latest tips and offers — free."}
@@ -100,10 +100,10 @@ export function NewsletterForm({ variant = "footer" }: { variant?: "footer" | "h
     <div>
       {variant === "home" ? (
         <div className="text-center">
-          <span className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-[#0071e3]/10">
-            <Mail className="h-6 w-6 text-[#0071e3]" />
+          <span className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-[var(--tint)]">
+            <Mail className="h-6 w-6 text-[var(--text)]" />
           </span>
-          <h2 className="mt-4 text-2xl font-semibold tracking-tight text-[#1d1d1f] md:text-3xl">
+          <h2 className="mt-4 text-2xl font-semibold tracking-tight text-[var(--text)] md:text-3xl">
             {/* Phase 117 H2 correction (supervisor order 2026-09-04): the
                 home-variant H2 follows the owner's new headline list —
                 «اشترك في نشرتنا البريدية» (was question-form, read
@@ -111,7 +111,7 @@ export function NewsletterForm({ variant = "footer" }: { variant?: "footer" | "h
                 stays a label. */}
             {isAr ? "اشترك في نشرتنا البريدية" : "Subscribe to Our Newsletter"}
           </h2>
-          <p className="mx-auto mt-2 max-w-md text-base font-normal text-[#6e6e73]">
+          <p className="mx-auto mt-2 max-w-md text-base font-normal text-[var(--muted-foreground)]">
             {isAr
               ? "نصائح تدريب وتغذية يومية توصلك على بريدك، مجاناً تماماً."
               : "Daily training and nutrition tips straight to your inbox — completely free."}
@@ -119,10 +119,10 @@ export function NewsletterForm({ variant = "footer" }: { variant?: "footer" | "h
         </div>
       ) : (
         <div>
-          <p className="text-sm font-semibold text-[#1d1d1f]">
+          <p className="text-sm font-semibold text-[var(--text)]">
             {isAr ? "النشرة البريدية المجانية" : "Free newsletter"}
           </p>
-          <p className="mt-1 text-xs font-normal text-[#6e6e73]">
+          <p className="mt-1 text-xs font-normal text-[var(--muted-foreground)]">
             {isAr
               ? "نصائح تدريب وتغذية توصلك أولاً بأول."
               : "Training & nutrition tips, straight to you."}
@@ -151,7 +151,7 @@ export function NewsletterForm({ variant = "footer" }: { variant?: "footer" | "h
           type="button"
           onClick={submit}
           disabled={submitting}
-          className={`flex shrink-0 items-center justify-center gap-2 bg-[#0071e3] font-normal text-white transition-opacity hover:opacity-90 disabled:opacity-50 ${
+          className={`btn-chrome flex shrink-0 items-center justify-center gap-2 font-normal disabled:opacity-50 ${
             variant === "home"
               ? "rounded-full px-6 py-3 text-sm"
               : "mt-2 w-full rounded-xl px-4 py-3 text-sm sm:mt-0"

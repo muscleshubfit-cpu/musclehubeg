@@ -20,6 +20,7 @@ import {
   Shield,
 } from "lucide-react";
 import Image from "next/image";
+import { ThemeImg } from "@/components/ThemeImg";
 import { openEvoFloatingChat } from "@/lib/evo-chat-context";
 
 export default function EvoPage() {
@@ -127,15 +128,16 @@ export default function EvoPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-white text-[#1d1d1f]">
+    <div className="min-h-screen bg-[var(--bg)] text-[var(--text)]">
       <SiteHeader variant="landing" />
 
       <main className="mx-auto max-w-5xl px-4 py-12 md:py-16">
         {/* Hero */}
         <section className="text-center">
-          <div className="mx-auto mb-6 flex h-24 w-24 items-center justify-center rounded-3xl bg-gradient-to-br from-[#0071e3] to-[#8b5cf6]">
-            <Image
-              src="/images/brand/evo-widget-light.webp"
+          <div className="marble-card mx-auto mb-6 flex h-24 w-24 items-center justify-center">
+            <ThemeImg
+              light="/images/brand/evo-widget-light.webp"
+              dark="/images/brand/evo-widget-dark.webp"
               alt="EVO"
               width={80}
               height={80}
@@ -159,14 +161,15 @@ export default function EvoPage() {
             <button
               type="button"
               onClick={openEvoFloatingChat}
-              className="group inline-flex cursor-pointer items-center gap-3 rounded-full bg-[#0071e3] px-6 py-3 text-base font-medium text-white transition-opacity hover:opacity-90"
+              className="btn-chrome group inline-flex cursor-pointer items-center gap-3 px-6 py-3 text-base"
             >
-              <Image
-                src="/images/brand/evo-widget-light.webp"
+              <ThemeImg
+                light="/images/brand/evo-widget-light.webp"
+                dark="/images/brand/evo-widget-dark.webp"
                 alt="EVO"
                 width={32}
                 height={32}
-                className="h-8 w-8 rounded-full object-cover ring-2 ring-white/30"
+                className="h-8 w-8 rounded-full object-cover"
               />
               <span>{isAr ? "ابدأ المحادثة مع EVO" : "Start chatting with EVO"}</span>
               <ArrowRight className="h-4 w-4 rtl:rotate-180" />
@@ -175,7 +178,7 @@ export default function EvoPage() {
             {/* Learn More — different visual style (outline) */}
             <a
               href="#features"
-              className="inline-flex items-center gap-2 rounded-full border border-[#d2d2d7] bg-white px-6 py-3 text-base font-normal text-[#1d1d1f] transition-colors hover:bg-[#f5f5f7]"
+              className="btn-outline px-6 py-3 text-base font-normal"
             >
               <Info className="h-4 w-4" />
               <span>{isAr ? "اعرف أكثر عن EVO" : "Learn more about EVO"}</span>
@@ -479,11 +482,11 @@ export default function EvoPage() {
         </section>
 
         {/* Final CTA — two buttons again */}
-        <section className="mt-12 rounded-3xl bg-gradient-to-br from-[#0071e3] to-[#8b5cf6] p-8 text-center text-white md:p-12">
+        <section className="marble-card mt-12 p-8 text-center md:p-12" style={{ backgroundColor: "#0B0B0D", color: "var(--text)" }}>
           <h2 className="text-2xl font-semibold tracking-tight md:text-3xl">
             {isAr ? "جاهز تجرب EVO؟" : "Ready to try EVO?"}
           </h2>
-          <p className="mx-auto mt-3 max-w-md text-base font-medium text-white/80">
+          <p className="mx-auto mt-3 max-w-md text-base font-medium" style={{ color: "var(--muted-foreground)" }}>
             {isAr
               ? "ابدأ المحادثة دلوقتي — بدون تسجيل. لو عايز كل الميزات، اشترك في الكوتشينج."
               : "Start chatting now — no signup. For full features, subscribe to coaching."}
@@ -492,14 +495,15 @@ export default function EvoPage() {
             <button
               type="button"
               onClick={openEvoFloatingChat}
-              className="inline-flex cursor-pointer items-center gap-3 rounded-full bg-white px-6 py-3 text-base font-normal text-[#0071e3] transition-opacity hover:opacity-90"
+              className="btn-chrome inline-flex cursor-pointer items-center gap-3 px-6 py-3 text-base"
             >
-              <Image
-                src="/images/brand/evo-widget-light.webp"
+              <ThemeImg
+                light="/images/brand/evo-widget-light.webp"
+                dark="/images/brand/evo-widget-dark.webp"
                 alt="EVO"
                 width={32}
                 height={32}
-                className="h-8 w-8 rounded-full object-cover ring-2 ring-[#0071e3]/20"
+                className="h-8 w-8 rounded-full object-cover"
               />
               <span>{isAr ? "ابدأ المحادثة" : "Start chatting"}</span>
               <ArrowRight className="h-4 w-4 rtl:rotate-180" />

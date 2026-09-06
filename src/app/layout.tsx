@@ -146,8 +146,24 @@ export default async function RootLayout({
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteSchema) }}
         />
+        {/* Phase 126 — Marble & Chrome themes: preload BOTH hero artworks
+            (mission acceptance: no CLS from the hero background — the hero
+            is a CSS cover background, so the <link preload> is the only
+            fetch hint it gets). */}
+        <link rel="preload" as="image" href="/images/brand/hero-light.webp" />
+        <link rel="preload" as="image" href="/images/brand/hero-dark.webp" />
       </head>
       <body className="antialiased bg-background text-foreground">
+        {/* Phase 126 — theme no-flash script: runs before first paint (first
+            element in <body>): resolves the stored manual choice or falls
+            back to the OS preference and stamps data-theme on <html>. Keeps
+            SSR markup theme-neutral (CSS vars do the rest). */}
+        <script
+          id="alkemos-theme-init"
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var m=localStorage.getItem('alkemos-theme');var d=m==='dark'||m==='light'?m:(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',d);}catch(e){document.documentElement.setAttribute('data-theme','light');}})();`,
+          }}
+        />
         <a href="#main-content-skip" className="sr-only-focusable">
           Skip to content
         </a>

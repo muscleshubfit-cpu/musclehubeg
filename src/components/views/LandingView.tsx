@@ -15,7 +15,7 @@ import { SiteHeader } from "@/components/SiteHeader";
 import { NewsletterForm } from "@/components/NewsletterForm";
 import { getFAQSchema } from "@/lib/seo";
 import Image from "next/image";
-import { ImageWithFallback } from "@/components/ui/image-with-fallback";
+import { ThemeImg, EngravedIcon } from "@/components/ThemeImg";
 import { openEvoFloatingChat } from "@/lib/evo-chat-context";
 import {
   Bot,
@@ -39,30 +39,30 @@ import type { LucideIcon } from "lucide-react";
 // All tokens meet WCAG AAA (≥7:1) on their intended backgrounds
 // ============================================================
 const PALETTE = {
-  // Card surfaces (kept from previous commit)
-  surface:   "#FDFCFE", // أبيض نقي — سطح الكارت الأساسي
-  tint:      "#F5F7FC", // أبيض مزرق خفيف — للكروت الثانوية
-  halo:      "#E9F2FD", // هالة زرقاء خفيفة (للـ hover shadow)
-  blue:      "#CAE3FA", // أزرق الزر الفاتح (decorative only)
-  blueDeep:  "#C9E4FC", // أزرق التركيز الأعمق (decorative only)
+  // Phase 126 «Marble & Chrome» (owner directive 2026-09-06): the identity is
+  // a monochrome marble + chrome system defined as CSS VARIABLES in
+  // globals.css (:root + [data-theme="dark"]) — every value below resolves
+  // through a var so the whole page re-themes WITHOUT re-render. --ai cyan
+  // is reserved for AI-assistant surfaces only.
+  surface:   "var(--card)",   // card surface (white / #141518)
+  tint:      "var(--tint)",   // secondary surface / soft chips
+  halo:      "var(--tint)",   // hover wash
+  blue:      "var(--tint)",   // (decorative only)
+  blueDeep:  "var(--muted-2)",
 
-  // Text colors (AAA on white/tint backgrounds)
-  textPrim:  "#1D252E", // h1/h2/h3 — 15:1 on surface (AAA)
-  textSec:   "#4A5260", // descriptions/body — 7.5:1 on surface (AAA)
-  textMuted: "#6E6E73", // footer/legal only — 4.5:1 on #f5f5f7 (AA only — accepted for non-essential text)
+  textPrim:  "var(--text)",
+  textSec:   "var(--muted-2)",
+  textMuted: "var(--muted-foreground)",
 
-  // Brand colors
-  brand:     "#0071e3", // Apple blue — solid button background only
-  brandDeep: "#0F5BB5", // deep blue — text links on light bg, 7.3:1 on white (AAA)
-  brandSoft: "#E9F2FD", // brand tint background (badges, pills)
+  brand:     "var(--text)",    // solid action color (chrome CTAs use .btn-chrome)
+  brandDeep: "var(--text)",
+  brandSoft: "var(--tint)",
 
-  // Borders
-  border:    "#D2D2D7", // Apple gray border
+  border:    "var(--edge)",
 
-  // Section backgrounds (unchanged — Apple-style alternating)
-  sectionWhite: "#FFFFFF",
-  sectionGray:  "#F5F5F7",
-  sectionDark:  "#1D1D1F",
+  sectionWhite: "var(--bg)",
+  sectionGray:  "var(--tint)",
+  sectionDark:  "#0B0B0D",     // footer/rich band — dark in BOTH themes (mission §14)
 };
 
 // Backward-compat alias (existing components reference CARD.*)
@@ -86,23 +86,22 @@ type HeroNavItem = {
   titleEn: string;
   titleAr: string;
   icon: LucideIcon;
-  color: string;
   primary?: boolean;
   needsPosts?: boolean; // blog section only renders when posts exist
 };
 
 const HERO_NAV: HeroNavItem[] = [
-  { id: "memberships", labelEn: "Memberships", labelAr: "العضويات", titleEn: "Alkemos Premium memberships", titleAr: "عضويات Alkemos المميزة", icon: Crown, color: "#0071e3", primary: true },
-  { id: "tools", labelEn: "Free Tools", labelAr: "أدوات مجانية", titleEn: "6 free fitness & nutrition calculators", titleAr: "6 حاسبات مجانية بدون تسجيل", icon: Calculator, color: "#ff9500" },
-  { id: "exercises", labelEn: "Exercises", labelAr: "التمارين", titleEn: "868+ exercise library", titleAr: "مكتبة 868+ تمرين", icon: Dumbbell, color: "#34c759" },
-  { id: "programs", labelEn: "Programs", labelAr: "البرامج", titleEn: "Ready-made workout programs", titleAr: "برامج تدريب جاهزة", icon: ClipboardList, color: "#5856d6" },
-  { id: "foods", labelEn: "Foods", labelAr: "الأكلات", titleEn: "8,830+ foods with calories & macros", titleAr: "8,830+ أكلة بالسعرات والماكروز", icon: Salad, color: "#ff2d55" },
-  { id: "blog", labelEn: "Blog", labelAr: "المدونة", titleEn: "Scientific fitness articles", titleAr: "مقالات رياضية علمية", icon: BookOpen, color: "#00b8d9", needsPosts: true },
-  { id: "coaching", labelEn: "Coaching", labelAr: "الكوتشينج", titleEn: "Online coaching with real coaches", titleAr: "كوتشينج أونلاين مع مدربين حقيقيين", icon: Users, color: "#af52de" },
-  { id: "for-coaches", labelEn: "For Coaches", labelAr: "كن مدرباً", titleEn: "Run your coaching business on Alkemos", titleAr: "اعمل شغلك كله من مكان واحد", icon: Briefcase, color: "#1d1d1f" },
-  { id: "evo", labelEn: "EVO", labelAr: "EVO", titleEn: "Smart performance engine — included in memberships", titleAr: "محرك أداء ذكي — داخل الاشتراكات", icon: Bot, color: "#0071e3" },
-  { id: "affiliate", labelEn: "Affiliate", labelAr: "الأفلييت", titleEn: "Earn 20% commission as an affiliate", titleAr: "اكسب عمولة 20% كأفلييت", icon: Megaphone, color: "#ff9500" },
-  { id: "faq", labelEn: "FAQ", labelAr: "أسئلة شائعة", titleEn: "Frequently asked questions", titleAr: "أسئلة شائعة", icon: CircleHelp, color: "#8e8e93" },
+  { id: "memberships", labelEn: "Memberships", labelAr: "العضويات", titleEn: "Alkemos Premium memberships", titleAr: "عضويات Alkemos المميزة", icon: Crown, primary: true },
+  { id: "tools", labelEn: "Free Tools", labelAr: "أدوات مجانية", titleEn: "6 free fitness & nutrition calculators", titleAr: "6 حاسبات مجانية بدون تسجيل", icon: Calculator },
+  { id: "exercises", labelEn: "Exercises", labelAr: "التمارين", titleEn: "868+ exercise library", titleAr: "مكتبة 868+ تمرين", icon: Dumbbell },
+  { id: "programs", labelEn: "Programs", labelAr: "البرامج", titleEn: "Ready-made workout programs", titleAr: "برامج تدريب جاهزة", icon: ClipboardList },
+  { id: "foods", labelEn: "Foods", labelAr: "الأكلات", titleEn: "8,830+ foods with calories & macros", titleAr: "8,830+ أكلة بالسعرات والماكروز", icon: Salad },
+  { id: "blog", labelEn: "Blog", labelAr: "المدونة", titleEn: "Scientific fitness articles", titleAr: "مقالات رياضية علمية", icon: BookOpen, needsPosts: true },
+  { id: "coaching", labelEn: "Coaching", labelAr: "الكوتشينج", titleEn: "Online coaching with real coaches", titleAr: "كوتشينج أونلاين مع مدربين حقيقيين", icon: Users },
+  { id: "for-coaches", labelEn: "For Coaches", labelAr: "كن مدرباً", titleEn: "Run your coaching business on Alkemos", titleAr: "اعمل شغلك كله من مكان واحد", icon: Briefcase },
+  { id: "evo", labelEn: "EVO", labelAr: "EVO", titleEn: "Smart performance engine — included in memberships", titleAr: "محرك أداء ذكي — داخل الاشتراكات", icon: Bot },
+  { id: "affiliate", labelEn: "Affiliate", labelAr: "الأفلييت", titleEn: "Earn 20% commission as an affiliate", titleAr: "اكسب عمولة 20% كأفلييت", icon: Megaphone },
+  { id: "faq", labelEn: "FAQ", labelAr: "أسئلة شائعة", titleEn: "Frequently asked questions", titleAr: "أسئلة شائعة", icon: CircleHelp },
 ];
 
 // Disabled Reveal — animations were causing jarring "shake" effects
@@ -120,30 +119,6 @@ function Reveal({
   return <div className={className}>{children}</div>;
 }
 
-/**
- * GradientFade — G2: smooth visual transition between sections with
- * different background colors. Inserts a 4px gradient strip that blends
- * the previous section's color into the next one, matching Apple's
- * seamless section transitions.
- */
-function GradientFade({ from = "bg-white", to = "bg-[#f5f5f7]" }: { from?: string; to?: string }) {
-  // Extract the color value from Tailwind class names
-  const fromColor = from.includes("#f5f5f7") ? "#f5f5f7" : "#ffffff";
-  const toColor = to.includes("#f5f5f7") ? "#f5f5f7" : "#ffffff";
-  return (
-    <div
-      className="h-1 w-full"
-      style={{ background: `linear-gradient(to bottom, ${fromColor}, ${toColor})` }}
-      aria-hidden="true"
-    />
-  );
-}
-
-/**
- * BlogCarousel — horizontal scrolling carousel of blog posts.
- * Two variants: "latest" (most recent) and "featured" (random selection).
- * Different visual styles to distinguish them.
- */
 function BlogCarousel({
   posts,
   variant = "latest",
@@ -209,22 +184,11 @@ function BlogCarousel({
           <a
             key={post.id}
             href={`${isAr ? "/ar" : ""}/blog/${encodeURIComponent(post.slug)}`}
-            className="group block shrink-0 overflow-hidden rounded-3xl transition-all duration-300"
+            className="marble-card group block shrink-0 transition-transform duration-300 hover:-translate-y-0.5"
             style={{
-              backgroundColor: isFeatured ? PALETTE.sectionDark : PALETTE.surface,
-              color: isFeatured ? "#FFFFFF" : PALETTE.textPrim,
-              boxShadow: "0 1px 2px rgba(29, 37, 46, 0.04)",
+              color: isFeatured ? "#F5F5F7" : PALETTE.textPrim,
               width: isFeatured ? "18rem" : "20rem",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.boxShadow = isFeatured
-                ? "0 4px 16px rgba(29, 37, 46, 0.25)"
-                : "0 4px 16px rgba(201, 228, 252, 0.45)";
-              e.currentTarget.style.transform = "translateY(-1px)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.boxShadow = "0 1px 2px rgba(29, 37, 46, 0.04)";
-              e.currentTarget.style.transform = "translateY(0)";
+              backgroundColor: isFeatured ? "#0B0B0D" : undefined,
             }}
           >
             {post.featured_image && (
@@ -240,8 +204,8 @@ function BlogCarousel({
             )}
             <div className="p-5">
               <p
-                className="text-xs font-normal uppercase tracking-wide"
-                style={{ color: isFeatured ? "rgba(255,255,255,0.6)" : PALETTE.textSec }}
+                className="text-[10px] font-semibold uppercase tracking-[0.14em]"
+                style={{ color: isFeatured ? "rgba(245,245,247,0.65)" : "var(--muted-foreground)" }}
               >
                 {getCategoryLabel(post.category, isAr ? "ar" : "en")}
               </p>
@@ -256,7 +220,8 @@ function BlogCarousel({
                   {post.excerpt}
                 </p>
               )}
-              <p className="mt-3 text-sm font-semibold" style={{ color: PALETTE.brandDeep }}>
+              <p className="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold" style={{ color: isFeatured ? "#F5F5F7" : PALETTE.textPrim }}>
+                <EngravedIcon name="scroll" alt="" size={14} className="h-3.5 w-3.5" />
                 {isAr ? "اقرأ ›" : "Read ›"}
               </p>
             </div>
@@ -379,7 +344,7 @@ export function LandingView() {
   ];
 
   return (
-    <div className="min-h-screen bg-white text-[#1d1d1f]">
+    <div className="min-h-screen bg-[var(--bg)] text-[var(--text)]">
       {/* FAQ Schema for SEO */}
       <script
         type="application/ld+json"
@@ -388,63 +353,83 @@ export function LandingView() {
 
       <SiteHeader variant="landing" />
 
-      {/* ===================== 1. HERO — owner artwork background + centered brand text ===================== */}
-      {/* Owner directive 2026-09-06 (rev. Phase 125): the brand hero artwork
-          (Greek temple + barbell, light variant) is the section background at
-          a CLEARLY VISIBLE opacity (0.55 — the first 0.22 pass was "too
-          transparent to notice") and object-contain so the FULL wide scene
-          shows on every screen (cover cropped most of it on mobile).
-          Readability is kept by a soft radial white CLOUD behind the text
-          block only — the artwork stays fully visible around it. Hero copy
-          leads with the official brand slogan (identity + SEO: the keyword
-          paragraph stays, title tag unchanged). */}
-      <section className="relative overflow-hidden bg-gradient-to-b from-white via-[#f5f5f7]/30 to-white">
-        {/* Background artwork — decorative, hidden from assistive tech.
-            object-contain: the whole 16:9 scene is always visible (owner:
-            "doesn't show completely in mobile mode"). */}
-        <div className="absolute inset-0 flex items-center justify-center" aria-hidden="true">
-          <Image
-            src="/images/brand/hero-bg-light.webp"
-            alt=""
-            fill
-            sizes="100vw"
-            className="object-contain opacity-[0.55]"
-            priority
-          />
-        </div>
-        {/* Soft white cloud BEHIND the text block — dark copy keeps full
-            contrast while the artwork reads clearly everywhere else */}
+      {/* ===================== 1. HERO — Phase 126 «Marble & Chrome» (mission §3) ===================== */}
+      {/* Owner directive 2026-09-06 (v3 identity spec): hero background =
+          hero-light/dark artwork, cover center, min-height 92vh — the
+          artwork's OWN empty middle band hosts the copy (the light variant
+          is a high-key temple with an overexposed center; the dark variant
+          is a low-key temple — so NO extra veil is needed, text uses
+          var(--text) which flips with the theme). Headline is the mission
+          copy in the lapidary serif; stat chips are engraved seal-chips;
+          CTAs are .btn-chrome + .btn-outline. CLS: fixed 92vh + the two
+          artworks are <link preload>ed in the root layout. */}
+      <section className="hero-art relative flex min-h-[92vh] w-full items-center justify-center overflow-hidden">
+        {/* Soft center cloud — guarantees copy contrast in BOTH themes
+            (light: white cloud over the bright band; dark: dark cloud) */}
         <div
           className="absolute inset-0"
           aria-hidden="true"
           style={{
             background:
-              "radial-gradient(ellipse 62% 55% at 50% 45%, rgba(255,255,255,0.93) 0%, rgba(255,255,255,0.55) 58%, rgba(255,255,255,0) 80%)",
+              "radial-gradient(ellipse 60% 52% at 50% 46%, var(--hero-veil-strong) 0%, var(--hero-veil-soft) 60%, transparent 82%)",
           }}
         />
         {/* Gentle fade into the section below */}
-        <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-b from-transparent to-white" aria-hidden="true" />
+        <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-b from-transparent to-[var(--bg)]" aria-hidden="true" />
 
-        <div className="relative mx-auto max-w-3xl px-4 py-16 text-center md:py-28">
-          {/* Text — centered on all screens */}
-          <div className="text-center">
-            <p className="text-xs font-semibold uppercase tracking-[0.25em]" style={{ color: PALETTE.textMuted }}>
-              {isAr ? "منصة ألكيموس الرياضية" : "ALKEMOS"}
-            </p>
-            <h1 className="mt-3 text-4xl font-semibold leading-[1.05] tracking-tight md:text-6xl lg:text-7xl">
-              {isAr ? "اصنع قوّتك الأسطورية" : "Forge Your Legendary Strength"}
-            </h1>
-            <p className="mx-auto mt-4 max-w-2xl text-base font-normal leading-relaxed md:text-lg" style={{ color: PALETTE.textSec }}>
-              {isAr
-                ? "منصة Alkemos للتدريب الرقمي مش مجرد موقع تمارين — دي منظومة رياضية متكاملة: أكثر من 868 تمرينًا بشرح وافٍ، 8830 أكلة بالقيم الغذائية، برامج جاهزة لكل مستوى، حاسبات لياقة مجانية، مدونة علمية، وكوتشينج حقيقي. احصل على خطط مخصصة من مدربين معتمدين أو ذكاء اصطناعي EVO، وتابع تقدمك خطوة بخطوة — كل ما تحتاجه في مكان واحد يوفر عليك وقتك وجهدك."
-                : "Alkemos is more than a fitness website — it's a complete digital training platform and sports ecosystem: 868+ exercises with full instructions, 8,830+ foods with nutrition data, ready-made programs for every level, free fitness calculators, a scientific blog, and real online coaching. Get custom plans from certified coaches or the EVO AI, and track your progress step by step — everything you need in one place, saving you time and effort."}
-            </p>
-            {/* (Phase 125, owner directive: the section-navigation chips moved
-                OUT of the hero into their own section directly below it —
-                keeps the hero clean and the artwork clearly visible.) */}
+        <div className="relative mx-auto max-w-3xl px-4 py-24 text-center">
+          <p className="text-xs font-semibold uppercase tracking-[0.3em]" style={{ color: PALETTE.textMuted }}>
+            {isAr ? "منصة ألكيموس الرياضية" : "ALKEMOS"}
+          </p>
+          <h1 className="font-display mt-4 text-4xl font-semibold leading-[1.08] tracking-tight md:text-6xl lg:text-7xl" style={{ color: PALETTE.textPrim }}>
+            {isAr ? "منصتك الرياضية المتكاملة." : "Your complete fitness platform."}
+          </h1>
+          <p className="mx-auto mt-4 max-w-xl text-base font-normal md:text-lg" style={{ color: PALETTE.textSec }}>
+            {isAr
+              ? "868+ تمرينًا • 8830+ أكلة • مدرب EVO الذكي 24/7"
+              : "868+ exercises • 8,830+ foods • EVO AI coach 24/7"}
+          </p>
+
+          {/* CTAs — mission §3/§15: .btn-chrome + .btn-outline */}
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
+            <a
+              href={isAr ? "/ar/tools" : "/tools"}
+              className="btn-chrome px-8 py-3.5 text-base"
+            >
+              {isAr ? "جرّب المنصة مجانًا" : "Try the platform free"}
+            </a>
+            <a
+              href={isAr ? "/ar/memberships" : "/memberships"}
+              className="btn-outline px-8 py-3.5 text-base font-medium"
+            >
+              {isAr ? "شاهد الأسعار" : "View Pricing"}
+            </a>
           </div>
+
+          {/* Stat chips — engraved seals (mission §3) */}
+          <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
+            <span className="seal-chip">
+              <EngravedIcon name="dumbbell" alt="" size={14} className="h-3.5 w-3.5" />
+              {isAr ? "868+ تمرين" : "868+ EXERCISES"}
+            </span>
+            <span className="seal-chip">
+              <EngravedIcon name="hydration" alt="" size={14} className="h-3.5 w-3.5" />
+              {isAr ? "8830+ أكلة" : "8,830+ FOODS"}
+            </span>
+            <span className="seal-chip">
+              <EngravedIcon name="evo" alt="" size={14} className="h-3.5 w-3.5" />
+              {isAr ? "EVO مدرب ذكي 24/7" : "EVO AI COACH 24/7"}
+            </span>
+          </div>
+
+          {/* (Phase 125, owner directive: the section-navigation chips moved
+              OUT of the hero into their own section directly below it —
+              keeps the hero clean and the artwork clearly visible.) */}
         </div>
       </section>
+
+      {/* Greek meander divider — mission §4 */}
+      <div className="meander-divider" aria-hidden="true" />
 
       {/* ===================== 2. SECTION QUICK-NAV — owner directive Phase 125: hero buttons moved below the hero ===================== */}
       {/* Owner directive 2026-08-30 (rev. 2026-09-06): hero buttons = section
@@ -470,38 +455,33 @@ export function LandingView() {
                       style={
                         isPrimary
                           ? {
-                              backgroundColor: PALETTE.brand,
-                              color: "#FFFFFF",
-                              boxShadow: "0 4px 14px rgba(0, 113, 227, 0.35)",
+                              background: "var(--chrome)",
+                              color: "#0B0B0D",
+                              border: "1px solid var(--chrome-edge)",
+                              boxShadow: "var(--shadow)",
                             }
                           : {
-                              backgroundColor: PALETTE.surface,
+                              backgroundColor: "var(--card)",
                               color: PALETTE.textPrim,
-                              border: `1px solid ${PALETTE.border}`,
+                              border: "var(--border-chrome)",
                             }
                       }
                       onMouseEnter={(e) => {
-                        if (isPrimary) {
-                          e.currentTarget.style.boxShadow = "0 6px 18px rgba(0, 113, 227, 0.5)";
-                        } else {
-                          e.currentTarget.style.backgroundColor = PALETTE.halo;
-                          e.currentTarget.style.borderColor = PALETTE.blueDeep;
+                        if (!isPrimary) {
+                          e.currentTarget.style.backgroundColor = "var(--tint)";
                         }
                         e.currentTarget.style.transform = "translateY(-1px)";
                       }}
                       onMouseLeave={(e) => {
-                        if (isPrimary) {
-                          e.currentTarget.style.boxShadow = "0 4px 14px rgba(0, 113, 227, 0.35)";
-                        } else {
-                          e.currentTarget.style.backgroundColor = PALETTE.surface;
-                          e.currentTarget.style.borderColor = PALETTE.border;
+                        if (!isPrimary) {
+                          e.currentTarget.style.backgroundColor = "var(--card)";
                         }
                         e.currentTarget.style.transform = "translateY(0)";
                       }}
                     >
                       <Icon
                         className="h-4 w-4 shrink-0"
-                        style={isPrimary ? { color: "#FFFFFF" } : { color: s.color }}
+                        style={isPrimary ? { color: "#0B0B0D" } : { color: "var(--muted-foreground)" }}
                         aria-hidden="true"
                       />
                       {isAr ? s.labelAr : s.labelEn}
@@ -541,22 +521,28 @@ export function LandingView() {
               <button
                 type="button"
                 onClick={openEvoFloatingChat}
-                className="inline-flex cursor-pointer items-center gap-2 rounded-full px-7 py-3.5 text-base font-medium text-white transition-opacity hover:opacity-90"
-                style={{ backgroundColor: PALETTE.brand }}
+                className="btn-chrome px-7 py-3.5 text-base"
               >
                 {isAr ? "ابدأ المحادثة" : "Start chatting"}
               </button>
               <a
                 href="/evo"
-                className="inline-flex items-center gap-2 rounded-full border px-7 py-3.5 text-base font-normal transition-colors hover:bg-[#f5f5f7]"
-                style={{ borderColor: PALETTE.border, backgroundColor: PALETTE.sectionWhite, color: PALETTE.textPrim }}
+                className="btn-outline px-7 py-3.5 text-base font-normal"
               >
                 {isAr ? "اعرف أكثر" : "Learn more"}
               </a>
             </div>
           </div>
           {/* Image — owner's EVO brand artwork (light variant, WebP 134KB) */}
-          <div className="relative mt-10 aspect-video w-full overflow-hidden rounded-3xl">
+          <div className="marble-card relative mt-10 aspect-video w-full">
+            <div className="absolute inset-0" aria-hidden="true">
+              <ThemeImg
+                light="/images/brand/evo-card-light.webp"
+                dark="/images/brand/evo-card-dark.webp"
+                alt=""
+                className="h-full w-full object-cover"
+              />
+            </div>
             <Image
               src="/images/brand/evo-card-light.webp"
               alt={isAr ? "محارب EVO — مساعد اللياقة الذكي من Alkemos" : "EVO warrior — Alkemos smart fitness assistant"}
@@ -571,7 +557,7 @@ export function LandingView() {
       {/* (removed: GradientFade gray→gray — audit 2026-08-30, purely dead strip) */}
 
       {/* ===================== 4. FREE TOOLS ===================== */}
-      <section id="tools" className="scroll-mt-20 bg-[#f5f5f7] px-4 py-12 md:py-20">
+      <section id="tools" className="scroll-mt-20 bg-[var(--tint)] px-4 py-12 md:py-20">
         <div className="mx-auto max-w-4xl">
           <div className="text-center">
             <Reveal>
@@ -587,12 +573,12 @@ export function LandingView() {
           </div>
           <div className="mt-10 grid grid-cols-1 gap-4 sm:grid-cols-2">
             {[
-              { slug: "calorie-calculator", nameAr: "حاسبة السعرات الحرارية", nameEn: "Calorie Calculator", descAr: "اعرف احتياجك اليومي بدقة بدون تسجيل.", descEn: "Daily calorie needs", emoji: "🔥", color: "#ff9500", href: "/tools/calorie-calculator", image: "/images/tools/calorie-calculator.png" },
-              { slug: "bmi-calculator", nameAr: "حاسبة كتلة الجسم BMI", nameEn: "BMI Calculator", descAr: "اعرف لو وزنك في المعدل الصحي.", descEn: "Is your weight healthy?", emoji: "⚖️", color: "#0071e3", href: "/tools/bmi-calculator", image: "/images/tools/bmi-calculator.png" },
-              { slug: "macro-calculator", nameAr: "حاسبة الماكروز", nameEn: "Macro Calculator", descAr: "وزّع بروتين وكارب ودهون يومك بسهولة.", descEn: "Protein, carbs, fat", emoji: "🥩", color: "#34c759", href: "/tools/macro-calculator", image: "/images/tools/macro-calculator.png" },
-              { slug: "body-fat-calculator", nameAr: "حاسبة نسبة الدهون", nameEn: "Body Fat %", descAr: "تابع تقدمك بمقاييس حقيقية مش بس بالميزان.", descEn: "Your body fat %", emoji: "📊", color: "#ff3b30", href: "/tools/body-fat-calculator", image: "/images/tools/body-fat-calculator.png" },
-              { slug: "water-tracker", nameAr: "متتبع الماء", nameEn: "Water Tracker", descAr: "سجل كوبساتك يومياً", descEn: "Log your daily cups", emoji: "💧", color: "#00b8d9", href: "/tools/water-tracker", image: "/images/tools/water-tracker.png" },
-              { slug: "meal-planner", nameAr: "مخطط الوجبات", nameEn: "Meal Planner", descAr: "ابني وجباتك بنفسك", descEn: "Build your own meals", emoji: "🍽️", color: "#8b5cf6", href: "/meal-planner", image: "/images/tools/meal-planner.png" },
+              { slug: "calorie-calculator", nameAr: "حاسبة السعرات الحرارية", nameEn: "Calorie Calculator", descAr: "اعرف احتياجك اليومي بدقة بدون تسجيل.", descEn: "Daily calorie needs", icon: "calories", href: "/tools/calorie-calculator" },
+              { slug: "bmi-calculator", nameAr: "حاسبة كتلة الجسم BMI", nameEn: "BMI Calculator", descAr: "اعرف لو وزنك في المعدل الصحي.", descEn: "Is your weight healthy?", icon: "bmi", href: "/tools/bmi-calculator" },
+              { slug: "macro-calculator", nameAr: "حاسبة الماكروز", nameEn: "Macro Calculator", descAr: "وزّع بروتين وكارب ودهون يومك بسهولة.", descEn: "Protein, carbs, fat", icon: "macros", href: "/tools/macro-calculator" },
+              { slug: "body-fat-calculator", nameAr: "حاسبة نسبة الدهون", nameEn: "Body Fat %", descAr: "تابع تقدمك بمقاييس حقيقية مش بس بالميزان.", descEn: "Your body fat %", icon: "bodyfat", href: "/tools/body-fat-calculator" },
+              { slug: "water-tracker", nameAr: "متتبع الماء", nameEn: "Water Tracker", descAr: "سجل كوبساتك يومياً", descEn: "Log your daily cups", icon: "hydration", href: "/tools/water-tracker" },
+              { slug: "meal-planner", nameAr: "مخطط الوجبات", nameEn: "Meal Planner", descAr: "ابني وجباتك بنفسك", descEn: "Build your own meals", icon: "mealplanner", href: "/meal-planner" },
             ].map((tool, i) => (
               <Reveal key={tool.slug} delay={i * 80}>
                 <LandingToolCard tool={tool} isAr={isAr} />
@@ -600,16 +586,17 @@ export function LandingView() {
             ))}
           </div>
           <div className="mt-8 text-center">
-            <a href="/tools" className="text-sm font-medium transition-opacity hover:opacity-70" style={{ color: PALETTE.brandDeep }}>
+            <a href="/tools" className="text-sm font-semibold underline decoration-[var(--edge)] underline-offset-4 transition-opacity hover:opacity-70" style={{ color: PALETTE.textPrim }}>
               {isAr ? "كل الأدوات ›" : "View all tools ›"}
             </a>
           </div>
         </div>
       </section>
 
-      <GradientFade from="bg-[#f5f5f7]" to="bg-white" />
+      {/* Greek meander divider — mission §4 */}
+      <div className="meander-divider" aria-hidden="true" />
       {/* ===================== 5. EXERCISE LIBRARY ===================== */}
-      <section id="exercises" className="scroll-mt-20 bg-white px-4 py-12 md:py-20">
+      <section id="exercises" className="scroll-mt-20 bg-[var(--bg)] px-4 py-12 md:py-20">
         <div className="mx-auto max-w-4xl">
           <div className="text-center">
             <Reveal>
@@ -628,13 +615,13 @@ export function LandingView() {
                 library). Replaced by ALL 7 real muscle groups + an 8th dark
                 browse-all tile (replaces the old standalone button). */}
             {[
-              { emoji: "💪", labelAr: "صدر", labelEn: "Chest", slug: "chest", image: "/images/categories/exercises/chest.png" },
-              { emoji: "🔙", labelAr: "ظهر", labelEn: "Back", slug: "back", image: "/images/categories/exercises/back.png" },
-              { emoji: "🏆", labelAr: "أكتاف", labelEn: "Shoulders", slug: "shoulders", image: "/images/categories/exercises/shoulders.png" },
-              { emoji: "🦵", labelAr: "أرجل", labelEn: "Legs", slug: "legs", image: "/images/categories/exercises/legs.png" },
-              { emoji: "💪", labelAr: "بايسبس", labelEn: "Biceps", slug: "biceps", image: "/images/categories/exercises/biceps.png" },
-              { emoji: "🏋️", labelAr: "ترايسبس", labelEn: "Triceps", slug: "triceps", image: "/images/categories/exercises/triceps.png" },
-              { emoji: "🎯", labelAr: "بطن/كور", labelEn: "Core", slug: "core", image: "/images/categories/exercises/core.png" },
+              { labelAr: "صدر", labelEn: "Chest", slug: "chest" },
+              { labelAr: "ظهر", labelEn: "Back", slug: "back" },
+              { labelAr: "أكتاف", labelEn: "Shoulders", slug: "shoulders" },
+              { labelAr: "أرجل", labelEn: "Legs", slug: "legs" },
+              { labelAr: "بايسبس", labelEn: "Biceps", slug: "biceps" },
+              { labelAr: "ترايسبس", labelEn: "Triceps", slug: "triceps" },
+              { labelAr: "بطن/كور", labelEn: "Core", slug: "core" },
             ].map((cat) => (
               <Reveal key={cat.slug}>
                 <LandingExerciseCategoryCard
@@ -647,14 +634,12 @@ export function LandingView() {
             <Reveal>
               <a
                 href={isAr ? "/ar/exercises" : "/exercises"}
-                className="group flex h-full flex-col items-center justify-center rounded-3xl p-4 text-center transition-all duration-300"
-                style={{ backgroundColor: PALETTE.sectionDark, color: "#FFFFFF", boxShadow: "0 1px 2px rgba(29, 37, 46, 0.04)" }}
-                onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-1px)"; }}
-                onMouseLeave={(e) => { e.currentTarget.style.transform = "translateY(0)"; }}
+                className="group flex h-full flex-col items-center justify-center rounded-3xl p-4 text-center transition-transform duration-300 hover:-translate-y-0.5"
+                style={{ background: "var(--chrome)", border: "1px solid var(--chrome-edge)", color: "#0B0B0D", boxShadow: "var(--shadow)" }}
               >
-                <span className="text-3xl">🏋️</span>
+                <EngravedIcon name="dumbbell" alt="" size={40} className="h-10 w-10" />
                 <span className="mt-2 text-base font-semibold">{isAr ? "كل التمارين" : "All Exercises"}</span>
-                <span className="mt-1 text-xs font-normal" style={{ color: "#A1A1A6" }}>
+                <span className="mt-1 text-xs font-medium" style={{ color: "#3F444A" }}>
                   {EXERCISES_COUNT.toLocaleString()}+ {isAr ? "تمرين" : "exercises"}
                 </span>
               </a>
@@ -662,10 +647,12 @@ export function LandingView() {
           </div>
         </div>
       </section>
-      <GradientFade from="bg-white" to="bg-[#f5f5f7]" />
+
+      {/* Greek meander divider — mission §4 */}
+      <div className="meander-divider" aria-hidden="true" />
 
       {/* ===================== 6. WORKOUT PROGRAMS ===================== */}
-      <section id="programs" className="scroll-mt-20 bg-[#f5f5f7] px-4 py-12 md:py-20">
+      <section id="programs" className="scroll-mt-20 bg-[var(--tint)] px-4 py-12 md:py-20">
         <div className="mx-auto max-w-5xl">
           <div className="text-center">
             <Reveal>
@@ -681,9 +668,9 @@ export function LandingView() {
           </div>
           <div className="mt-10 grid grid-cols-1 gap-4 md:grid-cols-3">
             {[
-              { emoji: "🏠", titleAr: "منزلي بدون معدات", titleEn: "Home (No Equipment)", descAr: "تمارين بالوزن فقط", descEn: "Bodyweight only", slug: "home-beginner-fullbody", image: "/images/programs/home-workout.png" },
-              { emoji: "🏋️", titleAr: "جيم كامل", titleEn: "Full Gym", descAr: "بمعدات كاملة", descEn: "Full equipment", slug: "gym-ppl-intermediate", image: "/images/programs/full-gym.png" },
-              { emoji: "🔥", titleAr: "حرق دهون HIIT", titleEn: "Fat Loss HIIT", descAr: "حارب الدهون بسرعة", descEn: "Burn fat fast", slug: "home-fat-loss-hiit", image: "/images/programs/hiit.png" },
+              { icon: "house", levelAr: "مبتدئ", levelEn: "Beginner", titleAr: "منزلي بدون معدات", titleEn: "Home (No Equipment)", descAr: "تمارين بالوزن فقط", descEn: "Bodyweight only", slug: "home-beginner-fullbody", image: "/images/programs/home-workout.png" },
+              { icon: "rack", levelAr: "متوسط", levelEn: "Intermediate", titleAr: "جيم كامل", titleEn: "Full Gym", descAr: "بمعدات كاملة", descEn: "Full equipment", slug: "gym-ppl-intermediate", image: "/images/programs/full-gym.png" },
+              { icon: "runner", levelAr: "متقدم", levelEn: "Advanced", titleAr: "حرق دهون HIIT", titleEn: "Fat Loss HIIT", descAr: "حارب الدهون بسرعة", descEn: "Burn fat fast", slug: "home-fat-loss-hiit", image: "/images/programs/hiit.png" },
             ].map((prog, i) => (
               <Reveal key={prog.slug} delay={i * 100}>
                 <LandingProgramCard prog={prog} isAr={isAr} />
@@ -691,16 +678,18 @@ export function LandingView() {
             ))}
           </div>
           <div className="mt-8 text-center">
-            <a href="/programs" className="inline-block rounded-full px-6 py-2.5 text-sm font-medium text-white transition-opacity hover:opacity-90" style={{ backgroundColor: PALETTE.textPrim }}>
+            <a href="/programs" className="btn-chrome px-6 py-2.5 text-sm">
               {isAr ? "كل البرامج ›" : "View all programs ›"}
             </a>
           </div>
         </div>
       </section>
-      <GradientFade from="bg-[#f5f5f7]" to="bg-white" />
+
+      {/* Greek meander divider — mission §4 */}
+      <div className="meander-divider" aria-hidden="true" />
 
       {/* ===================== 7. FOOD LIBRARY ===================== */}
-      <section id="foods" className="scroll-mt-20 bg-white px-4 py-12 md:py-20">
+      <section id="foods" className="scroll-mt-20 bg-[var(--bg)] px-4 py-12 md:py-20">
         <div className="mx-auto max-w-5xl">
           <div className="text-center">
             <Reveal>
@@ -716,10 +705,10 @@ export function LandingView() {
           </div>
           <div className="mt-10 grid grid-cols-2 gap-4 md:grid-cols-4">
             {[
-              { emoji: "🥩", titleAr: "بروتين", titleEn: "Protein", descAr: "لحم، دجاج، بيض", descEn: "Meat, chicken, eggs", slug: "protein", image: "/images/categories/foods/protein.png" },
-              { emoji: "🍚", titleAr: "كارب", titleEn: "Carbs", descAr: "أرز، شوفان، بطاطس", descEn: "Rice, oats, potato", slug: "carb", image: "/images/categories/foods/carb.png" },
-              { emoji: "🥑", titleAr: "دهون", titleEn: "Fats", descAr: "أفوكادو، مكسرات", descEn: "Avocado, nuts", slug: "fat", image: "/images/categories/foods/fat.png" },
-              { emoji: "🍎", titleAr: "فواكه", titleEn: "Fruits", descAr: "طازجة وصحية", descEn: "Fresh and healthy", slug: "fruit", image: "/images/categories/foods/fruit.png" },
+              { icon: "protein", titleAr: "بروتين", titleEn: "Protein", descAr: "لحم، دجاج، بيض", descEn: "Meat, chicken, eggs", slug: "protein", image: "/images/categories/foods/protein.png" },
+              { icon: "carbs", titleAr: "كارب", titleEn: "Carbs", descAr: "أرز، شوفان، بطاطس", descEn: "Rice, oats, potato", slug: "carb", image: "/images/categories/foods/carb.png" },
+              { icon: "fats", titleAr: "دهون", titleEn: "Fats", descAr: "أفوكادو، مكسرات", descEn: "Avocado, nuts", slug: "fat", image: "/images/categories/foods/fat.png" },
+              { icon: "fruits", titleAr: "فواكه", titleEn: "Fruits", descAr: "طازجة وصحية", descEn: "Fresh and healthy", slug: "fruit", image: "/images/categories/foods/fruit.png" },
             ].map((cat, i) => (
               <Reveal key={cat.titleEn} delay={i * 80}>
                 <LandingFoodCategoryCard cat={cat} isAr={isAr} />
@@ -727,7 +716,7 @@ export function LandingView() {
             ))}
           </div>
           <div className="mt-8 text-center">
-            <a href={isAr ? "/ar/foods" : "/foods"} className="inline-block rounded-full px-6 py-2.5 text-sm font-medium text-white transition-opacity hover:opacity-90" style={{ backgroundColor: PALETTE.textPrim }}>
+            <a href={isAr ? "/ar/foods" : "/foods"} className="btn-chrome px-6 py-2.5 text-sm">
               {isAr ? "تصفّح كل الأكلات ›" : "Browse all foods ›"}
             </a>
           </div>
@@ -737,8 +726,10 @@ export function LandingView() {
       {/* ===================== 8. BLOG (raised higher) — Latest + Featured carousels ===================== */}
       {latestPosts.length > 0 && (
         <>
-        <GradientFade from="bg-white" to="bg-[#f5f5f7]" />
-        <section id="blog" className="scroll-mt-20 bg-[#f5f5f7] px-4 py-12 md:py-20">
+
+      {/* Greek meander divider — mission §4 */}
+      <div className="meander-divider" aria-hidden="true" />
+        <section id="blog" className="scroll-mt-20 bg-[var(--tint)] px-4 py-12 md:py-20">
           <div className="mx-auto max-w-6xl">
             {/* Latest Posts — carousel with light cards */}
             <div>
@@ -747,7 +738,7 @@ export function LandingView() {
                   <h2 className="text-2xl font-semibold tracking-tight md:text-4xl">
                     {isAr ? "اقرأ أحدث المقالات العلمية" : "Read the Latest Scientific Articles"}
                   </h2>
-                  <a href={blogHref} className="text-sm font-medium transition-opacity hover:opacity-70" style={{ color: PALETTE.brandDeep }}>
+                  <a href={blogHref} className="text-sm font-semibold underline decoration-[var(--edge)] underline-offset-4 transition-opacity hover:opacity-70" style={{ color: PALETTE.textPrim }}>
                     {isAr ? "كل المقالات ›" : "View all ›"}
                   </a>
                 </div>
@@ -777,13 +768,11 @@ export function LandingView() {
       {/* Improved 2026-08-30 (owner feedback): the section was only a headline
           + two buttons. Added a 4-feature grid showing WHAT you actually get
           (nutrition plan / adaptive programs / follow-up / EVO AI). */}
-      <section id="coaching" className="scroll-mt-20 bg-white px-4 py-12 md:py-20">
+      <section id="coaching" className="scroll-mt-20 bg-[var(--bg)] px-4 py-12 md:py-20">
         <div className="mx-auto max-w-4xl">
           <div className="text-center">
             <Reveal>
-              <span className="inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-medium" style={{ backgroundColor: PALETTE.brandSoft, color: PALETTE.brandDeep }}>
-                {isAr ? "كوتشينج أونلاين" : "Online Coaching"}
-              </span>
+              <span className="seal-chip">{isAr ? "كوتشينج أونلاين" : "ONLINE COACHING"}</span>
             </Reveal>
             <Reveal delay={100}>
               <h2 className="mt-4 text-3xl font-semibold tracking-tight md:text-5xl" style={{ color: PALETTE.textPrim }}>
@@ -819,7 +808,7 @@ export function LandingView() {
                   <div key={f.t} className="rounded-3xl p-5 text-center" style={{ backgroundColor: PALETTE.tint }}>
                     <span
                       className="mx-auto grid h-12 w-12 place-items-center rounded-2xl"
-                      style={{ backgroundColor: PALETTE.brandSoft, color: PALETTE.brandDeep }}
+                      style={{ backgroundColor: "var(--tint)", color: "var(--text)" }}
                     >
                       <Icon className="h-6 w-6" aria-hidden="true" />
                     </span>
@@ -832,18 +821,10 @@ export function LandingView() {
           </Reveal>
           <Reveal delay={250}>
             <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
-              <a
-                href="/coaching"
-                className="rounded-full px-6 py-2.5 text-sm font-medium text-white transition-opacity hover:opacity-90"
-                style={{ backgroundColor: PALETTE.brand }}
-              >
+              <a href="/coaching" className="btn-chrome px-6 py-2.5 text-sm">
                 {isAr ? "اعرف أكثر ›" : "Learn more ›"}
               </a>
-              <a
-                href={isAr ? "/ar/memberships" : "/memberships"}
-                className="rounded-full px-6 py-2.5 text-sm font-normal transition-opacity hover:opacity-90"
-                style={{ backgroundColor: PALETTE.sectionGray, color: PALETTE.textPrim }}
-              >
+              <a href={isAr ? "/ar/memberships" : "/memberships"} className="btn-outline px-6 py-2.5 text-sm font-normal">
                 {isAr ? "الأسعار" : "Pricing"}
               </a>
             </div>
@@ -853,7 +834,7 @@ export function LandingView() {
 
       {/* ===================== 9.5 FEATURED COACHES («أعلن معنا» ads) ===================== */}
       {featuredCoaches.length > 0 && (
-        <section className="bg-[#f5f5f7] px-4 py-12 md:py-20">
+        <section className="bg-[var(--tint)] px-4 py-12 md:py-20">
           <div className="mx-auto max-w-5xl">
             <h2 className="text-center text-3xl font-semibold tracking-tight md:text-4xl" style={{ color: PALETTE.textPrim }}>
               {isAr ? "تعرّف على مدربينا المعتمدين" : "Meet Our Certified Coaches"}
@@ -886,10 +867,10 @@ export function LandingView() {
                       <img
                         src={coach.photo}
                         alt={coach.name}
-                        className="mx-auto h-16 w-16 rounded-full object-cover ring-4 ring-[#f5f5f7]"
+                        className="mx-auto h-16 w-16 rounded-full object-cover ring-4 ring-[var(--tint)]"
                       />
                     ) : (
-                      <div className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-[#0071e3]/10 text-xl font-semibold text-[#0071e3]">
+                      <div className="mx-auto grid h-16 w-16 place-items-center rounded-full border border-[var(--edge)] bg-[var(--tint)] text-xl font-semibold text-[var(--text)]">
                         {(coach.name.trim().charAt(0) || "M")}
                       </div>
                     )}
@@ -962,8 +943,7 @@ export function LandingView() {
             <div className="mt-8">
               <a
                 href="/for-coaches"
-                className="rounded-full px-8 py-3.5 text-base font-medium text-white transition-opacity hover:opacity-90"
-                style={{ backgroundColor: PALETTE.brand }}
+                className="btn-chrome px-8 py-3.5 text-base"
               >
                 {isAr ? "انضم كمدرب ›" : "Join as a coach ›"}
               </a>
@@ -997,27 +977,14 @@ export function LandingView() {
             <Reveal delay={200} className="h-full">
               <a
                 href={isAr ? "/ar/memberships" : "/memberships"}
-                className="group flex h-full flex-col rounded-3xl p-7 transition-all duration-300"
-                style={{
-                  backgroundColor: PALETTE.surface,
-                  border: `1px solid ${PALETTE.border}`,
-                  boxShadow: "0 1px 2px rgba(29, 37, 46, 0.04)",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.boxShadow = "0 4px 16px rgba(201, 228, 252, 0.45)";
-                  e.currentTarget.style.transform = "translateY(-1px)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.boxShadow = "0 1px 2px rgba(29, 37, 46, 0.04)";
-                  e.currentTarget.style.transform = "translateY(0)";
-                }}
+                className="marble-card group flex h-full flex-col p-7 transition-transform duration-300 hover:-translate-y-0.5"
               >
                 <div className="flex items-center justify-between gap-3">
                   <h3 className="text-xl font-semibold tracking-tight" style={{ color: PALETTE.textPrim }}>
                     {isAr ? "بريميوم" : "Premium"}
                   </h3>
                   <div className="flex items-end gap-1">
-                    <span className="text-2xl font-bold tracking-tight" style={{ color: PALETTE.textPrim }}>$14.99</span>
+                    <span className="chrome-text text-2xl font-bold tracking-tight">$14.99</span>
                     <span className="pb-0.5 text-xs font-normal" style={{ color: PALETTE.textSec }}>/{isAr ? "شهر" : "mo"}</span>
                   </div>
                 </div>
@@ -1030,15 +997,14 @@ export function LandingView() {
                     : ["Unlimited EVO", "4 nutrition/workout plans per month (weekly cap 1+1)", "50 saved results", "Meal-plan & results export"]
                   ).map((f) => (
                     <li key={f} className="flex items-start gap-2">
-                      <Check className="mt-0.5 h-4 w-4 shrink-0" style={{ color: PALETTE.brand }} aria-hidden="true" />
+                      <Check className="mt-0.5 h-4 w-4 shrink-0" style={{ color: "var(--text)" }} aria-hidden="true" />
                       <span style={{ color: PALETTE.textSec }}>{f}</span>
                     </li>
                   ))}
                 </ul>
                 <div className="mt-auto pt-7">
                   <span
-                    className="flex w-full items-center justify-center gap-2 rounded-full px-6 py-3 text-sm font-semibold text-white transition-opacity group-hover:opacity-90"
-                    style={{ backgroundColor: PALETTE.brand }}
+                    className="btn-chrome flex w-full items-center justify-center gap-2 px-6 py-3 text-sm"
                   >
                     {isAr ? "اشترك الآن" : "Subscribe now"}
                     <span className="rtl:rotate-180">›</span>
@@ -1051,42 +1017,33 @@ export function LandingView() {
             <Reveal delay={300} className="h-full">
               <a
                 href={isAr ? "/ar/memberships" : "/memberships"}
-                className="group relative flex h-full flex-col overflow-hidden rounded-3xl p-7 transition-all duration-300"
+                className="marble-card group relative flex h-full flex-col p-7 transition-transform duration-300 hover:-translate-y-0.5"
                 style={{
-                  backgroundColor: PALETTE.sectionDark,
-                  boxShadow: "0 12px 32px rgba(29, 37, 46, 0.30)",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.boxShadow = "0 16px 40px rgba(0, 113, 227, 0.28)";
-                  e.currentTarget.style.transform = "translateY(-2px)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.boxShadow = "0 12px 32px rgba(29, 37, 46, 0.30)";
-                  e.currentTarget.style.transform = "translateY(0)";
+                  backgroundColor: "#0B0B0D",
+                  color: "#F5F5F7",
+                  border: "2px solid transparent",
+                  backgroundImage:
+                    "linear-gradient(#0B0B0D, #0B0B0D), linear-gradient(145deg, #FDFDFD 0%, #C9CED3 35%, #878E94 50%, #E6E9EC 70%, #9AA0A6 100%)",
+                  backgroundOrigin: "border-box",
+                  backgroundClip: "padding-box, border-box",
                 }}
               >
-                {/* Decorative brand glow (top-end corner) */}
-                <div
-                  aria-hidden="true"
-                  className="pointer-events-none absolute -top-24 end-[-15%] h-64 w-64 rounded-full opacity-40 blur-3xl"
-                  style={{ background: "radial-gradient(circle, #0071e3 0%, transparent 70%)" }}
-                />
+                {/* 2px chrome ring (mission §12) — implemented as the gradient
+                    border above; the old blue glow removed */}
                 <div className="relative flex items-center justify-between gap-3">
                   <div className="flex items-center gap-2">
                     <h3 className="text-xl font-semibold tracking-tight text-white">{isAr ? "برو" : "Pro"}</h3>
-                    <span
-                      className="rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-white"
-                      style={{ background: "linear-gradient(135deg, #0071e3, #4F9CF9)" }}
-                    >
+                    <span className="seal-chip" style={{ color: "#F5F5F7", borderColor: "#3A3F45" }}>
+                      <EngravedIcon name="laurel" alt="" size={12} className="h-3 w-3" />
                       {isAr ? "الأكثر شعبية" : "Popular"}
                     </span>
                   </div>
                   <div className="flex items-end gap-1">
-                    <span className="text-3xl font-bold tracking-tight text-white">$29.99</span>
-                    <span className="pb-1 text-xs font-normal text-[#a1a1a6]">/{isAr ? "شهر" : "mo"}</span>
+                    <span className="chrome-text text-3xl font-bold tracking-tight">$29.99</span>
+                    <span className="pb-1 text-xs font-normal text-[#9BA0A6]">/{isAr ? "شهر" : "mo"}</span>
                   </div>
                 </div>
-                <p className="relative mt-3 text-sm font-normal leading-relaxed text-[#a1a1a6]">
+                <p className="relative mt-3 text-sm font-normal leading-relaxed text-[#9BA0A6]">
                   {isAr ? "للمتقدمين اللي عايزين أقصى استفادة من المنصة." : "For advanced users who want the most out of the platform."}
                 </p>
                 <ul className="relative mt-5 space-y-2.5 text-sm">
@@ -1095,18 +1052,14 @@ export function LandingView() {
                     : ["Everything in Premium", "8 nutrition/workout plans per month (weekly cap 2+2)", "6 swaps per week", "200 saved results", "No ads"]
                   ).map((f) => (
                     <li key={f} className="flex items-start gap-2">
-                      <Check className="mt-0.5 h-4 w-4 shrink-0" style={{ color: "#4F9CF9" }} aria-hidden="true" />
-                      <span className="text-[#d2d2d7]">{f}</span>
+                      <Check className="mt-0.5 h-4 w-4 shrink-0" style={{ color: "#C9CED3" }} aria-hidden="true" />
+                      <span className="text-[#B9BEC4]">{f}</span>
                     </li>
                   ))}
                 </ul>
                 <div className="relative mt-auto pt-7">
                   <span
-                    className="flex w-full items-center justify-center gap-2 rounded-full px-6 py-3.5 text-base font-bold text-white transition-transform duration-300 group-hover:scale-[1.02]"
-                    style={{
-                      background: "linear-gradient(135deg, #0071e3 0%, #4F9CF9 100%)",
-                      boxShadow: "0 8px 24px rgba(0, 113, 227, 0.45)",
-                    }}
+                    className="btn-chrome flex w-full items-center justify-center gap-2 px-6 py-3.5 text-base"
                   >
                     {isAr ? "اشترك الآن" : "Subscribe now"}
                     <span className="rtl:rotate-180">›</span>
@@ -1147,15 +1100,26 @@ export function LandingView() {
               <h3 className="text-center text-2xl font-semibold tracking-tight md:text-3xl" style={{ color: PALETTE.textPrim }}>
                 {isAr ? "ليه Alkemos؟ مقارنة سريعة" : "Why Alkemos? A quick comparison"}
               </h3>
-              <div className="mt-6 overflow-x-auto rounded-2xl" style={{ border: `1px solid ${PALETTE.border}` }}>
+              <div className="marble-card mt-6 overflow-x-auto" style={{ borderRadius: "var(--radius-chrome)" }}>
                 <table className="w-full min-w-[560px] text-sm">
                   <thead>
                     <tr style={{ backgroundColor: PALETTE.sectionGray }}>
                       <th className="p-4 text-start text-xs font-medium" style={{ color: PALETTE.textSec }}>
                         {isAr ? "الميزة" : "Feature"}
                       </th>
-                      <th className="p-4 text-center text-xs font-semibold" style={{ color: PALETTE.brandDeep }}>
-                        Alkemos
+                      <th className="p-4 text-center text-xs font-semibold" style={{ color: "var(--text)" }}>
+                        <span className="inline-flex items-center gap-1.5">
+                          {/* eslint-disable-next-line @next/next/no-img-element -- local fixed asset (helmet mark, 16px decorative) */}
+                          <img
+                            src="/images/brand/mark-helmet.png"
+                            alt=""
+                            width={16}
+                            height={16}
+                            className="h-4 w-4 object-contain"
+                            aria-hidden="true"
+                          />
+                          Alkemos
+                        </span>
                       </th>
                       <th className="p-4 text-center text-xs font-medium" style={{ color: PALETTE.textSec }}>
                         {isAr ? "مدرب شخصي تقليدي" : "Traditional personal trainer"}
@@ -1171,14 +1135,34 @@ export function LandingView() {
                         <td className="p-4 text-start font-medium" style={{ color: PALETTE.textPrim }}>
                           {isAr ? row.featureAr : row.featureEn}
                         </td>
-                        <td className="p-4 text-center" style={{ backgroundColor: `${PALETTE.brand}0d` }}>
-                          <span className="font-semibold" style={{ color: PALETTE.brandDeep }}>{row.us}</span>
+                        <td
+                          className="p-4 text-center"
+                          style={{ backgroundColor: "var(--tint)", borderInline: "var(--border-chrome)" }}
+                        >
+                          {/* ✅→chrome check-seal icon; ❌→faint × (mission §11) */}
+                          {row.us === "✅" ? (
+                            <EngravedIcon name="checkseal" alt="" size={22} className="mx-auto h-5 w-5" />
+                          ) : (
+                            <span className="font-semibold" style={{ color: "var(--text)" }}>{row.us}</span>
+                          )}
                         </td>
-                        <td className="p-4 text-center" style={{ color: PALETTE.textSec }}>
-                          {isAr ? row.tradAr : row.tradEn}
+                        <td className="p-4 text-center" style={{ color: "var(--muted-foreground)" }}>
+                          {(isAr ? row.tradAr : row.tradEn) === "❌" ? (
+                            <span style={{ color: "var(--muted-foreground)", opacity: 0.5 }} aria-label="No">×</span>
+                          ) : (isAr ? row.tradAr : row.tradEn) === "✅" ? (
+                            <EngravedIcon name="checkseal" alt="" size={22} className="mx-auto h-5 w-5 opacity-60" />
+                          ) : (
+                            isAr ? row.tradAr : row.tradEn
+                          )}
                         </td>
-                        <td className="p-4 text-center" style={{ color: PALETTE.textSec }}>
-                          {isAr ? row.appsAr : row.appsEn}
+                        <td className="p-4 text-center" style={{ color: "var(--muted-foreground)" }}>
+                          {(isAr ? row.appsAr : row.appsEn) === "❌" ? (
+                            <span style={{ color: "var(--muted-foreground)", opacity: 0.5 }} aria-label="No">×</span>
+                          ) : (isAr ? row.appsAr : row.appsEn) === "✅" ? (
+                            <EngravedIcon name="checkseal" alt="" size={22} className="mx-auto h-5 w-5 opacity-60" />
+                          ) : (
+                            isAr ? row.appsAr : row.appsEn
+                          )}
                         </td>
                       </tr>
                     ))}
@@ -1197,15 +1181,10 @@ export function LandingView() {
           and the owner (admin role) reported the section as missing. Facts
           match AffiliateProgramView: 20% subscription commission, 30-day
           cookie window for one-time products, $10 minimum payout. */}
-      <section id="affiliate" className="scroll-mt-20 bg-white px-4 py-12 md:py-20">
+      <section id="affiliate" className="scroll-mt-20 bg-[var(--bg)] px-4 py-12 md:py-20">
           <div className="mx-auto max-w-4xl text-center">
             <Reveal>
-              <span
-                className="inline-flex items-center rounded-full px-4 py-1.5 text-xs font-medium"
-                style={{ backgroundColor: PALETTE.brandSoft, color: PALETTE.brandDeep }}
-              >
-                {isAr ? "برنامج الأفلييت" : "Affiliate Program"}
-              </span>
+              <span className="seal-chip">{isAr ? "برنامج الأفلييت" : "AFFILIATE PROGRAM"}</span>
             </Reveal>
             <Reveal delay={100}>
               <h2 className="mt-4 text-3xl font-semibold tracking-tight md:text-5xl" style={{ color: PALETTE.textPrim }}>
@@ -1232,9 +1211,10 @@ export function LandingView() {
                     ? { v: "10$", d: "الحد الأدنى للصرف" }
                     : { v: "$10", d: "Minimum payout" },
                 ].map((s) => (
-                  <div key={s.d} className="rounded-2xl p-5" style={{ backgroundColor: PALETTE.tint }}>
-                    <p className="text-xl font-semibold" style={{ color: PALETTE.textPrim }}>{s.v}</p>
-                    <p className="mt-1 text-xs font-normal leading-relaxed" style={{ color: PALETTE.textSec }}>{s.d}</p>
+                  <div key={s.d} className="marble-card flex flex-col items-center gap-1 p-6 text-center">
+                    {/* Engraved seal chip stat (mission §13) */}
+                    <span className="seal-chip">{s.v}</span>
+                    <p className="mt-2 text-xs font-normal leading-relaxed" style={{ color: PALETTE.textSec }}>{s.d}</p>
                   </div>
                 ))}
               </div>
@@ -1243,8 +1223,7 @@ export function LandingView() {
               <div className="mt-8">
                 <a
                   href="/affiliate"
-                  className="rounded-full px-8 py-3.5 text-base font-medium text-white transition-opacity hover:opacity-90"
-                  style={{ backgroundColor: PALETTE.brand }}
+                  className="btn-chrome px-8 py-3.5 text-base"
                 >
                   {isAr ? "اكسب كأفلييت ›" : "Earn as an affiliate ›"}
                 </a>
@@ -1258,9 +1237,9 @@ export function LandingView() {
           removal objection was duplication + pushing EVO; this strip is the
           single free-start message, no EVO push, and links to memberships
           where the Free tier lives) ==== */}
-      <section className="bg-white px-4 py-16 md:py-20">
+      <section className="bg-[var(--bg)] px-4 py-16 md:py-20">
         <Reveal>
-          <div className="mx-auto max-w-3xl rounded-3xl px-6 py-12 text-center md:py-16" style={{ backgroundColor: PALETTE.brandSoft }}>
+          <div className="marble-card mx-auto max-w-3xl px-6 py-12 text-center md:py-16">
             <h2 className="mx-auto max-w-2xl text-3xl font-semibold leading-tight tracking-tight md:text-4xl" style={{ color: PALETTE.textPrim }}>
               {isAr
                 ? "ابدأ رحلتك دلوقتي مجانًا.. مالكش عذر تأجل بعد اليوم"
@@ -1268,8 +1247,7 @@ export function LandingView() {
             </h2>
             <a
               href={isAr ? "/ar/memberships" : "/memberships"}
-              className="mt-8 inline-flex items-center gap-2 rounded-full px-9 py-4 text-base font-semibold text-white transition-all duration-300 hover:scale-[1.02]"
-              style={{ backgroundColor: PALETTE.brand, boxShadow: "0 8px 24px rgba(0, 113, 227, 0.35)" }}
+              className="btn-chrome mt-8 px-9 py-4 text-base"
             >
               {isAr ? "جرّب المنصة مجانًا" : "Try the platform free"}
               <span className="rtl:rotate-180">›</span>
@@ -1282,7 +1260,7 @@ export function LandingView() {
           "13. FINAL CTA / ابدأ رحلتك الرياضية" was removed 2026-08-30 per
           owner: it repeated the hero + memberships CTAs and pushed EVO,
           which is a service inside subscriptions, not a standalone CTA) ==== */}
-      <section id="faq" className="scroll-mt-20 bg-[#f5f5f7] px-4 py-12 md:py-20">
+      <section id="faq" className="scroll-mt-20 bg-[var(--tint)] px-4 py-12 md:py-20">
         <div className="mx-auto max-w-3xl">
           <Reveal>
             <h2 className="text-center text-3xl font-semibold tracking-tight md:text-5xl">
@@ -1292,7 +1270,7 @@ export function LandingView() {
           <Reveal delay={150}>
             <Accordion type="single" collapsible className="mt-12">
               {faqs.map((faq, i) => (
-                <AccordionItem key={i} value={`item-${i}`} className="border-b border-[#d2d2d7]">
+                <AccordionItem key={i} value={`item-${i}`} className="border-b border-[var(--edge)]">
                   <AccordionTrigger className="py-5 text-start text-lg font-normal hover:no-underline">
                     {faq.q}
                   </AccordionTrigger>
@@ -1313,14 +1291,17 @@ export function LandingView() {
           card right below was removed per owner («النشرة البريدية المجانية
           مكررة في الصفحة الرئيسية»), same dedup pattern as the 2026-08-30
           footer CTA removal. ===================== */}
-      <section className="bg-white px-4 py-12 md:py-16">
+      <section className="bg-[var(--bg)] px-4 py-12 md:py-16">
         <div className="mx-auto max-w-2xl">
           <NewsletterForm variant="home" />
         </div>
       </section>
 
-      {/* ===================== FOOTER ===================== */}
-      <footer className="border-t border-[#d2d2d7] bg-[#f5f5f7] px-4 py-10 text-[#6e6e73]">
+      {/* ===================== FOOTER — mission §14: #0B0B0D + marble-dark
+          texture + logo-mono-white + meander divider on the top edge ===================== */}
+      <footer className="footer-marble relative px-4 pb-10 pt-12 text-[#9BA0A6]">
+        {/* Meander divider on the top edge (mission §14) */}
+        <div className="footer-meander-top absolute inset-x-0 top-0" aria-hidden="true" />
         <div className="mx-auto max-w-6xl">
           {/* Removed (owner feedback 2026-09-03): footer newsletter card —
               it duplicated section 13 directly above the footer («النشرة
@@ -1331,11 +1312,20 @@ export function LandingView() {
               the single coach funnel entry. */}
 
           <div className="grid gap-8 md:grid-cols-3 lg:grid-cols-5">
-            {/* Brand */}
+            {/* Brand — white mono logo (owner artwork: white lockup) */}
             <div>
-              <p className="text-sm font-semibold text-[#1d1d1f]">Alkemos</p>
-              <p className="mt-2 text-xs font-normal">{isAr ? "اصنع قوّتك الأسطورية." : "Forge Your Legendary Strength."}</p>
-              <p className="mt-3 text-[10px] font-normal text-[#8e8e93]">{isAr ? "© 2026 جميع الحقوق محفوظة" : "© 2026 All rights reserved"}</p>
+              {/* eslint-disable-next-line @next/next/no-img-element -- local fixed asset; dark footer always uses the white lockup (QR-asset precedent) */}
+              <img
+                src="/images/brand/logo-footer-white.png"
+                alt="Alkemos"
+                width={140}
+                height={110}
+                className="h-10 w-auto object-contain"
+                loading="lazy"
+                decoding="async"
+              />
+              <p className="mt-3 text-xs font-normal">{isAr ? "اصنع قوّتك الأسطورية." : "Forge Your Legendary Strength."}</p>
+              <p className="mt-3 text-[10px] font-normal text-[#6B7075]">{isAr ? "© 2026 جميع الحقوق محفوظة" : "© 2026 All rights reserved"}</p>
             </div>
 
             {/* Group 1: Paid Services */}
@@ -1385,7 +1375,7 @@ export function LandingView() {
           {/* Group 5: Legal + Basic — bottom row (per Owner directive 2026-08-25:
               legal/basic pages like About / Contact / Privacy / Terms / FAQ
               live in the footer only, not in the header) */}
-          <div className="mt-8 border-t border-[#d2d2d7] pt-6">
+          <div className="mt-8 border-t border-[#26292E] pt-6">
             <p className="text-[10px] font-semibold uppercase tracking-wider mb-3">{isAr ? "قانوني وأساسي" : "Legal & Basic"}</p>
             <ul className="flex flex-wrap gap-x-6 gap-y-2 text-xs">
               {/* Audit 2026-08-30: was navigate() buttons → always EN. Real links
@@ -1398,7 +1388,7 @@ export function LandingView() {
             </ul>
           </div>
 
-          <div className="mt-6 border-t border-[#d2d2d7] pt-4 text-center text-[10px] text-[#8e8e93]">
+          <div className="mt-6 border-t border-[#26292E] pt-4 text-center text-[10px] text-[#6B7075]">
             {isAr ? "صُنع بحب لمجتمع اللياقة العربي" : "Built with care for the fitness community"}
           </div>
         </div>
@@ -1415,18 +1405,14 @@ type LandingTool = {
   nameEn: string;
   descAr: string;
   descEn: string;
-  emoji: string;
-  color: string;
+  icon: string; // engraved icon pair name (mission §6)
   href: string;
-  image: string;
 };
 
 type LandingExerciseCategory = {
   slug: string;
   labelAr: string;
   labelEn: string;
-  emoji: string;
-  image: string;
   count: number;
 };
 
@@ -1436,8 +1422,9 @@ type LandingProgram = {
   titleEn: string;
   descAr: string;
   descEn: string;
-  emoji: string;
-  image: string;
+  icon: string;     // engraved icon pair (house / rack / runner — mission §8)
+  levelAr: string;  // level → laurel badge (mission §8)
+  levelEn: string;
 };
 
 type LandingFoodCategory = {
@@ -1446,8 +1433,7 @@ type LandingFoodCategory = {
   titleEn: string;
   descAr: string;
   descEn: string;
-  emoji: string;
-  image: string;
+  icon: string; // engraved icon pair (protein / carbs / fats / fruits — mission §9)
 };
 
 // ─── Helper components (conditional rendering — no display:none in DOM) ───
@@ -1456,34 +1442,21 @@ function LandingToolCard({ tool, isAr }: { tool: LandingTool; isAr: boolean }) {
   return (
     <a
       href={tool.href}
-      className="group flex items-center gap-4 rounded-3xl p-6 transition-all duration-300"
-      style={{
-        backgroundColor: PALETTE.surface,
-        boxShadow: "0 1px 2px rgba(29, 37, 46, 0.03)",
-      }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.boxShadow = "0 4px 16px rgba(201, 228, 252, 0.45)";
-        e.currentTarget.style.transform = "translateY(-1px)";
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.boxShadow = "0 1px 2px rgba(29, 37, 46, 0.03)";
-        e.currentTarget.style.transform = "translateY(0)";
-      }}
+      className="marble-card group flex items-center gap-4 p-6 transition-transform duration-300 hover:-translate-y-0.5"
     >
-      <span className="relative grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-2xl text-2xl" style={{ backgroundColor: `${tool.color}15` }}>
-        <ImageWithFallback
-          src={tool.image}
-          alt={isAr ? tool.nameAr : tool.nameEn}
-          fill
-          className="object-cover"
-          fallbackElement={<span>{tool.emoji}</span>}
-        />
-      </span>
+      {/* Engraved icon pair (mission §6: flame / scale / pie / silhouette+% / cup / plate) */}
+      <EngravedIcon
+        name={tool.icon}
+        alt={isAr ? tool.nameAr : tool.nameEn}
+        size={56}
+        className="h-14 w-14 shrink-0"
+      />
       <div className="min-w-0 flex-1">
         <h3 className="text-lg font-semibold tracking-tight" style={{ color: PALETTE.textPrim }}>{isAr ? tool.nameAr : tool.nameEn}</h3>
         <p className="mt-1 text-sm font-normal" style={{ color: PALETTE.textSec }}>{isAr ? tool.descAr : tool.descEn}</p>
       </div>
-      <span className="text-2xl" style={{ color: PALETTE.textSec }}>›</span>
+      {/* Arrow "›" in chrome (mission §6) */}
+      <span className="chrome-text shrink-0 text-2xl font-semibold" aria-hidden="true">›</span>
     </a>
   );
 }
@@ -1492,37 +1465,13 @@ function LandingExerciseCategoryCard({ cat, isAr }: { cat: LandingExerciseCatego
   return (
     <a
       href={`${isAr ? "/ar" : ""}/exercises?cat=${cat.slug}`}
-      className="group block overflow-hidden rounded-3xl text-center transition-all duration-300"
-      style={{
-        backgroundColor: PALETTE.tint,
-        boxShadow: "0 1px 2px rgba(29, 37, 46, 0.03)",
-      }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.boxShadow = "0 4px 16px rgba(201, 228, 252, 0.45)";
-        e.currentTarget.style.transform = "translateY(-1px)";
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.boxShadow = "0 1px 2px rgba(29, 37, 46, 0.03)";
-        e.currentTarget.style.transform = "translateY(0)";
-      }}
+      className="marble-card group flex flex-col items-center justify-center gap-1.5 p-5 text-center transition-transform duration-300 hover:-translate-y-0.5"
     >
-      <div className="relative aspect-[4/3] w-full overflow-hidden bg-white">
-        <ImageWithFallback
-          src={cat.image}
-          alt={isAr ? cat.labelAr : cat.labelEn}
-          fill
-          className="object-contain"
-          fallbackElement={
-            <div className="flex h-full w-full items-center justify-center">
-              <span className="text-4xl">{cat.emoji}</span>
-            </div>
-          }
-        />
-      </div>
-      <div className="p-4">
-        <h3 className="text-base font-semibold tracking-tight" style={{ color: PALETTE.textPrim }}>{isAr ? cat.labelAr : cat.labelEn}</h3>
-        <p className="mt-1 text-xs font-normal" style={{ color: PALETTE.textSec }}>{cat.count} {isAr ? "تمارين" : "exercises"}</p>
-      </div>
+      {/* Small doric-column icon per category (mission §7) */}
+      <EngravedIcon name="doric" alt="" size={34} className="h-8 w-8 opacity-90" />
+      <h3 className="text-base font-semibold tracking-tight" style={{ color: PALETTE.textPrim }}>{isAr ? cat.labelAr : cat.labelEn}</h3>
+      {/* Category number in chrome-gradient text (mission §7) */}
+      <p className="chrome-text text-2xl font-bold tracking-tight">{cat.count}</p>
     </a>
   );
 }
@@ -1531,38 +1480,31 @@ function LandingProgramCard({ prog, isAr }: { prog: LandingProgram; isAr: boolea
   return (
     <a
       href={`/programs/${prog.slug}`}
-      className="group block overflow-hidden rounded-3xl transition-all duration-300"
-      style={{
-        backgroundColor: PALETTE.surface,
-        boxShadow: "0 1px 2px rgba(29, 37, 46, 0.03)",
-      }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.boxShadow = "0 4px 16px rgba(201, 228, 252, 0.45)";
-        e.currentTarget.style.transform = "translateY(-1px)";
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.boxShadow = "0 1px 2px rgba(29, 37, 46, 0.03)";
-        e.currentTarget.style.transform = "translateY(0)";
-      }}
+      className="marble-card group relative flex flex-col p-6 transition-transform duration-300 hover:-translate-y-0.5"
     >
-      <div className="relative aspect-[16/10] w-full overflow-hidden">
-        <ImageWithFallback
-          src={prog.image}
-          alt={isAr ? prog.titleAr : prog.titleEn}
-          fill
-          className="object-cover transition-transform duration-500 group-hover:scale-105"
-          fallbackElement={
-            <div className="flex h-full w-full items-center justify-center bg-[#f5f5f7]">
-              <span className="text-4xl">{prog.emoji}</span>
-            </div>
-          }
-        />
+      {/* Faded stadium backdrop — evo-card artwork blurred at 12% opacity
+          (mission §8). Theme-swapped CSS background; purely decorative. */}
+      <div
+        className="pointer-events-none absolute inset-0 opacity-[0.12] blur-[2px]"
+        aria-hidden="true"
+        style={{
+          backgroundImage: "var(--prog-backdrop)",
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+        }}
+      />
+      <div className="relative flex items-start justify-between gap-3">
+        {/* Engraved icon (house / rack / runner — mission §8) */}
+        <EngravedIcon name={prog.icon} alt="" size={56} className="h-14 w-14 shrink-0" />
+        {/* Laurel badge for the level (mission §8) */}
+        <span className="seal-chip shrink-0">
+          <EngravedIcon name="laurel" alt="" size={14} className="h-3.5 w-3.5" />
+          {isAr ? prog.levelAr : prog.levelEn}
+        </span>
       </div>
-      <div className="p-6">
-        <h3 className="text-lg font-semibold tracking-tight" style={{ color: PALETTE.textPrim }}>{isAr ? prog.titleAr : prog.titleEn}</h3>
-        <p className="mt-1 text-sm font-normal" style={{ color: PALETTE.textSec }}>{isAr ? prog.descAr : prog.descEn}</p>
-        <p className="mt-3 text-sm font-semibold" style={{ color: PALETTE.brandDeep }}>{isAr ? "ابدأ الآن ›" : "Start now ›"}</p>
-      </div>
+      <h3 className="relative mt-4 text-lg font-semibold tracking-tight" style={{ color: PALETTE.textPrim }}>{isAr ? prog.titleAr : prog.titleEn}</h3>
+      <p className="relative mt-1 text-sm font-normal" style={{ color: PALETTE.textSec }}>{isAr ? prog.descAr : prog.descEn}</p>
+      <p className="chrome-text relative mt-4 text-sm font-semibold">{isAr ? "ابدأ الآن ›" : "Start now ›"}</p>
     </a>
   );
 }
@@ -1571,37 +1513,17 @@ function LandingFoodCategoryCard({ cat, isAr }: { cat: LandingFoodCategory; isAr
   return (
     <a
       href={`${isAr ? "/ar" : ""}/foods?cat=${cat.slug}`}
-      className="group block overflow-hidden rounded-3xl transition-all duration-300"
-      style={{
-        backgroundColor: PALETTE.tint,
-        boxShadow: "0 1px 2px rgba(29, 37, 46, 0.03)",
-      }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.boxShadow = "0 4px 16px rgba(201, 228, 252, 0.45)";
-        e.currentTarget.style.transform = "translateY(-1px)";
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.boxShadow = "0 1px 2px rgba(29, 37, 46, 0.03)";
-        e.currentTarget.style.transform = "translateY(0)";
-      }}
+      className="marble-card group flex flex-col items-center justify-center gap-2 p-6 text-center transition-transform duration-300 hover:-translate-y-0.5"
     >
-      <div className="relative aspect-square w-full overflow-hidden">
-        <ImageWithFallback
-          src={cat.image}
-          alt={isAr ? cat.titleAr : cat.titleEn}
-          fill
-          className="object-cover transition-transform duration-500 group-hover:scale-105"
-          fallbackElement={
-            <div className="flex h-full w-full items-center justify-center" style={{ backgroundColor: PALETTE.tint }}>
-              <span className="text-4xl">{cat.emoji}</span>
-            </div>
-          }
-        />
-      </div>
-      <div className="p-4 text-center">
-        <h3 className="text-base font-semibold tracking-tight" style={{ color: PALETTE.textPrim }}>{isAr ? cat.titleAr : cat.titleEn}</h3>
-        <p className="mt-1 text-xs font-normal" style={{ color: PALETTE.textSec }}>{isAr ? cat.descAr : cat.descEn}</p>
-      </div>
+      {/* Engraved icon pair (mission §9: protein=steak / carbs=wheat / fats=avocado / fruits=olive branch) */}
+      <EngravedIcon
+        name={cat.icon}
+        alt={isAr ? cat.titleAr : cat.titleEn}
+        size={64}
+        className="h-16 w-16"
+      />
+      <h3 className="text-base font-semibold tracking-tight" style={{ color: PALETTE.textPrim }}>{isAr ? cat.titleAr : cat.titleEn}</h3>
+      <p className="mt-0.5 text-xs font-normal" style={{ color: PALETTE.textSec }}>{isAr ? cat.descAr : cat.descEn}</p>
     </a>
   );
 }

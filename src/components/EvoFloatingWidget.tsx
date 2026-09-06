@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import Image from "next/image";
+import { ThemeImg } from "@/components/ThemeImg";
 import { useEvoChat } from "@/lib/evo-chat-context";
 import { useI18n } from "@/lib/i18n";
 import { Send, X, ExternalLink, Loader2, Sparkles, Bookmark, Check } from "lucide-react";
@@ -227,26 +228,28 @@ export function EvoFloatingWidget() {
       {!isOpen && (
         <button
           onClick={openChat}
-          className="fixed z-50 cursor-pointer rounded-full bg-[#0071e3] p-1.5 shadow-lg transition-all hover:scale-105 hover:shadow-xl"
+          className="evo-bubble-ring fixed z-50 cursor-pointer rounded-full bg-[var(--tint)] p-1 transition-all hover:scale-105"
           style={{
             [isAr ? "left" : "right"]: "20px",
             bottom: "calc(20px + var(--mhe-cookie-bar-h, 0px))",
           } as React.CSSProperties}
           aria-label={isAr ? "افتح محادثة EVO" : "Open EVO chat"}
         >
-          {/* EVO profile image with pulse animation — image only, no text */}
+          {/* EVO avatar — mission §5: circular 56px, light/dark pair, dark
+              mode gets a 2px glow ring in var(--ai) (.evo-bubble-ring). */}
           <span className="relative block">
-            <Image
-              src="/images/brand/evo-widget-light.webp"
+            <ThemeImg
+              light="/images/brand/evo-widget-light.webp"
+              dark="/images/brand/evo-widget-dark.webp"
               alt="EVO"
-              width={48}
-              height={48}
-              priority
-              className="h-12 w-12 rounded-full object-cover ring-2 ring-white/40"
+              width={56}
+              height={56}
+              eager
+              className="h-14 w-14 rounded-full object-cover"
             />
-            <span className="absolute inset-0 animate-ping rounded-full bg-[#0071e3] opacity-20" />
+            <span className="pointer-events-none absolute inset-0 animate-ping rounded-full bg-[var(--ai)] opacity-15" />
             {/* Online indicator */}
-            <span className="absolute bottom-0 end-0 h-3.5 w-3.5 rounded-full bg-[#34c759] ring-2 ring-white" />
+            <span className="absolute bottom-0.5 end-0.5 h-3.5 w-3.5 rounded-full bg-[#34c759] ring-2 ring-[var(--bg)]" />
           </span>
         </button>
       )}
@@ -262,7 +265,7 @@ export function EvoFloatingWidget() {
 
           {/* Drawer */}
           <aside
-            className="fixed bottom-0 top-0 z-50 flex w-full max-w-[380px] flex-col bg-white shadow-2xl"
+            className="fixed bottom-0 top-0 z-50 flex w-full max-w-[380px] flex-col bg-[var(--bg)] shadow-2xl"
             style={{
               [isAr ? "left" : "right"]: 0,
               animation: isAr
@@ -271,23 +274,24 @@ export function EvoFloatingWidget() {
             }}
           >
             {/* Header */}
-            <div className="flex items-center justify-between border-b border-[#d2d2d7] bg-gradient-to-r from-[#0071e3] to-[#8b5cf6] p-4 text-white">
+            <div className="flex items-center justify-between border-b border-[var(--edge)] p-4" style={{ backgroundColor: "#141518", color: "var(--text)" }}>
               <div className="flex items-center gap-3">
-                <Image
-                  src="/images/brand/evo-widget-light.webp"
+                <ThemeImg
+                  light="/images/brand/evo-widget-light.webp"
+                  dark="/images/brand/evo-widget-dark.webp"
                   alt="EVO"
                   width={40}
                   height={40}
-                  className="h-10 w-10 rounded-full object-cover ring-2 ring-white/30"
+                  className="ai-ring h-10 w-10 rounded-full object-cover"
                 />
                 <div>
                   <div className="flex items-center gap-1.5">
                     <span className="text-base font-semibold">EVO</span>
-                    <Sparkles className="h-3.5 w-3.5" />
+                    <Sparkles className="ai-accent h-3.5 w-3.5" />
                   </div>
                   <div className="flex items-center gap-1">
                     <span className="h-2 w-2 rounded-full bg-[#34c759]" />
-                    <span className="text-[10px] text-white/80">
+                    <span className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>
                       {isAr ? "متاح الآن" : "Online now"}
                     </span>
                   </div>
@@ -325,12 +329,13 @@ export function EvoFloatingWidget() {
             )}
 
             {/* Messages area */}
-            <div ref={scrollBodyRef} className="flex-1 overflow-y-auto bg-[#f5f5f7] p-4">
+            <div ref={scrollBodyRef} className="flex-1 overflow-y-auto bg-[var(--tint)] p-4">
               {showWelcome ? (
                 /* Welcome screen */
                 <div className="flex h-full flex-col items-center justify-center text-center">
-                  <Image
-                    src="/images/brand/evo-widget-light.webp"
+                  <ThemeImg
+                    light="/images/brand/evo-widget-light.webp"
+                    dark="/images/brand/evo-widget-dark.webp"
                     alt="EVO"
                     width={80}
                     height={80}
@@ -383,8 +388,8 @@ export function EvoFloatingWidget() {
                       <div
                         className={`max-w-[85%] rounded-2xl px-4 py-2.5 ${
                           msg.role === "user"
-                            ? "bg-[#0071e3] text-white"
-                            : "bg-white text-[#1d1d1f]"
+                            ? "bg-[var(--text)] text-[var(--bg)]"
+                            : "bg-[var(--card)] text-[var(--text)]"
                         }`}
                       >
                         {msg.role === "user" ? (
@@ -407,7 +412,7 @@ export function EvoFloatingWidget() {
                               <button
                                 onClick={() => savePlan(msg)}
                                 disabled={savingPlanId === msg.id}
-                                className="inline-flex items-center gap-1.5 rounded-full bg-[#1d1d1f] px-3 py-1.5 text-xs font-medium text-white transition-opacity hover:opacity-85 disabled:opacity-50"
+                                className="btn-chrome inline-flex items-center gap-1.5 px-3 py-1.5 text-xs"
                               >
                                 {savingPlanId === msg.id ? (
                                   <Loader2 className="h-3 w-3 animate-spin" />
@@ -441,10 +446,10 @@ export function EvoFloatingWidget() {
                   {/* Typing indicator */}
                   {isTyping && (
                     <div className="flex justify-start">
-                      <div className="flex items-center gap-1 rounded-2xl bg-white px-4 py-3">
-                        <span className="h-2 w-2 animate-bounce rounded-full bg-[#0071e3] [animation-delay:-0.3s]" />
-                        <span className="h-2 w-2 animate-bounce rounded-full bg-[#0071e3] [animation-delay:-0.15s]" />
-                        <span className="h-2 w-2 animate-bounce rounded-full bg-[#0071e3]" />
+                      <div className="flex items-center gap-1 rounded-2xl bg-[var(--card)] px-4 py-3">
+                        <span className="h-2 w-2 animate-bounce rounded-full bg-[var(--ai)] [animation-delay:-0.3s]" />
+                        <span className="h-2 w-2 animate-bounce rounded-full bg-[var(--ai)] [animation-delay:-0.15s]" />
+                        <span className="h-2 w-2 animate-bounce rounded-full bg-[var(--ai)]" />
                       </div>
                     </div>
                   )}
@@ -465,7 +470,7 @@ export function EvoFloatingWidget() {
                       </p>
                       <a
                         href="/memberships"
-                        className="mt-3 inline-block rounded-full bg-[#0071e3] px-4 py-2 text-xs font-medium text-white"
+                        className="btn-chrome mt-3 px-4 py-2 text-xs"
                       >
                         {isAr ? "اشترك الآن" : "Subscribe now"}
                       </a>
@@ -477,7 +482,7 @@ export function EvoFloatingWidget() {
 
             {/* Input area — D2: the countdown shows only for limited tiers
                 (dailyLimit !== null); paid tiers chat without counters. */}
-            <div className="border-t border-[#d2d2d7] bg-white p-3">
+            <div className="border-t border-[var(--edge)] bg-[var(--bg)] p-3">
               {!isSubscriber && dailyLimit !== null && (
                 <div className="mb-2 text-center text-[10px] font-normal text-[#6e6e73]">
                   {isAr
@@ -501,7 +506,7 @@ export function EvoFloatingWidget() {
                         : "Type your question..."
                   }
                   disabled={isTyping || (dailyLimitReached && !isSubscriber)}
-                  className="flex-1 rounded-full border border-[#d2d2d7] bg-[#f5f5f7] px-4 py-2.5 text-sm font-normal outline-none focus:border-[#0071e3] disabled:opacity-50"
+                  className="flex-1 rounded-full border border-[var(--edge)] bg-[var(--tint)] px-4 py-2.5 text-sm font-normal outline-none focus:border-[var(--ai)] disabled:opacity-50"
                 />
                 <VoiceMicButton
                   lang={voiceLang}
@@ -513,7 +518,7 @@ export function EvoFloatingWidget() {
                   disabled={
                     !input.trim() || isTyping || (dailyLimitReached && !isSubscriber)
                   }
-                  className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[#0071e3] text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+                  className="ai-ring grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[var(--text)] text-[var(--bg)] transition-opacity hover:opacity-90 disabled:opacity-50"
                   aria-label={isAr ? "إرسال" : "Send"}
                 >
                   {isTyping ? (

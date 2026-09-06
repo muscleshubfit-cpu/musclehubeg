@@ -36,8 +36,9 @@ import {
   ShieldQuestion,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import Image from "next/image";
 import { LanguageToggle } from "@/components/LanguageToggle";
+import { ThemeToggle } from "@/components/ThemeToggle";
+import { ThemeImg } from "@/components/ThemeImg";
 import { useI18n } from "@/lib/i18n";
 import { useNav } from "@/hooks/use-nav";
 import { useAuth } from "@/hooks/use-auth";
@@ -332,59 +333,62 @@ export function SiteHeader({ variant = "landing" }: { variant?: "landing" | "app
 
   return (
     <>
-      {/* G1: backdrop-saturate-150 for richer frosted-glass effect (Apple style) */}
-      <header className="sticky top-0 z-40 w-full border-b border-[#d2d2d7] bg-white/80 backdrop-blur-xl backdrop-saturate-150">
+      {/* G1 → Phase 126 «Marble & Chrome»: navbar-chrome (mission §1) —
+          sticky, blur(12px), translucent bg, chrome bottom border.
+          3-zone layout stays: menu left / centered logo / actions right
+          (owner directives Phase 124-125). Logo = owner's navbar artwork
+          pair (light/dark) at 36px. ThemeToggle (light/dark/auto) + a
+          chrome CTA join the right action group. */}
+      <header className="navbar-chrome sticky top-0 z-40 w-full">
         <div
           className={cn(
             "relative mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6",
             variant === "app" && "max-w-6xl",
           )}
         >
-          {/* Left: hamburger (owner directive 2026-09-06: logo moves to the
-              exact center — classic 3-zone header: menu left, logo center,
-              actions right; works in LTR and RTL alike) */}
+          {/* Left: hamburger + chrome CTA (mission §1: CTA button = .btn-chrome) */}
           <div className="flex items-center gap-2">
             <button
               onClick={() => setOpen(true)}
-              className="flex h-9 w-9 items-center justify-center rounded-lg text-[#1d1d1f] hover:bg-[#f5f5f7]"
+              className="flex h-9 w-9 items-center justify-center rounded-lg text-[var(--text)] transition-colors hover:bg-[var(--tint)]"
               aria-label={isAr ? "فتح القائمة" : "Open menu"}
             >
               <Menu className="h-5 w-5" />
             </button>
+            <a
+              href="/memberships"
+              className="btn-chrome hidden px-5 py-1.5 text-sm lg:inline-flex"
+            >
+              {isAr ? "ابدأ الآن" : "Start now"}
+            </a>
           </div>
 
           {/* Center: logo — absolutely centered so side groups never push it.
-              Phase 125 (owner directive): the FULL logo (helmet + wordmark)
-              shows on MOBILE too — logo-header-mobile.png (224×72, displayed
-              36px tall) replaces the icon-192 helmet-only square that read
-              as "just the helmet". Desktop keeps logo-header.png h-10. */}
+              Phase 126 (mission §1): owner's navbar logo pair (light/dark) at
+              36px height — ThemeImg CSS-switches with the theme. */}
           <div className="pointer-events-none absolute inset-x-0 flex justify-center">
             <button
               onClick={() => navigate("landing")}
-              className="pointer-events-auto flex items-center gap-2"
+              className="pointer-events-auto flex items-center"
               aria-label="Alkemos"
             >
-              <Image
-                src="/logo-header.png"
+              <ThemeImg
+                light="/images/brand/logo-navbar-light.png"
+                dark="/images/brand/logo-navbar-dark.png"
                 alt="Alkemos"
-                width={447}
-                height={144}
-                priority
-                className="hidden h-10 w-auto object-contain md:block"
-              />
-              <Image
-                src="/logo-header-mobile.png"
-                alt="Alkemos"
-                width={224}
-                height={72}
-                priority
-                className="h-9 w-auto object-contain md:hidden"
+                width={373}
+                height={120}
+                eager
+                className="h-9 w-auto object-contain"
               />
             </button>
           </div>
 
-          {/* Right side: Language + Notifications + Account (menu moved left for centered logo) */}
+          {/* Right side: Theme toggle + Language + Notifications + Account */}
           <div className="flex items-center gap-2 md:gap-3">
+            {/* Phase 126 — light/dark/auto cycle */}
+            <ThemeToggle />
+
             {/* Language toggle — always visible */}
             <LanguageToggle />
 
@@ -399,7 +403,7 @@ export function SiteHeader({ variant = "landing" }: { variant?: "landing" | "app
             {isLoggedIn ? (
               <a
                 href={accountHref}
-                className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full ring-2 ring-[#0071e3]/20 transition-all hover:ring-[#0071e3]/40"
+                className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full ring-2 ring-[var(--edge)] transition-all hover:ring-[var(--chrome-edge)]"
                 aria-label={isAr ? "حسابي" : "My account"}
               >
                 {profile?.avatar_url ? (
@@ -410,7 +414,7 @@ export function SiteHeader({ variant = "landing" }: { variant?: "landing" | "app
                     className="h-full w-full object-cover"
                   />
                 ) : (
-                  <span className="flex h-full w-full items-center justify-center bg-[#0071e3] text-sm font-medium text-white">
+                  <span className="flex h-full w-full items-center justify-center bg-[var(--text)] text-sm font-medium text-[var(--bg)]">
                     {(profile?.full_name || "U")[0].toUpperCase()}
                   </span>
                 )}
@@ -418,7 +422,7 @@ export function SiteHeader({ variant = "landing" }: { variant?: "landing" | "app
             ) : (
               <button
                 onClick={() => navigate("auth", { mode: "login" })}
-                className="flex h-9 w-9 items-center justify-center rounded-full bg-[#f5f5f7] text-[#1d1d1f] transition-colors hover:bg-[#e5e5e7]"
+                className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--tint)] text-[var(--text)] transition-colors hover:bg-[var(--edge)]"
                 aria-label={isAr ? "تسجيل الدخول" : "Log in"}
               >
                 <User className="h-4 w-4" />
@@ -446,16 +450,17 @@ export function SiteHeader({ variant = "landing" }: { variant?: "landing" | "app
 
         <aside
           className={cn(
-            "absolute inset-y-0 end-0 flex w-[85vw] max-w-sm flex-col border-s border-[#d2d2d7] bg-white shadow-2xl transition-transform duration-300 ease-out",
+            "absolute inset-y-0 end-0 flex w-[85vw] max-w-sm flex-col border-s bg-[var(--bg)] shadow-2xl transition-transform duration-300 ease-out",
             open ? "translate-x-0" : "rtl:-translate-x-full ltr:translate-x-full",
           )}
+          style={{ borderInlineStartColor: "var(--edge)" }}
           role="dialog"
           aria-modal="true"
           aria-label={isAr ? "القائمة الرئيسية" : "Main menu"}
         >
-          {/* Drawer header — Phase 125 (owner directive): the navbar logo
-              image replaces the plain "Alkemos" text; tapping it goes home. */}
-          <div className="flex h-16 items-center justify-between border-b border-[#d2d2d7] px-4">
+          {/* Drawer header — Phase 126: owner's navbar logo pair (mission:
+              "use the Navbar logo in the header menu"), tap → home. */}
+          <div className="flex h-16 items-center justify-between border-b border-[var(--edge)] px-4">
             <button
               onClick={() => {
                 setOpen(false);
@@ -464,18 +469,19 @@ export function SiteHeader({ variant = "landing" }: { variant?: "landing" | "app
               className="flex items-center"
               aria-label="Alkemos"
             >
-              <Image
-                src="/logo-header.png"
+              <ThemeImg
+                light="/images/brand/logo-navbar-light.png"
+                dark="/images/brand/logo-navbar-dark.png"
                 alt="Alkemos"
-                width={112}
-                height={36}
+                width={373}
+                height={120}
+                eager
                 className="h-9 w-auto object-contain"
-                priority
               />
             </button>
             <button
               onClick={() => setOpen(false)}
-              className="flex h-10 w-10 items-center justify-center rounded-lg text-[#1d1d1f] hover:bg-[#f5f5f7]"
+              className="flex h-10 w-10 items-center justify-center rounded-lg text-[var(--text)] transition-colors hover:bg-[var(--tint)]"
               aria-label={isAr ? "إغلاق القائمة" : "Close menu"}
             >
               <X className="h-5 w-5" />
@@ -495,8 +501,8 @@ export function SiteHeader({ variant = "landing" }: { variant?: "landing" | "app
                       type="button"
                       onClick={() => canCollapse && toggleGroup(group.id)}
                       className={
-                        "mb-1 flex w-full items-center justify-between px-3 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-wider text-[#8e8e93] " +
-                        (canCollapse ? "cursor-pointer hover:text-[#1d1d1f]" : "cursor-default")
+                        "mb-1 flex w-full items-center justify-between px-3 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-wider text-[var(--muted-foreground)] " +
+                        (canCollapse ? "cursor-pointer hover:text-[var(--text)]" : "cursor-default")
                       }
                       aria-expanded={canCollapse ? isExpanded : undefined}
                       disabled={!canCollapse}
@@ -519,18 +525,18 @@ export function SiteHeader({ variant = "landing" }: { variant?: "landing" | "app
                               <a
                                 href={item.href}
                                 onClick={() => setOpen(false)}
-                                className={"flex items-center gap-3 rounded-lg px-3 py-2.5 text-start text-sm font-normal transition-colors text-[#1d1d1f] hover:bg-[#f5f5f7] " + (canCollapse ? "ps-6" : "")}
+                                className={"flex items-center gap-3 rounded-lg px-3 py-2.5 text-start text-sm font-normal transition-colors text-[var(--text)] hover:bg-[var(--tint)] " + (canCollapse ? "ps-6" : "")}
                               >
-                                <item.icon className="h-4 w-4 shrink-0 text-[#6e6e73]" aria-hidden="true" />
+                                <item.icon className="h-4 w-4 shrink-0 text-[var(--muted-foreground)]" aria-hidden="true" />
                                 <span className="flex-1">{item.label}</span>
                                 <ChevronRight className="h-4 w-4 shrink-0 opacity-30 rtl:rotate-180" aria-hidden="true" />
                               </a>
                             ) : (
                               <button
                                 onClick={() => handleItemClick(item)}
-                                className={"flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-start text-sm font-normal transition-colors text-[#1d1d1f] hover:bg-[#f5f5f7] " + (canCollapse ? "ps-6" : "")}
+                                className={"flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-start text-sm font-normal transition-colors text-[var(--text)] hover:bg-[var(--tint)] " + (canCollapse ? "ps-6" : "")}
                               >
-                                <item.icon className="h-4 w-4 shrink-0 text-[#6e6e73]" aria-hidden="true" />
+                                <item.icon className="h-4 w-4 shrink-0 text-[var(--muted-foreground)]" aria-hidden="true" />
                                 <span className="flex-1">{item.label}</span>
                                 <ChevronRight className="h-4 w-4 shrink-0 opacity-30 rtl:rotate-180" aria-hidden="true" />
                               </button>
@@ -546,14 +552,14 @@ export function SiteHeader({ variant = "landing" }: { variant?: "landing" | "app
           </nav>
 
           {/* Bottom section — account + logout */}
-          <div className="border-t border-[#d2d2d7] p-3">
+          <div className="border-t border-[var(--edge)] p-3">
             {isLoggedIn ? (
               <>
                 {/* Account link */}
                 <a
                   href={accountHref}
                   onClick={() => setOpen(false)}
-                  className="mb-1 flex items-center gap-3 rounded-lg px-3 py-3 text-start text-sm font-normal transition-colors text-[#1d1d1f] hover:bg-[#f5f5f7]"
+                  className="mb-1 flex items-center gap-3 rounded-lg px-3 py-3 text-start text-sm font-normal transition-colors text-[var(--text)] hover:bg-[var(--tint)]"
                 >
                   {profile?.avatar_url ? (
                     // eslint-disable-next-line @next/next/no-img-element -- avatar URL is a user-provided arbitrary host; next/image would need a wildcard remotePatterns entry (weakens the image allowlist) and this is a 28px decorative thumbnail (QR-asset precedent)
@@ -563,7 +569,7 @@ export function SiteHeader({ variant = "landing" }: { variant?: "landing" | "app
                       className="h-7 w-7 rounded-full object-cover"
                     />
                   ) : (
-                    <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[#0071e3] text-xs font-medium text-white">
+                    <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--text)] text-xs font-medium text-[var(--bg)]">
                       {(profile?.full_name || "U")[0].toUpperCase()}
                     </span>
                   )}
@@ -577,7 +583,7 @@ export function SiteHeader({ variant = "landing" }: { variant?: "landing" | "app
                     navigate("landing");
                     setOpen(false);
                   }}
-                  className="flex w-full items-center gap-3 rounded-lg px-3 py-3 text-start text-sm font-normal transition-colors text-[#ff3b30] hover:bg-[#ff3b30]/5"
+                  className="flex w-full items-center gap-3 rounded-lg px-3 py-3 text-start text-sm font-normal transition-colors text-[#ff453a] hover:bg-[#ff453a]/5"
                 >
                   <LogOut className="h-4 w-4" />
                   <span>{isAr ? "تسجيل الخروج" : "Logout"}</span>
@@ -589,7 +595,7 @@ export function SiteHeader({ variant = "landing" }: { variant?: "landing" | "app
                   navigate("auth", { mode: "login" });
                   setOpen(false);
                 }}
-                className="flex w-full items-center gap-3 rounded-lg px-3 py-3 text-start text-sm font-normal transition-colors text-[#0071e3] hover:bg-[#0071e3]/5"
+                className="flex w-full items-center gap-3 rounded-lg px-3 py-3 text-start text-sm font-normal transition-colors text-[var(--text)] hover:bg-[var(--tint)]"
               >
                 <LogIn className="h-4 w-4" />
                 <span>{isAr ? "تسجيل الدخول" : "Log in"}</span>
@@ -598,7 +604,7 @@ export function SiteHeader({ variant = "landing" }: { variant?: "landing" | "app
           </div>
 
           {/* Footer */}
-          <div className="border-t border-[#d2d2d7] px-4 py-3 text-center text-xs font-normal text-[#6e6e73]">
+          <div className="border-t border-[var(--edge)] px-4 py-3 text-center text-xs font-normal text-[var(--muted-foreground)]">
             <p>© {new Date().getFullYear()} Alkemos</p>
           </div>
         </aside>
