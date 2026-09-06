@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { requireAdmin, isAuthConfigured } from "@/lib/auth-server";
+import { requireAdmin, authRequired } from "@/lib/auth-server";
 import type { Database } from "@/lib/supabase/types";
 
 // tool_slug is a DB enum (check constraint) — this union is its mirror.
@@ -26,7 +26,7 @@ type SavedToolSlug = Database["public"]["Tables"]["saved_results"]["Row"]["tool_
  *   }
  */
 export async function GET(request: NextRequest) {
-  if (!isAuthConfigured) {
+  if (!authRequired) {
     return NextResponse.json({ results: [], total: 0, demo: true });
   }
 

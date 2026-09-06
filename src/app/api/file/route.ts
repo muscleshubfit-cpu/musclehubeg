@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireUser, isAuthConfigured, type AuthUser } from "@/lib/auth-server";
+import { requireUser, authRequired, type AuthUser } from "@/lib/auth-server";
 import { supabaseAdmin, isSupabaseAdminConfigured } from "@/lib/supabase/admin";
 
 /**
@@ -32,7 +32,7 @@ const ALLOWED_BUCKETS = new Set([
 
 export async function GET(request: NextRequest) {
   let user: AuthUser | null = null;
-  if (isAuthConfigured) {
+  if (authRequired) {
     const auth = await requireUser(request);
     if (auth instanceof Response) return auth;
     user = auth;
@@ -55,7 +55,10 @@ export async function GET(request: NextRequest) {
 
   const isOwner = Boolean(user && user.id && path.startsWith(`${user.id}/`));
   // Staff (coach | admin) can read any client file (owner-or-coach rule).
-  const isCoach = user?.role !== "client";
+  // SECURITY (audit H1, 2026-09-07): a NULL user (demo mode / auth env
+  // missing) must NOT be treated as staff — the old `user?.role !==
+  // "client"` evaluated to true for null and fail-opened this proxy.
+  const isCoach = user != null && user.role !== "client";
   if (!isOwner && !isCoach) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }

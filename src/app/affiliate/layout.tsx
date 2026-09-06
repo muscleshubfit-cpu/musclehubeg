@@ -42,9 +42,14 @@ export const metadata: Metadata = {
   },
   alternates: {
     canonical: "https://alkemos.com/affiliate",
+    // SEO audit H2 fix (2026-09-07): was en-US/ar-EG (self-pointing, no
+    // x-default) while the whole site cluster uses en/ar + x-default —
+    // mixed hreflang codes in one cluster break Google's reciprocal
+    // validation. Normalized to the site-wide code pair.
     languages: {
-      "en-US": "https://alkemos.com/affiliate",
-      "ar-EG": "https://alkemos.com/affiliate",
+      "en": "https://alkemos.com/affiliate",
+      "ar": "https://alkemos.com/ar/affiliate",
+      "x-default": "https://alkemos.com/affiliate",
     },
   },
   robots: {

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin, isSupabaseAdminConfigured } from "@/lib/supabase/admin";
+import { rateLimit, clientIp } from "@/lib/rate-limit";
 
 /**
  * COACH SELF-REGISTRATION (owner-approved «التسجيل الفورى», 2026-08-29).
@@ -45,21 +46,10 @@ const PASSWORD_MIN = 8;
 
 const RATE_LIMIT_WINDOW = 10 * 60 * 1000; // 10 minutes
 const RATE_LIMIT_MAX = 3; // 3 registration attempts per window per IP
-const ipRequests = new Map<string, { count: number; resetAt: number }>();
-
-function checkRateLimit(ip: string): { allowed: boolean; resetAt: number } {
-  const now = Date.now();
-  const entry = ipRequests.get(ip);
-  if (!entry || now > entry.resetAt) {
-    ipRequests.set(ip, { count: 1, resetAt: now + RATE_LIMIT_WINDOW });
-    return { allowed: true, resetAt: now + RATE_LIMIT_WINDOW };
-  }
-  if (entry.count >= RATE_LIMIT_MAX) {
-    return { allowed: false, resetAt: entry.resetAt };
-  }
-  entry.count++;
-  return { allowed: true, resetAt: entry.resetAt };
-}
+// H3 (audit 2026-09-07): the in-memory Map that used to live here reset
+// on every serverless cold start and was per-instance — swapped for the
+// shared lib/rate-limit store (Upstash in production, memory fallback in
+// dev). Same window/limit semantics.
 
 function cleanPhone(v: unknown): string | null {
   const s = String(v ?? "").trim();
@@ -73,9 +63,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Server not configured" }, { status: 500 });
   }
 
-  const ip =
-    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
-  const rate = checkRateLimit(ip);
+  // H3: last XFF hop = the trusted proxy's client IP (split[0] was
+  // spoofable by an attacker-prepended header).
+  const ip = clientIp(request);
+  const rate = await rateLimit(`coachreg:${ip}`, RATE_LIMIT_MAX, RATE_LIMIT_WINDOW);
   if (!rate.allowed) {
     return NextResponse.json(
       {

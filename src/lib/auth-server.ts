@@ -30,6 +30,34 @@ export const isAuthConfigured = Boolean(
   supabaseUrl && supabaseAnonKey && supabaseUrl.startsWith("http"),
 );
 
+const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
+
+/**
+ * True when the server holds the RLS-bypassing service-role key.
+ * PRIVILEGED-ROUTE LAW (audit H1, 2026-09-07): any route that performs
+ * service-role (RLS-bypassing) work MUST require a session whenever this
+ * flag is set — even if the public auth env vars are missing.
+ */
+export const isServiceKeyConfigured = Boolean(serviceRoleKey);
+
+/**
+ * Privileged-route auth gate — fail-closed upgrade of `isAuthConfigured`
+ * (security audit H1, 2026-09-07).
+ *
+ * Before: ~19 privileged routes wrapped their requireAdmin/requireCoach/
+ * requireUser call in `if (isAuthConfigured)`. If the two PUBLIC env vars
+ * (NEXT_PUBLIC_SUPABASE_URL/ANON_KEY) ever went missing in an environment
+ * (preview misconfig, key rotation accident) while SUPABASE_SERVICE_ROLE_KEY
+ * remained set, those routes skipped auth ENTIRELY and handed anonymous
+ * callers RLS-bypassing access.
+ *
+ * After: this gate is true when EITHER the auth env OR the service key is
+ * present. getAuthUser() returns null when the auth env is missing, so
+ * requireX() → 401 → fail-closed. Full demo mode (no Supabase env at all,
+ * local only) keeps its fall-through behavior unchanged.
+ */
+export const authRequired = isAuthConfigured || isServiceKeyConfigured;
+
 export type MembershipTier =
   | "free"
   | "premium"

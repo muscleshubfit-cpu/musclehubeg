@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAdmin, isAuthConfigured } from "@/lib/auth-server";
+import { requireAdmin, authRequired } from "@/lib/auth-server";
 import { supabaseAdmin, isSupabaseAdminConfigured } from "@/lib/supabase/admin";
 
 /**
@@ -16,7 +16,7 @@ import { supabaseAdmin, isSupabaseAdminConfigured } from "@/lib/supabase/admin";
  * the owner knows the reminder did NOT go out.
  */
 export async function POST(request: NextRequest) {
-  if (isAuthConfigured) {
+  if (authRequired) {
     const auth = await requireAdmin(request);
     if (auth instanceof Response) return auth;
   }

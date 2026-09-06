@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { BlogArticlePage } from "@/components/blog/BlogArticlePage";
 import { fetchBlogForOG, fetchBlogPostFull } from "@/lib/blog-server";
-import { getArticleSchema, getBreadcrumbSchema } from "@/lib/seo";
+import { getArticleSchema, getBreadcrumbSchema, jsonLd } from "@/lib/seo";
 import type { Metadata } from "next";
 
 // #10 fix: ISR — 1 hour revalidate
@@ -28,13 +28,10 @@ export async function generateMetadata({
     description: og.description,
     alternates: {
       canonical: og.articleUrl,
-      // Correct hreflang — point en + ar to their own URLs (not the same URL).
-      // C24 fix: add x-default = EN (primary) for users without a matching locale.
-      languages: {
-        "en": `https://alkemos.com/blog/${slug}`,
-        "ar": og.articleUrl,
-        "x-default": `https://alkemos.com/blog/${slug}`,
-      },
+      // SEO audit C1 fix (2026-09-07): hreflang `languages` removed — the
+      // declared EN counterpart `/blog/${slug}` never existed (EN and AR
+      // posts are topically independent in the live DB; zero slug pairs),
+      // so every alternate URL 404'd. Re-add only with a real pairing.
     },
     openGraph: {
       type: "article",
@@ -91,13 +88,13 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
       {articleSchema && (
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(articleSchema) }}
+          dangerouslySetInnerHTML={{ __html: jsonLd(articleSchema) }}
         />
       )}
       {breadcrumbSchema && (
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
+          dangerouslySetInnerHTML={{ __html: jsonLd(breadcrumbSchema) }}
         />
       )}
       <BlogArticlePage lang="ar" slug={slug} initialPost={fullPost} />

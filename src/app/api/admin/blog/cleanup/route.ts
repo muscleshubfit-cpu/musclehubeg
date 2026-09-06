@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAdmin, isAuthConfigured } from "@/lib/auth-server";
+import { requireAdmin, authRequired } from "@/lib/auth-server";
 import { supabaseAdmin, isSupabaseAdminConfigured } from "@/lib/supabase/admin";
 import type { Database } from "@/lib/supabase/types";
 
@@ -126,7 +126,7 @@ export async function POST(request: NextRequest) {
     cronAuth && cronExpected && cronAuth === `Bearer ${cronExpected}`;
 
   if (!isCronAuthed) {
-    if (isAuthConfigured) {
+    if (authRequired) {
       const auth = await requireAdmin(request);
       if (auth instanceof Response) return auth;
     }

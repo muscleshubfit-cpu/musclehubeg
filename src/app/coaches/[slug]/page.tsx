@@ -54,6 +54,11 @@ export async function generateMetadata({
   return {
     title,
     description,
+    // H3 (SEO audit 2026-09-07): robots.txt Disallow: /coach prefix-matches
+    // /coaches/* but pages still emitted indexable metadata — the
+    // "indexed, though blocked" limbo. Explicit noindex matches the
+    // owner's robots.txt intent (public shareable links, not search).
+    robots: { index: false, follow: false },
     alternates: {
       canonical: `/coaches/${slug}`,
       languages: {

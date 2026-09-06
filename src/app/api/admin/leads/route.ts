@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAdmin, isAuthConfigured } from "@/lib/auth-server";
+import { requireAdmin, authRequired } from "@/lib/auth-server";
 import { supabaseAdmin, isSupabaseAdminConfigured } from "@/lib/supabase/admin";
 import type { Database } from "@/lib/supabase/types";
 
@@ -14,7 +14,7 @@ type ToolSlug = Database["public"]["Tables"]["tool_leads"]["Row"]["tool_slug"];
  * as a coach via requireAdmin before we get here).
  */
 export async function GET(request: NextRequest) {
-  if (isAuthConfigured) {
+  if (authRequired) {
     const auth = await requireAdmin(request);
     if (auth instanceof Response) return auth;
   }
@@ -61,7 +61,7 @@ export async function GET(request: NextRequest) {
  * Body: { id: string, contacted?: boolean, converted?: boolean }
  */
 export async function PATCH(request: NextRequest) {
-  if (isAuthConfigured) {
+  if (authRequired) {
     const auth = await requireAdmin(request);
     if (auth instanceof Response) return auth;
   }
@@ -111,7 +111,7 @@ export async function PATCH(request: NextRequest) {
  * M24 fix: previously no DELETE endpoint existed — PII could not be purged.
  */
 export async function DELETE(request: NextRequest) {
-  if (isAuthConfigured) {
+  if (authRequired) {
     const auth = await requireAdmin(request);
     if (auth instanceof Response) return auth;
   }

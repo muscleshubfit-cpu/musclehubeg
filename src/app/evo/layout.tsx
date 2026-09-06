@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { getEVOApplicationSchema } from "@/lib/seo";
+import { getEVOApplicationSchema, jsonLd } from "@/lib/seo";
 
 /**
  * M30 fix: English-first metadata for /evo.
@@ -42,7 +42,7 @@ export default function EvoLayout({
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(evoSchema) }}
+        dangerouslySetInnerHTML={{ __html: jsonLd(evoSchema) }}
       />
       {children}
     </>

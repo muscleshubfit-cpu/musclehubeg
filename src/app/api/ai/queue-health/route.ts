@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAdmin, isAuthConfigured } from "@/lib/auth-server";
+import { requireAdmin, authRequired } from "@/lib/auth-server";
 import { supabaseAdmin, isSupabaseAdminConfigured } from "@/lib/supabase/admin";
 
 /**
@@ -27,7 +27,7 @@ export const maxDuration = 20;
 const STUCK_QUEUE_MINUTES = 30;
 
 export async function GET(request: NextRequest) {
-  if (isAuthConfigured) {
+  if (authRequired) {
     const auth = await requireAdmin(request);
     if (auth instanceof Response) return auth;
   }
@@ -136,7 +136,7 @@ export async function GET(request: NextRequest) {
  * (or an Arabic fallback with the HTTP code) instead of a cryptic stub.
  */
 export async function DELETE(request: NextRequest) {
-  if (isAuthConfigured) {
+  if (authRequired) {
     const auth = await requireAdmin(request);
     if (auth instanceof Response) return auth;
   }

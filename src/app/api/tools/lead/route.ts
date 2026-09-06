@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { validateEmailStrict } from "@/lib/email-validation";
-import { rateLimit } from "@/lib/rate-limit";
+import { rateLimit, clientIp } from "@/lib/rate-limit";
 
 /**
  * H3 (audit 2026-09-05): rate limiting now goes through
@@ -42,8 +42,9 @@ function checkRateLimit(ip: string): Promise<{ allowed: boolean; remaining: numb
  *   { ok: true, id: string }
  */
 export async function POST(request: NextRequest) {
-  // #2 fix: rate limit check
-  const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+  // #2 fix: rate limit check (H3 2026-09-07: last XFF hop — not the
+  // spoofable split(",")[0])
+  const ip = clientIp(request);
   const rl = await checkRateLimit(ip);
   if (!rl.allowed) {
     return NextResponse.json(
@@ -115,6 +116,19 @@ export async function POST(request: NextRequest) {
           auth: { persistSession: false, autoRefreshToken: false },
         });
 
+    // M2 (audit 2026-09-07): cap the persisted result_json payload —
+    // hostile clients could otherwise bloat tool_leads with multi-MB rows.
+    const MAX_RESULT_JSON_BYTES = 10 * 1024;
+    let storedResultJson: unknown = result_json ?? null;
+    try {
+      if (storedResultJson && JSON.stringify(storedResultJson).length > MAX_RESULT_JSON_BYTES) {
+        storedResultJson = null;
+        console.warn("[api/tools/lead] result_json exceeded 10KB — dropped");
+      }
+    } catch {
+      storedResultJson = null;
+    }
+
     const { data, error } = await supabase
       .from("tool_leads")
       .insert({
@@ -123,7 +137,7 @@ export async function POST(request: NextRequest) {
         name: typeof name === "string" && name.trim() ? name.trim().slice(0, 80) : null,
         whatsapp: null,
         result_summary: typeof result_summary === "string" ? result_summary.slice(0, 500) : null,
-        result_json: result_json ?? null,
+        result_json: storedResultJson,
         lang: lang || "ar",
         consent: true,
         // Phase 72: newsletter subscribers get their dedicated type

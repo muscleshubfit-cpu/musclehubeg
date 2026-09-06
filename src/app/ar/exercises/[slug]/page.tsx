@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { getExerciseBySlug, getRelatedExercises, EXERCISES, EQUIPMENT_LABELS, LEVEL_LABELS } from "@/lib/exercises";
-import { getHowToSchema, getBreadcrumbSchema } from "@/lib/seo";
+import { getHowToSchema, getBreadcrumbSchema, jsonLd } from "@/lib/seo";
 import ExerciseDetailClient from "@/app/exercises/[slug]/ExerciseDetailClient";
 
 const SITE_URL = "https://alkemos.com";
@@ -104,13 +104,13 @@ export default async function Page({
       {exerciseSchema && (
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(exerciseSchema) }}
+          dangerouslySetInnerHTML={{ __html: jsonLd(exerciseSchema) }}
         />
       )}
       {breadcrumbSchema && (
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
+          dangerouslySetInnerHTML={{ __html: jsonLd(breadcrumbSchema) }}
         />
       )}
       <ExerciseDetailClient

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { getCoachingServiceSchema } from "@/lib/seo";
+import { getCoachingServiceSchema, jsonLd } from "@/lib/seo";
 
 /**
  * M30 fix: English-first metadata for /coaching.
@@ -41,7 +41,7 @@ export default function CoachingLayout({
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(coachingSchema) }}
+        dangerouslySetInnerHTML={{ __html: jsonLd(coachingSchema) }}
       />
       {children}
     </>

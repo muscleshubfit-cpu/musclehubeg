@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import nodemailer from "nodemailer";
 import { createClient } from "@supabase/supabase-js";
 import { validateEmailStrict, validateNameStrict } from "@/lib/email-validation";
+import { rateLimit, clientIp } from "@/lib/rate-limit";
 
 /**
  * POST /api/send-email — Phase 72 (owner request)
@@ -34,29 +35,17 @@ import { validateEmailStrict, validateNameStrict } from "@/lib/email-validation"
 export const runtime = "nodejs";
 
 /* ------------------------------------------------------------------ */
-/*  Rate limits                                                        */
-/*  - per IP: 5 requests / 10 minutes (same policy as /api/tools/lead) */
-/*  - per email: 3 emails / hour (anti-harassment)                     */
+/*  Rate limits (audit H3, 2026-09-07 — migrated to lib/rate-limit)   */
+/*  - per IP:    5 requests / 10 minutes (Upstash when configured —    */
+/*               shared across ALL serverless instances, survives      */
+/*               cold starts; the per-lambda in-memory Map that used   */
+/*               to live here reset on every cold start)               */
+/*  - per email: 3 emails / hour (anti-harassment, same store)         */
 /* ------------------------------------------------------------------ */
 const IP_WINDOW = 10 * 60 * 1000;
 const IP_MAX = 5;
-const ipRequests = new Map<string, { count: number; resetAt: number }>();
-
-function checkIpLimit(ip: string): boolean {
-  const now = Date.now();
-  const entry = ipRequests.get(ip);
-  if (!entry || now > entry.resetAt) {
-    ipRequests.set(ip, { count: 1, resetAt: now + IP_WINDOW });
-    return true;
-  }
-  if (entry.count >= IP_MAX) return false;
-  entry.count++;
-  return true;
-}
-
 const EMAIL_WINDOW = 60 * 60 * 1000;
 const EMAIL_MAX = 3;
-const emailRequests = new Map<string, number[]>();
 
 /**
  * DAILY LIMIT (Phase 73 — owner request):
@@ -73,18 +62,6 @@ const DAILY_EMAIL_LIMIT = 100;
  * Set NEXT_PUBLIC_SITE_URL on Vercel to switch every email link at once.
  */
 const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || "https://alkemos.com").replace(/\/$/, "");
-
-function checkEmailLimit(email: string): boolean {
-  const now = Date.now();
-  const recent = (emailRequests.get(email) ?? []).filter((t) => now - t < EMAIL_WINDOW);
-  if (recent.length >= EMAIL_MAX) {
-    emailRequests.set(email, recent);
-    return false;
-  }
-  recent.push(now);
-  emailRequests.set(email, recent);
-  return true;
-}
 
 /* ------------------------------------------------------------------ */
 /*  Allowed tools                                                      */
@@ -401,8 +378,11 @@ function buildEmailText(
 /*  Handler                                                            */
 /* ------------------------------------------------------------------ */
 export async function POST(request: NextRequest) {
-  const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
-  if (!checkIpLimit(ip)) {
+  // H3: clientIp() takes the LAST x-forwarded-for hop (the trusted
+  // proxy's entry) — the old split(",")[0] was attacker-spoofable.
+  const ip = clientIp(request);
+  const ipLimit = await rateLimit(`sendemail:ip:${ip}`, IP_MAX, IP_WINDOW);
+  if (!ipLimit.allowed) {
     return NextResponse.json(
       { error: "Too many requests. Please try again later." },
       { status: 429, headers: { "Retry-After": "600" } },
@@ -485,13 +465,29 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    if (!checkEmailLimit(email)) {
+    // H3: distributed per-email limit (was the in-memory Map above).
+    const emailLimit = await rateLimit(`sendemail:email:${email}`, EMAIL_MAX, EMAIL_WINDOW);
+    if (!emailLimit.allowed) {
       return NextResponse.json({ error: "Too many emails for this address. Try later." }, { status: 429 });
     }
 
     /* ---- 2) Save the lead FIRST (owner directive: save before send) ---- */
     let leadSaved = false;
     let leadId: string | null = null;
+
+    // M2 (audit 2026-09-07): cap the persisted result_json payload — the
+    // old code inserted it unbounded, so a hostile client could bloat the
+    // tool_leads table with multi-MB JSONB rows.
+    const MAX_RESULT_JSON_BYTES = 10 * 1024;
+    let storedResultJson: ToolResults | null = result_json;
+    try {
+      if (result_json && JSON.stringify(result_json).length > MAX_RESULT_JSON_BYTES) {
+        storedResultJson = null; // drop the oversized payload, keep the lead
+        console.warn("[api/send-email] result_json exceeded 10KB — dropped");
+      }
+    } catch {
+      storedResultJson = null;
+    }
 
     if (supabase) {
       const { data, error } = await supabase
@@ -501,7 +497,7 @@ export async function POST(request: NextRequest) {
           email,
           name: name || null,
           result_summary,
-          result_json,
+          result_json: storedResultJson,
           lang,
           consent: true,
           type: "tool",

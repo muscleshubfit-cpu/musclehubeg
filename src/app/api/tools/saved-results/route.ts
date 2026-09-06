@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { requireUser, isAuthConfigured } from "@/lib/auth-server";
+import { requireUser, authRequired } from "@/lib/auth-server";
 
 /**
  * GET /api/tools/saved-results
@@ -11,7 +11,7 @@ import { requireUser, isAuthConfigured } from "@/lib/auth-server";
  */
 
 export async function GET(request: NextRequest) {
-  if (!isAuthConfigured) {
+  if (!authRequired) {
     return NextResponse.json({ results: [] });
   }
 
@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
-  if (!isAuthConfigured) {
+  if (!authRequired) {
     return NextResponse.json({ ok: true, demo: true });
   }
 

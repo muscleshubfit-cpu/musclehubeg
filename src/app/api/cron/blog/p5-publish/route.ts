@@ -14,6 +14,7 @@ import {
   markQueueItemFailed,
   type QueueItem,
 } from "@/lib/blog-queue";
+import { verifyCronAuth } from "@/lib/cron-auth";
 
 export const maxDuration = 60;
 
@@ -66,10 +67,9 @@ async function titleAlreadyExists(title: string, language: "en" | "ar"): Promise
 }
 
 export async function GET(request: NextRequest) {
-  const auth = request.headers.get("authorization");
-  const expected = process.env.CRON_SECRET;
-  if (!expected || auth !== `Bearer ${expected}`)
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  // M6 (audit 2026-09-07): constant-time CRON_SECRET check.
+  if (!verifyCronAuth(request))
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   if (!isSupabaseAdminConfigured || !supabaseAdmin)
     return NextResponse.json({ error: "Supabase admin not configured." }, { status: 500 });

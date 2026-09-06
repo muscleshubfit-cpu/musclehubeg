@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { getProgramBySlug, WORKOUT_PROGRAMS } from "@/lib/workout-programs";
 import { getExerciseMinisBySlugs } from "@/lib/exercises";
-import { getBreadcrumbSchema } from "@/lib/seo";
+import { getBreadcrumbSchema, jsonLd } from "@/lib/seo";
 import ProgramDetailClient from "@/app/programs/[slug]/ProgramDetailClient";
 
 const SITE_URL = "https://alkemos.com";
@@ -87,7 +87,7 @@ export default async function Page({
       {breadcrumbSchema && (
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
+          dangerouslySetInnerHTML={{ __html: jsonLd(breadcrumbSchema) }}
         />
       )}
       <ProgramDetailClient

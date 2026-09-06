@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { getFoodBySlug, getRelatedFoods } from "@/lib/foods";
-import { getBreadcrumbSchema } from "@/lib/seo";
+import { getBreadcrumbSchema, jsonLd } from "@/lib/seo";
 import FoodDetailClient from "./FoodDetailClient";
 
 /**
@@ -103,13 +103,13 @@ export default async function Page({
       {breadcrumbSchema && (
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
+          dangerouslySetInnerHTML={{ __html: jsonLd(breadcrumbSchema) }}
         />
       )}
       {nutritionSchema && (
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(nutritionSchema) }}
+          dangerouslySetInnerHTML={{ __html: jsonLd(nutritionSchema) }}
         />
       )}
       <FoodDetailClient

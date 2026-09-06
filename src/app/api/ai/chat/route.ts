@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createHash } from "crypto";
 import { callFreeAIFallbackChain } from "@/lib/ai-provider";
 import { requireUser, isAuthConfigured, type AuthUser } from "@/lib/auth-server";
+import { clientIp } from "@/lib/rate-limit";
 import {
   checkEvoChatLimit,
   recordEvoChatUsage,
@@ -74,10 +75,9 @@ const MAX_HISTORY_ITEM_LENGTH = 2_000;
  * on Vercel x-forwarded-for is always present.
  */
 function getAnonKey(request: NextRequest): string {
-  const ip =
-    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-    request.headers.get("x-real-ip") ||
-    "unknown";
+  // H3 (2026-09-07): clientIp() takes the LAST x-forwarded-for hop
+  // (the trusted proxy's entry) — split(",")[0] was attacker-spoofable.
+  const ip = clientIp(request);
   const salt = process.env.EVO_ANON_SALT || "mhe-evo-anon-v1";
   return createHash("sha256").update(`${ip}:${salt}`).digest("hex").slice(0, 32);
 }

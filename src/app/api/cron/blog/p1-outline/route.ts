@@ -10,6 +10,7 @@ import {
   markQueueItemFailed,
   type QueueItem,
 } from "@/lib/blog-queue";
+import { verifyCronAuth } from "@/lib/cron-auth";
 import { getRecentPostsByLanguage, isDuplicateTopic } from "@/lib/blog-topics";
 import { isSupabaseAdminConfigured } from "@/lib/supabase/admin";
 
@@ -56,10 +57,9 @@ function pickKeyword(r: LanguageResearch, topic: string): string {
 }
 
 export async function GET(request: NextRequest) {
-  const auth = request.headers.get("authorization");
-  const expected = process.env.CRON_SECRET;
-  if (!expected || auth !== `Bearer ${expected}`)
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  // M6 (audit 2026-09-07): constant-time CRON_SECRET check.
+  if (!verifyCronAuth(request))
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   if (!isSupabaseAdminConfigured)
     return NextResponse.json({ error: "Supabase admin not configured." }, { status: 500 });

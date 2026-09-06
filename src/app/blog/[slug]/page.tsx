@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { BlogArticlePage } from "@/components/blog/BlogArticlePage";
 import { fetchBlogForOG, fetchBlogPostFull } from "@/lib/blog-server";
-import { getArticleSchema, getBreadcrumbSchema } from "@/lib/seo";
+import { getArticleSchema, getBreadcrumbSchema, jsonLd } from "@/lib/seo";
 import type { Metadata } from "next";
 
 // #10 fix: use ISR instead of force-dynamic — blog posts change rarely,
@@ -34,13 +34,12 @@ export async function generateMetadata({
     description: og.description,
     alternates: {
       canonical: og.articleUrl,
-      // C24 fix: declare hreflang alternates so Google knows the EN article
-      // has an AR counterpart (and vice versa). x-default = EN (primary).
-      languages: {
-        "en": og.articleUrl,
-        "ar": `https://alkemos.com/ar/blog/${slug}`,
-        "x-default": og.articleUrl,
-      },
+      // SEO audit C1 fix (2026-09-07): the hreflang `languages` block was
+      // REMOVED — live DB verification proved EN and AR posts are
+      // topically independent (27 EN / 32 AR, ZERO slug pairing), so every
+      // declared counterpart URL 404'd. Dangling hreflang across the whole
+      // blog cluster made Google distrust the signals. Re-add ONLY when a
+      // real translation pairing (e.g. a translation_of column) exists.
     },
     openGraph: {
       type: "article",
@@ -100,13 +99,13 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
       {articleSchema && (
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(articleSchema) }}
+          dangerouslySetInnerHTML={{ __html: jsonLd(articleSchema) }}
         />
       )}
       {breadcrumbSchema && (
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
+          dangerouslySetInnerHTML={{ __html: jsonLd(breadcrumbSchema) }}
         />
       )}
       <BlogArticlePage lang="en" slug={slug} initialPost={fullPost} />

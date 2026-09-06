@@ -26,14 +26,22 @@ export async function GET() {
       });
       const { data: posts } = await supabase
         .from("blog_posts")
-        .select("slug, language, published_at")
+        .select("slug, language, published_at, updated_at")
         .eq("is_published", true);
 
       if (posts) {
         for (const post of posts) {
-          const postDate = post.published_at
-            ? new Date(post.published_at)
-            : fallbackDate;
+          // M4 fix (audit 2026-09-07): lastmod = greatest(published_at,
+          // updated_at) so an updated post actually refreshes its lastmod
+          // (was published_at only — silent edits were invisible to
+          // crawlers). The trg_blog_posts_touch_updated trigger keeps
+          // updated_at accurate.
+          const published = post.published_at ? new Date(post.published_at) : null;
+          const updated = post.updated_at ? new Date(post.updated_at) : null;
+          const postDate =
+            published && updated
+              ? (published > updated ? published : updated)
+              : (published ?? updated ?? fallbackDate);
           urls.push({
             loc: `${base}${post.language === "ar" ? "/ar/blog" : "/blog"}/${post.slug}`,
             lastModified: postDate,

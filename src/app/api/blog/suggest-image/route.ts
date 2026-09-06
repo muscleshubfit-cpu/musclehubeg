@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAdmin, isAuthConfigured } from "@/lib/auth-server";
+import { requireAdmin, authRequired } from "@/lib/auth-server";
 import { fetchFeaturedImage } from "@/lib/blog-images";
 
 /**
@@ -24,7 +24,7 @@ import { fetchFeaturedImage } from "@/lib/blog-images";
 export const maxDuration = 30;
 
 export async function POST(request: NextRequest) {
-  if (isAuthConfigured) {
+  if (authRequired) {
     const auth = await requireAdmin(request);
     if (auth instanceof Response) return auth;
   }

@@ -25,6 +25,20 @@ const SITE_NAME = "Alkemos";
 const SITE_LOGO = `${SITE_URL}/logo.png`;
 
 /**
+ * Serialize a JSON-LD object for <script type="application/ld+json">
+ * injection (audit M7, 2026-09-07).
+ *
+ * `JSON.stringify` alone does NOT escape `</script>`: an admin/AI-authored
+ * title or answer containing that sequence would break out of the script
+ * element and inject markup into the page. Escaping `<` as `\u003c` makes
+ * the payload inert inside a script context while staying valid JSON.
+ * Use EVERYWHERE a schema is fed to dangerouslySetInnerHTML.
+ */
+export function jsonLd(obj: unknown): string {
+  return JSON.stringify(obj).replace(/</g, "\\u003c");
+}
+
+/**
  * Organization schema — describes the company/site.
  * Used on all pages (in layout.tsx).
  *

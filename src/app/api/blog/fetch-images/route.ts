@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { requireAdmin, isAuthConfigured } from "@/lib/auth-server";
+import { requireAdmin, authRequired } from "@/lib/auth-server";
 import { fetchFeaturedImage } from "@/lib/blog-images";
 
 /**
@@ -26,7 +26,7 @@ export const maxDuration = 120;
 
 export async function POST(request: NextRequest) {
   // Coach-only — writes to blog_posts using the service-role key.
-  if (isAuthConfigured) {
+  if (authRequired) {
     const auth = await requireAdmin(request);
     if (auth instanceof Response) return auth;
   }

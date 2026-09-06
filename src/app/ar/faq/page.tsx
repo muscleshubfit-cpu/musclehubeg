@@ -1,3 +1,4 @@
+import { jsonLd } from "@/lib/seo";
 import type { Metadata } from "next";
 import { StaticPageView } from "@/components/views/StaticPageView";
 import { FAQS_EN, FAQS_AR } from "@/lib/faq-content";
@@ -59,7 +60,7 @@ export default function Page() {
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+        dangerouslySetInnerHTML={{ __html: jsonLd(faqSchema) }}
       />
       <StaticPageView page="faq" />
     </>

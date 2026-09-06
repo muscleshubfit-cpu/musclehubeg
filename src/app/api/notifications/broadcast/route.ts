@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireCoach, isAuthConfigured, type AuthUser } from "@/lib/auth-server";
+import { requireCoach, authRequired, type AuthUser } from "@/lib/auth-server";
 import { supabaseAdmin, isSupabaseAdminConfigured } from "@/lib/supabase/admin";
 
 /**
@@ -24,7 +24,7 @@ import { supabaseAdmin, isSupabaseAdminConfigured } from "@/lib/supabase/admin";
  */
 export async function POST(request: NextRequest) {
   let caller: AuthUser | null = null;
-  if (isAuthConfigured) {
+  if (authRequired) {
     const auth = await requireCoach(request);
     if (auth instanceof Response) return auth;
     caller = auth;
@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
   }
 
   // --- Multi-coach scoping: resolve the caller's client roster ---
-  // (caller is non-null when isAuthConfigured — requireCoach passed;
+  // (caller is non-null when authRequired — requireCoach passed;
   // in demo mode there is no session and the route degrades as before)
   const isAdmin = caller?.role === "admin";
   const callerId = caller?.id ?? null;

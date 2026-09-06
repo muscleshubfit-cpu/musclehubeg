@@ -78,11 +78,17 @@ async function markSignupLeadCoach(email: string) {
   }
 }
 
-/** Local mirror of isAuthConfigured (same expression as auth-server). */
+/** Local mirror of isAuthConfigured (same expression as auth-server).
+ *  SECURITY (audit H1, 2026-09-07): also true when the SERVICE key is
+ *  configured — this route performs admin-level auth.admin mutations, so
+ *  it must stay fail-closed whenever any privileged env var exists. */
 function isAuthConfiguredSafe(): boolean {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
-  return Boolean(url && key && url.startsWith("http"));
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
+  return Boolean(
+    (url && key && url.startsWith("http")) || serviceKey,
+  );
 }
 
 export async function POST(request: NextRequest) {

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { normalizeCoachPlanText } from "@/lib/plan-generator";
-import { requireCoach, isAuthConfigured } from "@/lib/auth-server";
+import { requireCoach, authRequired } from "@/lib/auth-server";
 
 /**
  * Normalize a coach-pasted plan (free text, markdown, or loosely-structured
@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
  // Coach-only — uses OpenRouter credits to normalize coach-pasted plans.
  let coachId: string | undefined;
  let coachRole: string | undefined;
- if (isAuthConfigured) {
+ if (authRequired) {
  const auth = await requireCoach(request);
  if (auth instanceof Response) return auth;
  coachId = auth.id;
@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
  // target his OWN assigned client AND that client must carry an ACTIVE
  // coaching subscription (the $6/$16 wallet activation). Mirrors the
  // /api/ai/jobs gate — the raw manual upload path is gated the same way.
- if (isAuthConfigured && coachRole === "coach") {
+ if (authRequired && coachRole === "coach") {
  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
  if (!clientId || !UUID_RE.test(clientId)) {
  return NextResponse.json(

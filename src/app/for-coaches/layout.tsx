@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { getFAQSchema, getBreadcrumbSchema } from "@/lib/seo";
+import { getFAQSchema, getBreadcrumbSchema, jsonLd } from "@/lib/seo";
 import { COACH_FAQ_EN } from "./content";
 
 /**
@@ -80,11 +80,11 @@ export default function ForCoachesLayout({
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+        dangerouslySetInnerHTML={{ __html: jsonLd(faqSchema) }}
       />
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
+        dangerouslySetInnerHTML={{ __html: jsonLd(breadcrumbSchema) }}
       />
       {children}
     </>

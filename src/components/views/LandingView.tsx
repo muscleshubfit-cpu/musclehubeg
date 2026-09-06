@@ -13,7 +13,7 @@ import { listBlogPosts, getCategoryLabel, selectHomeBlogCarousels, type BlogPost
 import { EXERCISES_COUNT, EXERCISE_CATEGORY_COUNTS } from "@/lib/exercises-shared";
 import { SiteHeader } from "@/components/SiteHeader";
 import { NewsletterForm } from "@/components/NewsletterForm";
-import { getFAQSchema } from "@/lib/seo";
+import { getFAQSchema, jsonLd } from "@/lib/seo";
 import Image from "next/image";
 import { ThemeImg, EngravedIcon } from "@/components/ThemeImg";
 import {
@@ -369,7 +369,7 @@ export function LandingView() {
       {/* FAQ Schema for SEO */}
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+        dangerouslySetInnerHTML={{ __html: jsonLd(faqSchema) }}
       />
 
       <SiteHeader variant="landing" />

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { runPhase0Research } from "@/lib/blog-research";
 import { supabaseAdmin, isSupabaseAdminConfigured } from "@/lib/supabase/admin";
 import { getLangParam, type PipelineLang } from "@/lib/blog-queue";
+import { verifyCronAuth } from "@/lib/cron-auth";
 
 export const maxDuration = 60;
 
@@ -16,10 +17,9 @@ export const maxDuration = 60;
  * GET /api/cron/blog/p0-research?lang=en|ar   → { ok, step:"p0", queueId, lang }
  */
 export async function GET(request: NextRequest) {
-  const auth = request.headers.get("authorization");
-  const expected = process.env.CRON_SECRET;
-  if (!expected || auth !== `Bearer ${expected}`)
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  // M6 (audit 2026-09-07): constant-time CRON_SECRET check.
+  if (!verifyCronAuth(request))
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   if (!isSupabaseAdminConfigured || !supabaseAdmin)
     return NextResponse.json({ error: "Supabase admin not configured." }, { status: 500 });

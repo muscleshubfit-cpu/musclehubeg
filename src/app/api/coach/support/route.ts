@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireCoach, isAuthConfigured, type AuthUser } from "@/lib/auth-server";
+import { requireCoach, authRequired, type AuthUser } from "@/lib/auth-server";
 import { supabaseAdmin, isSupabaseAdminConfigured } from "@/lib/supabase/admin";
 
 /**
@@ -22,7 +22,7 @@ const MAX_BODY = 4000;
 
 export async function GET(request: NextRequest) {
   let user: AuthUser;
-  if (isAuthConfigured) {
+  if (authRequired) {
     const auth = await requireCoach(request);
     if (auth instanceof Response) return auth;
     user = auth;

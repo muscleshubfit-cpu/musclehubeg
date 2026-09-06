@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { verifyCronAuth } from "@/lib/cron-auth";
 
 export const maxDuration = 60;
 
@@ -119,10 +120,9 @@ async function dispatchWorkflow(token: string, workflow: string): Promise<void> 
 
 export async function GET(request: NextRequest) {
   // ── Auth (fail-closed, C4 pattern) ──────────────────────────────────
-  const auth = request.headers.get("authorization");
-  const expected = process.env.CRON_SECRET;
-  if (!expected || auth !== `Bearer ${expected}`)
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  // M6 (audit 2026-09-07): constant-time CRON_SECRET check.
+  if (!verifyCronAuth(request))
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const token = process.env.GITHUB_DISPATCH_TOKEN;
   if (!token) {

@@ -12,7 +12,7 @@ import { CoachSlugClaimer } from "@/components/CoachSlugClaimer";
 import { CookieConsent } from "@/components/CookieConsent";
 import { EvoChatProvider } from "@/lib/evo-chat-context";
 import { EvoWidgetLazy } from "@/components/EvoWidgetLazy";
-import { getOrganizationSchema, getWebSiteSchema } from "@/lib/seo";
+import { getOrganizationSchema, getWebSiteSchema, jsonLd } from "@/lib/seo";
 import { metadata, viewport } from "./metadata";
 
 export { metadata, viewport };
@@ -104,6 +104,13 @@ export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   const { lang, dir } = await resolveLocale();
+  // P2 fix (perf audit 2026-09-07): hero artwork preloads are HOMEPAGE-ONLY.
+  // The old unconditional pair wasted 38-68KB (one unused theme variant)
+  // on every page, and ~205KB on non-hero pages (blog/tools/exercises).
+  // The middleware always sets x-pathname, so this is exact.
+  const h = await headers();
+  const requestPath = h.get("x-pathname") || "/";
+  const isHomePage = requestPath === "/" || requestPath === "/ar";
 
   return (
     <html lang={lang} dir={dir} suppressHydrationWarning>
@@ -140,21 +147,28 @@ export default async function RootLayout({
         {/* Structured data — Organization + WebSite (site-wide) */}
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }}
+          dangerouslySetInnerHTML={{ __html: jsonLd(organizationSchema) }}
         />
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteSchema) }}
+          dangerouslySetInnerHTML={{ __html: jsonLd(websiteSchema) }}
         />
         {/* Phase 126 — Marble & Chrome themes: preload BOTH hero artworks
             (mission acceptance: no CLS from the hero background — the hero
             is a CSS cover background, so the <link preload> is the only
-            fetch hint it gets). */}
-        <link rel="preload" as="image" href="/images/brand/hero-light.webp" />
-        <link rel="preload" as="image" href="/images/brand/hero-dark.webp" />
-        {/* Phase 127 — the hero chrome logo is an <img> now (above the fold);
-            the light variant is the default-theme LCP-adjacent fetch. */}
-        <link rel="preload" as="image" href="/images/brand/logo-hero-light.webp" />
+            fetch hint it gets). P2 fix (2026-09-07): homepage-only — the
+            hero never renders elsewhere, so preloading it on /blog etc.
+            was pure wasted bandwidth. */}
+        {isHomePage && (
+          <>
+            <link rel="preload" as="image" href="/images/brand/hero-light.webp" />
+            <link rel="preload" as="image" href="/images/brand/hero-dark.webp" />
+            {/* Phase 127 — the hero chrome logo is an <img> now (above the
+                fold); the light variant is the default-theme LCP-adjacent
+                fetch. */}
+            <link rel="preload" as="image" href="/images/brand/logo-hero-light.webp" />
+          </>
+        )}
       </head>
       <body className="antialiased bg-background text-foreground">
         {/* Phase 126 — theme no-flash script: runs before first paint (first

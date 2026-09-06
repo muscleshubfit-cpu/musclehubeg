@@ -4,6 +4,7 @@ import {
   getRecentFeaturedImageUrls,
   type SourcedImage,
 } from "@/lib/blog-images";
+import { verifyCronAuth } from "@/lib/cron-auth";
 import { sanitizeImageQuery } from "@/lib/image-safety";
 import { type ImagePlanItem } from "@/lib/blog-pipeline";
 import {
@@ -91,10 +92,9 @@ async function sourceImages(
 }
 
 export async function GET(request: NextRequest) {
-  const auth = request.headers.get("authorization");
-  const expected = process.env.CRON_SECRET;
-  if (!expected || auth !== `Bearer ${expected}`)
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  // M6 (audit 2026-09-07): constant-time CRON_SECRET check.
+  if (!verifyCronAuth(request))
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   if (!isSupabaseAdminConfigured)
     return NextResponse.json({ error: "Supabase admin not configured." }, { status: 500 });

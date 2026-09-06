@@ -26,6 +26,20 @@ export type RateLimitResult = {
   resetAt: number;
 };
 
+/**
+ * SECURITY (audit H3, 2026-09-07): derive the client IP for rate-limit
+ * keys. The OLD pattern `x-forwarded-for.split(",")[0]` takes the FIRST
+ * entry, which is attacker-appendable when a chain is present. The LAST
+ * entry is the one appended by the closest trusted proxy (Vercel), so it
+ * is the reliable client identity; x-real-ip is the platform fallback.
+ */
+export function clientIp(request: { headers: { get(name: string): string | null } }): string {
+  const xff = request.headers.get("x-forwarded-for") || "";
+  const last = xff.split(",").pop()?.trim();
+  if (last) return last;
+  return request.headers.get("x-real-ip")?.trim() || "unknown";
+}
+
 type MemoryEntry = { count: number; resetAt: number };
 
 const memory = new Map<string, MemoryEntry>();

@@ -1,3 +1,4 @@
+import { jsonLd } from "@/lib/seo";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -89,7 +90,7 @@ export default function MembershipsLayout({
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(offerCatalogSchema) }}
+        dangerouslySetInnerHTML={{ __html: jsonLd(offerCatalogSchema) }}
       />
       {children}
     </>

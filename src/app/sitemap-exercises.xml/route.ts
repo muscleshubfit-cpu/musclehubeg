@@ -10,13 +10,11 @@ export const revalidate = 3600;
 
 export async function GET() {
   const base = siteUrl();
-  const lastModified = new Date();
 
   const urls: SitemapUrl[] = [];
   for (const ex of EXERCISES) {
     urls.push({
       loc: `${base}/exercises/${ex.slug}`,
-      lastModified,
       changefreq: "monthly",
       priority: 0.6,
       alternates: {
@@ -26,7 +24,6 @@ export async function GET() {
     });
     urls.push({
       loc: `${base}/ar/exercises/${ex.slug}`,
-      lastModified,
       changefreq: "monthly",
       priority: 0.6,
       alternates: {

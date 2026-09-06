@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { requireUser, isAuthConfigured } from "@/lib/auth-server";
+import { requireUser, authRequired } from "@/lib/auth-server";
 import { getLimits, type MembershipTier } from "@/lib/memberships";
 
 /**
@@ -29,7 +29,7 @@ import { getLimits, type MembershipTier } from "@/lib/memberships";
  *   }
  */
 export async function POST(request: NextRequest) {
-  if (!isAuthConfigured) {
+  if (!authRequired) {
     return NextResponse.json({ ok: true, demo: true });
   }
 

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireUser, requireCoach, isAuthConfigured } from "@/lib/auth-server";
+import { requireUser, requireCoach, authRequired } from "@/lib/auth-server";
 import { checkAndRecordSwap, checkClientPlanQuota, type EvoPlanKind } from "@/lib/tier-limits";
 import {
   isAiJobType,
@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
     let userId: string | undefined;
     let authTier: string | undefined;
     let authRole: string | undefined;
-    if (isAuthConfigured) {
+    if (authRequired) {
       const auth = await requireUser(request);
       if (auth instanceof Response) return auth;
       userId = auth.id;
@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
     // ── Per-type gating BEFORE any write. ──────────────────────────────
     const gate = JOB_GATE[type];
     if (gate === "coach") {
-      if (isAuthConfigured) {
+      if (authRequired) {
         const coachAuth = await requireCoach(request);
         if (coachAuth instanceof Response) return coachAuth;
       }
@@ -121,7 +121,7 @@ export async function POST(request: NextRequest) {
     // may also only generate for his OWN clients — ownership verified
     // below.
     if (
-      isAuthConfigured &&
+      authRequired &&
       (type === "plan_nutrition" || type === "plan_workout") &&
       authRole === "coach"
     ) {
@@ -249,7 +249,7 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
-    if (!isAuthConfigured) {
+    if (!authRequired) {
       // Demo mode without DB has no queue to poll anyway.
       return NextResponse.json({ error: "Not configured" }, { status: 501 });
     }

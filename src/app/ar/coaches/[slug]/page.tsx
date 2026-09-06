@@ -52,6 +52,9 @@ export async function generateMetadata({
   return {
     title,
     description,
+    // H3 (SEO audit 2026-09-07): explicit noindex — matches the owner's
+    // robots.txt Disallow: /coach intent (public share links, not search).
+    robots: { index: false, follow: false },
     alternates: {
       canonical: `/ar/coaches/${slug}`,
       languages: {

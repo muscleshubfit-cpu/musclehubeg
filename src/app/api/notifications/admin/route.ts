@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireUser, isAuthConfigured } from "@/lib/auth-server";
+import { requireUser, authRequired } from "@/lib/auth-server";
 import { supabaseAdmin, isSupabaseAdminConfigured } from "@/lib/supabase/admin";
 
 /**
@@ -53,7 +53,7 @@ const MAX_BODY_LEN = 1000;
 const MAX_LINK_LEN = 200;
 
 export async function POST(request: NextRequest) {
-  if (!isAuthConfigured) {
+  if (!authRequired) {
     return NextResponse.json({ ok: true, demo: true });
   }
 
