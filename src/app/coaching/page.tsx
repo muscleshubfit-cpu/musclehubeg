@@ -21,20 +21,20 @@ import { Dumbbell, Apple, BarChart3, Bot, Check, ArrowRight, Sparkles } from "lu
 import Image from "next/image";
 
 const testimonialsData = [
-  { name: "Mohamed ElAshry", username: "@mohamed", body: "Lost 12kg in 3 months. EVO answers my questions anytime!", img: "https://randomuser.me/api/portraits/men/32.jpg", country: "🇪🇬 Egypt" },
-  { name: "Sara Mansour", username: "@sara", body: "The coaches understood my situation and made a plan that fits me perfectly.", img: "https://randomuser.me/api/portraits/women/44.jpg", country: "🇪🇬 Egypt" },
-  { name: "Ahmed Fouad", username: "@ahmedf", body: "Gained 6kg muscle. The workout program is very professional.", img: "https://randomuser.me/api/portraits/men/52.jpg", country: "🇪🇬 Egypt" },
-  { name: "Omar Hassan", username: "@omar", body: "The swap feature is a game changer. Quick and accurate!", img: "https://randomuser.me/api/portraits/men/22.jpg", country: "🇸🇦 KSA" },
-  { name: "Layla Ahmed", username: "@layla", body: "Weekly tracking kept me committed. Down 2 sizes in 4 months!", img: "https://randomuser.me/api/portraits/women/68.jpg", country: "🇦🇪 UAE" },
-  { name: "Khaled Ibrahim", username: "@khaled", body: "Best coaching platform in Egypt. The AI + human combo is unbeatable.", img: "https://randomuser.me/api/portraits/men/85.jpg", country: "🇪🇬 Egypt" },
-  { name: "Nour Adel", username: "@nour", body: "EVO adjusts my plan automatically. I never hit a plateau!", img: "https://randomuser.me/api/portraits/women/45.jpg", country: "🇰🇼 Kuwait" },
-  { name: "Youssef Tarek", username: "@youssef", body: "The meal plans are personalized to the gram. Incredible attention to detail.", img: "https://randomuser.me/api/portraits/men/33.jpg", country: "🇪🇬 Egypt" },
-  { name: "Mariam Sherif", username: "@mariam", body: "Lost 8kg and gained confidence. The coaching is the real deal.", img: "https://randomuser.me/api/portraits/women/53.jpg", country: "🇪🇬 Egypt" },
+  { name: "Mohamed ElAshry", username: "@mohamed", body: "Lost 12kg in 3 months. EVO answers my questions anytime!", img: "https://randomuser.me/api/portraits/men/32.jpg", country: "Egypt" },
+  { name: "Sara Mansour", username: "@sara", body: "The coaches understood my situation and made a plan that fits me perfectly.", img: "https://randomuser.me/api/portraits/women/44.jpg", country: "Egypt" },
+  { name: "Ahmed Fouad", username: "@ahmedf", body: "Gained 6kg muscle. The workout program is very professional.", img: "https://randomuser.me/api/portraits/men/52.jpg", country: "Egypt" },
+  { name: "Omar Hassan", username: "@omar", body: "The swap feature is a game changer. Quick and accurate!", img: "https://randomuser.me/api/portraits/men/22.jpg", country: "KSA" },
+  { name: "Layla Ahmed", username: "@layla", body: "Weekly tracking kept me committed. Down 2 sizes in 4 months!", img: "https://randomuser.me/api/portraits/women/68.jpg", country: "UAE" },
+  { name: "Khaled Ibrahim", username: "@khaled", body: "Best coaching platform in Egypt. The AI + human combo is unbeatable.", img: "https://randomuser.me/api/portraits/men/85.jpg", country: "Egypt" },
+  { name: "Nour Adel", username: "@nour", body: "EVO adjusts my plan automatically. I never hit a plateau!", img: "https://randomuser.me/api/portraits/women/45.jpg", country: "Kuwait" },
+  { name: "Youssef Tarek", username: "@youssef", body: "The meal plans are personalized to the gram. Incredible attention to detail.", img: "https://randomuser.me/api/portraits/men/33.jpg", country: "Egypt" },
+  { name: "Mariam Sherif", username: "@mariam", body: "Lost 8kg and gained confidence. The coaching is the real deal.", img: "https://randomuser.me/api/portraits/women/53.jpg", country: "Egypt" },
 ];
 
 function TestimonialCard({ img, name, username, body, country, isAr }: { img: string; name: string; username: string; body: string; country: string; isAr: boolean }) {
   return (
-    <Card className="w-72 shrink-0 bg-white">
+    <Card className="w-72 shrink-0 bg-[var(--card)]">
       <CardContent className="p-5">
         <div className="flex items-center gap-2.5">
           <Avatar className="h-9 w-9">
@@ -42,13 +42,13 @@ function TestimonialCard({ img, name, username, body, country, isAr }: { img: st
             <AvatarFallback>{name[0]}</AvatarFallback>
           </Avatar>
           <div className="flex flex-col">
-            <figcaption className="text-sm font-medium text-[#1d1d1f] flex items-center gap-1">
+            <figcaption className="flex items-center gap-1 text-sm font-medium text-[var(--text)]">
               {name} <span className="text-xs">{country}</span>
             </figcaption>
-            <p className="text-xs font-normal text-[#6e6e73]">{username}</p>
+            <p className="text-xs font-normal text-[var(--muted-foreground)]">{username}</p>
           </div>
         </div>
-        <blockquote className="mt-3 text-sm font-normal leading-relaxed text-[#1d1d1f]">{body}</blockquote>
+        <blockquote className="mt-3 text-sm font-normal leading-relaxed text-[var(--muted-2)]">{body}</blockquote>
       </CardContent>
     </Card>
   );
@@ -70,7 +70,7 @@ function Reveal({
 
 function CenteredSection({
   children,
-  bg = "bg-white",
+  bg = "bg-[var(--bg)]",
 }: {
   children: React.ReactNode;
   bg?: string;
@@ -158,15 +158,22 @@ export default function CoachingPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-white text-[#1d1d1f]">
+    /* Phase 132 (owner feedback: «باقي الموقع إعادة التنسيق ليتبع هوية
+       الصفحة الرئيسية»): the coaching page joins the Marble & Chrome
+       identity — token surfaces/text, marble-cards, seal-chip eyebrow,
+       btn-chrome/btn-outline CTAs, chrome-text result numbers, helmet
+       brand mark. The old Apple palette (bg-white / #f5f5f7 stripes /
+       #0071e3 blue CTAs) and the flag emojis (zero-emoji law) are
+       retired. */
+    <div className="min-h-screen bg-[var(--bg)] text-[var(--text)]">
       <SiteHeader variant="landing" />
 
       <main>
         {/* ===================== HERO ===================== */}
         {/* Image 1 (coaching-1) directly under the title */}
-        <section className="bg-gradient-to-b from-[#f5f5f7] to-white px-4 py-16 md:py-24">
+        <section className="bg-gradient-to-b from-[var(--tint)] to-[var(--bg)] px-4 py-16 md:py-24">
           <div className="mx-auto max-w-4xl text-center">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-[#0071e3]/10 px-4 py-1.5 text-xs font-medium text-[#0071e3]">
+            <span className="seal-chip">
               <Sparkles className="h-3.5 w-3.5" />
               {isAr ? "كوتشينج أونلاين" : "Online Coaching"}
             </span>
@@ -185,7 +192,7 @@ export default function CoachingPage() {
                 loading="eager"
               />
             </div>
-            <p className="mx-auto mt-8 max-w-xl text-lg font-normal leading-snug text-[#6e6e73] md:text-xl">
+            <p className="mx-auto mt-8 max-w-xl text-lg font-normal leading-snug text-[var(--muted-foreground)] md:text-xl">
               {isAr
                 ? "خطط تغذية مخصصة، برامج تمارين متكيفة، متابعة شخصية، ومحرك ذكاء اصطناعي (EVO) متاح 24/7."
                 : "Personalized nutrition plans, adaptive workout programs, personal follow-up, and an AI engine (EVO) available 24/7."}
@@ -193,13 +200,13 @@ export default function CoachingPage() {
             <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
               <button
                 onClick={scrollToPricing}
-                className="rounded-full bg-[#0071e3] px-7 py-3 text-base font-medium text-white transition-opacity hover:opacity-90"
+                className="btn-chrome px-7 py-3 text-base font-medium"
               >
                 {isAr ? "ابدأ تحوّلك" : "Start your transformation"}
               </button>
               <a
                 href="#how-it-works"
-                className="rounded-full bg-[#f5f5f7] px-7 py-3 text-base font-normal text-[#1d1d1f] transition-opacity hover:opacity-90"
+                className="btn-outline px-7 py-3 text-base"
               >
                 {isAr ? "كيف يعمل الكوتشينج؟" : "How coaching works"}
               </a>
@@ -208,7 +215,7 @@ export default function CoachingPage() {
         </section>
 
         {/* ===================== HOW IT WORKS ===================== */}
-        <section id="how-it-works" className="scroll-mt-20 bg-white px-4 py-16 md:py-24">
+        <section id="how-it-works" className="scroll-mt-20 bg-[var(--bg)] px-4 py-16 md:py-24">
           <div className="mx-auto max-w-4xl">
             <Reveal>
               <h2 className="text-center text-3xl font-semibold tracking-tight md:text-5xl">
@@ -223,11 +230,11 @@ export default function CoachingPage() {
                 { n: "04", title: isAr ? "ابدأ التحوّل" : "Start transforming", desc: isAr ? "تتبع، استبدل، واسأل EVO." : "Track, swap, and ask EVO." },
               ].map((s, i) => (
                 <Reveal key={s.n} delay={i * 80}>
-                  <div className="grid grid-cols-[auto_1fr] gap-6 border-t border-[#d2d2d7] pt-6 md:grid-cols-[120px_1fr] md:gap-12 md:pt-8">
-                    <div className="text-sm font-normal text-[#6e6e73]">{s.n}</div>
+                  <div className="grid grid-cols-[auto_1fr] gap-6 border-t border-[var(--edge)] pt-6 md:grid-cols-[120px_1fr] md:gap-12 md:pt-8">
+                    <div className="text-sm font-normal text-[var(--muted-foreground)]">{s.n}</div>
                     <div>
                       <h3 className="text-xl font-semibold tracking-tight md:text-3xl">{s.title}</h3>
-                      <p className="mt-2 text-base font-normal text-[#6e6e73] md:text-lg">{s.desc}</p>
+                      <p className="mt-2 text-base font-normal text-[var(--muted-foreground)] md:text-lg">{s.desc}</p>
                     </div>
                   </div>
                 </Reveal>
@@ -237,7 +244,7 @@ export default function CoachingPage() {
         </section>
 
         {/* ===================== FEATURES ===================== */}
-        <section className="bg-[#f5f5f7] px-4 py-16 md:py-24">
+        <section className="bg-[var(--tint)] px-4 py-16 md:py-24">
           <div className="mx-auto max-w-5xl">
             <Reveal>
               <h2 className="text-center text-3xl font-semibold tracking-tight md:text-5xl">
@@ -249,14 +256,14 @@ export default function CoachingPage() {
                 const Icon = f.icon;
                 return (
                   <Reveal key={i} delay={i * 100}>
-                    <div className="h-full rounded-3xl bg-white p-8">
-                      <span className="grid h-14 w-14 place-items-center rounded-2xl" style={{ backgroundColor: `${f.color}15` }}>
-                        <Icon className="h-7 w-7" style={{ color: f.color }} />
+                    <div className="marble-card h-full p-8">
+                      <span className="grid h-14 w-14 place-items-center rounded-2xl border border-[var(--edge)] bg-[var(--tint)]">
+                        <Icon className="h-7 w-7 text-[var(--muted-2)]" />
                       </span>
                       <h3 className="mt-5 text-xl font-semibold tracking-tight">
                         {isAr ? f.titleAr : f.titleEn}
                       </h3>
-                      <p className="mt-3 text-base font-normal leading-relaxed text-[#6e6e73]">
+                      <p className="mt-3 text-base font-normal leading-relaxed text-[var(--muted-foreground)]">
                         {isAr ? f.descAr : f.descEn}
                       </p>
                     </div>
@@ -269,7 +276,7 @@ export default function CoachingPage() {
 
         {/* ===================== COACHING VISUALS ===================== */}
         {/* Image 2 (coaching-2) — placed between Features and EVO sections */}
-        <section className="bg-white px-4 py-12 md:py-20">
+        <section className="bg-[var(--bg)] px-4 py-12 md:py-20">
           <div className="relative mx-auto aspect-[3/2] w-full max-w-4xl overflow-hidden rounded-3xl shadow-2xl">
             <Image
               src="/images/hero/coaching-2.jpg"
@@ -282,12 +289,12 @@ export default function CoachingPage() {
         </section>
 
         {/* ===================== EVO INTEGRATION ===================== */}
-        <section className="bg-[#f5f5f7] px-4 py-16 text-[#1d1d1f] md:py-24">
+        <section className="bg-[var(--tint)] px-4 py-16 text-[var(--text)] md:py-24">
           <div className="mx-auto max-w-4xl text-center">
             <h2 className="text-3xl font-semibold tracking-tight md:text-5xl">
               {isAr ? "المدرب + EVO معاك 24/7." : "Your coach + EVO, 24/7."}
             </h2>
-            <p className="mx-auto mt-3 max-w-md text-lg font-normal text-[#6e6e73] md:text-xl">
+            <p className="mx-auto mt-3 max-w-md text-lg font-normal text-[var(--muted-foreground)] md:text-xl">
               {isAr
                 ? "مش مجرد شات بوت. محرك أداء ذكي بيقرأ بياناتك وهدفك، ويبني لك خطط مخصصة، ويقترح تبديلات ذكية — وهو جزء من باقة الكوتشينج، مش اشتراك منفصل عنها."
                 : "Not just a chatbot. A smart engine that reads your data and goal, builds personalized plans, and suggests smart swaps — included in your coaching plan, not a separate subscription."}
@@ -299,8 +306,7 @@ export default function CoachingPage() {
             <div className="mt-6">
               <a
                 href="/evo"
-                className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-2.5 text-sm font-normal text-[#1d1d1f] transition-opacity hover:opacity-90"
-                style={{ border: "1px solid #d2d2d7" }}
+                className="btn-outline inline-flex items-center gap-2 px-5 py-2.5 text-sm"
               >
                 {isAr ? "اعرف أكثر عن EVO" : "Learn more about EVO"}
                 <ArrowRight className="h-4 w-4 rtl:rotate-180" />
@@ -310,7 +316,7 @@ export default function CoachingPage() {
         </section>
 
         {/* ===================== TESTIMONIALS ===================== */}
-        <section className="bg-[#f5f5f7] px-4 py-16 md:py-24">
+        <section className="bg-[var(--tint)] px-4 py-16 md:py-24">
           <div className="mx-auto max-w-6xl">
             <Reveal>
               <h2 className="text-center text-3xl font-semibold tracking-tight md:text-5xl">
@@ -318,19 +324,25 @@ export default function CoachingPage() {
               </h2>
             </Reveal>
             <Reveal delay={150}>
-              <p className="mx-auto mt-4 max-w-xl text-center text-lg font-normal text-[#6e6e73] md:text-xl">
+              <p className="mx-auto mt-4 max-w-xl text-center text-lg font-normal text-[var(--muted-foreground)] md:text-xl">
                 {isAr ? "+500 عميل غيّروا حياتهم مع Alkemos." : "500+ clients transformed their lives with Alkemos."}
               </p>
             </Reveal>
 
-            {/* Alkemos brand mark — above the marquee */}
+            {/* Alkemos brand mark — helmet emblem (identity) above the marquee */}
             <Reveal delay={200}>
               <div className="mt-10 flex flex-col items-center">
-                <div className="grid h-20 w-20 place-items-center rounded-full bg-[#0071e3] text-3xl font-bold text-white ring-4 ring-white shadow-lg">
-                  M
-                </div>
+                {/* eslint-disable-next-line @next/next/no-img-element -- local fixed asset (helmet mark, decorative) */}
+                <img
+                  src="/images/brand/mark-helmet.png"
+                  alt=""
+                  width={56}
+                  height={56}
+                  className="h-14 w-14 object-contain"
+                  aria-hidden="true"
+                />
                 <p className="mt-3 text-sm font-semibold">Alkemos</p>
-                <p className="text-xs font-normal text-[#6e6e73]">
+                <p className="text-xs font-normal text-[var(--muted-foreground)]">
                   {isAr ? "منصة لياقة وتغذية أونلاين" : "Online Fitness & Nutrition Platform"}
                 </p>
               </div>
@@ -366,10 +378,10 @@ export default function CoachingPage() {
                     ))}
                   </Marquee>
                 </div>
-                <div className="pointer-events-none absolute inset-x-0 top-0 h-1/4 bg-gradient-to-b from-[#f5f5f7]" />
-                <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1/4 bg-gradient-to-t from-[#f5f5f7]" />
-                <div className="pointer-events-none absolute inset-y-0 left-0 w-1/4 bg-gradient-to-r from-[#f5f5f7]" />
-                <div className="pointer-events-none absolute inset-y-0 right-0 w-1/4 bg-gradient-to-l from-[#f5f5f7]" />
+                <div className="pointer-events-none absolute inset-x-0 top-0 h-1/4 bg-gradient-to-b from-[var(--tint)]" />
+                <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1/4 bg-gradient-to-t from-[var(--tint)]" />
+                <div className="pointer-events-none absolute inset-y-0 left-0 w-1/4 bg-gradient-to-r from-[var(--tint)]" />
+                <div className="pointer-events-none absolute inset-y-0 right-0 w-1/4 bg-gradient-to-l from-[var(--tint)]" />
               </div>
             </Reveal>
 
@@ -386,7 +398,7 @@ export default function CoachingPage() {
                     </p>
                     <footer className="mt-6">
                       <div className="text-sm font-semibold">{tm.name}</div>
-                      <div className="mt-1 text-sm font-normal text-[#0071e3]">{tm.result}</div>
+                      <div className="chrome-text mt-1 text-sm font-semibold">{tm.result}</div>
                     </footer>
                   </blockquote>
                 </Reveal>
@@ -396,7 +408,7 @@ export default function CoachingPage() {
         </section>
 
         {/* ===================== PRICING ===================== */}
-        <section id="coaching-pricing" className="scroll-mt-20 bg-white px-4 py-16 md:py-24">
+        <section id="coaching-pricing" className="scroll-mt-20 bg-[var(--bg)] px-4 py-16 md:py-24">
           <div className="mx-auto max-w-5xl">
             <Reveal>
               <h2 className="text-center text-3xl font-semibold tracking-tight md:text-5xl">
@@ -404,7 +416,7 @@ export default function CoachingPage() {
               </h2>
             </Reveal>
             <Reveal delay={150}>
-              <p className="mx-auto mt-4 max-w-xl text-center text-lg font-normal text-[#6e6e73] md:text-xl">
+              <p className="mx-auto mt-4 max-w-xl text-center text-lg font-normal text-[var(--muted-foreground)] md:text-xl">
                 {isAr ? "باقة كوتشينج واحدة بكل حاجة." : "One coaching plan with everything."}
               </p>
             </Reveal>
@@ -415,12 +427,15 @@ export default function CoachingPage() {
                 Old checkout links (?tier=starter/elite) stay valid. */}
             <div className="mx-auto mt-16 max-w-xl">
               <Reveal>
-                <div className="h-full rounded-3xl bg-black p-8 text-white md:p-10">
+                {/* Dark marble card with a 2px chrome ring — the identity
+                    treatment of premium cards (mirrors the Pro card on
+                    /memberships). Dark in BOTH themes by design. */}
+                <div className="h-full rounded-[var(--radius-chrome)] bg-black p-8 text-white md:p-10" style={{ boxShadow: "0 0 0 2px #C9CED3, var(--shadow)" }}>
                   <h3 className="text-xl font-semibold tracking-tight md:text-2xl">
                     {isAr ? "كوتشينج" : "Coaching"}
                   </h3>
                   <div className="mt-4 flex items-baseline gap-1">
-                    <span className="text-4xl font-semibold tracking-tight md:text-5xl">$39.99</span>
+                    <span className="chrome-text text-4xl font-semibold tracking-tight md:text-5xl">$39.99</span>
                     <span className="text-base font-normal opacity-60">{isAr ? "/شهر" : "/mo"}</span>
                   </div>
                   <p className="mt-1 text-sm font-normal opacity-60">{isAr ? "أو $359 سنويًا" : "or $359/yr"}</p>
@@ -439,7 +454,7 @@ export default function CoachingPage() {
                   </ul>
                   <button
                     onClick={() => goToCheckout("coaching")}
-                    className="mt-8 w-full rounded-full bg-[#0071e3] px-6 py-3 text-base font-normal text-white transition-opacity hover:opacity-90"
+                    className="btn-chrome mt-8 w-full px-6 py-3 text-base"
                   >
                     {isAr ? "ابدأ الآن" : "Get Started"}
                   </button>
@@ -454,7 +469,7 @@ export default function CoachingPage() {
             </div>
             <Reveal delay={400}>
               <div className="mt-12 text-center">
-                <button onClick={scrollToPricing} className="font-normal text-[#0071e3] transition-opacity hover:opacity-70">
+                <button onClick={scrollToPricing} className="font-normal text-[var(--muted-2)] underline-offset-4 transition-opacity hover:opacity-70 hover:underline">
                   {isAr ? "كل التفاصيل ›" : "See all details ›"}
                 </button>
               </div>
@@ -463,7 +478,7 @@ export default function CoachingPage() {
         </section>
 
         {/* ===================== FAQ ===================== */}
-        <section className="bg-[#f5f5f7] px-4 py-16 md:py-24">
+        <section className="bg-[var(--tint)] px-4 py-16 md:py-24">
           <div className="mx-auto max-w-3xl">
             <Reveal>
               <h2 className="text-center text-3xl font-semibold tracking-tight md:text-5xl">
@@ -480,11 +495,11 @@ export default function CoachingPage() {
                   { q: isAr ? "طرق الدفع؟" : "Payment methods?", a: isAr ? "PayPal (الطريقة الرئيسية)، InstaPay، و Vodafone Cash." : "PayPal (primary), InstaPay, and Vodafone Cash." },
                   { q: isAr ? "بياناتي آمنة؟" : "Is my data secure?", a: isAr ? "نعم، مشفرة على Supabase مع RLS." : "Yes, encrypted on Supabase with RLS." },
                 ].map((faq, i) => (
-                  <AccordionItem key={i} value={`item-${i}`} className="border-b border-[#d2d2d7]">
+                  <AccordionItem key={i} value={`item-${i}`} className="border-b border-[var(--edge)]">
                     <AccordionTrigger className="py-5 text-start text-lg font-normal hover:no-underline">
                       {faq.q}
                     </AccordionTrigger>
-                    <AccordionContent className="pb-5 text-base font-normal leading-relaxed text-[#6e6e73]">
+                    <AccordionContent className="pb-5 text-base font-normal leading-relaxed text-[var(--muted-foreground)]">
                       {faq.a}
                     </AccordionContent>
                   </AccordionItem>
@@ -495,7 +510,7 @@ export default function CoachingPage() {
         </section>
 
         {/* ===================== FINAL CTA ===================== */}
-        <section className="bg-white px-4 py-16 text-center md:py-24">
+        <section className="bg-[var(--bg)] px-4 py-16 text-center md:py-24">
           <Reveal>
             <h2 className="mx-auto max-w-3xl text-4xl font-semibold leading-[1.05] tracking-tight md:text-6xl lg:text-7xl">
               {isAr ? "جسمك الجديد بيستناك." : "Your new body is waiting."}
@@ -505,7 +520,7 @@ export default function CoachingPage() {
             <div className="mt-8 flex flex-wrap items-center justify-center gap-4 md:gap-6">
               <button
                 onClick={scrollToPricing}
-                className="rounded-full bg-[#0071e3] px-7 py-3 text-base font-medium text-white transition-opacity hover:opacity-90"
+                className="btn-chrome px-7 py-3 text-base font-medium"
               >
                 {isAr ? "ابدأ تحوّلي" : "Start my transformation"}
               </button>
@@ -517,8 +532,8 @@ export default function CoachingPage() {
 
         {/* ===================== SHARE ===================== */}
         <div className="mx-auto max-w-4xl px-4 pb-12">
-          <div className="flex items-center justify-between gap-4 rounded-2xl bg-[#f5f5f7] p-4">
-            <p className="text-sm font-medium text-[#1d1d1f]">
+          <div className="marble-card flex items-center justify-between gap-4 p-4">
+            <p className="text-sm font-medium text-[var(--text)]">
               {isAr ? "شارك صفحة الكوتشينج" : "Share coaching page"}
             </p>
             <ShareButtons

@@ -70,7 +70,7 @@ export function BlogArticlePage({
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-white">
+      <div className="flex min-h-screen items-center justify-center bg-[var(--bg)]">
         <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#0071e3] border-t-transparent" />
       </div>
     );
@@ -78,9 +78,9 @@ export function BlogArticlePage({
 
   if (!post) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-white">
-        <p className="text-base font-normal text-[#6e6e73]">{isAr ? "المقال غير موجود" : "Article not found"}</p>
-        <a href={isAr ? "/ar/blog" : "/blog"} className="text-base font-normal text-[#0071e3] transition-opacity hover:opacity-70">
+      <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-[var(--bg)]">
+        <p className="text-base font-normal text-[var(--muted-foreground)]">{isAr ? "المقال غير موجود" : "Article not found"}</p>
+        <a href={isAr ? "/ar/blog" : "/blog"} className="text-base font-normal text-[var(--muted-2)] underline-offset-4 transition-opacity hover:opacity-70 hover:underline">
           {isAr ? "العودة للمدونة ›" : "Back to blog ›"}
         </a>
       </div>
@@ -98,7 +98,7 @@ export function BlogArticlePage({
   const shareImage = post.featured_image || "https://alkemos.com/logo.png";
 
   return (
-    <div className="flex min-h-screen flex-col bg-white text-[#1d1d1f]" dir={isAr ? "rtl" : "ltr"}>
+    <div className="flex min-h-screen flex-col bg-[var(--bg)] text-[var(--text)]" dir={isAr ? "rtl" : "ltr"}>
       <ReadingProgress />
 
       {/* M41 fix: use SiteHeader (full nav) instead of minimal header.
@@ -118,12 +118,12 @@ export function BlogArticlePage({
 
       <main className="mx-auto w-full max-w-4xl flex-1 px-4 py-12 sm:px-6 md:py-20">
         {/* Breadcrumb */}
-        <nav className="mb-8 flex items-center gap-2 text-sm font-normal text-[#6e6e73]">
+        <nav className="mb-8 flex items-center gap-2 text-sm font-normal text-[var(--muted-foreground)]">
           <a href="/" className="transition-opacity hover:opacity-70">{isAr ? "الرئيسية" : "Home"}</a>
           <span>/</span>
           <a href={isAr ? "/ar/blog" : "/blog"} className="transition-opacity hover:opacity-70">{isAr ? "المدونة" : "Blog"}</a>
           <span>/</span>
-          <span className="truncate text-[#1d1d1f]">{post.title}</span>
+          <span className="truncate text-[var(--text)]">{post.title}</span>
         </nav>
 
         <div className="grid gap-12 lg:grid-cols-[1fr_220px]">
@@ -131,8 +131,8 @@ export function BlogArticlePage({
           <article>
             {/* Hero */}
             <div className="mb-8">
-              <div className="flex flex-wrap items-center gap-3 text-xs font-normal text-[#6e6e73]">
-                <span className="rounded-full bg-[#f5f5f7] px-2.5 py-0.5">
+              <div className="flex flex-wrap items-center gap-3 text-xs font-normal text-[var(--muted-foreground)]">
+                <span className="rounded-full border border-[var(--edge)] bg-[var(--tint)] px-2.5 py-0.5 text-xs font-medium text-[var(--muted-2)]">
                   {getCategoryLabel(post.category, lang)}
                 </span>
                 <span>{post.reading_time} {isAr ? "دقائق قراءة" : "min read"}</span>
@@ -145,16 +145,16 @@ export function BlogArticlePage({
               <h1 className="mt-4 text-4xl font-semibold leading-[1.1] tracking-tight md:text-5xl">
                 {post.title}
               </h1>
-              <p className="mt-4 text-lg font-normal leading-relaxed text-[#6e6e73] md:text-xl">
+              <p className="mt-4 text-lg font-normal leading-relaxed text-[var(--muted-foreground)] md:text-xl">
                 {post.excerpt}
               </p>
               <div className="mt-6 flex items-center gap-3">
-                <span className="grid h-10 w-10 place-items-center rounded-full bg-[#1d1d1f] text-sm font-semibold text-white">
+                <span className="grid h-10 w-10 place-items-center rounded-full border border-[var(--edge)] bg-[var(--tint)] text-sm font-semibold text-[var(--text)]">
                   {post.author.charAt(0)}
                 </span>
                 <div>
                   <p className="text-sm font-medium">{post.author}</p>
-                  <p className="text-xs font-normal text-[#6e6e73]">{isAr ? "كوتش معتمد" : "Certified Coach"}</p>
+                  <p className="text-xs font-normal text-[var(--muted-foreground)]">{isAr ? "كوتش معتمد" : "Certified Coach"}</p>
                 </div>
               </div>
             </div>
@@ -177,7 +177,7 @@ export function BlogArticlePage({
 
             {/* Content — Apple-style typography */}
             <div
-              className="prose prose-sm max-w-none text-[#1d1d1f] [&_a]:text-[#0071e3] [&_a]:no-underline [&_a]:transition-opacity [&_a]:hover:opacity-70 [&_h2]:mt-10 [&_h2]:mb-4 [&_h2]:text-2xl [&_h2]:font-semibold [&_h2]:tracking-tight [&_h3]:mt-8 [&_h3]:mb-3 [&_h3]:text-xl [&_h3]:font-semibold [&_h3]:tracking-tight [&_p]:my-5 [&_p]:text-base [&_p]:leading-relaxed [&_p]:text-[#1d1d1f] [&_p]:md:text-lg [&_p]:md:leading-relaxed [&_blockquote]:border-s-4 [&_blockquote]:border-[#0071e3] [&_blockquote]:ps-5 [&_blockquote]:py-2 [&_blockquote]:my-6 [&_blockquote]:text-lg [&_blockquote]:font-normal [&_blockquote]:text-[#1d1d1f] [&_blockquote]:italic [&_code]:rounded [&_code]:bg-[#f5f5f7] [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:text-sm [&_code]:font-mono [&_pre]:my-6 [&_pre]:rounded-2xl [&_pre]:bg-[#1d1d1f] [&_pre]:p-5 [&_pre]:text-sm [&_pre]:text-white [&_pre]:overflow-x-auto [&_table]:my-6 [&_table]:w-full [&_td]:border [&_td]:border-[#d2d2d7] [&_td]:p-3 [&_th]:border [&_th]:border-[#d2d2d7] [&_th]:p-3 [&_th]:bg-[#f5f5f7] [&_th]:text-start [&_th]:font-semibold [&_ul]:my-5 [&_ul]:list-disc [&_ul]:ps-6 [&_ol]:my-5 [&_ol]:list-decimal [&_ol]:ps-6 [&_li]:my-2 [&_li]:text-base [&_li]:md:text-lg [&_li]:leading-relaxed"
+              className="prose prose-sm max-w-none text-[var(--text)] [&_a]:text-[var(--muted-2)] [&_a]:no-underline [&_a]:transition-opacity [&_a]:hover:opacity-70 [&_h2]:mt-10 [&_h2]:mb-4 [&_h2]:text-2xl [&_h2]:font-semibold [&_h2]:tracking-tight [&_h3]:mt-8 [&_h3]:mb-3 [&_h3]:text-xl [&_h3]:font-semibold [&_h3]:tracking-tight [&_p]:my-5 [&_p]:text-base [&_p]:leading-relaxed [&_p]:text-[var(--muted-2)] [&_p]:md:text-lg [&_p]:md:leading-relaxed [&_blockquote]:border-s-4 [&_blockquote]:border-[var(--chrome-edge)] [&_blockquote]:ps-5 [&_blockquote]:py-2 [&_blockquote]:my-6 [&_blockquote]:text-lg [&_blockquote]:font-normal [&_blockquote]:text-[var(--text)] [&_blockquote]:italic [&_code]:rounded [&_code]:bg-[var(--tint)] [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:text-sm [&_code]:font-mono [&_pre]:my-6 [&_pre]:rounded-2xl [&_pre]:bg-black [&_pre]:p-5 [&_pre]:text-sm [&_pre]:text-white [&_pre]:overflow-x-auto [&_table]:my-6 [&_table]:w-full [&_td]:border [&_td]:border-[var(--edge)] [&_td]:p-3 [&_th]:border [&_th]:border-[var(--edge)] [&_th]:p-3 [&_th]:bg-[var(--tint)] [&_th]:text-start [&_th]:font-semibold [&_ul]:my-5 [&_ul]:list-disc [&_ul]:ps-6 [&_ol]:my-5 [&_ol]:list-decimal [&_ol]:ps-6 [&_li]:my-2 [&_li]:text-base [&_li]:md:text-lg [&_li]:leading-relaxed"
               dangerouslySetInnerHTML={{ __html: htmlContent }}
             />
 
@@ -188,7 +188,7 @@ export function BlogArticlePage({
             {post.tags && post.tags.length > 0 && (
               <div className="mt-10 flex flex-wrap gap-2">
                 {post.tags.map((tag) => (
-                  <span key={tag} className="rounded-full bg-[#f5f5f7] px-3 py-1 text-xs font-normal text-[#6e6e73]">
+                  <span key={tag} className="rounded-full border border-[var(--edge)] bg-[var(--tint)] px-3 py-1 text-xs font-normal text-[var(--muted-foreground)]">
                     #{tag}
                   </span>
                 ))}
@@ -200,11 +200,11 @@ export function BlogArticlePage({
 
             {/* Language alternate link */}
             {linkedUrl && linked && (
-              <div className="my-8 rounded-3xl bg-[#f5f5f7] p-6 text-center">
-                <p className="text-sm font-normal text-[#6e6e73]">
+              <div className="marble-card my-8 p-6 text-center">
+                <p className="text-sm font-normal text-[var(--muted-foreground)]">
                   {isAr ? "هذا المقال متاح أيضاً بالإنجليزية:" : "This article is also available in Arabic:"}
                 </p>
-                <a href={linkedUrl} className="mt-2 inline-block text-base font-normal text-[#0071e3] transition-opacity hover:opacity-70">
+                <a href={linkedUrl} className="btn-outline mt-2 inline-block px-6 py-2.5 text-sm">
                   {linked.title} ›
                 </a>
               </div>
@@ -218,9 +218,9 @@ export function BlogArticlePage({
                 </h2>
                 <div className="mt-8 space-y-4">
                   {post.faq_json.map((faq: BlogFaq, i: number) => (
-                    <div key={i} className="rounded-2xl bg-[#f5f5f7] p-6">
+                    <div key={i} className="marble-card p-6">
                       <h3 className="text-base font-semibold tracking-tight">{faq.question}</h3>
-                      <p className="mt-2 text-base font-normal leading-relaxed text-[#6e6e73]">{faq.answer}</p>
+                      <p className="mt-2 text-base font-normal leading-relaxed text-[var(--muted-foreground)]">{faq.answer}</p>
                     </div>
                   ))}
                 </div>
@@ -241,7 +241,7 @@ export function BlogArticlePage({
                     <a
                       key={rel.id}
                       href={isAr ? `/ar/blog/${rel.slug}` : `/blog/${rel.slug}`}
-                      className="group block overflow-hidden rounded-3xl bg-[#f5f5f7] transition-opacity hover:opacity-90"
+                      className="marble-card group block overflow-hidden transition-opacity hover:opacity-90"
                     >
                       {rel.featured_image && (
                         <div className="relative aspect-video overflow-hidden">
@@ -255,11 +255,11 @@ export function BlogArticlePage({
                         </div>
                       )}
                       <div className="p-5">
-                        <span className="text-xs font-normal text-[#6e6e73]">
+                        <span className="text-xs font-normal text-[var(--muted-foreground)]">
                           {getCategoryLabel(rel.category, lang)}
                         </span>
                         <h3 className="mt-2 text-base font-semibold leading-tight tracking-tight">{rel.title}</h3>
-                        <p className="mt-2 line-clamp-2 text-sm font-normal text-[#6e6e73]">{rel.excerpt}</p>
+                        <p className="mt-2 line-clamp-2 text-sm font-normal text-[var(--muted-foreground)]">{rel.excerpt}</p>
                       </div>
                     </a>
                   ))}
@@ -275,7 +275,7 @@ export function BlogArticlePage({
         </div>
       </main>
 
-      <footer className="mt-auto border-t border-[#d2d2d7] py-6 text-center text-xs font-normal text-[#6e6e73]">
+      <footer className="mt-auto border-t border-[var(--edge)] py-6 text-center text-xs font-normal text-[var(--muted-foreground)]">
         © {new Date().getFullYear()} Alkemos. {isAr ? "كل الحقوق محفوظة." : "All rights reserved."}
       </footer>
     </div>

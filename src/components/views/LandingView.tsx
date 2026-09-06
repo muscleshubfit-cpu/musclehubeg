@@ -338,7 +338,10 @@ export function LandingView() {
     {
       featureAr: "التكلفة الشهرية",
       featureEn: "Monthly cost",
-      us: "مجانًا / من $14.99", tradAr: "$20–50 للجلسة", tradEn: "$20–50/session", appsAr: "مجاني بإعلانات", appsEn: "Free with ads",
+      // Phase 132 (owner feedback: «جدول المقارنة فيه كلمة عربي في وضع
+      // اللغة الإنجليزية»): the Alkemos cell was hardcoded Arabic — now
+      // language-aware like the trainer/apps cells.
+      us: isAr ? "مجانًا / من $14.99" : "Free / from $14.99", tradAr: "$20–50 للجلسة", tradEn: "$20–50/session", appsAr: "مجاني بإعلانات", appsEn: "Free with ads",
     },
   ];
 
@@ -1275,8 +1278,13 @@ export function LandingView() {
         </div>
       </section>
 
-      {/* ===================== FOOTER — mission §14: #0B0B0D + marble-dark
-          texture + logo-mono-white + meander divider on the top edge.
+      {/* ===================== FOOTER — Phase 132 (owner feedback
+          2026-09-06: «الفوتر محتاج تعديل الخلفية ولون الكتابة — لايت مود
+          خلفية الرخام الفاتح وكتابة سوداء، دارك مود خلفية رخام أسود
+          وكتابة أبيض»): the marble slab, meander divider, lockup and
+          text are now THEME-AWARE (light = light marble + black lockup +
+          black text; dark = black marble + white lockup + white text) via
+          the marble/meander CSS vars — no re-render needed on toggle.
           Phase 131 (owner feedback 2026-09-06: «تعديل الفوتر الى قوائم
           بدلاً من صف واحد»): the link groups are menu-style LISTS in a
           responsive grid — 2 columns on phones, 3 on tablets, 6 columns
@@ -1284,7 +1292,7 @@ export function LandingView() {
           of the old single horizontal bottom row INTO the list grid as
           the 5th menu, so every footer link now lives in a vertical
           list. ===================== */}
-      <footer className="footer-marble relative px-4 pb-10 pt-12 text-[#9BA0A6]">
+      <footer className="footer-marble relative px-4 pb-10 pt-12 text-[var(--muted-foreground)]">
         {/* Meander divider on the top edge (mission §14) */}
         <div className="footer-meander-top absolute inset-x-0 top-0" aria-hidden="true" />
         <div className="mx-auto max-w-6xl">
@@ -1297,26 +1305,27 @@ export function LandingView() {
               the single coach funnel entry. */}
 
           <div className="grid grid-cols-2 gap-x-6 gap-y-8 md:grid-cols-3 lg:grid-cols-6 lg:gap-x-8">
-            {/* Brand — white mono logo (owner artwork: white lockup).
-                Spans the full row below lg so the lists pair up cleanly. */}
+            {/* Brand — theme-aware lockup (Phase 132): the black footer
+                lockup on light marble / the white one on black marble,
+                rendered as a ThemeImg pair so CSS swaps it with zero
+                hydration flicker. Spans the full row below lg so the
+                lists pair up cleanly. */}
             <div className="col-span-2 md:col-span-3 lg:col-span-1">
-              {/* eslint-disable-next-line @next/next/no-img-element -- local fixed asset; dark footer always uses the white lockup (QR-asset precedent) */}
-              <img
-                src="/images/brand/logo-footer-white.png"
+              <ThemeImg
+                light="/images/brand/logo-footer-black.png"
+                dark="/images/brand/logo-footer-white.png"
                 alt="Alkemos"
                 width={140}
                 height={110}
                 className="h-10 w-auto object-contain"
-                loading="lazy"
-                decoding="async"
               />
               <p className="mt-3 text-xs font-normal">{isAr ? "اصنع قوّتك الأسطورية." : "Forge Your Legendary Strength."}</p>
-              <p className="mt-3 text-[10px] font-normal text-[#6B7075]">{isAr ? "© 2026 جميع الحقوق محفوظة" : "© 2026 All rights reserved"}</p>
+              <p className="mt-3 text-[10px] font-normal text-[var(--muted-foreground)]">{isAr ? "© 2026 جميع الحقوق محفوظة" : "© 2026 All rights reserved"}</p>
             </div>
 
             {/* List 1: Paid Services */}
             <div>
-              <p className="text-[10px] font-semibold uppercase tracking-wider">{isAr ? "الخدمات المدفوعة" : "Paid Services"}</p>
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text)]">{isAr ? "الخدمات المدفوعة" : "Paid Services"}</p>
               <ul className="mt-3 space-y-2 text-xs">
                 <li><a href="/coaching" className="hover:underline">{isAr ? "الكوتشينج" : "Coaching"}</a></li>
                 <li><a href={isAr ? "/ar/memberships" : "/memberships"} className="hover:underline">{isAr ? "العضويات" : "Memberships"}</a></li>
@@ -1326,7 +1335,7 @@ export function LandingView() {
 
             {/* List 2: Affiliate & Referral */}
             <div>
-              <p className="text-[10px] font-semibold uppercase tracking-wider">{isAr ? "الأفلييت والإحالات" : "Affiliate & Referral"}</p>
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text)]">{isAr ? "الأفلييت والإحالات" : "Affiliate & Referral"}</p>
               <ul className="mt-3 space-y-2 text-xs">
                 <li><a href="/affiliate" className="hover:underline">{isAr ? "برنامج الأفلييت" : "Affiliate Program"}</a></li>
                 <li><a href="/referral" className="hover:underline">{isAr ? "لوحة الإحالات" : "Referral Dashboard"}</a></li>
@@ -1335,7 +1344,7 @@ export function LandingView() {
 
             {/* List 3: Tools */}
             <div>
-              <p className="text-[10px] font-semibold uppercase tracking-wider">{isAr ? "الأدوات" : "Tools"}</p>
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text)]">{isAr ? "الأدوات" : "Tools"}</p>
               <ul className="mt-3 space-y-2 text-xs">
                 <li><a href="/tools/bmi-calculator" className="hover:underline">{isAr ? "حاسبة BMI" : "BMI Calculator"}</a></li>
                 <li><a href="/tools/body-fat-calculator" className="hover:underline">{isAr ? "حاسبة الدهون" : "Body Fat Calculator"}</a></li>
@@ -1348,7 +1357,7 @@ export function LandingView() {
 
             {/* List 4: Resources */}
             <div>
-              <p className="text-[10px] font-semibold uppercase tracking-wider">{isAr ? "المحتوى" : "Resources"}</p>
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text)]">{isAr ? "المحتوى" : "Resources"}</p>
               <ul className="mt-3 space-y-2 text-xs">
                 <li><a href={isAr ? "/ar/exercises" : "/exercises"} className="hover:underline">{isAr ? "مكتبة التمارين" : "Exercises"}</a></li>
                 <li><a href="/programs" className="hover:underline">{isAr ? "برامج التدريب" : "Programs"}</a></li>
@@ -1362,7 +1371,7 @@ export function LandingView() {
                 2026-08-25 these pages live in the footer only, not in the
                 header) */}
             <div>
-              <p className="text-[10px] font-semibold uppercase tracking-wider">{isAr ? "قانوني وأساسي" : "Legal & Basic"}</p>
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text)]">{isAr ? "قانوني وأساسي" : "Legal & Basic"}</p>
               <ul className="mt-3 space-y-2 text-xs">
                 {/* Audit 2026-08-30: was navigate() buttons → always EN. Real links
                     now, AR-aware for pages that have Arabic mirrors. */}
@@ -1375,7 +1384,7 @@ export function LandingView() {
             </div>
           </div>
 
-          <div className="mt-8 border-t border-[#26292E] pt-4 text-center text-[10px] text-[#6B7075]">
+          <div className="mt-8 border-t border-[var(--edge)] pt-4 text-center text-[10px] text-[var(--muted-foreground)]">
             {isAr ? "صُنع بحب لمجتمع اللياقة العربي" : "Built with care for the fitness community"}
           </div>
         </div>

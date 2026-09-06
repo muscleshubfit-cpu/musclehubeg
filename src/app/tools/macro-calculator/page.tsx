@@ -50,23 +50,23 @@ export default function MacroCalculatorPage() {
   };
 
   return (
-    <div className="min-h-screen bg-white text-[#1d1d1f]">
+    <div className="min-h-screen bg-[var(--bg)] text-[var(--text)]">
       <SiteHeader variant="landing" />
       <main className="mx-auto max-w-2xl px-4 py-12 md:py-16">
         <div className="text-center">
           <h1 className="text-3xl font-semibold tracking-tight md:text-5xl">
             {isAr ? "حاسبة الماكروز" : "Macro Calculator"}
           </h1>
-          <p className="mx-auto mt-3 max-w-md text-base font-normal text-[#6e6e73] md:text-lg">
+          <p className="mx-auto mt-3 max-w-md text-base font-normal text-[var(--muted-foreground)] md:text-lg">
             {isAr ? "وزّع سعراتك على بروتين وكارب ودهون حسب نظامك الغذائي." : "Split your calories into protein, carbs, and fat."}
           </p>
         </div>
 
-        <div className="mt-10 rounded-3xl bg-[#f5f5f7] p-6 md:p-8">
+        <div className="mt-10 rounded-3xl bg-[var(--tint)] p-6 md:p-8">
           <div className="mb-6">
             <label className="mb-2 block text-sm font-medium">{isAr ? "السعرات اليومية" : "Daily Calories"}</label>
             <input type="number" value={calories} onChange={(e) => setCalories(e.target.value)} placeholder="2000"
-              className="w-full rounded-full border border-[#d2d2d7] bg-white px-4 py-2.5 text-base font-normal outline-none focus:border-[#0071e3]" />
+              className="w-full rounded-full border border-[var(--edge)] bg-[var(--card)] px-4 py-2.5 text-base font-normal outline-none focus:border-[var(--chrome-edge)]" />
           </div>
 
           <div className="mb-6">
@@ -74,14 +74,14 @@ export default function MacroCalculatorPage() {
             <div className="flex flex-wrap gap-2">
               {(Object.keys(DIET_PRESETS) as DietType[]).map((d) => (
                 <button key={d} onClick={() => setDiet(d)}
-                  className={`rounded-full px-4 py-2 text-sm font-normal transition-all ${diet === d ? "bg-[#1d1d1f] text-white" : "bg-white text-[#6e6e73]"}`}>
+                  className={`rounded-full px-4 py-2 text-sm font-normal transition-all ${diet === d ? "bg-[var(--text)] text-[var(--bg)]" : "bg-[var(--card)] text-[var(--muted-foreground)]"}`}>
                   {isAr ? DIET_PRESETS[d].label_ar : DIET_PRESETS[d].label_en}
                 </button>
               ))}
             </div>
           </div>
 
-          <button onClick={calculate} className="w-full rounded-full bg-[#0071e3] px-6 py-3 text-base font-normal text-white transition-opacity hover:opacity-90">
+          <button onClick={calculate} className="w-full btn-chrome px-6 py-3 text-base">
             {isAr ? "احسب" : "Calculate"}
           </button>
         </div>
@@ -89,26 +89,26 @@ export default function MacroCalculatorPage() {
         {result && (
           <div className="mt-8 space-y-6">
             <div className="grid grid-cols-3 gap-4">
-              <div className="rounded-3xl bg-[#0071e3] p-6 text-center text-white">
+              <div className="rounded-[var(--radius-chrome)] bg-black p-6 text-center text-white">
                 <p className="text-3xl font-semibold tracking-tight">{result.protein_g}g</p>
                 <p className="mt-1 text-xs font-normal text-blue-100">{isAr ? "بروتين" : "Protein"}</p>
                 <p className="mt-1 text-xs font-normal text-blue-200">{result.protein_cal} {isAr ? "سعرة" : "cal"}</p>
               </div>
-              <div className="rounded-3xl bg-[#1d1d1f] p-6 text-center text-white">
+              <div className="rounded-[var(--radius-chrome)] bg-black p-6 text-center text-white">
                 <p className="text-3xl font-semibold tracking-tight">{result.carbs_g}g</p>
                 <p className="mt-1 text-xs font-normal text-gray-400">{isAr ? "كارب" : "Carbs"}</p>
                 <p className="mt-1 text-xs font-normal text-gray-500">{result.carbs_cal} {isAr ? "سعرة" : "cal"}</p>
               </div>
-              <div className="rounded-3xl bg-[#6e6e73] p-6 text-center text-white">
+              <div className="rounded-3xl bg-[var(--muted-foreground)] p-6 text-center text-white">
                 <p className="text-3xl font-semibold tracking-tight">{result.fat_g}g</p>
                 <p className="mt-1 text-xs font-normal text-gray-300">{isAr ? "دهون" : "Fat"}</p>
                 <p className="mt-1 text-xs font-normal text-gray-400">{result.fat_cal} {isAr ? "سعرة" : "cal"}</p>
               </div>
             </div>
 
-            <div className="rounded-3xl border border-[#0071e3]/20 bg-[#0071e3]/5 p-6 text-center">
-              <p className="text-base font-normal text-[#1d1d1f]">{isAr ? "محتاج خطة وجبات بالماكروز دي؟" : "Need a meal plan with these macros?"}</p>
-              <button onClick={() => navigate("memberships")} className="mt-4 rounded-full bg-[#0071e3] px-6 py-2.5 text-sm font-normal text-white transition-opacity hover:opacity-90">
+            <div className="rounded-3xl border border-[var(--edge)] bg-[var(--tint)] p-6 text-center">
+              <p className="text-base font-normal text-[var(--text)]">{isAr ? "محتاج خطة وجبات بالماكروز دي؟" : "Need a meal plan with these macros?"}</p>
+              <button onClick={() => navigate("memberships")} className="mt-4 btn-chrome px-6 py-2.5 text-sm">
                 {isAr ? "احصل على خطة مخصصة ›" : "Get a personalized plan ›"}
               </button>
             </div>
@@ -132,7 +132,7 @@ export default function MacroCalculatorPage() {
             />
 
             {/* Share buttons */}
-            <div className="rounded-2xl bg-[#f5f5f7] p-4">
+            <div className="rounded-2xl bg-[var(--tint)] p-4">
               <ShareButtons
                 title={
                   isAr
@@ -149,8 +149,8 @@ export default function MacroCalculatorPage() {
         {/* DELIVERY 0050: other-tools links always visible at the bottom (owner request) */}
         <OtherTools current="macro-calculator" />
 
-        <div className="mt-12 space-y-4 text-base font-normal leading-relaxed text-[#6e6e73]">
-          <h2 className="text-xl font-semibold tracking-tight text-[#1d1d1f]">{isAr ? "إيه هي الماكروز؟" : "What are macros?"}</h2>
+        <div className="mt-12 space-y-4 text-base font-normal leading-relaxed text-[var(--muted-foreground)]">
+          <h2 className="text-xl font-semibold tracking-tight text-[var(--text)]">{isAr ? "إيه هي الماكروز؟" : "What are macros?"}</h2>
           <p>{isAr ? "الماكروز هي العناصر الغذائية الكبرى: البروتين (4 سعرات/جرام)، الكاربوهيدرات (4 سعرات/جرام)، والدهون (9 سعرات/جرام). توزيع الماكروز بيحدد نوع نظامك الغذائي — زي الكيتو (عالي دهون) أو عالي البروتين (لكمال الأجسام)." : "Macros are the three main nutrients: Protein (4 cal/g), Carbohydrates (4 cal/g), and Fat (9 cal/g). Your macro split determines your diet type — like Keto (high fat) or High Protein (for bodybuilding)."}</p>
         </div>
       </main>

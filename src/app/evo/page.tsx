@@ -147,7 +147,7 @@ export default function EvoPage() {
           <h1 className="text-4xl font-semibold tracking-tight md:text-6xl">
             EVO
           </h1>
-          <p className="mx-auto mt-3 max-w-md text-lg font-normal text-[#6e6e73] md:text-xl">
+          <p className="mx-auto mt-3 max-w-md text-lg font-normal text-[var(--muted-foreground)] md:text-xl">
             {isAr
               ? "محرك أداء ذكي — مش مجرد شات بوت."
               : "An intelligent performance engine — not just a chatbot."}
@@ -200,54 +200,56 @@ export default function EvoPage() {
           </div>
         </section>
 
-        {/* What is EVO? */}
-        <section className="mt-16 rounded-3xl bg-[#f5f5f7] p-6 md:p-10">
+        {/* What is EVO? — marble-card (identity) */}
+        <section className="marble-card mt-16 p-6 md:p-10">
           <h2 className="text-2xl font-semibold tracking-tight md:text-3xl">
             {isAr ? "إيه هو EVO؟" : "What is EVO?"}
           </h2>
-          <p className="mt-4 text-base font-normal leading-relaxed text-[#6e6e73] md:text-lg">
+          <p className="mt-4 text-base font-normal leading-relaxed text-[var(--muted-foreground)] md:text-lg">
             {isAr
               ? "EVO هو محرك أداء ذكي مبني على الذكاء الاصطناعي، مصمم خصيصاً عشان يساعدك توصل لأهدافك الرياضية والتغذوية بشكل أسرع وأذكى. مش مجرد شات بوت بيرد على أسئلتك — EVO بيحلل بياناتك، يفهم جسمك، ويتعلم من تقدمك عشان يديك نصائح مخصصة ليك أنت بس."
               : "EVO is an AI-powered performance engine designed specifically to help you reach your fitness and nutrition goals faster and smarter. Not just a chatbot that answers your questions — EVO analyzes your data, understands your body, and learns from your progress to give you personalized advice."}
           </p>
-          <p className="mt-3 text-base font-normal leading-relaxed text-[#6e6e73] md:text-lg">
+          <p className="mt-3 text-base font-normal leading-relaxed text-[var(--muted-foreground)] md:text-lg">
             {isAr
               ? "بيدمج معرفة المدربين البشريين مع سرعة ودقة الذكاء الاصطناعي في نظام واحد متكامل."
               : "It combines human coach expertise with AI speed and precision in one integrated system."}
           </p>
         </section>
 
-        {/* EVO vs Chatbot — the key difference */}
+        {/* EVO vs Chatbot — the key difference (identity: EVO column gets
+            the tint + chrome inline treatment like the Alkemos column in
+            the homepage comparison table) */}
         <section id="features" className="mt-12">
           <h2 className="text-center text-2xl font-semibold tracking-tight md:text-3xl">
             {isAr ? "إيه الفرق بين EVO والشات بوت العادي؟" : "What's the difference between EVO and a regular chatbot?"}
           </h2>
-          <div className="mt-8 overflow-hidden rounded-3xl border border-[#d2d2d7]">
-            <div className="grid grid-cols-3 bg-[#f5f5f7]">
-              <div className="p-4 text-center text-xs font-medium text-[#6e6e73]">
+          <div className="marble-card mt-8 overflow-hidden">
+            <div className="grid grid-cols-3 bg-[var(--tint)]">
+              <div className="p-4 text-center text-xs font-medium text-[var(--muted-foreground)]">
                 {isAr ? "المقارنة" : "Comparison"}
               </div>
-              <div className="border-s border-[#d2d2d7] p-4 text-center text-xs font-medium text-[#ff3b30]">
+              <div className="border-s border-[var(--edge)] p-4 text-center text-xs font-medium text-[var(--muted-foreground)]">
                 {isAr ? "شات بوت عادي" : "Regular Chatbot"}
               </div>
-              <div className="border-s border-[#d2d2d7] p-4 text-center text-xs font-medium text-[#0071e3]">
+              <div className="p-4 text-center text-xs font-semibold uppercase tracking-wider text-[var(--text)]">
                 EVO
               </div>
             </div>
             {differences.map((diff, i) => (
-              <div key={i} className="grid grid-cols-3 border-t border-[#d2d2d7]/60">
-                <div className="p-4 text-sm font-medium text-[#1d1d1f]">
+              <div key={i} className="grid grid-cols-3 border-t border-[var(--edge)]">
+                <div className="p-4 text-sm font-medium text-[var(--text)]">
                   {i + 1}
                 </div>
-                <div className="border-s border-[#d2d2d7] p-4 text-sm font-normal text-[#6e6e73]">
+                <div className="border-s border-[var(--edge)] p-4 text-sm font-normal text-[var(--muted-foreground)]">
                   <span className="flex items-start gap-2">
-                    <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-[#ff3b30]" />
+                    <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--muted-foreground)] opacity-60" />
                     <span>{isAr ? diff.chatbotAr : diff.chatbotEn}</span>
                   </span>
                 </div>
-                <div className="border-s border-[#d2d2d7] bg-[#0071e3]/[0.03] p-4 text-sm font-normal text-[#1d1d1f]">
+                <div className="bg-[var(--tint)] p-4 text-sm font-normal text-[var(--text)]" style={{ borderInline: "var(--border-chrome)" }}>
                   <span className="flex items-start gap-2">
-                    <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-[#0071e3]" />
+                    <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: "#878E94" }} />
                     <span>{isAr ? diff.evoAr : diff.evoEn}</span>
                   </span>
                 </div>
@@ -267,20 +269,17 @@ export default function EvoPage() {
               return (
                 <div
                   key={i}
-                  className="rounded-3xl bg-[#f5f5f7] p-6 transition-colors hover:bg-[#efefef]"
+                  className="marble-card p-6 transition-transform duration-300 hover:-translate-y-0.5"
                 >
                   <div className="flex items-start gap-4">
-                    <span
-                      className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl"
-                      style={{ backgroundColor: `${feature.color}15` }}
-                    >
-                      <Icon className="h-6 w-6" style={{ color: feature.color }} />
+                    <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl border border-[var(--edge)] bg-[var(--tint)]">
+                      <Icon className="h-6 w-6 text-[var(--muted-2)]" />
                     </span>
                     <div>
                       <h3 className="text-base font-semibold tracking-tight">
                         {isAr ? feature.titleAr : feature.titleEn}
                       </h3>
-                      <p className="mt-1 text-sm font-normal leading-relaxed text-[#6e6e73]">
+                      <p className="mt-1 text-sm font-normal leading-relaxed text-[var(--muted-foreground)]">
                         {isAr ? feature.descAr : feature.descEn}
                       </p>
                     </div>
@@ -291,8 +290,8 @@ export default function EvoPage() {
           </div>
         </section>
 
-        {/* How EVO works */}
-        <section className="mt-16 rounded-3xl bg-[#f5f5f7] p-6 text-[#1d1d1f] md:p-10">
+        {/* How EVO works — marble-card (identity) */}
+        <section className="marble-card mt-16 p-6 text-[var(--text)] md:p-10">
           <h2 className="text-2xl font-semibold tracking-tight md:text-3xl">
             {isAr ? "إزاي EVO بيشتغل؟" : "How does EVO work?"}
           </h2>
@@ -328,14 +327,14 @@ export default function EvoPage() {
               },
             ].map((step, i) => (
               <div key={i} className="flex gap-4">
-                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[#1d1d1f] text-sm font-semibold text-white">
+                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-[var(--edge)] bg-[var(--tint)] text-sm font-semibold text-[var(--text)]">
                   {step.num}
                 </span>
                 <div>
                   <h3 className="text-base font-semibold">
                     {isAr ? step.titleAr : step.titleEn}
                   </h3>
-                  <p className="mt-1 text-sm font-normal text-[#6e6e73]">
+                  <p className="mt-1 text-sm font-normal text-[var(--muted-foreground)]">
                     {isAr ? step.descAr : step.descEn}
                   </p>
                 </div>
@@ -354,12 +353,12 @@ export default function EvoPage() {
           ].map((badge, i) => {
             const Icon = badge.icon;
             return (
-              <div key={i} className="rounded-2xl bg-[#f5f5f7] p-4 text-center">
-                <Icon className="mx-auto h-6 w-6 text-[#0071e3]" />
+              <div key={i} className="marble-card p-4 text-center">
+                <Icon className="mx-auto h-6 w-6 text-[var(--muted-2)]" />
                 <p className="mt-2 text-sm font-semibold">
                   {isAr ? badge.labelAr : badge.labelEn}
                 </p>
-                <p className="mt-0.5 text-xs font-normal text-[#6e6e73]">
+                <p className="mt-0.5 text-xs font-normal text-[var(--muted-foreground)]">
                   {isAr ? badge.descAr : badge.descEn}
                 </p>
               </div>
@@ -367,26 +366,27 @@ export default function EvoPage() {
           })}
         </section>
 
-        {/* Free vs Subscriber comparison */}
+        {/* Free vs Subscriber comparison — EVO/Subscriber column gets the
+            identity tint + chrome treatment */}
         <section className="mt-12">
           <h2 className="text-center text-2xl font-semibold tracking-tight md:text-3xl">
             {isAr ? "EVO للزوار vs EVO للمشتركين" : "EVO for Visitors vs Subscribers"}
           </h2>
-          <p className="mx-auto mt-3 max-w-lg text-center text-sm font-normal text-[#6e6e73]">
+          <p className="mx-auto mt-3 max-w-lg text-center text-sm font-normal text-[var(--muted-foreground)]">
             {isAr
               ? "EVO متاح للجميع، بس المشتركين بياخدو ميزات أكتر وأعمق."
               : "EVO is available to everyone, but subscribers get deeper features."}
           </p>
 
-          <div className="mt-8 overflow-hidden rounded-3xl border border-[#d2d2d7]">
-            <div className="grid grid-cols-3 bg-[#f5f5f7]">
-              <div className="p-4 text-center text-xs font-medium text-[#6e6e73]">
+          <div className="marble-card mt-8 overflow-hidden">
+            <div className="grid grid-cols-3 bg-[var(--tint)]">
+              <div className="p-4 text-center text-xs font-medium text-[var(--muted-foreground)]">
                 {isAr ? "الميزة" : "Feature"}
               </div>
-              <div className="border-s border-[#d2d2d7] p-4 text-center text-xs font-medium text-[#6e6e73]">
+              <div className="border-s border-[var(--edge)] p-4 text-center text-xs font-medium text-[var(--muted-foreground)]">
                 {isAr ? "زائر (مجاني)" : "Visitor (Free)"}
               </div>
-              <div className="border-s border-[#d2d2d7] p-4 text-center text-xs font-medium text-[#0071e3]">
+              <div className="p-4 text-center text-xs font-semibold text-[var(--text)]">
                 {isAr ? "مشترك" : "Subscriber"}
               </div>
             </div>
@@ -448,14 +448,14 @@ export default function EvoPage() {
                 subEn: "✓",
               },
             ].map((row, i) => (
-              <div key={i} className="grid grid-cols-3 border-t border-[#d2d2d7]/60">
-                <div className="p-3 text-xs font-medium text-[#1d1d1f]">
+              <div key={i} className="grid grid-cols-3 border-t border-[var(--edge)]">
+                <div className="p-3 text-xs font-medium text-[var(--text)]">
                   {isAr ? row.featAr : row.featEn}
                 </div>
-                <div className="border-s border-[#d2d2d7] p-3 text-xs font-normal text-[#6e6e73]">
+                <div className="border-s border-[var(--edge)] p-3 text-xs font-normal text-[var(--muted-foreground)]">
                   {isAr ? row.freeAr : row.freeEn}
                 </div>
-                <div className="border-s border-[#d2d2d7] bg-[#0071e3]/[0.03] p-3 text-xs font-medium text-[#1d1d1f]">
+                <div className="bg-[var(--tint)] p-3 text-xs font-medium text-[var(--text)]" style={{ borderInline: "var(--border-chrome)" }}>
                   {isAr ? row.subAr : row.subEn}
                 </div>
               </div>
@@ -463,8 +463,10 @@ export default function EvoPage() {
           </div>
         </section>
 
-        {/* One subscription for everything */}
-        <section className="mt-12 rounded-3xl bg-gradient-to-br from-[#1d1d1f] to-[#0071e3] p-8 text-center text-white md:p-12">
+        {/* One subscription for everything — dark marble band with a chrome
+            ring (identity premium treatment; replaces the old
+            black-to-blue gradient — zero-blue law) */}
+        <section className="mt-12 rounded-[var(--radius-chrome)] bg-black p-8 text-center text-white md:p-12" style={{ boxShadow: "0 0 0 2px #C9CED3, var(--shadow)" }}>
           <h2 className="text-2xl font-semibold tracking-tight md:text-3xl">
             {isAr ? "اشتراك واحد. كل الخدمات." : "One subscription. Everything."}
           </h2>
@@ -475,18 +477,21 @@ export default function EvoPage() {
           </p>
           <a
             href="/memberships"
-            className="mt-6 inline-block rounded-full bg-white px-6 py-3 text-base font-normal text-[#0071e3] transition-opacity hover:opacity-90"
+            className="btn-chrome mt-6 inline-block px-6 py-3 text-base"
           >
             {isAr ? "شوف الباقات ›" : "See plans ›"}
           </a>
         </section>
 
-        {/* Final CTA — two buttons again */}
-        <section className="marble-card mt-12 p-8 text-center md:p-12" style={{ backgroundColor: "#0B0B0D", color: "var(--text)" }}>
+        {/* Final CTA — two buttons again. Dark marble band in BOTH themes
+            (identity premium treatment), so the text is pinned to the
+            light-on-dark pair instead of var(--text) (which would render
+            black-on-black in light mode). */}
+        <section className="marble-card mt-12 p-8 text-center text-[#F5F5F7] md:p-12" style={{ backgroundColor: "#0B0B0D" }}>
           <h2 className="text-2xl font-semibold tracking-tight md:text-3xl">
             {isAr ? "جاهز تجرب EVO؟" : "Ready to try EVO?"}
           </h2>
-          <p className="mx-auto mt-3 max-w-md text-base font-medium" style={{ color: "var(--muted-foreground)" }}>
+          <p className="mx-auto mt-3 max-w-md text-base font-medium text-[#9BA0A6]">
             {isAr
               ? "ابدأ المحادثة دلوقتي — بدون تسجيل. لو عايز كل الميزات، اشترك في الكوتشينج."
               : "Start chatting now — no signup. For full features, subscribe to coaching."}
@@ -518,8 +523,8 @@ export default function EvoPage() {
         </section>
 
         {/* Share buttons */}
-        <div className="mt-8 flex items-center justify-between gap-4 rounded-2xl bg-[#f5f5f7] p-4">
-          <p className="text-sm font-medium text-[#1d1d1f]">
+        <div className="marble-card mt-8 flex items-center justify-between gap-4 p-4">
+          <p className="text-sm font-medium text-[var(--text)]">
             {isAr ? "شارك صفحة EVO" : "Share EVO page"}
           </p>
           <ShareButtons

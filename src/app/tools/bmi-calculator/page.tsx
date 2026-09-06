@@ -75,7 +75,7 @@ export default function BMICalculatorPage() {
   };
 
   return (
-    <div className="min-h-screen bg-white text-[#1d1d1f]">
+    <div className="min-h-screen bg-[var(--bg)] text-[var(--text)]">
       <SiteHeader variant="landing" />
 
       <main className="mx-auto max-w-2xl px-4 py-12 md:py-16">
@@ -84,7 +84,7 @@ export default function BMICalculatorPage() {
           <h1 className="text-3xl font-semibold tracking-tight md:text-5xl">
             {isAr ? "حاسبة مؤشر كتلة الجسم" : "BMI Calculator"}
           </h1>
-          <p className="mx-auto mt-3 max-w-md text-base font-normal text-[#6e6e73] md:text-lg">
+          <p className="mx-auto mt-3 max-w-md text-base font-normal text-[var(--muted-foreground)] md:text-lg">
             {isAr
               ? "احسب مؤشر كتلة الجسم (BMI) واعرف هل وزنك مثالي."
               : "Calculate your Body Mass Index (BMI) and check if your weight is healthy."}
@@ -92,14 +92,14 @@ export default function BMICalculatorPage() {
         </div>
 
         {/* Calculator */}
-        <div className="mt-10 rounded-3xl bg-[#f5f5f7] p-6 md:p-8">
+        <div className="mt-10 rounded-3xl bg-[var(--tint)] p-6 md:p-8">
           {/* Unit toggle */}
           <div className="mb-6">
-            <div className="inline-flex rounded-full bg-white p-1">
+            <div className="inline-flex rounded-full border border-[var(--edge)] bg-[var(--card)] p-1">
               <button
                 onClick={() => setUnit("metric")}
                 className={`rounded-full px-5 py-2 text-sm font-normal transition-all ${
-                  unit === "metric" ? "bg-[#1d1d1f] text-white" : "text-[#6e6e73]"
+                  unit === "metric" ? "bg-[var(--text)] text-[var(--bg)]" : "text-[var(--muted-foreground)]"
                 }`}
               >
                 {isAr ? "متري (كجم/سم)" : "Metric (kg/cm)"}
@@ -107,7 +107,7 @@ export default function BMICalculatorPage() {
               <button
                 onClick={() => setUnit("imperial")}
                 className={`rounded-full px-5 py-2 text-sm font-normal transition-all ${
-                  unit === "imperial" ? "bg-[#1d1d1f] text-white" : "text-[#6e6e73]"
+                  unit === "imperial" ? "bg-[var(--text)] text-[var(--bg)]" : "text-[var(--muted-foreground)]"
                 }`}
               >
                 {isAr ? "إمبراطوري (رطل/إنش)" : "Imperial (lb/in)"}
@@ -126,7 +126,7 @@ export default function BMICalculatorPage() {
                 value={weight}
                 onChange={(e) => setWeight(e.target.value)}
                 placeholder={unit === "metric" ? "75" : "165"}
-                className="w-full rounded-full border border-[#d2d2d7] bg-white px-4 py-2.5 text-base font-normal outline-none focus:border-[#0071e3]"
+                className="w-full rounded-full border border-[var(--edge)] bg-[var(--card)] px-4 py-2.5 text-base font-normal outline-none focus:border-[var(--chrome-edge)]"
               />
             </div>
             <div>
@@ -138,7 +138,7 @@ export default function BMICalculatorPage() {
                 value={height}
                 onChange={(e) => setHeight(e.target.value)}
                 placeholder={unit === "metric" ? "175" : "69"}
-                className="w-full rounded-full border border-[#d2d2d7] bg-white px-4 py-2.5 text-base font-normal outline-none focus:border-[#0071e3]"
+                className="w-full rounded-full border border-[var(--edge)] bg-[var(--card)] px-4 py-2.5 text-base font-normal outline-none focus:border-[var(--chrome-edge)]"
               />
             </div>
           </div>
@@ -146,7 +146,7 @@ export default function BMICalculatorPage() {
           {/* Calculate */}
           <button
             onClick={calculate}
-            className="w-full rounded-full bg-[#0071e3] px-6 py-3 text-base font-normal text-white transition-opacity hover:opacity-90"
+            className="w-full btn-chrome px-6 py-3 text-base"
           >
             {isAr ? "احسب" : "Calculate"}
           </button>
@@ -156,7 +156,7 @@ export default function BMICalculatorPage() {
         {result && (
           <div className="mt-8 space-y-6">
             {/* BMI Score */}
-            <div className="rounded-3xl bg-[#1d1d1f] p-8 text-center text-white">
+            <div className="rounded-[var(--radius-chrome)] bg-black p-8 text-center text-white">
               <p className="text-xs font-normal uppercase tracking-wide text-gray-400">
                 {isAr ? "مؤشر كتلة الجسم" : "Your BMI"}
               </p>
@@ -169,7 +169,7 @@ export default function BMICalculatorPage() {
             </div>
 
             {/* BMI Scale */}
-            <div className="rounded-3xl bg-[#f5f5f7] p-6 md:p-8">
+            <div className="rounded-3xl bg-[var(--tint)] p-6 md:p-8">
               <h3 className="text-lg font-semibold tracking-tight">
                 {isAr ? "مقياس BMI" : "BMI Scale"}
               </h3>
@@ -183,21 +183,21 @@ export default function BMICalculatorPage() {
                   <div
                     key={i}
                     className={`flex items-center justify-between rounded-xl px-4 py-2.5 ${
-                      row.active ? "bg-white" : ""
+                      row.active ? "bg-[var(--card)]" : ""
                     }`}
                   >
                     <span className="flex items-center gap-2 text-sm font-normal">
                       <span className="h-3 w-3 rounded-full" style={{ backgroundColor: row.color }} />
                       {row.label}
                     </span>
-                    <span className="text-sm font-normal text-[#6e6e73]">{row.range}</span>
+                    <span className="text-sm font-normal text-[var(--muted-foreground)]">{row.range}</span>
                   </div>
                 ))}
               </div>
 
               {/* Ideal weight */}
-              <div className="mt-6 rounded-2xl bg-white p-4 text-center">
-                <p className="text-sm font-normal text-[#6e6e73]">
+              <div className="marble-card mt-6 p-4 text-center">
+                <p className="text-sm font-normal text-[var(--muted-foreground)]">
                   {isAr ? "وزنك المثالي" : "Your ideal weight"}
                 </p>
                 <p className="mt-1 text-xl font-semibold">
@@ -207,15 +207,15 @@ export default function BMICalculatorPage() {
             </div>
 
             {/* CTA */}
-            <div className="rounded-3xl border border-[#0071e3]/20 bg-[#0071e3]/5 p-6 text-center">
-              <p className="text-base font-normal text-[#1d1d1f]">
+            <div className="rounded-3xl border border-[var(--edge)] bg-[var(--tint)] p-6 text-center">
+              <p className="text-base font-normal text-[var(--text)]">
                 {isAr
                   ? "محتاج خطة مخصصة للوصول لوزنك المثالي؟"
                   : "Need a personalized plan to reach your ideal weight?"}
               </p>
               <button
                 onClick={() => navigate("memberships")}
-                className="mt-4 rounded-full bg-[#0071e3] px-6 py-2.5 text-sm font-normal text-white transition-opacity hover:opacity-90"
+                className="mt-4 btn-chrome px-6 py-2.5 text-sm"
               >
                 {isAr ? "احصل على خطة مخصصة ›" : "Get a personalized plan ›"}
               </button>
@@ -240,7 +240,7 @@ export default function BMICalculatorPage() {
             />
 
             {/* Share buttons */}
-            <div className="rounded-2xl bg-[#f5f5f7] p-4">
+            <div className="rounded-2xl bg-[var(--tint)] p-4">
               <ShareButtons
                 title={
                   isAr
@@ -259,8 +259,8 @@ export default function BMICalculatorPage() {
         <OtherTools current="bmi-calculator" />
 
         {/* SEO content */}
-        <div className="mt-12 space-y-4 text-base font-normal leading-relaxed text-[#6e6e73]">
-          <h2 className="text-xl font-semibold tracking-tight text-[#1d1d1f]">
+        <div className="mt-12 space-y-4 text-base font-normal leading-relaxed text-[var(--muted-foreground)]">
+          <h2 className="text-xl font-semibold tracking-tight text-[var(--text)]">
             {isAr ? "إيه هو مؤشر كتلة الجسم (BMI)؟" : "What is Body Mass Index (BMI)?"}
           </h2>
           <p>

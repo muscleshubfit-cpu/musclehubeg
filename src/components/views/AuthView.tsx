@@ -115,17 +115,17 @@ export function AuthView({ mode, next, coach }: { mode: "login" | "signup"; next
   // M6 fix: show "check your email" screen when email confirmation is required
   if (needsConfirmation) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-white px-4 text-center text-[#1d1d1f]">
+      <div className="flex min-h-screen flex-col items-center justify-center bg-[var(--bg)] px-4 text-center text-[var(--text)]">
         <div className="mx-auto max-w-md">
-          <div className="mb-6 grid h-16 w-16 mx-auto place-items-center rounded-full bg-[#0071e3]/10">
-            <svg className="h-8 w-8 text-[#0071e3]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <div className="mb-6 grid h-16 w-16 mx-auto place-items-center rounded-full border border-[var(--edge)] bg-[var(--tint)]">
+            <svg className="h-8 w-8 text-[var(--muted-2)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
             </svg>
           </div>
           <h1 className="text-2xl font-semibold tracking-tight">
             {isAr ? "تحقق من بريدك الإلكتروني" : "Check your email"}
           </h1>
-          <p className="mt-3 text-sm font-normal text-[#6e6e73]">
+          <p className="mt-3 text-sm font-normal text-[var(--muted-foreground)]">
             {isAr
               ? `أرسلنا رابط تأكيد إلى ${email}. اضغط على الرابط لتفعيل حسابك ثم سجّل الدخول.`
               : `We sent a confirmation link to ${email}. Click the link to activate your account, then sign in.`}
@@ -135,7 +135,7 @@ export function AuthView({ mode, next, coach }: { mode: "login" | "signup"; next
               setNeedsConfirmation(false);
               navigate("auth", { mode: "login" });
             }}
-            className="mt-6 rounded-full bg-[#0071e3] px-6 py-2.5 text-sm font-normal text-white transition-opacity hover:opacity-90"
+            className="btn-chrome mt-6 px-6 py-2.5 text-sm"
           >
             {isAr ? "العودة لتسجيل الدخول" : "Back to login"}
           </button>
@@ -145,7 +145,7 @@ export function AuthView({ mode, next, coach }: { mode: "login" | "signup"; next
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-white text-[#1d1d1f]">
+    <div className="flex min-h-screen flex-col bg-[var(--bg)] text-[var(--text)]">
       <header className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between px-4">
         <button
           className="text-lg font-semibold tracking-tight"
@@ -163,19 +163,19 @@ export function AuthView({ mode, next, coach }: { mode: "login" | "signup"; next
             <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">
               {isSignup ? t("auth.signup.title") : t("auth.login.title")}
             </h1>
-            <p className="mt-2 text-base font-normal text-[#6e6e73] md:text-lg">
+            <p className="mt-2 text-base font-normal text-[var(--muted-foreground)] md:text-lg">
               {isSignup ? t("auth.signup.subtitle") : t("auth.login.subtitle")}
             </p>
 
             {/* Banner: explain why login is needed */}
             {next && (
-              <div className="mt-6 rounded-2xl border border-[#0071e3]/20 bg-[#0071e3]/5 p-4 text-sm font-normal text-[#1d1d1f]">
+              <div className="marble-card mt-6 p-4 text-sm text-[var(--text)]">
                 <p className="font-medium">
                   {isAr
                     ? "سجّل الدخول عشان تكمّل عملية الاشتراك"
                     : "Log in to continue your subscription"}
                 </p>
-                <p className="mt-1 text-[#6e6e73]">
+                <p className="mt-1 text-[var(--muted-foreground)]">
                   {isAr
                     ? "هترجع تلقائياً لصفحة الدفع بعد ما تسجّل."
                     : "You'll be returned to checkout automatically after logging in."}
@@ -184,7 +184,7 @@ export function AuthView({ mode, next, coach }: { mode: "login" | "signup"; next
             )}
 
             {!isSupabaseConfigured && (
-              <div className="mt-6 rounded-xl bg-[#f5f5f7] p-4 text-sm font-normal text-[#6e6e73]">
+              <div className="marble-card mt-6 p-4 text-sm font-normal text-[var(--muted-foreground)]">
                 {t("auth.demoNotice")}
               </div>
             )}
@@ -196,7 +196,7 @@ export function AuthView({ mode, next, coach }: { mode: "login" | "signup"; next
                   type="button"
                   onClick={handleGoogle}
                   disabled={googleLoading || loading}
-                  className="mt-8 flex w-full items-center justify-center gap-3 rounded-full border border-[#d2d2d7] bg-white px-6 py-3 text-base font-normal transition-opacity hover:opacity-90 disabled:opacity-50"
+                  className="btn-outline mt-8 flex w-full items-center justify-center gap-3 px-6 py-3 text-base disabled:opacity-50"
                 >
                   {googleLoading ? (
                     <span className="h-5 w-5 animate-spin rounded-full border-2 border-[#0071e3] border-t-transparent" />
@@ -209,7 +209,7 @@ export function AuthView({ mode, next, coach }: { mode: "login" | "signup"; next
                 {/* Divider */}
                 <div className="my-6 flex items-center gap-4">
                   <div className="h-px flex-1 bg-[#d2d2d7]" />
-                  <span className="text-xs font-normal uppercase tracking-wide text-[#6e6e73]">
+                  <span className="text-xs font-normal uppercase tracking-wide text-[var(--muted-foreground)]">
                     {t("auth.or")}
                   </span>
                   <div className="h-px flex-1 bg-[#d2d2d7]" />
@@ -230,7 +230,7 @@ export function AuthView({ mode, next, coach }: { mode: "login" | "signup"; next
                       value={fullName}
                       onChange={(e) => setFullName(e.target.value)}
                       placeholder="Mohamed Ali"
-                      className="rounded-xl border-[#d2d2d7] bg-white px-4 py-3 text-base"
+                      className="rounded-xl border-[var(--edge)] bg-[var(--card)] px-4 py-3 text-base"
                     />
                   </div>
                   <div className="space-y-2">
@@ -243,7 +243,7 @@ export function AuthView({ mode, next, coach }: { mode: "login" | "signup"; next
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
                       placeholder="+20 100 000 0000"
-                      className="rounded-xl border-[#d2d2d7] bg-white px-4 py-3 text-base"
+                      className="rounded-xl border-[var(--edge)] bg-[var(--card)] px-4 py-3 text-base"
                     />
                   </div>
                 </>
@@ -259,7 +259,7 @@ export function AuthView({ mode, next, coach }: { mode: "login" | "signup"; next
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="you@example.com"
-                  className="rounded-xl border-[#d2d2d7] bg-white px-4 py-3 text-base"
+                  className="rounded-xl border-[var(--edge)] bg-[var(--card)] px-4 py-3 text-base"
                 />
               </div>
               <div className="space-y-2">
@@ -274,24 +274,24 @@ export function AuthView({ mode, next, coach }: { mode: "login" | "signup"; next
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="rounded-xl border-[#d2d2d7] bg-white px-4 py-3 text-base"
+                  className="rounded-xl border-[var(--edge)] bg-[var(--card)] px-4 py-3 text-base"
                 />
               </div>
 
               <button
                 type="submit"
                 disabled={loading || googleLoading}
-                className="w-full rounded-full bg-[#0071e3] px-6 py-3 text-base font-normal text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+                className="btn-chrome w-full px-6 py-3 text-base disabled:opacity-50"
               >
                 {loading ? t("common.loading") : isSignup ? t("auth.signUp") : t("auth.signIn")}
               </button>
             </form>
 
-            <p className="mt-8 text-center text-sm font-normal text-[#6e6e73]">
+            <p className="mt-8 text-center text-sm font-normal text-[var(--muted-foreground)]">
               {isSignup ? t("auth.haveAccount") : t("auth.noAccount")}{" "}
               <button
                 type="button"
-                className="font-normal text-[#0071e3] transition-opacity hover:opacity-70"
+                className="font-normal text-[var(--muted-2)] underline-offset-4 transition-opacity hover:opacity-70 hover:underline"
                 onClick={() => navigate("auth", { mode: isSignup ? "login" : "signup" })}
               >
                 {isSignup ? t("auth.toLogin") : t("auth.toSignup")}
@@ -299,8 +299,8 @@ export function AuthView({ mode, next, coach }: { mode: "login" | "signup"; next
             </p>
 
             {/* Continue as guest — login is optional, not a wall */}
-            <div className="mt-8 border-t border-[#d2d2d7] pt-6">
-              <p className="text-center text-sm font-normal text-[#6e6e73]">
+            <div className="mt-8 border-t border-[var(--edge)] pt-6">
+              <p className="text-center text-sm font-normal text-[var(--muted-foreground)]">
                 {isAr
                   ? "مش جاهز تسجّل؟ تقدر تستخدم الأدوات والمدونة بدون حساب."
                   : "Not ready to sign up? You can use the tools and blog without an account."}
@@ -308,20 +308,20 @@ export function AuthView({ mode, next, coach }: { mode: "login" | "signup"; next
               <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
                 <a
                   href="/tools"
-                  className="rounded-full bg-[#f5f5f7] px-5 py-2 text-sm font-normal text-[#1d1d1f] transition-opacity hover:opacity-90"
+                  className="rounded-full border border-[var(--edge)] bg-[var(--tint)] px-5 py-2 text-sm font-normal text-[var(--text)] transition-opacity hover:opacity-90"
                 >
                   {isAr ? "الأدوات المجانية" : "Free Tools"}
                 </a>
                 <a
                   href="/blog"
-                  className="rounded-full bg-[#f5f5f7] px-5 py-2 text-sm font-normal text-[#1d1d1f] transition-opacity hover:opacity-90"
+                  className="rounded-full border border-[var(--edge)] bg-[var(--tint)] px-5 py-2 text-sm font-normal text-[var(--text)] transition-opacity hover:opacity-90"
                 >
                   {isAr ? "المدونة" : "Blog"}
                 </a>
                 <button
                   type="button"
                   onClick={() => navigate("landing")}
-                  className="rounded-full bg-[#f5f5f7] px-5 py-2 text-sm font-normal text-[#1d1d1f] transition-opacity hover:opacity-90"
+                  className="rounded-full border border-[var(--edge)] bg-[var(--tint)] px-5 py-2 text-sm font-normal text-[var(--text)] transition-opacity hover:opacity-90"
                 >
                   {isAr ? "العودة للرئيسية" : "Back to home"}
                 </button>
@@ -331,7 +331,7 @@ export function AuthView({ mode, next, coach }: { mode: "login" | "signup"; next
         </div>
       </main>
 
-      <footer className="mt-auto border-t border-[#d2d2d7] py-6 text-center text-xs font-normal text-[#6e6e73]">
+      <footer className="mt-auto border-t border-[var(--edge)] py-6 text-center text-xs font-normal text-[var(--muted-foreground)]">
         © {new Date().getFullYear()} Alkemos. {isAr ? "كل الحقوق محفوظة." : "All rights reserved."}
       </footer>
     </div>

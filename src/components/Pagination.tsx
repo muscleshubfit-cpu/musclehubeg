@@ -55,7 +55,7 @@ export function Pagination({
 
   return (
     <div className={cn("flex flex-wrap items-center justify-between gap-3", className)}>
-      <p className="text-xs font-normal text-[#6e6e73]">
+      <p className="text-xs font-normal text-[var(--muted-foreground)]">
         {isAr
           ? `يعرض ${fmt(from, isAr)}–${fmt(to, isAr)} من ${fmt(total, isAr)}`
           : `Showing ${from.toLocaleString()}–${to.toLocaleString()} of ${total.toLocaleString()}`}
@@ -67,7 +67,7 @@ export function Pagination({
             value={pageSize}
             onChange={(e) => onPageSizeChange(Number(e.target.value))}
             aria-label={isAr ? "عدد الصفوف بالصفحة" : "Rows per page"}
-            className="h-9 rounded-full border border-[#d2d2d7] bg-white px-3 text-xs font-normal outline-none focus:border-[#0071e3]"
+            className="h-9 rounded-full border border-[var(--edge)] bg-[var(--card)] px-3 text-xs font-normal outline-none focus:border-[var(--chrome-edge)]"
           >
             {sizes.map((s) => (
               <option key={s} value={s}>
@@ -80,7 +80,7 @@ export function Pagination({
         <button
           onClick={() => onPageChange(page - 1)}
           disabled={page <= 1 || busy}
-          className={cn(btn, "bg-white text-[#1d1d1f] hover:bg-[#e8e8ed]")}
+          className={cn(btn, "bg-[var(--card)] text-[var(--text)] hover:opacity-80")}
         >
           {isAr ? "السابق" : "Prev"}
         </button>
@@ -98,7 +98,7 @@ export function Pagination({
               aria-current={n === page ? "page" : undefined}
               className={cn(
                 btn,
-                n === page ? "bg-[#1d1d1f] text-white" : "bg-white text-[#1d1d1f] hover:bg-[#e8e8ed]",
+                n === page ? "bg-[var(--text)] text-[var(--bg)]" : "bg-[var(--card)] text-[var(--text)] hover:opacity-80",
               )}
             >
               {fmt(n, isAr)}
@@ -109,7 +109,7 @@ export function Pagination({
         <button
           onClick={() => onPageChange(page + 1)}
           disabled={page >= totalPages || busy}
-          className={cn(btn, "bg-white text-[#1d1d1f] hover:bg-[#e8e8ed]")}
+          className={cn(btn, "bg-[var(--card)] text-[var(--text)] hover:opacity-80")}
         >
           {isAr ? "التالي" : "Next"}
         </button>

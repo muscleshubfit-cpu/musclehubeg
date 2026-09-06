@@ -260,7 +260,7 @@ export default function WaterTrackerPage() {
   const dashOffset = C - (progressPct / 100) * C;
 
   return (
-    <div className="min-h-screen bg-white text-[#1d1d1f]">
+    <div className="min-h-screen bg-[var(--bg)] text-[var(--text)]">
       <SiteHeader variant="landing" />
 
       <main className="mx-auto max-w-2xl px-4 py-12 md:py-16">
@@ -269,7 +269,7 @@ export default function WaterTrackerPage() {
           <h1 className="text-3xl font-semibold tracking-tight md:text-5xl">
             {isAr ? "متتبع شرب الماء" : "Water Tracker"}
           </h1>
-          <p className="mx-auto mt-3 max-w-md text-base font-normal text-[#6e6e73] md:text-lg">
+          <p className="mx-auto mt-3 max-w-md text-base font-normal text-[var(--muted-foreground)] md:text-lg">
             {isAr
               ? "حدد هدفك اليومي وسجّل كوبساتك. السجل بيتخزن محلياً على جهازك."
               : "Set your daily goal and log your cups. Your log is stored locally on your device."}
@@ -302,25 +302,25 @@ export default function WaterTrackerPage() {
               />
             </svg>
             <div className="absolute inset-0 flex flex-col items-center justify-center">
-              <Droplets className="h-7 w-7 text-[#0071e3]" />
+              <Droplets className="h-7 w-7 text-[var(--muted-2)]" />
               <p className="mt-1 text-3xl font-semibold tracking-tight">
                 {consumedToday}
-                <span className="text-sm font-normal text-[#6e6e73]"> / {settings.goalMl}</span>
+                <span className="text-sm font-normal text-[var(--muted-foreground)]"> / {settings.goalMl}</span>
               </p>
-              <p className="text-xs font-normal text-[#6e6e73]">ml</p>
-              <p className="mt-2 text-xs font-medium text-[#0071e3]">
+              <p className="text-xs font-normal text-[var(--muted-foreground)]">ml</p>
+              <p className="mt-2 text-xs font-medium text-[var(--muted-2)]">
                 {progressPct}%
               </p>
             </div>
           </div>
 
           {consumedToday >= settings.goalMl ? (
-            <div className="mt-4 inline-flex items-center gap-2 rounded-full bg-[#34c759]/10 px-4 py-2 text-sm font-medium text-[#34c759]">
+            <div className="mt-4 inline-flex items-center gap-2 rounded-full bg-[var(--success)]/10 px-4 py-2 text-sm font-medium text-[var(--success)]">
               <Check className="h-4 w-4" />
               {isAr ? "وصلت هدفك اليوم! 🎉" : "Goal reached today! 🎉"}
             </div>
           ) : (
-            <p className="mt-4 text-sm font-normal text-[#6e6e73]">
+            <p className="mt-4 text-sm font-normal text-[var(--muted-foreground)]">
               {isAr
                 ? `فاضل ${remaining} مل`
                 : `${remaining} ml to go`}
@@ -332,21 +332,21 @@ export default function WaterTrackerPage() {
         <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
           <button
             onClick={removeCup}
-            className="grid h-12 w-12 place-items-center rounded-full border border-[#d2d2d7] bg-white text-[#1d1d1f] transition-colors hover:bg-[#f5f5f7]"
+            className="grid h-12 w-12 place-items-center rounded-full border border-[var(--edge)] bg-[var(--bg)] text-[var(--text)] transition-colors hover:bg-[var(--tint)]"
             title={isAr ? `نقص كوب (${settings.cupMl}مل)` : `Remove cup (${settings.cupMl}ml)`}
           >
             <Minus className="h-5 w-5" />
           </button>
           <button
             onClick={addCup}
-            className="inline-flex items-center gap-2 rounded-full bg-[#0071e3] px-6 py-3 text-base font-medium text-white transition-opacity hover:opacity-90"
+            className="btn-chrome inline-flex items-center gap-2 px-6 py-3 text-base font-medium"
           >
             <Plus className="h-5 w-5" />
             {isAr ? `كوب (${settings.cupMl}مل)` : `+ Cup (${settings.cupMl}ml)`}
           </button>
           <button
             onClick={resetToday}
-            className="grid h-12 w-12 place-items-center rounded-full border border-[#d2d2d7] bg-white text-[#ff3b30] transition-colors hover:bg-[#ff3b30]/5"
+            className="grid h-12 w-12 place-items-center rounded-full border border-[var(--edge)] bg-[var(--card)] text-[var(--destructive)] transition-colors hover:bg-[var(--destructive)]/5"
             title={isAr ? "تصفير اليوم" : "Reset today"}
           >
             <RotateCcw className="h-5 w-5" />
@@ -355,14 +355,14 @@ export default function WaterTrackerPage() {
 
         {/* Custom amount */}
         <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
-          <span className="text-xs font-normal text-[#6e6e73]">
+          <span className="text-xs font-normal text-[var(--muted-foreground)]">
             {isAr ? "إضافة سريعة:" : "Quick add:"}
           </span>
           {[100, 200, 350, 500].map((ml) => (
             <button
               key={ml}
               onClick={() => addCustom(ml)}
-              className="rounded-full bg-[#f5f5f7] px-3 py-1 text-xs font-medium text-[#0071e3] transition-colors hover:bg-[#0071e3]/10"
+              className="rounded-full bg-[var(--tint)] px-3 py-1 text-xs font-medium text-[var(--muted-2)] transition-colors hover:opacity-80"
             >
               +{ml}ml
             </button>
@@ -370,7 +370,7 @@ export default function WaterTrackerPage() {
         </div>
 
         {/* Settings */}
-        <div className="mt-10 rounded-3xl bg-[#f5f5f7] p-6 md:p-8">
+        <div className="mt-10 rounded-3xl bg-[var(--tint)] p-6 md:p-8">
           <h3 className="text-lg font-semibold tracking-tight">
             {isAr ? "الإعدادات" : "Settings"}
           </h3>
@@ -386,7 +386,7 @@ export default function WaterTrackerPage() {
               onChange={(e) =>
                 setSettings((s) => ({ ...s, goalMl: parseInt(e.target.value) || 0 }))
               }
-              className="w-full rounded-full border border-[#d2d2d7] bg-white px-4 py-2.5 text-base font-normal outline-none focus:border-[#0071e3]"
+              className="w-full rounded-full border border-[var(--edge)] bg-[var(--card)] px-4 py-2.5 text-base font-normal outline-none focus:border-[var(--chrome-edge)]"
               dir="ltr"
             />
           </div>
@@ -402,17 +402,17 @@ export default function WaterTrackerPage() {
               onChange={(e) =>
                 setSettings((s) => ({ ...s, cupMl: parseInt(e.target.value) || 0 }))
               }
-              className="w-full rounded-full border border-[#d2d2d7] bg-white px-4 py-2.5 text-base font-normal outline-none focus:border-[#0071e3]"
+              className="w-full rounded-full border border-[var(--edge)] bg-[var(--card)] px-4 py-2.5 text-base font-normal outline-none focus:border-[var(--chrome-edge)]"
               dir="ltr"
             />
           </div>
 
           {/* Recommend from weight */}
-          <div className="mt-4 rounded-2xl bg-white p-4">
+          <div className="marble-card mt-4 p-4">
             <p className="text-sm font-medium">
               {isAr ? "احسب الهدف من وزنك" : "Calculate goal from weight"}
             </p>
-            <p className="mt-1 text-xs font-normal text-[#6e6e73]">
+            <p className="mt-1 text-xs font-normal text-[var(--muted-foreground)]">
               {isAr
                 ? "المعادلة: 35 مل × وزنك (كجم)."
                 : "Formula: 35 ml × your weight (kg)."}
@@ -423,12 +423,12 @@ export default function WaterTrackerPage() {
                 value={weight}
                 onChange={(e) => setWeight(e.target.value)}
                 placeholder={isAr ? "وزنك (كجم)" : "Weight (kg)"}
-                className="flex-1 rounded-full border border-[#d2d2d7] bg-[#f5f5f7] px-4 py-2.5 text-sm font-normal outline-none focus:border-[#0071e3]"
+                className="flex-1 rounded-full border border-[var(--edge)] bg-[var(--tint)] px-4 py-2.5 text-sm font-normal outline-none focus:border-[var(--chrome-edge)]"
                 dir="ltr"
               />
               <button
                 onClick={applyWeightGoal}
-                className="rounded-full bg-[#1d1d1f] px-5 py-2.5 text-sm font-normal text-white transition-opacity hover:opacity-90"
+                className="btn-chrome rounded-full px-5 py-2.5 text-sm"
               >
                 {isAr ? "احسب" : "Calculate"}
               </button>
@@ -437,7 +437,7 @@ export default function WaterTrackerPage() {
         </div>
 
         {/* Last 7 days history */}
-        <div className="mt-6 rounded-3xl bg-[#1d1d1f] p-6 md:p-8 text-white">
+        <div className="mt-6 rounded-[var(--radius-chrome)] bg-black p-6 text-white md:p-8">
           <h3 className="text-lg font-semibold tracking-tight">
             {isAr ? "آخر 7 أيام" : "Last 7 Days"}
           </h3>
@@ -463,7 +463,7 @@ export default function WaterTrackerPage() {
                     {d.ml}
                   </p>
                   {isToday && (
-                    <p className="text-[9px] font-medium text-[#0071e3]">
+                    <p className="text-[9px] font-medium text-[#9BA0A6]">
                       {isAr ? "اليوم" : "today"}
                     </p>
                   )}
@@ -478,7 +478,7 @@ export default function WaterTrackerPage() {
           <button
             onClick={handleSaveToDb}
             disabled={savingToDb || savedToDb}
-            className="inline-flex items-center gap-2 rounded-full bg-[#0071e3] px-5 py-2.5 text-sm font-normal text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+            className="btn-chrome inline-flex items-center gap-2 px-5 py-2.5 text-sm disabled:opacity-50"
           >
             {savingToDb ? (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -493,7 +493,7 @@ export default function WaterTrackerPage() {
           </button>
           <button
             onClick={handleDownloadJson}
-            className="inline-flex items-center gap-2 rounded-full border border-[#d2d2d7] bg-white px-5 py-2.5 text-sm font-normal text-[#1d1d1f] transition-colors hover:bg-[#f5f5f7]"
+            className="inline-flex items-center gap-2 rounded-full border border-[var(--edge)] bg-[var(--card)] px-5 py-2.5 text-sm font-normal text-[var(--text)] transition-colors hover:bg-[var(--tint)]"
           >
             <Download className="h-4 w-4" />
             {isAr ? "تحميل JSON" : "JSON"}
@@ -514,7 +514,7 @@ export default function WaterTrackerPage() {
         </div>
 
         {/* Share */}
-        <div className="mt-6 rounded-2xl bg-[#f5f5f7] p-4">
+        <div className="mt-6 rounded-2xl bg-[var(--tint)] p-4">
           <ShareButtons
             title={
               isAr
@@ -529,8 +529,8 @@ export default function WaterTrackerPage() {
         <OtherTools current="water-tracker" />
 
         {/* SEO content */}
-        <div className="mt-12 space-y-4 text-base font-normal leading-relaxed text-[#6e6e73]">
-          <h2 className="text-xl font-semibold tracking-tight text-[#1d1d1f]">
+        <div className="mt-12 space-y-4 text-base font-normal leading-relaxed text-[var(--muted-foreground)]">
+          <h2 className="text-xl font-semibold tracking-tight text-[var(--text)]">
             {isAr ? "ليه لازم تشرب ماء كفاية؟" : "Why drink enough water?"}
           </h2>
           <p>

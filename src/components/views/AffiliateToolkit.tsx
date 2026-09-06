@@ -104,7 +104,7 @@ export function AffiliateToolkit() {
   // ─── Loading state ───
   if (loading) {
     return (
-      <div className="rounded-3xl bg-[#f5f5f7] p-8 text-center text-base font-normal text-[#6e6e73]">
+      <div className="marble-card p-8 text-center text-base font-normal text-[var(--muted-foreground)]">
         {t("common.loading")}
       </div>
     );
@@ -117,10 +117,10 @@ export function AffiliateToolkit() {
         <div className="flex items-start gap-3">
           <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-[#ff3b30]" aria-hidden="true" />
           <div>
-            <p className="text-base font-semibold text-[#1d1d1f]">
+            <p className="text-base font-semibold text-[var(--text)]">
               {isAr ? "تعذر تحميل رابط الأفلييت" : "Couldn't load your affiliate link"}
             </p>
-            <p className="mt-1 text-sm font-normal text-[#6e6e73]">
+            <p className="mt-1 text-sm font-normal text-[var(--muted-foreground)]">
               {error || (isAr ? "حاول مرة تانية أو تواصل مع الدعم." : "Please try again or contact support.")}
             </p>
           </div>
@@ -135,17 +135,17 @@ export function AffiliateToolkit() {
       <section
         id="affiliate-content"
         aria-labelledby="affiliate-content-h"
-        className="rounded-3xl bg-[#f5f5f7] p-6 sm:p-8 md:p-10"
+        className="marble-card p-6 sm:p-8 md:p-10"
       >
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#0071e3]/10">
-            <FileText className="h-5 w-5 text-[#0071e3]" aria-hidden="true" />
+          <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-[var(--edge)] bg-[var(--tint)]">
+            <FileText className="h-5 w-5 text-[var(--muted-2)]" aria-hidden="true" />
           </div>
           <h2 id="affiliate-content-h" className="text-xl font-semibold tracking-tight sm:text-2xl">
             {ui.content.title}
           </h2>
         </div>
-        <p className="mt-3 text-sm font-normal text-[#6e6e73]">
+        <p className="mt-3 text-sm font-normal text-[var(--muted-foreground)]">
           {ui.content.subtitle}
         </p>
 
@@ -166,7 +166,7 @@ export function AffiliateToolkit() {
       <section
         id="affiliate-banners"
         aria-labelledby="affiliate-banners-h"
-        className="rounded-3xl bg-[#f5f5f7] p-6 sm:p-8 md:p-10"
+        className="marble-card p-6 sm:p-8 md:p-10"
       >
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#34c759]/15">
@@ -176,7 +176,7 @@ export function AffiliateToolkit() {
             {ui.banners.title}
           </h2>
         </div>
-        <p className="mt-3 text-sm font-normal text-[#6e6e73]">
+        <p className="mt-3 text-sm font-normal text-[var(--muted-foreground)]">
           {ui.banners.subtitle}
         </p>
 
@@ -233,22 +233,22 @@ function BannerLangSelector({
 }) {
   return (
     <div
-      className="mt-6 flex flex-col gap-2 rounded-2xl bg-white p-4 ring-1 ring-[#e5e5e7] sm:flex-row sm:items-center sm:justify-between sm:gap-4"
+      className="marble-card mt-6 flex flex-col gap-2 p-4 sm:flex-row sm:items-center sm:justify-between sm:gap-4"
       role="group"
       aria-label={labels.title}
     >
       <div className="flex flex-col gap-1">
-        <span className="text-sm font-semibold text-[#1d1d1f]">
+        <span className="text-sm font-semibold text-[var(--text)]">
           {labels.title}
         </span>
-        <span className="text-xs font-normal text-[#6e6e73]">
+        <span className="text-xs font-normal text-[var(--muted-foreground)]">
           {labels.hint}
         </span>
       </div>
 
       {/* Segmented control — Apple-style pill toggle */}
       <div
-        className="inline-flex w-full max-w-full shrink-0 overflow-hidden rounded-full bg-[#f5f5f7] p-1 sm:w-auto"
+        className="inline-flex w-full max-w-full shrink-0 overflow-hidden rounded-full border border-[var(--edge)] bg-[var(--tint)] p-1 sm:w-auto"
         role="radiogroup"
         aria-label={labels.title}
       >
@@ -260,8 +260,8 @@ function BannerLangSelector({
           className={
             "flex flex-1 items-center justify-center gap-2 rounded-full px-5 py-2 text-sm font-semibold transition-colors sm:flex-none " +
             (bannerLang === "en"
-              ? "bg-[#0071e3] text-white shadow-sm"
-              : "text-[#6e6e73] hover:text-[#1d1d1f]")
+              ? "bg-[var(--text)] text-[var(--bg)] shadow-sm"
+              : "text-[var(--muted-foreground)] hover:text-[var(--text)]")
           }
         >
           {labels.en}
@@ -274,8 +274,8 @@ function BannerLangSelector({
           className={
             "flex flex-1 items-center justify-center gap-2 rounded-full px-5 py-2 text-sm font-semibold transition-colors sm:flex-none " +
             (bannerLang === "ar"
-              ? "bg-[#0071e3] text-white shadow-sm"
-              : "text-[#6e6e73] hover:text-[#1d1d1f]")
+              ? "bg-[var(--text)] text-[var(--bg)] shadow-sm"
+              : "text-[var(--muted-foreground)] hover:text-[var(--text)]")
           }
           dir="rtl"
         >
@@ -310,10 +310,10 @@ function PromoCard({
   const platform = isAr ? template.recommendedPlatform_ar : template.recommendedPlatform_en;
 
   return (
-    <article className="flex min-w-0 flex-col rounded-2xl bg-white p-5 ring-1 ring-[#e5e5e7]">
+    <article className="marble-card flex min-w-0 flex-col p-5">
       <header>
         <h3 className="text-base font-semibold tracking-tight">{label}</h3>
-        <p className="mt-1 text-xs font-normal text-[#6e6e73]">
+        <p className="mt-1 text-xs font-normal text-[var(--muted-foreground)]">
           {isAr ? "منصة موصى بها" : "Recommended platform"}: {platform}
         </p>
       </header>
@@ -326,7 +326,7 @@ function PromoCard({
       >
         <pre
           dir={isAr ? "rtl" : "ltr"}
-          className="whitespace-pre-wrap break-words font-sans text-sm font-normal leading-relaxed text-[#1d1d1f]"
+          className="whitespace-pre-wrap break-words font-sans text-sm font-normal leading-relaxed text-[var(--text)]"
         >
           {copy}
         </pre>
@@ -383,10 +383,10 @@ function BannerCard({
   const bannerUrl = getBannerUrl(format, bannerLang);
 
   return (
-    <article className="flex min-w-0 flex-col rounded-2xl bg-white p-5 ring-1 ring-[#e5e5e7]">
+    <article className="marble-card flex min-w-0 flex-col p-5">
       <header>
         <h3 className="text-base font-semibold tracking-tight">{label}</h3>
-        <p className="mt-1 text-xs font-normal text-[#6e6e73]">{platform}</p>
+        <p className="mt-1 text-xs font-normal text-[var(--muted-foreground)]">{platform}</p>
       </header>
 
       {/* Banner preview — renders the banner in its final true form.
@@ -445,12 +445,12 @@ function BannerCard({
           the <pre> instead of becoming intrinsic min-content of the <article>.
           overflow-auto still allows vertical scroll for long snippets. */}
       <div className="mt-4">
-        <p className="text-xs font-semibold uppercase tracking-wide text-[#6e6e73]">
+        <p className="text-xs font-semibold uppercase tracking-wide text-[var(--muted-foreground)]">
           {isAr ? "كود HTML للدمج" : "HTML Embed Code"}
         </p>
         <pre
           dir="ltr"
-          className="mt-2 max-h-40 overflow-auto whitespace-pre-wrap break-words rounded-xl bg-[#1d1d1f] p-4 text-xs font-mono text-[#e8e8ed]"
+          className="mt-2 max-h-40 overflow-auto whitespace-pre-wrap break-words rounded-xl bg-black p-4 text-xs font-mono text-[#DDE0E3]"
           tabIndex={0}
           aria-label={isAr ? "كود HTML" : "HTML code"}
         >

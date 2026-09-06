@@ -84,7 +84,7 @@ export default function CalorieCalculatorPage() {
   };
 
   return (
-    <div className="min-h-screen bg-white text-[#1d1d1f]">
+    <div className="min-h-screen bg-[var(--bg)] text-[var(--text)]">
       <SiteHeader variant="landing" />
 
       <main className="mx-auto max-w-2xl px-4 py-12 md:py-16">
@@ -93,7 +93,7 @@ export default function CalorieCalculatorPage() {
           <h1 className="text-3xl font-semibold tracking-tight md:text-5xl">
             {isAr ? "حاسبة السعرات الحرارية" : "Calorie Calculator"}
           </h1>
-          <p className="mx-auto mt-3 max-w-md text-base font-normal text-[#6e6e73] md:text-lg">
+          <p className="mx-auto mt-3 max-w-md text-base font-normal text-[var(--muted-foreground)] md:text-lg">
             {isAr
               ? "احسب احتياجك اليومي من السعرات الحرارية والماكروز بناءً على بياناتك."
               : "Calculate your daily calorie needs and macros based on your stats."}
@@ -101,7 +101,7 @@ export default function CalorieCalculatorPage() {
         </div>
 
         {/* Calculator */}
-        <div className="mt-10 rounded-3xl bg-[#f5f5f7] p-6 md:p-8">
+        <div className="mt-10 rounded-3xl bg-[var(--tint)] p-6 md:p-8">
           {/* Gender */}
           <div className="mb-6">
             <label className="mb-2 block text-sm font-medium">
@@ -111,7 +111,7 @@ export default function CalorieCalculatorPage() {
               <button
                 onClick={() => setGender("male")}
                 className={`flex-1 rounded-full px-4 py-2.5 text-sm font-normal transition-all ${
-                  gender === "male" ? "bg-[#1d1d1f] text-white" : "bg-white text-[#6e6e73]"
+                  gender === "male" ? "bg-[var(--text)] text-[var(--bg)]" : "bg-[var(--card)] text-[var(--muted-foreground)]"
                 }`}
               >
                 {isAr ? "ذكر" : "Male"}
@@ -119,7 +119,7 @@ export default function CalorieCalculatorPage() {
               <button
                 onClick={() => setGender("female")}
                 className={`flex-1 rounded-full px-4 py-2.5 text-sm font-normal transition-all ${
-                  gender === "female" ? "bg-[#1d1d1f] text-white" : "bg-white text-[#6e6e73]"
+                  gender === "female" ? "bg-[var(--text)] text-[var(--bg)]" : "bg-[var(--card)] text-[var(--muted-foreground)]"
                 }`}
               >
                 {isAr ? "أنثى" : "Female"}
@@ -138,7 +138,7 @@ export default function CalorieCalculatorPage() {
                 value={age}
                 onChange={(e) => setAge(e.target.value)}
                 placeholder="25"
-                className="w-full rounded-full border border-[#d2d2d7] bg-white px-4 py-2.5 text-base font-normal outline-none focus:border-[#0071e3]"
+                className="w-full rounded-full border border-[var(--edge)] bg-[var(--card)] px-4 py-2.5 text-base font-normal outline-none focus:border-[var(--chrome-edge)]"
               />
             </div>
             <div>
@@ -150,7 +150,7 @@ export default function CalorieCalculatorPage() {
                 value={weight}
                 onChange={(e) => setWeight(e.target.value)}
                 placeholder="75"
-                className="w-full rounded-full border border-[#d2d2d7] bg-white px-4 py-2.5 text-base font-normal outline-none focus:border-[#0071e3]"
+                className="w-full rounded-full border border-[var(--edge)] bg-[var(--card)] px-4 py-2.5 text-base font-normal outline-none focus:border-[var(--chrome-edge)]"
               />
             </div>
             <div>
@@ -162,7 +162,7 @@ export default function CalorieCalculatorPage() {
                 value={height}
                 onChange={(e) => setHeight(e.target.value)}
                 placeholder="175"
-                className="w-full rounded-full border border-[#d2d2d7] bg-white px-4 py-2.5 text-base font-normal outline-none focus:border-[#0071e3]"
+                className="w-full rounded-full border border-[var(--edge)] bg-[var(--card)] px-4 py-2.5 text-base font-normal outline-none focus:border-[var(--chrome-edge)]"
               />
             </div>
           </div>
@@ -175,7 +175,7 @@ export default function CalorieCalculatorPage() {
             <select
               value={activity}
               onChange={(e) => setActivity(e.target.value as Activity)}
-              className="w-full rounded-full border border-[#d2d2d7] bg-white px-4 py-2.5 text-base font-normal outline-none focus:border-[#0071e3]"
+              className="w-full rounded-full border border-[var(--edge)] bg-[var(--card)] px-4 py-2.5 text-base font-normal outline-none focus:border-[var(--chrome-edge)]"
             >
               {(Object.keys(ACTIVITY_FACTORS) as Activity[]).map((a) => (
                 <option key={a} value={a}>
@@ -194,7 +194,7 @@ export default function CalorieCalculatorPage() {
               <button
                 onClick={() => setGoal("lose")}
                 className={`flex-1 rounded-full px-4 py-2.5 text-sm font-normal transition-all ${
-                  goal === "lose" ? "bg-[#1d1d1f] text-white" : "bg-white text-[#6e6e73]"
+                  goal === "lose" ? "bg-[var(--text)] text-[var(--bg)]" : "bg-[var(--card)] text-[var(--muted-foreground)]"
                 }`}
               >
                 {isAr ? "خسارة وزن" : "Lose weight"}
@@ -202,7 +202,7 @@ export default function CalorieCalculatorPage() {
               <button
                 onClick={() => setGoal("maintain")}
                 className={`flex-1 rounded-full px-4 py-2.5 text-sm font-normal transition-all ${
-                  goal === "maintain" ? "bg-[#1d1d1f] text-white" : "bg-white text-[#6e6e73]"
+                  goal === "maintain" ? "bg-[var(--text)] text-[var(--bg)]" : "bg-[var(--card)] text-[var(--muted-foreground)]"
                 }`}
               >
                 {isAr ? "ثبات" : "Maintain"}
@@ -210,7 +210,7 @@ export default function CalorieCalculatorPage() {
               <button
                 onClick={() => setGoal("gain")}
                 className={`flex-1 rounded-full px-4 py-2.5 text-sm font-normal transition-all ${
-                  goal === "gain" ? "bg-[#1d1d1f] text-white" : "bg-white text-[#6e6e73]"
+                  goal === "gain" ? "bg-[var(--text)] text-[var(--bg)]" : "bg-[var(--card)] text-[var(--muted-foreground)]"
                 }`}
               >
                 {isAr ? "زيادة وزن" : "Gain weight"}
@@ -221,7 +221,7 @@ export default function CalorieCalculatorPage() {
           {/* Calculate button */}
           <button
             onClick={calculate}
-            className="w-full rounded-full bg-[#0071e3] px-6 py-3 text-base font-normal text-white transition-opacity hover:opacity-90"
+            className="w-full btn-chrome px-6 py-3 text-base"
           >
             {isAr ? "احسب" : "Calculate"}
           </button>
@@ -231,7 +231,7 @@ export default function CalorieCalculatorPage() {
         {result && (
           <div className="mt-8 space-y-6">
             {/* Main result */}
-            <div className="rounded-3xl bg-[#1d1d1f] p-8 text-center text-white">
+            <div className="rounded-[var(--radius-chrome)] bg-black p-8 text-center text-white">
               <p className="text-xs font-normal uppercase tracking-wide text-gray-400">
                 {isAr ? "السعرات اليومية" : "Daily Calories"}
               </p>
@@ -245,41 +245,41 @@ export default function CalorieCalculatorPage() {
 
             {/* BMR + TDEE */}
             <div className="grid grid-cols-2 gap-4">
-              <div className="rounded-2xl bg-[#f5f5f7] p-6 text-center">
+              <div className="rounded-2xl bg-[var(--tint)] p-6 text-center">
                 <p className="text-2xl font-semibold tracking-tight">{result.bmr}</p>
-                <p className="mt-1 text-xs font-normal text-[#6e6e73]">
+                <p className="mt-1 text-xs font-normal text-[var(--muted-foreground)]">
                   {isAr ? "BMR (معدل الأيض الأساسي)" : "BMR (Basal Metabolic Rate)"}
                 </p>
               </div>
-              <div className="rounded-2xl bg-[#f5f5f7] p-6 text-center">
+              <div className="rounded-2xl bg-[var(--tint)] p-6 text-center">
                 <p className="text-2xl font-semibold tracking-tight">{result.tdee}</p>
-                <p className="mt-1 text-xs font-normal text-[#6e6e73]">
+                <p className="mt-1 text-xs font-normal text-[var(--muted-foreground)]">
                   {isAr ? "TDEE (الاحتياج اليومي)" : "TDEE (Maintenance)"}
                 </p>
               </div>
             </div>
 
             {/* Macros */}
-            <div className="rounded-3xl bg-[#f5f5f7] p-6 md:p-8">
+            <div className="rounded-3xl bg-[var(--tint)] p-6 md:p-8">
               <h3 className="text-lg font-semibold tracking-tight">
                 {isAr ? "الماكروز اليومية" : "Daily Macros"}
               </h3>
               <div className="mt-4 grid grid-cols-3 gap-4">
                 <div className="text-center">
-                  <p className="text-2xl font-semibold text-[#0071e3]">{result.protein}g</p>
-                  <p className="mt-1 text-xs font-normal text-[#6e6e73]">
+                  <p className="chrome-text text-2xl font-semibold">{result.protein}g</p>
+                  <p className="mt-1 text-xs font-normal text-[var(--muted-foreground)]">
                     {isAr ? "بروتين" : "Protein"}
                   </p>
                 </div>
                 <div className="text-center">
-                  <p className="text-2xl font-semibold text-[#1d1d1f]">{result.carbs}g</p>
-                  <p className="mt-1 text-xs font-normal text-[#6e6e73]">
+                  <p className="text-2xl font-semibold text-[var(--text)]">{result.carbs}g</p>
+                  <p className="mt-1 text-xs font-normal text-[var(--muted-foreground)]">
                     {isAr ? "كارب" : "Carbs"}
                   </p>
                 </div>
                 <div className="text-center">
-                  <p className="text-2xl font-semibold text-[#6e6e73]">{result.fat}g</p>
-                  <p className="mt-1 text-xs font-normal text-[#6e6e73]">
+                  <p className="text-2xl font-semibold text-[var(--muted-foreground)]">{result.fat}g</p>
+                  <p className="mt-1 text-xs font-normal text-[var(--muted-foreground)]">
                     {isAr ? "دهون" : "Fat"}
                   </p>
                 </div>
@@ -287,15 +287,15 @@ export default function CalorieCalculatorPage() {
             </div>
 
             {/* CTA */}
-            <div className="rounded-3xl border border-[#0071e3]/20 bg-[#0071e3]/5 p-6 text-center">
-              <p className="text-base font-normal text-[#1d1d1f]">
+            <div className="rounded-3xl border border-[var(--edge)] bg-[var(--tint)] p-6 text-center">
+              <p className="text-base font-normal text-[var(--text)]">
                 {isAr
                   ? "محتاج خطة تغذية مخصصة بالجرام بناءً على أرقامك؟"
                   : "Need a personalized meal plan based on your numbers?"}
               </p>
               <button
                 onClick={() => navigate("memberships")}
-                className="mt-4 rounded-full bg-[#0071e3] px-6 py-2.5 text-sm font-normal text-white transition-opacity hover:opacity-90"
+                className="mt-4 btn-chrome px-6 py-2.5 text-sm"
               >
                 {isAr ? "احصل على خطة مخصصة ›" : "Get a personalized plan ›"}
               </button>
@@ -320,7 +320,7 @@ export default function CalorieCalculatorPage() {
             />
 
             {/* Share buttons */}
-            <div className="rounded-2xl bg-[#f5f5f7] p-4">
+            <div className="rounded-2xl bg-[var(--tint)] p-4">
               <ShareButtons
                 title={
                   isAr
@@ -339,8 +339,8 @@ export default function CalorieCalculatorPage() {
         <OtherTools current="calorie-calculator" />
 
         {/* SEO content */}
-        <div className="mt-12 space-y-4 text-base font-normal leading-relaxed text-[#6e6e73]">
-          <h2 className="text-xl font-semibold tracking-tight text-[#1d1d1f]">
+        <div className="mt-12 space-y-4 text-base font-normal leading-relaxed text-[var(--muted-foreground)]">
+          <h2 className="text-xl font-semibold tracking-tight text-[var(--text)]">
             {isAr ? "إزاي تحسب السعرات الحرارية؟" : "How to calculate calories?"}
           </h2>
           <p>

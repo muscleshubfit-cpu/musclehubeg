@@ -240,7 +240,7 @@ function PayPalButtons({
 
   if (processing) {
     return (
-      <div className="flex items-center justify-center gap-2 py-4 text-sm text-[#6e6e73]">
+      <div className="flex items-center justify-center gap-2 py-4 text-sm text-[var(--muted-foreground)]">
         <Loader2 className="h-4 w-4 animate-spin" />
         {isAr ? "جاري معالجة الدفع..." : "Processing payment..."}
       </div>
@@ -289,7 +289,7 @@ export function CheckoutView({ tier, months }: { tier: TierId | MembershipTier; 
       <div className="flex min-h-screen items-center justify-center">
         <button
           onClick={() => navigate("memberships")}
-          className="text-sm text-[#0071e3] hover:underline"
+          className="text-sm text-[var(--muted-2)] hover:underline"
         >
           {isAr ? "← العودة للعضويات" : "← Back to memberships"}
         </button>
@@ -340,14 +340,14 @@ export function CheckoutView({ tier, months }: { tier: TierId | MembershipTier; 
   const isManualMethod = method === "instapay" || method === "vodafone_cash";
 
   return (
-    <div className="flex min-h-screen flex-col bg-white text-[#1d1d1f]">
+    <div className="flex min-h-screen flex-col bg-[var(--bg)] text-[var(--text)]">
       <header className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between px-4">
         <button
           className="text-lg font-semibold tracking-tight"
           onClick={() => navigate("memberships")}
         >
           Alkemos
-          <span className="text-[#0071e3]">EG</span>
+          <span className="chrome-text font-semibold">EG</span>
         </button>
         <LanguageToggle />
       </header>
@@ -356,7 +356,7 @@ export function CheckoutView({ tier, months }: { tier: TierId | MembershipTier; 
         <h1 className="text-4xl font-semibold tracking-tight md:text-5xl">
           {isAr ? "إتمام الاشتراك" : "Complete your subscription"}
         </h1>
-        <p className="mt-2 text-base font-normal text-[#6e6e73]">
+        <p className="mt-2 text-base font-normal text-[var(--muted-foreground)]">
           {isAr
             ? "اختر طريقة الدفع. الدفع عبر PayPal سريع وآمن، أما الدفع اليدوي فيتطلب موافقة الكوتش."
             : "Choose a payment method. PayPal is instant, manual methods require coach approval."}
@@ -364,37 +364,37 @@ export function CheckoutView({ tier, months }: { tier: TierId | MembershipTier; 
 
         {/* PayPal success state */}
         {paypalDone ? (
-          <div className="mt-12 rounded-3xl bg-[#f5f5f7] p-12 text-center">
+          <div className="marble-card mt-12 p-12 text-center">
             <CheckCircle2 className="mx-auto h-16 w-16 text-[#34c759]" />
             <h2 className="mt-4 text-2xl font-semibold tracking-tight">
               {isAr ? "تم الدفع بنجاح!" : "Payment successful!"}
             </h2>
-            <p className="mt-3 text-base font-normal text-[#6e6e73]">
+            <p className="mt-3 text-base font-normal text-[var(--muted-foreground)]">
               {isAr
                 ? "تم تفعيل اشتراكك تلقائياً. جاري تحويلك إلى لوحة التحكم..."
                 : "Your subscription is now active. Redirecting to dashboard..."}
             </p>
             <button
               onClick={() => navigate("dashboard")}
-              className="mt-8 rounded-full bg-[#0071e3] px-6 py-3 text-base font-normal text-white transition-opacity hover:opacity-90"
+              className="btn-chrome mt-8 px-6 py-3 text-base"
             >
               {isAr ? "العودة للوحة التحكم" : "Go to dashboard"}
             </button>
           </div>
         ) : done ? (
           /* Manual payment success state (unchanged) */
-          <div className="mt-12 rounded-3xl bg-[#f5f5f7] p-12 text-center">
+          <div className="marble-card mt-12 p-12 text-center">
             <h2 className="text-2xl font-semibold tracking-tight">
               {isAr ? "تم إرسال طلبك بنجاح!" : "Request sent successfully!"}
             </h2>
-            <p className="mt-3 text-base font-normal text-[#6e6e73]">
+            <p className="mt-3 text-base font-normal text-[var(--muted-foreground)]">
               {isAr
                 ? "استلمنا طلب اشتراكك وإيصال الدفع. راجعه فريق Alkemos قريباً وسيتم تفعيل اشتراكك. ستصللك إشعار فور التفعيل."
                 : "We received your subscription request and payment receipt. The Alkemos team will review and activate your subscription shortly. You'll be notified once it's active."}
             </p>
             <button
               onClick={() => navigate("dashboard")}
-              className="mt-8 rounded-full bg-[#0071e3] px-6 py-3 text-base font-normal text-white transition-opacity hover:opacity-90"
+              className="btn-chrome mt-8 px-6 py-3 text-base"
             >
               {isAr ? "العودة للوحة التحكم" : "Back to dashboard"}
             </button>
@@ -403,16 +403,16 @@ export function CheckoutView({ tier, months }: { tier: TierId | MembershipTier; 
           <>
             <div className="mt-12 grid gap-6 md:grid-cols-2">
               {/* Summary (unchanged) */}
-              <div className="rounded-3xl bg-[#f5f5f7] p-8">
-                <h2 className="text-xs font-normal uppercase tracking-wide text-[#6e6e73]">
+              <div className="marble-card p-8">
+                <h2 className="text-xs font-normal uppercase tracking-wide text-[var(--muted-foreground)]">
                   {isAr ? "الخطة" : "Plan"}
                 </h2>
                 <p className="mt-2 text-2xl font-semibold tracking-tight">{plan.name}</p>
-                <p className="mt-1 text-sm font-normal text-[#6e6e73]">{plan.sub}</p>
+                <p className="mt-1 text-sm font-normal text-[var(--muted-foreground)]">{plan.sub}</p>
 
                 <div className="mt-6 space-y-2 text-sm">
                   <div className="flex items-center justify-between">
-                    <span className="font-normal text-[#6e6e73]">
+                    <span className="font-normal text-[var(--muted-foreground)]">
                       {isAr ? "المدة" : "Duration"}
                     </span>
                     <span className="font-medium">
@@ -420,13 +420,13 @@ export function CheckoutView({ tier, months }: { tier: TierId | MembershipTier; 
                     </span>
                   </div>
                   {plan.monthlyEquivalent && (
-                    <div className="flex items-center justify-between text-xs text-[#6e6e73]">
+                    <div className="flex items-center justify-between text-xs text-[var(--muted-foreground)]">
                       <span>{isAr ? "بمعدل شهري" : "Monthly equivalent"}</span>
                       <span>${plan.monthlyEquivalent.toFixed(2)}</span>
                     </div>
                   )}
-                  <div className="flex items-center justify-between border-t border-[#d2d2d7] pt-3">
-                    <span className="font-normal text-[#6e6e73]">
+                  <div className="flex items-center justify-between border-t border-[var(--edge)] pt-3">
+                    <span className="font-normal text-[var(--muted-foreground)]">
                       {isAr ? "الإجمالي" : "Total"}
                     </span>
                     <span className="text-xl font-semibold">
@@ -436,14 +436,14 @@ export function CheckoutView({ tier, months }: { tier: TierId | MembershipTier; 
                 </div>
 
                 {/* Refund policy (unchanged) */}
-                <div className="mt-6 rounded-2xl border border-[#d2d2d7] bg-white p-4">
+                <div className="mt-6 rounded-2xl border border-[var(--edge)] bg-[var(--card)] p-4">
                   <div className="flex items-start gap-2">
                     <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-[#34c759]" />
                     <div>
                       <p className="text-xs font-semibold">
                         {isAr ? "سياسة الاسترداد" : "Refund policy"}
                       </p>
-                      <p className="mt-1 text-xs font-normal text-[#6e6e73]">
+                      <p className="mt-1 text-xs font-normal text-[var(--muted-foreground)]">
                         {isAr
                           ? "استرداد كامل خلال 7 أيام من تفعيل الاشتراك، بشرط عدم استخدام مميزات الخطة المدفوعة."
                           : "Full refund within 7 days of subscription activation, provided that no paid plan features have been used."}
@@ -454,8 +454,8 @@ export function CheckoutView({ tier, months }: { tier: TierId | MembershipTier; 
               </div>
 
               {/* Payment */}
-              <div className="rounded-3xl bg-[#f5f5f7] p-8">
-                <h2 className="text-xs font-normal uppercase tracking-wide text-[#6e6e73]">
+              <div className="marble-card p-8">
+                <h2 className="text-xs font-normal uppercase tracking-wide text-[var(--muted-foreground)]">
                   {isAr ? "طريقة الدفع" : "Payment method"}
                 </h2>
 
@@ -467,11 +467,11 @@ export function CheckoutView({ tier, months }: { tier: TierId | MembershipTier; 
                     className={cn(
                       "flex flex-col items-center gap-1 rounded-2xl border p-3 text-xs font-medium transition-colors sm:text-sm",
                       method === "paypal"
-                        ? "border-[#0071e3] bg-white text-[#0071e3]"
-                        : "border-[#d2d2d7] hover:border-[#0071e3]/40",
+                        ? "border-[var(--chrome-edge)] bg-[var(--tint)] text-[var(--text)] shadow-sm"
+                        : "border-[var(--edge)] hover:border-[var(--chrome-edge)]",
                     )}
                   >
-                    <span className="text-[10px] uppercase tracking-wide text-[#0071e3] sm:text-xs">
+                    <span className="text-[10px] uppercase tracking-wide text-[var(--muted-2)] sm:text-xs">
                       {isAr ? "دفع سريع وآمن" : "Fast & secure"}
                     </span>
                     PayPal
@@ -482,8 +482,8 @@ export function CheckoutView({ tier, months }: { tier: TierId | MembershipTier; 
                     className={cn(
                       "flex flex-col items-center gap-1 rounded-2xl border p-3 text-xs font-normal transition-colors sm:text-sm",
                       method === "instapay"
-                        ? "border-[#0071e3] bg-white text-[#0071e3]"
-                        : "border-[#d2d2d7] hover:border-[#0071e3]/40",
+                        ? "border-[var(--chrome-edge)] bg-[var(--tint)] text-[var(--text)] shadow-sm"
+                        : "border-[var(--edge)] hover:border-[var(--chrome-edge)]",
                     )}
                   >
                     InstaPay
@@ -494,8 +494,8 @@ export function CheckoutView({ tier, months }: { tier: TierId | MembershipTier; 
                     className={cn(
                       "flex flex-col items-center gap-1 rounded-2xl border p-3 text-xs font-normal transition-colors sm:text-sm",
                       method === "vodafone_cash"
-                        ? "border-[#0071e3] bg-white text-[#0071e3]"
-                        : "border-[#d2d2d7] hover:border-[#0071e3]/40",
+                        ? "border-[var(--chrome-edge)] bg-[var(--tint)] text-[var(--text)] shadow-sm"
+                        : "border-[var(--edge)] hover:border-[var(--chrome-edge)]",
                     )}
                   >
                     {isAr ? "فودافون" : "Vodafone"}
@@ -516,14 +516,14 @@ export function CheckoutView({ tier, months }: { tier: TierId | MembershipTier; 
                       </div>
                     ) : !paypalLoaded ? (
                       <div className="flex items-center justify-center gap-2 py-8">
-                        <Loader2 className="h-5 w-5 animate-spin text-[#0071e3]" />
-                        <span className="text-sm text-[#6e6e73]">
+                        <Loader2 className="h-5 w-5 animate-spin text-[var(--muted-2)]" />
+                        <span className="text-sm text-[var(--muted-foreground)]">
                           {isAr ? "تحميل PayPal..." : "Loading PayPal..."}
                         </span>
                       </div>
                     ) : (
                       <>
-                        <div className="mb-3 rounded-xl bg-[#0071e3]/5 p-3 text-center text-xs text-[#0071e3]">
+                        <div className="mb-3 rounded-xl border border-[var(--edge)] bg-[var(--tint)] p-3 text-center text-xs text-[var(--muted-2)]">
                           {isAr
                             ? "ادفع بأمان عبر PayPal. سيتم تفعيل اشتراكك فوراً."
                             : "Pay securely with PayPal. Your subscription activates instantly."}

@@ -1400,3 +1400,21 @@ Stage Summary:
 - تعديلات المالك الأربعة منفذة كاملة: هيرو مشهد واحد (صورة + محتوى مدمج أصغر بلا سطر الإحصائيات) · EVO عنوان بلا أزرار وأقصر · فوتر قوائم أعمدة بدل الصف الواحد · جدول مقارنة حقيقي بكل المقاسات
 - Commit SHA: d6a16b0
 - Push status: PUSHED — 6caf1d7..d6a16b0 main→main 2026-09-06 · تحقق إنتاجي (alkemos.com): build-info commitShort=d6a16b0 ✓ · DOM حي: heroOverlay=true · subline=false · evoButtons=0 · realTable=true · footerCols=2 موبايل · لقطات VLM حية (لايت/دارك/EVO/جدول/فوتر) كلها PASS · بلا صور متبدلة بأسمائها (نفس أصول 126/127) فلا purge إلزامي — HTML دائمًا غير مخزن
+
+---
+Task ID: 132-OWNER-FEEDBACK-PHASE132
+Agent: Super Z (main)
+Task: بلاغ المالك على نتيجة المرحلة 129 (2026-09-06): «الفوتر محتاج تعديل الخلفية ولون الكتابة (لايت مود خلفيه الرخام الفاتح وكتابة سوداء، دارك مود خلفيه رخام اسود وكتابة ابيض)، جدول المقارنة فيه كلمه عربى فى وضع اللغه الانجليزيه، باقى الموقع اعادة التنسيق ليتبع هوية الصفحة الرئيسية»
+
+Work Log:
+- الفوتر المتبدل: globals.css‏ .footer-marble/.footer-meander-top/روابط الفوتر اتحولت لتوكنز (var(--bg)+var(--marble-img)+var(--meander-img)+var(--muted-2)→hover var(--text)) · أصل جديد public/images/brand/logo-footer-black.png بانعكاس RGB للوجو الأبيض (سكريبت scripts/make_footer_black_logo.py — التحقق VLM: لوجو أسود نظيف بلا عيوب) · LandingView: لوجو ThemeImg زوج (أسود/أبيض) + عناوين القوائم var(--text) + الحدود/الحقوق بالتوكنز — التبديل بلا إعادة رندر (CSS فقط)
+- الجدول: صف «التكلفة الشهرية» خلية Alkemos كانت «مجانيًا / من $14.99» عربية دائمًا → isAr ? عربي : «Free / from $14.99» (مطابق لباقي الخلايا اللغوية)
+- هوية بقية الموقع (الوصفة الموحدة: جذر بالتوكنز + marble-card + seal-chip + btn-chrome/btn-outline + chrome-text + أيقونات محفورة + صفر أزرق + صفر إيموجي): StaticPageView (about/privacy/terms/faq) · ContactView · /coaching (بإزالة أعلام الدول الإيموجي من الشهادات و«M»→خوذة mark-helmet) · /evo (عمود EVO بمعاملة Alkemos بالجدولين + بندي الدارك bg-black بحلقة كروم + إصلاح كونتراست أسود-على-أسود باللايت) · /for-coaches · CoachLandingContent (صفحات الكوتش) · AffiliateProgramView+AffiliateToolkit (تدرج الهيرو الأزرق→جرافايت) · CheckoutView · meal-planner · صفحات الأدوات الخمس · AuthView · BlogArticlePage/BlogComponents · المشتركة: ShareButtons · CoachShareButtons (زر أزرق→btn-chrome) · OtherTools (إيموجي→أيقونات محفورة) · PageBottomPromo (ExploreMore إيموجي→محفورة + بند العضوية bg-black بحلقة كروم + btn-chrome) · LeadCaptureCard · Pagination · CopyButton (variant primary=btn-chrome + STATE_OVERRIDES ميتة بصيغة v3 !bg- انقلبت لصيغة v4 bg-!) · CookieConsent (بانر أزرق→marble-card + btn-chrome/outline — VLM اكتشفه)
+- قانون صفر أزرق الشامل: القاعدة العامة للـ a في @layer base كانت var(--primary) (أزرق آبل) تسرب أزرق لكل روابط غير المنسقة (OtherTools، الدارك أيضًا) → var(--muted-2) · ::selection جرافايت محايد
+- الوثائق: DESIGN.md (§7.6 فوتر متبدل + §7.7 خريطة انضمام بقية الصفحات + جدول الأصول لوجو الفوتر الأسود) · STATE.md المرحلة 132
+- البوابات (المرحلة 132): tsc 0 · eslint 0 · vitest 213/213 · migration_audit --ci PASS (بلا ميجريشن) · docs_parity 0 · docs_audit 0 · check-stale-refs 0 · check-ui-wiring 0 · next build ✓
+- QA محلي (:3779 إنتاجي + agent-browser جلسات معزولة + localStorage للسمة): 29 لقطة كاملة-الصفحة — اكتشاف وإصلاح أثناء QA: (1) خادم قديم عالق بالمنفذ من جلسة سابقة كان يقدم بناء قديم (ChunkLoadError) — قُتل وأعيد البناء (2) بانر الكوكيز الأزرق (3) الروابط العامة الزرقاء — التحقق النهائي: بكسل الفوتر (لايت 238/0.5% داكن · دارك 44/84% داكن · موبايل 236/40) + VLM ×4 قوالب فوتر (مطابقة كاملة) + VLM الجدول EN («Free / from $14.99» بلا عربي) + VLM الدفعات (about/coaching/evo/contact/for-coaches/affiliate/meal-planner: صفر أزرق · صفر إيموجي · لا كسور) + إعادة تحقق OtherTools بعد إصلاح الروابط (VLM: محايد داكن بلا أزرق) — شيتات download/alkemos-signoff/132/
+
+Stage Summary:
+- التعديلات الثلاثة منفذة كاملة: فوتر رخام متبدل بالسمتين (لايت فاتح+أسود / دارك أسود+أبيض مع لوجوهات متبدلة) · جدول المقارنة صار لغويًا بالكامل في الوضع الإنجليزي · بقية الموقع العام (13 صفحة + 8 مكونات مشتركة) بهوية الرخام والكروم — صفر أزرق وصفر إيموجي على كل الصفحات العامة
+- أسطح التطبيق خلف الدخول (dashboard/coach/admin/referral) لسة على shim المرحلة 126 للدارك — إعادة تنسيق اللايت مستقبلًا

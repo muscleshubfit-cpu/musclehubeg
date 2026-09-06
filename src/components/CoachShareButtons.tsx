@@ -79,7 +79,7 @@ export function CoachShareButtons({ message, url, labels }: Props) {
           href={l.href}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-2 rounded-full bg-[#0071e3] px-6 py-2.5 text-sm font-semibold text-white shadow-md shadow-[#0071e3]/20 transition-all duration-300 hover:bg-[#0077ed] hover:shadow-lg"
+          className="btn-chrome inline-flex items-center gap-2 px-6 py-2.5 text-sm font-semibold"
         >
           <l.icon className="h-4 w-4" aria-hidden="true" />
           {l.label}
@@ -88,7 +88,7 @@ export function CoachShareButtons({ message, url, labels }: Props) {
       <button
         type="button"
         onClick={copyLink}
-        className="inline-flex items-center gap-2 rounded-full border border-[#d2d2d7] bg-white px-6 py-2.5 text-sm font-semibold text-[#1d1d1f] transition-all duration-300 hover:border-[#0071e3] hover:text-[#0071e3]"
+        className="btn-outline inline-flex items-center gap-2 px-6 py-2.5 text-sm font-semibold"
       >
         {copied ? (
           <Check className="h-4 w-4" aria-hidden="true" />

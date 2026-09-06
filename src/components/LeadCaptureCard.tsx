@@ -97,19 +97,19 @@ export function LeadCaptureCard({ toolSlug, resultSummary, resultJson }: Props) 
   // ---- Success state ----
   if (done) {
     return (
-      <div className="rounded-3xl border border-[#34c759]/30 bg-[#34c759]/5 p-6 text-center">
-        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#34c759]">
-          <CheckCircle2 className="h-6 w-6 text-white" />
+      <div className="marble-card p-6 text-center">
+        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[var(--text)]">
+          <CheckCircle2 className="h-6 w-6 text-[var(--bg)]" />
         </div>
-        <p className="mt-4 text-base font-medium text-[#1d1d1f]">
+        <p className="mt-4 text-base font-medium text-[var(--text)]">
           {isAr ? "تم الإرسال!" : "Sent!"}
         </p>
-        <p className="mt-2 text-sm font-normal text-[#6e6e73]">
+        <p className="mt-2 text-sm font-normal text-[var(--muted-foreground)]">
           {isAr
             ? `تفقد بريدك الإلكتروني خلال دقائق — بعتنا لك نتائجك كاملة مع نصائح ذكية على (${email}).`
             : `Check your inbox in a few minutes — we've sent your full results with smart tips to (${email}).`}
         </p>
-        <p className="mt-2 text-xs font-normal text-[#8e8e93]">
+        <p className="mt-2 text-xs font-normal text-[var(--muted-foreground)]">
           {isAr
             ? "مكتبتك الرسائل غير المرغوبة (Spam) لو الرسالة وصلت متأخر."
             : "If it doesn't arrive, check your Spam folder."}
@@ -120,17 +120,17 @@ export function LeadCaptureCard({ toolSlug, resultSummary, resultJson }: Props) 
 
   // ---- Form state ----
   return (
-    <div className="rounded-3xl border border-[#0071e3]/15 bg-[#0071e3]/[0.03] p-6 md:p-7">
+    <div className="marble-card p-6 md:p-7">
       {/* Header */}
       <div className="flex items-start gap-3">
-        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-[#0071e3]/10 text-xl">
-          <Mail className="h-5 w-5 text-[#0071e3]" />
+        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl border border-[var(--edge)] bg-[var(--tint)]">
+          <Mail className="h-5 w-5 text-[var(--muted-2)]" />
         </span>
         <div>
-          <h3 className="text-base font-semibold tracking-tight text-[#1d1d1f]">
+          <h3 className="text-base font-semibold tracking-tight text-[var(--text)]">
             {isAr ? "استلم نتائجك كاملة على بريدك" : "Get your full results by email"}
           </h3>
-          <p className="mt-1 text-sm font-normal text-[#6e6e73]">
+          <p className="mt-1 text-sm font-normal text-[var(--muted-foreground)]">
             {isAr
               ? "أدخل بريدك الإلكتروني لتصلك النتائج كاملة مع نصائح ذكية."
               : "Enter your email to receive your full results with smart tips."}
@@ -146,14 +146,14 @@ export function LeadCaptureCard({ toolSlug, resultSummary, resultJson }: Props) 
           onChange={(e) => setName(e.target.value)}
           placeholder={isAr ? "اسمك (اختياري)" : "Your name (optional)"}
           maxLength={80}
-          className="w-full rounded-xl border border-[#d2d2d7] bg-white px-4 py-3 text-base font-normal outline-none focus:border-[#0071e3]"
+          className="w-full rounded-xl border border-[var(--edge)] bg-[var(--card)] px-4 py-3 text-base font-normal outline-none focus:border-[var(--chrome-edge)]"
         />
       </div>
 
       {/* Email input */}
       <div className="mt-3">
         <div className="relative">
-          <Mail className="absolute start-3 top-1/2 h-5 w-5 -translate-y-1/2 text-[#6e6e73]" />
+          <Mail className="absolute start-3 top-1/2 h-5 w-5 -translate-y-1/2 text-[var(--muted-foreground)]" />
           <input
             type="email"
             value={email}
@@ -162,7 +162,7 @@ export function LeadCaptureCard({ toolSlug, resultSummary, resultJson }: Props) 
             dir="ltr"
             maxLength={254}
             inputMode="email"
-            className="w-full rounded-xl border border-[#d2d2d7] bg-white ps-11 pe-4 py-3 text-base font-normal outline-none focus:border-[#0071e3]"
+            className="w-full rounded-xl border border-[var(--edge)] bg-[var(--card)] ps-11 pe-4 py-3 text-base font-normal outline-none focus:border-[var(--chrome-edge)]"
           />
         </div>
       </div>
@@ -177,7 +177,7 @@ export function LeadCaptureCard({ toolSlug, resultSummary, resultJson }: Props) 
         type="button"
         onClick={submit}
         disabled={submitting}
-        className="mt-4 flex w-full items-center justify-center gap-2 rounded-full bg-[#0071e3] px-6 py-3 text-sm font-normal text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+        className="btn-chrome mt-4 flex w-full items-center justify-center gap-2 px-6 py-3 text-sm disabled:opacity-50"
       >
         {submitting ? (
           <>
@@ -192,7 +192,7 @@ export function LeadCaptureCard({ toolSlug, resultSummary, resultJson }: Props) 
         )}
       </button>
 
-      <p className="mt-3 text-center text-xs font-normal text-[#6e6e73]">
+      <p className="mt-3 text-center text-xs font-normal text-[var(--muted-foreground)]">
         {isAr
           ? "مجاني تماماً. مفيش سبام، وتقدر تطلب حذف بريدك في أي وقت."
           : "Completely free. No spam — ask us to remove your email anytime."}

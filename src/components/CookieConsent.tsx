@@ -110,10 +110,10 @@ export function CookieConsent() {
   return (
     <div
       ref={barRef}
-      className="fixed bottom-0 left-0 right-0 z-[100] border-t border-[#d2d2d7] bg-white p-4 shadow-lg md:p-6"
+      className="marble-card fixed bottom-0 left-0 right-0 z-[100] rounded-none! p-4 shadow-lg md:p-6"
     >
       <div className="mx-auto flex max-w-4xl flex-col items-center gap-4 md:flex-row md:justify-between">
-        <p className="text-center text-sm font-normal text-[#1d1d1f] md:text-start">
+        <p className="text-center text-sm font-normal text-[var(--muted-2)] md:text-start">
           {isAr
             ? "نستخدم ملفات تعريف الارتباط لتحسين تجربتك وعرض الإعلانات. بمتابعتك استخدام الموقع، فإنك توافق على سياسة الخصوصية."
             : "We use cookies to improve your experience and show ads. By continuing to use this site, you agree to our privacy policy."}
@@ -121,13 +121,13 @@ export function CookieConsent() {
         <div className="flex shrink-0 gap-3">
           <button
             onClick={handleReject}
-            className="rounded-full border border-[#d2d2d7] bg-white px-5 py-2 text-sm font-normal text-[#6e6e73] transition-opacity hover:opacity-70"
+            className="btn-outline px-5 py-2 text-sm"
           >
             {isAr ? "رفض" : "Reject"}
           </button>
           <button
             onClick={handleAccept}
-            className="rounded-full bg-[#0071e3] px-5 py-2 text-sm font-normal text-white transition-opacity hover:opacity-90"
+            className="btn-chrome px-5 py-2 text-sm"
           >
             {isAr ? "قبول" : "Accept"}
           </button>

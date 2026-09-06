@@ -58,7 +58,7 @@ export function CoachLandingContent({
     <main
       dir={isAr ? "rtl" : "ltr"}
       lang={lang}
-      className={`min-h-screen bg-white text-[#1d1d1f] ${preview ? "pb-16" : ""}`}
+      className={`min-h-screen bg-[var(--bg)] text-[var(--text)] ${preview ? "pb-16" : ""}`}
     >
       {/* Floating language switch — PUBLIC pages only: navigates between
           the EN canonical (/coaches/{slug}) and the AR mirror. In PREVIEW
@@ -70,17 +70,17 @@ export function CoachLandingContent({
         </div>
       )}
 
-      {/* Hero */}
+      {/* Hero — Marble & Chrome identity (Phase 132) */}
       <section className="mx-auto flex max-w-3xl flex-col items-center px-6 pb-16 pt-20 text-center">
         {heroPhoto ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={heroPhoto}
             alt={name}
-            className="h-28 w-28 rounded-full object-cover shadow-lg ring-4 ring-[#f5f5f7]"
+            className="h-28 w-28 rounded-full object-cover shadow-lg ring-4 ring-[var(--tint)]"
           />
         ) : (
-          <div className="grid h-28 w-28 place-items-center rounded-full bg-[#0071e3]/10 text-4xl font-semibold text-[#0071e3] shadow-lg ring-4 ring-[#f5f5f7]">
+          <div className="grid h-28 w-28 place-items-center rounded-full border border-[var(--edge)] bg-[var(--tint)] text-4xl font-semibold text-[var(--text)] shadow-lg ring-4 ring-[var(--bg)]">
             {initial}
           </div>
         )}
@@ -89,7 +89,7 @@ export function CoachLandingContent({
           {name}
         </h1>
         {copy.headline && (
-          <p className="mt-3 text-lg font-normal text-[#6e6e73] md:text-xl">
+          <p className="mt-3 text-lg font-normal text-[var(--muted-foreground)] md:text-xl">
             {copy.headline}
           </p>
         )}
@@ -99,7 +99,7 @@ export function CoachLandingContent({
             {copy.specialties.map((s) => (
               <span
                 key={s}
-                className="rounded-full bg-[#f5f5f7] px-4 py-1.5 text-sm font-medium text-[#1d1d1f]"
+                className="seal-chip"
               >
                 {s}
               </span>
@@ -109,7 +109,7 @@ export function CoachLandingContent({
 
         <a
           href={signupHref}
-          className="mt-8 rounded-full bg-[#0071e3] px-8 py-3.5 text-base font-normal text-white transition-opacity hover:opacity-90"
+          className="btn-chrome mt-8 px-8 py-3.5 text-base"
         >
           {isAr
             ? `ابدأ متابعتك مع ${name.split(" ")[0]} الآن`
@@ -125,7 +125,7 @@ export function CoachLandingContent({
                 href={s.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="rounded-full border border-[#d2d2d7] bg-white px-5 py-2 text-sm font-medium text-[#1d1d1f] transition-colors hover:border-[#0071e3] hover:text-[#0071e3]"
+                className="btn-outline px-5 py-2 text-sm font-medium"
               >
                 {s.label}
               </a>
@@ -137,11 +137,11 @@ export function CoachLandingContent({
       {/* Bio */}
       {copy.bio && (
         <section className="mx-auto max-w-3xl px-6 pb-16">
-          <div className="rounded-3xl bg-[#f5f5f7] p-8 md:p-10">
+          <div className="marble-card p-8 md:p-10">
             <h2 className="mb-4 text-xl font-semibold tracking-tight">
               {isAr ? "نبذة عن المدرب" : "About the coach"}
             </h2>
-            <div className="space-y-4 text-base font-normal leading-relaxed text-[#424245]">
+            <div className="space-y-4 text-base font-normal leading-relaxed text-[var(--muted-2)]">
               {copy.bio.split("\n").map((para, i) =>
                 para.trim() ? <p key={i}>{para.trim()}</p> : null,
               )}
@@ -153,11 +153,11 @@ export function CoachLandingContent({
       {/* 0037 — client results gallery (coach-uploaded photos) */}
       {data.results_photos.length > 0 && (
         <section className="mx-auto max-w-3xl px-6 pb-16">
-          <div className="rounded-3xl bg-[#f5f5f7] p-8 md:p-10">
+          <div className="marble-card p-8 md:p-10">
             <h2 className="mb-2 text-xl font-semibold tracking-tight">
               {isAr ? "نتائج العملاء" : "Client results"}
             </h2>
-            <p className="text-sm font-normal text-[#6e6e73]">
+            <p className="text-sm font-normal text-[var(--muted-foreground)]">
               {isAr
                 ? "صور حقيقية شاركها المدرب لنتائج عملائه — النتائج تختلف من شخص لآخر."
                 : "Real photos shared by the coach of his clients' results — results vary from person to person."}
@@ -173,7 +173,7 @@ export function CoachLandingContent({
                     className="aspect-[3/4] w-full rounded-2xl object-cover shadow-sm transition-shadow group-hover:shadow-md"
                   />
                   {photo.caption && (
-                    <figcaption className="mt-2 text-center text-xs font-normal text-[#6e6e73]">
+                    <figcaption className="mt-2 text-center text-xs font-normal text-[var(--muted-foreground)]">
                       {photo.caption}
                     </figcaption>
                   )}
@@ -187,11 +187,11 @@ export function CoachLandingContent({
       {/* 0049 — coach certificates (OPTIONAL — hidden while empty) */}
       {data.certificates.length > 0 && (
         <section className="mx-auto max-w-3xl px-6 pb-16">
-          <div className="rounded-3xl bg-[#f5f5f7] p-8 md:p-10">
+          <div className="marble-card p-8 md:p-10">
             <h2 className="mb-2 text-xl font-semibold tracking-tight">
               {isAr ? "شهادات المدرب" : "Coach certificates"}
             </h2>
-            <p className="text-sm font-normal text-[#6e6e73]">
+            <p className="text-sm font-normal text-[var(--muted-foreground)]">
               {isAr
                 ? "شهادات واعتمادات شاركها المدرب للتعريف بمؤهلاته."
                 : "Certificates and credentials shared by the coach to show his qualifications."}
@@ -204,10 +204,10 @@ export function CoachLandingContent({
                     src={cert.url}
                     alt={cert.title || `${isAr ? "شهادة مدرب" : "Coach certificate"} ${i + 1}`}
                     loading="lazy"
-                    className="aspect-[4/3] w-full rounded-2xl bg-white object-cover shadow-sm transition-shadow group-hover:shadow-md"
+                    className="aspect-[4/3] w-full rounded-2xl bg-[var(--card)] object-cover shadow-sm transition-shadow group-hover:shadow-md"
                   />
                   {cert.title && (
-                    <figcaption className="mt-2 text-center text-xs font-normal text-[#6e6e73]">
+                    <figcaption className="mt-2 text-center text-xs font-normal text-[var(--muted-foreground)]">
                       {cert.title}
                     </figcaption>
                   )}
@@ -265,18 +265,18 @@ export function CoachLandingContent({
       )}
 
       {/* Branding footer */}
-      <footer className="border-t border-[#d2d2d7] py-10 text-center">
-        <p className="text-sm font-semibold tracking-tight text-[#1d1d1f]">Alkemos</p>
-        <p className="mt-1 text-xs font-normal text-[#6e6e73]">
+      <footer className="border-t border-[var(--edge)] py-10 text-center">
+        <p className="text-sm font-semibold tracking-tight text-[var(--text)]">Alkemos</p>
+        <p className="mt-1 text-xs font-normal text-[var(--muted-foreground)]">
           {isAr ? (
             <>
               منصة اللياقة والتغذية —{" "}
-              <a href="/ar" className="text-[#0071e3] hover:underline">الصفحة الرئيسية</a>
+              <a href="/ar" className="text-[var(--muted-2)] hover:underline">الصفحة الرئيسية</a>
             </>
           ) : (
             <>
               Fitness &amp; nutrition platform —{" "}
-              <a href="/" className="text-[#0071e3] hover:underline">Home</a>
+              <a href="/" className="text-[var(--muted-2)] hover:underline">Home</a>
             </>
           )}
         </p>

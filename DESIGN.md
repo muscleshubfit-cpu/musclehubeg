@@ -168,13 +168,14 @@ Phase 127's `scripts/build_assets_v127.py` + `fix_hero_logo2.py`):
 | `hero-light/dark.webp` (1280×713) | Homepage hero background — **logo scrubbed off the artwork (Phase 127): the chrome logo is an HTML element instead** |
 | `logo-hero-light/dark.webp` (760px) | Silver-chrome hero lockup (from `logo-main-*`) — displayed full-opacity, upper-center |
 | `logo-navbar-light/dark.png` | Horizontal navbar logo (36px height) |
-| `logo-footer-white.png` | White mono lockup for the always-dark footer |
+| `logo-footer-white.png` | White mono lockup for the dark-mode footer |
+| `logo-footer-black.png` | Black mono lockup for the light-mode footer (RGB-inverted from the white one — Phase 132) |
 | `mark-helmet.png` | Helmet mark (favicon set, comparison-table column head) |
 | `header-{section}-{light,dark}.webp` (1280×477) | **The owner's 12 PAGE banners** (tools / exercises / programs / foods / blog / pricing) — rendered via `<PageBanner section="…" />` at the top of each hub page (Phase 127: NOT homepage section banners) |
 | `evo-card-light/dark.webp` | Programs-card stadium backdrop (12% blur) + EVO page art |
 | `evo-hero-light/dark.webp` (640×675) | Phase 127 EVO section warrior crop (warrior at 67–85% of crop width) |
 | `evo-widget-light/dark.webp` (480×480) | Widget/avatar bust (72% fill) |
-| `texture-marble-light/dark.webp` | Marble texture layer (5%/7% on cards, footer) |
+| `texture-marble-light/dark.webp` | Marble texture layer (5%/7% on cards; full-cover footer slab per theme — Phase 132) |
 | `divider-meander-light/dark.webp` | Greek-key repeating band |
 | `icons/<name>-{light,dark}.webp` (200×200) | **38 engraved icons** — the ONLY icon set on marketing/hub surfaces (calories, bmi, macros, bodyfat, hydration, mealplanner, dumbbell, house, rack, runner, protein, carbs, fats, fruits, scroll, laurel, evo, checkseal, doric…) |
 
@@ -262,16 +263,45 @@ icon; "no" = muted `×` at opacity .5. Below md the table compacts itself
 (`text-xs`, `p-2.5` cells, wrapped text, short trainer header label) so
 the grid stays readable with zero cutoff — cards are NEVER used.
 
-### 7.6 Footer (always dark, list-menus)
+### 7.6 Footer (theme-aware marble, list-menus)
 
-`.footer-marble` (#0B0B0D + marble-dark texture) + `.footer-meander-top`
-band on the top edge + white mono logo + light muted links (custom CSS
-overrides the app link color inside the footer). Phase 131
+**Phase 132 («لايت مود خلفية الرخام الفاتح وكتابة سوداء، دارك مود رخام
+أسود وكتابة أبيض»): the footer is THEME-AWARE now.** `.footer-marble`
+resolves `var(--bg)` + `var(--marble-img)` (light marble + black text in
+light; black marble + white text in dark) — the old permanently-dark
+slab (mission §14) is retired. The lockup is a ThemeImg pair
+(`logo-footer-black.png` — inverted from the white lockup — /
+`logo-footer-white.png`), the meander band follows `var(--meander-img)`,
+menu headings are `var(--text)`, links are `var(--muted-2)` → hover
+`var(--text)`, separators `var(--edge)`. Phase 131
 («قوائم بدلاً من صف واحد»): menu-style vertical LISTS in a grid —
 `grid-cols-2` (phones) / `grid-cols-3` (md) / `grid-cols-6` (lg = brand +
 5 lists: Paid Services, Affiliate & Referral, Tools, Resources, Legal &
 Basic). Every footer link lives in a vertical list — no horizontal link
 rows. Bottom credit line centered above nothing else.
+
+### 7.7 Secondary pages (Phase 132 identity rollout)
+
+Owner feedback «باقي الموقع إعادة التنسيق ليتبع هوية الصفحة الرئيسية» —
+all remaining public surfaces joined the Marble & Chrome identity:
+about/privacy/terms/faq (StaticPageView), contact, coaching, EVO,
+for-coaches, coach landing pages, affiliate program + toolkit, checkout,
+meal-planner, the 5 tool result pages, auth, blog article page, and the
+shared surfaces (CookieConsent, ShareButtons, CoachShareButtons,
+OtherTools, PageBottomPromo, LeadCaptureCard, Pagination, CopyButton).
+Recipe: `bg-[var(--bg)] text-[var(--text)]` root · `marble-card` for
+cards · `seal-chip` eyebrows · `btn-chrome`/`btn-outline` CTAs ·
+`chrome-text` stat numbers · engraved icons instead of emoji tiles
+(zero-emoji law enforced on coaching testimonials flags, OtherTools,
+ExploreMore) · dark premium bands are `bg-black` + 2px chrome ring
+(boxShadow `0 0 0 2px #C9CED3`) in BOTH themes with pinned light-on-dark
+text · **the global anchor rule is `var(--muted-2)` (zero-blue law —
+the old `var(--primary)` Apple-blue link default is retired)** ·
+`::selection` neutral graphite. Semantic colors (destructive/success/
+warning) and social-platform brand icons keep their conventional hues.
+
+Authenticated app surfaces (dashboard/coach/admin/referral) still ride
+the Phase-126 dark shim; their light-mode restyle is future work.
 
 ---
 

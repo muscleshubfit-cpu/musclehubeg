@@ -115,25 +115,25 @@ export function AffiliateProgramView() {
   return (
     <div
       dir={dir}
-      className="flex min-h-screen flex-col overflow-x-hidden bg-white text-[#1d1d1f]"
+      className="flex min-h-screen flex-col overflow-x-hidden bg-[var(--bg)] text-[var(--text)]"
     >
       <SiteHeader variant="landing" />
 
       <main className="flex-1">
         {/* ─── HERO ─── */}
-        <section className="relative overflow-hidden border-b border-[#d2d2d7]">
+        <section className="relative overflow-hidden border-b border-[var(--edge)]">
           {/* Subtle gradient background */}
           <div
             aria-hidden="true"
             className="absolute inset-0 -z-10"
             style={{
               background:
-                "radial-gradient(120% 80% at 50% 0%, rgba(0,113,227,0.08) 0%, rgba(0,113,227,0) 60%), radial-gradient(80% 60% at 100% 100%, rgba(90,200,250,0.08) 0%, rgba(90,200,250,0) 60%)",
+                "radial-gradient(120% 80% at 50% 0%, rgba(11,11,13,0.05) 0%, rgba(11,11,13,0) 60%), radial-gradient(80% 60% at 100% 100%, rgba(11,11,13,0.03) 0%, rgba(11,11,13,0) 60%)",
             }}
           />
 
           <div className="mx-auto w-full max-w-5xl px-4 py-16 text-center sm:px-6 md:py-24 lg:py-28">
-            <span className="inline-flex items-center gap-2 rounded-full border border-[#0071e3]/20 bg-[#0071e3]/5 px-3 py-1 text-xs font-medium uppercase tracking-wide text-[#0071e3] sm:px-4 sm:py-1.5">
+            <span className="seal-chip">
               <Gift className="h-3.5 w-3.5" aria-hidden="true" />
               {isAr ? "برنامج الأفلييت" : "Affiliate Program"}
             </span>
@@ -142,21 +142,21 @@ export function AffiliateProgramView() {
               {c.hero.headline}
             </h1>
 
-            <p className="mx-auto mt-5 max-w-2xl text-sm font-normal leading-relaxed text-[#6e6e73] sm:text-base md:text-lg">
+            <p className="mx-auto mt-5 max-w-2xl text-sm font-normal leading-relaxed text-[var(--muted-foreground)] sm:text-base md:text-lg">
               {c.hero.supporting}
             </p>
 
             <div className="mt-10 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
               <button
                 onClick={primaryCta}
-                className="inline-flex min-h-[52px] w-full items-center justify-center gap-2 rounded-full bg-[#0071e3] px-8 text-base font-semibold text-white transition-all hover:bg-[#0058b9] sm:w-auto"
+                className="btn-chrome inline-flex min-h-[52px] w-full items-center justify-center gap-2 px-8 text-base font-semibold sm:w-auto"
               >
                 {c.hero.ctaPrimary}
                 <ArrowRight className={`h-5 w-5 ${isAr ? "rotate-180" : ""}`} aria-hidden="true" />
               </button>
               <button
                 onClick={secondaryCta}
-                className="inline-flex min-h-[52px] w-full items-center justify-center gap-2 rounded-full bg-[#f5f5f7] px-8 text-base font-semibold text-[#1d1d1f] transition-colors hover:bg-[#e8e8ed] sm:w-auto"
+                className="btn-outline inline-flex min-h-[52px] w-full items-center justify-center gap-2 px-8 text-base font-semibold sm:w-auto"
               >
                 {c.hero.ctaSecondary}
               </button>
@@ -167,12 +167,12 @@ export function AffiliateProgramView() {
               {c.heroStats.map((s, i) => (
                 <div
                   key={i}
-                  className="rounded-2xl bg-[#f5f5f7] p-5 text-center"
+                  className="marble-card p-5 text-center"
                 >
-                  <p className="text-2xl font-semibold tracking-tight text-[#1d1d1f] sm:text-3xl">
+                  <p className="text-2xl font-semibold tracking-tight text-[var(--text)] sm:text-3xl">
                     {s.value}
                   </p>
-                  <p className="mt-1 text-xs font-medium text-[#6e6e73]">
+                  <p className="mt-1 text-xs font-medium text-[var(--muted-foreground)]">
                     {s.label}
                   </p>
                 </div>
@@ -182,13 +182,13 @@ export function AffiliateProgramView() {
         </section>
 
         {/* ─── WHY BECOME AN AFFILIATE ─── */}
-        <section className="border-b border-[#d2d2d7] bg-[#fafafa]">
+        <section className="border-b border-[var(--edge)] bg-[var(--tint)]">
           <div className="mx-auto w-full max-w-5xl px-4 py-20 sm:px-6 md:py-28">
             <div className="text-center">
               <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl md:text-5xl">
                 {c.why.title}
               </h2>
-              <p className="mx-auto mt-4 max-w-2xl text-base font-normal text-[#6e6e73] sm:text-lg">
+              <p className="mx-auto mt-4 max-w-2xl text-base font-normal text-[var(--muted-foreground)] sm:text-lg">
                 {c.why.subtitle}
               </p>
             </div>
@@ -199,15 +199,15 @@ export function AffiliateProgramView() {
                 return (
                   <div
                     key={i}
-                    className="rounded-3xl bg-white p-8 ring-1 ring-[#e5e5e7]"
+                    className="marble-card p-8"
                   >
-                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#0071e3]/10">
-                      <Icon className="h-6 w-6 text-[#0071e3]" aria-hidden="true" />
+                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-[var(--edge)] bg-[var(--tint)]">
+                      <Icon className="h-6 w-6 text-[var(--muted-2)]" aria-hidden="true" />
                     </div>
                     <h3 className="mt-6 text-xl font-semibold tracking-tight">
                       {card.title}
                     </h3>
-                    <p className="mt-2 text-sm font-normal leading-relaxed text-[#6e6e73]">
+                    <p className="mt-2 text-sm font-normal leading-relaxed text-[var(--muted-foreground)]">
                       {card.body}
                     </p>
                   </div>
@@ -216,11 +216,11 @@ export function AffiliateProgramView() {
             </div>
 
             {/* No claims section */}
-            <div className="mt-12 rounded-3xl bg-[#f5f5f7] p-8 text-center text-[#1d1d1f] md:p-12">
+            <div className="marble-card mt-12 p-8 text-center md:p-12">
               <p className="text-lg font-medium tracking-tight md:text-xl">
                 {c.why.pitch}
               </p>
-              <p className="mt-4 text-sm font-normal text-[#6e6e73]">
+              <p className="mt-4 text-sm font-normal text-[var(--muted-foreground)]">
                 {c.why.disclosure}
               </p>
             </div>
@@ -228,7 +228,7 @@ export function AffiliateProgramView() {
         </section>
 
         {/* ─── WHO IT'S FOR ─── */}
-        <section className="border-b border-[#d2d2d7]">
+        <section className="border-b border-[var(--edge)]">
           <div className="mx-auto w-full max-w-5xl px-4 py-20 sm:px-6 md:py-28">
             <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl md:text-5xl">
               {c.who.title}
@@ -237,97 +237,97 @@ export function AffiliateProgramView() {
               {c.who.audiences.map((aud, i) => (
                 <span
                   key={i}
-                  className="inline-flex items-center gap-2 rounded-full bg-[#f5f5f7] px-5 py-2.5 text-sm font-medium text-[#1d1d1f]"
+                  className="seal-chip inline-flex items-center gap-2 px-5 py-2.5 text-sm font-medium"
                 >
-                  <Check className="h-4 w-4 text-[#0071e3]" aria-hidden="true" />
+                  <Check className="h-4 w-4 text-[var(--muted-2)]" aria-hidden="true" />
                   {aud}
                 </span>
               ))}
             </div>
-            <p className="mt-8 max-w-2xl text-sm font-normal text-[#6e6e73]">
+            <p className="mt-8 max-w-2xl text-sm font-normal text-[var(--muted-foreground)]">
               {c.who.note}
             </p>
           </div>
         </section>
 
         {/* ─── COMMISSION SECTION ─── */}
-        <section className="border-b border-[#d2d2d7] bg-[#fafafa]">
+        <section className="border-b border-[var(--edge)] bg-[var(--tint)]">
           <div className="mx-auto w-full max-w-5xl px-4 py-20 sm:px-6 md:py-28">
             <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl md:text-5xl">
               {c.commission.title}
             </h2>
-            <p className="mt-4 max-w-2xl text-base font-normal text-[#6e6e73] sm:text-lg">
+            <p className="mt-4 max-w-2xl text-base font-normal text-[var(--muted-foreground)] sm:text-lg">
               {c.commission.subtitle}
             </p>
 
             <div className="mt-12 grid gap-6 md:grid-cols-2">
               {/* Subscriptions card */}
-              <div className="rounded-3xl bg-white p-8 ring-1 ring-[#e5e5e7] md:p-10">
-                <span className="inline-flex items-center gap-2 rounded-full bg-[#0071e3]/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-[#0071e3]">
+              <div className="marble-card p-8 md:p-10">
+                <span className="seal-chip inline-flex items-center gap-2 px-3 py-1 text-xs font-semibold uppercase tracking-wide">
                   {c.commission.subs.badge}
                 </span>
                 <h3 className="mt-6 text-2xl font-semibold tracking-tight">
                   {c.commission.subs.title}
                 </h3>
-                <p className="mt-3 text-3xl font-semibold tracking-tight text-[#1d1d1f]">
+                <p className="mt-3 text-3xl font-semibold tracking-tight text-[var(--text)]">
                   {(COMMISSION_RATE * 100).toFixed(0)}%
-                  <span className="ms-2 text-sm font-normal text-[#6e6e73]">
+                  <span className="ms-2 text-sm font-normal text-[var(--muted-foreground)]">
                     {c.commission.subs.rateSuffix}
                   </span>
                 </p>
 
                 {/* Phase 75 (owner): concrete commission examples */}
-                <p className="mt-6 text-sm font-medium text-[#1d1d1f]">
+                <p className="mt-6 text-sm font-medium text-[var(--text)]">
                   {c.commission.subs.examplesTitle}
                 </p>
                 <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
                   {c.commission.subs.examples.map((ex, i) => (
                     <div
                       key={i}
-                      className="rounded-2xl bg-[#f5f5f7] p-4 text-center"
+                      className="rounded-2xl border border-[var(--edge)] bg-[var(--tint)] p-4 text-center"
                     >
-                      <p className="text-xs font-medium text-[#1d1d1f]">
+                      <p className="text-xs font-medium text-[var(--text)]">
                         {ex.label}
                       </p>
-                      <p className="mt-0.5 text-[11px] font-normal text-[#6e6e73]">
+                      <p className="mt-0.5 text-[11px] font-normal text-[var(--muted-foreground)]">
                         {ex.price}
                       </p>
-                      <p className="mt-1 text-xl font-semibold tracking-tight text-[#0071e3]">
+                      <p className="chrome-text mt-1 text-xl font-semibold tracking-tight">
                         {ex.earn}
                       </p>
-                      <p className="mt-0.5 text-[11px] font-normal text-[#6e6e73]">
+                      <p className="mt-0.5 text-[11px] font-normal text-[var(--muted-foreground)]">
                         {isAr ? "عمولتك" : "your commission"}
                       </p>
                     </div>
                   ))}
                 </div>
 
-                <p className="mt-6 text-sm font-normal leading-relaxed text-[#6e6e73]">
+                <p className="mt-6 text-sm font-normal leading-relaxed text-[var(--muted-foreground)]">
                   {c.commission.subs.body}
                 </p>
-                <p className="mt-4 rounded-2xl bg-[#f5f5f7] p-4 text-xs font-normal leading-relaxed text-[#6e6e73]">
+                <p className="mt-4 rounded-2xl border border-[var(--edge)] bg-[var(--tint)] p-4 text-xs font-normal leading-relaxed text-[var(--muted-foreground)]">
                   {c.commission.subs.renewalNote}
                 </p>
               </div>
 
               {/* Products & services card */}
-              <div className="rounded-3xl bg-white p-8 ring-1 ring-[#e5e5e7] md:p-10">
+              <div className="marble-card p-8 md:p-10">
                 <span className="inline-flex items-center gap-2 rounded-full bg-[#34c759]/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-[#1d8a3d]">
                   {c.commission.prods.badge}
                 </span>
                 <h3 className="mt-6 text-2xl font-semibold tracking-tight">
                   {c.commission.prods.title}
                 </h3>
-                <p className="mt-3 text-3xl font-semibold tracking-tight text-[#1d1d1f]">
+                <p className="mt-3 text-3xl font-semibold tracking-tight text-[var(--text)]">
                   {AFFILIATE_PROGRAM_FACTS.cookieDurationDays}
-                  <span className="ms-2 text-sm font-normal text-[#6e6e73]">
+                  <span className="ms-2 text-sm font-normal text-[var(--muted-foreground)]">
                     {c.commission.prods.cookieSuffix}
                   </span>
                 </p>
-                <p className="mt-6 text-sm font-normal leading-relaxed text-[#6e6e73]">
+                <p className="mt-6 text-sm font-normal leading-relaxed text-[var(--muted-foreground)]">
                   {c.commission.prods.body}
                 </p>
-                <p className="mt-4 rounded-2xl bg-[#f5f5f7] p-4 text-xs font-normal leading-relaxed text-[#6e6e73]">
+                <p className="mt-4 rounded-2xl border border-[var(--edge)] bg-[var(--tint)] p-4 text-xs font-normal leading-relaxed text-[var(--muted-foreground)]">
                   {c.commission.prods.futureNote}
                 </p>
               </div>
@@ -336,7 +336,7 @@ export function AffiliateProgramView() {
         </section>
 
         {/* ─── HOW IT WORKS ─── */}
-        <section className="border-b border-[#d2d2d7]">
+        <section className="border-b border-[var(--edge)]">
           <div className="mx-auto w-full max-w-5xl px-4 py-20 sm:px-6 md:py-28">
             <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl md:text-5xl">
               {c.how.title}
@@ -345,15 +345,15 @@ export function AffiliateProgramView() {
               {c.how.steps.map((step, i) => (
                 <div
                   key={i}
-                  className="relative rounded-3xl bg-[#f5f5f7] p-8"
+                  className="marble-card relative p-8"
                 >
-                  <span className="text-5xl font-semibold tracking-tight text-[#0071e3]">
+                  <span className="chrome-text text-5xl font-semibold tracking-tight">
                     {String(i + 1).padStart(2, "0")}
                   </span>
                   <h3 className="mt-6 text-lg font-semibold tracking-tight">
                     {step.title}
                   </h3>
-                  <p className="mt-2 text-sm font-normal leading-relaxed text-[#6e6e73]">
+                  <p className="mt-2 text-sm font-normal leading-relaxed text-[var(--muted-foreground)]">
                     {step.body}
                   </p>
                 </div>
@@ -367,12 +367,12 @@ export function AffiliateProgramView() {
             earnings dashboard to the public program page — marketing tools
             belong on the marketing page. Authenticated affiliates get their
             real toolkit; guests get a sign-up CTA. */}
-        <section className="border-b border-[#d2d2d7] bg-[#fafafa]">
+        <section className="border-b border-[var(--edge)] bg-[var(--tint)]">
           <div className="mx-auto w-full max-w-5xl px-4 py-20 sm:px-6 md:py-28">
             <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl md:text-5xl">
               {isAr ? "أدواتك الترويجية" : "YOUR PROMO TOOLKIT"}
             </h2>
-            <p className="mt-4 max-w-2xl text-base font-normal text-[#6e6e73] sm:text-lg">
+            <p className="mt-4 max-w-2xl text-base font-normal text-[var(--muted-foreground)] sm:text-lg">
               {isAr
                 ? "قوالب جاهزة للنشر وبانرات بكود HTML جاهز للنسخ — كله برابط الأفلييت الشخصي بتاعك."
                 : "Ready-to-publish templates and website banners with copy-ready HTML embed codes — all carrying your personal affiliate link."}
@@ -382,20 +382,20 @@ export function AffiliateProgramView() {
                 <AffiliateToolkit />
               </div>
             ) : (
-              <div className="mt-10 rounded-3xl bg-white p-10 text-center ring-1 ring-[#e5e5e7]">
+              <div className="marble-card mt-10 p-10 text-center">
                 <p className="text-lg font-semibold tracking-tight">
                   {isAr
                     ? "سجّل حسابك لتفتح أدواتك الترويجية"
                     : "Create an account to unlock your promo toolkit"}
                 </p>
-                <p className="mx-auto mt-2 max-w-md text-sm font-normal text-[#6e6e73]">
+                <p className="mx-auto mt-2 max-w-md text-sm font-normal text-[var(--muted-foreground)]">
                   {isAr
                     ? "القوالب والبانرات والرابط الشخصي كلها جاهزة ليك بعد التسجيل — خلال دقايق."
                     : "Templates, banners and your personal link are all ready minutes after you sign up."}
                 </p>
                 <button
                   onClick={() => navigate("auth", { mode: "signup" })}
-                  className="mt-6 inline-flex items-center gap-2 rounded-full bg-[#0071e3] px-8 py-3 text-sm font-medium text-white transition-opacity hover:opacity-90"
+                  className="btn-chrome mt-6 inline-flex items-center gap-2 px-8 py-3 text-sm font-medium"
                 >
                   {isAr ? "ابدأ الآن مجاناً" : "START NOW — FREE"}
                   <ArrowRight className="h-4 w-4 rtl:rotate-180" aria-hidden="true" />
@@ -406,7 +406,7 @@ export function AffiliateProgramView() {
         </section>
 
         {/* ─── WHAT YOU GET ─── */}
-        <section className="border-b border-[#d2d2d7] bg-[#fafafa]">
+        <section className="border-b border-[var(--edge)] bg-[var(--tint)]">
           <div className="mx-auto w-full max-w-5xl px-4 py-20 sm:px-6 md:py-28">
             <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl md:text-5xl">
               {c.perks.title}
@@ -415,12 +415,12 @@ export function AffiliateProgramView() {
               {c.perks.items.map((p, i) => (
                 <div
                   key={i}
-                  className="flex items-start gap-3 rounded-2xl bg-white p-5 ring-1 ring-[#e5e5e7]"
+                  className="marble-card flex items-start gap-3 p-5"
                 >
-                  <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#0071e3]">
-                    <Check className="h-3.5 w-3.5 text-white" aria-hidden="true" />
+                  <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--text)]">
+                    <Check className="h-3.5 w-3.5 text-[var(--bg)]" aria-hidden="true" />
                   </span>
-                  <span className="text-sm font-medium leading-snug text-[#1d1d1f]">
+                  <span className="text-sm font-medium leading-snug text-[var(--text)]">
                     {p}
                   </span>
                 </div>
@@ -431,7 +431,7 @@ export function AffiliateProgramView() {
 
         {/* ─── SHARE SECTION (authenticated users only) ─── */}
         {profile && affiliateUrl && (
-          <section className="border-t border-[#d2d2d7] bg-[#1d1d1f]">
+          <section className="border-t border-[var(--edge)] bg-black text-white">
             <div className="mx-auto w-full max-w-3xl px-4 py-16 text-center text-white sm:px-6 md:py-20">
               <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl md:text-4xl">
                 {isAr ? "شارك رابطك الآن" : "Share Your Link Now"}
@@ -480,7 +480,7 @@ export function AffiliateProgramView() {
                 </button>
                 <button
                   onClick={shareX}
-                  className="inline-flex min-h-[44px] items-center gap-2 rounded-full bg-white px-5 py-2.5 text-sm font-medium text-[#1d1d1f] transition-opacity hover:opacity-90"
+                  className="btn-chrome inline-flex min-h-[44px] items-center gap-2 px-5 py-2.5 text-sm font-medium"
                 >
                   X (Twitter)
                 </button>
@@ -495,20 +495,20 @@ export function AffiliateProgramView() {
             <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl md:text-5xl">
               {c.finalCta.title}
             </h2>
-            <p className="mx-auto mt-4 max-w-2xl text-base font-normal text-[#6e6e73] sm:text-lg">
+            <p className="mx-auto mt-4 max-w-2xl text-base font-normal text-[var(--muted-foreground)] sm:text-lg">
               {c.finalCta.body}
             </p>
             <div className="mt-10">
               <button
                 onClick={primaryCta}
-                className="inline-flex min-h-[52px] w-full items-center justify-center gap-2 rounded-full bg-[#0071e3] px-8 text-base font-semibold text-white transition-all hover:bg-[#0058b9] sm:w-auto"
+                className="btn-chrome inline-flex min-h-[52px] w-full items-center justify-center gap-2 px-8 text-base font-semibold sm:w-auto"
               >
                 {c.hero.ctaPrimary}
                 <ArrowRight className={`h-5 w-5 ${isAr ? "rotate-180" : ""}`} aria-hidden="true" />
               </button>
             </div>
 
-            <p className="mt-10 text-xs font-normal text-[#8e8e93]">
+            <p className="mt-10 text-xs font-normal text-[var(--muted-foreground)]">
               {c.finalCta.disclosure}
             </p>
           </div>
@@ -516,7 +516,7 @@ export function AffiliateProgramView() {
       </main>
 
       {/* ─── Footer ─── */}
-      <footer className="mt-auto border-t border-[#d2d2d7] py-6 text-center text-xs font-normal text-[#6e6e73]">
+      <footer className="mt-auto border-t border-[var(--edge)] py-6 text-center text-xs font-normal text-[var(--muted-foreground)]">
         © {new Date().getFullYear()} Alkemos. {isAr ? "كل الحقوق محفوظة." : "All rights reserved."}
       </footer>
     </div>

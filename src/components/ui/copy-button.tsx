@@ -51,18 +51,22 @@ export type CopyButtonProps = {
 };
 
 const DEFAULT_VARIANT_STYLES: Record<NonNullable<CopyButtonProps["variant"]>, string> = {
+  // Phase 132 identity: chrome primary / inverted monochrome secondary /
+  // neutral ghost (the old Apple-blue variants are retired)
   primary:
-    "bg-[#0071e3] text-white hover:opacity-90 disabled:opacity-40",
+    "btn-chrome",
   secondary:
-    "bg-[#1d1d1f] text-white hover:opacity-90 disabled:opacity-40",
+    "bg-[var(--text)] text-[var(--bg)] hover:opacity-90 disabled:opacity-40",
   ghost:
-    "bg-transparent text-[#0071e3] hover:bg-[#0071e3]/5 disabled:opacity-40",
+    "bg-transparent text-[var(--muted-2)] hover:bg-[var(--tint)] disabled:opacity-40",
 };
 
 const STATE_OVERRIDES: Record<CopyState, string> = {
   default: "",
-  success: "!bg-[#34c759] !text-white hover:!opacity-90",
-  error: "!bg-[#ff3b30] !text-white hover:!opacity-90",
+  // Tailwind v4 important suffix syntax (the v3 "!bg-" prefix no longer
+  // compiles — the overrides were silently dead); semantic status colors
+  success: "bg-[var(--success)]! text-white! hover:opacity-90!",
+  error: "bg-[var(--destructive)]! text-white! hover:opacity-90!",
 };
 
 export function CopyButton({
@@ -206,7 +210,7 @@ export function CopyButton({
           "inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5",
           "text-sm font-medium transition-all duration-150",
           "min-h-[44px] select-none",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0071e3] focus-visible:ring-offset-2",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--chrome-edge)] focus-visible:ring-offset-2",
           DEFAULT_VARIANT_STYLES[variant],
           STATE_OVERRIDES[state],
           className,

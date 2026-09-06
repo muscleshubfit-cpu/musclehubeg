@@ -321,7 +321,7 @@ export default function MealPlannerPage() {
   };
 
   return (
-    <div className="min-h-screen bg-white text-[#1d1d1f]">
+    <div className="min-h-screen bg-[var(--bg)] text-[var(--text)]">
       <SiteHeader variant="landing" />
 
       <main className="mx-auto max-w-4xl px-4 py-12 md:py-16">
@@ -330,14 +330,14 @@ export default function MealPlannerPage() {
           <h1 className="text-3xl font-semibold tracking-tight md:text-5xl">
             {isAr ? "مخطط الوجبات" : "Meal Planner"}
           </h1>
-          <p className="mx-auto mt-3 max-w-md text-base font-normal text-[#6e6e73] md:text-lg">
+          <p className="mx-auto mt-3 max-w-md text-base font-normal text-[var(--muted-foreground)] md:text-lg">
             {isAr
               ? "ابني وجباتك من قاعدة بيانات ٨٨٣٠+ أكلة وشوف الماكروز لكل وجبة والإجمالي."
               : "Build your meals from 8,830+ foods and see per-meal + total macros."}
           </p>
           {/* Tier badge */}
-          <div className="mt-4 inline-flex items-center gap-2 rounded-full bg-[#f5f5f7] px-4 py-1.5 text-xs font-medium">
-            <Utensils className="h-3.5 w-3.5 text-[#0071e3]" />
+          <div className="seal-chip mt-4 inline-flex items-center gap-2">
+            <Utensils className="h-3.5 w-3.5 text-[var(--muted-2)]" />
             {isAr ? "عضويتك" : "Your plan"}: <span className="font-semibold">{tier}</span>
             {" · "}
             {maxMeals === null
@@ -356,12 +356,12 @@ export default function MealPlannerPage() {
             value={planTitle}
             onChange={(e) => setPlanTitle(e.target.value)}
             placeholder={isAr ? "اسم الجدول (اختياري)" : "Plan name (optional)"}
-            className="flex-1 min-w-[200px] rounded-full border border-[#d2d2d7] bg-white px-5 py-2.5 text-sm font-normal outline-none focus:border-[#0071e3]"
+            className="flex-1 min-w-[200px] rounded-full border border-[var(--edge)] bg-[var(--card)] px-5 py-2.5 text-sm font-normal outline-none focus:border-[var(--chrome-edge)]"
           />
           <button
             onClick={addMeal}
             disabled={maxMeals !== null && meals.length >= maxMeals}
-            className="inline-flex items-center gap-2 rounded-full bg-[#0071e3] px-5 py-2.5 text-sm font-normal text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+            className="btn-chrome inline-flex items-center gap-2 px-5 py-2.5 text-sm disabled:opacity-50"
           >
             <Plus className="h-4 w-4" />
             {isAr ? "وجبة جديدة" : "Add meal"}
@@ -388,7 +388,7 @@ export default function MealPlannerPage() {
         </div>
 
         {/* Grand total */}
-        <div className="mt-8 rounded-3xl bg-[#1d1d1f] p-6 md:p-8 text-white">
+        <div className="mt-8 rounded-[var(--radius-chrome)] bg-black p-6 text-white md:p-8">
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-semibold tracking-tight">
               {isAr ? "الإجمالي الكلي" : "Grand Total"}
@@ -410,7 +410,7 @@ export default function MealPlannerPage() {
           <button
             onClick={handleSave}
             disabled={saving || saved}
-            className="inline-flex items-center gap-2 rounded-full bg-[#0071e3] px-5 py-2.5 text-sm font-normal text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+            className="btn-chrome inline-flex items-center gap-2 px-5 py-2.5 text-sm disabled:opacity-50"
           >
             {saving ? (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -425,7 +425,7 @@ export default function MealPlannerPage() {
           </button>
           <button
             onClick={handleDownloadJson}
-            className="inline-flex items-center gap-2 rounded-full border border-[#d2d2d7] bg-white px-5 py-2.5 text-sm font-normal text-[#1d1d1f] transition-colors hover:bg-[#f5f5f7]"
+            className="btn-outline inline-flex items-center gap-2 px-5 py-2.5 text-sm"
           >
             <Download className="h-4 w-4" />
             {isAr ? "تحميل JSON" : "JSON"}
@@ -452,7 +452,7 @@ export default function MealPlannerPage() {
         </div>
 
         {/* Share */}
-        <div className="mt-6 rounded-2xl bg-[#f5f5f7] p-4">
+        <div className="marble-card mt-6 p-4">
           <ShareButtons
             title={
               isAr
@@ -467,8 +467,8 @@ export default function MealPlannerPage() {
         <OtherTools current="meal-planner" />
 
         {/* SEO content */}
-        <div className="mt-12 space-y-4 text-base font-normal leading-relaxed text-[#6e6e73]">
-          <h2 className="text-xl font-semibold tracking-tight text-[#1d1d1f]">
+        <div className="mt-12 space-y-4 text-base font-normal leading-relaxed text-[var(--muted-foreground)]">
+          <h2 className="text-xl font-semibold tracking-tight text-[var(--text)]">
             {isAr ? "إزاي تبني خطة وجبات؟" : "How to build a meal plan?"}
           </h2>
           <p>
@@ -513,16 +513,16 @@ function MealCard({
   onUpdateGrams: (itemId: string, grams: number) => void;
 }) {
   return (
-    <div className="rounded-3xl bg-[#f5f5f7] p-5 md:p-6">
+    <div className="marble-card p-5 md:p-6">
       {/* Meal header */}
       <div className="flex items-center gap-3">
-        <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[#1d1d1f] text-sm font-semibold text-white">
+        <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-[var(--edge)] bg-[var(--tint)] text-sm font-semibold text-[var(--text)]">
           {index + 1}
         </div>
         <input
           value={meal.name}
           onChange={(e) => onRename(e.target.value)}
-          className="flex-1 min-w-0 rounded-full border border-[#d2d2d7] bg-white px-4 py-2 text-sm font-medium outline-none focus:border-[#0071e3]"
+          className="flex-1 min-w-0 rounded-full border border-[var(--edge)] bg-[var(--card)] px-4 py-2 text-sm font-medium outline-none focus:border-[var(--chrome-edge)]"
           placeholder={isAr ? "اسم الوجبة" : "Meal name"}
         />
         {canRemove && (
@@ -538,7 +538,7 @@ function MealCard({
       {/* Items list */}
       <div className="mt-4 space-y-2">
         {meal.items.length === 0 ? (
-          <p className="text-center py-6 text-sm text-[#6e6e73]">
+          <p className="text-center py-6 text-sm text-[var(--muted-foreground)]">
             {isAr ? "مفيش أكلات بعد — ابحث وأضف" : "No foods yet — search and add"}
           </p>
         ) : (
@@ -559,7 +559,7 @@ function MealCard({
 
       {/* Meal totals */}
       {meal.items.length > 0 && (
-        <div className="mt-4 grid grid-cols-4 gap-2 rounded-2xl bg-white p-3">
+        <div className="mt-4 grid grid-cols-4 gap-2 rounded-2xl border border-[var(--edge)] bg-[var(--card)] p-3">
           <MiniStat label={isAr ? "سعرات" : "Cal"} value={totals.calories} unit="kcal" color="#ff9500" />
           <MiniStat label={isAr ? "بروتين" : "Pro"} value={totals.protein} unit="g" color="#34c759" />
           <MiniStat label={isAr ? "كارب" : "Carb"} value={totals.carbs} unit="g" color="#0071e3" />
@@ -585,11 +585,11 @@ function ItemRow({
 }) {
   const mac = computeMacros(item);
   return (
-    <div className="flex flex-wrap items-center gap-2 rounded-2xl bg-white p-3">
+    <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-[var(--edge)] bg-[var(--card)] p-3">
       {/* Name */}
       <div className="flex-1 min-w-[140px]">
         <p className="truncate text-sm font-medium">{item.name}</p>
-        <p className="text-xs text-[#6e6e73]">
+        <p className="text-xs text-[var(--muted-foreground)]">
           {item.source === "local"
             ? isAr ? "محلي" : "Local"
             : isAr ? "منتج" : "Product"}
@@ -604,20 +604,20 @@ function ItemRow({
           value={item.grams || ""}
           onChange={(e) => onUpdateGrams(Math.max(0, parseFloat(e.target.value) || 0))}
           placeholder="100"
-          className="w-20 rounded-full border border-[#d2d2d7] bg-[#f5f5f7] px-3 py-1.5 text-sm font-medium text-center outline-none focus:border-[#0071e3]"
+          className="w-20 rounded-full border border-[var(--edge)] bg-[var(--tint)] px-3 py-1.5 text-sm font-medium text-center outline-none focus:border-[var(--chrome-edge)]"
           dir="ltr"
         />
-        <span className="text-xs text-[#6e6e73]">g</span>
+        <span className="text-xs text-[var(--muted-foreground)]">g</span>
       </div>
       {/* Computed macros */}
       <div className="flex items-center gap-1.5 text-xs">
         <span className="rounded-full bg-[#ff9500]/10 px-2 py-0.5 font-medium text-[#ff9500]">
           {mac.calories} kcal
         </span>
-        <span className="rounded-full bg-[#34c759]/10 px-2 py-0.5 font-medium text-[#34c759]">
+        <span className="rounded-full border border-[var(--edge)] bg-[var(--tint)] px-2 py-0.5 font-semibold text-[var(--text)]">
           P{mac.protein}
         </span>
-        <span className="rounded-full bg-[#0071e3]/10 px-2 py-0.5 font-medium text-[#0071e3]">
+        <span className="rounded-full border border-[var(--edge)] bg-[var(--tint)] px-2 py-0.5 font-medium text-[var(--muted-2)]">
           C{mac.carbs}
         </span>
         <span className="rounded-full bg-[#8b5cf6]/10 px-2 py-0.5 font-medium text-[#8b5cf6]">
@@ -695,30 +695,30 @@ function FoodSearchInput({
   return (
     <div className="relative mt-3">
       <div className="relative">
-        <Search className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#6e6e73]" />
+        <Search className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--muted-foreground)]" />
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onFocus={() => results.length && setOpen(true)}
           onBlur={() => setTimeout(() => setOpen(false), 200)}
           placeholder={isAr ? "بحث عن أكلة..." : "Search food..."}
-          className="w-full rounded-full border border-[#d2d2d7] bg-white ps-10 pe-4 py-2.5 text-sm font-normal outline-none focus:border-[#0071e3]"
+          className="w-full rounded-full border border-[var(--edge)] bg-[var(--card)] ps-10 pe-4 py-2.5 text-sm font-normal outline-none focus:border-[var(--chrome-edge)]"
         />
         {loading && (
-          <Loader2 className="absolute end-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-[#6e6e73]" />
+          <Loader2 className="absolute end-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-[var(--muted-foreground)]" />
         )}
       </div>
       {open && results.length > 0 && (
-        <div className="absolute z-20 mt-1 max-h-72 w-full overflow-y-auto rounded-2xl border border-[#d2d2d7] bg-white shadow-xl">
+        <div className="absolute z-20 mt-1 max-h-72 w-full overflow-y-auto rounded-2xl border border-[var(--edge)] bg-[var(--card)] shadow-xl">
           {results.map((r, i) => (
             <button
               key={i}
               onClick={() => pick(r)}
-              className="flex w-full items-center justify-between gap-2 border-b border-[#f5f5f7] px-4 py-2.5 text-start transition-colors last:border-b-0 hover:bg-[#f5f5f7]"
+              className="flex w-full items-center justify-between gap-2 border-b border-[var(--edge)] px-4 py-2.5 text-start transition-colors last:border-b-0 hover:bg-[var(--tint)]"
             >
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-medium">{r.name}</p>
-                <p className="text-xs text-[#6e6e73]">
+                <p className="text-xs text-[var(--muted-foreground)]">
                   {r.source === "local"
                     ? isAr ? "محلي" : "Local"
                     : isAr ? "منتج" : "Product"}
@@ -726,7 +726,7 @@ function FoodSearchInput({
                   {r.per100g.calories} kcal · P{r.per100g.protein} C{r.per100g.carbs} F{r.per100g.fat}
                 </p>
               </div>
-              <Plus className="h-4 w-4 shrink-0 text-[#0071e3]" />
+              <Plus className="h-4 w-4 shrink-0 text-[var(--muted-2)]" />
             </button>
           ))}
         </div>
@@ -779,9 +779,9 @@ function MiniStat({
     <div className="text-center">
       <p className="text-lg font-semibold" style={{ color }}>
         {value}
-        <span className="ms-0.5 text-[10px] font-normal text-[#6e6e73]">{unit}</span>
+        <span className="ms-0.5 text-[10px] font-normal text-[var(--muted-foreground)]">{unit}</span>
       </p>
-      <p className="text-[10px] font-normal text-[#6e6e73]">{label}</p>
+      <p className="text-[10px] font-normal text-[var(--muted-foreground)]">{label}</p>
     </div>
   );
 }

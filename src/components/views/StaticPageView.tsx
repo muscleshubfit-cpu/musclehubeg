@@ -12,18 +12,23 @@ export function StaticPageView({ page }: { page: "about" | "privacy" | "terms" |
   const content = getContent(page, isAr);
 
   return (
-    <div className="flex min-h-screen flex-col bg-white text-[#1d1d1f]">
+    /* Phase 132 (owner feedback: «باقي الموقع إعادة التنسيق ليتبع هوية
+       الصفحة الرئيسية»): static pages join the Marble & Chrome identity —
+       token surfaces/text, marble-card FAQ box, chrome CTA. The old
+       Apple-light palette (bg-white / #f5f5f7 / #0071e3 blue link) is
+       retired. */
+    <div className="flex min-h-screen flex-col bg-[var(--bg)] text-[var(--text)]">
       <SiteHeader variant="landing" />
 
       <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-20 sm:px-6 md:py-28">
         <h1 className="text-4xl font-semibold tracking-tight md:text-6xl">{content.title}</h1>
-        <p className="mt-3 text-sm font-normal text-[#6e6e73]">{content.updated}</p>
+        <p className="mt-3 text-sm font-normal text-[var(--muted-foreground)]">{content.updated}</p>
 
         <div className="mt-16 space-y-12">
           {content.sections.map((section, i) => (
             <section key={i}>
               <h2 className="text-xl font-semibold tracking-tight md:text-2xl">{section.heading}</h2>
-              <div className="mt-4 space-y-4 text-base font-normal leading-relaxed text-[#1d1d1f] md:text-lg">
+              <div className="mt-4 space-y-4 text-base font-normal leading-relaxed text-[var(--muted-2)] md:text-lg">
                 {section.paragraphs.map((p, j) => (
                   <p key={j}>{p}</p>
                 ))}
@@ -39,23 +44,23 @@ export function StaticPageView({ page }: { page: "about" | "privacy" | "terms" |
           ))}
         </div>
 
-        {/* FAQ specific */}
+        {/* FAQ specific — marble-card + chrome CTA (identity) */}
         {page === "faq" && (
-          <div className="mt-20 rounded-2xl bg-[#f5f5f7] p-10 text-center">
-            <p className="text-base font-normal text-[#6e6e73]">
+          <div className="marble-card mt-20 p-10 text-center">
+            <p className="text-base font-normal text-[var(--muted-foreground)]">
               {isAr ? "لديك سؤال آخر؟" : "Have another question?"}
             </p>
             <button
               onClick={() => navigate("contact")}
-              className="mt-4 text-base font-normal text-[#0071e3] transition-opacity hover:opacity-70"
+              className="btn-outline mt-4 px-6 py-2.5 text-sm"
             >
-              {isAr ? "تواصل معنا ›" : "Contact us ›"}
+              {isAr ? "تواصل معنا" : "Contact us"}
             </button>
           </div>
         )}
       </main>
 
-      <footer className="mt-auto border-t border-[#d2d2d7] py-6 text-center text-xs font-normal text-[#6e6e73]">
+      <footer className="mt-auto border-t border-[var(--edge)] py-6 text-center text-xs font-normal text-[var(--muted-foreground)]">
         © {new Date().getFullYear()} Alkemos. {isAr ? "كل الحقوق محفوظة." : "All rights reserved."}
       </footer>
  </div>

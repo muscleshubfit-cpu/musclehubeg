@@ -1,20 +1,24 @@
 "use client";
 
 import { useI18n } from "@/lib/i18n";
+import { EngravedIcon } from "@/components/ThemeImg";
 
+// Phase 132 (owner feedback: «باقي الموقع إعادة التنسيق ليتبع هوية الصفحة
+// الرئيسية»): engraved icon pairs replace the emoji tiles (zero-emoji law)
+// and the tile colors go neutral (Marble & Chrome identity).
 const ALL_TOOLS = [
-  { slug: "calorie-calculator", nameAr: "حاسبة السعرات", nameEn: "Calorie Calculator", emoji: "🔥", color: "#ff9500" },
-  { slug: "bmi-calculator", nameAr: "حاسبة BMI", nameEn: "BMI Calculator", emoji: "⚖️", color: "#0071e3" },
-  { slug: "macro-calculator", nameAr: "حاسبة الماكروز", nameEn: "Macro Calculator", emoji: "🥩", color: "#34c759" },
-  { slug: "body-fat-calculator", nameAr: "حاسبة الدهون", nameEn: "Body Fat %", emoji: "📊", color: "#ff3b30" },
+  { slug: "calorie-calculator", nameAr: "حاسبة السعرات", nameEn: "Calorie Calculator", icon: "calories" },
+  { slug: "bmi-calculator", nameAr: "حاسبة BMI", nameEn: "BMI Calculator", icon: "bmi" },
+  { slug: "macro-calculator", nameAr: "حاسبة الماكروز", nameEn: "Macro Calculator", icon: "macros" },
+  { slug: "body-fat-calculator", nameAr: "حاسبة الدهون", nameEn: "Body Fat %", icon: "bodyfat" },
   // meal-planner + water-tracker are top-level routes (/meal-planner, /tools/water-tracker),
   // so we mark them with an absolute path prefix.
-  { slug: "/meal-planner", nameAr: "مخطط الوجبات", nameEn: "Meal Planner", emoji: "🍽️", color: "#8b5cf6" },
-  { slug: "water-tracker", nameAr: "متتبع الماء", nameEn: "Water Tracker", emoji: "💧", color: "#00b8d9" },
+  { slug: "/meal-planner", nameAr: "مخطط الوجبات", nameEn: "Meal Planner", icon: "mealplanner" },
+  { slug: "water-tracker", nameAr: "متتبع الماء", nameEn: "Water Tracker", icon: "hydration" },
   // DELIVERY 0050: content libraries are site pages too — owner asked for
   // «صفحات اخرى من الموقع» at the bottom of every tool page.
-  { slug: "/exercises", nameAr: "مكتبة التمارين", nameEn: "Exercise Library", emoji: "💪", color: "#0071e3" },
-  { slug: "/foods", nameAr: "مكتبة الأكلات", nameEn: "Food Library", emoji: "🥗", color: "#34c759" },
+  { slug: "/exercises", nameAr: "مكتبة التمارين", nameEn: "Exercise Library", icon: "dumbbell" },
+  { slug: "/foods", nameAr: "مكتبة الأكلات", nameEn: "Food Library", icon: "protein" },
 ];
 
 
@@ -46,14 +50,14 @@ export function OtherTools({ current }: { current: string }) {
           <a
             key={tool.slug}
             href={tool.slug.startsWith("/") ? tool.slug : `/tools/${tool.slug}`}
-            className="flex items-center gap-3 rounded-2xl bg-[#f5f5f7] p-4 transition-opacity hover:opacity-90"
+            className="marble-card flex items-center gap-3 p-4 transition-opacity hover:opacity-90"
           >
-            <span
-              className="grid h-10 w-10 shrink-0 place-items-center rounded-xl text-lg"
-              style={{ backgroundColor: `${tool.color}15` }}
-            >
-              {tool.emoji}
-            </span>
+            <EngravedIcon
+              name={tool.icon}
+              alt=""
+              size={40}
+              className="h-10 w-10 shrink-0"
+            />
             <span className="text-sm font-medium">
               {isAr ? tool.nameAr : tool.nameEn}
             </span>
@@ -61,9 +65,10 @@ export function OtherTools({ current }: { current: string }) {
         ))}
         <a
           href="/tools"
-          className="flex items-center gap-3 rounded-2xl bg-[#1d1d1f] p-4 transition-opacity hover:opacity-90"
+          className="flex items-center gap-3 rounded-2xl bg-black p-4 text-white transition-opacity hover:opacity-90"
+          style={{ boxShadow: "0 0 0 2px #C9CED3, var(--shadow)" }}
         >
-          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl text-lg text-white bg-white/10 rtl:rotate-180">
+          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-white/10 text-lg rtl:rotate-180">
             ←
           </span>
           <span className="text-sm font-medium text-white">

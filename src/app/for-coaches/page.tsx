@@ -45,13 +45,17 @@ export default function ForCoachesPage() {
     : "Coach on Alkemos — your clients, your prices, your money:";
 
   return (
-    <div className="min-h-screen bg-white text-[#1d1d1f]">
+    /* Phase 132 (owner feedback: «باقي الموقع إعادة التنسيق ليتبع هوية
+       الصفحة الرئيسية»): the coach-recruitment page joins the Marble &
+       Chrome identity — token surfaces/text, marble-cards, seal-chip
+       eyebrow, chrome-text stat numbers, btn-chrome/btn-outline CTAs. */
+    <div className="min-h-screen bg-[var(--bg)] text-[var(--text)]">
       <SiteHeader variant="landing" />
 
       {/* ================= HERO ================= */}
       <section className="mx-auto grid max-w-6xl items-center gap-10 px-4 pb-14 pt-10 md:grid-cols-2 md:pt-16">
         <div>
-          <span className="inline-block rounded-full bg-[#0071e3]/10 px-4 py-1.5 text-xs font-bold text-[#0071e3]">
+          <span className="seal-chip">
             {isAr ? "للكوتشات وأخصائيي التغذية" : "For coaches & nutrition specialists"}
           </span>
           <h1 className="mt-4 text-3xl font-semibold leading-tight tracking-tight md:text-5xl md:leading-tight">
@@ -69,7 +73,7 @@ export default function ForCoachesPage() {
               </>
             )}
           </h1>
-          <p className="mt-4 max-w-xl text-base font-normal leading-relaxed text-[#6e6e73] md:text-lg">
+          <p className="mt-4 max-w-xl text-base font-normal leading-relaxed text-[var(--muted-foreground)] md:text-lg">
             {isAr
               ? "Alkemos بيديك منصة كاملة تدير شغلك بيها: خطط تغذية وتمارين بالذكاء الاصطناعي، متابعة تقدم لكل عميل، وصفحة عامة باسمك. أنت اللي بتحدد سعر اشتراك عميلك، وأنت اللي بتقبض منه — المنصة مش بتاخد منك أي نسبة."
               : "Alkemos gives you a complete platform to run your business: AI-generated nutrition and workout plans, progress tracking for every client, and your own public page. You set each client's price and you get paid directly — the site never takes a cut."}
@@ -77,18 +81,18 @@ export default function ForCoachesPage() {
           <div className="mt-7 flex flex-wrap items-center gap-4">
             <Link
               href={REGISTER_HREF}
-              className="rounded-full bg-[#0071e3] px-7 py-3 text-sm font-semibold text-white shadow-lg shadow-[#0071e3]/25 transition-all duration-300 hover:bg-[#0077ed]"
+              className="btn-chrome px-7 py-3 text-sm font-semibold"
             >
               {isAr ? "سجّل كمدرب مجانًا — في دقيقة" : "Register as a coach — free, 1 minute"}
             </Link>
             <Link
               href="#money"
-              className="rounded-full border border-[#d2d2d7] px-7 py-3 text-sm font-semibold text-[#1d1d1f] transition-colors duration-300 hover:border-[#0071e3] hover:text-[#0071e3]"
+              className="btn-outline px-7 py-3 text-sm font-semibold"
             >
               {isAr ? "اعرف التفاصيل" : "See the details"}
             </Link>
           </div>
-          <p className="mt-5 text-xs font-medium text-[#6e6e73]">
+          <p className="mt-5 text-xs font-medium text-[var(--muted-foreground)]">
             {isAr
               ? "تفعيل فوري بدون انتظار • بدون بطاقة ائتمان • عملاؤك على المنصة عملاؤك أنت"
               : "Instant activation • No credit card • Your clients stay yours"}
@@ -105,8 +109,8 @@ export default function ForCoachesPage() {
         </div>
       </section>
 
-      {/* Trust strip */}
-      <section className="border-y border-[#e5e5ea] bg-[#f5f5f7]">
+      {/* Trust strip — chrome stat numbers (identity) */}
+      <section className="border-y border-[var(--edge)] bg-[var(--tint)]">
         <div className="mx-auto grid max-w-6xl grid-cols-2 gap-6 px-4 py-8 text-center md:grid-cols-4">
           {[
             {
@@ -127,10 +131,10 @@ export default function ForCoachesPage() {
             },
           ].map((s) => (
             <div key={s.t}>
-              <p className="text-2xl font-semibold tracking-tight text-[#0071e3] md:text-3xl">
+              <p className="chrome-text text-2xl font-semibold tracking-tight md:text-3xl">
                 {s.n}
               </p>
-              <p className="mt-1 text-xs font-medium text-[#6e6e73] md:text-sm">{s.t}</p>
+              <p className="mt-1 text-xs font-medium text-[var(--muted-foreground)] md:text-sm">{s.t}</p>
             </div>
           ))}
         </div>
@@ -142,7 +146,7 @@ export default function ForCoachesPage() {
           <h2 className="text-2xl font-semibold tracking-tight md:text-4xl">
             {isAr ? "سعر عميلك... قرارك وحدك" : "Your client's price — your call alone"}
           </h2>
-          <p className="mx-auto mt-3 max-w-2xl text-base leading-relaxed text-[#6e6e73]">
+          <p className="mx-auto mt-3 max-w-2xl text-base leading-relaxed text-[var(--muted-foreground)]">
             {isAr
               ? "عندنا قاعدة واضحة: أسعار عملائك ملكك. إنت بتحدد قيمة الاشتراك، وإنت بتقبض، والمنصة دورها إنها تسلّحك بأدوات تشتغل بيها — مش إنها تتدخل في سعرك."
               : "One clear rule: your clients' prices belong to you. You decide what to charge, you collect the payment, and the platform's job is to arm you with the tools — not to touch your pricing."}
@@ -171,15 +175,15 @@ export default function ForCoachesPage() {
           ].map((c) => (
             <div
               key={c.title}
-              className="rounded-3xl bg-[#f5f5f7] p-7 ring-1 ring-[#e5e5ea] transition-all duration-300 hover:shadow-lg hover:shadow-[#1d1d1f]/5"
+              className="marble-card p-7"
             >
               <h3 className="text-lg font-bold tracking-tight">{c.title}</h3>
-              <p className="mt-2.5 text-sm leading-relaxed text-[#6e6e73]">{c.body}</p>
+              <p className="mt-2.5 text-sm leading-relaxed text-[var(--muted-foreground)]">{c.body}</p>
             </div>
           ))}
         </div>
-        <div className="mt-6 rounded-3xl border border-[#0071e3]/20 bg-[#0071e3]/5 p-6 text-center">
-          <p className="text-sm font-medium leading-relaxed text-[#1d1d1f]">
+        <div className="marble-card mt-6 p-6 text-center">
+          <p className="text-sm font-medium leading-relaxed text-[var(--muted-2)]">
             {isAr
               ? "تفعيل اشتراكات عملائك بيتم من محفظتك على المنصة: تشحن محفظتك (انستاباي / فودافون كاش / PayPal) وتفعّل اشتراك عميلك بضغطة واحدة."
               : "Client activations run from your on-platform wallet: top it up (InstaPay / Vodafone Cash / PayPal) and activate a client's subscription with one click."}
@@ -188,13 +192,13 @@ export default function ForCoachesPage() {
       </section>
 
       {/* ================= YOUR CLIENTS, YOUR AUTHORITY ================= */}
-      <section className="bg-[#f5f5f7] py-16 md:py-20">
+      <section className="bg-[var(--tint)] py-16 md:py-20">
         <div className="mx-auto grid max-w-6xl items-center gap-10 px-4 md:grid-cols-2">
           <div className="order-2 md:order-1">
             <h2 className="text-2xl font-semibold tracking-tight md:text-4xl">
               {isAr ? "عملاؤك أنت... وصلاحياتك معاهم" : "Your clients — and your authority over them"}
             </h2>
-            <p className="mt-4 text-base leading-relaxed text-[#6e6e73]">
+            <p className="mt-4 text-base leading-relaxed text-[var(--muted-foreground)]">
               {isAr
                 ? "المدرب في Alkemos شريك مش موظف. عملاؤك على المنصة عملاؤك أنت — مش عملاء الموقع — وصلاحيات إدارتهم كلها في إيدك: استبياناتهم، خططهم، تقدمهم، ودعمهم. والشات الذكي (EVO) بيشتغل في خدمة شغلك أنت مع عملائك، مش بيقدّم كوتشينج لعملاء من عند المنصة."
                 : "A coach on Alkemos is a partner, not an employee. Your clients on the platform are YOUR clients — not the site's — and every management tool is in your hands: their questionnaires, plans, progress, and support. The AI chat (EVO) works for YOUR business with YOUR clients — the site never coaches them behind your back."}
@@ -207,16 +211,16 @@ export default function ForCoachesPage() {
                 isAr ? "شات دعم مباشر مع كل عميل" : "Direct chat with each client",
               ].map((li) => (
                 <li key={li} className="flex items-start gap-2.5 text-sm font-medium">
-                  <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[#0071e3]" />
+                  <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: "#878E94" }} />
                   {li}
                 </li>
               ))}
             </ul>
-            <div className="mt-6 rounded-3xl bg-white p-6 ring-1 ring-[#e5e5ea]">
+            <div className="marble-card mt-6 p-6">
               <h3 className="text-sm font-bold">
                 {isAr ? "خطط الذكاء الاصطناعي — رصيد واضح (أسبوعي + شهري)" : "AI plans — a clear balance (weekly + monthly)"}
               </h3>
-              <p className="mt-2 text-sm leading-relaxed text-[#6e6e73]">
+              <p className="mt-2 text-sm leading-relaxed text-[var(--muted-foreground)]">
                 {isAr
                   ? "توليد الخطط لعميلك بيسحب من رصيده حسب باقته: بريميوم 4 تغذية + 4 تمارين شهرياً · برو 8 + 8 · كوتشينج 4 + 4 — بحد أسبوعي 1 + 1 (برو 2 + 2) عشان الرصيد يتوزّع على الشهر. وهو نفس الرصيد اللي بيستخدمه عميلك من إيفو؛ الحد الأسبوعي بيتصفّر يوم الاثنين والإجمالي الشهري أول الشهر. والتعديل بيدك ورفع الخطط اليدوية وإعادة توليد أي وجبة أو صنف أو يوم تدريب أو تمرين بالذكاء الاصطناعي — كلها غير محدودة خالص."
                   : "Generating a client's plans draws from his own tier balance: Premium 4 nutrition + 4 workouts per month, Pro 8 + 8, Coaching 4 + 4 — with a weekly cap of 1 + 1 (Pro 2 + 2) so the balance spreads across the month. It is the same pool he spends through EVO; the weekly window resets Monday, the monthly total on the 1st. Hand-editing, manual uploads, and AI-regenerating any meal, item, workout day, or exercise are all unlimited."}
@@ -238,11 +242,12 @@ export default function ForCoachesPage() {
 
       {/* ================= MEMBERSHIPS UPSELL ================= */}
       <section className="mx-auto max-w-6xl px-4 py-16 md:py-20">
-        <div className="rounded-3xl bg-gradient-to-b from-[#1d1d1f] to-[#2a2a2e] p-8 text-white md:p-12">
+        {/* Dark band with a chrome ring — identity premium treatment */}
+        <div className="rounded-[var(--radius-chrome)] bg-black p-8 text-white md:p-12" style={{ boxShadow: "0 0 0 2px #C9CED3, var(--shadow)" }}>
           <h2 className="text-2xl font-semibold tracking-tight md:text-3xl">
             {isAr ? "عايز مميزات الموقع كاملة؟ اشترك في عضوية" : "Want every site feature? Grab a membership"}
           </h2>
-          <p className="mt-3 max-w-3xl text-base leading-relaxed text-gray-300">
+          <p className="mt-3 max-w-3xl text-base leading-relaxed text-[#9BA0A6]">
             {isAr
               ? "وزي أي حد على المنصة، تقدر تشترك في عضوية Premium أو Pro وتاخد كل مميزات الموقع لنفسك: شات EVO بلا حدود، مخطط الوجبات الذكي، حفظ وتصدير نتائج الحاسبات — كل ده جنب شغلك مع عملائك."
               : "Like anyone on the platform, you can subscribe to Premium or Pro and unlock the full site for yourself: unlimited EVO chat, the smart meal planner, and saved, exportable calculator results — all alongside your work with your own clients."}
@@ -250,7 +255,7 @@ export default function ForCoachesPage() {
           <div className="mt-6">
             <Link
               href="/memberships"
-              className="inline-block rounded-full bg-white px-7 py-3 text-sm font-semibold text-[#1d1d1f] transition-colors duration-300 hover:bg-gray-100"
+              className="btn-chrome inline-block px-7 py-3 text-sm font-semibold"
             >
               {isAr ? "شوف العضويات" : "Explore memberships"}
             </Link>
@@ -296,12 +301,12 @@ export default function ForCoachesPage() {
                 : "You get paid by your client, then activate him from your wallet.",
             },
           ].map((s) => (
-            <div key={s.n} className="rounded-3xl border border-[#e5e5ea] p-6">
-              <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#0071e3] text-sm font-bold text-white">
+            <div key={s.n} className="marble-card p-6">
+              <span className="grid h-9 w-9 place-items-center rounded-full border border-[var(--edge)] bg-[var(--tint)] text-sm font-bold text-[var(--text)]">
                 {s.n}
               </span>
               <h3 className="mt-3.5 text-base font-bold tracking-tight">{s.t}</h3>
-              <p className="mt-2 text-sm leading-relaxed text-[#6e6e73]">{s.b}</p>
+              <p className="mt-2 text-sm leading-relaxed text-[var(--muted-foreground)]">{s.b}</p>
             </div>
           ))}
         </div>
@@ -329,7 +334,7 @@ export default function ForCoachesPage() {
         ].map((f) => (
           <div
             key={f.t}
-            className="grid items-center gap-8 rounded-3xl bg-[#f5f5f7] p-6 md:grid-cols-2 md:p-8"
+            className="marble-card grid items-center gap-8 p-6 md:grid-cols-2 md:p-8"
           >
             <div className="overflow-hidden rounded-2xl">
               <Image
@@ -341,7 +346,7 @@ export default function ForCoachesPage() {
             </div>
             <div>
               <h3 className="text-xl font-bold tracking-tight md:text-2xl">{f.t}</h3>
-              <p className="mt-3 text-base leading-relaxed text-[#6e6e73]">{f.b}</p>
+              <p className="mt-3 text-base leading-relaxed text-[var(--muted-foreground)]">{f.b}</p>
             </div>
           </div>
         ))}
@@ -356,21 +361,21 @@ export default function ForCoachesPage() {
         </div>
         <div className="mt-10 space-y-4">
           {(isAr ? COACH_FAQ_AR : COACH_FAQ_EN).map((f) => (
-            <div key={f.q} className="rounded-3xl bg-[#f5f5f7] p-6 ring-1 ring-[#e5e5ea]">
+            <div key={f.q} className="marble-card p-6">
               <h3 className="text-base font-bold tracking-tight">{f.q}</h3>
-              <p className="mt-2 text-sm leading-relaxed text-[#6e6e73]">{f.a}</p>
+              <p className="mt-2 text-sm leading-relaxed text-[var(--muted-foreground)]">{f.a}</p>
             </div>
           ))}
         </div>
       </section>
 
       {/* ================= SHARE (TEXT-ONLY BUTTONS) ================= */}
-      <section className="border-t border-[#e5e5ea] bg-[#f5f5f7] py-14">
+      <section className="border-t border-[var(--edge)] bg-[var(--tint)] py-14">
         <div className="mx-auto max-w-3xl px-4 text-center">
           <h2 className="text-xl font-semibold tracking-tight md:text-2xl">
             {isAr ? "تعرف كوتش يستهل يشتغل معانا؟" : "Know a coach who should be here?"}
           </h2>
-          <p className="mt-2 text-sm text-[#6e6e73]">
+          <p className="mt-2 text-sm text-[var(--muted-foreground)]">
             {isAr
               ? "ابعتله الصفحة دي — شغل كامل بأسعاره وفلوسه في إيده."
               : "Send him this page — a full business at his own prices, in his own hands."}
@@ -395,14 +400,14 @@ export default function ForCoachesPage() {
         <h2 className="text-2xl font-semibold tracking-tight md:text-4xl">
           {isAr ? "جاهز تبني شغلك على منصة تليق بيه؟" : "Ready to build your business on a platform that fits it?"}
         </h2>
-        <p className="mx-auto mt-3 max-w-xl text-base text-[#6e6e73]">
+        <p className="mx-auto mt-3 max-w-xl text-base text-[var(--muted-foreground)]">
           {isAr
             ? "سجّل دلوقتي — حسابك يتفعّل فورًا، وتبدأ تضيف عملائك وتحدد أسعارك من أول يوم."
             : "Sign up now — your account activates instantly, and you can add clients and set your prices from day one."}
         </p>
         <Link
           href={REGISTER_HREF}
-          className="mt-7 inline-block rounded-full bg-[#0071e3] px-9 py-3.5 text-sm font-semibold text-white shadow-lg shadow-[#0071e3]/25 transition-all duration-300 hover:bg-[#0077ed]"
+          className="btn-chrome mt-7 inline-block px-9 py-3.5 text-sm font-semibold"
         >
           {isAr ? "أنشئ حسابك كمدرب — مجانًا" : "Create your coach account — free"}
         </Link>

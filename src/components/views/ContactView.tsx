@@ -49,14 +49,17 @@ export function ContactView() {
   };
 
   return (
-    <div className="flex min-h-screen flex-col bg-white text-[#1d1d1f]">
+    /* Phase 132 (owner feedback: «باقي الموقع إعادة التنسيق ليتبع هوية
+       الصفحة الرئيسية»): the contact page joins the Marble & Chrome
+       identity — token surfaces/text, marble-card form, chrome CTA. */
+    <div className="flex min-h-screen flex-col bg-[var(--bg)] text-[var(--text)]">
       <SiteHeader variant="landing" />
       <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-20 sm:px-6 md:py-28">
         <div className="text-center">
           <h1 className="text-4xl font-semibold tracking-tight md:text-6xl">
             {isAr ? "تواصل معنا" : "Contact Us"}
           </h1>
-          <p className="mx-auto mt-6 max-w-xl text-lg font-normal text-[#6e6e73] md:text-xl">
+          <p className="mx-auto mt-6 max-w-xl text-lg font-normal text-[var(--muted-foreground)] md:text-xl">
             {isAr
               ? "عندك سؤال أو استفسار؟ ابعتلنا رسالة وهنرد عليك في أقرب وقت."
               : "Have a question? Send us a message and we'll get back to you."}
@@ -64,32 +67,32 @@ export function ContactView() {
         </div>
 
         <div className="mt-16 grid gap-12 md:grid-cols-2 md:gap-16">
-          {/* Contact info — Apple-style clean text */}
+          {/* Contact info — engraved-seal eyebrow + token text (identity) */}
           <div className="space-y-8">
             <div>
-              <h3 className="text-xs font-normal uppercase tracking-wide text-[#6e6e73]">
+              <h3 className="text-xs font-normal uppercase tracking-wide text-[var(--muted-foreground)]">
                 {isAr ? "البريد الإلكتروني" : "Email"}
               </h3>
               <p className="mt-2 text-lg font-normal" dir="ltr">muscleshubfit@gmail.com</p>
             </div>
             <div>
-              <h3 className="text-xs font-normal uppercase tracking-wide text-[#6e6e73]">
+              <h3 className="text-xs font-normal uppercase tracking-wide text-[var(--muted-foreground)]">
                 {isAr ? "دعم سريع" : "Quick Support"}
               </h3>
-              <p className="mt-2 text-lg font-normal text-[#6e6e73]">
+              <p className="mt-2 text-lg font-normal text-[var(--muted-foreground)]">
                 {isAr ? "سجل دخول وافتح تذكرة دعم من لوحة التحكم" : "Log in and open a support ticket from dashboard"}
               </p>
             </div>
             <div>
-              <h3 className="text-xs font-normal uppercase tracking-wide text-[#6e6e73]">
+              <h3 className="text-xs font-normal uppercase tracking-wide text-[var(--muted-foreground)]">
                 {isAr ? "الموقع" : "Location"}
               </h3>
               <p className="mt-2 text-lg font-normal">{isAr ? "القاهرة، مصر — أونلاين" : "Cairo, Egypt — Online"}</p>
             </div>
           </div>
 
-          {/* Contact form — Apple-style clean */}
-          <div className="rounded-3xl bg-[#f5f5f7] p-8 md:p-10">
+          {/* Contact form — marble-card surface (identity) */}
+          <div className="marble-card p-8 md:p-10">
             <form onSubmit={handleSubmit} className="space-y-5">
               <div className="space-y-2">
                 <Label htmlFor="name" className="text-sm font-medium">
@@ -100,7 +103,7 @@ export function ContactView() {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   required
-                  className="rounded-xl border-[#d2d2d7] bg-white px-4 py-3 text-base"
+                  className="rounded-xl border-[var(--edge)] bg-[var(--card)] px-4 py-3 text-base"
                 />
               </div>
               <div className="space-y-2">
@@ -113,7 +116,7 @@ export function ContactView() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
-                  className="rounded-xl border-[#d2d2d7] bg-white px-4 py-3 text-base"
+                  className="rounded-xl border-[var(--edge)] bg-[var(--card)] px-4 py-3 text-base"
                   dir="ltr"
                 />
               </div>
@@ -126,7 +129,7 @@ export function ContactView() {
                   value={subject}
                   onChange={(e) => setSubject(e.target.value)}
                   required
-                  className="rounded-xl border-[#d2d2d7] bg-white px-4 py-3 text-base"
+                  className="rounded-xl border-[var(--edge)] bg-[var(--card)] px-4 py-3 text-base"
                 />
               </div>
               <div className="space-y-2">
@@ -138,13 +141,13 @@ export function ContactView() {
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
                   required
-                  className="min-h-[120px] rounded-xl border-[#d2d2d7] bg-white px-4 py-3 text-base"
+                  className="min-h-[120px] rounded-xl border-[var(--edge)] bg-[var(--card)] px-4 py-3 text-base"
                 />
               </div>
               <button
                 type="submit"
                 disabled={sending}
-                className="w-full rounded-full bg-[#0071e3] px-6 py-3 text-base font-normal text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+                className="btn-chrome w-full px-6 py-3 text-base disabled:opacity-50"
               >
                 {sending ? (isAr ? "جاري الإرسال..." : "Sending...") : (isAr ? "إرسال الرسالة" : "Send Message")}
               </button>
@@ -153,7 +156,7 @@ export function ContactView() {
         </div>
       </main>
 
-      <footer className="mt-auto border-t border-[#d2d2d7] py-6 text-center text-xs font-normal text-[#6e6e73]">
+      <footer className="mt-auto border-t border-[var(--edge)] py-6 text-center text-xs font-normal text-[var(--muted-foreground)]">
         © {new Date().getFullYear()} Alkemos. {isAr ? "كل الحقوق محفوظة." : "All rights reserved."}
       </footer>
  </div>

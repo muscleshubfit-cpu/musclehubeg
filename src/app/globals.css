@@ -465,32 +465,35 @@
 [data-theme="dark"] .evo-bubble-ring {
   box-shadow: 0 0 0 2px var(--ai), 0 0 18px rgba(69, 214, 255, 0.45);
 }
-/* Footer marble — mission §14: #0B0B0D + marble-dark texture + meander top
-   edge. The footer is dark in BOTH themes, so it always uses the DARK
-   texture + DARK meander artwork (bright lines on black). */
+/* Footer marble — Phase 132 (owner feedback 2026-09-06: «الفوتر محتاج تعديل
+   الخلفية ولون الكتابة — لايت مود خلفية الرخام الفاتح وكتابة سوداء،
+   دارك مود خلفية رخام أسود وكتابة أبيض»): the footer is now THEME-AWARE
+   through the marble/meander CSS vars (light = light-marble slab + black
+   lockup/text; dark = black-marble slab + white lockup/text). The old
+   Phase-126 behavior (permanently dark in both themes) is retired. */
 .footer-marble {
-  background-color: #0B0B0D;
-  background-image: url("/images/brand/texture-marble-dark.webp");
+  background-color: var(--bg);
+  background-image: var(--marble-img);
   background-size: cover;
   background-position: center;
 }
 .footer-meander-top {
   height: 28px;
-  background-image: url("/images/brand/divider-meander-dark.webp");
+  background-image: var(--meander-img);
   background-repeat: repeat-x;
   background-size: auto 28px;
   background-position: center;
   opacity: 0.85;
 }
 
-/* Footer links — mission §14: muted light links (the global `a` color is
-   the app-action blue; on the always-dark footer it must not apply) */
+/* Footer links — black-on-light / white-on-dark via tokens; the global `a`
+   color (app-action blue) must not leak onto the marble footer. */
 .footer-marble a {
-  color: #B9BEC4;
+  color: var(--muted-2);
   text-decoration: none;
-  transition: opacity 0.2s ease;
+  transition: color 0.2s ease;
 }
-.footer-marble a:hover { opacity: 0.7; }
+.footer-marble a:hover { color: var(--text); }
 
 /* ====================================================================
  * DARK-COMPATIBILITY SHIM (Phase 126) — the identity conversion covered
@@ -565,15 +568,21 @@
     line-height: 1.2;
   }
 
-  /* Selection color — Apple blue */
+  /* Selection color — neutral graphite (Phase 132 zero-blue law) */
   ::selection {
-    background-color: rgba(0, 113, 227, 0.2);
-    color: #1d1d1f;
+    background-color: rgba(11, 11, 13, 0.12);
+    color: inherit;
   }
 
-  /* Apple-style link defaults */
+  /* Link defaults — Phase 132 (owner feedback: «باقي الموقع إعادة التنسيق
+     ليتبع هوية الصفحة الرئيسية»): the global anchor color was the Apple
+     action blue (--primary), which leaked blue links onto every page that
+     did not style its anchors explicitly (OtherTools cards, app surfaces,
+     dark mode included). The Marble & Chrome identity is monochrome, so
+     un-styled links now inherit the neutral slate token; explicit link
+     styles (footer-marble, btn-*, prose rules) override as before. */
   a {
-    color: var(--primary);
+    color: var(--muted-2);
     text-decoration: none;
     transition: opacity 0.2s ease;
   }

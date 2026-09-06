@@ -103,7 +103,7 @@ export function ShareButtons({ title, text, url, compact = false }: Props) {
   return (
     <div className="flex flex-wrap items-center gap-2">
       {!compact && (
-        <span className="flex items-center gap-1.5 text-sm font-medium text-[#6e6e73]">
+        <span className="flex items-center gap-1.5 text-sm font-medium text-[var(--muted-foreground)]">
           <Share2 className="h-4 w-4" />
           {isAr ? "شارك:" : "Share:"}
         </span>
@@ -112,7 +112,7 @@ export function ShareButtons({ title, text, url, compact = false }: Props) {
       {/* Native share button (mobile) */}
       <button
         onClick={nativeShare}
-        className="grid h-9 w-9 place-items-center rounded-full bg-[#f5f5f7] text-[#1d1d1f] transition-colors hover:bg-[#e5e5e7]"
+        className="grid h-9 w-9 place-items-center rounded-full border border-[var(--edge)] bg-[var(--tint)] text-[var(--text)] transition-opacity hover:opacity-75"
         title={isAr ? "مشاركة" : "Share"}
         aria-label={isAr ? "مشاركة" : "Share"}
       >
@@ -128,7 +128,7 @@ export function ShareButtons({ title, text, url, compact = false }: Props) {
             href={link.href}
             target="_blank"
             rel="noopener noreferrer"
-            className="grid h-9 w-9 place-items-center rounded-full bg-[#f5f5f7] text-[#1d1d1f] transition-colors hover:bg-[#e5e5e7]"
+            className="grid h-9 w-9 place-items-center rounded-full border border-[var(--edge)] bg-[var(--tint)] text-[var(--text)] transition-opacity hover:opacity-75"
             style={{ color: link.color }}
             title={link.name}
             aria-label={isAr ? `مشاركة عبر ${link.name}` : `Share on ${link.name}`}
@@ -141,7 +141,7 @@ export function ShareButtons({ title, text, url, compact = false }: Props) {
       {/* Copy link button */}
       <button
         onClick={copyLink}
-        className="grid h-9 w-9 place-items-center rounded-full bg-[#f5f5f7] text-[#1d1d1f] transition-colors hover:bg-[#e5e5e7]"
+        className="grid h-9 w-9 place-items-center rounded-full border border-[var(--edge)] bg-[var(--tint)] text-[var(--text)] transition-opacity hover:opacity-75"
         title={isAr ? "نسخ الرابط" : "Copy link"}
         aria-label={isAr ? "نسخ الرابط" : "Copy link"}
       >
