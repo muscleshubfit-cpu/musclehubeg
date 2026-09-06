@@ -336,35 +336,50 @@ export function SiteHeader({ variant = "landing" }: { variant?: "landing" | "app
       <header className="sticky top-0 z-40 w-full border-b border-[#d2d2d7] bg-white/80 backdrop-blur-xl backdrop-saturate-150">
         <div
           className={cn(
-            "mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6",
+            "relative mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6",
             variant === "app" && "max-w-6xl",
           )}
         >
-          {/* Logo */}
-          <button
-            onClick={() => navigate("landing")}
-            className="flex items-center gap-2"
-            aria-label="Alkemos"
-          >
-            <Image
-              src="/logo-header.png"
-              alt="Alkemos"
-              width={700}
-              height={144}
-              priority
-              className="hidden h-9 w-auto object-contain md:block"
-            />
-            <Image
-              src="/icon-192.png"
-              alt="Alkemos"
-              width={36}
-              height={36}
-              priority
-              className="h-9 w-9 rounded-lg object-contain md:hidden"
-            />
-          </button>
+          {/* Left: hamburger (owner directive 2026-09-06: logo moves to the
+              exact center — classic 3-zone header: menu left, logo center,
+              actions right; works in LTR and RTL alike) */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setOpen(true)}
+              className="flex h-9 w-9 items-center justify-center rounded-lg text-[#1d1d1f] hover:bg-[#f5f5f7]"
+              aria-label={isAr ? "فتح القائمة" : "Open menu"}
+            >
+              <Menu className="h-5 w-5" />
+            </button>
+          </div>
 
-          {/* Right side: Language + Notifications + Account + Menu */}
+          {/* Center: logo — absolutely centered so side groups never push it */}
+          <div className="pointer-events-none absolute inset-x-0 flex justify-center">
+            <button
+              onClick={() => navigate("landing")}
+              className="pointer-events-auto flex items-center gap-2"
+              aria-label="Alkemos"
+            >
+              <Image
+                src="/logo-header.png"
+                alt="Alkemos"
+                width={447}
+                height={144}
+                priority
+                className="hidden h-10 w-auto object-contain md:block"
+              />
+              <Image
+                src="/icon-192.png"
+                alt="Alkemos"
+                width={36}
+                height={36}
+                priority
+                className="h-9 w-9 rounded-lg object-contain md:hidden"
+              />
+            </button>
+          </div>
+
+          {/* Right side: Language + Notifications + Account (menu moved left for centered logo) */}
           <div className="flex items-center gap-2 md:gap-3">
             {/* Language toggle — always visible */}
             <LanguageToggle />
@@ -405,15 +420,6 @@ export function SiteHeader({ variant = "landing" }: { variant?: "landing" | "app
                 <User className="h-4 w-4" />
               </button>
             )}
-
-            {/* Hamburger menu — opens drawer */}
-            <button
-              onClick={() => setOpen(true)}
-              className="flex h-9 w-9 items-center justify-center rounded-lg text-[#1d1d1f] hover:bg-[#f5f5f7]"
-              aria-label={isAr ? "فتح القائمة" : "Open menu"}
-            >
-              <Menu className="h-5 w-5" />
-            </button>
           </div>
         </div>
       </header>

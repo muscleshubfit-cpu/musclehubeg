@@ -135,7 +135,7 @@ export default function EvoPage() {
         <section className="text-center">
           <div className="mx-auto mb-6 flex h-24 w-24 items-center justify-center rounded-3xl bg-gradient-to-br from-[#0071e3] to-[#8b5cf6]">
             <Image
-              src="/images/evo-standalone.jpg"
+              src="/images/brand/evo-widget-light.webp"
               alt="EVO"
               width={80}
               height={80}
@@ -162,7 +162,7 @@ export default function EvoPage() {
               className="group inline-flex cursor-pointer items-center gap-3 rounded-full bg-[#0071e3] px-6 py-3 text-base font-medium text-white transition-opacity hover:opacity-90"
             >
               <Image
-                src="/images/evo-standalone.jpg"
+                src="/images/brand/evo-widget-light.webp"
                 alt="EVO"
                 width={32}
                 height={32}
@@ -180,6 +180,20 @@ export default function EvoPage() {
               <Info className="h-4 w-4" />
               <span>{isAr ? "اعرف أكثر عن EVO" : "Learn more about EVO"}</span>
             </a>
+          </div>
+
+          {/* Owner's EVO warrior artwork (transparent cutout — white page bg
+              keeps the cutout edges invisible) */}
+          <div className="relative mx-auto mt-10 max-h-[520px] w-fit">
+            <Image
+              src="/images/brand/evo-character.webp"
+              alt={isAr ? "محارب EVO بالدرع السبارتي — المساعد الذكي من Alkemos" : "EVO warrior in Spartan armor — Alkemos smart assistant"}
+              width={874}
+              height={1000}
+              sizes="(max-width: 768px) 90vw, 480px"
+              className="mx-auto h-auto max-h-[520px] w-auto object-contain"
+              priority
+            />
           </div>
         </section>
 
@@ -481,7 +495,7 @@ export default function EvoPage() {
               className="inline-flex cursor-pointer items-center gap-3 rounded-full bg-white px-6 py-3 text-base font-normal text-[#0071e3] transition-opacity hover:opacity-90"
             >
               <Image
-                src="/images/evo-standalone.jpg"
+                src="/images/brand/evo-widget-light.webp"
                 alt="EVO"
                 width={32}
                 height={32}

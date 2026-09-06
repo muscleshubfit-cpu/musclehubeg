@@ -237,7 +237,7 @@ export function EvoFloatingWidget() {
           {/* EVO profile image with pulse animation — image only, no text */}
           <span className="relative block">
             <Image
-              src="/images/evo-standalone.jpg"
+              src="/images/brand/evo-widget-light.webp"
               alt="EVO"
               width={48}
               height={48}
@@ -274,7 +274,7 @@ export function EvoFloatingWidget() {
             <div className="flex items-center justify-between border-b border-[#d2d2d7] bg-gradient-to-r from-[#0071e3] to-[#8b5cf6] p-4 text-white">
               <div className="flex items-center gap-3">
                 <Image
-                  src="/images/evo-standalone.jpg"
+                  src="/images/brand/evo-widget-light.webp"
                   alt="EVO"
                   width={40}
                   height={40}
@@ -330,7 +330,7 @@ export function EvoFloatingWidget() {
                 /* Welcome screen */
                 <div className="flex h-full flex-col items-center justify-center text-center">
                   <Image
-                    src="/images/evo-standalone.jpg"
+                    src="/images/brand/evo-widget-light.webp"
                     alt="EVO"
                     width={80}
                     height={80}

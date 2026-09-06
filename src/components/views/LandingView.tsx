@@ -388,17 +388,37 @@ export function LandingView() {
 
       <SiteHeader variant="landing" />
 
-      {/* ===================== 1. HERO — Static premium image + text ===================== */}
-      {/* Replaced ImageStreamHero with a clean static hero using the athlete image.
-          Apple-style: large image on right (desktop), centered text on mobile. */}
+      {/* ===================== 1. HERO — owner artwork background + centered brand text ===================== */}
+      {/* Owner directive 2026-09-06: the new brand hero artwork (Greek temple +
+          barbell, light variant) becomes the section BACKGROUND at low opacity
+          with white gradient veils so the text keeps full contrast. Hero copy
+          now leads with the official brand slogan (identity + SEO: the keyword
+          paragraph below stays, title tag unchanged). */}
       <section className="relative overflow-hidden bg-gradient-to-b from-white via-[#f5f5f7]/30 to-white">
-        <div className="mx-auto grid max-w-6xl items-center gap-8 px-4 py-16 md:grid-cols-2 md:py-24">
-          {/* Text — left side on desktop, centered on mobile */}
-          <div className="text-center md:text-left">
-            <h1 className="text-4xl font-semibold leading-[1.05] tracking-tight md:text-6xl lg:text-7xl">
-              {isAr ? "رحلتك الرياضية الكاملة.. في منصة واحدة" : "Your complete fitness platform."}
+        {/* Background artwork — decorative, hidden from assistive tech */}
+        <div className="absolute inset-0" aria-hidden="true">
+          <Image
+            src="/images/brand/hero-bg-light.webp"
+            alt=""
+            fill
+            sizes="100vw"
+            className="object-cover opacity-[0.22]"
+            priority
+          />
+        </div>
+        {/* Readability veils — keep dark text fully legible over the artwork */}
+        <div className="absolute inset-0 bg-gradient-to-b from-white/75 via-white/35 to-white/85" aria-hidden="true" />
+
+        <div className="relative mx-auto max-w-3xl px-4 py-16 text-center md:py-28">
+          {/* Text — centered on all screens */}
+          <div className="text-center">
+            <p className="text-xs font-semibold uppercase tracking-[0.25em]" style={{ color: PALETTE.textMuted }}>
+              {isAr ? "منصة ألكيموس الرياضية" : "ALKEMOS"}
+            </p>
+            <h1 className="mt-3 text-4xl font-semibold leading-[1.05] tracking-tight md:text-6xl lg:text-7xl">
+              {isAr ? "اصنع قوّتك الأسطورية" : "Forge Your Legendary Strength"}
             </h1>
-            <p className="mx-auto mt-4 max-w-xl text-base font-normal leading-relaxed md:mx-0 md:text-lg" style={{ color: PALETTE.textSec }}>
+            <p className="mx-auto mt-4 max-w-2xl text-base font-normal leading-relaxed md:text-lg" style={{ color: PALETTE.textSec }}>
               {isAr
                 ? "منصة Alkemos للتدريب الرقمي مش مجرد موقع تمارين — دي منظومة رياضية متكاملة: أكثر من 868 تمرينًا بشرح وافٍ، 8830 أكلة بالقيم الغذائية، برامج جاهزة لكل مستوى، حاسبات لياقة مجانية، مدونة علمية، وكوتشينج حقيقي. احصل على خطط مخصصة من مدربين معتمدين أو ذكاء اصطناعي EVO، وتابع تقدمك خطوة بخطوة — كل ما تحتاجه في مكان واحد يوفر عليك وقتك وجهدك."
                 : "Alkemos is more than a fitness website — it's a complete digital training platform and sports ecosystem: 868+ exercises with full instructions, 8,830+ foods with nutrition data, ready-made programs for every level, free fitness calculators, a scientific blog, and real online coaching. Get custom plans from certified coaches or the EVO AI, and track your progress step by step — everything you need in one place, saving you time and effort."}
@@ -412,7 +432,7 @@ export function LandingView() {
               <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: PALETTE.textMuted }}>
                 {isAr ? "استكشف أقسام الموقع" : "Explore the site"}
               </p>
-              <div className="mt-3 flex flex-wrap items-center justify-center gap-2 md:justify-start">
+              <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
                 {HERO_NAV.filter((s) => !s.needsPosts || latestPosts.length > 0).map((s) => {
                   const Icon = s.icon;
                   const isPrimary = !!s.primary;
@@ -466,18 +486,6 @@ export function LandingView() {
               </div>
             </nav>
           </div>
-          {/* Image — visible on ALL screen sizes (mobile + desktop).
-              On mobile: full-width below text. On desktop: right column. */}
-          <div className="relative aspect-[3/2] w-full overflow-hidden rounded-3xl shadow-2xl">
-            <Image
-              src="/images/hero/hero-athlete.jpg"
-              alt={isAr ? "منصة رياضية شاملة - تمارين وتغذية" : "Athlete performing bicep curls"}
-              fill
-              sizes="(max-width: 768px) 100vw, 50vw"
-              className="object-cover"
-              loading="eager"
-            />
-          </div>
         </div>
       </section>
 
@@ -524,11 +532,11 @@ export function LandingView() {
               </a>
             </div>
           </div>
-          {/* Image — single premium EVO visual */}
-          <div className="relative mt-10 aspect-[3/2] w-full overflow-hidden rounded-3xl">
+          {/* Image — owner's EVO brand artwork (light variant, WebP 134KB) */}
+          <div className="relative mt-10 aspect-video w-full overflow-hidden rounded-3xl">
             <Image
-              src="/images/hero/evo-1.jpg"
-              alt={isAr ? "EVO مساعد اللياقة الذكي" : "EVO — AI interface"}
+              src="/images/brand/evo-card-light.webp"
+              alt={isAr ? "محارب EVO — مساعد اللياقة الذكي من Alkemos" : "EVO warrior — Alkemos smart fitness assistant"}
               fill
               sizes="(max-width: 1024px) 100vw, 1024px"
               className="object-cover"

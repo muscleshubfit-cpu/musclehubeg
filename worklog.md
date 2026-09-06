@@ -1268,3 +1268,23 @@ Stage Summary:
 - ملاحظة متوقعة: لوحة Vercel ستعرض تحذير «Invalid Configuration» على النطاق — طبيعي وموثق، الترافيك يعمل (مُتحقق حيًا)
 - Commit SHA: (عملية بنية تحتية خارج الكود — يُسجل فقط هذا الإدخال)
 - Push status: (دفعة الوثائق أدناه)
+
+---
+Task ID: 126-OWNER-ASSETS-V2
+Agent: Super Z (main)
+Task: أمر المالك 2026-09-06 — مجموعة صوره الجديدة على الريبو (لوجوهات/هيرو/مساعد ذكي، light+dark): استخدام نسخ light + ضغط وتحويل لأقصى سرعة + لوجو الهيدر في المنتصف + صورة الهيرو خلفية بشفافية بسيطة مع وضوح النصوص + نصوص هيرو متوافقة SEO والهوية الجديدة
+
+Work Log:
+- المصدر: 14 صورة 1664×928 RGB (7 light + 6 dark + Favicon) رفعها المالك بجذر الريبو (commit 5a55569) — حُفظ الأصل كاملًا download/alkemos-brand/v2/ + تاريخ git ثم حُذف من الجذر بعد المعالجة (نمط Task 123)
+- الضغط والتحويل (سكريبت scripts/build_assets_v2.py): WebP method=6 — hero-bg-light 70KB · evo-card-light 134KB · evo-character 89KB · evo-widget-light 40KB · logo.png 1200×669 أبيض نقي 858KB (OG/crawlers فقط) · logo-header.png 447×144 شفاف 88KB — إجمالي الخفض من ~1.7MB/صورة إلى 40-134KB
+- القصّ الشفاف العلمي: flood-fill من الحواف فقط (المكوّنات الداخلية الفاتحة تنجو) + فك مزج الخلفية على بكسلات الحافة (S=(C−(1−α)BG)/α) قتل أثر الأزرق + إزالة الشوائب المنفصلة (<60px) — VLM فوق خلفيات العرض الفعلية: navbar 10/10 · widget 9/10 · character 10/10 (هالة خفيفة على الرمادي فقط → الشخصية توضع على الأبيض حصرًا والمنظر الكامل evo-card للقسم الرمادي)
+- الهيدر: لوجو المنتصف المطلق (absolute inset-x-0 + pointer-events) — menu يسارًا + actions يمينًا، سليم في RTL/LTR، لوجو navbar الجديد h-10 ديسكتوب + icon-192 موبايل
+- الهيرو: خلفية hero-bg-light opacity 0.22 + حجبات بيضاء متدرجة from-white/75 via-white/35 to-white/85 — النص الداكن بوضوح كامل + عمود واحد مركزي (إزالة صورة الرياضي اليمنى) + H1 = السلوجان الرسمي (Forge Your Legendary Strength / اصنع قوّتك الأسطورية) + شارة ALKEMOS — فقرة الكلمات المفتاحية (868 تمرين/8830 أكلة/كوتشينج/EVO) كما هي بأمر سابق
+- EVO: 6 مراجع evo-standalone → evo-widget-light (زر الودجت العائم + هيدر المحادثة + أفاتار الرسائل + 3 بصفحة /evo) · قسم EVO الرئيسي → evo-card-light 16:9 · هيرو /evo → evo-character المحارب 520px
+- الأيقونات: من Favicon.png — خوذة معدنية على بادج #f5f5f7 موحد (VLM 9/10) icon-512/192/32 · favicon.png/ico · apple-touch معتمة
+- البوابات (المرحلة 124): tsc 0 · eslint 0 · vitest 213/213 · migration_audit --ci PASS (بلا ميجريشن) · docs_parity 0 · docs_audit 0 · check-stale-refs 0 · next build ✓
+
+Stage Summary:
+- هوية المالك v2 حية بالكامل بنسخ light مضغوطة (WebP) + هيدر مركزي + هيرو بالخلفية الجديدة والسلوجان الرسمي — ونسخ dark محفوظة للمستقبل (download/ + تاريخ git)
+- Commit SHA: (يُسجل بعد الدفع أدناه)
+- Push status: (يُحدَّث بعد الدفع)
