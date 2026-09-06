@@ -1331,5 +1331,5 @@ Work Log:
 
 Stage Summary:
 - الهوية الجديدة «الرخام والكروم» حية محليًا بنمطي light/dark مع تبديل تلقائي بالنظام + زر يدوي ثلاثي الحالات — وشيتات مقارنة DIFF_* للتسليم جاهزة
-- Commit SHA: (يُسجل بعد الدفع أدناه)
-- Push status: (يُحدَّث بعد الدفع)
+- Commit SHA: cb45899 (الهوية) + 74cee58 (بانرات الأقسام بعد rebase على رفع المالك المتأخر c53e6e8)
+- Push status: PUSHED — c53e6e8..74cee58 main→main 2026-09-06 (انقطاع شبكة مؤقت اتجاوز) · تحقق إنتاجي: build-info=74cee58 · كل الأصول 200 (hero 48/78KB · أيقونات · لوجوهات · ماندر · بانرات · فايفيكون) · HTML الحي فيه no-flash script + hero-art + btn-chrome + seal-chip + meander-divider + logo-navbar · /ar 200 · لقطات VLM حية: لايت/دارك/موبايل/عربي كلها PASS (متطابقة بنيويًا + حلقة توهج --ai في الدارك) · شيتات المقارنة للتسليم: download/alkemos-signoff/ (DIFF_* × 4 + LIVE_* × 6)
