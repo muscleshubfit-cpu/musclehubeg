@@ -7,7 +7,7 @@
 
 ## المرحلة الحالية
 - **المرحلة:** 135 — سرعة بعد بلاغ المالك «السرعة أصبحت سيئة بعد ربط كلاودفلير»: (1) **تشخيص حي شامل:** TTFB عبر CF 28-63ms مقابل 310-1100ms مباشرة لـ Vercel (روابط CF الدافئة أسرع من اتصال بارد) · HTTP/3 + Brotli + HIT للأصول الثابتة حي · زيارة أولى 1.3MB/67 ملفًا هي الوزن الحقيقي · زيارة متكررة 17KB فقط (56/72 من الكاش) · HTML دائمًا DYNAMIC (يُبث ~0.5s — تخطيط جذري ديناميكي، ليس CF) (2) **CF:** تفعيل 0-RTT (PATCH API) + التحقق من Smart Tiered Cache=on · Rate Limit مُثبت بريئًا من البطء (8 طلبات /api/* لكل تحميل رئيسية مقابل حد 50/10ث) (3) **الكود:** preloads الهيرو مقيدة بـ media=prefers-color-scheme — لايت يوفر 68KB (hero-dark) · دارك يوفر 38KB + يكسب preload logo-hero-dark 87KB (كان LCP بلا preload) · تجاوز السمة اليدوي يرجع لسلوك ما قبل التغيير تمامًا (4) **قرار مالك محفوظ:** /images/brand/* must-revalidate (المرحلة 128 «تحديث فوري») لم يُمس — التحويل لـ max-age=3600 مطروح بقرار المالك
-- **آخر كوميت متحقق منه:** 570d09f (سابقه المُتحقق — المرحلة 134؛ SHA المرحلة 135 يُوثَّق في كوميت post-push بعد الدفع)
+- **آخر كوميت متحقق منه:** 26bcad1 (المرحلة 135) — دُفع b535acd..26bcad1 main→main 2026-09-07 · Vercel READY (sha 26bcad10) · تحقق حي: build-info=26bcad1 · 4 preloads مقيدة بالوسيط حية · 0rtt=on · متصفح لايت لا يحمل hero-dark إطلاقًا · الصفحات 200 بـ TTFB 34-42ms — سابقه: 570d09f (المرحلة 134)
 - **البوابات محليًا (المرحلة 135):** tsc 0 · eslint 0 · vitest 213/213 · migration_audit --ci PASS · docs_parity 0 · docs_audit 0 · check-stale-refs 0 · check-ui-wiring 0 · next build ✓ (1899 صفحة) (بلا ميجريشن — لا تغيير DB)
 - **الإنتاج:** alkemos.com حي · آخر ميجريشن مطبّق: 0071 · Auth حي: password_min_length=8 · **DNS مقفل (تحقق DoH حي):** SPF -all · DMARC reject صارم · DKIM فارغ · MX null · AdSense ads.txt حي · **Cloudflare نشط:** Full Strict + بروكسي A/www + Smart Tiered Cache + HTTP/3 + Early Hints + 0-RTT (135) + Rate Limit /api/* 50/10ث لكل IP بحجب 10ث ورد 429 · **قانون الكاش:** /images/brand/* وsw.js بـ max-age=0 must-revalidate و/images/* عام 86400 وsw v4 network-first + تسجيل ?v=4
 
@@ -36,7 +36,7 @@
 
 - **تشخيص السرعة (متصفح حي agent-browser):** زيارة أولى نظيفة: TTFB 63ms (HTTP/3) · DCL 1039ms · Load 1613ms · 67 ملفًا/1.3MB · متكررة: 17KB و56/72 من الكاش · /api/* فقط 8 طلبات (حد RL 50) · curl عبر CF 28-34ms مقابل 310ms+ مباشرة
 - **0-RTT:** PATCH zones/settings/0rtt on ✓ · Smart Tiered Cache: on منذ Task 125 ✓
-- **(يُستكمل بالتحقق الإنتاجي بعد الدفع في كوميت التوثيق — نفس نمط المراحل السابقة)
+- **تحقق إنتاجي (26bcad1):** build-info=26bcad1 ✓ · الـ 4 preloads بوسيط prefers-color-scheme حية بالـHTML ✓ · 0rtt=on عبر API ✓ · الرئيسية/ar/blog/coaching 200 بـ TTFB 34-42ms ✓ · متصفح حي (لايت OS): hero-light 38KB + logo-hero-light 97KB فقط وhero-dark 68KB غير مطلوبة (كانت تُحمَّل دائمًا) ✓
 
 ## خريطة مصادر الحقيقة (ممنوع الوثوق برقم من غير مصدره)
 

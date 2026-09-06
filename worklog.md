@@ -1460,3 +1460,23 @@ Stage Summary:
 - تحقق حي: ترويستا CSP المزدوجة · /blog=134KB · coach/register بكلمة مسربة 400 breached_password · minlength=8 بالتسجيل/null بالدخول · تعداد تخزين مجهول [] في 8 دلاء · 17 صفحة 200 · cron 401 · DNS مقفل عبر DoH
 - البوابات: tsc 0 · eslint 0 · vitest 213/213 · next build ✓ · بلا ميجريشن (لا تغيير DB)
 - متبقٍ يدوي على المالك: تدوير مفاتيح المنصات الأربعة · قاعدة CF Rate Limiting (بلا صلاحية بالرمز) · فرض CSP الكاملة بعد مراجعة تقارير RO بأسبوع
+
+---
+Task ID: 135
+Agent: main (Super Z)
+Task: Phase 135 — بلاغ المالك «السرعة أصبحت سيئة بعد ربط كلاودفلير» → فحص إعدادات السرعة في Cloudflare وVercel والموقع والمشروع + إصلاح ما يمكن
+
+Work Log:
+- تشخيص CF (API + اختبارات): cache_level=aggressive · browser_cache_ttl=0 (يحترم ترويسات Vercel) · H3+H2+Brotli+EarlyHints+TieredCache Smart=on · 0rtt=off→**فُعِّل (PATCH)** · rocket_loader=off (كان سيفسد hydration لو انفعل) · prefetch_preload مرفوض بالرمز (1015 — يدوي باللوحة)
+- قياس A/B حي: TTFB عبر CF 28-34ms مقابل 310-1100ms مباشرة لـ 76.76.21.21 (اتصال بارد) — بروكسي CF أسرع وليس أبطأ من موقع القياس · الأصول الثابتة HIT (age>10h) · HTML دائمًا DYNAMIC no-store (تخطيط جذري ديناميكي)
+- متصفح حي (agent-browser): زيارة أولى نظيفة TTFB 63ms (h3) · Load 1613ms · 67 ملفًا/1.3MB (الوزن الحقيقي: AdSense/doubleclick/recaptcha خارجية + 20 chunk + 6 خطوط + صور البراند) · زيارة متكررة 17KB فقط و56/72 من الكاش
+- Rate Limit المُنشأ اليوم بُرّئ من البطء: 8 طلبات /api/* فقط لكل تحميل كامل (coaches/featured + 7 csp-report) مقابل حد 50/10ث — القاعدة لا تلمس الأصول ولا HTML
+- كشف الكود: preloads الهيرو الثلاثة كانت غير مشروطة (hero-light+hero-dark معًا = 106KB دائمًا أحدهما مهدور) + logo-hero-dark (87KB) بلا preload إطلاقًا رغم أنه LCP مستخدمي الدارك
+- الإصلاح (layout.tsx): 4 preloads مقيدة بـ media="(prefers-color-scheme: …)" — المتصفح يتجاهل التحميل المسبق المخالف لسمة OS · تجاوز السمة اليدوي (localStorage) يرجع لسلوك ما قبل التغيير (ThemeImg يبقى زوج <img> بCSS)
+- قرار محفوظ عن قصد: /images/brand/* must-revalidate (قانون المرحلة 128 «تحديث فوري للبراند») لم يُمس — خيار max-age=3600 موثق بانتظار موافقة المالك
+- البوابات: tsc 0 · eslint 0 · vitest 213/213 · migration_audit --ci PASS · docs_parity 0 · docs_audit 0 (بعد إصلاح مقاطع STATE) · check-stale-refs 0 · check-ui-wiring 0 · next build ✓ (1899 صفحة)
+
+Stage Summary:
+- Commit SHA: 26bcad1 — PUSHED b535acd..26bcad1 main→main · Vercel READY sha=26bcad10
+- تحقق إنتاجي: build-info=26bcad1 ✓ · الـ 4 preloads المقيدة بالوسيط حية بالـ HTML ✓ · 0rtt=on (API) ✓ · الصفحات الرئيسة 200 بـ TTFB 34-42ms ✓ · متصفح لايت يحمل hero-light+logo-hero-light فقط — hero-dark 68KB لم تعد تُطلب ✓
+- الخلاصة للمالك: CF ليس سبب البطء من موقع القياس (أسرع من المباشر للأصول والـ TTFB) — الوزن الحقيقي للزيارة الأولى 1.3MB (إعلانات خارجية + خطوط + صور) وHTML يُبث ~0.5s بسبب التخطيط الجذري الديناميكي · متبقٍ اختياري: Speed Brain يدوي · قرار البراند TTL · تدوير المفاتيح
