@@ -1,7 +1,7 @@
 # Alkemos — Comprehensive Sports Platform
 
 > **Live:** [alkemos.com](https://alkemos.com)
-> **Repository:** [github.com/muscleshubfit-cpu/musclehubeg](https://github.com/muscleshubfit-cpu/musclehubeg)
+> **Repository:** [github.com/muscleshubfit-cpu/alkemos](https://github.com/muscleshubfit-cpu/alkemos)
 > **Stack:** Next.js 16 · React 19 · Supabase · OpenRouter + Groq AI · Tailwind CSS 4
 > **CI Gates:** every push is audited — schema-drift · registry-parity · knowledge-system · anti-regression
 > **Last updated:** 2026-09-06 (Phase 121 — brand renamed to Alkemos; for current live status always refer to [`STATE.md`](./STATE.md))
@@ -29,7 +29,7 @@ the rename covers and how it works:
   `MuscleHub` to `Alkemos`. It is data-only, idempotent, and never touches
   `slug` columns (URL stability) or `auth.users`.
 - **Functional identifiers are intentionally NOT renamed:** the GitHub repo
-  path (`muscleshubfit-cpu/musclehubeg`), the private backup repo
+  path (`muscleshubfit-cpu/alkemos`), the private backup repo
   (`musclehubeg-backups`), `project_id` in `supabase/config.toml`, and the
   contact emails — renaming any of them would break integrations, the
   daily DB-backup job, or the Supabase–GitHub link.
@@ -81,7 +81,7 @@ The gates live in the repo itself (`.github/workflows/` + `scripts/`) so they tr
 
 ```bash
 # Clone the repo
-git clone https://github.com/muscleshubfit-cpu/musclehubeg.git
+git clone https://github.com/muscleshubfit-cpu/alkemos.git
 cd alkemos
 
 # Install dependencies
@@ -413,7 +413,7 @@ GitHub workflow (`.github/workflows/db-backup.yml`) takes over:
 - **What**: a full JSON snapshot of every public table + `auth.users`
   export, written by `scripts/db-backup.mjs` (PostgREST pagination,
   deterministic ordering so git diffs show only real changes).
-- **Where**: the **private** repo `muscleshubfit-cpu/musclehubeg-backups`
+- **Where**: the **private** repo `muscleshubfit-cpu/alkemos-backups`
   (snapshots contain user PII — they must never land in this public repo
   or in public artifacts). Layout: `snapshots/<date>/tables/<table>.json`
   + `manifest.json` + `auth_users.json`.
@@ -515,7 +515,7 @@ around each pipeline step.
 
 ## 🤝 المساهمة
 
-نرحب بالتقارير والاقتراحات عبر [Issues](https://github.com/muscleshubfit-cpu/musclehubeg/issues).  
+نرحب بالتقارير والاقتراحات عبر [Issues](https://github.com/muscleshubfit-cpu/alkemos/issues).  
 للمزيد من التفاصيل حول سياسة المساهمة (وهي خاصة)، راجع [`CONTRIBUTING.md`](./CONTRIBUTING.md).
 
 ---

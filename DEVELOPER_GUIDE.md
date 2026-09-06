@@ -40,7 +40,7 @@ git --version    # أي إصدار حديث
 ### التثبيت
 
 ```bash
-git clone https://github.com/muscleshubfit-cpu/musclehubeg.git
+git clone https://github.com/muscleshubfit-cpu/alkemos.git
 cd alkemos
 bun install
 ```

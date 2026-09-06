@@ -22,7 +22,7 @@
  * response carries `runnerDispatched: false` so UIs/logs can warn.
  */
 
-const REPO = "muscleshubfit-cpu/musclehubeg";
+const REPO = "muscleshubfit-cpu/alkemos";
 const WORKFLOW = "process-ai-jobs.yml";
 const DISPATCH_TIMEOUT_MS = 8_000;
 
