@@ -153,20 +153,51 @@ export default async function RootLayout({
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: jsonLd(websiteSchema) }}
         />
-        {/* Phase 126 — Marble & Chrome themes: preload BOTH hero artworks
-            (mission acceptance: no CLS from the hero background — the hero
-            is a CSS cover background, so the <link preload> is the only
-            fetch hint it gets). P2 fix (2026-09-07): homepage-only — the
-            hero never renders elsewhere, so preloading it on /blog etc.
-            was pure wasted bandwidth. */}
+        {/* Phase 126 — Marble & Chrome themes: hero artwork preloads.
+            P2 fix (2026-09-07): homepage-only (the hero never renders
+            elsewhere, so preloading it on /blog etc. was pure waste).
+            Phase 135 speed fix (owner report "site slow via Cloudflare"):
+            preloads are now OS-SCHEME-SCOPED via the `media` attribute —
+            the browser skips a preload whose media query doesn't match, so
+            a light-OS visitor no longer downloads hero-dark.webp (68KB) and
+            a dark-OS visitor no longer downloads hero-light.webp (38KB).
+            Manual-theme-override users (localStorage alkemos-theme) fall
+            back to exactly the old behavior: at most one wasted preload —
+            their DOM <img>/CSS still switches on data-theme, so rendering
+            is unchanged; only the fetch hint is scoped. The hero is a CSS
+            cover background, so no CLS either way.
+            logo-hero-dark.webp also gains a dark-scoped preload — before,
+            dark users' actual LCP-adjacent logo image had NO preload while
+            the light variant's 99KB was preloaded unconditionally. */}
         {isHomePage && (
           <>
-            <link rel="preload" as="image" href="/images/brand/hero-light.webp" />
-            <link rel="preload" as="image" href="/images/brand/hero-dark.webp" />
-            {/* Phase 127 — the hero chrome logo is an <img> now (above the
-                fold); the light variant is the default-theme LCP-adjacent
-                fetch. */}
-            <link rel="preload" as="image" href="/images/brand/logo-hero-light.webp" />
+            <link
+              rel="preload"
+              as="image"
+              href="/images/brand/hero-light.webp"
+              media="(prefers-color-scheme: light)"
+            />
+            <link
+              rel="preload"
+              as="image"
+              href="/images/brand/hero-dark.webp"
+              media="(prefers-color-scheme: dark)"
+            />
+            {/* Phase 127 — the hero chrome logo is a ThemeImg <img> pair
+                (above the fold); preload BOTH variants scoped to their
+                matching OS scheme (see Phase 135 note above). */}
+            <link
+              rel="preload"
+              as="image"
+              href="/images/brand/logo-hero-light.webp"
+              media="(prefers-color-scheme: light)"
+            />
+            <link
+              rel="preload"
+              as="image"
+              href="/images/brand/logo-hero-dark.webp"
+              media="(prefers-color-scheme: dark)"
+            />
           </>
         )}
       </head>
