@@ -196,7 +196,6 @@
   --ai: #38C7FF;
   --tint: #F5F6F8;
   --navbar-bg: rgba(255, 255, 255, 0.72);
-  --hero-img: url("/images/brand/hero-light.webp");
   --marble-img: url("/images/brand/texture-marble-light.webp");
   --meander-img: url("/images/brand/divider-meander-light.webp");
   --prog-backdrop: url("/images/brand/evo-card-light.webp");
@@ -237,7 +236,6 @@
   --tint: #121316;
   --card: #141518;
   --navbar-bg: rgba(11, 11, 13, 0.72);
-  --hero-img: url("/images/brand/hero-dark.webp");
   --marble-img: url("/images/brand/texture-marble-dark.webp");
   --meander-img: url("/images/brand/divider-meander-dark.webp");
   --prog-backdrop: url("/images/brand/evo-card-dark.webp");
@@ -363,40 +361,52 @@
   opacity: 0.85;
 }
 
-/* Hero artwork (CSS background — swaps with the theme, zero hydration flicker) */
+/* === Hero artwork — Phase 131 unified overlay (owner feedback
+   2026-09-06: «تصغير اللوجو والنص والازرار قليلا ثم نقلهم داخل الصورة») ===
+   The artwork is an absolutely-positioned cover layer (.hero-bg — the
+   ThemeImg pair in LandingView, theme-swapped + eager LCP) with the
+   content (chrome logo + H1 + seal chips) centered INSIDE it at every
+   viewport. Height floors keep the artwork effectively complete:
+     • every viewport: min-height = natural artwork height
+       (100vw × 713/1280) — phones/tablets render the full scene, sides
+       intact; the compact content only grows the box a few px (cover
+       then trims ≤ ~6% of the decorative side margins, imperceptible);
+     • wide viewports (aspect > 1501/1000): the classic 92vh hero.
+   Luminance-verified: the artwork's center band is clean in BOTH
+   themes (bright in light / near-black in dark) → full text contrast,
+   no veil. Replaces the Phase 128 two-mode switch (content used to
+   flow BELOW the artwork on phones — the owner moved it onto it). */
 .hero-art {
-  background-image: var(--hero-img);
-  background-size: cover;
-  background-position: center;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  min-height: calc(100vw * 713 / 1280);
+}
+@media (min-aspect-ratio: 1501/1000) {
+  .hero-art { min-height: 92vh; }
+}
+.hero-bg {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+.hero-bg img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
 }
 
-/* === Phase 128 — hero artwork mode switch (owner feedback) ===
-   «صورة الهيرو لسة مش كاملة، الجناب مش موجونه» + «فراغ كبير بين الهيدر
-   والهيرو»: background-size:cover crops BOTH sides whenever the viewport
-   is narrower than the artwork ratio (1280×713) — on phones that's 50%+
-   of the artwork gone, and the 92vh + centered content left a big blank
-   strip under the navbar. Fix — two modes, switched purely by viewport
-   aspect ratio:
-     • aspect > 3/2 (laptops/desktops/phone-landscape): the classic cover
-       background + vertically-centered overlay content (side crop ≤10%,
-       imperceptible). .hero-art-flow is display:none.
-     • aspect ≤ 3/2 (phones + tablets portrait/landscape): background
-       image OFF; the artwork renders IN FLOW (.hero-art-flow block, the
-       <img> in LandingView) at natural aspect — the complete image, sides
-       intact, starting directly under the navbar. Content flows below. */
-.hero-art-flow { display: none; }
-@media (min-aspect-ratio: 1501/1000) {
-  .hero-art {
-    display: flex;
-    min-height: 92vh;
-    align-items: center;
-    justify-content: center;
-  }
-  .hero-art-flow { display: none; }
-}
-@media (max-aspect-ratio: 3/2) {
-  .hero-art { background-image: none; }
-  .hero-art-flow { display: block; }
+/* Hero seal chips — one step smaller than the global .seal-chip
+   (owner directive Phase 131: «تصغير … الازرار قليلا») */
+.hero-seals .seal-chip {
+  padding: 0.3125rem 0.75rem;
+  font-size: 0.625rem;
+  gap: 0.25rem;
 }
 
 /* === EVO section card — Phase 127 (preview-sections reference) ===

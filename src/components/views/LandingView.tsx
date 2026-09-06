@@ -16,7 +16,6 @@ import { NewsletterForm } from "@/components/NewsletterForm";
 import { getFAQSchema } from "@/lib/seo";
 import Image from "next/image";
 import { ThemeImg, EngravedIcon } from "@/components/ThemeImg";
-import { openEvoFloatingChat } from "@/lib/evo-chat-context";
 import {
   Bot,
   BookOpen,
@@ -343,17 +342,23 @@ export function LandingView() {
     },
   ];
 
-  // Phase 128 (owner feedback «جدول Why Alkemos غير متجاوب ومقطوع جزء كبير
-  // منه»): the mobile cards below reuse this cell renderer — ✅→engraved
-  // check-seal, ❌→faint ×, any other string→literal text (same rules the
-  // md+ table applies per column).
+  // Phase 131 (owner feedback «جدول المقارنه حاليا يشبة الكروت، عدلة الى
+  // شكل جدول»): ONE real table renders at EVERY breakpoint now, so this
+  // cell renderer serves all four columns — ✅→engraved check-seal,
+  // ❌→faint ×, any other string→literal text (compact sizing below md
+  // so the 4-column grid stays readable on phones).
   const renderCmpValue = (raw: string, highlight: boolean) =>
     raw === "✅" ? (
-      <EngravedIcon name="checkseal" alt="" size={22} className={highlight ? "h-5 w-5" : "h-5 w-5 opacity-60"} />
+      <EngravedIcon
+        name="checkseal"
+        alt=""
+        size={22}
+        className={`mx-auto h-4 w-4 md:h-5 md:w-5${highlight ? "" : " opacity-60"}`}
+      />
     ) : raw === "❌" ? (
       <span style={{ color: "var(--muted-foreground)", opacity: 0.5 }} aria-label="No">×</span>
     ) : (
-      <span style={highlight ? { color: "var(--text)" } : { color: "var(--muted-foreground)" }}>{raw}</span>
+      <span className="leading-snug" style={{ color: highlight ? "var(--text)" : "var(--muted-foreground)" }}>{raw}</span>
     );
 
   return (
@@ -366,71 +371,58 @@ export function LandingView() {
 
       <SiteHeader variant="landing" />
 
-      {/* ===================== 1. HERO — Phase 127 (owner feedback on 126) ===================== */}
-      {/* Owner directives 2026-09-06 (Phase 127): (1) the hero artwork shows
-          FULL, with NO veil/opacity over the image (the baked-in logo was
-          scrubbed from hero-light/dark.webp by scripts/fix_hero_logo2.py);
-          (2) the silver-chrome logo-main lockup is an HTML element
-          (logo-hero-light/dark.webp) in the upper-center — replacing both
-          the old baked logo AND the small eyebrow wordmark; (3) the two
-          hero CTAs are REMOVED (the quick-nav section below + section CTAs
-          carry the funnel); (4) headline + stats subline + seal chips stay.
-          CLS: fixed 92vh + hero webps are <link preload>ed in the root
-          layout; the logo is a fixed-ratio <img> with CSS width only. */}
-      <section className="hero-art relative w-full overflow-hidden">
-        {/* Phase 128 (owner feedback 2026-09-06): «صورة الهيرو لسة مش كاملة،
-            الجناب مش موجوده» + «فراغ كبير بين الهيدر والهيرو» — on phones the
-            92vh cover background cropped BOTH sides of the artwork, and the
-            vertically-centered content left a large blank strip between the
-            navbar and the hero copy. Fix: on narrow/square viewports (aspect
-            ≤ 3/2 — phones + tablets) the artwork renders IN FLOW at natural
-            aspect, starting directly under the header with NOTHING cropped;
-            wide viewports keep the cover background + centered overlay (side
-            crop ≤10%, imperceptible on laptops/desktops). Mode switch is pure
-            CSS — see .hero-art / .hero-art-flow in globals.css. */}
-        <div className="hero-art-flow" aria-hidden="true">
+      {/* ===================== 1. HERO — Phase 131 (owner feedback on 128) ===================== */}
+      {/* Owner directives 2026-09-06 (Phase 131): (1) the stats subline
+          («868+ exercises • 8,830+ foods • EVO AI coach 24/7») is REMOVED;
+          (2) the chrome logo, the H1, and the seal chips are one step
+          smaller; (3) they now sit INSIDE the artwork — the hero is ONE
+          overlay scene: artwork = absolute cover layer (.hero-bg, theme
+          pair, eager LCP; root layout <link preload> still matches), the
+          content centered on top (luminance-verified: the artwork center
+          is clean in both themes → full contrast, no veil). The complete-
+          artwork guarantee from Phase 128 stays as a CSS min-height floor
+          (natural aspect on phones/tablets, 92vh on wide screens — see
+          .hero-art in globals.css). History: Phase 127 scrubbed the baked
+          logo from the artwork + removed the old CTAs/eyebrow. */}
+      <section className="hero-art relative w-full">
+        {/* Artwork layer — absolute cover, theme-swapped pair, eager (LCP) */}
+        <div className="hero-bg" aria-hidden="true">
           <ThemeImg
             light="/images/brand/hero-light.webp"
             dark="/images/brand/hero-dark.webp"
             alt=""
             width={1280}
             height={713}
-            className="h-auto w-full"
             eager
           />
         </div>
-        <div className="relative mx-auto max-w-3xl px-4 pb-12 pt-6 text-center md:py-24">
+        {/* Content overlay — logo + H1 + seal chips, centered in the artwork */}
+        <div className="relative z-10 mx-auto flex max-w-3xl flex-col items-center px-4 py-4 text-center md:py-8">
           {/* Silver-chrome brand lockup (owner artwork, theme pair) */}
-          <div className="flex justify-center">
-            <ThemeImg
-              light="/images/brand/logo-hero-light.webp"
-              dark="/images/brand/logo-hero-dark.webp"
-              alt="Alkemos"
-              className="w-56 object-contain md:w-72 lg:w-80"
-              eager
-            />
-          </div>
-          <h1 className="font-display mt-8 text-4xl font-semibold leading-[1.08] tracking-tight md:text-6xl lg:text-7xl" style={{ color: PALETTE.textPrim }}>
+          <ThemeImg
+            light="/images/brand/logo-hero-light.webp"
+            dark="/images/brand/logo-hero-dark.webp"
+            alt="Alkemos"
+            className="w-32 object-contain md:w-52 lg:w-64"
+            eager
+          />
+          <h1 className="font-display mt-3 text-2xl font-semibold leading-tight tracking-tight md:mt-5 md:text-5xl lg:text-6xl" style={{ color: PALETTE.textPrim }}>
             {isAr ? "منصتك الرياضية المتكاملة." : "Your complete fitness platform."}
           </h1>
-          <p className="mx-auto mt-4 max-w-xl text-base font-normal md:text-lg" style={{ color: PALETTE.textSec }}>
-            {isAr
-              ? "868+ تمرينًا • 8830+ أكلة • مدرب EVO الذكي 24/7"
-              : "868+ exercises • 8,830+ foods • EVO AI coach 24/7"}
-          </p>
 
-          {/* Stat chips — engraved seals (mission §3) */}
-          <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
+          {/* Stat chips — engraved seals (mission §3), hero-scoped smaller
+              (owner: «تصغير … الازرار قليلا» — .hero-seals in globals.css) */}
+          <div className="hero-seals mt-4 flex flex-wrap items-center justify-center gap-2 md:mt-6 md:gap-3">
             <span className="seal-chip">
-              <EngravedIcon name="dumbbell" alt="" size={14} className="h-3.5 w-3.5" />
+              <EngravedIcon name="dumbbell" alt="" size={14} className="h-3 w-3" />
               {isAr ? "868+ تمرين" : "868+ EXERCISES"}
             </span>
             <span className="seal-chip">
-              <EngravedIcon name="hydration" alt="" size={14} className="h-3.5 w-3.5" />
+              <EngravedIcon name="hydration" alt="" size={14} className="h-3 w-3" />
               {isAr ? "8830+ أكلة" : "8,830+ FOODS"}
             </span>
             <span className="seal-chip">
-              <EngravedIcon name="evo" alt="" size={14} className="h-3.5 w-3.5" />
+              <EngravedIcon name="evo" alt="" size={14} className="h-3 w-3" />
               {isAr ? "EVO مدرب ذكي 24/7" : "EVO AI COACH 24/7"}
             </span>
           </div>
@@ -516,7 +508,12 @@ export function LandingView() {
           scripts/build_assets_v127.py (source x[180,1060] puts him at
           67-85% of the crop). RTL mirrors automatically: logical
           inset-inline-end + a [dir="rtl"] mask flip in globals.css
-          (.evo-hero-card / .evo-hero-art). */}
+          (.evo-hero-card / .evo-hero-art).
+          Phase 131 (owner feedback 2026-09-06): «قسم ايفو ازاله الازرار
+          وتصغير حجم النص قليلا وتصغير ارتفاع الصورة قليلا» — the two CTAs
+          are REMOVED (the global floating EVO widget stays the entry
+          point), the H2 is one step smaller, and the card min-height
+          shrinks with it. */}
       <section id="evo" className="scroll-mt-20 px-4 py-16 md:py-24" style={{ backgroundColor: PALETTE.sectionGray, color: PALETTE.textPrim }}>
         <div className="mx-auto max-w-5xl">
           <div className="evo-hero-card marble-card relative w-full">
@@ -529,33 +526,14 @@ export function LandingView() {
                 className="h-full w-full object-cover"
               />
             </div>
-            {/* Text column — keeps clear of the solid part of the art.
-                Phase 128 (owner directive 2026-09-06): «قسم ايفو امسح الوصف
-                واكتفى بالعنوان» — the descriptive paragraph is REMOVED; the
-                column keeps the H2 title + the two CTAs only. */}
-            <div className="relative z-10 flex min-h-[340px] flex-col justify-center gap-4 p-7 md:min-h-[420px] md:p-10 lg:max-w-[56%]">
-              <div>
-                {/* Phase 117 H2 correction (supervisor order 2026-09-04):
-                    punchy marketing headline, not a question. */}
-                <h2 className="text-3xl font-semibold tracking-tight md:text-5xl" style={{ color: PALETTE.textPrim }}>
-                  {isAr ? "EVO: مدربك الذكي 24/7" : "EVO: Your 24/7 Smart Coach"}
-                </h2>
-              </div>
-              <div className="flex flex-wrap items-center gap-4">
-                <button
-                  type="button"
-                  onClick={openEvoFloatingChat}
-                  className="btn-chrome px-7 py-3.5 text-base"
-                >
-                  {isAr ? "ابدأ المحادثة" : "Start chatting"}
-                </button>
-                <a
-                  href="/evo"
-                  className="btn-outline px-7 py-3.5 text-base font-normal"
-                >
-                  {isAr ? "اعرف أكثر" : "Learn more"}
-                </a>
-              </div>
+            {/* Text column — title only (Phase 128), smaller + shorter card
+                (Phase 131). CTAs removed (owner: «قسم ايفو ازاله الازرار»). */}
+            <div className="relative z-10 flex min-h-[280px] flex-col justify-center gap-4 p-7 md:min-h-[340px] md:p-10 lg:max-w-[56%]">
+              {/* Phase 117 H2 correction (supervisor order 2026-09-04):
+                  punchy marketing headline, not a question. */}
+              <h2 className="text-2xl font-semibold tracking-tight md:text-4xl" style={{ color: PALETTE.textPrim }}>
+                {isAr ? "EVO: مدربك الذكي 24/7" : "EVO: Your 24/7 Smart Coach"}
+              </h2>
             </div>
           </div>
         </div>
@@ -1106,61 +1084,23 @@ export function LandingView() {
               <h3 className="text-center text-2xl font-semibold tracking-tight md:text-3xl" style={{ color: PALETTE.textPrim }}>
                 {isAr ? "ليه Alkemos؟ مقارنة سريعة" : "Why Alkemos? A quick comparison"}
               </h3>
-              {/* Mobile (Phase 128, owner feedback «غير متجاوب ومقطوع جزء
-                  كبير منه»): the 4-column table becomes stacked per-feature
-                  cards — one card per feature, each showing the three
-                  alternatives as label:value rows with the Alkemos row
-                  highlighted. Nothing is cut off on any phone width. */}
-              <div className="mt-6 grid grid-cols-1 gap-3 md:hidden">
-                {comparisonRows.map((row, i) => (
-                  <div key={`cmp-card-${i}`} className="marble-card p-4" style={{ borderRadius: "var(--radius-chrome)" }}>
-                    <p className="text-sm font-semibold" style={{ color: PALETTE.textPrim }}>
-                      {isAr ? row.featureAr : row.featureEn}
-                    </p>
-                    <div className="mt-3 space-y-1.5 text-sm">
-                      <div
-                        className="flex items-center justify-between gap-3 rounded-lg px-3 py-2"
-                        style={{ backgroundColor: "var(--tint)", borderInline: "var(--border-chrome)" }}
-                      >
-                        <span className="inline-flex items-center gap-1.5 text-xs font-semibold" style={{ color: "var(--text)" }}>
-                          {/* eslint-disable-next-line @next/next/no-img-element -- local fixed asset (helmet mark, 16px decorative) */}
-                          <img
-                            src="/images/brand/mark-helmet.png"
-                            alt=""
-                            width={16}
-                            height={16}
-                            className="h-4 w-4 object-contain"
-                            aria-hidden="true"
-                          />
-                          Alkemos
-                        </span>
-                        {renderCmpValue(row.us, true)}
-                      </div>
-                      <div className="flex items-center justify-between gap-3 px-3 py-2">
-                        <span className="text-xs font-medium" style={{ color: PALETTE.textSec }}>
-                          {isAr ? "مدرب شخصي تقليدي" : "Traditional trainer"}
-                        </span>
-                        {renderCmpValue(isAr ? row.tradAr : row.tradEn, false)}
-                      </div>
-                      <div className="flex items-center justify-between gap-3 px-3 py-2">
-                        <span className="text-xs font-medium" style={{ color: PALETTE.textSec }}>
-                          {isAr ? "تطبيقات مجانية" : "Free apps"}
-                        </span>
-                        {renderCmpValue(isAr ? row.appsAr : row.appsEn, false)}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              {/* md+ — the original 4-column table (fits comfortably) */}
-              <div className="marble-card mt-6 hidden overflow-x-auto md:block" style={{ borderRadius: "var(--radius-chrome)" }}>
-                <table className="w-full min-w-[560px] text-sm">
+              {/* Phase 131 (owner feedback «جدول المقارنه حاليا يشبة الكروت،
+                  عدلة الى شكل جدول»): ONE real <table> at EVERY
+                  breakpoint — the Phase 128 mobile card stack is GONE.
+                  Compact cells below md (text-xs + tighter padding) and
+                  wrapped text keep the 4-column grid readable on phones
+                  with zero cutoff; md+ keeps the roomy original sizing.
+                  The Alkemos column keeps the tint + chrome inline
+                  borders; the trainer header uses a short label below md
+                  so the header row stays one line. */}
+              <div className="marble-card mt-6 overflow-x-auto" style={{ borderRadius: "var(--radius-chrome)" }}>
+                <table className="w-full text-xs md:text-sm">
                   <thead>
                     <tr style={{ backgroundColor: PALETTE.sectionGray }}>
-                      <th className="p-4 text-start text-xs font-medium" style={{ color: PALETTE.textSec }}>
+                      <th className="p-2.5 text-start font-medium md:p-4" style={{ color: PALETTE.textSec }}>
                         {isAr ? "الميزة" : "Feature"}
                       </th>
-                      <th className="p-4 text-center text-xs font-semibold" style={{ color: "var(--text)" }}>
+                      <th className="p-2.5 text-center font-semibold md:p-4" style={{ color: "var(--text)" }}>
                         <span className="inline-flex items-center gap-1.5">
                           {/* eslint-disable-next-line @next/next/no-img-element -- local fixed asset (helmet mark, 16px decorative) */}
                           <img
@@ -1174,10 +1114,12 @@ export function LandingView() {
                           Alkemos
                         </span>
                       </th>
-                      <th className="p-4 text-center text-xs font-medium" style={{ color: PALETTE.textSec }}>
-                        {isAr ? "مدرب شخصي تقليدي" : "Traditional personal trainer"}
+                      <th className="p-2.5 text-center font-medium md:p-4" style={{ color: PALETTE.textSec }}>
+                        {/* Short label below md so the header stays one line */}
+                        <span className="md:hidden">{isAr ? "مدرب تقليدي" : "Trainer"}</span>
+                        <span className="hidden md:inline">{isAr ? "مدرب شخصي تقليدي" : "Traditional personal trainer"}</span>
                       </th>
-                      <th className="p-4 text-center text-xs font-medium" style={{ color: PALETTE.textSec }}>
+                      <th className="p-2.5 text-center font-medium md:p-4" style={{ color: PALETTE.textSec }}>
                         {isAr ? "تطبيقات مجانية" : "Free apps"}
                       </th>
                     </tr>
@@ -1185,37 +1127,20 @@ export function LandingView() {
                   <tbody>
                     {comparisonRows.map((row, i) => (
                       <tr key={i} style={{ borderTop: `1px solid ${PALETTE.border}99` }}>
-                        <td className="p-4 text-start font-medium" style={{ color: PALETTE.textPrim }}>
+                        <td className="p-2.5 text-start font-medium md:p-4" style={{ color: PALETTE.textPrim }}>
                           {isAr ? row.featureAr : row.featureEn}
                         </td>
                         <td
-                          className="p-4 text-center"
+                          className="p-2.5 text-center align-middle md:p-4"
                           style={{ backgroundColor: "var(--tint)", borderInline: "var(--border-chrome)" }}
                         >
-                          {/* ✅→chrome check-seal icon; ❌→faint × (mission §11) */}
-                          {row.us === "✅" ? (
-                            <EngravedIcon name="checkseal" alt="" size={22} className="mx-auto h-5 w-5" />
-                          ) : (
-                            <span className="font-semibold" style={{ color: "var(--text)" }}>{row.us}</span>
-                          )}
+                          {renderCmpValue(row.us, true)}
                         </td>
-                        <td className="p-4 text-center" style={{ color: "var(--muted-foreground)" }}>
-                          {(isAr ? row.tradAr : row.tradEn) === "❌" ? (
-                            <span style={{ color: "var(--muted-foreground)", opacity: 0.5 }} aria-label="No">×</span>
-                          ) : (isAr ? row.tradAr : row.tradEn) === "✅" ? (
-                            <EngravedIcon name="checkseal" alt="" size={22} className="mx-auto h-5 w-5 opacity-60" />
-                          ) : (
-                            isAr ? row.tradAr : row.tradEn
-                          )}
+                        <td className="p-2.5 text-center align-middle md:p-4">
+                          {renderCmpValue(isAr ? row.tradAr : row.tradEn, false)}
                         </td>
-                        <td className="p-4 text-center" style={{ color: "var(--muted-foreground)" }}>
-                          {(isAr ? row.appsAr : row.appsEn) === "❌" ? (
-                            <span style={{ color: "var(--muted-foreground)", opacity: 0.5 }} aria-label="No">×</span>
-                          ) : (isAr ? row.appsAr : row.appsEn) === "✅" ? (
-                            <EngravedIcon name="checkseal" alt="" size={22} className="mx-auto h-5 w-5 opacity-60" />
-                          ) : (
-                            isAr ? row.appsAr : row.appsEn
-                          )}
+                        <td className="p-2.5 text-center align-middle md:p-4">
+                          {renderCmpValue(isAr ? row.appsAr : row.appsEn, false)}
                         </td>
                       </tr>
                     ))}
@@ -1351,7 +1276,14 @@ export function LandingView() {
       </section>
 
       {/* ===================== FOOTER — mission §14: #0B0B0D + marble-dark
-          texture + logo-mono-white + meander divider on the top edge ===================== */}
+          texture + logo-mono-white + meander divider on the top edge.
+          Phase 131 (owner feedback 2026-09-06: «تعديل الفوتر الى قوائم
+          بدلاً من صف واحد»): the link groups are menu-style LISTS in a
+          responsive grid — 2 columns on phones, 3 on tablets, 6 columns
+          (brand + 5 lists) on desktop. The Legal & Basic links moved OUT
+          of the old single horizontal bottom row INTO the list grid as
+          the 5th menu, so every footer link now lives in a vertical
+          list. ===================== */}
       <footer className="footer-marble relative px-4 pb-10 pt-12 text-[#9BA0A6]">
         {/* Meander divider on the top edge (mission §14) */}
         <div className="footer-meander-top absolute inset-x-0 top-0" aria-hidden="true" />
@@ -1364,9 +1296,10 @@ export function LandingView() {
               headline + same /for-coaches link). The rich dark section is
               the single coach funnel entry. */}
 
-          <div className="grid gap-8 md:grid-cols-3 lg:grid-cols-5">
-            {/* Brand — white mono logo (owner artwork: white lockup) */}
-            <div>
+          <div className="grid grid-cols-2 gap-x-6 gap-y-8 md:grid-cols-3 lg:grid-cols-6 lg:gap-x-8">
+            {/* Brand — white mono logo (owner artwork: white lockup).
+                Spans the full row below lg so the lists pair up cleanly. */}
+            <div className="col-span-2 md:col-span-3 lg:col-span-1">
               {/* eslint-disable-next-line @next/next/no-img-element -- local fixed asset; dark footer always uses the white lockup (QR-asset precedent) */}
               <img
                 src="/images/brand/logo-footer-white.png"
@@ -1381,7 +1314,7 @@ export function LandingView() {
               <p className="mt-3 text-[10px] font-normal text-[#6B7075]">{isAr ? "© 2026 جميع الحقوق محفوظة" : "© 2026 All rights reserved"}</p>
             </div>
 
-            {/* Group 1: Paid Services */}
+            {/* List 1: Paid Services */}
             <div>
               <p className="text-[10px] font-semibold uppercase tracking-wider">{isAr ? "الخدمات المدفوعة" : "Paid Services"}</p>
               <ul className="mt-3 space-y-2 text-xs">
@@ -1391,7 +1324,7 @@ export function LandingView() {
               </ul>
             </div>
 
-            {/* Group 2: Affiliate & Referral */}
+            {/* List 2: Affiliate & Referral */}
             <div>
               <p className="text-[10px] font-semibold uppercase tracking-wider">{isAr ? "الأفلييت والإحالات" : "Affiliate & Referral"}</p>
               <ul className="mt-3 space-y-2 text-xs">
@@ -1400,7 +1333,7 @@ export function LandingView() {
               </ul>
             </div>
 
-            {/* Group 3: Tools */}
+            {/* List 3: Tools */}
             <div>
               <p className="text-[10px] font-semibold uppercase tracking-wider">{isAr ? "الأدوات" : "Tools"}</p>
               <ul className="mt-3 space-y-2 text-xs">
@@ -1413,7 +1346,7 @@ export function LandingView() {
               </ul>
             </div>
 
-            {/* Group 4: Resources */}
+            {/* List 4: Resources */}
             <div>
               <p className="text-[10px] font-semibold uppercase tracking-wider">{isAr ? "المحتوى" : "Resources"}</p>
               <ul className="mt-3 space-y-2 text-xs">
@@ -1423,25 +1356,26 @@ export function LandingView() {
                 <li><a href={isAr ? "/ar/blog" : "/blog"} className="hover:underline">{isAr ? "المدونة" : "Blog"}</a></li>
               </ul>
             </div>
+
+            {/* List 5: Legal & Basic — moved from the old single horizontal
+                bottom row into the list grid (Phase 131; per Owner directive
+                2026-08-25 these pages live in the footer only, not in the
+                header) */}
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-wider">{isAr ? "قانوني وأساسي" : "Legal & Basic"}</p>
+              <ul className="mt-3 space-y-2 text-xs">
+                {/* Audit 2026-08-30: was navigate() buttons → always EN. Real links
+                    now, AR-aware for pages that have Arabic mirrors. */}
+                <li><a href={isAr ? "/ar/about" : "/about"} className="hover:underline">{isAr ? "من نحن" : "About"}</a></li>
+                <li><a href="/contact" className="hover:underline">{isAr ? "تواصل معنا" : "Contact"}</a></li>
+                <li><a href={isAr ? "/ar/faq" : "/faq"} className="hover:underline">{isAr ? "أسئلة شائعة" : "FAQ"}</a></li>
+                <li><a href="/privacy" className="hover:underline">{isAr ? "الخصوصية" : "Privacy"}</a></li>
+                <li><a href="/terms" className="hover:underline">{isAr ? "الشروط" : "Terms"}</a></li>
+              </ul>
+            </div>
           </div>
 
-          {/* Group 5: Legal + Basic — bottom row (per Owner directive 2026-08-25:
-              legal/basic pages like About / Contact / Privacy / Terms / FAQ
-              live in the footer only, not in the header) */}
-          <div className="mt-8 border-t border-[#26292E] pt-6">
-            <p className="text-[10px] font-semibold uppercase tracking-wider mb-3">{isAr ? "قانوني وأساسي" : "Legal & Basic"}</p>
-            <ul className="flex flex-wrap gap-x-6 gap-y-2 text-xs">
-              {/* Audit 2026-08-30: was navigate() buttons → always EN. Real links
-                  now, AR-aware for pages that have Arabic mirrors. */}
-              <li><a href={isAr ? "/ar/about" : "/about"} className="hover:underline">{isAr ? "من نحن" : "About"}</a></li>
-              <li><a href="/contact" className="hover:underline">{isAr ? "تواصل معنا" : "Contact"}</a></li>
-              <li><a href={isAr ? "/ar/faq" : "/faq"} className="hover:underline">{isAr ? "أسئلة شائعة" : "FAQ"}</a></li>
-              <li><a href="/privacy" className="hover:underline">{isAr ? "الخصوصية" : "Privacy"}</a></li>
-              <li><a href="/terms" className="hover:underline">{isAr ? "الشروط" : "Terms"}</a></li>
-            </ul>
-          </div>
-
-          <div className="mt-6 border-t border-[#26292E] pt-4 text-center text-[10px] text-[#6B7075]">
+          <div className="mt-8 border-t border-[#26292E] pt-4 text-center text-[10px] text-[#6B7075]">
             {isAr ? "صُنع بحب لمجتمع اللياقة العربي" : "Built with care for the fitness community"}
           </div>
         </div>

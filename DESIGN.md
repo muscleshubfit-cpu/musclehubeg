@@ -127,7 +127,7 @@ prices/stat numbers.
 | `.meander-divider` | Greek-key band, repeat-x, 28px, opacity .85 | Section separators |
 | `.navbar-chrome` | sticky, `--navbar-bg` + blur(12px) + chrome bottom border | Site header |
 | `.evo-hero-card` / `.evo-hero-art` | Phase 127 EVO section card — text left, warrior art right with a mask fade into the marble; `[dir=rtl]` flips the mask | Homepage EVO section |
-| `.hero-art` | CSS background pair (light/dark artwork) at 92vh, cover center | Homepage hero |
+| `.hero-art` / `.hero-bg` | Phase 131 unified overlay — artwork = absolute cover layer (ThemeImg pair), content centered INSIDE it; min-height floor 100vw×713/1280 (92vh on wide viewports) | Homepage hero |
 
 **Buttons law:** there are exactly TWO button styles on marketing/hub
 surfaces — `.btn-chrome` (primary) and `.btn-outline` (secondary). No
@@ -203,25 +203,27 @@ filenames — so they must NEVER be long-cached in browsers:
 
 ## 7. Page Recipes
 
-### 7.1 Homepage hero (Phase 127 + 128 responsive law)
+### 7.1 Homepage hero (Phase 131 unified overlay)
 
-TWO modes, switched purely by viewport aspect ratio (globals.css
-`.hero-art` / `.hero-art-flow`):
+ONE mode at every viewport (globals.css `.hero-art` / `.hero-bg`): the
+artwork is an absolutely-positioned COVER layer (`.hero-bg`, ThemeImg
+pair, eager LCP) with the content — chrome logo lockup (`w-32` mobile →
+`w-64` desktop) → serif H1 → 3 hero-scoped smaller seal chips
+(`.hero-seals`) — centered INSIDE it (owner directive Phase 131:
+«تصغير اللوجو والنص والازرار قليلا ثم نقلهم داخل الصورة»; the stats
+subline is REMOVED). **No CTA buttons, no eyebrow wordmark** (Phase 127).
 
-- **aspect ≤ 3/2** (phones + tablets): the artwork is an IN-FLOW `<img>`
-  (`hero-art-flow`, ThemeImg pair at natural 1280×713 aspect, full width)
-  starting directly under the navbar — the complete image, sides intact,
-  zero header gap; content column flows below (`pb-12 pt-6 md:py-24`).
-- **aspect > 3/2** (laptops/desktops): full-bleed `hero-art` cover
-  background (92vh, no veil — artwork at full opacity) with centered
-  content: chrome logo lockup (`w-56` mobile → `w-80` desktop) → serif H1 →
-  stats subline → 3 seal chips. **No CTA buttons, no eyebrow wordmark**
-  (owner directive: buttons moved out; the quick-nav section below the
-  hero carries navigation).
+Height floors keep the artwork effectively complete:
 
-Law: `background-size: cover` crops the artwork's sides on any viewport
-narrower than the artwork ratio — brand hero art must never rely on cover
-below the 3/2 aspect switch.
+- **every viewport:** `min-height: 100vw × 713/1280` (natural artwork
+  height) — phones/tablets show the full scene, sides intact; the compact
+  content grows the box only a few px (cover then trims ≤ ~6% of the
+  decorative side margins).
+- **aspect > 1501/1000** (laptops/desktops): `min-height: 92vh`.
+
+Luminance law: the artwork center is clean in BOTH themes (bright in
+light / near-black in dark) → no veil ever; verify any new artwork the
+same way before shipping.
 
 **Navbar bar (Phase 128):** `[menu][theme] …… logo …… [lang][bell][account]`
 — the theme toggle lives on the MENU side (owner directive: it used to hug
@@ -234,14 +236,15 @@ the centered logo); RTL mirrors automatically.
 (a 1280×477 owner artwork strip in a marble-card frame, `mb-10`) → h1 +
 subline. Works in server components (plain `<img>` pair).
 
-### 7.3 EVO section card (Phase 127 + 128)
+### 7.3 EVO section card (Phase 127 + 128 + 131)
 
 One full-width `marble-card.evo-hero-card`: text column left (**h2 ONLY —
-the descriptive paragraph was removed by owner directive «امسح الوصف
-واكتفى بالعنوان» + `.btn-chrome` + `.btn-outline`**), warrior art
-absolutely positioned on the inline-end side (60% width desktop / 78%
-mobile) fading into the marble via CSS `mask-image`; `[dir=rtl]` mirrors
-art + mask.
+no description (Phase 128) and NO buttons (Phase 131 «ازاله الازرار»)**;
+title one step smaller `text-2xl md:text-4xl`), warrior art absolutely
+positioned on the inline-end side (60% width desktop / 78% mobile) fading
+into the marble via CSS `mask-image`; `[dir=rtl]` mirrors art + mask.
+Card min-height `280px` mobile / `340px` desktop (Phase 131 «تصغير ارتفاع
+الصورة قليلا»). The floating EVO widget stays the chat entry point.
 
 ### 7.4 Pricing cards
 
@@ -251,19 +254,24 @@ gradient ring (border-box trick) + laurel "Popular" seal-chip; prices in
 
 ### 7.5 Comparison tables
 
-Alkemos column highlighted with `--tint` + `--border-chrome` inset;
-"yes" = engraved `checkseal` icon; "no" = muted `×` at opacity .5.
+**ONE real `<table>` at every breakpoint (Phase 131 «عدله الى شكل جدول»
+— the Phase 128 mobile card stack is gone):** 4 columns (Feature /
+Alkemos / Traditional trainer / Free apps), Alkemos column highlighted
+with `--tint` + `--border-chrome` inset; "yes" = engraved `checkseal`
+icon; "no" = muted `×` at opacity .5. Below md the table compacts itself
+(`text-xs`, `p-2.5` cells, wrapped text, short trainer header label) so
+the grid stays readable with zero cutoff — cards are NEVER used.
 
-**Mobile (<md, Phase 128):** tables never fit — render stacked per-feature
-cards instead (one `marble-card` per row: feature name, then three
-label:value rows with the Alkemos row highlighted). Cell rendering is
-shared between modes (`renderCmpValue` in LandingView).
-
-### 7.6 Footer (always dark)
+### 7.6 Footer (always dark, list-menus)
 
 `.footer-marble` (#0B0B0D + marble-dark texture) + `.footer-meander-top`
 band on the top edge + white mono logo + light muted links (custom CSS
-overrides the app link color inside the footer).
+overrides the app link color inside the footer). Phase 131
+(«قوائم بدلاً من صف واحد»): menu-style vertical LISTS in a grid —
+`grid-cols-2` (phones) / `grid-cols-3` (md) / `grid-cols-6` (lg = brand +
+5 lists: Paid Services, Affiliate & Referral, Tools, Resources, Legal &
+Basic). Every footer link lives in a vertical list — no horizontal link
+rows. Bottom credit line centered above nothing else.
 
 ---
 
@@ -283,7 +291,8 @@ overrides the app link color inside the footer).
 ## 9. Performance Patterns
 
 - Hero artworks `<link rel="preload">`ed in the root layout (no CLS — the
-  hero is a fixed 92vh CSS background); hero logo light variant preloaded.
+  artwork layer is absolutely positioned; the logo keeps fixed CSS width);
+  hero logo light variant preloaded. The `.hero-bg` `<img>` is eager (LCP).
 - Theme image pairs: both variants in DOM, CSS shows one — zero JS churn.
 - Hub page banners lazy-decode; engraved icons `loading="lazy"`.
 - Server components render grids/pills/pagination (explorers) — client
