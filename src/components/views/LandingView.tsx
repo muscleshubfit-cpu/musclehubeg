@@ -232,6 +232,24 @@ function BlogCarousel({
   );
 }
 
+/**
+ * SectionBanner — Phase 126 (owner upload c53e6e8): a wide artwork banner
+ * (light/dark pair, WebP) at the top of each major section, from the
+ * owner's header-{section}-{light,dark} artwork. Decorative (aria-hidden).
+ */
+function SectionBanner({ section, className = "" }: { section: string; className?: string }) {
+  return (
+    <div className={`marble-card relative aspect-[1280/477] w-full ${className}`} aria-hidden="true">
+      <ThemeImg
+        light={`/images/brand/header-${section}-light.webp`}
+        dark={`/images/brand/header-${section}-dark.webp`}
+        alt=""
+        className="h-full w-full object-cover"
+      />
+    </div>
+  );
+}
+
 export function LandingView() {
   const { lang } = useI18n();
   const { isCoach } = useAuth();
@@ -559,6 +577,7 @@ export function LandingView() {
       {/* ===================== 4. FREE TOOLS ===================== */}
       <section id="tools" className="scroll-mt-20 bg-[var(--tint)] px-4 py-12 md:py-20">
         <div className="mx-auto max-w-4xl">
+          <SectionBanner section="tools" className="mb-10" />
           <div className="text-center">
             <Reveal>
               <h2 className="text-3xl font-semibold tracking-tight md:text-5xl">
@@ -598,6 +617,7 @@ export function LandingView() {
       {/* ===================== 5. EXERCISE LIBRARY ===================== */}
       <section id="exercises" className="scroll-mt-20 bg-[var(--bg)] px-4 py-12 md:py-20">
         <div className="mx-auto max-w-4xl">
+          <SectionBanner section="exercises" className="mb-10" />
           <div className="text-center">
             <Reveal>
               <h2 className="text-3xl font-semibold tracking-tight md:text-5xl">
@@ -654,6 +674,7 @@ export function LandingView() {
       {/* ===================== 6. WORKOUT PROGRAMS ===================== */}
       <section id="programs" className="scroll-mt-20 bg-[var(--tint)] px-4 py-12 md:py-20">
         <div className="mx-auto max-w-5xl">
+          <SectionBanner section="programs" className="mb-10" />
           <div className="text-center">
             <Reveal>
               <h2 className="text-3xl font-semibold tracking-tight md:text-5xl">
@@ -691,6 +712,7 @@ export function LandingView() {
       {/* ===================== 7. FOOD LIBRARY ===================== */}
       <section id="foods" className="scroll-mt-20 bg-[var(--bg)] px-4 py-12 md:py-20">
         <div className="mx-auto max-w-5xl">
+          <SectionBanner section="foods" className="mb-10" />
           <div className="text-center">
             <Reveal>
               <h2 className="text-3xl font-semibold tracking-tight md:text-5xl">
@@ -731,6 +753,7 @@ export function LandingView() {
       <div className="meander-divider" aria-hidden="true" />
         <section id="blog" className="scroll-mt-20 bg-[var(--tint)] px-4 py-12 md:py-20">
           <div className="mx-auto max-w-6xl">
+            <SectionBanner section="blog" className="mb-10" />
             {/* Latest Posts — carousel with light cards */}
             <div>
               <Reveal>
@@ -955,6 +978,7 @@ export function LandingView() {
       {/* ===================== 10. Premium Memberships ===================== */}
       <section id="memberships" className="scroll-mt-20 px-4 py-12 md:py-20" style={{ backgroundColor: PALETTE.sectionGray }}>
         <div className="mx-auto max-w-5xl">
+          <SectionBanner section="pricing" className="mb-10" />
           <Reveal>
             <h2 className="text-center text-3xl font-semibold tracking-tight md:text-5xl" style={{ color: PALETTE.textPrim }}>
               {isAr ? "اختر الباقة المناسبة لك" : "Choose the Right Plan for You"}

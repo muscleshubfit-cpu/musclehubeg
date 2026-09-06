@@ -1326,6 +1326,7 @@ Work Log:
 - الودجت (§5): أفاتار ThemeImg 56px دائري + توهج var(--ai) حلقة 2px في الدارك + الدرج بأسطح متغيرة و--ai لعناصر AI فقط · صفحة /evo كذلك
 - **Dark-Shim:** [data-theme=dark] يعيد توجيه أدوات Tailwind القديمة (bg-white/bg-[#f5f5f7]/text-[#1d1d1f]/text-[#6e6e73]/border-[#d2d2d7]) للتوكنز — الصفحات الثانوية (/tools /memberships …) داكنة سليمة (VLM تحقق) بلا تعديل مئات الملفات — اللايت بمساس صفر
 - صفر إيموجي في DOM: بيانات الأدوات/التمارين/البرامج/الأكلات + جدول المقارنة ✅❌ → أيقونات محفورة/رموز نصية
+- إضافي (رفع متأخر c53e6e8): 12 صورة رؤوس أقسام (blog/exercises/foods/pricing/programs/tools × light/dark) → بانرات 1280×477 WebP 19-64KB في أول كل قسم (SectionBanner marble-card) — VLM: مركّبة نظيفة بلا تداخل
 - البوابات (المرحلة 126): tsc 0 · eslint 0 · vitest 213/213 · migration_audit --ci PASS (بلا ميجريشن) · docs_parity 0 · docs_audit 0 · check-stale-refs 0 · check-ui-wiring 0 · next build ✓
 
 Stage Summary:
