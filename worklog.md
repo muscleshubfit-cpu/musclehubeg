@@ -1398,5 +1398,5 @@ Work Log:
 
 Stage Summary:
 - تعديلات المالك الأربعة منفذة كاملة: هيرو مشهد واحد (صورة + محتوى مدمج أصغر بلا سطر الإحصائيات) · EVO عنوان بلا أزرار وأقصر · فوتر قوائم أعمدة بدل الصف الواحد · جدول مقارنة حقيقي بكل المقاسات
-- Commit SHA: (يُدوَّن بعد الدفع)
-- Push status: (يُحدَّث بعد الدفع)
+- Commit SHA: d6a16b0
+- Push status: PUSHED — 6caf1d7..d6a16b0 main→main 2026-09-06 · تحقق إنتاجي (alkemos.com): build-info commitShort=d6a16b0 ✓ · DOM حي: heroOverlay=true · subline=false · evoButtons=0 · realTable=true · footerCols=2 موبايل · لقطات VLM حية (لايت/دارك/EVO/جدول/فوتر) كلها PASS · بلا صور متبدلة بأسمائها (نفس أصول 126/127) فلا purge إلزامي — HTML دائمًا غير مخزن
